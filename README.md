@@ -29,5 +29,5 @@ on figuring out the appropriate governance to make this happen.
 * Workstream #2: Evolution beyond what's currently in HLO/MHLO.
   Ongoing work on dynamism, sparsity, quantization and extensibility -
   ETA: H2 2022.
-* Workstream #3: Support for ML frameworks (TensorFlow, JAX, PyTorch/XLA) and
-  ML compilers (XLA and IREE) - ETA: pending bootstrapping of this repository.
+* Workstream #3: Support for ML frameworks (TensorFlow, JAX, PyTorch) and
+  ML compilers (XLA and IREE) - ETA: H2 2022.

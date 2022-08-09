@@ -1,4 +1,5 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,18 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "dialect/Ops.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
-#include "mlir/Tools/mlir-opt/MlirOptMain.h"
+include "mlir/Pass/PassBase.td"
 
-int main(int argc, char **argv) {
-  mlir::registerAllPasses();
-
-  mlir::DialectRegistry registry;
-  mlir::registerAllDialects(registry);
-  registry.insert<mlir::stablehlo::StableHLODialect>();
-
-  return failed(
-      mlir::MlirOptMain(argc, argv, "StableHLO optimizer driver\n", registry));
+def HloTestInferPass : Pass<"hlo-test-infer", "func::FuncOp"> {
+  let summary = "Uses test ops to invoke InferShapedTypeOpInterface methods.";
+  let constructor = "createHloTestInferPass()";
+  let dependentDialects = ["shape::ShapeDialect"];
 }

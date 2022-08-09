@@ -1,4 +1,5 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,29 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_DIALECT_OPS_H
-#define STABLEHLO_DIALECT_OPS_H
+#ifndef STABLEHLO_DIALECT_REGISTER_H
+#define STABLEHLO_DIALECT_REGISTER_H
 
-#include "llvm/ADT/StringRef.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/OpDefinition.h"
-#include "mlir/IR/Operation.h"
-#include "mlir/IR/Region.h"
+#include "mlir/IR/DialectRegistry.h"
 
 namespace mlir {
 namespace stablehlo {
 
-class StableHLODialect : public Dialect {
- public:
-  explicit StableHLODialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "stablehlo"; }
-};
+// Add chlo and stablehlo dialects to the provided registry.
+void registerAllDialects(DialectRegistry &registry);
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#define GET_OP_CLASSES
-#include "dialect/Ops.h.inc"
-
-#endif  // STABLEHLO_DIALECT_OPS_H
+#endif  // STABLEHLO_DIALECT_REGISTER_H

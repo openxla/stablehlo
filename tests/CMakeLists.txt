@@ -24,13 +24,31 @@ set(STABLEHLO_TEST_DEPENDS
         FileCheck count not
         stablehlo-opt
 )
-
 add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
         ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${STABLEHLO_TEST_DEPENDS}
         )
 set_target_properties(check-stablehlo-lit PROPERTIES FOLDER "Tests")
-
 add_lit_testsuites(STABLEHLO_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
-
 add_dependencies(check-stablehlo check-stablehlo-lit)
+
+set(LLVM_TARGET_DEFINITIONS TestUtils.td)
+mlir_tablegen(TestUtils.h.inc -gen-pass-decls -name HloTest)
+add_public_tablegen_target(StablehloTestUtilsIncGen)
+
+add_mlir_library(StablehloTestUtils
+  PARTIAL_SOURCES_INTENDED
+  TestUtils.cpp
+
+  DEPENDS
+  StablehloTestUtilsIncGen
+
+  LINK_LIBS PUBLIC
+  MLIRFuncDialect
+  MLIRInferTypeOpInterface
+  MLIRIR
+  MLIRPass
+  MLIRShapeDialect
+  MLIRSupport
+  MLIRTransformUtils
+)
