@@ -34,13 +34,14 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/TensorEncoding.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 
-// Include order below matters.
+// Include order matters.
 #include "dialect/StablehloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
 #include "dialect/StablehloAttrs.h.inc"
@@ -155,9 +156,9 @@ LogicalResult verifyReplicaGroups(OpT op, bool isUniformSized) {
 
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
-    Operation* op, DenseIntElementsAttr attr);
+    Operation *op, DenseIntElementsAttr attr);
 
-LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
+LogicalResult verifyReduceScatter(Operation *op, TypeRange operandTypes,
                                   TypeRange resultTypes,
                                   uint64_t scatterDimension);
 
@@ -168,19 +169,19 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
                                        ConvDimensionNumbersAttr &dnums);
 
 // Custom formatting for convolution window attributes.
-void printWindowAttributes(OpAsmPrinter& p, Operation* op,
+void printWindowAttributes(OpAsmPrinter &p, Operation *op,
                            llvm::Optional<DenseIntElementsAttr> windowStrides,
                            llvm::Optional<DenseIntElementsAttr> padding,
                            llvm::Optional<DenseIntElementsAttr> lhsDilation,
                            llvm::Optional<DenseIntElementsAttr> rhsDilation,
                            llvm::Optional<DenseElementsAttr> windowReversal);
 
-ParseResult parseWindowAttributes(OpAsmParser& parser,
-                                  DenseIntElementsAttr& windowStrides,
-                                  DenseIntElementsAttr& padding,
-                                  DenseIntElementsAttr& lhsDilation,
-                                  DenseIntElementsAttr& rhsDilation,
-                                  DenseElementsAttr& windowReversal);
+ParseResult parseWindowAttributes(OpAsmParser &parser,
+                                  DenseIntElementsAttr &windowStrides,
+                                  DenseIntElementsAttr &padding,
+                                  DenseIntElementsAttr &lhsDilation,
+                                  DenseIntElementsAttr &rhsDilation,
+                                  DenseElementsAttr &windowReversal);
 
 }  // end namespace stablehlo
 }  // end namespace mlir

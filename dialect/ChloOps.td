@@ -31,6 +31,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_CHLO_OPS
 
 include "dialect/Base.td"
+include "mlir/IR/BuiltinAttributeInterfaces.td"
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
@@ -636,7 +637,7 @@ def CHLO_ConstantLikeOp : CHLO_Op<"constant_like", [NoSideEffect,
   }];
 
   // TODO(jpienaar): value's type could be tightened.
-  let arguments = (ins AnyAttr:$value, HLO_Tensor:$operand);
+  let arguments = (ins TypedAttrInterface:$value, HLO_Tensor:$operand);
   let results = (outs HLO_Tensor);
 
   let hasFolder = 1;

@@ -20,10 +20,12 @@ limitations under the License.
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Traits.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 
+// Include order matters
 #include "dialect/ChloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "dialect/ChloAttrs.cpp.inc"
@@ -210,11 +212,12 @@ LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
 void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
                                Value lhs, Value rhs,
                                DenseIntElementsAttr broadcastDimensions,
-                               ComparisonDirection comparisonDirection,
-                               ComparisonType compareType) {
+                               chlo::ComparisonDirection comparisonDirection,
+                               chlo::ComparisonType compareType) {
   build(builder, result, lhs, rhs, broadcastDimensions,
-        ComparisonDirectionAttr::get(builder.getContext(), comparisonDirection),
-        ComparisonTypeAttr::get(builder.getContext(), compareType));
+        chlo::ComparisonDirectionAttr::get(builder.getContext(),
+                                           comparisonDirection),
+        chlo::ComparisonTypeAttr::get(builder.getContext(), compareType));
 }
 
 LogicalResult BroadcastCompareOp::inferReturnTypeComponents(
@@ -346,7 +349,7 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
     RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   ConstantLikeOp::Adaptor op(operands, attributes);
-  if (failed(op.verify(location.getValue()))) return failure();
+  if (failed(op.verify(location.value()))) return failure();
   Type elementType = op.value().getType();
   Type operandType = op.operand().getType();
   if (operandType.isa<UnrankedTensorType>()) {
@@ -361,22 +364,17 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
 LogicalResult ConstantLikeOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  return ::mlir::hlo::deriveShapeFromOperand(
-      &builder, getOperation(), operands.front(), &reifiedReturnShapes);
+  return hlo::deriveShapeFromOperand(&builder, getOperation(), operands.front(),
+                                     &reifiedReturnShapes);
 }
 
 OpFoldResult ConstantLikeOp::fold(ArrayRef<Attribute> /*operands*/) {
   auto opType = operand().getType().cast<ShapedType>();
   if (!opType.hasStaticShape()) return {};
   auto type = RankedTensorType::get(opType.getShape(), value().getType());
+  if (auto complexAttr = value().dyn_cast<complex::NumberAttr>())
+    return DenseElementsAttr::get(type, complexAttr.getValue());
   return DenseElementsAttr::get(type, value());
-}
-
-OpFoldResult ConstantOp::fold(ArrayRef<Attribute> operands) {
-  assert(operands.empty() && "constant has no operands");
-
-  // Return the held attribute value.
-  return value();
 }
 
 LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
@@ -493,10 +491,14 @@ LogicalResult TopKOp::inferReturnTypeComponents(
 // ConstantOp
 //===----------------------------------------------------------------------===//
 
+OpFoldResult ConstantOp::fold(ArrayRef<Attribute> /*operands*/) {
+  return value();
+}
+
 LogicalResult ConstantOp::inferReturnTypes(
     MLIRContext*, Optional<Location>, ValueRange, DictionaryAttr attributes,
     RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  Type type = attributes.get("value").getType();
+  Type type = attributes.get("value").cast<TypedAttr>().getType();
   inferredReturnTypes.push_back(type);
   return success();
 }
@@ -529,7 +531,8 @@ ChloDialect::ChloDialect(MLIRContext* context)
 Operation* ChloDialect::materializeConstant(OpBuilder& builder, Attribute value,
                                             Type type, Location loc) {
   if (value.isa<ElementsAttr>())
-    return builder.create<ConstantOp>(loc, type, value.cast<ElementsAttr>());
+    return builder.create<chlo::ConstantOp>(loc, type,
+                                            value.cast<ElementsAttr>());
   return nullptr;
 }
 

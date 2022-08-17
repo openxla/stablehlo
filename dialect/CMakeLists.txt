@@ -13,9 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set(LLVM_TARGET_DEFINITIONS Base.td)
+mlir_tablegen(BaseAttrInterfaces.h.inc -gen-attr-interface-decls)
+mlir_tablegen(BaseAttrInterfaces.cpp.inc -gen-attr-interface-defs)
+add_public_tablegen_target(StablehloBaseIncGen)
+
 add_mlir_library(StablehloBase
   PARTIAL_SOURCES_INTENDED
   Base.cpp
+
+  DEPENDS
+  StablehloBaseIncGen
 
   LINK_LIBS PUBLIC
   MLIRInferTypeOpInterface

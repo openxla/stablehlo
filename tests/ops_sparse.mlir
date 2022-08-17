@@ -1,6 +1,6 @@
 // RUN: stablehlo-opt %s -verify-diagnostics | FileCheck %s
 
-// Tests for sparse types. Note that most dense MHLO ops can be made sparse
+// Tests for sparse types. Note that most dense stablehlo ops can be made sparse
 // by simply annotating one or more of the tensor types as sparse. Other than
 // subtle printing and parsing difference (due to having different input and
 // output types), dense or sparse ops are semantically equivalent.

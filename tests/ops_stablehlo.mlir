@@ -41,6 +41,26 @@ func.func @invalid_reduce_scatter(%data: tensor<4x16xf32>) -> tensor<4x5xf32> {
 
 // -----
 
+func.func @main(%arg0: tensor<10xf32>) -> tensor<10xf32> {
+  %0 = "stablehlo.all_reduce"(%arg0) ({
+  // Perform max reduction inside the region
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
+    "stablehlo.return"(%max) : (tensor<f32>) -> ()
+  })
+  {
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>,
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 2
+    >,
+    use_global_device_ids
+  } : (tensor<10xf32>) -> tensor<10xf32>
+  func.return %0 : tensor<10xf32>
+}
+
+// -----
+
 func.func @invalid_reduce_scatter(%data: tensor<4x0xf32>) -> tensor<4x4xf32> {
   // expected-error@+1 {{operand scatter dimension cannot be zero}}
   %0 = "stablehlo.reduce_scatter"(%data) ({
@@ -524,23 +544,6 @@ func.func @case_nested_different_return_types(%index : tensor<i32>, %branch_oper
 
 // -----
 
-func.func @case_mismatch_num_results(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
-  // expected-error@+1 {{branch 1 returned types ('tensor<f32>', 'tensor<f32>') do not match op result types ('tensor<f32>')}}
-  %0 = "stablehlo.case"(%index) ({
-      %1 = "stablehlo.negate"(%operand_1) : (tensor<f32>) -> tensor<f32>
-      "stablehlo.return"(%1) : (tensor<f32>) -> ()
-    },  {
-      "stablehlo.return"(%operand_2, %operand_2) : (tensor<f32>, tensor<f32>) -> ()
-    },  {
-      %1 = "stablehlo.floor"(%operand_3) : (tensor<f32>) -> tensor<f32>
-      "stablehlo.return"(%1) : (tensor<f32>) -> ()
-    }
-  ) : (tensor<i32>) -> tensor<f32>
-  func.return %0 : tensor<f32>
-}
-
-// -----
-
 func.func @case_mismatch_return_type(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
   // expected-error@+1 {{branch 1 returned types ('tensor<i32>') do not match op result types ('tensor<f32>')}}
   %0 = "stablehlo.case"(%index) ({
@@ -955,10 +958,11 @@ func.func @imag_mismatch_return_element_type(%arg0: tensor<2xf32>) -> tensor<2xf
 
 // -----
 
-func.func @infeed_non_token_second_result(%token: !stablehlo.token) -> tensor<i32> {
+func.func @infeed_non_token_second_result(%token: !stablehlo.token) -> tuple<tensor<i32>, tensor<i32>> {
   // expected-error@+1 {{last element of result types is expected to be of token type, but got 'tensor<i32>'}}
   %0:2 = "stablehlo.infeed"(%token) {infeed_config = "foobar", layout = [[[0]], [0]]} : (!stablehlo.token) -> (tensor<i32>, tensor<i32>)
-  func.return %0#0 : tensor<i32>
+  %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<i32>, tensor<i32>) -> tuple<tensor<i32>, tensor<i32>>
+  func.return %1 : tuple<tensor<i32>, tensor<i32>>
 }
 
 // -----
@@ -1171,7 +1175,7 @@ func.func @real_mismatch_return_element_type(%arg0: tensor<2x3xcomplex<f32>>) ->
 
 // -----
 
-func.func @recv_non_token_second_result(%token: !stablehlo.token) -> tensor<3x4xi32> {
+func.func @recv_non_token_second_result(%token: !stablehlo.token) -> tuple<tensor<3x4xi32>, tensor<i32>> {
   // expected-error@+1 {{last element of result types is expected to be of token type, but got 'tensor<i32>'}}
   %0:2 = "stablehlo.recv"(%token) {
     channel_handle = #stablehlo.channel_handle<
@@ -1180,7 +1184,8 @@ func.func @recv_non_token_second_result(%token: !stablehlo.token) -> tensor<3x4x
     >,
     is_host_transfer = true
   } : (!stablehlo.token) -> (tensor<3x4xi32>, tensor<i32>)
-  func.return %0#0 : tensor<3x4xi32>
+  %1 =  "stablehlo.tuple"(%0#0, %0#1) : (tensor<3x4xi32>, tensor<i32>) -> tuple<tensor<3x4xi32>, tensor<i32>>
+  func.return %1 : tuple<tensor<3x4xi32>, tensor<i32>>
 }
 
 // -----
@@ -1803,6 +1808,37 @@ func.func @triangular_solve_mismatch_result_and_b_type(%arg0: tensor<4x4xf32>, %
 
 // -----
 
+// CHECK-LABEL: func @tuple
+func.func @tuple(%arg0: tensor<1xi32>, %arg1: tensor<1x2xf32>) -> tuple<tensor<1xi32>, tensor<1x2xf32>> {
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<1xi32>, tensor<1x2xf32>) -> tuple<tensor<1xi32>, tensor<1x2xf32>>
+  func.return %0: tuple<tensor<1xi32>, tensor<1x2xf32>>
+}
+
+// -----
+
+func.func @tuple_token(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> tuple<tensor<f32>, !stablehlo.token> {
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, !stablehlo.token) -> tuple<tensor<f32>, !stablehlo.token>
+  func.return %0 : tuple<tensor<f32>, !stablehlo.token>
+}
+
+// -----
+
+func.func @tuple_arg_size_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>> {
+  // expected-error@+1 {{number of operands to tuple expected to match number of types}}
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>>
+  func.return %0 : tuple<tensor<f32>, tensor<f32>, tensor<f32>>
+}
+
+// -----
+
+func.func @tuple_type_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<i32>> {
+  // expected-error@+1 {{op has return type mismatch at 1th value}}
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<i32>>
+  func.return %0 : tuple<tensor<f32>, tensor<i32>>
+}
+
+// -----
+
 func.func @get_tuple_element(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
   %0 = "stablehlo.get_tuple_element"(%arg0) {index = 0 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
   func.return %0 : tensor<f32>
@@ -2014,6 +2050,19 @@ func.func @sort_invalid_comparator_return_type(%input0: tensor<16x16xf32>, %inpu
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
     %cst = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
     "stablehlo.return"(%cst) : (tensor<3xi64>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_invalid_comparator_return_type(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator must return tensor<i1>, but got: 'tuple<tensor<i1>>'}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %1 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    %2 = "stablehlo.tuple"(%1) : (tensor<i1>) -> tuple<tensor<i1>>
+    "stablehlo.return"(%2) : (tuple<tensor<i1>>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
 }
@@ -3418,13 +3467,14 @@ func.func @conv2d(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -
 // CHECK: stablehlo.convolution
 // CHECK-SAME: dim_numbers = [b, f]x[i, o]->[b, f]
 // CHECK-SAME{LITERAL}: window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [], reverse = []}
-func.func @conv_empty_spatial_dimensions(%arg0: tensor<3x2xf16>, %arg1: tensor<2x2xf16>) -> tensor<3x2xf16> {
+func.func @conv_empty_spatial_dimensions(%arg0: tensor<3x2xf16>, %arg1: tensor<2x2xf16>) -> tuple<tensor<3x2xf16>> {
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, f]x[i, o]->[b, f],
          window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [], reverse = []}
          {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]}
        : (tensor<3x2xf16>, tensor<2x2xf16>) -> tensor<3x2xf16>
-  func.return %0 : tensor<3x2xf16>
+  %1 = "stablehlo.tuple"(%0) : (tensor<3x2xf16>) -> tuple<tensor<3x2xf16>>
+  func.return %1 : tuple<tensor<3x2xf16>>
 }
 // -----
 
@@ -3656,6 +3706,39 @@ func.func @while_with_invalid_types(%arg0: tensor<3xf32>) -> tensor<3xf32> {
     "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<3xf32>, tensor<1xf32>)
   func.return %1#2: tensor<3xf32>
+}
+
+// -----
+
+func.func @while_with_invalid_tuples(%arg0: tensor<3xf32>) -> tensor<3xf32> {
+  %cst_0 = arith.constant dense<0> : tensor<1xi32>
+  %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
+  %cst_2 = arith.constant dense<1.00> : tensor<1xf32>
+  %0 = "stablehlo.tuple"(%arg0, %cst_2) : (tensor<3xf32>, tensor<1xf32>) -> tuple<tensor<3xf32>, tensor<1xf32>>
+  %1 = "stablehlo.tuple"(%cst_1, %0) : (tensor<2xi32>, tuple<tensor<3xf32>, tensor<1xf32>>) -> tuple<tensor<2xi32>, tuple<tensor<3xf32>, tensor<1xf32>>>
+  // expected-error @+1 {{op operand #1 must be tensor of 16-bit float or 32-bit float or 64-bit float or bfloat16 type or pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or complex type with 32-bit float or 64-bit float elements or 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values or token}}
+  %2:2 = "stablehlo.while"(%cst_0, %1) ({
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>):
+    %t0 = "stablehlo.get_tuple_element"(%arg2) {index = 0 : i32} : (tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>) -> tensor<2xi32>
+    %3 = arith.constant dense<0> : tensor<i32>
+    %4 = "stablehlo.slice"(%t0) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %5 = "stablehlo.compare"(%arg1, %4) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
+    "stablehlo.return"(%5) : (tensor<1xi1>) -> ()
+  },  {
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>):
+    %t0 = "stablehlo.get_tuple_element"(%arg2) {index = 0 : i32} : (tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>) -> tensor<2xi32>
+    %t1_2 = "stablehlo.get_tuple_element"(%arg2) {index = 1 : i32} : (tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>) -> tuple<tensor<1xf32>, tensor<3xf32>>
+    %t1 = "stablehlo.get_tuple_element"(%t1_2) {index = 0 : i32} : (tuple<tensor<1xf32>, tensor<3xf32>>) -> tensor<1xf32>
+    %t2 = "stablehlo.get_tuple_element"(%t1_2) {index = 1 : i32} : (tuple<tensor<1xf32>, tensor<3xf32>>) -> tensor<3xf32>
+    %3 = "stablehlo.broadcast_in_dim"(%t1) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %4 = stablehlo.add %3, %t2 : tensor<3xf32>
+    %5 = "stablehlo.tuple"(%t1, %4) : (tensor<1xf32>, tensor<3xf32>) -> tuple<tensor<1xf32>, tensor<3xf32>>
+    %6 = "stablehlo.tuple"(%t0, %5) : (tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>) -> tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>
+    "stablehlo.return"(%arg1, %6) : (tensor<1xi32>, tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>) -> ()
+  }) : (tensor<1xi32>, tuple<tensor<2xi32>, tuple<tensor<3xf32>, tensor<1xf32>>>) -> (tensor<1xi32>, tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>)
+  %3 = "stablehlo.get_tuple_element"(%2#1) {index = 1 : i32} : (tuple<tensor<2xi32>, tuple<tensor<1xf32>, tensor<3xf32>>>) -> tuple<tensor<1xf32>, tensor<3xf32>>
+  %4 = "stablehlo.get_tuple_element"(%3) {index = 1 : i32} : (tuple<tensor<1xf32>, tensor<3xf32>>) -> tensor<3xf32>
+  func.return %4: tensor<3xf32>
 }
 
 // -----
@@ -3957,18 +4040,20 @@ func.func @error_incompatible_alias_element_types (%arg0: tensor<2xf32> {stableh
 
 // stablehlo.batch_norm_training
 
-func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
+func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>> {
   // expected-error@+1 {{expects feature_index to be smaller than the rank of operand type; got feature_index 4, and rank 4.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 4 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
+  %1 = "stablehlo.tuple"(%0#0, %0#1, %0#2) : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
+  func.return %1 : tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
 }
 
 // -----
 
-func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
+func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>> {
   // expected-error@+1 {{expects feature_index to be a non-negative number, got -1.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = -1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
+  %1 = "stablehlo.tuple"(%0#0, %0#1, %0#2) : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
+  func.return %1 : tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
 }
 
 // -----
@@ -4103,10 +4188,50 @@ func.func @error_batch_norm_grad(%input: tensor<?x2x2x2xf32>, %scale: tensor<2xf
 
 // -----
 
-// CHECK-LABEL: @rfft
-func.func @rfft(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
+// CHECK-LABEL: @fft
+func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
+}
+
+// -----
+
+// CHECK-LABEL: @ifft
+func.func @ifft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+  func.return %0 : tensor<3x9xcomplex<f32>>
+}
+
+// -----
+
+// CHECK-LABEL: @rfft
+func.func @rfft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+  func.return %0 : tensor<3x5xcomplex<f32>>
+}
+
+// -----
+
+// CHECK-LABEL: @irfft
+func.func @irfft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32> {
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32>
+  func.return %0 : tensor<3x16xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @rfft_unranked
+func.func @rfft_unranked(%arg0: tensor<*xf32>) -> tensor<*xcomplex<f32>> {
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<*xf32>) -> tensor<*xcomplex<f32>>
+  func.return %0 : tensor<*xcomplex<f32>>
+}
+
+// -----
+
+func.func @rfft_not_float32or64(%arg0: tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>> {
+  // expected-error@+1 {{RFFT requires f32 or f64 input type, but is given 'f16'.}}
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>>
+  func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
 // -----
@@ -4120,7 +4245,7 @@ func.func @fft_invalid_rank(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> 
 // -----
 
 func.func @fft_rank_mismatch(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
-  // expected-error@+1 {{operand rank must be greater than fft rank of 3 for operand of type 'tensor<3x9xf32>'}}
+  // expected-error@+1 {{operand rank must not be less than fft rank of 3 for operand of type 'tensor<3x9xf32>'}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<3xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
@@ -4128,7 +4253,7 @@ func.func @fft_rank_mismatch(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
 // -----
 
 func.func @rfft_invalid_dim(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
-  // expected-error@+1 {{RFFT requires innermost dimensions match fft_length. Got: 3, 9 but wanted dense<9> : tensor<2xi64>.}}
+  // expected-error@+1 {{RFFT requires innermost dimensions match fft_length. Got: 3, 9 but wanted 9, 9.}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<2xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
@@ -4136,7 +4261,7 @@ func.func @rfft_invalid_dim(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> 
 // -----
 
 func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32> {
-  // expected-error@+1 {{IRFFT requires non-final dimensions match fft_length. Got: 3, 9 but wanted dense<9> : tensor<2xi64>, and 3 != 9.}}
+  // expected-error@+1 {{IRFFT requires non-final dimensions match fft_length. Got: 3, 9 but wanted 9, 9, and 3 != 9.}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<2xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
@@ -4144,7 +4269,7 @@ func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
 // -----
 
 func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32> {
-  // expected-error@+1 {{IRFFT requires innermost dimension match fft_length[-1]/2+1. Got: 3, 9 but fft_length is dense<9> : tensor<1xi64>.}}
+  // expected-error@+1 {{IRFFT requires innermost dimension match fft_length[-1]/2+1. Got: 3, 9 but fft_length is 9.}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
@@ -4159,24 +4284,16 @@ func.func @irfft_invalid_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
 
 // -----
 
-func.func @rfft_invalid_elt(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32> {
-  // expected-error@+1 {{RFFT takes a real tensor as input, but is given 'tensor<3x9xcomplex<f32>>'.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
-  func.return %0 : tensor<3x9xf32>
-}
-
-// -----
-
-func.func @irfft_invalid_ret_elt(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
-  // expected-error@+1 {{IRFFT produces a real tensor as output, but is given 'tensor<3x9xcomplex<f32>>'.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
-  func.return %0 : tensor<3x9xcomplex<f32>>
+func.func @irfft_invalid_ret_elt(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xcomplex<f32>> {
+  // expected-error@+1 {{inferred type(s) 'tensor<3x16xf32>' are incompatible with return type(s) of operation 'tensor<3x16xcomplex<f32>>'}}
+  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xcomplex<f32>>
+  func.return %0 : tensor<3x16xcomplex<f32>>
 }
 
 // -----
 
 func.func @rfft_invalid_ret_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xf32> {
-  // expected-error@+1 {{RFFT produces a complex tensor as output, but is given 'tensor<3x9xf32>'.}}
+  // expected-error@+1 {{inferred type(s) 'tensor<3x5xcomplex<f32>>' are incompatible with return type(s) of operation 'tensor<3x9xf32>'}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
@@ -4276,6 +4393,22 @@ func.func @uniform_requantize(%arg: tensor<16x16x!quant.uniform<i8:f32, 5.0:20>>
 // CHECK: func @uniform_dequantize
 func.func @uniform_dequantize(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32> {
   %0 = stablehlo.uniform_dequantize(%arg) : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
+  func.return %0 : tensor<16x16xf32>
+}
+
+// -----
+
+// CHECK: func @uniform_dequantize_unranked
+func.func @uniform_dequantize_unranked(%arg: tensor<*x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<*xf32> {
+  %0 = stablehlo.uniform_dequantize(%arg) : (tensor<*x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
+func.func @uniform_dequantize_not_quantize(%arg: tensor<16x16xf32>) -> tensor<16x16xf32> {
+  // expected-error@+1 {{operand #0 must be tensor of 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<16x16xf32>'}}
+  %0 = stablehlo.uniform_dequantize(%arg) : (tensor<16x16xf32>) -> tensor<16x16xf32>
   func.return %0 : tensor<16x16xf32>
 }
 
@@ -4595,6 +4728,30 @@ func.func @is_compatible_quant_storage_mismatch(%arg0: tensor<1x!quant.uniform<i
 func.func @is_compatible_quant_signedness_mismatch(%arg0: tensor<1x!quant.uniform<i8:f32, 1.0:17>>) {
   // expected-error@+1 {{op requires compatible types for all operands and results}}
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<1x!quant.uniform<i8:f32, 1.0:17>>, tensor<1x!quant.uniform<i8:f32, 1.0:17>>) -> tensor<1x!quant.uniform<u8:f32, 1.0:17>>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: is_compatible_dynamism_bounds
+func.func @is_compatible_dynamism_bounds_mismatch(
+  %arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
+  %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) {
+  %0 = "stablehlo.add"(%arg0, %arg1) : (
+    tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
+    tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) -> tensor<3xf32>
+  func.return
+}
+
+// -----
+
+func.func @is_compatible_dynamism_bounds_mismatch(
+  %arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
+  %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) {
+  // expected-error@+1 {{requires compatible types for all operands and results}}
+  %0 = "stablehlo.add"(%arg0, %arg1) : (
+    tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
+    tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) -> tensor<5xf32>
   func.return
 }
 

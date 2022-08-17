@@ -22,6 +22,10 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
+//===----------------------------------------------------------------------===//
+// HLO type definitions.
+//===----------------------------------------------------------------------===//
+
 def HLO_Pred : TypeAlias<I1, "pred (AKA boolean or 1-bit integer)">;
 
 // TODO(hinsu): Use signed integers instead of signless integer which is being
@@ -97,10 +101,6 @@ def HLO_QuantizedInt :
 // matching the matrix to dimensions 1 and 2 of the cuboid.
 defvar BroadcastDimAttr = I64ElementsAttr;
 
-//===----------------------------------------------------------------------===//
-// HLO type definitions.
-//===----------------------------------------------------------------------===//
-
 // Token type.
 def HLO_Token : Type<CPred<"$_self.isa<TokenType>()">, "token">;
 
@@ -161,7 +161,7 @@ def HLO_IntFpOrComplexTensor : TensorOf<[HLO_Int, HLO_Float, HLO_Complex]>;
 def HLO_PredIntOrFpTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
 
 //===----------------------------------------------------------------------===//
-// Common traits
+// HLO traits
 //===----------------------------------------------------------------------===//
 
 class HLO_NativeOpTrait<string name> : NativeOpTrait<name> {
@@ -190,5 +190,25 @@ def HLO_CompatibleOperandsAndResultType : TraitList<
     DeclareOpInterfaceMethods<InferShapedTypeOpInterface, ["inferReturnTypeComponents"]>,
     HLO_NativeOpTrait<"CompatibleOperandsAndResultType">
   ]>;
+
+def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
+  let cppNamespace = "::mlir::hlo";
+
+  let description = [{
+    This interface is used for attributes that carry bounds for dimension sizes
+    of an accompanying shaped type, e.g. when the attribute represents a
+    RankedTensorType::getEncoding.
+    The number of bounds is expected to be the same as the number of dimensions
+    in the accompanying shaped type.
+    For a static dimension, the corresponding bound is ShapedType::kDynamicSize.
+    For a dynamic dimension, the corresponding bound is either known and is
+    a non-negative number or unknown and is ShapedType::kDynamicSize.
+  }];
+
+  let methods = [InterfaceMethod<
+    "Get the attribute's bounds",
+    "::llvm::ArrayRef<int64_t>", "getBounds"
+  >];
+}
 
 #endif // STABLEHLO_DIALECT_BASE

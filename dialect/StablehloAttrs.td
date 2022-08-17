@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_STABLEHLO_ATTRS
 
 include "mlir/IR/OpBase.td"
+include "mlir/IR/TensorEncoding.td"
 
 def StableHLO_Dim : ArrayRefParameter<"int64_t", "Dimension">;
 
@@ -124,7 +125,9 @@ def StableHLO_ChannelHandle : AttrDef<StableHLO_Dialect, "ChannelHandle"> {
 
 // Note: This is an experimental attribute and shouldn't be relied upon for
 // production.
-def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions"> {
+def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
+    DeclareAttrInterfaceMethods<VerifiableTensorEncoding>,
+    DeclareAttrInterfaceMethods<HLO_BoundedAttrInterface>]> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "type_extensions";
 
@@ -134,22 +137,16 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions"> {
     ArrayRefParameter<"int64_t">:$bounds
   );
 
-  let summary = "Attribute that extends tensor type with HLO type properties.";
+  let summary = "Attribute that extends tensor type with StableHLO type properties.";
 
   let description = [{
-    This attribute is used to extend MLIR tensor type with HLO tensor specific
-    properties. These properties aren't modeled in the MLIR type. This
+    This attribute is used to extend MLIR tensor type with StableHLO tensor
+    specific properties. These properties aren't modeled in the MLIR type. This
     attribute is set in the `encoding` field of the tensor type.
 
-    Bounds parameter specifies the maximum runtime dimension size for
-    dimensions with unknown size. If the bound are not known for any of the
-    dimensions, it is set to ShapedType::kDynamicSize. Bound is undefined for
-    static dimensions. Bounds array has the same size as rank of the tensor.
+    See `HLO_BoundedAttrInterface` for documentation for `bounds`.
   }];
   let assemblyFormat = "`<` `bounds` `=` `[` $bounds `]` `>`";
-
-  // TODO(hinsu): Add verification for bounds that it has the same size as rank
-  // of the tensor and static dimensions don't have bounds.
 }
 
 // A layout attribute (1D tensor of index type)
@@ -173,11 +170,6 @@ def StableHLO_FlatSymbolRefArrayAttr :
   TypedArrayAttrBase<FlatSymbolRefAttr, "flat symbol ref array attribute"> {
   let constBuilderCall = "::mlir::ArrayAttr::get($_builder.getContext(), $0)";
 }
-
-// TODO(b/129153247) See if it's possible to also validate the size.
-def StableHLO_PrecisionConfigAttr:
-    OptionalAttr<
-          TypedArrayAttrBase<StableHLO_PrecisionAttr, "Precision Config attribute">>;
 
 def StableHLO_BoolElementsAttr :
     ElementsAttrBase<

@@ -37,7 +37,7 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-// Include order below matters.
+// Include order matters
 #include "dialect/ChloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
 #include "dialect/ChloAttrs.h.inc"
@@ -53,9 +53,9 @@ class ChloDialect : public Dialect {
   Operation* materializeConstant(OpBuilder& builder, Attribute value, Type type,
                                  Location loc) override;
 
-  Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
+  Attribute parseAttribute(DialectAsmParser& parser, Type type) const override;
 
-  void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+  void printAttribute(Attribute attr, DialectAsmPrinter& os) const override;
 };
 
 }  // namespace chlo

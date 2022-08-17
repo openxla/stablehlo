@@ -63,7 +63,7 @@ func.func @convolution_upcast(%arg0 : tensor<100x26x26x32xi8>,
 // CHECK-SAME: window = {stride = [], pad = [], lhs_dilate = [],
 // CHECK-SAME: rhs_dilate = [], reverse = []}
 func.func @conv_empty_spatial_dimensions(%arg0: tensor<3x2xf16>,
-    %arg1: tensor<2x2xf16>) -> tensor<3x2xf16> {
+    %arg1: tensor<2x2xf16>) -> tuple<tensor<3x2xf16>> {
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, f]x[i, o]->[b, f],
          window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [],
@@ -74,7 +74,8 @@ func.func @conv_empty_spatial_dimensions(%arg0: tensor<3x2xf16>,
            precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
          }
        : (tensor<3x2xf16>, tensor<2x2xf16>) -> tensor<3x2xf16>
-  func.return %0 : tensor<3x2xf16>
+  %1 = "stablehlo.tuple"(%0) : (tensor<3x2xf16>) -> tuple<tensor<3x2xf16>>
+  func.return %1 : tuple<tensor<3x2xf16>>
 }
 
 // -----

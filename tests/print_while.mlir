@@ -1,7 +1,6 @@
 // RUN: stablehlo-opt %s | FileCheck %s
 // RUN: stablehlo-opt %s | stablehlo-opt | FileCheck %s
 
-
 // CHECK-LABEL: func @while
 func.func @while() -> (tensor<i32>, tensor<i32>, tensor<i32>) {
 // CHECK-DAG: %[[CST_M1:.*]] = arith.constant dense<-1>

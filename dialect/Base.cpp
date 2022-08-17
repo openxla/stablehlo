@@ -23,6 +23,9 @@ limitations under the License.
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LLVM.h"
 
+// Include order matters
+#include "dialect/BaseAttrInterfaces.cpp.inc"
+
 namespace mlir {
 namespace hlo {
 
@@ -30,6 +33,33 @@ namespace {
 Type getExpressedTypeOrSelf(Type type) {
   auto quantType = type.dyn_cast<quant::QuantizedType>();
   return quantType ? quantType.getExpressedType() : type;
+}
+
+LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
+  if (failed(verifyCompatibleShape(type1, type2))) return failure();
+
+  // Verify shapes against bounds
+  auto isCompatible = [](ArrayRef<int64_t> shape,
+                         BoundedAttrInterface boundedAttr) {
+    if (shape.empty() || !boundedAttr) return true;
+    auto bounds = boundedAttr.getBounds();
+    for (auto [dim_size, bound] : llvm::zip(shape, bounds))  // NOLINT
+      if (bound != ShapedType::kDynamicSize && bound < dim_size) return false;
+    return true;
+  };
+
+  RankedTensorType rankedType1 = type1.dyn_cast<RankedTensorType>();
+  RankedTensorType rankedType2 = type2.dyn_cast<RankedTensorType>();
+  if (rankedType1 && rankedType2) {
+    auto boundedAttr1 =
+        rankedType1.getEncoding().dyn_cast_or_null<BoundedAttrInterface>();
+    auto boundedAttr2 =
+        rankedType2.getEncoding().dyn_cast_or_null<BoundedAttrInterface>();
+    return LogicalResult::success(
+        isCompatible(rankedType1.getShape(), boundedAttr2) &&
+        isCompatible(rankedType2.getShape(), boundedAttr1));
+  }
+  return success();
 }
 }  // namespace
 
@@ -43,12 +73,10 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   //       2.2) Or both dimensions are equal.
   // These relaxed rules simplify the implementation of type inference, allowing
   // ops with partially inferred types to pass verification.
-  // No additional code is needed to check bounded cases.
-  // Individual ops may introduce additional constraints.
   auto stp1 = tp1.dyn_cast<ShapedType>();
   auto stp2 = tp2.dyn_cast<ShapedType>();
   if (stp1 && stp2) {
-    return succeeded(verifyCompatibleShape(stp1, stp2)) &&
+    return succeeded(verifyCompatibleShapeWithBounds(stp1, stp2)) &&
            isCompatibleForHloTypeInference(stp1.getElementType(),
                                            stp2.getElementType());
   }
@@ -102,6 +130,13 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
     return UnrankedTensorType::get(elementType);
   }
   llvm_unreachable("unhandled type");
+}
+
+// TODO(hinsu): Add verification for bounds that it has the same size as rank
+// of the tensor and static dimensions don't have bounds.
+LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
+                           function_ref<InFlightDiagnostic()> emitError) {
+  return success();
 }
 
 }  // namespace hlo

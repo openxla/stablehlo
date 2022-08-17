@@ -20,6 +20,10 @@ limitations under the License.
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/PatternBase.td"
 
+//===----------------------------------------------------------------------===//
+// Comparison op definitions.
+//===----------------------------------------------------------------------===//
+
 // These mirror the XLA ComparisonDirection enum.
 def CHLO_COMPARISON_DIRECTION_EQ : I32EnumAttrCase<"EQ", 0>;
 def CHLO_COMPARISON_DIRECTION_NE : I32EnumAttrCase<"NE", 1>;

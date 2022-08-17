@@ -155,9 +155,7 @@ std::unique_ptr<OperationPass<func::FuncOp>> createHloTestInferPass() {
 
 }  // namespace
 
-void registerAllTestPasses() {
-  registerHloTestPasses();
-}
+void registerAllTestPasses() { registerHloTestPasses(); }
 
 }  // namespace hlo
 }  // namespace mlir

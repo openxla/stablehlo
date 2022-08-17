@@ -42,6 +42,11 @@ def StableHLO_Precision : I32EnumAttr<"Precision",
 
 def StableHLO_PrecisionAttr : EnumAttr<StableHLO_Dialect, StableHLO_Precision, "precision">;
 
+// TODO(b/129153247) See if it's possible to also validate the size.
+def StableHLO_PrecisionConfigAttr:
+    OptionalAttr<
+          TypedArrayAttrBase<StableHLO_PrecisionAttr, "Precision Config attribute">>;
+
 //===----------------------------------------------------------------------===//
 // Fast Fourier Transform Type enum definitions.
 //===----------------------------------------------------------------------===//
@@ -181,7 +186,7 @@ def STABLEHLO_RNG_ALGORITHM_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
 def STABLEHLO_RNG_ALGORITHM_THREE_FRY : I32EnumAttrCase<"THREE_FRY", 1>;
 def STABLEHLO_RNG_ALGORITHM_PHILOX : I32EnumAttrCase<"PHILOX", 2>;
 
-def STABLEHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
+def StableHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
     "XLA PRNG algorithm to be used.",
     [
       STABLEHLO_RNG_ALGORITHM_DEFAULT,
@@ -192,7 +197,7 @@ def STABLEHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, STABLEHLO_RngAlgorithm, "rng_algorithm"> {
+def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngAlgorithm, "rng_algorithm"> {
   let assemblyFormat = "`<` $value `>`";
 }
 
