@@ -19,9 +19,10 @@ set(LIBS
         ${dialect_libs}
         ${conversion_libs}
         MLIROptLib
-        StableHLODialect
+        StablehloRegister
+        StablehloTestUtils
         )
-add_llvm_executable(stablehlo-opt stablehlo-opt-main.cc)
+add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
 llvm_update_compile_flags(stablehlo-opt)
 target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
 

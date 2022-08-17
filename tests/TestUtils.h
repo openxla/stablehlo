@@ -1,4 +1,5 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,23 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "mlir/IR/MLIRContext.h"
-#include "dialect/Ops.h"
-#include "dialect/Ops.h.inc"
+#ifndef STABLEHLO_TEST_INFER_TEST_UTILS_H
+#define STABLEHLO_TEST_INFER_TEST_UTILS_H
 
 namespace mlir {
-namespace stablehlo {
+namespace hlo {
 
-StableHLODialect::StableHLODialect(MLIRContext* context)
-    : Dialect(getDialectNamespace(), context, TypeID::get<StableHLODialect>()) {
-  addOperations<
-#define GET_OP_LIST
-#include "dialect/Ops.cpp.inc"
-      >();
-}
+void registerAllTestPasses();
 
-}  // namespace stablehlo
+}  // namespace hlo
 }  // namespace mlir
 
-#define GET_OP_CLASSES
-#include "dialect/Ops.cpp.inc"
+#endif
