@@ -1355,7 +1355,7 @@ static LogicalResult verifyGather(
                           << startIndexMap << "]";
 
   // P2.
-  for (int i = 0; i < startIndexMap.size(); ++i)
+  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
     if (startIndexMap[i] < 0 ||
         (operandShape.hasRank() && startIndexMap[i] >= operandShape.getRank()))
       return errorEmitter()
@@ -1573,7 +1573,7 @@ static LogicalResult inferGatherReturnTypeComponents(
     ++startIndicesRank;
   int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
   // P1.
-  for (int i = 0; i < offsetDims.size(); ++i)
+  for (int64_t i = 0; i < static_cast<int64_t>(offsetDims.size()); ++i)
     if (offsetDims[i] < 0 || offsetDims[i] >= resultRank)
       return errorEmitter() << "offset_dims[" << i << "]: " << offsetDims[i]
                             << " is out of bounds for "
@@ -1741,9 +1741,8 @@ LogicalResult IotaOp::verify() {
 
   if (shape.getRank() == 0) return emitOpError() << "does not support scalars.";
 
-  auto iotaDimension = this->iota_dimension();
-  if (static_cast<int64_t>(iotaDimension) >= shape.getRank() ||
-      iotaDimension < 0)
+  auto iotaDimension = static_cast<int64_t>(this->iota_dimension());
+  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
     return emitOpError()
            << "iota dimension cannot go beyond the output rank or be negative.";
   return success();
