@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📄 Blank Issue
+    url: https://github.com/openxla/stablehlo/issues/new
+    about: If you know what you're doing (especially collaborators)
+  - name: 🗣 Start a discussion on GitHub
+    url: https://github.com/openxla/stablehlo/discussions
+    about: An alternative platform for asynchronous discussion
+  - name: 💬 Join us on Discord
+    url: https://discord.gg/Wqr8vWZKKJ
+    about: For realtime communication with the team and collaborators
