@@ -1,3 +1,6 @@
+# Build directories
 build
-llvm-project
 llvm-build
+
+# Temporary files
+*.swp

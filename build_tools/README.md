@@ -1,20 +1,23 @@
 # Build instructions
 
-To build the code in this repository, you need a clone of the LLVM/MLIR git repository:
+To build the code in this repository, you need a clone of the LLVM/MLIR git
+repository.
 
-`$ git clone https://github.com/llvm/llvm-project.git`
+This repository includes a submodule checked out to the proper commit that can
+be used. To downloaded at clone time use:
 
-You need to make sure you have the right commit checked out in
-the LLVM repository (you need to do this every time you pull from this repo):
+`$ git clone --recurse-submodules https://github.com/openxla/stablehlo.git`
 
-`$ (cd llvm-project && git checkout $(cat ../build_tools/llvm_version.txt))`
+Or after clone using:
+
+`$ git submodule update --init --recursive`
 
 We provide a script to configure and build LLVM/MLIR:
 
-`$ build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build`
+`$ build_tools/build_mlir.sh ${PWD}/external/llvm-project ${PWD}/llvm-build`
 
-Again this is something to do every time you pull from this repository and the
-LLVM revision changes.
+This build step must be completed every time you pull from this repository and
+the LLVM revision changes.
 
 Finally you can build and test this repository:
 
