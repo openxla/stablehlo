@@ -5667,6 +5667,109 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
   return success();
 }
 
+//===----------------------------------------------------------------------===//
+// Assembly - Custom Type Directives
+//===----------------------------------------------------------------------===//
+
+void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
+                                        TypeRange operands, Type result) {
+  // Handle zero operand types `() -> a` prints `a`
+  if (operands.empty()) {
+    // TODO(gleasonk): Unit test these lines once after_all is converted, with a
+    // call that has no operands and single output.
+    p.printType(result);
+    return;
+  }
+
+  // Handle all same type `(a,a,...) -> a` prints `a`
+  bool allSameType =
+      llvm::all_of(operands, [&result](auto t) { return t == result; });
+  if (allSameType) {
+    p.printType(result);
+    return;
+  }
+
+  // Fall back to generic
+  p.printFunctionalType(op);
+}
+
+ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
+                                               ArrayRef<Type*> operands,
+                                               Type& result) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+
+  Type type;
+  if (parser.parseType(type)) {
+    return failure();
+  }
+
+  // Handle if function type, all operand types did not match result type.
+  if (auto fnType = type.dyn_cast<FunctionType>()) {
+    if (fnType.getInputs().size() != operands.size()) {
+      return parser.emitError(loc)
+             << operands.size() << " operands present, but expected "
+             << fnType.getInputs().size();
+    }
+    if (fnType.getResults().size() != 1) {
+      return parser.emitError(loc, "expected single output");
+    }
+
+    // Set operand types to function input types
+    for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
+      *operand = input;
+    }
+    result = fnType.getResults().front();
+    return success();
+  }
+
+  // Handle bare types. ` : type` indicating all input/output types match.
+  for (Type* t : operands) {
+    *t = type;
+  }
+  result = type;
+  return success();
+}
+
+void printTupleOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
+                      Type result) {
+  p.printType(result);
+}
+
+ParseResult parseTupleOpType(OpAsmParser& parser,
+                             SmallVectorImpl<Type>& operands, Type& result) {
+  // Result type must be tuple type.
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  if (parser.parseType(result)) {
+    return failure();
+  }
+
+  auto tupType = result.dyn_cast<TupleType>();
+  if (!tupType) {
+    return parser.emitError(loc, "expected tuple type");
+  }
+
+  // Assign operand types to tuple types
+  llvm::append_range(operands, tupType.getTypes());
+  return success();
+}
+
+void printPairwiseOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
+                         TypeRange results) {
+  llvm::interleaveComma(operands, p);
+}
+
+ParseResult parsePairwiseOpType(OpAsmParser& parser,
+                                SmallVectorImpl<Type>& operands,
+                                SmallVectorImpl<Type>& results) {
+  // Operand and result types are the same, use copy constructor
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  if (parser.parseTypeList(operands)) {
+    return parser.emitError(loc, "expected type list");
+  }
+  results = operands;
+  return success();
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
 
