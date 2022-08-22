@@ -1,5 +1,7 @@
 # Build instructions
 
+## Standalone build
+
 To build the code in this repository, you need a clone of the LLVM/MLIR git repository:
 
 `$ git clone https://github.com/llvm/llvm-project.git`
@@ -27,3 +29,9 @@ $ cmake .. -GNinja \
    -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
 $ ninja check-stablehlo
 ```
+
+## Bazel build
+
+To build the code in this repository,
+
+`$ bazel build :all`
