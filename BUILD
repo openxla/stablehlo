@@ -1,3 +1,18 @@
+# Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2022 The StableHLO Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 load("//:build_tools/bazel/glob_lit_test.bzl", "glob_lit_tests")
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 
@@ -14,7 +29,6 @@ cc_library(
     hdrs = [
         "dialect/Base.h",
     ],
-    #includes = ["."],
     deps = [
         ":base_attr_interfaces_inc_gen",
         "@llvm-project//llvm:Support",
@@ -48,7 +62,6 @@ td_library(
     srcs = [
         "dialect/Base.td",
     ],
-    #includes = ["."],
     deps = [
         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
         "@llvm-project//mlir:OpBaseTdFiles",
@@ -64,7 +77,6 @@ cc_library(
     hdrs = [
         "dialect/BroadcastUtils.h",
     ],
-    #includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -135,7 +147,6 @@ td_library(
         "dialect/ChloEnums.td",
         "dialect/ChloOps.td",
     ],
-    #includes = ["."],
     deps = [
         ":base_td_files",
         "@llvm-project//mlir:BuiltinDialectTdFiles",
@@ -152,7 +163,6 @@ cc_library(
     hdrs = [
         "dialect/ChloOps.h",
     ],
-    #includes = ["."],
     deps = [
         ":base",
         ":broadcast_utils",
@@ -249,7 +259,6 @@ td_library(
         "dialect/StablehloEnums.td",
         "dialect/StablehloOps.td",
     ],
-    #includes = ["."],
     deps = [
         ":base_td_files",
         "@llvm-project//mlir:BuiltinDialectTdFiles",
@@ -266,7 +275,6 @@ cc_library(
     hdrs = [
         "dialect/StablehloOps.h",
     ],
-    #includes = ["."],
     deps = [
         ":base",
         ":stablehlo_attrs_inc_gen",
@@ -335,7 +343,6 @@ td_library(
     srcs = [
         "tests/TestUtils.td",
     ],
-    #includes = ["."],
     deps = [
         "@llvm-project//mlir:PassBaseTdFiles",
     ],
@@ -349,7 +356,6 @@ cc_library(
     hdrs = [
         "tests/TestUtils.h",
     ],
-    #includes = ["."],
     deps = [
         ":test_utils_inc_gen",
         "@llvm-project//llvm:Support",

@@ -1,3 +1,7 @@
+# This file is borrowed verbatim from the TensorFlow project
+# (https://github.com/tensorflow/tensorflow) and inherits the same license
+# agreement.
+#
 # Test definitions for Lit, the LLVM test runner.
 #
 # This is reusing the LLVM Lit test runner in the interim until the new build

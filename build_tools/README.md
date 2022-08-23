@@ -1,6 +1,6 @@
 # Build instructions
 
-## Standalone build
+## CMake build
 
 To build the code in this repository, you need a clone of the LLVM/MLIR git repository:
 
@@ -35,3 +35,7 @@ $ ninja check-stablehlo
 To build the code in this repository,
 
 `$ bazel build :all`
+
+To run the tests in this repository,
+
+TODO(@sdasgup3): The Bazel lit testing is work-in-progress.
