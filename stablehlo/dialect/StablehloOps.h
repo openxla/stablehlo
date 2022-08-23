@@ -197,7 +197,6 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction);
 
-
 }  // end namespace stablehlo
 }  // end namespace mlir
 
