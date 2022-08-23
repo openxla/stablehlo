@@ -170,6 +170,25 @@ func.func @select_op(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>,
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @single_attr_scalar_ops
+func.func @single_attr_scalar_ops(%arg0 : tensor<2x2xf32>, 
+                                  %arg1 : tensor<4x1xf32>,
+                                  %arg2 : tensor<4x2xf32>, 
+                                  %arg3 : tensor<1xindex>,
+                                  %arg4 : tensor<i32>) -> () {
+  // CHECK:      %0 = stablehlo.cholesky %arg0, true : tensor<2x2xf32>
+  // CHECK-NEXT: %1 = stablehlo.dynamic_iota %arg3, 0 : (tensor<1xindex>) -> tensor<4xi32>
+  // CHECK-NEXT: %2 = stablehlo.iota 1 : tensor<1x10xf32>
+  // CHECK-NEXT: %3 = stablehlo.get_dimension_size %arg2, 1 : (tensor<4x2xf32>) -> tensor<i32>
+  // CHECK-NEXT: %4 = stablehlo.set_dimension_size %arg2, %arg4, 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  %1 = "stablehlo.dynamic_iota"(%arg3) {iota_dimension = 0 : i64} : (tensor<1xindex>) -> tensor<4xi32>
+  %2 = "stablehlo.iota"() {iota_dimension = 1 : i64}  : () -> tensor<1x10xf32>
+  %3 = "stablehlo.get_dimension_size"(%arg2) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
+  %4 = "stablehlo.set_dimension_size"(%arg2, %arg4) {dimension = 1 : i64} : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  "stablehlo.return"() : () -> ()
+}
+
 // CHECK-LABEL: func @tuple_ops
 func.func @tuple_ops(%arg0 : tensor<i32>) -> () {
   // CHECK:      %0 = stablehlo.tuple %arg0, %arg0 : tuple<tensor<i32>, tensor<i32>>
@@ -206,7 +225,7 @@ func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
 // CHECK-LABEL: func @extensions
 func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>,
                 %arg1 : tensor<i32>) -> () {
-  // CHECK:      %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<*xf32>
+  // CHECK:      %0 = stablehlo.set_dimension_size %arg0, %arg1, 1 : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<*xf32>
   %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<*xf32>
   "stablehlo.return"() : () -> ()
 }

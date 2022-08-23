@@ -98,9 +98,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
 
   let hasVerifier = 1;
 
-  let assemblyFormat = [{
-    $iota_dimension attr-dict `:` type($output)
-  }];
+  let assemblyFormat = "$iota_dimension attr-dict `:` type($output)";
 }
 
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSideEffect]> {
@@ -1728,14 +1726,12 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
 
     See https://www.tensorflow.org/xla/operation_semantics#cholesky.
 
-
     Example:
-    
+
     ```mlir
-    %0 = mhlo.cholesky %arg0, true : tensor<1xf32>
+    %0 = stablehlo.cholesky %arg0 : tensor<2x2xf32>
     ```
   }];
-
   let arguments = (ins
     HLO_FpOrComplexTensor:$a,
     DefaultValuedAttr<BoolAttr, "false">:$lower
@@ -1744,8 +1740,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   let results = (outs HLO_FpOrComplexTensor:$result);
 
   let assemblyFormat = [{
-    $a `,` $lower attr-dict 
-      `:` custom<SameOperandsAndResultType>(type($result), type($a))
+    $a `,` $lower attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
   }];
 }
 
@@ -2102,7 +2097,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
     Example:
 
     ```mlir
-    %0 = mhlo.get_dimension_size %0, 1 : (tensor<4x2xf32>) -> tensor<i32>
+    %0 = mhlo.get_dimension_size %arg0, 1 : (tensor<4x2xf32>) -> tensor<i32>
     ```
   }];
   let arguments = (ins
@@ -2297,7 +2292,6 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
     will be ignored by downstream reduction ops.
 
     See https://www.tensorflow.org/xla/operation_semantics#setdimensionsize.
-
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2318,6 +2312,10 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   }];
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` $size  `,` $dimension attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
