@@ -4618,104 +4618,6 @@ LogicalResult CaseOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// UnaryOps
-//===----------------------------------------------------------------------===//
-
-ParseResult parseUnaryOp(OpAsmParser& parser, OperationState& result) {
-  SmallVector<OpAsmParser::UnresolvedOperand> operands;
-  Type type;
-  // If the operand is in-between parentheses, use generic form.
-  SMLoc loc = parser.getCurrentLocation();
-  if (!parser.parseOptionalLParen()) {
-    if (parser.parseOperandList(operands) || parser.parseRParen() ||
-        parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseColon() || parser.parseType(type))
-      return failure();
-    auto fnType = type.dyn_cast<FunctionType>();
-    if (!fnType) {
-      parser.emitError(loc, "expected function type");
-      return failure();
-    }
-    if (parser.resolveOperands(operands, fnType.getInputs(), loc,
-                               result.operands))
-      return failure();
-    result.addTypes(fnType.getResults());
-    return success();
-  }
-  // Otherwise, use shorthand syntax.
-  return failure(parser.parseOperandList(operands) ||
-                 parser.parseOptionalAttrDict(result.attributes) ||
-                 parser.parseColonType(type) ||
-                 parser.resolveOperands(operands, type, result.operands) ||
-                 parser.addTypeToList(type, result.types));
-}
-
-void printUnaryOp(Operation* op, OpAsmPrinter& p) {
-  assert(op->getNumResults() == 1 && "op should have one result");
-  assert(op->getNumOperands() == 1 && "op should have one input");
-  // If not all types are the same, use generic form.
-  auto resultType = op->getResult(0).getType();
-  if (resultType != op->getOperandTypes()[0]) {
-    p.printGenericOp(op, /*printOpName=*/false);
-    return;
-  }
-  // Otherwise, use the shorthand syntax.
-  p << ' ';
-  p.printOperands(op->getOperands());
-  p.printOptionalAttrDict(op->getAttrs());
-  p << " : " << resultType;
-}
-
-//===----------------------------------------------------------------------===//
-// BinaryOps
-//===----------------------------------------------------------------------===//
-
-ParseResult parseBinaryOp(OpAsmParser& parser, OperationState& result) {
-  SmallVector<OpAsmParser::UnresolvedOperand> operands;
-  Type type;
-  // If the operand list is in-between parentheses, use generic form.
-  SMLoc loc = parser.getCurrentLocation();
-  if (!parser.parseOptionalLParen()) {
-    if (parser.parseOperandList(operands) || parser.parseRParen() ||
-        parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseColon() || parser.parseType(type))
-      return failure();
-    auto fnType = type.dyn_cast<FunctionType>();
-    if (!fnType) {
-      parser.emitError(loc, "expected function type");
-      return failure();
-    }
-    if (parser.resolveOperands(operands, fnType.getInputs(), loc,
-                               result.operands))
-      return failure();
-    result.addTypes(fnType.getResults());
-    return success();
-  }
-  // Otherwise, use shorthand syntax.
-  return failure(parser.parseOperandList(operands) ||
-                 parser.parseOptionalAttrDict(result.attributes) ||
-                 parser.parseColonType(type) ||
-                 parser.resolveOperands(operands, type, result.operands) ||
-                 parser.addTypeToList(type, result.types));
-}
-
-void printBinaryOp(Operation* op, OpAsmPrinter& p) {
-  assert(op->getNumResults() == 1 && "op should have one result");
-  // If not all types are the same, use generic form.
-  auto resultType = op->getResult(0).getType();
-  if (llvm::any_of(op->getOperandTypes(),
-                   [&](Type type) { return type != resultType; })) {
-    p.printGenericOp(op, /*printOpName=*/false);
-    return;
-  }
-  // Otherwise, use the shorthand syntax.
-  p << ' ';
-  p.printOperands(op->getOperands());
-  p.printOptionalAttrDict(op->getAttrs());
-  p << " : " << resultType;
-}
-
-//===----------------------------------------------------------------------===//
 // SliceOp
 //===----------------------------------------------------------------------===//
 
@@ -5671,6 +5573,24 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 // Assembly - Custom Type Directives
 //===----------------------------------------------------------------------===//
 
+// Declarative `custom<SameOperandsAndResultType>(...)` implementation:
+// Pretty print for ops with many operands, but one result type, simplifies
+// print if all operand types match the result type. Based on `printOneResultOp`
+// and `parseOneResultSameOperandTypeOp` from tfl_ops.cc and SPIRVOps.cpp.
+//
+// Example:
+//   custom<SameOperandsAndResultType>(type($result), type($operand1),
+//   type($operand2))
+//
+//   Generic:
+//     %0 = "mhlo.operation"(%0, %1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
+//   Custom:
+//     %0 = mhlo.operation(%0, %1) : tensor<i1>
+//
+// Falls back to `printFunctionalType` if all operands do not match result type.
+//
+// Note that `type($result)` is the first argument, this is done because the
+// behavior of trailing parameter packs is easily understandable.
 void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
                                         TypeRange operands, Type result) {
   // Handle zero operand types `() -> a` prints `a`
@@ -5730,6 +5650,33 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
   return success();
 }
 
+template <class... OpTypes>
+void printSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
+                                    OpTypes... types) {
+  static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
+  SmallVector<Type> typesVec{types...};
+  ArrayRef<Type> typesRef = makeArrayRef(typesVec);
+  return printSameOperandsAndResultTypeImpl(p, op, typesRef.drop_back(1),
+                                            typesRef.back());
+}
+
+template <class... OpTypes>
+ParseResult parseSameOperandsAndResultType(OpAsmParser& parser,
+                                           OpTypes&... types) {
+  static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
+  SmallVector<Type*> typesVec{&types...};
+  ArrayRef<Type*> typesRef = makeArrayRef(typesVec);
+  return parseSameOperandsAndResultTypeImpl(parser, typesRef.drop_back(1),
+                                            *typesRef.back());
+}
+
+// TuplesOp - only print result type. Operand type is trivially inferrable.
+//
+// Inferring operand types from tuple type:
+//  %3 = mhlo.tuple %1, %2 : tuple<tensor<i1>, tensor<f32>>
+//    %1 : tensor<i1>
+//    %2 : tensor<f32>
+//    %3 : tuple<tensor<i1>, tensor<f32>>
 void printTupleOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
                       Type result) {
   p.printType(result);
@@ -5753,6 +5700,15 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
   return success();
 }
 
+// PairwiseOps - only print result type. Operand types are trivially
+// inferrable.
+//
+// Inferring operand types for pairwise ops:
+//  %3, %4 = mhlo.operation %1, %2 : tensor<i1>, tensor<f32>
+//    %1 : tensor<i1>
+//    %2 : tensor<f32>
+//    %3 : tensor<i1>
+//    %4 : tensor<f32>
 void printPairwiseOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
                          TypeRange results) {
   llvm::interleaveComma(operands, p);

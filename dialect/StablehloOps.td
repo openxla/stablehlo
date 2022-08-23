@@ -499,7 +499,7 @@ def StableHLO_RoundNearestEvenOp: StableHLO_UnaryElementwiseOp<"round_nearest_ev
     Example:
 
     ```mlir
-    %0 = stablehlo.round_nearest_afz %arg0 : tensor<10x10xbf16>
+    %0 = stablehlo.round_nearest_even %arg0 : tensor<10x10xbf16>
     ```
   }];
 }
