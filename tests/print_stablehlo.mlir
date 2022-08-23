@@ -1,8 +1,7 @@
-// RUN: stablehlo-opt -split-input-file %s | FileCheck %s
-// RUN: stablehlo-opt -split-input-file %s | stablehlo-opt | FileCheck %s
+// RUN: stablehlo-opt %s | FileCheck %s
+// RUN: stablehlo-opt %s | stablehlo-opt | FileCheck %s
 
-// -----
-
+// CHECK-LABEL: func @zero_input
 func.func @zero_input() -> !stablehlo.token {
   // CHECK:      %0 = stablehlo.replica_id : tensor<ui32>
   // CHECK-NEXT: %1 = stablehlo.create_token : !stablehlo.token
@@ -11,8 +10,7 @@ func.func @zero_input() -> !stablehlo.token {
   return %1 : !stablehlo.token
 }
 
-// -----
-
+// CHECK-LABEL: func @zero_output_ret2
 func.func @zero_output_ret2(%arg0 : tensor<3xi64>) -> (tensor<3xi64>, tensor<3xi64>) {
   // CHECK:      stablehlo.trace %arg0, "This is a test" : tensor<3xi64>
   // CHECK-NEXT: stablehlo.return %arg0, %arg0 : tensor<3xi64>, tensor<3xi64>
@@ -20,17 +18,17 @@ func.func @zero_output_ret2(%arg0 : tensor<3xi64>) -> (tensor<3xi64>, tensor<3xi
   "stablehlo.return"(%arg0, %arg0) : (tensor<3xi64>, tensor<3xi64>) -> ()
 }
 
+// CHECK-LABEL: func @zero_output_ret1
 func.func @zero_output_ret1(%arg0 : tensor<3xi64>) -> (tensor<3xi64>) {
   // CHECK:     stablehlo.return %arg0 : tensor<3xi64>
   "stablehlo.return"(%arg0) : (tensor<3xi64>) -> ()
 }
 
+// CHECK-LABEL: func @zero_output_ret0
 func.func @zero_output_ret0(%arg0 : tensor<3xi64>) -> () {
   // CHECK:     stablehlo.return
   "stablehlo.return"() : () -> ()
 }
-
-// -----
 
 // CHECK-LABEL: func @unary_ops
 func.func @unary_ops(%arg0 : tensor<2xi32>, %arg1 : tensor<2xf32>) -> () {
@@ -83,8 +81,6 @@ func.func @unary_ops(%arg0 : tensor<2xi32>, %arg1 : tensor<2xf32>) -> () {
   "stablehlo.return"(%0) : (tensor<2xi32>) -> ()
 }
 
-// -----
-
 // CHECK-LABEL: func @binary_ops
 func.func @binary_ops(%arg0: tensor<2xi1>, %arg1 : tensor<2xf32>) -> tensor<2xi1> {
   // CHECK:      %0 = stablehlo.add %arg0, %arg0 : tensor<2xi1>
@@ -120,8 +116,6 @@ func.func @binary_ops(%arg0: tensor<2xi1>, %arg1 : tensor<2xf32>) -> tensor<2xi1
   func.return %0 : tensor<2xi1>
 }
 
-// -----
-
 // CHECK-LABEL: func @type_convert_ops
 func.func @type_convert_ops(%arg0 : tensor<2xf32>) -> () {
   // CHECK:      %0 = stablehlo.convert %arg0 : (tensor<2xf32>) -> tensor<2xf64>
@@ -132,8 +126,6 @@ func.func @type_convert_ops(%arg0 : tensor<2xf32>) -> () {
   %2 = "stablehlo.bitcast_convert"(%arg0) : (tensor<2xf32>) -> tensor<2xi32> 
   "stablehlo.return"() : () -> ()
 }
-
-// -----
 
 // CHECK-LABEL: func @no_attr_ops
 func.func @no_attr_ops(%arg0 : tensor<4xf32>, %arg1 : !stablehlo.token,
@@ -153,8 +145,6 @@ func.func @no_attr_ops(%arg0 : tensor<4xf32>, %arg1 : !stablehlo.token,
   "stablehlo.return"(%arg1) : (!stablehlo.token) -> ()
 }
 
-// -----
-
 // CHECK-LABEL: func @tuple_ops
 func.func @tuple_ops(%arg0 : tensor<i32>) -> () {
   // CHECK:      %0 = stablehlo.tuple %arg0, %arg0 : tuple<tensor<i32>, tensor<i32>>
@@ -168,8 +158,6 @@ func.func @tuple_ops(%arg0 : tensor<i32>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
-// -----
-
 // CHECK-LABEL: func @pairwise_ops
 func.func @pairwise_ops(%arg0 : tensor<4xf32>) -> () {
   // CHECK:      stablehlo.optimization_barrier()
@@ -181,8 +169,6 @@ func.func @pairwise_ops(%arg0 : tensor<4xf32>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
-// -----
-
 // CHECK-LABEL: func @compare_op
 func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
   // CHECK:      %0 = stablehlo.compare LT, %arg0, %arg0 : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
@@ -192,8 +178,6 @@ func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
-// -----
-
 // CHECK-LABEL: func @extensions
 func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>,
                 %arg1 : tensor<i32>) -> () {
@@ -201,8 +185,6 @@ func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds 
   %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<*xf32>
   "stablehlo.return"() : () -> ()
 }
-
-// -----
 
 #CSR = #sparse_tensor.encoding<{
   dimLevelType = ["dense", "compressed"]
