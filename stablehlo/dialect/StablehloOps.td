@@ -89,7 +89,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
     Example:
 
     ```mlir
-    %0 = mhlo.iota 1 : tensor<1x10xf32>
+    %0 = mhlo.iota dim = 1 : tensor<1x10xf32>
     ```
   }];
   let arguments = (ins I64Attr:$iota_dimension);
@@ -98,7 +98,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
 
   let hasVerifier = 1;
 
-  let assemblyFormat = "$iota_dimension attr-dict `:` type($output)";
+  let assemblyFormat = "`dim` `=` $iota_dimension attr-dict `:` type($output)";
 }
 
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSideEffect]> {
@@ -113,7 +113,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSide
     Example:
 
     ```mlir
-    %0 = mhlo.dynamic_iota %arg0, 0 : (tensor<1xindex>) -> tensor<4xi32>
+    %0 = mhlo.dynamic_iota %arg0, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
     ```
   }];
 
@@ -121,7 +121,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSide
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
-    $output_shape `,` $iota_dimension attr-dict `:` functional-type(operands, results)
+    $output_shape `,` `dim` `=` $iota_dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
@@ -1338,6 +1338,12 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [NoSideEffect
     Returns a member of a tuple specified by an index.
 
     See https://www.tensorflow.org/xla/operation_semantics#gettupleelement.
+    
+    Example:
+
+    ```mlir
+    %0 = mhlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
+    ```
   }];
   let arguments = (ins
     HLO_Tuple:$operand,
@@ -1729,7 +1735,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
     Example:
 
     ```mlir
-    %0 = stablehlo.cholesky %arg0 : tensor<2x2xf32>
+    %0 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
     ```
   }];
   let arguments = (ins
@@ -1740,7 +1746,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   let results = (outs HLO_FpOrComplexTensor:$result);
 
   let assemblyFormat = [{
-    $a `,` $lower attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
+    $a `,` `lower` `=` $lower attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
   }];
 }
 
@@ -1799,6 +1805,12 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      Concatenates a set of tensors along the specified dimension.
 
      See https://www.tensorflow.org/xla/operation_semantics#concatenate.
+
+     Example:
+
+     ```mlir
+     %0 = mhlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     ```
    }];
 
   let arguments = (ins
@@ -1814,6 +1826,10 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return succeeded(mlir::verifyCompatibleShapes(l, r));
     }
+  }];
+
+  let assemblyFormat = [{
+    `(` $val `)` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
@@ -2097,7 +2113,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
     Example:
 
     ```mlir
-    %0 = mhlo.get_dimension_size %arg0, 1 : (tensor<4x2xf32>) -> tensor<i32>
+    %0 = mhlo.get_dimension_size %arg0, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
     ```
   }];
   let arguments = (ins
@@ -2112,7 +2128,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` $dimension attr-dict `:` functional-type(operands, results)
+    $operand `,` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
@@ -2292,6 +2308,12 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
     will be ignored by downstream reduction ops.
 
     See https://www.tensorflow.org/xla/operation_semantics#setdimensionsize.
+
+    Example:
+
+    ```mlir
+    %0 = mhlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2314,7 +2336,8 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` $size  `,` $dimension attr-dict `:` functional-type(operands, results)
+    $operand `,` $size  `,` `dim` `=` $dimension attr-dict 
+      `:` functional-type(operands, results)
   }];
 }
 
