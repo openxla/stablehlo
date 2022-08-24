@@ -2644,7 +2644,7 @@ def StableHLO_ReducePrecisionOp :
     Example:
 
     ```mlir
-    %0 = mhlo.reduce_precision %arg0, e8m10 : tensor<3x4xf32>
+    %0 = mhlo.reduce_precision %arg0, format = e8m10 : tensor<3x4xf32>
     ```
   }];
   let arguments = (ins
@@ -2656,7 +2656,7 @@ def StableHLO_ReducePrecisionOp :
   let results = (outs HLO_FpTensor:$output);
 
   let assemblyFormat = [{
-    $operand `,` custom<ExponentMantissa>($exponent_bits, $mantissa_bits)
+    $operand `,` `format` `=` custom<ExponentMantissa>($exponent_bits, $mantissa_bits)
       attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($output))
   }];
 }
