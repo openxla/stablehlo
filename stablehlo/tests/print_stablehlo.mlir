@@ -130,7 +130,7 @@ func.func @type_convert_ops(%arg0 : tensor<2xf32>) -> () {
 // CHECK-LABEL: func @no_attr_ops
 func.func @no_attr_ops(%arg0 : tensor<4xf32>, %arg1 : !stablehlo.token,
                        %arg2 : tensor<4xi32>, %arg3 : index) -> !stablehlo.token {
-  // CHECK-NEXT: %0 = stablehlo.clamp %arg0, %arg0, %arg0 : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  // CHECK:      %0 = stablehlo.clamp %arg0, %arg0, %arg0 : (tensor<4xf32>, tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
   // CHECK-NEXT: %1 = stablehlo.complex(%arg0, %arg0) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xcomplex<f32>>
   // CHECK-NEXT: %2 = stablehlo.compute_reshape_shape %arg3, %arg2 : index, tensor<4xi32> -> tensor<4xi32>
   // CHECK-NEXT: %3 = stablehlo.uniform_quantize %arg0 : (tensor<4xf32>) -> tensor<4x!quant.uniform<u8:f32, 3.400000e+01:16>>
@@ -143,6 +143,15 @@ func.func @no_attr_ops(%arg0 : tensor<4xf32>, %arg1 : !stablehlo.token,
   %4 = "stablehlo.uniform_dequantize"(%3) : (tensor<4x!quant.uniform<ui8:f32, 34.0:16>>) -> tensor<4xf32>
   %5 = "stablehlo.after_all"(%arg1, %arg1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
   "stablehlo.return"(%arg1) : (!stablehlo.token) -> ()
+}
+
+// CHECK-LABEL: func @multiple_attr_ops
+func.func @multiple_attr_ops(%arg0 : tensor<3x4xf32>) -> () {
+  // CHECK:      %0 = stablehlo.reduce_precision %arg0, e8m10 : tensor<3x4xf32>
+  // CHECK-NEXT: %1 = stablehlo.custom_call "foo"(%arg0, %arg0) {backend_config = "bar", has_side_effect = true} : (tensor<3x4xf32>, tensor<3x4xf32>) -> tensor<1x2x3xf32>
+  %0 = "stablehlo.reduce_precision"(%arg0) {exponent_bits = 8 : i32, mantissa_bits = 10 : i32} : (tensor<3x4xf32>) -> tensor<3x4xf32>
+  %1 = "stablehlo.custom_call"(%arg0, %arg0) {backend_config = "bar", call_target_name = "foo", has_side_effect = true} : (tensor<3x4xf32>, tensor<3x4xf32>) -> tensor<1x2x3xf32>
+  "stablehlo.return"() : () -> ()
 }
 
 // CHECK-LABEL: func @tuple_ops

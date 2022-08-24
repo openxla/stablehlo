@@ -1878,7 +1878,15 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
        result tuple.
 
     See https://www.tensorflow.org/xla/operation_semantics#customcall.
+
+    Example:
+
+    ```mlir
+    %1 = mhlo.custom_call "foo"(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
+          : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
+    ```
   }];
+
   let arguments = (ins
     Variadic<HLO_TensorOrTokenOrTuple>:$operands,
     StrAttr:$call_target_name,
@@ -1896,6 +1904,11 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   );
   let results = (outs Variadic<HLO_TensorOrTokenOrTuple>);
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $call_target_name `(` $operands `)` attr-dict
+      `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_DotOp: StableHLO_Op<"dot",
@@ -2627,6 +2640,12 @@ def StableHLO_ReducePrecisionOp :
     implementations.
 
     See https://www.tensorflow.org/xla/operation_semantics#reduceprecision.
+
+    Example:
+
+    ```mlir
+    %0 = mhlo.reduce_precision %arg0, e8m10 : tensor<3x4xf32>
+    ```
   }];
   let arguments = (ins
     HLO_FpTensor:$operand,
@@ -2635,6 +2654,11 @@ def StableHLO_ReducePrecisionOp :
   );
   let hasVerifier = 1;
   let results = (outs HLO_FpTensor:$output);
+
+  let assemblyFormat = [{
+    $operand `,` custom<ExponentMantissa>($exponent_bits, $mantissa_bits)
+      attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($output))
+  }];
 }
 
 def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<

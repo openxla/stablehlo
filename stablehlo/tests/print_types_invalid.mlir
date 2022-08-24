@@ -85,3 +85,59 @@ func.func @one_result_type(%arg0: tensor<1xf64>) -> tensor<1xf64> {
   %0 = stablehlo.abs %arg0 : %arg0
   func.return %0 : tensor<1xf64>
 }
+
+// -----
+
+func.func @reduce_precision_not_literal(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected valid keyword}}
+  %0 = stablehlo.reduce_precision %arg0, "e2m2" : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_no_em(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw z4f2}}
+  %0 = stablehlo.reduce_precision %arg0, z4f2 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_em_order(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw m2e2}}
+  %0 = stablehlo.reduce_precision %arg0, m2e2 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_no_e(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw m2}}
+  %0 = stablehlo.reduce_precision %arg0, m2 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_no_m(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw e2}}
+  %0 = stablehlo.reduce_precision %arg0, e2 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_no_e_num(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected nonempty exponent and mantissa values, saw exponent string '' mantissa string '2'}}
+  %0 = stablehlo.reduce_precision %arg0, em2 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_no_m_num(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected nonempty exponent and mantissa values, saw exponent string '2' mantissa string ''}}
+  %0 = stablehlo.reduce_precision %arg0, e2m : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}

@@ -3591,6 +3591,64 @@ Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+// Print attributes as e#m#
+void printExponentMantissa(AsmPrinter& p, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  p << 'e';
+  p.printAttributeWithoutType(exponent);
+  p << 'm';
+  p.printAttributeWithoutType(mantissa);
+}
+
+void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  printExponentMantissa(p, exponent, mantissa);
+}
+
+// Parse e#m# as exponent=# and mantissa=#
+ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
+                                  IntegerAttr& mantissa) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  llvm::StringRef expMan;
+  if (parser.parseKeyword(&expMan)) {
+    return failure();
+  }
+
+  // Validate format e#m#
+  auto ePos = expMan.find('e');
+  auto mPos = expMan.find('m');
+  if (ePos == expMan.npos || mPos == expMan.npos || ePos > mPos) {
+    return parser.emitError(loc,
+                            "expected exponent mantissa in format e#m#, saw ")
+           << expMan;
+  }
+
+  // Parse off digits of exp/man
+  llvm::StringRef expS = expMan.substr(ePos + 1, mPos - ePos - 1);
+  llvm::StringRef manS = expMan.substr(mPos + 1);
+  if (expS.empty() || manS.empty()) {
+    parser.emitError(loc,
+                     "expected nonempty exponent and mantissa values, saw ")
+        << "exponent string '" << expS << "' mantissa string '" << manS << "'";
+    return failure();
+  }
+
+  // Parse as base 10 integer strings
+  int exp, mant;
+  if (expS.getAsInteger(/*radix=*/10, exp) ||
+      manS.getAsInteger(/*radix=*/10, mant)) {
+    parser.emitError(loc, "unable to parse exponent or mantissa")
+        << expS.str() << ", " << manS.str();
+    return failure();
+  }
+
+  exponent = parser.getBuilder().getI32IntegerAttr(exp);
+  mantissa = parser.getBuilder().getI32IntegerAttr(mant);
+  return success();
+}
+}  // namespace
+
 // The following property is already enforced by the ODS:
 //  P0. operand element type is float
 //  P1. mantissa_bits >= 0
