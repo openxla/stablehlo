@@ -678,6 +678,12 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [NoSideEffect,
   let description = [{
     Performs element-wise conversion of a pair of real and imaginary values to
     a complex value.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.complex %arg0, %arg0 : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xcomplex<f32>>
+    ```
   }];
   let arguments = (ins HLO_Fp32Or64Tensor:$lhs, HLO_Fp32Or64Tensor:$rhs);
   let results = (outs HLO_ComplexTensor:$result);
@@ -2831,7 +2837,7 @@ def StableHLO_CstrReshapableOp :
     Example:
 
     ```mlir
-    %0 = stablehlo.cstr_reshapable %arg0, %arg1 : (index, tensor<3xi32>) -> !shape.witnes
+    %0 = stablehlo.cstr_reshapable %arg0, %arg1 : (index, tensor<3xi32>) -> !shape.witness
     ```
   }];
 
