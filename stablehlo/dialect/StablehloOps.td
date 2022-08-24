@@ -1947,6 +1947,13 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
     multiplication.
 
     See https://www.tensorflow.org/xla/operation_semantics#dot.
+    
+    Example:
+
+    ```mlir
+    %0 = stablehlo.dot %arg0, %arg1 : (tensor<1x2xi32>, tensor<2x1xi32>) -> tensor<1x1xi32>
+    %1 = stablehlo.dot %arg0, %arg1, precision = [DEFAULT, DEFAULT] : (tensor<1x2xi32>, tensor<2x1xi32>) -> tensor<1x1xi32>
+    ```
   }];
   let arguments = (
     ins HLO_Tensor:$lhs,
@@ -1960,6 +1967,12 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return succeeded(mlir::verifyCompatibleShapes(l, r));
     }
+  }];
+
+  // Use empty `` to prevent extra whitespace before precision config.
+  let assemblyFormat = [{
+    $lhs `,` $rhs `` custom<PrecisionConfig>($precision_config) attr-dict 
+      `:` functional-type(operands, results)
   }];
 }
 
@@ -2591,6 +2604,12 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
                 to be scalar valued.
 
                 See https://www.tensorflow.org/xla/operation_semantics#rngnormal.
+    
+    Example:
+
+    ```mlir
+    %1 = stablehlo.rng %arg0, %arg1, %0, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+    ```
   }];
   let arguments = (ins
     0DTensorOf<[HLO_Pred, HLO_Int, HLO_Float]>:$a,
@@ -2609,6 +2628,11 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
       return succeeded(::mlir::verifyCompatibleShapes(l, r));
     }
   }];
+
+  let assemblyFormat = [{
+    $a `,` $b `,` $shape `,` `distribution` `=` custom<RngDistribution>($rng_distribution)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [NoSideEffect]> {
@@ -2619,6 +2643,12 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [NoSideEffec
     (with the same shape as initial state) and the generated random data.
 
     See https://www.tensorflow.org/xla/operation_semantics#rngbitgenerator.
+
+    Example:
+
+    ```mlir
+    %0, %1 = stablehlo.rng_bit_generator %arg0, algorithm = PHILOX : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
+    ```
   }];
   let arguments = (ins
     StableHLO_RngAlgorithmAttr:$rng_algorithm,
@@ -2631,6 +2661,11 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [NoSideEffec
       );
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $initial_state `,` `algorithm` `=` custom<RngAlgorithm>($rng_algorithm) attr-dict 
+      `:` functional-type(operands, results)
+  }];
 }
 
 //===----------------------------------------------------------------------===//

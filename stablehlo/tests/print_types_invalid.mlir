@@ -128,6 +128,46 @@ func.func @one_result_type(%arg0: tensor<1xf64>) -> tensor<1xf64> {
 
 // -----
 
+func.func @precision_missing_keyword(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.dot' expected 'precision'}}
+  %0 = stablehlo.dot %arg0, %arg1, [HIGH] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_missing_equals(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{expected '='}}
+  %0 = stablehlo.dot %arg0, %arg1, precision [HIGH] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_enum(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.dot' expected precision enum}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = [%arg0] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_enum_value(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.dot' invalid precision enum value NOT_AN_ENUM}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = [NOT_AN_ENUM] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_array(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{expected '['}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = {} : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
 func.func @reduce_precision_not_literal(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
   // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected valid keyword}}
   %0 = stablehlo.reduce_precision %arg0, format = "e2m2" : tensor<3x4xf32>

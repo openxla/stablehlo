@@ -1025,6 +1025,63 @@ LogicalResult DotOp::verify() {
   return success();
 }
 
+// Certain enum values have custom printers that include `<` `>`, i.e. `<PHILOX>`
+// This method parses the enum value without `<` `>`.
+template <typename EnumAttrKind, typename SymbolizeFn>
+ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
+                         llvm::StringRef errStr, SymbolizeFn symbolizeFn) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  llvm::StringRef enumStr;
+  if (failed(parser.parseOptionalKeyword(&enumStr)))
+    return parser.emitError(loc) << "expected " << errStr << " enum";
+  auto enumValOpt = symbolizeFn(enumStr);
+  if (!enumValOpt.has_value())
+    return parser.emitError(loc)
+           << "invalid " << errStr << " enum value " << enumStr;
+  enumAttr = EnumAttrKind::get(parser.getContext(), enumValOpt.value());
+  return success();
+}
+
+
+// PrecisionConfig - Optional attribute, print the array as raw enums
+//
+// {precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]}
+// ==> ..., precision = [DEFAULT, DEFAULT]
+void printPrecisionConfig(OpAsmPrinter& p, Operation*,
+                          llvm::Optional<mlir::ArrayAttr> attrOpt) {
+  if (!attrOpt.has_value() || !attrOpt.value()) return;
+
+  p << ", precision = [";
+  llvm::interleaveComma(attrOpt.value(), p, [&](Attribute const& attr) {
+    p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
+  });
+  p << ']';
+}
+
+ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
+  if (failed(parser.parseOptionalComma())) {
+    return success();  // No precision config specified
+  }
+
+  if (failed(parser.parseKeyword("precision")) || failed(parser.parseEqual()))
+    return failure();
+
+  SmallVector<Attribute> attrs;
+  if (failed(
+          parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+            attrs.emplace_back();
+            return parseRawEnum<PrecisionAttr>(
+                parser, attrs.back(), "precision", [](llvm::StringRef enumStr) {
+                  return symbolizePrecision(enumStr);
+                });
+          }))) {
+    return failure();
+  }
+
+  attr = mlir::ArrayAttr::get(parser.getContext(), attrs);
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // DotGeneralOp
 //===----------------------------------------------------------------------===//
@@ -4162,6 +4219,21 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 // RngBitGeneratorOp
 //===----------------------------------------------------------------------===//
 
+// RngAlgorithmAttr - Print raw enum without surrounding `<` `>`
+//
+// {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>}
+// ==> PHILOX
+void printPrecisionConfig(OpAsmPrinter& p, Operation*,
+void printRngAlgorithm(OpAsmPrinter& p, Operation*, RngAlgorithmAttr val) {
+  p << stringifyRngAlgorithm(val.getValue());
+}
+
+ParseResult parseRngAlgorithm(OpAsmParser& parser, RngAlgorithmAttr& val) {
+  return parseRawEnum<RngAlgorithmAttr>(
+      parser, val, "",
+      [](llvm::StringRef enumStr) { return symbolizeRngAlgorithm(enumStr); });
+}
+
 // Verify that input state has the same shape as output shape
 LogicalResult RngBitGeneratorOp::verify() {
   auto initialShape = initial_state().getType().dyn_cast<RankedTensorType>();
@@ -4176,6 +4248,24 @@ LogicalResult RngBitGeneratorOp::verify() {
 //===----------------------------------------------------------------------===//
 // RngOp
 //===----------------------------------------------------------------------===//
+
+
+// RngDistributionAttr - Print raw enum without surrounding `<` `>`
+//
+// {rng_distribution = #stablehlo.rng_distribution<NORMAL>}
+// ==> NORMAL
+void printRngDistribution(OpAsmPrinter& p, Operation*,
+                          RngDistributionAttr val) {
+  p << stringifyRngDistribution(val.getValue());
+}
+
+ParseResult parseRngDistribution(OpAsmParser& parser,
+                                 RngDistributionAttr& val) {
+  return parseRawEnum<RngDistributionAttr>(
+      parser, val, "", [](llvm::StringRef enumStr) {
+        return symbolizeRngDistribution(enumStr);
+      });
+}
 
 LogicalResult RngOp::verify() {
   auto dist = rng_distribution();

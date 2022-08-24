@@ -170,6 +170,23 @@ func.func @select_op(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>,
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @single_attr_enums
+func.func @single_attr_enums(%arg0: tensor<1x2xf32>,
+                             %arg1: tensor<f32>,
+                             %arg2: tensor<3xi64>) -> () {
+  // CHECK:      %0 = stablehlo.dot %arg2, %arg2, precision = [DEFAULT, DEFAULT] : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  // CHECK-NEXT: %1 = stablehlo.dot %arg2, %arg2, precision = [] : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  // CHECK-NEXT: %2 = stablehlo.dot %arg2, %arg2 : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  // CHECK-NEXT: %output_state, %output = stablehlo.rng_bit_generator %arg0, algorithm = PHILOX : (tensor<1x2xf32>) -> (tensor<1x2xf32>, tensor<2x2xui32>)
+  // CHECK-NEXT: %3 = stablehlo.rng %arg1, %arg1, %arg2, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.dot"(%arg2, %arg2) {precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  %1 = "stablehlo.dot"(%arg2, %arg2) {precision_config = []} : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  %2 = "stablehlo.dot"(%arg2, %arg2) : (tensor<3xi64>, tensor<3xi64>) -> tensor<i64>
+  %3, %4 = "stablehlo.rng_bit_generator"(%arg0) {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>} : (tensor<1x2xf32>) -> (tensor<1x2xf32>, tensor<2x2xui32>)
+  %5 = "stablehlo.rng"(%arg1, %arg1, %arg2) {rng_distribution = #stablehlo.rng_distribution<NORMAL>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  "stablehlo.return"() : () -> ()
+}
+
 // CHECK-LABEL: func @tuple_ops
 func.func @tuple_ops(%arg0 : tensor<i32>) -> () {
   // CHECK:      %0 = stablehlo.tuple %arg0, %arg0 : tuple<tensor<i32>, tensor<i32>>
