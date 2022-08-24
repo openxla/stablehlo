@@ -11,18 +11,18 @@ Following are the supported element types in StableHLO:
     * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}
   * **Boolean types** referred to in the document as `pred`
-  * **Floating point types**
+  * **Floating-point types**
     * Single precision `f32`, double precision `f64` and half precision `f16`
-    floating points complying with [IEEE 754
+    floating-points complying with [IEEE 754
     format](https://ieeexplore.ieee.org/document/8766229).
-    * Bfloat16 `bf16` floating point complying with [Brain Floating Point Format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
+    * Bfloat16 `bf16` floating-point complying with [Brain Floating-Point Format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
     Provides the same number of exponent bits as `f32`, so that it matches its
     dynamic range, but with greatly reduced precision.
- * **Complex types** represents a pair of floating point types. Supported ones
+ * **Complex types** represents a pair of floating-point types. Supported ones
  are `c64` (represents paired `f32`) and `c128` (represents paired `f64`).
 
 StableHLO supports a Tensor type `tensor`, to model the type of a n-dimensional
-array, represented in IR as `tensor<SxE>` such that
+array, represented in the opset as `tensor<SxE>` such that
 
   * Shape `S` is a list of number of elements in each of the
   dimensions and represented, in increasing order of the corresponding dimension
@@ -38,11 +38,11 @@ which is terminated by a return op which produces the results of the function.
 StableHLO ops take operands and produce results.
 
 ```
-func.func @example_func(%arg: tensor<4x16xf32>) -> tensor<4x16xf32>  {
+ml_program.func @example_func(%arg: tensor<4x16xf32>) -> tensor<4x16xf32> {
  %1 = stablehlo.floor %arg : tensor<4x16xf32>
- %2 = stablehlo.ceil  %arg : tensor<4x16xf32>
+ %2 = stablehlo.ceil %arg : tensor<4x16xf32>
  %3 = stablehlo.add %1, %2 : tensor<4x16xf32>
- func.return %3 : tensor<4x16xf32>
+ ml_program.return %3 : tensor<4x16xf32>
 }
 ```
 
@@ -58,22 +58,23 @@ or `%2` → `%1` → `%3` → `return`.
 The section describes the constants supported in StableHLO along with their
 syntax.
 
-  * **Integer Constants** Standard integers are constants of the integer type
-  (signed or unsigned). Negative numbers can be used with signed integer types.
-  * **Boolean Constants** "true" and "false" are both valid constants of the
+  * **Integer Constants** Standard integers, e.g., `123`, are constants of the
+  integer type (signed or unsigned). Negative numbers can be used with signed
+  integer types.
+  * **Boolean Constants** `true` and `false` are both valid constants of the
   `pred` type.
-  * **Floating point Constants** Floating point constants use standard decimal
-  notation, e.g., "123.421", exponential notation, e.g. "1.23421e+2", or a more
-  precise hexadecimal notation, e.g., "0x42f6d78d".
+  * **Floating-point Constants** Floating-point constants use standard decimal
+  notation, e.g., `123.421`, exponential notation, e.g. `1.23421e+2`, or a more
+  precise hexadecimal notation, e.g., `0x42f6d78d`.
   * **Complex Constants** Complex constants are represented as a pair of real
-  and imaginary values of `f32` or `f64` types .
+  and imaginary values of `f32` or `f64` types, e.g., `(12.34, 56,78)`.
 
 ## Structure of an Op’s Specification
 
 The specification of an op comprises of the following components (in the order
     described below)
 
-  * **Syntax**  Operation mnemonic and its signature.
+  * **Syntax** Operation mnemonic and its signature.
   * **Semantics** Semantics of the operation.
   * **Operands** Meaning of operand(s) and their type(s).
   * **Results** Meaning of the result(s) and the type(s).
@@ -87,26 +88,30 @@ The specification of an op comprises of the following components (in the order
 ### Semantics
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
-`result` tensor.  If an element-wise sum has an unsigned or signed overflow, the
-result is implementation defined and one of the followings:
+`result` tensor. If an element-wise sum has an unsigned/signed
+overflow/underflow, the result is implementation defined and one of the
+followings:
 
-  * mathematical result modulo 2n, where n is the bit width of the result.
-  * saturation to 2^(n-1) - 1 (or -2^(n-1)) for signed overflow (or signed
-      underflow) and saturation to 2^n - 1 (or 0) for unsigned overflow (or
+  * mathematical result modulo $2^n$, where n is the bit width of the result.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
+      underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
         unsigned underflow).
+
+For floating-point element types, corner cases are defined by the IEEE-754
+specification.
 
 ### Arguments
 
 | Operand Name(s) | Type |
 |-|-|
-| `lhs` | `tensor` of Integer, Floating point and Complex element types |
-| `rhs` | `tensor` of Integer, Floating point and Complex element types |
+| `lhs` | `tensor` of Integer, Floating-point and Complex element types |
+| `rhs` | `tensor` of Integer, Floating-point and Complex element types |
 
 ### Results
 
 | Result Name | Type |
 |-|-|
-| `result` | `tensor` of Integer, Floating point, and Complex element types |
+| `result` | `tensor` of Integer, Floating-point, and Complex element types |
 
 ### Constraints
 
