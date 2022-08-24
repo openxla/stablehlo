@@ -39,6 +39,22 @@ func.func @binary_eltwise_multiple_out(%arg0: tensor<?x?xf64>,
 
 // -----
 
+func.func @select_type_wrong_type(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.select' expected functional type or list of two types}}
+  %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>
+  func.return %0
+}
+
+// -----
+
+func.func @select_type_too_many(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.select' expected functional type or list of two types}}
+  %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>, tensor<2x3xi32>, tensor<2x3xi32>
+  func.return
+}
+
+// -----
+
 func.func @tuple_type_mismatch(%arg0: tensor<1xf64>) -> tensor<1xf64> {
   // expected-error @+1 {{custom op 'stablehlo.tuple' expected tuple type}}
   %0 = stablehlo.tuple %arg0, %arg1 : tensor<1xf64>, tensor<1xf32>

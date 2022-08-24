@@ -4220,6 +4220,71 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 // SelectOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+// Utility function, used by printSelectOpType and
+// printSameOperandsAndResultType
+ParseResult assignFromFunctionType(OpAsmParser& parser, llvm::SMLoc loc,
+                                   ArrayRef<Type*> operands, Type& result,
+                                   FunctionType& fnType) {
+  assert(fnType);
+  if (fnType.getInputs().size() != operands.size()) {
+    return parser.emitError(loc)
+           << operands.size() << " operands present, but expected "
+           << fnType.getInputs().size();
+  }
+  if (fnType.getResults().size() != 1) {
+    return parser.emitError(loc, "expected single output");
+  }
+
+  // Set operand types to function input types
+  for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
+    *operand = input;
+  }
+  result = fnType.getResults().front();
+  return success();
+}
+}  // namespace
+
+void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
+                       Type onFalse, Type result) {
+  // Print functional type if true/false branches don't match return type.
+  if (onTrue != result || onFalse != result) {
+    p.printFunctionalType(op);
+    return;
+  }
+
+  // Print pred type and result type
+  p << pred << ", " << result;
+}
+
+ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
+                              Type& onFalse, Type& result) {
+  // Operand and result types are the same, use copy constructor
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  SmallVector<Type> types;
+  if (parser.parseTypeList(types)) {
+    return failure();
+  }
+
+  // Error handling for invalid types
+  // Fail if not two types, or single functional type
+  if (types.size() != 2 &&
+      (types.size() != 1 || !types.front().dyn_cast<FunctionType>())) {
+    return parser.emitError(loc,
+                            "expected functional type or list of two types");
+  }
+
+  if (types.size() == 2) {
+    pred = types.front();
+    onTrue = onFalse = result = types.back();
+    return success();
+  }
+
+  FunctionType fnType = types.front().dyn_cast<FunctionType>();
+  return assignFromFunctionType(parser, loc, {&pred, &onTrue, &onFalse}, result,
+                                fnType);
+}
+
 LogicalResult SelectOp::verify() {
   // The operands 'on_true' and 'on_false' should have compatible types, i.e.,
   //   (a) have the same element type, and
@@ -5681,21 +5746,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
 
   // Handle if function type, all operand types did not match result type.
   if (auto fnType = type.dyn_cast<FunctionType>()) {
-    if (fnType.getInputs().size() != operands.size()) {
-      return parser.emitError(loc)
-             << operands.size() << " operands present, but expected "
-             << fnType.getInputs().size();
-    }
-    if (fnType.getResults().size() != 1) {
-      return parser.emitError(loc, "expected single output");
-    }
-
-    // Set operand types to function input types
-    for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
-      *operand = input;
-    }
-    result = fnType.getResults().front();
-    return success();
+    return assignFromFunctionType(parser, loc, operands, result, fnType);
   }
 
   // Handle bare types. ` : type` indicating all input/output types match.
@@ -5724,6 +5775,32 @@ ParseResult parseSameOperandsAndResultType(OpAsmParser& parser,
   ArrayRef<Type*> typesRef = makeArrayRef(typesVec);
   return parseSameOperandsAndResultTypeImpl(parser, typesRef.drop_back(1),
                                             *typesRef.back());
+}
+
+// The following implementation is for SameOperandsAndResultType with variadic
+// input.
+void printVariadicSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
+                                            OperandRange operands,
+                                            TypeRange opTypes, Type result) {
+  return printSameOperandsAndResultTypeImpl(p, op, opTypes, result);
+}
+
+ParseResult parseVariadicSameOperandsAndResultType(
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
+    SmallVectorImpl<Type>& opTypes, Type& result) {
+  // Insert a type for each operand. Need to do this since passing the type of
+  // a variadic op gives no indication of how many operands were provided.
+  opTypes.resize(operands.size());
+
+  // Make a pointer list to the operands
+  SmallVector<Type*> typePtrs;
+  typePtrs.reserve(opTypes.size());
+  for (Type& t : opTypes) {
+    typePtrs.push_back(&t);
+  }
+
+  return parseSameOperandsAndResultTypeImpl(parser, typePtrs, result);
 }
 
 // TuplesOp - only print result type. Operand type is trivially inferrable.
