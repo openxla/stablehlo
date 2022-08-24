@@ -27,3 +27,26 @@ $ cmake .. -GNinja \
    -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
 $ ninja check-stablehlo
 ```
+
+### Python API
+
+Note that the python package produced by this procedure includes the `mlir`
+package and is not suitable for deployment as-is (but it can be included into
+a larger aggregate).
+
+```
+$ mkdir build && cd build
+$ cmake -GNinja -B. ${PWD}/../llvm-project/llvm \
+   -DCMAKE_BUILD_TYPE=Release \
+   -DLLVM_ENABLE_PROJECTS=mlir \
+   -DLLVM_EXTERNAL_PROJECTS=stablehlo \
+   -DLLVM_EXTERNAL_STABLEHLO_SOURCE_DIR=${PWD}/.. \
+   -DLLVM_TARGETS_TO_BUILD=host \
+   -DPython3_EXECUTABLE=$(which python3) \
+   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+   -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=ON
+
+ninja ChloPythonModules StablehloPythonModules
+export PYTHONPATH=$PWD/tools/stablehlo/python_packages/chlo:$PWD/tools/stablehlo/python_packages/stablehlo
+python -c "import mlir.dialects.chlo; import mlir.dialects.stablehlo"
+```
