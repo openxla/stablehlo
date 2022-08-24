@@ -58,16 +58,16 @@ or `%2` → `%1` → `%3` → `return`.
 The section describes the constants supported in StableHLO along with their
 syntax.
 
-  * **Integer Constants** Standard integers, e.g., `123`, are constants of the
+  * **Integer Constants** Standard integers, e.g. `123`, are constants of the
   integer type (signed or unsigned). Negative numbers can be used with signed
   integer types.
   * **Boolean Constants** `true` and `false` are both valid constants of the
   `pred` type.
   * **Floating-point Constants** Floating-point constants use standard decimal
-  notation, e.g., `123.421`, exponential notation, e.g. `1.23421e+2`, or a more
-  precise hexadecimal notation, e.g., `0x42f6d78d`.
+  notation, e.g. `123.421`, exponential notation, e.g. `1.23421e+2`, or a more
+  precise hexadecimal notation, e.g. `0x42f6d78d`.
   * **Complex Constants** Complex constants are represented as a pair of real
-  and imaginary values of `f32` or `f64` types, e.g., `(12.34, 56,78)`.
+  and imaginary values of `f32` or `f64` types, e.g. `(12.34, 56,78)`.
 
 ## Structure of an Op’s Specification
 
@@ -88,9 +88,9 @@ The specification of an op comprises of the following components (in the order
 ### Semantics
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
-`result` tensor. If an element-wise sum has an unsigned/signed
-overflow/underflow, the result is implementation defined and one of the
-followings:
+`result` tensor. For integer element types, if the element-wise sum has an
+unsigned/signed overflow/underflow, the result is implementation defined and one
+of the followings:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
