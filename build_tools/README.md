@@ -45,8 +45,13 @@ $ cmake -GNinja -B. ${PWD}/../llvm-project/llvm \
    -DPython3_EXECUTABLE=$(which python3) \
    -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
    -DSTABLEHLO_ENABLE_BINDINGS_PYTHON=ON
+$ ninja check-stablehlo-python
+```
 
-ninja ChloPythonModules StablehloPythonModules
-export PYTHONPATH=$PWD/tools/stablehlo/python_packages/chlo:$PWD/tools/stablehlo/python_packages/stablehlo
-python -c "import mlir.dialects.chlo; import mlir.dialects.stablehlo"
+Here's how you can use the Python bindings:
+
+```
+$ ninja StablehloUnifiedPythonModules
+$ export PYTHONPATH=$PWD/tools/stablehlo/python_packages/stablehlo
+$ python -c "import mlir.dialects.chlo; import mlir.dialects.stablehlo"
 ```

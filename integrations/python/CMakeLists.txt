@@ -15,8 +15,12 @@
 include(AddMLIRPython)
 
 ################################################################################
-# Generate Python sources
+# Sources
 ################################################################################
+
+# Note that the directory structure for source files is meaningful. For example,
+# putting .td and .py files under . instead of mlir/python will break things,
+# even if the build rules below are adjusted accordingly.
 
 declare_mlir_python_sources(ChloPythonSources)
 declare_mlir_python_sources(ChloPythonSources.Dialects
@@ -43,7 +47,7 @@ declare_mlir_dialect_python_bindings(
   DIALECT_NAME stablehlo)
 
 ################################################################################
-# Generate Python extensions
+# Extensions
 ################################################################################
 
 declare_mlir_python_sources(ChloPythonExtensions)
@@ -74,50 +78,41 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
 # Generate packages and shared libraries
 ################################################################################
 
-add_mlir_python_common_capi_library(ChloPythonCAPI
-  INSTALL_COMPONENT ChloPythonModules
-  INSTALL_DESTINATION python_packages/chlo/mlir/_mlir_libs
-  OUTPUT_DIRECTORY "${STABLEHLO_BINARY_DIR}/python_packages/chlo/mlir/_mlir_libs"
-  RELATIVE_INSTALL_ROOT "../../../.."
-  DECLARED_SOURCES
-    MLIRPythonSources
-    MLIRPythonExtension.RegisterEverything
-    ChloPythonSources
-    ChloPythonExtensions
-)
+# Note that we are deliberately putting CHLO and StableHLO dialects together
+# into a single package, even though they are independent from each other.
+# That's because the initialization code generated for these packages modifies
+# global state, so importing multiple packages like that will mess things up.
 
-add_mlir_python_modules(ChloPythonModules
-  ROOT_PREFIX "${STABLEHLO_BINARY_DIR}/python_packages/chlo/mlir"
-  INSTALL_PREFIX "python_packages/chlo/mlir"
-  DECLARED_SOURCES
-    MLIRPythonSources
-    MLIRPythonExtension.RegisterEverything
-    ChloPythonSources
-    ChloPythonExtensions
-  COMMON_CAPI_LINK_LIBS
-    ChloPythonCAPI
-  )
-
-add_mlir_python_common_capi_library(StablehloPythonCAPI
-  INSTALL_COMPONENT StablehloPythonModules
+add_mlir_python_common_capi_library(StablehloUnifiedPythonCAPI
+  INSTALL_COMPONENT StablehloUnifiedPythonModules
   INSTALL_DESTINATION python_packages/stablehlo/mlir/_mlir_libs
   OUTPUT_DIRECTORY "${STABLEHLO_BINARY_DIR}/python_packages/stablehlo/mlir/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../../../.."
   DECLARED_SOURCES
     MLIRPythonSources
     MLIRPythonExtension.RegisterEverything
+    ChloPythonSources
+    ChloPythonExtensions
     StablehloPythonSources
     StablehloPythonExtensions
 )
 
-add_mlir_python_modules(StablehloPythonModules
+add_mlir_python_modules(StablehloUnifiedPythonModules
   ROOT_PREFIX "${STABLEHLO_BINARY_DIR}/python_packages/stablehlo/mlir"
   INSTALL_PREFIX "python_packages/stablehlo/mlir"
   DECLARED_SOURCES
     MLIRPythonSources
     MLIRPythonExtension.RegisterEverything
+    ChloPythonSources
+    ChloPythonExtensions
     StablehloPythonSources
     StablehloPythonExtensions
   COMMON_CAPI_LINK_LIBS
-    StablehloPythonCAPI
+    StablehloUnifiedPythonCAPI
   )
+
+################################################################################
+# Tests
+################################################################################
+
+add_subdirectory(tests)

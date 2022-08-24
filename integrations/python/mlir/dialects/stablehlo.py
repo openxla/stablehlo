@@ -16,4 +16,7 @@
 
 # pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
 from ._stablehlo_ops_gen import *
-from .._mlir_libs._stablehlo import *
+
+def register_dialect(context, load=True):
+  from .._mlir_libs import _stablehlo
+  _stablehlo.register_dialect(context, load=load)
