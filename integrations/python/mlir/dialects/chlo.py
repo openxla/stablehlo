@@ -17,6 +17,7 @@
 # pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
 from ._chlo_ops_gen import *
 
+
 def register_dialect(context, load=True):
   from .._mlir_libs import _chlo
   _chlo.register_dialect(context, load=load)

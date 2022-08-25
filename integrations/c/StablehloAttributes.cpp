@@ -406,8 +406,8 @@ MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx, MlirStringRef type) {
   llvm::Optional<mlir::stablehlo::Precision> precisionType =
       mlir::stablehlo::symbolizePrecision(unwrap(type));
   if (!precisionType) llvm_unreachable("Invalid precision-type specified.");
-  return wrap(mlir::stablehlo::PrecisionAttr::get(unwrap(ctx),
-                                                  precisionType.value()));
+  return wrap(
+      mlir::stablehlo::PrecisionAttr::get(unwrap(ctx), precisionType.value()));
 }
 
 bool stablehloAttributeIsAPrecisionAttr(MlirAttribute attr) {
@@ -427,8 +427,7 @@ MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx, MlirStringRef type) {
   llvm::Optional<mlir::stablehlo::FftType> fftType =
       mlir::stablehlo::symbolizeFftType(unwrap(type));
   if (!fftType) llvm_unreachable("Invalid fft-type specified.");
-  return wrap(
-      mlir::stablehlo::FftTypeAttr::get(unwrap(ctx), fftType.value()));
+  return wrap(mlir::stablehlo::FftTypeAttr::get(unwrap(ctx), fftType.value()));
 }
 
 bool stablehloAttributeIsAFftTypeAttr(MlirAttribute attr) {
@@ -448,8 +447,8 @@ MlirAttribute stablehloTransposeAttrGet(MlirContext ctx, MlirStringRef type) {
   llvm::Optional<mlir::stablehlo::Transpose> transposeType =
       mlir::stablehlo::symbolizeTranspose(unwrap(type));
   if (!transposeType) llvm_unreachable("Invalid transpose-type specified.");
-  return wrap(mlir::stablehlo::TransposeAttr::get(unwrap(ctx),
-                                                  transposeType.value()));
+  return wrap(
+      mlir::stablehlo::TransposeAttr::get(unwrap(ctx), transposeType.value()));
 }
 
 bool stablehloAttributeIsATransposeAttr(MlirAttribute attr) {
