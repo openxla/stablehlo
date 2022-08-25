@@ -311,6 +311,24 @@ func.func @complex_sparsity(%arg0: tensor<10x10xf32, #CSR>, %arg1: tensor<10x10x
 
 // -----
 
+// CHECK-LABEL: func @reduce
+func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
+    -> (tensor<4xindex>) {
+  %0 = "mhlo.reduce"(%arg0, %arg1) ({
+
+  ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
+    %1 = "mhlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+    "mhlo.return"(%1) : (tensor<4xf32>) -> ()
+
+  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  %2 = "mhlo_test.get_return_type_components"(%0)
+      : (tensor<4xf32>) -> tensor<4xindex>
+// CHECK: %1 = "mhlo_test.get_return_type_components"(%0) : (tensor<4xf32>) -> tensor<4xindex>
+  func.return %2: tensor<4xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @tensor_bounds
 func.func @tensor_bounds(%arg0: tensor<3x5xf32>, %arg1: tensor<i32>) -> tensor<*xindex> {
   %result = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 0 : i64} : (tensor<3x5xf32>, tensor<i32>) -> tensor<*xf32>

@@ -1259,6 +1259,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveSideEffects,
       SameVariadicOperandSize,
+      InferTensorTypeWithReify,
       SingleBlockImplicitTerminator<"ReturnOp">
     ]> {
   let summary = "Reduce operator";
@@ -1281,11 +1282,21 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       "DenseIntElementsAttr":$dimensions)>];
 
   let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
 
   // TODO(hinsu): Verify that the attached body arguments and results are
   // compatible with reduce op's operands.
   let regions = (region SizedRegion<1>:$body);
+
+  let extraClassDeclaration = [{
+    // Method from InferTypeOpInterface interface.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      if (l.size() != r.size()) return false;
+      for (auto [lt, rt] : llvm::zip(l, r))
+        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
+          return false;
+      return true;
+    }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
