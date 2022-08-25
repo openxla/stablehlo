@@ -64,9 +64,11 @@ Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(DenseElementsAttr attr) {
+  // Note: Soon we will be deprecating the use of
+  // DenseElementsAttr::getRawData() as the return value is not always the
+  // expected byte array, atleast for splat and boolean values.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                    attr.getRawData().data());
-}
+                                                    attr.getRawData().data()); }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
@@ -103,6 +105,8 @@ Element Tensor::get(int64_t index) const {
   }
 
   // Handle signed integer types.
+  // TODO(https://github.com/openxla/stablehlo/issues/22): Support signed
+  // integers instead.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
@@ -217,6 +221,8 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   // Handle signed integer types.
+  // TODO(https://github.com/openxla/stablehlo/issues/22): Support signed
+  // integers instead.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     auto value = getIntegerValue(element);

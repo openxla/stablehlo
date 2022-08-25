@@ -111,6 +111,5 @@ set(STABLEHLO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 add_custom_target(check-stablehlo)
 enable_testing()
-#add_custom_target(check-stablehlo-reference)
 
 add_subdirectory(stablehlo)
