@@ -28,14 +28,16 @@ bool isSupportedUnsignedIntegerType(Type type) {
          type.isUnsignedInteger(64);
 }
 
+// TODO(https://github.com/openxla/stablehlo/issues/22): Support signed integers
+// instead.
 bool isSupportedSignedIntegerType(Type type) {
-  return type.isSignedInteger(4) || type.isSignedInteger(8) ||
-         type.isSignedInteger(16) || type.isSignedInteger(32) ||
-         type.isSignedInteger(64);
+  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
+         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
+         type.isSignlessInteger(64);
 }
 
 bool isSupportedIntegerType(Type type) {
-  return type.isSignlessInteger(1) || isSupportedUnsignedIntegerType(type) ||
+  return isSupportedUnsignedIntegerType(type) ||
          isSupportedSignedIntegerType(type);
 }
 

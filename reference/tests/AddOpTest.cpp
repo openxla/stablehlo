@@ -148,13 +148,13 @@ TEST(AddOpInterpreterTest, BF16) {
 TEST(AddOpInterpreterTest, SInt8WithOv) {
   runTestCase(
       /*operand 0*/
-      "tensor<1x9x1xsi8>",
+      "tensor<1x9x1xi8>",
       {"1", "2", "-128", "-128", "16", "-16", "16", "127", "-127"},
       /*operand 1*/
-      "tensor<1x9x1xsi8>",
+      "tensor<1x9x1xi8>",
       {"127", "127", "-1", "-128", "16", "-16", "-16", "0", "0"},
       /*expected result*/
-      "tensor<1x9x1xsi8>",
+      "tensor<1x9x1xi8>",
       {"-128", "-127", "127", "0", "32", "-32", "0", "127", "-127"});
 }
 
@@ -171,11 +171,11 @@ TEST(AddOpInterpreterTest, UInt8WithOv) {
 TEST(AddOpInterpreterTest, SInt4WithOv) {
   runTestCase(
       /*operand 0*/
-      "tensor<2x2x2xsi4>", {"0", "1", "2", "-3", "7", "-8", "7", "-8"},
+      "tensor<2x2x2xi4>", {"0", "1", "2", "-3", "7", "-8", "7", "-8"},
       /*operand 1*/
-      "tensor<2x2x2xsi4>", {"-8", "-1", "2", "-3", "1", "-1", "7", "-8"},
+      "tensor<2x2x2xi4>", {"-8", "-1", "2", "-3", "1", "-1", "7", "-8"},
       /*expected result*/
-      "tensor<2x2x2xsi4>", {"-8", "0", "4", "-6", "-8", "7", "-2", "0"});
+      "tensor<2x2x2xi4>", {"-8", "0", "4", "-6", "-8", "7", "-2", "0"});
 }
 
 TEST(AddOpInterpreterTest, UInt4WithOv) {

@@ -48,29 +48,8 @@ Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(DenseElementsAttr attr) {
-  auto elemType = attr.getType().getElementType();
-
-  // The tensor data in DenseElementsAttr is stored in a Tensor::impl_ object as
-  // a flat byte array of size n*byte-size, where n = number of elements in
-  // tensor, and byte-size = size-in-bytes of each element. That is, the storage
-  // size is a multiple of n, which is an important perquisite to index
-  // individual elements per the current implementation. Unlike Int and Float
-  // element types, DenseElementsAttr stores tensors of boolean type (of type
-  // i1) efficiently in bits, and therefore the size of byte array returned by
-  // DenseElementsAttr::getRawData is smaller than the number of elements in
-  // tensor. Thus, we avoid using this API specifically for boolean element
-  // type. Instead, we explicitly create a byte array of size equal to the
-  // number of booleans in tensor.
-  if (elemType.isSignlessInteger(1)) {
-    auto boolData = llvm::to_vector(llvm::map_range(
-        attr.getValues<bool>(),
-        [&](bool attrBool) -> uint8_t { return attrBool ? 1 : 0; }));
-    impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                      boolData.data());
-  } else {
-    impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                      attr.getRawData().data());
-  }
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
+                                                    attr.getRawData().data());
 }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
@@ -108,29 +87,28 @@ Element Tensor::get(int64_t index) const {
   }
 
   // Handle signed integer types.
-  if (elementType.isSignedInteger(4) || elementType.isSignedInteger(8)) {
+  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
   }
 
-  if (elementType.isSignedInteger(16)) {
+  if (elementType.isSignlessInteger(16)) {
     auto elementData = reinterpret_cast<int16_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
   }
 
-  if (elementType.isSignedInteger(32)) {
+  if (elementType.isSignlessInteger(32)) {
     auto elementData = reinterpret_cast<int32_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
   }
 
-  if (elementType.isSignedInteger(64)) {
+  if (elementType.isSignlessInteger(64)) {
     auto elementData = reinterpret_cast<int64_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
   }
 
   // Handle unsigned integer types.
-  if (elementType.isSignlessInteger(1) || elementType.isUnsignedInteger(4) ||
-      elementType.isUnsignedInteger(8)) {
+  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
   }
@@ -223,14 +201,14 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   // Handle signed integer types.
-  if (elementType.isSignedInteger(4) || elementType.isSignedInteger(8)) {
+  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int8_t)value.getSExtValue();
     return;
   }
 
-  if (elementType.isSignedInteger(16)) {
+  if (elementType.isSignlessInteger(16)) {
     auto elementData = reinterpret_cast<int16_t *>(
         impl_->getData() + getSizeInBytes(elementType) * index);
     auto value = getIntegerValue(element);
@@ -238,14 +216,14 @@ void Tensor::set(int64_t index, Element element) {
     return;
   }
 
-  if (elementType.isSignedInteger(32)) {
+  if (elementType.isSignlessInteger(32)) {
     auto elementData = reinterpret_cast<int32_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int32_t)value.getSExtValue();
     return;
   }
 
-  if (elementType.isSignedInteger(64)) {
+  if (elementType.isSignlessInteger(64)) {
     auto elementData = reinterpret_cast<int64_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int64_t)value.getSExtValue();
@@ -253,8 +231,7 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   // Handle unsigned integer types.
-  if (elementType.isSignlessInteger(1) || elementType.isUnsignedInteger(4) ||
-      elementType.isUnsignedInteger(8)) {
+  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (uint8_t)value.getZExtValue();
@@ -324,9 +301,6 @@ void Tensor::dump() const {
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
   auto elemType = type.getElementType();
 
-  // Unlike parsing Int literals, we are not using parseAttribute for parsing
-  // Float literals mainly because it does not seem to parse special float
-  // values like nan, +/-inf.
   if (auto complexTy = elemType.dyn_cast<ComplexType>()) {
     auto complexElemTy = complexTy.getElementType();
     auto floatType = complexElemTy.dyn_cast<FloatType>();
@@ -355,19 +329,11 @@ Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
 
   if (elemType.isa<IntegerType>()) {
     SmallVector<APInt> intValues;
-    if (elemType.isSignlessInteger(1)) {
-      intValues =
-          llvm::to_vector(llvm::map_range(strData, [](StringRef str) -> APInt {
-            return str == "true" ? APInt(1, 1) : APInt(1, 0);
-          }));
-      return Tensor(DenseElementsAttr::get(type, intValues));
-    } else {
-      intValues = llvm::to_vector(
-          llvm::map_range(strData, [elemType](StringRef str) -> APInt {
-            return APInt(elemType.getIntOrFloatBitWidth(), str, 10);
-          }));
-      return Tensor(DenseElementsAttr::get(type, intValues));
-    }
+    intValues = llvm::to_vector(
+        llvm::map_range(strData, [elemType](StringRef str) -> APInt {
+          return APInt(elemType.getIntOrFloatBitWidth(), str, 10);
+        }));
+    return Tensor(DenseElementsAttr::get(type, intValues));
   }
 
   llvm_unreachable("Unsupported element type");

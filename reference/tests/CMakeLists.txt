@@ -24,9 +24,12 @@ FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
-add_executable(AddTest AddOpTest.cpp)
-target_link_libraries(AddTest
-  PRIVATE
+set(TESTS
+  AddOpTest
+  # more targets ...
+)
+
+set(TEST_LIBS
   GTest::GTest
   StablehloOps
   StablehloReferenceInterpreter
@@ -38,5 +41,10 @@ target_link_libraries(AddTest
   MLIRDataLayoutInterfaces
 )
 
-add_dependencies(check-stablehlo-reference AddTest)
+include(GoogleTest)
 
+foreach(TEST ${TESTS})
+    add_executable(${TEST} ${TEST}.cpp)
+    target_link_libraries(${TEST} PRIVATE ${TEST_LIBS})
+    gtest_discover_tests(${TEST})
+endforeach()
