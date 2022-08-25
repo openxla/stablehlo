@@ -14,19 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "Ops.h"
-#include "Element.h"
+#ifndef STABLEHLO_REFERENCE_TESTS_RUNTESTUTILS_H_
+#define STABLEHLO_REFERENCE_TESTS_RUNTESTUTILS_H_
+
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace mlir {
 namespace stablehlo {
 
-Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
-  Tensor result(op.getType());
-  for (auto i = 0; i < lhs.getNumElements(); ++i) {
-    result.set(i, lhs.get(i) + rhs.get(i));
-  }
-  return result;
-}
+// Helper function to setup an mlir function, provided as a string, evaluate it
+// using the provided tensor inputs, and finally match with the provided
+// expected result tensor(s). The tensor provided as input or expected result
+// is a one-dimensional flattened format of the tensor data values. The
+// flattening follows the minor-to-major dimension order of N-1 down to 0 for an
+// N-D Tensor.
+void runTestCase(llvm::StringRef sourceStr,
+                 llvm::ArrayRef<llvm::ArrayRef<llvm::StringRef>>
+                     operandsAndexpectedResultValues);
 
 }  // namespace stablehlo
 }  // namespace mlir
+
+#endif  // STABLEHLO_REFERENCE_TESTS_RUNTESTUTILS_H_

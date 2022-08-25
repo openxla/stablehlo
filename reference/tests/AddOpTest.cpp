@@ -1,201 +1,289 @@
-#include "gtest/gtest.h"
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
 
-#include "reference/Interpreter.h"
-#include "reference/Tensor.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "mlir/AsmParser/AsmParser.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/IR/Block.h"
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/DialectRegistry.h"
-#include "mlir/IR/Location.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Types.h"
-#include "dialect/StablehloOps.h"
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+#include "gtest/gtest.h"
+#include "reference/tests/RunTestUtils.h"
 
 namespace mlir {
 namespace stablehlo {
 
-void runTestCase(StringRef leftTyStr, ArrayRef<StringRef> leftData,
-                 StringRef rightTyStr, ArrayRef<StringRef> rightData,
-                 StringRef expectedTyStr, ArrayRef<StringRef> expectedData) {
-  DialectRegistry registry;
-  registry.insert<func::FuncDialect>();
-  registry.insert<stablehlo::StablehloDialect>();
-  MLIRContext context(registry);
-  context.loadAllAvailableDialects();
-  OpBuilder builder(&context);
-
-  // Builds the test module.
-  Location loc = builder.getUnknownLoc();
-
-  auto leftType = parseType(leftTyStr, &context).cast<ShapedType>();
-  auto rightType = parseType(rightTyStr, &context).cast<ShapedType>();
-  auto expectedType = parseType(expectedTyStr, &context).cast<ShapedType>();
-  auto funcType =
-      builder.getFunctionType({leftType, rightType}, {expectedType});
-  auto funcOp = func::FuncOp::create(loc, "main", funcType, {});
-
-  OwningOpRef<ModuleOp> moduleOp = ModuleOp::create(loc);
-  moduleOp->push_back(funcOp);
-
-  Block *block = funcOp.addEntryBlock();
-  builder.setInsertionPointToEnd(block);
-  auto addOp =
-      builder.create<AddOp>(loc, funcOp.getArgument(0), funcOp.getArgument(1));
-  builder.create<func::ReturnOp>(loc, addOp.getResult());
-
-  // Provide Inputs.
-  Tensor left = makeTensor(leftType, leftData);
-  Tensor right = makeTensor(rightType, rightData);
-  Tensor expectedResult = makeTensor(expectedType, expectedData);
-
-  // Run the test model.
-  auto results = eval(funcOp, {left, right});
-  ASSERT_TRUE((bool)results) << toString(results.takeError());
-
-  // Check results
-  ASSERT_EQ(results->size(), 1);
-  Tensor result = (*results)[0];
-  ASSERT_EQ(result.getType(), expectedType);
-
-  for (int i = 0; i < expectedType.getNumElements(); ++i) {
-    EXPECT_EQ(result.get(i), expectedResult.get(i));
-  }
-}
-
-// For each operand or expected result, the input is as follows:
-// 1. A shaped type represented as string.
-// 2. Numeric data, represented as an string-array, following the
-//    default minor-to-major dimension order of N-1 down to 0 for an N
-//    dimensional array.
-TEST(AddOpInterpreterTest, F64) {
-  runTestCase(/*operand 0*/
-              "tensor<2x3xf64>", {"1.0", "2.0", "3.0", "4.0", "5.0", "6.0"},
-              /*operand 1*/
-              "tensor<2x3xf64>", {"7.0", "8.0", "9.0", "10.0", "11.0", "12.0"},
-              /*expected result*/
-              "tensor<2x3xf64>",
-              {"8.0", "10.0", "12.0", "14.0", "16.0", "18.0"});
+TEST(AddOpInterpreterTest, F16) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x5xf16>, %arg1: tensor<2x5xf16>) -> tensor<2x5xf16> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xf16>
+      func.return %result : tensor<2x5xf16>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0.0", "-0.0", "1.0", "0.125", "0.1", "3.141", "inf",
+                         "inf", "-inf", "inf"},
+                        {"0.0", "-0.0", "7.0", "0.75", "0.3", "3.141", "0",
+                         "inf", "-inf", "-inf"},
+                        /*expected result*/
+                        {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.282", "inf",
+                         "inf", "-inf", "nan"}});
 }
 
 TEST(AddOpInterpreterTest, F32) {
-  runTestCase(/*operand 0*/
-              "tensor<1x34xf32>",
-              {
-                  "0.0",          "-0.0",         "0.125",        "0.25",
-                  "0.5",          "0.375",        "0.75",         "1.5",
-                  "0.1",          "0.2",          "0.4",          "0.8",
-                  "1.0e+24",      "1.0e+36",      "1.17549e-38",  "3.14159",
-                  "0.333333",     "12.375",       "68.123",       "2.0000002",
-                  "0.87747e-39",  "-5.87747e-39", "-5.87747e-39", "1.17549e-38",
-                  "-1.17549e-38", "-1.17549e-38", "1.17549e-38",  "1.76324e-38",
-                  "2.35099e-38",  "0.0",          "inf",          "inf",
-                  "-inf",         "inf",
-              },
-              /*operand 1*/
-              "tensor<1x34xf32>",
-              {
-                  "0.0",          "-0.0",         "0.125",        "0.25",
-                  "0.5",          "0.375",        "0.75",         "1.5",
-                  "0.1",          "0.2",          "0.4",          "0.8",
-                  "1.0e+24",      "1.0e+36",      "1.17549e-38",  "3.14159",
-                  "0.333333",     "12.375",       "68.123",       "2.0000002",
-                  "5.87747e-39",  "-5.87747e-39", "-5.87747e-39", "1.17549e-38",
-                  "-1.17549e-38", "-1.17549e-38", "1.17549e-38",  "1.76324e-38",
-                  "2.35099e-38",  "-0.0",         "0.0",          "inf",
-                  "-inf",         "-inf",
-              },
-              /*expected result*/
-              "tensor<1x34xf32>",
-              {
-                  "0.0",          "-0.0",         "0.25",         "0.5",
-                  "1.0",          "0.75",         "1.5",          "3.0",
-                  "0.2",          "0.4",          "0.8",          "1.6",
-                  "2.0e+24",      "2.0e+36",      "2.35099e-38",  "6.28319",
-                  "0.666667",     "24.75",        "136.246",      "4.0",
-                  "1.17549e-38",  "-1.17549e-38", "-1.17549e-38", "2.35099e-38",
-                  "-2.35099e-38", "-2.35099e-38", "2.35099e-38",  "3.52648e-38",
-                  "4.70198e-38",  "0.0",          "inf",          "inf",
-                  "-inf",         "nan",
-              });
-}
-
-TEST(AddOpInterpreterTest, F16) {
-  runTestCase(/*operand 0*/
-              "tensor<2x3xf16>", {"1.0", "2.0", "3.0", "4.0", "5.0", "6.0"},
-              /*operand 1*/
-              "tensor<2x3xf16>", {"7.0", "8.0", "9.0", "10.0", "11.0", "12.0"},
-              /*expected result*/
-              "tensor<2x3xf16>",
-              {"8.0", "10.0", "12.0", "14.0", "16.0", "18.0"});
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x5xf32>, %arg1: tensor<2x5xf32>) -> tensor<2x5xf32> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xf32>
+      func.return %result : tensor<2x5xf32>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0.0", "-0.0", "1.0", "0.125", "0.1", "3.14159265",
+                         "inf", "inf", "-inf", "inf"},
+                        {"0.0", "-0.0", "7.0", "0.75", "0.3", "3.14159265", "0",
+                         "inf", "-inf", "-inf"},
+                        /*expected result*/
+                        {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.2831855",
+                         "inf", "inf", "-inf", "nan"}});
 }
 
 TEST(AddOpInterpreterTest, BF16) {
-  runTestCase(/*operand 0*/
-              "tensor<2x3xbf16>", {"1.0", "2.0", "3.0", "4.0", "5.0", "6.0"},
-              /*operand 1*/
-              "tensor<2x3xbf16>", {"7.0", "8.0", "9.0", "10.0", "11.0", "12.0"},
-              /*expected result*/
-              "tensor<2x3xbf16>",
-              {"8.0", "10.0", "12.0", "14.0", "16.0", "18.0"});
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x5xbf16>, %arg1: tensor<2x5xbf16>) -> tensor<2x5xbf16> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xbf16>
+      func.return %result : tensor<2x5xbf16>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0.0", "-0.0", "1.0", "0.125", "0.1", "3.140625",
+                         "inf", "inf", "-inf", "inf"},
+                        {"0.0", "-0.0", "7.0", "0.75", "0.3", "3.140625", "0",
+                         "inf", "-inf", "-inf"},
+                        /*expected result*/
+                        {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.28125", "inf",
+                         "inf", "-inf", "nan"}});
 }
 
-TEST(AddOpInterpreterTest, SInt8WithOv) {
-  runTestCase(
-      /*operand 0*/
-      "tensor<1x9x1xi8>",
-      {"1", "2", "-128", "-128", "16", "-16", "16", "127", "-127"},
-      /*operand 1*/
-      "tensor<1x9x1xi8>",
-      {"127", "127", "-1", "-128", "16", "-16", "-16", "0", "0"},
-      /*expected result*/
-      "tensor<1x9x1xi8>",
-      {"-128", "-127", "127", "0", "32", "-32", "0", "127", "-127"});
-}
+TEST(AddOpInterpreterTest, F64) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x5xf64>, %arg1: tensor<2x5xf64>) -> tensor<2x5xf64> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xf64>
+      func.return %result : tensor<2x5xf64>
+    }
+  })";
 
-TEST(AddOpInterpreterTest, UInt8WithOv) {
-  runTestCase(
-      /*operand 0*/
-      "tensor<2x2xui8>", {"1", "2", "255", "4"},
-      /*operand 1*/
-      "tensor<2x2xui8>", {"255", "255", "255", "10"},
-      /*expected result*/
-      "tensor<2x2xui8>", {"0", "1", "254", "14"});
+  runTestCase(kModule, {/*operands*/
+                        {"0.0", "-0.0", "1.0", "0.125", "0.1",
+                         "3.14159265358979323846", "inf", "inf", "-inf", "inf"},
+                        {"0.0", "-0.0", "7.0", "0.75", "0.3",
+                         "3.14159265358979323846", "0", "inf", "-inf", "-inf"},
+                        /*expected result*/
+                        {"0.0", "-0.0", "8.0", "0.875", "0.4",
+                         "6.283185307179586", "inf", "inf", "-inf", "nan"}});
 }
 
 TEST(AddOpInterpreterTest, SInt4WithOv) {
-  runTestCase(
-      /*operand 0*/
-      "tensor<2x2x2xi4>", {"0", "1", "2", "-3", "7", "-8", "7", "-8"},
-      /*operand 1*/
-      "tensor<2x2x2xi4>", {"-8", "-1", "2", "-3", "1", "-1", "7", "-8"},
-      /*expected result*/
-      "tensor<2x2x2xi4>", {"-8", "0", "4", "-6", "-8", "7", "-2", "0"});
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2x2xi4>, %arg1: tensor<2x2x2xi4>) -> tensor<2x2x2xi4> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2x2xi4>
+      func.return %result : tensor<2x2x2xi4>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0", "1", "2", "-3", "7", "-8", "7", "-8"},
+                        {"-8", "-1", "2", "-3", "1", "-1", "7", "-8"},
+                        /*expected result*/
+                        {"-8", "0", "4", "-6", "-8", "7", "-2", "0"}});
 }
 
 TEST(AddOpInterpreterTest, UInt4WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2xui4>, %arg1: tensor<2x2xui4>) -> tensor<2x2xui4> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2xui4>
+      func.return %result : tensor<2x2xui4>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0", "7", "15", "15"},
+                        {"15", "7", "1", "15"},
+                        /*expected result*/
+                        {"15", "14", "0", "14"}});
+}
+
+TEST(AddOpInterpreterTest, SInt8WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<1x9x1xi8>, %arg1: tensor<1x9x1xi8>) -> tensor<1x9x1xi8> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<1x9x1xi8>
+      func.return %result : tensor<1x9x1xi8>
+    }
+  })";
+  runTestCase(kModule,
+              {/*operands*/
+               {"1", "2", "-128", "-128", "16", "-16", "16", "127", "-127"},
+               {"127", "127", "-1", "-128", "16", "-16", "-16", "0", "0"},
+               /*expected result*/
+               {"-128", "-127", "127", "0", "32", "-32", "0", "127", "-127"}});
+}
+
+TEST(AddOpInterpreterTest, UInt8WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2xui8>, %arg1: tensor<2x2xui8>) -> tensor<2x2xui8> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2xui8>
+      func.return %result : tensor<2x2xui8>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1", "2", "255", "4"},
+                        {"255", "255", "255", "10"},
+                        /*expected result*/
+                        {"0", "1", "254", "14"}});
+}
+
+TEST(AddOpInterpreterTest, SInt16WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<1x9x1xi16>, %arg1: tensor<1x9x1xi16>) -> tensor<1x9x1xi16> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<1x9x1xi16>
+      func.return %result : tensor<1x9x1xi16>
+    }
+  })";
   runTestCase(
-      /*operand 0*/
-      "tensor<2x2xui4>", {"0", "7", "15", "15"},
-      /*operand 1*/
-      "tensor<2x2xui4>", {"15", "7", "1", "15"},
-      /*expected result*/
-      "tensor<2x2xui4>", {"15", "14", "0", "14"});
+      kModule,
+      {/*operands*/
+       {"1", "2", "-32768", "-32768", "16", "-16", "16", "32767", "-32768"},
+       {"32767", "32767", "-1", "-32768", "16", "-16", "-16", "0", "0"},
+       /*expected result*/
+       {"-32768", "-32767", "32767", "0", "32", "-32", "0", "32767",
+        "-32768"}});
+}
+
+TEST(AddOpInterpreterTest, UInt16WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2xui16>, %arg1: tensor<2x2xui16>) -> tensor<2x2xui16> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2xui16>
+      func.return %result : tensor<2x2xui16>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1", "2", "65535", "4"},
+                        {"65535", "65535", "65535", "10"},
+                        /*expected result*/
+                        {"0", "1", "65534", "14"}});
+}
+
+TEST(AddOpInterpreterTest, SInt32WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<1x9x1xi32>, %arg1: tensor<1x9x1xi32>) -> tensor<1x9x1xi32> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<1x9x1xi32>
+      func.return %result : tensor<1x9x1xi32>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1", "2", "-2147483648", "-2147483648", "16", "-16",
+                         "16", "2147483647", "-2147483648"},
+                        {"2147483647", "2147483647", "-1", "-2147483648", "16",
+                         "-16", "-16", "0", "0"},
+                        /*expected result*/
+                        {"-2147483648", "-2147483647", "2147483647", "0", "32",
+                         "-32", "0", "2147483647", "-2147483648"}});
+}
+
+TEST(AddOpInterpreterTest, UInt32WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2xui32>, %arg1: tensor<2x2xui32>) -> tensor<2x2xui32> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2xui32>
+      func.return %result : tensor<2x2xui32>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1", "2", "4294967295", "4"},
+                        {"4294967295", "4294967295", "4294967295", "10"},
+                        /*expected result*/
+                        {"0", "1", "4294967294", "14"}});
+}
+
+TEST(AddOpInterpreterTest, SInt64WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<1x9x1xi64>, %arg1: tensor<1x9x1xi64>) -> tensor<1x9x1xi64> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<1x9x1xi64>
+      func.return %result : tensor<1x9x1xi64>
+    }
+  })";
+  runTestCase(
+      kModule,
+      {/*operands*/
+       {"1", "2", "-9223372036854775808", "-9223372036854775808", "16", "-16",
+        "16", "9223372036854775807", "-9223372036854775808"},
+       {"9223372036854775807", "9223372036854775807", "-1",
+        "-9223372036854775808", "16", "-16", "-16", "0", "0"},
+       /*expected result*/
+       {"-9223372036854775808", "-9223372036854775807", "9223372036854775807",
+        "0", "32", "-32", "0", "9223372036854775807", "-9223372036854775808"}});
+}
+
+TEST(AddOpInterpreterTest, UInt64WithOv) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x2xui64>, %arg1: tensor<2x2xui64>) -> tensor<2x2xui64> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x2xui64>
+      func.return %result : tensor<2x2xui64>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1", "2", "18446744073709551615", "4"},
+                        {"18446744073709551615", "18446744073709551615",
+                         "18446744073709551615", "10"},
+                        /*expected result*/
+                        {"0", "1", "18446744073709551614", "14"}});
 }
 
 TEST(AddOpInterpreterTest, Complex32) {
-  runTestCase(
-      /*operand 0*/
-      "tensor<2xcomplex<f32>>", {"1.5", "2.5", "7.5", "5.5"},
-      /*operand 1*/
-      "tensor<2xcomplex<f32>>", {"1.5", "2.5", "7.5", "5.5"},
-      /*expected result*/
-      "tensor<2xcomplex<f32>>", {"3.0", "5.0", "15.0", "11.0"});
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2xcomplex<f32>>, %arg1: tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2xcomplex<f32>>
+      func.return %result : tensor<2xcomplex<f32>>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1.5", "2.5", "7.5", "5.5"},
+                        {"1.5", "2.5", "7.5", "5.5"},
+                        /*expected result*/
+                        {"3.0", "5.0", "15.0", "11.0"}});
+}
+
+TEST(AddOpInterpreterTest, Complex64) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2xcomplex<f64>>, %arg1: tensor<2xcomplex<f64>>) -> tensor<2xcomplex<f64>> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2xcomplex<f64>>
+      func.return %result : tensor<2xcomplex<f64>>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"1.5", "2.5", "7.5", "5.5"},
+                        {"1.5", "2.5", "7.5", "5.5"},
+                        /*expected result*/
+                        {"3.0", "5.0", "15.0", "11.0"}});
 }
 
 }  // namespace stablehlo

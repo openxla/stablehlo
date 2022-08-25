@@ -24,12 +24,11 @@ FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
-set(TESTS
-  AddOpTest
-  # more targets ...
-)
+add_mlir_library(RunTestUtils
+  PARTIAL_SOURCES_INTENDED
+  RunTestUtils.cpp
 
-set(TEST_LIBS
+  LINK_LIBS PUBLIC
   GTest::GTest
   StablehloOps
   StablehloReferenceInterpreter
@@ -37,8 +36,19 @@ set(TEST_LIBS
   MLIRAsmParser
   MLIRFuncDialect
   MLIRIR
+  MLIRParser
   MLIRSupport
   MLIRDataLayoutInterfaces
+)
+
+set(TESTS
+  AddOpTest
+  # more targets ...
+)
+
+set(TEST_LIBS
+  GTest::GTest
+  RunTestUtils
 )
 
 include(GoogleTest)
