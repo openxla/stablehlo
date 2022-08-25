@@ -253,23 +253,6 @@ func.func @verify_reducer_function(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32
 
 // -----
 
-func.func @verify_reducer_function(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
-    -> (tensor<f32>) {
-
-  // expected-error@+1 {{Reduction-region here must produce tensor-typed result(s), but produces 'f32' instead}}
-  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
-
-  ^bb0(%arg2: f32, %arg3: f32):
-    %1 = "llvm.add"(%arg2, %arg3) : (f32, f32) -> f32
-    "stablehlo.return"(%1) : (f32) -> ()
-
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<f32>
-
-    func.return %0: tensor<f32>
-}
-
-// -----
-
 func.func @verify_reducer_function(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
     %arg2: tensor<f32>, %arg3: tensor<i32>) -> (tensor<?xf32>, tensor<?xi32>) {
 
