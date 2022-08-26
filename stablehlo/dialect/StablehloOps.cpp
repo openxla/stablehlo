@@ -5681,6 +5681,7 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 // Assembly - Custom Type Directives
 //===----------------------------------------------------------------------===//
 
+<<<<<<< HEAD
 // Declarative `custom<SameOperandsAndResultType>(...)` implementation:
 // Pretty print for ops with many operands, but one result type, simplifies
 // print if all operand types match the result type. Based on `printOneResultOp`
@@ -5699,6 +5700,8 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 //
 // Note that `type($result)` is the first argument, this is done because the
 // behavior of trailing parameter packs is easily understandable.
+=======
+>>>>>>> 8e4cc72 (Pretty printing for StableHLO types.)
 void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
                                         TypeRange operands, Type result) {
   // Handle zero operand types `() -> a` prints `a`
