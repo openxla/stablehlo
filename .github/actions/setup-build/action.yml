@@ -1,0 +1,45 @@
+# Copyright 2022 The StableHLO Authors.
+
+# The setup-build action gets everything needed by buildAndTest into the workspace.
+# This checks out the proper revision of the LLVM repository, installs ninja, and sets
+# up the ccache for faster re-compilation.
+name: "Setup build environment (ninja, ccache, llvm, lld)"
+
+inputs:
+  llvm-ref:
+    description: |
+      LLVM Commit Ref for checkout and build. Used for ccache value and checkout.
+    required: true
+
+
+runs:
+  # Based on https://github.com/llvm/torch-mlir/blob/main/.github/actions/setup-build/action.yml
+  using: "composite"
+
+  steps:
+  # Checkout llvm at revision specified in input argument.
+  - uses: actions/checkout@v2
+    with:
+      repository: llvm/llvm-project
+      ref: ${{ inputs.llvm-ref }}
+      path: llvm-project
+      fetch-depth: 1
+
+  # Get ninja for cmake build.
+  - name: Install Ninja
+    uses: llvm/actions/install-ninja@55d844821959226fab4911f96f37071c1d4c3268
+
+  # Get LLD
+  - name: Install LLD
+    if: "runner.os == 'Linux'"
+    shell: bash
+    run: |
+      sudo apt-get install -y lld
+
+  # Setup C++ caching using ccache.
+  # Cache key is a combination of OS arch and LLVM ref.
+  - name: Ccache for C++ compilation
+    uses: hendrikmuhs/ccache-action@v1.2
+    with:
+      key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-ref }}
+      max-size: 4G

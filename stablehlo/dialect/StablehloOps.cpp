@@ -1855,8 +1855,7 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
 }
 
 LogicalResult CollectivePermuteOp::verify() {
-  return verifyCollectivePermuteSourceTargetPairs(*this,
-                                                       source_target_pairs());
+  return verifyCollectivePermuteSourceTargetPairs(*this, source_target_pairs());
 }
 
 //===----------------------------------------------------------------------===//

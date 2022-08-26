@@ -1,0 +1,71 @@
+# Copyright 2022 The StableHLO Authors.
+
+name: Build and Test
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    # Always regenerate once every day
+    - cron:  '* 12 * * *'
+  workflow_dispatch:
+
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Build using CMake and run tests.
+# Use Cached LLVM to improve build times.
+# Current setup only builds on linux.
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os-arch: [maci-x86_64, ubuntu-x86_64]
+        include:
+          - os-arch: ubuntu-x86_64
+            os: ubuntu-22.04
+            llvm-build-dir: "$GITHUB_WORKSPACE/llvm-build"
+            stablehlo-build-dir: "$GITHUB_WORKSPACE/build"
+          - os-arch: maci-x86_64 
+            os: macos-latest
+            llvm-build-dir: "$GITHUB_WORKSPACE/llvm-build-maci"
+            stablehlo-build-dir: "$GITHUB_WORKSPACE/build-maci"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    # Check out stablehlo repo
+    - name: Checkout stablehlo
+      uses: actions/checkout@v2
+
+    # Read llvm revision from `build_tools/llvm_version.txt`
+    - name: Get LLVM Revision
+      id: llvm-revision
+      shell: bash
+      run: |
+        echo "::set-output name=revision::$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)"
+
+    # Check out LLVM, download Ninja, setup ccache
+    - name: Setup workspace
+      uses: ./.github/actions/setup-build
+      with:
+        llvm-ref: ${{ steps.llvm-revision.outputs.revision }}
+
+    # Configuration for linux
+    - name: Configure and Build LLVM os-arch='${{ matrix.os-arch }}'
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_llvm.sh "$GITHUB_WORKSPACE/llvm-project/" ${{ matrix.llvm-build-dir }}
+
+    # Configure for linux
+    - name: Build and Test StableHLO os-arch='${{ matrix.os-arch }}'
+      run: |
+        ./build_tools/github_actions/ci_build_stablehlo.sh ${{ matrix.llvm-build-dir }} ${{ matrix.stablehlo-build-dir }}
