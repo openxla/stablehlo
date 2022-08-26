@@ -51,6 +51,10 @@ limitations under the License.
 // Encoding
 //===----------------------------------------------------------------------===//
 
+// Remove the `if (0)` to enable logging
+#define LOG_CALL \
+  if (0) std::cerr << "Called: " << __PRETTY_FUNCTION__ << std::endl
+
 namespace {
 namespace stablehlo_encoding {
 
