@@ -23,7 +23,7 @@ namespace stablehlo_encoding {
 /// compatibility with older bytecode.
 enum AttributeCode {
   ///   FftTypeAttr
-  ///     FftType
+  ///     varint FftType
   ///   }
   kFftTypeAttr = 0,
 };
@@ -110,10 +110,13 @@ FftTypeAttr StablehloBytecodeInterface::readFftTypeAttr(
   if (failed(reader.readVarInt(code)))
     return FftTypeAttr();
 
-  if (auto fftType = symbolizeFftType(static_cast<uint32_t>(code))) {
-    return FftTypeAttr::get(getContext(), *fftType);
+  llvm::Optional<FftType> fftTypeOpt =
+      symbolizeFftType(static_cast<uint32_t>(code));
+  if (!fftTypeOpt.has_value()) {
+    return FftTypeAttr();  // <-- Guessing empty makes the infrastructure error?
   }
-  return FftTypeAttr();  // <-- Guessing empty makes the infrastructure error?
+
+  return FftTypeAttr::get(reader.getContext(), fftTypeOpt.value());
 }
 
 
