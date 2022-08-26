@@ -57,3 +57,6 @@ foreach(TEST ${TESTS})
     target_link_libraries(${TEST} PRIVATE ${TEST_LIBS})
     gtest_discover_tests(${TEST})
 endforeach()
+
+add_custom_target(check-stablehlo-interpreter ${TESTS})
+add_dependencies(check-stablehlo check-stablehlo-interpreter)
