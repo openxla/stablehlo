@@ -16,7 +16,6 @@ limitations under the License.
 #include <functional>
 #include <vector>
 
-#include "dialect/StablehloOps.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
@@ -25,8 +24,9 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Parser/Parser.h"
-#include "reference/Interpreter.h"
-#include "reference/Tensor.h"
+#include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Interpreter.h"
+#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {

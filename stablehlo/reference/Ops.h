@@ -16,8 +16,8 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_OPS_H
 #define STABLHLO_REFERENCE_OPS_H
 
-#include "dialect/StablehloOps.h"
-#include "reference/Tensor.h"
+#include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {

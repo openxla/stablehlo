@@ -15,7 +15,6 @@ limitations under the License.
 
 #include "Interpreter.h"
 
-#include "dialect/StablehloOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
@@ -24,7 +23,8 @@ limitations under the License.
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Support/DebugStringHelper.h"
-#include "reference/Ops.h"
+#include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Ops.h"
 
 namespace mlir {
 namespace stablehlo {

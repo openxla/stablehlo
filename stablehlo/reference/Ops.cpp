@@ -13,26 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_INTERPRETER_H
-#define STABLEHLO_REFERENCE_INTERPRETER_H
+#include "stablehlo/reference/Ops.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Error.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "reference/Tensor.h"
+#include "stablehlo/reference/Element.h"
 
 namespace mlir {
 namespace stablehlo {
 
-/// Evaluating an mlir function.
-///
-/// Assuming that the function under evaluation has passed verifier,
-/// similarly to what's required by constant folding.
-llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
-                                         ArrayRef<Tensor> args);
+Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < lhs.getNumElements(); ++i) {
+    result.set(i, lhs.get(i) + rhs.get(i));
+  }
+  return result;
+}
 
 }  // namespace stablehlo
 }  // namespace mlir
-
-#endif  // STABLEHLO_REFERENCE_INTERPRETER_H

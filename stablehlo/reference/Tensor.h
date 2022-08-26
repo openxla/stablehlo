@@ -22,7 +22,7 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
-#include "reference/Element.h"
+#include "stablehlo/reference/Element.h"
 
 namespace mlir {
 namespace stablehlo {

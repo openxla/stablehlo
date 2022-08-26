@@ -30,7 +30,7 @@ add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
         )
 set_target_properties(check-stablehlo-lit PROPERTIES FOLDER "Tests")
 add_lit_testsuites(STABLEHLO_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
-add_dependencies(check-stablehlo check-stablehlo-lit test)
+add_dependencies(check-stablehlo check-stablehlo-lit)
 
 set(LLVM_TARGET_DEFINITIONS TestUtils.td)
 mlir_tablegen(TestUtils.h.inc -gen-pass-decls -name HloTest)
