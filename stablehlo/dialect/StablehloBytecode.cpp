@@ -1,11 +1,11 @@
 /* Copyright 2022 The StableHLO Authors.
 StablehloBytecode.cpp - StableHLO Bytecode Implementation */
 
-#include "dialect/StablehloBytecode.h"
+#include "stablehlo/dialect/StablehloBytecode.h"
 
 #include <iostream>  // FIXME
 
-#include "dialect/StablehloOps.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Diagnostics.h"
@@ -116,7 +116,7 @@ FftTypeAttr StablehloBytecodeInterface::readFftTypeAttr(
     return FftTypeAttr();  // <-- Guessing empty makes the infrastructure error?
   }
 
-  return FftTypeAttr::get(reader.getContext(), fftTypeOpt.value());
+  return FftTypeAttr::get(getContext(), fftTypeOpt.value());
 }
 
 
