@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "Tensor.h"
+#include "reference/Tensor.h"
 
 #include <algorithm>
 #include <complex>
@@ -64,11 +63,14 @@ Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(DenseElementsAttr attr) {
-  // Note: Soon we will be deprecating the use of
-  // DenseElementsAttr::getRawData() as the return value is not always the
-  // expected byte array, atleast for splat and boolean values.
+  // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
+  // simplicity, because it provides a contiguous representation of underlying
+  // data in most cases. However, this doesn't always work (e.g. for splat or
+  // for i1), so we'll be migrating to something more reliable in the near
+  // future.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                    attr.getRawData().data()); }
+                                                    attr.getRawData().data());
+}
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
@@ -105,8 +107,10 @@ Element Tensor::get(int64_t index) const {
   }
 
   // Handle signed integer types.
-  // TODO(https://github.com/openxla/stablehlo/issues/22): Support signed
-  // integers instead.
+  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     return Element(elementType, IntegerAttr::get(elementType, *elementData));
@@ -221,8 +225,10 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   // Handle signed integer types.
-  // TODO(https://github.com/openxla/stablehlo/issues/22): Support signed
-  // integers instead.
+  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
     auto value = getIntegerValue(element);
@@ -323,11 +329,13 @@ void Tensor::dump() const {
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
   auto elemType = type.getElementType();
 
+  // We are not using parseAttribute for parsing Float literals mainly because
+  // it does not parse special float values like nan, +/-inf.
   if (auto complexTy = elemType.dyn_cast<ComplexType>()) {
     auto complexElemTy = complexTy.getElementType();
     auto floatType = complexElemTy.dyn_cast<FloatType>();
     if (!floatType)
-      llvm_unreachable("Unsupported element type for commplex type");
+      llvm_unreachable("Unsupported element type for complex type");
 
     auto floatValues = llvm::to_vector(
         llvm::map_range(strData, [&](StringRef strNum) -> APFloat {

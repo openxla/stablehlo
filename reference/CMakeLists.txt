@@ -1,4 +1,3 @@
-# Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 # Copyright 2022 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +26,8 @@ add_mlir_library(StablehloReferenceTensor
   Tensor.cpp
 
   LINK_LIBS PUBLIC
-  StablehloReferenceElement
   MLIRIR
+  StablehloReferenceElement
 )
 
 add_mlir_library(StablehloReferenceOps
@@ -46,12 +45,12 @@ add_mlir_library(StablehloReferenceInterpreter
   Interpreter.cpp
 
   LINK_LIBS PUBLIC
-  StablehloOps
-  StablehloReferenceOps
-  StablehloReferenceTensor
   MLIRFuncDialect
   MLIRIR
   MLIRSupport
+  StablehloOps
+  StablehloReferenceOps
+  StablehloReferenceTensor
 )
 
 add_subdirectory(tests)

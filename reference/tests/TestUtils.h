@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +22,12 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-// Helper function to setup an mlir function, provided as a string, evaluate it
-// using the provided tensor inputs, and finally match with the provided
-// expected result tensor(s). The tensor provided as input or expected result
-// is a one-dimensional flattened format of the tensor data values. The
-// flattening follows the minor-to-major dimension order of N-1 down to 0 for an
-// N-D Tensor.
+/// Helper function to setup an mlir function, provided as a string, evaluate it
+/// using the provided tensor inputs, and finally match with the provided
+/// expected result tensor(s). The tensor provided as input or expected result
+/// is a one-dimensional flattened format of the tensor data values. The
+/// flattening follows the minor-to-major dimension order of N-1 down to 0 for
+/// an N-D Tensor.
 void runTestCase(llvm::StringRef sourceStr,
                  llvm::ArrayRef<llvm::ArrayRef<llvm::StringRef>>
                      operandsAndexpectedResultValues);

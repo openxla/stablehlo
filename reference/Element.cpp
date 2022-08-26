@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "Element.h"
+#include "reference/Element.h"
 
 #include <complex>
 
@@ -44,9 +43,11 @@ bool isSupportedUnsignedIntegerType(Type type) {
          type.isUnsignedInteger(64);
 }
 
-// TODO(https://github.com/openxla/stablehlo/issues/22): Support signed integers
-// instead.
 bool isSupportedSignedIntegerType(Type type) {
+  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
   return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
          type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
          type.isSignlessInteger(64);

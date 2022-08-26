@@ -1,4 +1,3 @@
-# Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 # Copyright 2022 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,21 +23,21 @@ FetchContent_MakeAvailable(googletest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
-add_mlir_library(RunTestUtils
+add_mlir_library(TestUtils
   PARTIAL_SOURCES_INTENDED
-  RunTestUtils.cpp
+  TestUtils.cpp
 
   LINK_LIBS PUBLIC
   GTest::GTest
-  StablehloOps
-  StablehloReferenceInterpreter
-  StablehloReferenceTensor
   MLIRAsmParser
   MLIRFuncDialect
   MLIRIR
   MLIRParser
   MLIRSupport
   MLIRDataLayoutInterfaces
+  StablehloOps
+  StablehloReferenceInterpreter
+  StablehloReferenceTensor
 )
 
 set(TESTS
@@ -48,7 +47,7 @@ set(TESTS
 
 set(TEST_LIBS
   GTest::GTest
-  RunTestUtils
+  TestUtils
 )
 
 include(GoogleTest)

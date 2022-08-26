@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "gtest/gtest.h"
-#include "reference/tests/RunTestUtils.h"
+#include "reference/tests/TestUtils.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -38,24 +37,6 @@ TEST(AddOpInterpreterTest, F16) {
                          "inf", "-inf", "nan"}});
 }
 
-TEST(AddOpInterpreterTest, F32) {
-  constexpr llvm::StringRef kModule = R"(
-  module {
-    func.func @main(%arg0: tensor<2x5xf32>, %arg1: tensor<2x5xf32>) -> tensor<2x5xf32> {
-      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xf32>
-      func.return %result : tensor<2x5xf32>
-    }
-  })";
-  runTestCase(kModule, {/*operands*/
-                        {"0.0", "-0.0", "1.0", "0.125", "0.1", "3.14159265",
-                         "inf", "inf", "-inf", "inf"},
-                        {"0.0", "-0.0", "7.0", "0.75", "0.3", "3.14159265", "0",
-                         "inf", "-inf", "-inf"},
-                        /*expected result*/
-                        {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.2831855",
-                         "inf", "inf", "-inf", "nan"}});
-}
-
 TEST(AddOpInterpreterTest, BF16) {
   constexpr llvm::StringRef kModule = R"(
   module {
@@ -72,6 +53,24 @@ TEST(AddOpInterpreterTest, BF16) {
                         /*expected result*/
                         {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.28125", "inf",
                          "inf", "-inf", "nan"}});
+}
+
+TEST(AddOpInterpreterTest, F32) {
+  constexpr llvm::StringRef kModule = R"(
+  module {
+    func.func @main(%arg0: tensor<2x5xf32>, %arg1: tensor<2x5xf32>) -> tensor<2x5xf32> {
+      %result = stablehlo.add %arg0, %arg1 : tensor<2x5xf32>
+      func.return %result : tensor<2x5xf32>
+    }
+  })";
+  runTestCase(kModule, {/*operands*/
+                        {"0.0", "-0.0", "1.0", "0.125", "0.1", "3.14159265",
+                         "inf", "inf", "-inf", "inf"},
+                        {"0.0", "-0.0", "7.0", "0.75", "0.3", "3.14159265", "0",
+                         "inf", "-inf", "-inf"},
+                        /*expected result*/
+                        {"0.0", "-0.0", "8.0", "0.875", "0.4", "6.2831855",
+                         "inf", "inf", "-inf", "nan"}});
 }
 
 TEST(AddOpInterpreterTest, F64) {
@@ -93,7 +92,7 @@ TEST(AddOpInterpreterTest, F64) {
                          "6.283185307179586", "inf", "inf", "-inf", "nan"}});
 }
 
-TEST(AddOpInterpreterTest, SInt4WithOv) {
+TEST(AddOpInterpreterTest, SInt4) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2x2xi4>, %arg1: tensor<2x2x2xi4>) -> tensor<2x2x2xi4> {
@@ -108,7 +107,7 @@ TEST(AddOpInterpreterTest, SInt4WithOv) {
                         {"-8", "0", "4", "-6", "-8", "7", "-2", "0"}});
 }
 
-TEST(AddOpInterpreterTest, UInt4WithOv) {
+TEST(AddOpInterpreterTest, UInt4) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2xui4>, %arg1: tensor<2x2xui4>) -> tensor<2x2xui4> {
@@ -123,7 +122,7 @@ TEST(AddOpInterpreterTest, UInt4WithOv) {
                         {"15", "14", "0", "14"}});
 }
 
-TEST(AddOpInterpreterTest, SInt8WithOv) {
+TEST(AddOpInterpreterTest, SInt8) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<1x9x1xi8>, %arg1: tensor<1x9x1xi8>) -> tensor<1x9x1xi8> {
@@ -139,7 +138,7 @@ TEST(AddOpInterpreterTest, SInt8WithOv) {
                {"-128", "-127", "127", "0", "32", "-32", "0", "127", "-127"}});
 }
 
-TEST(AddOpInterpreterTest, UInt8WithOv) {
+TEST(AddOpInterpreterTest, UInt8) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2xui8>, %arg1: tensor<2x2xui8>) -> tensor<2x2xui8> {
@@ -154,7 +153,7 @@ TEST(AddOpInterpreterTest, UInt8WithOv) {
                         {"0", "1", "254", "14"}});
 }
 
-TEST(AddOpInterpreterTest, SInt16WithOv) {
+TEST(AddOpInterpreterTest, SInt16) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<1x9x1xi16>, %arg1: tensor<1x9x1xi16>) -> tensor<1x9x1xi16> {
@@ -172,7 +171,7 @@ TEST(AddOpInterpreterTest, SInt16WithOv) {
         "-32768"}});
 }
 
-TEST(AddOpInterpreterTest, UInt16WithOv) {
+TEST(AddOpInterpreterTest, UInt16) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2xui16>, %arg1: tensor<2x2xui16>) -> tensor<2x2xui16> {
@@ -187,7 +186,7 @@ TEST(AddOpInterpreterTest, UInt16WithOv) {
                         {"0", "1", "65534", "14"}});
 }
 
-TEST(AddOpInterpreterTest, SInt32WithOv) {
+TEST(AddOpInterpreterTest, SInt32) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<1x9x1xi32>, %arg1: tensor<1x9x1xi32>) -> tensor<1x9x1xi32> {
@@ -205,7 +204,7 @@ TEST(AddOpInterpreterTest, SInt32WithOv) {
                          "-32", "0", "2147483647", "-2147483648"}});
 }
 
-TEST(AddOpInterpreterTest, UInt32WithOv) {
+TEST(AddOpInterpreterTest, UInt32) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2xui32>, %arg1: tensor<2x2xui32>) -> tensor<2x2xui32> {
@@ -220,7 +219,7 @@ TEST(AddOpInterpreterTest, UInt32WithOv) {
                         {"0", "1", "4294967294", "14"}});
 }
 
-TEST(AddOpInterpreterTest, SInt64WithOv) {
+TEST(AddOpInterpreterTest, SInt64) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<1x9x1xi64>, %arg1: tensor<1x9x1xi64>) -> tensor<1x9x1xi64> {
@@ -240,7 +239,7 @@ TEST(AddOpInterpreterTest, SInt64WithOv) {
         "0", "32", "-32", "0", "9223372036854775807", "-9223372036854775808"}});
 }
 
-TEST(AddOpInterpreterTest, UInt64WithOv) {
+TEST(AddOpInterpreterTest, UInt64) {
   constexpr llvm::StringRef kModule = R"(
   module {
     func.func @main(%arg0: tensor<2x2xui64>, %arg1: tensor<2x2xui64>) -> tensor<2x2xui64> {

@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,11 +16,11 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_INTERPRETER_H
 #define STABLEHLO_REFERENCE_INTERPRETER_H
 
-#include "Tensor.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {

@@ -26,9 +26,6 @@ $ cmake .. -GNinja \
    -DLLVM_ENABLE_ASSERTIONS=On \
    -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
 $ ninja check-stablehlo
-
-# To run tests for the reference implementation
-$ ninja && ninja test
 ```
 
 ### Python API
