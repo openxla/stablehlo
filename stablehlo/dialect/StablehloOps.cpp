@@ -29,6 +29,11 @@ limitations under the License.
 #include <unordered_map>
 #include <utility>
 
+<<<<<<< HEAD:stablehlo/dialect/StablehloOps.cpp
+=======
+#include "dialect/StablehloBytecode.h"
+#include "dialect/StablehloOps.h.inc"
+>>>>>>> 00e3dc9 (Inital bytecode prototype - only handles FftTypeAttr):dialect/StablehloOps.cpp
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -5815,6 +5820,7 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >();
   addInterfaces<HLOBoundedDialectInterface>();
+  addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST
