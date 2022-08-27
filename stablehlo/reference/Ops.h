@@ -23,6 +23,7 @@ namespace mlir {
 namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor eval(ConstantOp op, ElementsAttr value);
 
 }  // namespace stablehlo
 }  // namespace mlir

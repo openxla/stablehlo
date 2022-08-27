@@ -28,5 +28,9 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   return result;
 }
 
+Tensor eval(ConstantOp op, ElementsAttr value) {
+  return Tensor(value.cast<DenseElementsAttr>());
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
