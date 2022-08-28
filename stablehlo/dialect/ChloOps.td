@@ -61,6 +61,11 @@ class CHLO_Op<string mnemonic, list<Trait> traits> :
     Op<CHLO_Dialect, mnemonic, traits> {
 }
 
+class CHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
+    CHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
+    ["reifyReturnTypeShapes"]>]> {
+}
+
 include "stablehlo/dialect/ChloEnums.td"
 
 class CHLO_NativeOpTrait<string name> : NativeOpTrait<name> {
@@ -943,6 +948,30 @@ def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [NoSideEffect,
 
   let arguments = (ins HLO_Tensor:$operand, HLO_DimensionTensor:$output_shape);
   let results = (outs HLO_Tensor:$result);
+}
+
+def CHLO_BroadcastOp : CHLO_ShapedInterfaceOp<"broadcast",
+    [NoSideEffect, SameOperandsAndResultElementType, InferTensorType]> {
+  let summary = "Broadcast a tensor to a higher rank by prepending dimensions";
+  let description = [{
+    Broadcasts the operand tensor to a higher rank by prepending
+    `broadcast_sizes` to the dimensions. The current values of the operand are
+    copied into the other dimensions.
+
+    This is a more limited form of broadcasting, that corresponds to the XLA
+    client Broadcast method. For a more general form of broadcasting, see the
+    BroadcastInDimOp.
+
+    See https://www.tensorflow.org/xla/operation_semantics#broadcast.
+  }];
+  let arguments = (ins
+    HLO_Tensor:$operand,
+    I64ElementsAttr:$broadcast_sizes
+  );
+
+  let results = (outs HLO_Tensor);
+
+  let hasVerifier = 1;
 }
 
 #endif  // STABLEHLO_DIALECT_CHLO_OPS

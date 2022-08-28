@@ -125,3 +125,45 @@ func.func @top_k(%arg0 : tensor<16x16xf32>) {
   %0:2 = chlo.top_k(%arg0, k=8) : tensor<16x16xf32> -> (tensor<16x8xf32>, tensor<16x8xi32>)
   return
 }
+
+// -----
+
+// CHECK-LABEL: func @broadcast
+func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
+  %0 = "chlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  func.return %0 : tensor<1x2x3xi32>
+}
+
+// -----
+
+func.func @broadcast_bad_sizes_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+1 {{broadcast_sizes has rank 2 instead of rank 1}}
+  %0 = "chlo.broadcast"(%arg0) {broadcast_sizes = dense<[[1, 2]]> : tensor<1x2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  func.return %0 : tensor<1x2x3xi32>
+}
+
+// -----
+
+func.func @broadcast_bad_result_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+1 {{'chlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x2x3xi32>'}}
+  %0 = "chlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  func.return %0 : tensor<1x2x3xi32>
+}
+
+// -----
+
+func.func @broadcast_bad_first_part_result_shape(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+1 {{'chlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x3xi32>'}}
+  %0 = "chlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x3xi32>
+  func.return %0 : tensor<1x3xi32>
+}
+
+// -----
+
+func.func @broadcast_bad_second_part_result_shape(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+1 {{'chlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<2x1xi32>'}}
+  %0 = "chlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<2x1xi32>
+  func.return %0 : tensor<2x1xi32>
+}
+
+// -----

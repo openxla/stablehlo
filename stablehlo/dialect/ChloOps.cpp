@@ -16,10 +16,15 @@ limitations under the License.
 
 #include "stablehlo/dialect/ChloOps.h"
 
+#include <complex>
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Traits.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -444,6 +449,80 @@ LogicalResult RankSpecializationClusterOp::verify() {
       return emitOpError() << "nested ops must not depend on implicit operands";
     }
   }
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// BroadcastOp
+//===----------------------------------------------------------------------===//
+
+// TODO(b/129012527) These should be expressed as type constraints.
+LogicalResult BroadcastOp::verify() {
+  auto sizes = broadcast_sizes();
+  auto sizesType = sizes.getType();
+  auto sizesRank = sizesType.getRank();
+  if (sizesRank != 1) {
+    return emitOpError(llvm::formatv(
+        "broadcast_sizes has rank {0} instead of rank 1", sizesRank));
+  }
+
+  return success();
+}
+
+LogicalResult BroadcastOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  BroadcastOp::Adaptor adaptor(operands, attributes, regions);
+  Value operand = adaptor.operand();
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) return failure();
+
+  Type elementTy = operandType.getElementType();
+  auto dimensionAttr = adaptor.broadcast_sizes();
+  for (int64_t size : dimensionAttr.getValues<int64_t>()) {
+    if (size < 0)
+      return emitOptionalError(location,
+                               "Broadcast with negative dimension size ", size);
+  }
+  SmallVector<int64_t> shapeValues(dimensionAttr.getValues<int64_t>());
+  llvm::append_range(shapeValues, operandType.getShape());
+
+  inferredReturnShapes.emplace_back(shapeValues, elementTy);
+  return success();
+}
+
+LogicalResult BroadcastOp::reifyReturnTypeShapes(
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
+  BroadcastOp::Adaptor adaptor(operands);
+  Value operand = adaptor.operand();
+
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  // Unranked tensors are not supported.
+  if (!operandType) return failure();
+
+  Location loc = getLoc();
+  SmallVector<Value, 4> shapeValues;
+
+  // Collect the broadcast sizes.
+  for (const auto& size : broadcast_sizes()) {
+    shapeValues.push_back(
+        builder.create<arith::ConstantIndexOp>(loc, size.getZExtValue()));
+  }
+
+  // Collect the operand sizes.
+  for (auto index : llvm::seq<int64_t>(0, operandType.getRank())) {
+    shapeValues.push_back(
+        builder.createOrFold<tensor::DimOp>(loc, operand, index));
+  }
+
+  reifiedReturnShapes.push_back(builder.create<tensor::FromElementsOp>(
+      loc,
+      RankedTensorType::get({static_cast<int64_t>(shapeValues.size())},
+                            builder.getIndexType()),
+      shapeValues));
 
   return success();
 }
