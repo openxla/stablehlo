@@ -24,10 +24,10 @@ Following are the supported element types in StableHLO:
 StableHLO supports a Tensor type `tensor`, to model the type of a n-dimensional
 array, represented in the opset as `tensor<SxE>` such that
 
-  * Shape `S` is a list of number of elements in each of the
-  dimensions and represented, in increasing order of the corresponding dimension
-  number, as an array of values of type `ui64`. A 0-value represents missing or
-  empty data in the corresponding dimension.
+  * Shape `S` is a list of number of elements in each of the dimensions and
+  represented, in increasing order of the corresponding dimension number, as an
+  array of values of type `ui64`. A zero value in a dimension is allowed and
+  represents empty data in that dimension.
   * Element type `E` is any one of the supported element types mentioned above.
 
 ## Programs
