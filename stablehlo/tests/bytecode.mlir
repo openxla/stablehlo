@@ -1,8 +1,13 @@
 // RUN: diff <(stablehlo-opt %s) <(stablehlo-opt -emit-bytecode %s | stablehlo-opt)
+// RUN: stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
 // This test compares the output from `stablehlo-opt` of this file, to a round
 // trip of the a bytecoded version of this file. If the outputs do not match,
 // the test will fail.
+//
+// Additionally this test will fail if any ops are not implemented on read or 
+// write.
 
 func.func @test_add(%arg0: tensor<2xi1>) -> tensor<2xi1> {
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<2xi1>, tensor<2xi1>) -> tensor<2xi1>
