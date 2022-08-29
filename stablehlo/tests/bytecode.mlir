@@ -7,6 +7,10 @@
 // the test will fail.
 //
 // Additionally this test will fail if any ops are not implemented on read or 
+// write. This is accomplished by calling `stablehlo-opt` with the
+// `-debug-only=stablehlo-bytecode` trace enabled. If any type or attr is not
+// implemented, a message '***Not Implemented' is logged. If there are no logs
+// containing 'Not Implemented' the test will pass. This is tested for read and
 // write.
 
 func.func @test_add(%arg0: tensor<2xi1>) -> tensor<2xi1> {
