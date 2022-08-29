@@ -179,6 +179,15 @@ Called: readChannelHandleAttr(mlir::DialectBytecodeReader &) const
 Called: readRngAlgorithmAttr(mlir::DialectBytecodeReader &) const
 ```
 
+### Adding Bytecode for a New Type / Attribute
+
+Adding bytecode for a new type or attribute is simple. In the file 
+`StablehloBytecode.cpp` search for the term `TO ADD ATTRIBUTE` or `TO ADD TYPE`
+depending on the change. Ensure that each location tagged with `TO ADD` 
+instructions is addressed. If so, bytecode for the attr/type should be generated
+on next call to `stablehlo-opt -emit-bytecode`.
+
+
 ### Encoding `enum class` values
 Enum class values can be encoded as their underlying numeric types using `varint`. Currently all enums in StableHLO use `uint32_t` as the underlying value.
 
