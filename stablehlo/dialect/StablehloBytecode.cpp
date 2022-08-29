@@ -51,9 +51,16 @@ limitations under the License.
 // Encoding
 //===----------------------------------------------------------------------===//
 
-// Remove the `if (0)` to enable logging
-#define LOG_CALL \
-  if (0) std::cerr << "Called: " << __PRETTY_FUNCTION__ << std::endl
+// Enable logging with flag:
+//   stablehlo-opt -debug-only=stablehlo-bytecode [...]
+#define LOG_CALL                        \
+  DEBUG_WITH_TYPE("stablehlo-bytecode", \
+                  llvm::errs() << "Called: " << __PRETTY_FUNCTION__ << '\n')
+
+#define LOG_CALL_NOT_IMPLEMENTED \
+  DEBUG_WITH_TYPE(               \
+      "stablehlo-bytecode",      \
+      llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
 
 namespace {
 namespace stablehlo_encoding {
