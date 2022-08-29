@@ -48,19 +48,34 @@ limitations under the License.
       llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
 
 //===----------------------------------------------------------------------===//
-// Encoding
+// Debug Trace Helpers
 //===----------------------------------------------------------------------===//
 
 // Enable logging with flag:
 //   stablehlo-opt -debug-only=stablehlo-bytecode [...]
-#define LOG_CALL                        \
-  DEBUG_WITH_TYPE("stablehlo-bytecode", \
-                  llvm::errs() << "Called: " << __PRETTY_FUNCTION__ << '\n')
+//
+// Extract after function name, remove namespace.
+//   Called: write(mlir::stablehlo::TokenType, mlir::DialectBytecodeWriter ...
+//   ***Not Implemened: write(...
+#define _EXTRACT_AFTER(a, b) \
+  llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
 
-#define LOG_CALL_NOT_IMPLEMENTED \
-  DEBUG_WITH_TYPE(               \
-      "stablehlo-bytecode",      \
+#define _LOG_CALL_TO(func)                                                    \
+  DEBUG_WITH_TYPE(                                                            \
+      "stablehlo-bytecode",                                                   \
+      llvm::errs() << "Called: " << _EXTRACT_AFTER(__PRETTY_FUNCTION__, func) \
+                   << '\n')
+
+#define LOG_WRITE_CALL _LOG_CALL_TO("write")
+#define LOG_READ_CALL _LOG_CALL_TO(__func__)
+#define LOG_NOT_IMPLEMENTED \
+  DEBUG_WITH_TYPE(          \
+      "stablehlo-bytecode", \
       llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
+
+//===----------------------------------------------------------------------===//
+// Encoding
+//===----------------------------------------------------------------------===//
 
 namespace {
 namespace stablehlo_encoding {
@@ -92,7 +107,7 @@ enum AttributeCode {
   ///   ComparisonDirectionAttr
   ///     ComparisonDirection: varint
   ///   }
-  kComparisonDirectionAttr = 2,
+  kComparisonDirectionAttr = 1,
 
   ///   ComparisonTypeAttr
   ///     ComparisonType: varint
