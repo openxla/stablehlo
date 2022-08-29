@@ -3,7 +3,7 @@ StablehloBytecode.cpp - StableHLO Bytecode Implementation */
 
 #include "stablehlo/dialect/StablehloBytecode.h"
 
-#include <iostream>  // FIXME
+#include "llvm/Support/Debug.h"
 
 #include "stablehlo/dialect/StablehloOps.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -14,9 +14,16 @@ StablehloBytecode.cpp - StableHLO Bytecode Implementation */
 // Encoding
 //===----------------------------------------------------------------------===//
 
-// Remove the `if (0)` to enable logging
-#define LOG_CALL \
-  if (0) std::cerr << "Called: " << __PRETTY_FUNCTION__ << std::endl
+// Enable logging with flag:
+//   stablehlo-opt -debug-only=stablehlo-bytecode [...]
+#define LOG_CALL                        \
+  DEBUG_WITH_TYPE("stablehlo-bytecode", \
+                  llvm::errs() << "Called: " << __PRETTY_FUNCTION__ << '\n')
+
+#define LOG_CALL_NOT_IMPLEMENTED \
+  DEBUG_WITH_TYPE(               \
+      "stablehlo-bytecode",      \
+      llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
 
 namespace {
 namespace stablehlo_encoding {
@@ -255,7 +262,6 @@ Attribute StablehloBytecodeInterface::readAttribute(
     DialectBytecodeReader &reader) const {
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Attribute();
-  LOG_CALL << "   ^With code: " << code << std::endl;
   switch (code) {
     case stablehlo_encoding::kChannelHandleAttr:
       return readChannelHandleAttr(reader);
@@ -459,7 +465,7 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
         return success();
       })
       .Default([&](Attribute) {
-        LOG_CALL << "  ^not implemented." << std::endl;
+        LOG_CALL_NOT_IMPLEMENTED;
         return failure();
       });
 }
@@ -598,7 +604,7 @@ LogicalResult StablehloBytecodeInterface::writeType(
         return success();
       })
       .Default([&](Type) {
-        LOG_CALL << "  ^not implemented." << std::endl;
+        LOG_CALL_NOT_IMPLEMENTED;
         return failure();
       });
 }

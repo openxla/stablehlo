@@ -86,6 +86,28 @@ TokenType {
 }
 ```
 
+### Maybe todo:
+- StableHLO_BoolElementsAttr
+  + Only used in window_reversal in ConvolutionOp. Looks like it may be handled
+    by builtin dialect?
+- StableHLO_FlatSymbolRefArrayAttr
+  + Only used in CustomCallOp. DefaultValuedAttr. Not traversed into.
+- StableHLO_ArrayOfLayoutAttr
+  + Only used in CustomCallOp for operand_layout (StableHLO_ArrayOfLayoutAttr). 
+  + Also not hit, maybe because OptionalAttr is not traversed into?
+- StableHLO_LayoutAttr
+  + Only used in StableHLO_ArrayOfLayoutAttr.
+- StableHLO_TypeExtensions 
+  + Looks like this isnt hit in serialization, because function types 
+    arent seriazlied? Tensor dims aren't?
+- StableHLO_ArgResultAlias
+  + This class may be unused in StableHLO/MHLO?
+- UniformQuantizedSignedInt
+  + Also not called in serialization API.
+
+- CHLO_ComparisonDirectionAttr
+- CHLO_ComparisonTypeAttr
+
 ## Other Notes
 
 ### Testing Bytecode with Round Trips
