@@ -127,3 +127,79 @@ specification.
 %z = stablehlo.add %x, %y : tensor<2x2xf32>
 // %z: [[6, 8], [10, 12]]
 ```
+
+## stablehlo.maximum
+
+`stablehlo.maximum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For Floating-point element type, implements IEEE 754 semantics:
+Returns the larger of two arguments, propagating `NaN`s and treating `-0` as
+less than `+0`.
+
+### Arguments
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of Integer, Floating-point element types |
+| `rhs` | tensor of Integer, Floating-point element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of Integer, Floating-point element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.max %lhs, %rhs : tensor<2x2xi32>
+// %result: [[5, 6], [7, 8]]
+```
+
+## stablehlo.minimum
+
+`stablehlo.minimum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For Floating-point element type, implements IEEE 754 semantics:
+Returns the smaller of two arguments, propagating `NaN`s and treating `-0` as
+less than `+0`.
+
+### Arguments
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of Integer, Floating-point element types |
+| `rhs` | tensor of Integer, Floating-point element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of Integer, Floating-point element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.min %lhs, %rhs : tensor<2x2xi32>
+// %result: [[1, 2], [3, 4]]
+```
