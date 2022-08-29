@@ -64,4 +64,37 @@ A high level idea of the implementation would looks like
   - Check if an op is constant-foldable.
   - If yes, invoke the op-level `eval` function.
 
-This is work-in-progress.
+## Testing the interpreter
+
+The interpreter takes as inputs (A) a
+StableHLO program, and (B) data values to be fed to the program, and generates
+output data values, which are matched against the user-provided expected data
+values.
+
+In the current implementation, we package the inputs (mlir program + input data
+    values) and outputs in a
+[lit-based]((https://llvm.org/docs/CommandGuide/lit.html)) unit-test as follows:
+
+```c++
+// CHECK-LABEL: Evaluated results of function: add_op_test_ui4
+// CHECK-NEXT:  tensor<2xui4>
+// CHECK-NEXT:    15 : ui4
+// CHECK-NEXT:    5 : ui4
+
+func.func @add_op_test_ui4() -> tensor<2xui4> {
+  %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>
+  %1 = stablehlo.constant dense<[15, 3]> : tensor<2xui4>
+  %2 = stablehlo.add %0, %1 : tensor<2xui4>
+  func.return %2 : tensor<2xui4>
+}
+```
+
+A test utility `stablehlo-interpreter-runner`
+([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests/StablehloInterpreterRunner.cpp))
+is responsible for parsing the program and interpret each function and return
+the resulting tensor(s) to be matched against the output tensor provided in
+[FileCheck directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We
+have a dedicated test-suite, consisting of several unit-tests, for each
+StableHLO Op. The unit-suites can be found
+[here](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests).
+
