@@ -1,8 +1,7 @@
 # StableHLO Bytecode
 
 ## Basic Example
-A minimalist example which only encodes a single attribute in StableHLO can be found [at this commit](https://github.com/openxla/stablehlo/commit/00e3dc98d8d956e5e494be3022df973821e58e91
-). 
+A minimalist example which only encodes a single attribute in StableHLO can be found [at this commit](https://github.com/openxla/stablehlo/commit/00e3dc98d8d956e5e494be3022df973821e58e91).
 
 There is an image at the bottom of the page which shows difference in the bianry file.
 
@@ -11,20 +10,47 @@ There is an image at the bottom of the page which shows difference in the bianry
 ### Attributes
 
 ```
-FftTypeAttr
-  FftType: varint
-}
-
-ComparisonTypeAttr
-  ComparisonType: varint
+ChannelHandleAttr {
+  handle: svarint
+  type: svarint
 }
 
 ComparisonDirectionAttr
   ComparisonDirection: varint
 }
 
-TransposeAttr {
-  Transpose: varint
+ComparisonTypeAttr
+  ComparisonType: varint
+}
+
+ConvDimensionNumbersAttr {
+  inputBatchDimension: svarint
+  inputFeatureDimension: svarint
+  inputSpatialDimensions: svarint[]
+  kernelInputFeatureDimension: svarint
+  kernelOutputFeatureDimension: svarint
+  kernelSpatialDimensions: svarint[]
+  outputBatchDimension: svarint
+  outputFeatureDimension: svarint
+  outputSpatialDimensions: svarint[]
+}
+
+GatherDimensionNumbersAttr {
+  lhsBatchingDimensions: svarint[]
+  rhsBatchingDimensions: svarint[]
+  lhsContractingDimensions: svarint[]
+  rhsContractingDimensions: svarint
+}
+
+FftTypeAttr
+  FftType: varint
+}
+
+GatherDimensionNumbersAttr {
+  offsetDims: svarint[]
+  collapsedSliceDims: svarint[]
+  startIndexMap: svarint[]
+  indexVectorDim: svarint
 }
 
 PrecisionAttr {
@@ -39,44 +65,20 @@ RngDistributionAttr {
   RngDistribution: varint
 }
 
-ChannelHandleAttr {
-  handle: varint
-  type: varint
-}
-
-ConvDimensionNumbersAttr {
-  inputBatchDimension: varint
-  inputFeatureDimension: varint
-  inputSpatialDimensions: Dim
-  kernelInputFeatureDimension: varint
-  kernelOutputFeatureDimension: varint
-  kernelSpatialDimensions: Dim
-  outputBatchDimension: varint
-  outputFeatureDimension: varint
-  outputSpatialDimensions: Dim
-}
-
 ScatterDimensionNumbersAttr {
-  updateWindowDims: Dim
-  insertedWindowDims: Dim
-  scatterDimsToOperandDims: Dim
-  indexVectorDim: varint
+  updateWindowDims: svarint[]
+  insertedWindowDims: svarint[]
+  scatterDimsToOperandDims: svarint[]
+  indexVectorDim: svarint
 }
 
-GatherDimensionNumbersAttr {
-  offsetDims: Dim
-  collapsedSliceDims: Dim
-  startIndexMap: Dim
-  indexVectorDim: varint
+TransposeAttr {
+  Transpose: varint
 }
 
-GatherDimensionNumbersAttr {
-  lhsBatchingDimensions: Dim
-  rhsBatchingDimensions: Dim
-  lhsContractingDimensions: Dim
-  rhsContractingDimensions: varint
+TypeExtensionsAttr {
+  bounds : svarint[]
 }
-
 ```
 
 ### Types
@@ -86,27 +88,48 @@ TokenType {
 }
 ```
 
-### Maybe todo:
+### Not Included:
+The following attributes / types are subclasses of builtin machinery and call
+into the bytecode implementations in the Builtin Dialect.
+
 - StableHLO_BoolElementsAttr
-  + Only used in window_reversal in ConvolutionOp. Looks like it may be handled
-    by builtin dialect?
 - StableHLO_FlatSymbolRefArrayAttr
-  + Only used in CustomCallOp. DefaultValuedAttr. Not traversed into.
 - StableHLO_ArrayOfLayoutAttr
-  + Only used in CustomCallOp for operand_layout (StableHLO_ArrayOfLayoutAttr). 
-  + Also not hit, maybe because OptionalAttr is not traversed into?
 - StableHLO_LayoutAttr
-  + Only used in StableHLO_ArrayOfLayoutAttr.
-- StableHLO_TypeExtensions 
-  + Looks like this isnt hit in serialization, because function types 
-    arent seriazlied? Tensor dims aren't?
+- HLO_ComplexTensor
+- HLO_DimensionTensor
+- HLO_DimensionValue
+- HLO_Fp32Or64Tensor
+- HLO_FpOrComplexTensor
+- HLO_FpTensor
+- HLO_IntFpOrComplexTensor
+- HLO_IntOrFpTensor
+- HLO_IntTensor
+- HLO_PredIntOrFpTensor
+- HLO_PredOrIntTensor
+- HLO_PredTensor
+- HLO_QuantizedInt
+- HLO_QuantizedIntTensor
+- HLO_QuantizedSignedInt
+- HLO_QuantizedUnsignedInt
+- HLO_ScalarIntTensor
+- HLO_StaticShapeTensor
+- HLO_Tensor
+- HLO_TensorOrToken
+- HLO_TensorOrTokenOrTuple
+- HLO_Tuple
+
+### Still to do:
+
+The following attributes / types are not yet implemented:
+
 - StableHLO_ArgResultAlias
   + This class may be unused in StableHLO/MHLO?
-- UniformQuantizedSignedInt
-  + Also not called in serialization API.
-
+  + It may be used in near future, investigation required before removal.
 - CHLO_ComparisonDirectionAttr
+  + CHLO bytecode will come in a future changelist.
 - CHLO_ComparisonTypeAttr
+  + CHLO bytecode will come in a future changelist.
 
 ## Other Notes
 
@@ -122,50 +145,51 @@ $ stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-
 Since attributes and types that don't get encoded are instead stored as strings,
 the `strings` command can be used to see what attributes were missed:
 
+_Note: The following trace is from a previous revision where the `scatter` attribute was not
+implemented. Currently all types/attrs are implemented and log only shows 
+the dialect name `stablehlo` and the custom `stablehlo.frontend_attributes` and `stablehlo.sharding` properties._
+
 ```
 $ stablehlo-opt -emit-bytecode file.mlir | strings | grep stablehlo
 #stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0, 1], scatter_dims_to_operand_dims = [0, 1], index_vector_dim = 1>
-#stablehlo.gather<offset_dims = [1], collapsed_slice_dims = [0, 1], start_index_map = [0, 1], index_vector_dim = 1>
-#stablehlo.dot<lhs_batching_dimensions = [0], rhs_batching_dimensions = [0], lhs_contracting_dimensions = [2], rhs_contracting_dimensions = [1]>
-tuple<tensor<3x4xi32>, !stablehlo.token>
-tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>
-tuple<tuple<tensor<3x3xi32>, tensor<i1>>, !stablehlo.token>
 stablehlo
 stablehlo.frontend_attributes
 stablehlo.sharding
 ```
 
+### Debugging Bytecode with Traces
+
+Each read/write function called during bytecoding is traced, and can be viewed using the flag: `-debug-only=stablehlo-bytecode`.
+
+```
+stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode ../tmp.mlir
+Called: writeType(mlir::Type, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [type:auto = mlir::stablehlo::TokenType]
+Called: writeAttribute(mlir::Attribute, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [attr:auto = mlir::stablehlo::TransposeAttr]
+Called: writeAttribute(mlir::Attribute, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [attr:auto = mlir::stablehlo::RngAlgorithmAttr]
+Called: writeAttribute(mlir::Attribute, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [attr:auto = mlir::stablehlo::ChannelHandleAttr]
+Called: writeAttribute(mlir::Attribute, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [attr:auto = mlir::stablehlo::ChannelHandleAttr]
+Called: writeAttribute(mlir::Attribute, mlir::DialectBytecodeWriter &)::(anonymous class)::operator()(auto) const [attr:auto = mlir::stablehlo::TypeExtensionsAttr]
+...
+
+stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode bytecoded_file.mlir
+Called: readComparisonDirectionAttr(mlir::DialectBytecodeReader &) const
+Called: readTypeExtensionsAttr(mlir::DialectBytecodeReader &) const
+Called: readChannelHandleAttr(mlir::DialectBytecodeReader &) const
+Called: readChannelHandleAttr(mlir::DialectBytecodeReader &) const
+Called: readRngAlgorithmAttr(mlir::DialectBytecodeReader &) const
+```
+
+### Encoding `enum class` values
+Enum class values can be encoded as their underlying numeric types using `varint`. Currently all enums in StableHLO use `uint32_t` as the underlying value.
+
 ## Open Questions
+### Is the compatibility guarantee of StableHLO dependent on other dialects?
+If something about the way the builtin dialect serializes information changes,
+are all other dialects compatibility broken? Since our artifacts will include
+bits that need to be (de)serialized using builtin dialect information.
+
 ### Any way to reduce the reliance on attribute/op name?
 What would happen if we renamed `fft_length` to `fft_length_int` for example, 
 is this a breaking change?
 
 Similar quesiton for renaming `cross-replica-sum` to `cross_replica_sum`.
-
-### What Attributes get encoded?
-- Attributes from `BuiltinAttributes` like `ElementsAttr`?
-- `StrAttr` or `DefaultValuedStrAttr`?
-- Should `I64Attr` be encoded?
-- ArrayAttrs like `PrecisionConfigAttr`?
-
-### Some attributes wrapped in other types are not encoded
-Is there anything we can do about this, or do we need DefaultValuedAttr to be
-modified?
-
-```
-DefaultValuedAttr<
-  StableHLO_CustomCallApiVersionAttr,
-  "::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL">
-```
-
-Or is this not called because CustomCallApiVersion is a Builtin Attribute
-under the hood?
-
-### What is the proper way to store int64_t data?
-Could memcpy it into a uint64? Not sure if that's valid on all platforms?
-
-### How do to encode array ref params?
-Example: `StableHLO_Dim` in `ConvDimensionNumbers`
-
-### Encoding `enum class` values
-Enum class values can be encoded as their underlying numeric types using `varint`.
