@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # This file is similar to build_mlir.sh, but passes different flags for
-# cacheing in GitHub Actions.
+# caching in GitHub Actions.
 
 # This file gets called on build directory where resources are placed
 # during `ci_configure`, and builds stablehlo in the directory specified

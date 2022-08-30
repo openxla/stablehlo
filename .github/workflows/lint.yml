@@ -2,10 +2,9 @@
 
 name: Lint
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
-  # Based on https://github.com/iree-org/iree/blob/main/.github/workflows/lint.yml
   clang-format:
     if: "github.event_name == 'pull_request'"
     runs-on: ubuntu-latest

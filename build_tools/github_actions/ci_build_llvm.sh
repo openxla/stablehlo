@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # This file is similar to build_mlir.sh, but passes different flags for
-# cacheing in GitHub Actions to improve build speeds.
+# caching in GitHub Actions to improve build speeds.
 
 if [[ $# -ne 2 ]] ; then
   echo "Usage: $0 <path/to/llvm> <build_dir>"
@@ -26,36 +26,32 @@ LLVM_SRC_DIR="$1"
 LLVM_BUILD_DIR="$2"
 
 # Check for LLD
-FLAGS=""
-LLD_FLAG="-DLLVM_ENABLE_LLD=ON"
+LLVM_ENABLE_LLD=""
 if command -v lld &> /dev/null
 then
-  echo "lld found, appending flag '$LLD_FLAG'"
-  FLAGS="$LLD_FLAG"
+  LLVM_ENABLE_LLD="-DLLVM_ENABLE_LLD=ON"
+  echo "lld found, compiling with '$LLVM_ENABLE_LLD'"
 else
   echo "lld not found, using default linker"
 fi
 
-# Call cmake
-echo "Using additional flags: '$FLAGS'"
-
 cmake -GNinja \
-  "$FLAGS" \
-  "-B$LLVM_BUILD_DIR" \
   "-H$LLVM_SRC_DIR/llvm" \
+  "-B$LLVM_BUILD_DIR" \
+  -DLLVM_INSTALL_UTILS=ON \
+  "$LLVM_ENABLE_LLD" \
+  -DLLVM_ENABLE_PROJECTS=mlir \
+  -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
+  -DLLVM_INCLUDE_TOOLS=ON \
+  -DLLVM_ENABLE_BINDINGS=OFF \
+  -DLLVM_BUILD_TOOLS=OFF \
+  -DLLVM_INCLUDE_TESTS=OFF \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DLLVM_ENABLE_ASSERTIONS=On \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DLLVM_BUILD_TOOLS=OFF \
-  -DLLVM_ENABLE_ASSERTIONS=On \
-  -DLLVM_ENABLE_BINDINGS=OFF \
-  -DLLVM_ENABLE_PROJECTS=mlir \
-  -DLLVM_INCLUDE_TESTS=OFF \
-  -DLLVM_INCLUDE_TOOLS=ON \
-  -DLLVM_INSTALL_UTILS=ON \
-  -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU"
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
 # Build LLVM/MLIR
 cmake --build "$LLVM_BUILD_DIR" --target all --target mlir-cpu-runner
