@@ -32,7 +32,7 @@ array, represented in the opset as `tensor<SxE>` such that
 
 ## Programs
 
-StableHLO programs consist of functions. Each function has arguments and results
+StableHLO programs consist of functions. Each function has operands and results
 of supported types and a list of ops in static single-assignment (SSA) form
 which is terminated by a return op which produces the results of the function.
 StableHLO ops take operands and produce results.
@@ -100,18 +100,18 @@ of the followings:
 For floating-point element types, corner cases are defined by the IEEE-754
 specification.
 
-### Arguments
+### Operands
 
-| Operand Name(s) | Type |
+| Name | Type |
 |-|-|
-| `lhs` | `tensor` of Integer, Floating-point and Complex element types |
-| `rhs` | `tensor` of Integer, Floating-point and Complex element types |
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Result Name | Type |
+| Name | Type |
 |-|-|
-| `result` | `tensor` of Integer, Floating-point, and Complex element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
@@ -135,25 +135,27 @@ specification.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For Floating-point element type, implements IEEE 754 semantics:
-Returns the larger of two arguments, propagating `NaN`s and treating `-0` as
-less than `+0`.
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the larger of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
 
-### Arguments
+### Operands
 
 | Name | Type |
 |-|-|
-| `lhs` | tensor of Integer, Floating-point element types |
-| `rhs` | tensor of Integer, Floating-point element types |
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | tensor of Integer, Floating-point element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
+  * `lhs`, `rhs` have the same type.
   * Supported shapes: all static shapes.
   * `result` must have the type as that of `lhs` (or `rhs`).
 
@@ -173,25 +175,27 @@ less than `+0`.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For Floating-point element type, implements IEEE 754 semantics:
-Returns the smaller of two arguments, propagating `NaN`s and treating `-0` as
-less than `+0`.
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the smaller of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
 
-### Arguments
+### Operands
 
 | Name | Type |
 |-|-|
-| `lhs` | tensor of Integer, Floating-point element types |
-| `rhs` | tensor of Integer, Floating-point element types |
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | tensor of Integer, Floating-point element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
+  * `lhs`, `rhs` have the same type.
   * Supported shapes: all static shapes.
   * `result` must have the type as that of `lhs` (or `rhs`).
 
