@@ -5,12 +5,13 @@
 Following are the supported element types in StableHLO:
 
   * **Integer types**
-
     * Signed integer with two’s complement representation. Referred to in the
     document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}
     * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}
-  * **Boolean types** referred to in the document as `pred`
+  * **Boolean types** referred to in the document as `pred`. Exact
+  representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
+  is implementation-defined.
   * **Floating-point types**
     * Single precision `f32`, double precision `f64` and half precision `f16`
     floating-points complying with [IEEE 754
@@ -21,7 +22,7 @@ Following are the supported element types in StableHLO:
  * **Complex types** represents a pair of floating-point types. Supported ones
  are `c64` (represents paired `f32`) and `c128` (represents paired `f64`).
 
-StableHLO supports a Tensor type `tensor`, to model the type of a n-dimensional
+StableHLO supports a type `tensor`, to model the type of a n-dimensional
 array, represented in the opset as `tensor<SxE>` such that
 
   * Shape `S` is a list of number of elements in each of the dimensions and
@@ -32,12 +33,12 @@ array, represented in the opset as `tensor<SxE>` such that
 
 ## Programs
 
-StableHLO programs consist of functions. Each function has arguments and results
+StableHLO programs consist of functions. Each function has operands and results
 of supported types and a list of ops in static single-assignment (SSA) form
 which is terminated by a return op which produces the results of the function.
 StableHLO ops take operands and produce results.
 
-```
+```mlir
 ml_program.func @example_func(%arg: tensor<4x16xf32>) -> tensor<4x16xf32> {
  %1 = stablehlo.floor %arg : tensor<4x16xf32>
  %2 = stablehlo.ceil %arg : tensor<4x16xf32>
@@ -89,7 +90,7 @@ The specification of an op comprises of the following components (in the order
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise sum has an
-unsigned/signed overflow/underflow, the result is implementation defined and one
+unsigned/signed overflow/underflow, the result is implementation-defined and one
 of the followings:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result.
@@ -100,18 +101,18 @@ of the followings:
 For floating-point element types, corner cases are defined by the IEEE-754
 specification.
 
-### Arguments
+### Operands
 
-| Operand Name(s) | Type |
+| Name | Type |
 |-|-|
-| `lhs` | `tensor` of Integer, Floating-point and Complex element types |
-| `rhs` | `tensor` of Integer, Floating-point and Complex element types |
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Result Name | Type |
+| Name | Type |
 |-|-|
-| `result` | `tensor` of Integer, Floating-point, and Complex element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
@@ -121,11 +122,56 @@ specification.
 
 ### Examples
 
-```c
+```mlir
 // %x: [[1, 2], [3, 4]]
 // %y: [[5, 6], [7, 8]]
 %z = stablehlo.add %x, %y : tensor<2x2xf32>
 // %z: [[6, 8], [10, 12]]
+```
+
+## stablehlo.and
+
+`stablehlo.and(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
+types and produces a `result` tensor. For boolean tensors, it computes the
+logical operation.
+
+## Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer or boolean element types |
+| `rhs` | tensor of integer or boolean element types |
+
+## Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer or boolean element types |
+
+## Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `lhs` (or `rhs`).
+
+## Examples
+
+```mlir
+// Bitwise operation with with integer tensors
+  // %x: [[1, 2], [3, 4]]
+  // %y: [[5, 6], [7, 8]]
+  %z = stablehlo.and %x, %y : tensor<2x2xsi32>
+  // %z: [[1, 2], [3, 0]]
+
+// Logical operation with with boolean tensors
+  // %x: [[false, false], [true, true]]
+  // %y: [[false, true], [false, true]]
+  %z = stablehlo.and %x, %y : tensor<2x2xpred>
+  // %z: [[false, false], [false, true]]
 ```
 
 ## stablehlo.constant
@@ -175,4 +221,212 @@ Produces a `result` tensor from a constant `value`.
 
 %3 = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
 // %3: [(0.0, 1.0), (2.0, 3.0)]
+```
+
+## stablehlo.maximum
+
+`stablehlo.maximum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the larger of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```mlir
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.max %lhs, %rhs : tensor<2x2xi32>
+// %result: [[5, 6], [7, 8]]
+```
+
+## stablehlo.minimum
+
+`stablehlo.minimum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the smaller of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```mlir
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.min %lhs, %rhs : tensor<2x2xi32>
+// %result: [[1, 2], [3, 4]]
+```
+
+## stablehlo.not
+
+`stablehlo.not(operand) -> result`
+
+### Semantics
+
+Performs element-wise bitwise NOT of tensor `operand` of type integer and
+produces a `result` tensor. For boolean tensors, it computes the logical NOT.
+
+### Arguments
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of integer or boolean element types |
+
+### Results
+| `result` | tensor of integer or boolean element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// Bitwise operation with with integer tensors
+  // %x: [[1, 2], [3, 4]]
+  %z = stablehlo.not %x : tensor<2x2xsi32>
+  // %z: [[-2, -3], [-4, -5]]
+
+// Bitwise operation with with boolean tensors
+  // %x: [true, false]
+  %z = "stablehlo.not"(%x) : (tensor<2xpred>) -> tensor<2xpred>
+  // %z: [false, true]
+```
+
+## stablehlo.or
+
+`stablehlo.or(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
+and produces a `result` tensor. For boolean tensors, it computes the logical
+operation.
+
+## Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer or boolean element types |
+| `rhs` | tensor of integer or boolean element types |
+
+## Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer or boolean element types |
+
+## Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `lhs` (or `rhs`).
+
+## Examples
+
+```mlir
+// Bitwise operation with with integer tensors
+  // %x: [[1, 2], [3, 4]]
+  // %y: [[5, 6], [7, 8]]
+  %z = stablehlo.or %x, %y : tensor<2x2xsi32>
+  // %z: [[5, 6], [7, 12]]
+
+// Logical operation with with boolean tensors
+  // %x: [[false, false], [true, true]]
+  // %y: [[false, true], [false, true]]
+  %z = stablehlo.or %x, %y : tensor<2x2xpred>
+  // %z: [[false, true], [true, true]]
+```
+
+## stablehlo.xor
+
+`stablehlo.xor(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
+types and produces a `result` tensor. For boolean tensors, it computes the
+logical operation.
+
+## Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer or boolean element types |
+| `rhs` | tensor of integer or boolean element types |
+
+
+## Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer or boolean element types |
+
+## Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `lhs` (or `rhs`).
+
+## Examples
+
+```mlir
+// Bitwise operation with with integer tensors
+  // %x: [[1, 2], [3, 4]]
+  // %y: [[5, 6], [7, 8]]
+  %z = stablehlo.xor %x, %y : tensor<2x2xsi32>
+  // %z: [[4, 4], [4, 12]]
+
+// Logical operation with with boolean tensors
+  // %x: [[false, false], [true, true]]
+  // %y: [[false, true], [false, true]]
+  %z = stablehlo.xor %x, %y : tensor<2x2xpred>
+  // %z: [[false, true], [true, false]]
 ```
