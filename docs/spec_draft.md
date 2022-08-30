@@ -127,3 +127,43 @@ specification.
 %z = stablehlo.add %x, %y : tensor<2x2xf32>
 // %z: [[6, 8], [10, 12]]
 ```
+
+## stablehlo.constant
+
+`stablehlo.constant(value) -> result`
+
+### Semantics
+
+Creates a constant value or array from `value` and produces a `result` tensor.
+
+### Attributes
+
+| Name | Type |
+|-|-|
+| `value` | `tensor` of Integer, Floating-point and Complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | `tensor` of Integer, Floating-point, and Complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+
+### Examples
+
+```c
+%x = "stablehlo.constant" dense<0> : (tensor<i32>) -> tensor<i32>
+// %x: 0
+
+%y = "stablehlo.constant" dense<[[0.0, 1.0], [2.0, 3.0]]> : (tensor<2x2xf32>) -> tensor<2x2xf32>
+// %y: [
+//       [0.0, 1.0],
+//       [2.0, 3.0]
+//     ]
+
+%z = "stablehlo.constant" dense<[(0.0, 1.0), (2.0, 3.0)]> : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
+// %z: [(0.0, 1.0), (2.0, 3.0)]
+```
