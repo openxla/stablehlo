@@ -133,11 +133,11 @@ specification.
 
 ### Semantics
 
-Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer types
-and produces a `result` tensor. For boolean tensors, it computes the logical
-operation.
+Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
+types and produces a `result` tensor. For boolean tensors, it computes the
+logical operation.
 
-## Arguments
+## Operands
 
 | Name | Type |
 |-|-|
@@ -268,7 +268,6 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 | `operand` | tensor of integer or boolean element types |
 
 ### Results
-
 | `result` | tensor of integer or boolean element types |
 
 ### Constraints
@@ -290,7 +289,6 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
   // %z: [false, true]
 ```
 
-
 ## stablehlo.or
 
 `stablehlo.or(lhs, rhs) -> result`
@@ -301,7 +299,7 @@ Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
 and produces a `result` tensor. For boolean tensors, it computes the logical
 operation.
 
-## Arguments
+## Operands
 
 | Name | Type |
 |-|-|
@@ -346,7 +344,7 @@ Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
 types and produces a `result` tensor. For boolean tensors, it computes the
 logical operation.
 
-## Arguments
+## Operands
 
 | Name | Type |
 |-|-|
