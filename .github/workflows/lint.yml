@@ -2,10 +2,11 @@
 
 name: Lint
 
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   clang-format:
+    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
     runs-on: ubuntu-latest
     steps:
