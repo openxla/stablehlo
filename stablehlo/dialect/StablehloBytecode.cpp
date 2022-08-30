@@ -107,7 +107,7 @@ enum AttributeCode {
   ///   ComparisonDirectionAttr
   ///     ComparisonDirection: varint
   ///   }
-  kComparisonDirectionAttr = 1,
+  kComparisonDirectionAttr = 2,
 
   ///   ComparisonTypeAttr
   ///     ComparisonType: varint
