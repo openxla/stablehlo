@@ -1882,7 +1882,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     Example:
 
     ```mlir
-    %1 = mhlo.custom_call "foo"(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
+    %1 = stablehlo.custom_call "foo"(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
           : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
     ```
   }];
@@ -2644,7 +2644,7 @@ def StableHLO_ReducePrecisionOp :
     Example:
 
     ```mlir
-    %0 = mhlo.reduce_precision %arg0, format = e8m10 : tensor<3x4xf32>
+    %0 = stablehlo.reduce_precision %arg0, format = e8m10 : tensor<3x4xf32>
     ```
   }];
   let arguments = (ins

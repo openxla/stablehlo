@@ -1856,8 +1856,7 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
 }
 
 LogicalResult CollectivePermuteOp::verify() {
-  return verifyCollectivePermuteSourceTargetPairs(*this,
-                                                       source_target_pairs());
+  return verifyCollectivePermuteSourceTargetPairs(*this, source_target_pairs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3626,7 +3625,7 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
   }
 
   // Parse off digits of exp/man
-  assert(matches.size() == 3); // matches[0] is entire regex match.
+  assert(matches.size() == 3);  // matches[0] is entire regex match.
   llvm::StringRef expS = matches[1];
   llvm::StringRef manS = matches[2];
 
