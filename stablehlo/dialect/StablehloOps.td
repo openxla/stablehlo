@@ -682,13 +682,16 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [NoSideEffect,
     Example:
 
     ```mlir
-    %0 = stablehlo.complex %arg0, %arg0 : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xcomplex<f32>>
+    %0 = stablehlo.complex %arg0, %arg0 : tensor<4xcomplex<f32>>
     ```
   }];
   let arguments = (ins HLO_Fp32Or64Tensor:$lhs, HLO_Fp32Or64Tensor:$rhs);
   let results = (outs HLO_ComplexTensor:$result);
 
-  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = [{
+    operands attr-dict 
+      `:` custom<ComplexOpType>(type($lhs), type($rhs), type($result))
+  }];
 }
 
 def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
