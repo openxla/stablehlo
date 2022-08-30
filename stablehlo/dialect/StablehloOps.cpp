@@ -44,6 +44,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
@@ -3616,29 +3617,24 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
   }
 
   // Validate format e#m#
-  auto ePos = expMan.find('e');
-  auto mPos = expMan.find('m');
-  if (ePos == expMan.npos || mPos == expMan.npos || ePos > mPos) {
+  llvm::Regex expManRegex("^e([0-9]+)m([0-9]+)$");
+  llvm::SmallVector<llvm::StringRef> matches;
+  if (!expManRegex.match(expMan, &matches)) {
     return parser.emitError(loc,
                             "expected exponent mantissa in format e#m#, saw ")
            << expMan;
   }
 
   // Parse off digits of exp/man
-  llvm::StringRef expS = expMan.substr(ePos + 1, mPos - ePos - 1);
-  llvm::StringRef manS = expMan.substr(mPos + 1);
-  if (expS.empty() || manS.empty()) {
-    parser.emitError(loc,
-                     "expected nonempty exponent and mantissa values, saw ")
-        << "exponent string '" << expS << "' mantissa string '" << manS << "'";
-    return failure();
-  }
+  assert(matches.size() == 3); // matches[0] is entire regex match.
+  llvm::StringRef expS = matches[1];
+  llvm::StringRef manS = matches[2];
 
   // Parse as base 10 integer strings
   int exp, mant;
   if (expS.getAsInteger(/*radix=*/10, exp) ||
       manS.getAsInteger(/*radix=*/10, mant)) {
-    parser.emitError(loc, "unable to parse exponent or mantissa")
+    parser.emitError(loc, "unable to parse exponent or mantissa ")
         << expS.str() << ", " << manS.str();
     return failure();
   }

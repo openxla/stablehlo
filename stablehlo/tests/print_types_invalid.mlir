@@ -112,32 +112,24 @@ func.func @reduce_precision_em_order(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>
 
 // -----
 
-func.func @reduce_precision_no_e(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw m2}}
-  %0 = stablehlo.reduce_precision %arg0,format = m2 : tensor<3x4xf32>
-  func.return %0 : tensor<?x?xf64>
-}
-
-// -----
-
-func.func @reduce_precision_no_m(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw e2}}
-  %0 = stablehlo.reduce_precision %arg0, format = e2 : tensor<3x4xf32>
-  func.return %0 : tensor<?x?xf64>
-}
-
-// -----
-
 func.func @reduce_precision_no_e_num(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected nonempty exponent and mantissa values, saw exponent string '' mantissa string '2'}}
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected exponent mantissa in format e#m#, saw em2}}
   %0 = stablehlo.reduce_precision %arg0, format = em2 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }
 
 // -----
 
-func.func @reduce_precision_no_m_num(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected nonempty exponent and mantissa values, saw exponent string '2' mantissa string ''}}
-  %0 = stablehlo.reduce_precision %arg0, format = e2m : tensor<3x4xf32>
+func.func @reduce_precision_overflow_int32_e(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse exponent or mantissa 2147483648, 1}}
+  %0 = stablehlo.reduce_precision %arg0, format = e2147483648m1 : tensor<3x4xf32>
+  func.return %0 : tensor<?x?xf64>
+}
+
+// -----
+
+func.func @reduce_precision_overflow_int32_m(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse exponent or mantissa 1, 2147483648}}
+  %0 = stablehlo.reduce_precision %arg0, format = e1m2147483648 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }
