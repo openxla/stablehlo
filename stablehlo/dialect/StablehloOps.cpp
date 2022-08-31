@@ -2294,65 +2294,58 @@ LogicalResult AllGatherOp::verify() {
 // BatchNormGradOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult BatchNormGradOp::verify() {
-  // The following properties are already enforced by the ODS:
-  //  1. Inputs 'operand' & 'grad_output' and outputs 'grad_operand',
-  //     are ranked-tensors with floating-point (fp) type.
-  //  2. The shapes of inputs 'operand' & 'grad_output' match.
-  //  3. Inputs 'scale', 'mean', 'variance' and Outputs 'grad_scale',
-  //     'grad_offset'  are all 1D fp tensors with same shape.
-  //  4. The element-types of input 'operand' and outputs 'grad_scale',
-  //     'grad_offset' match.
-  //  5. The type of input 'operand' and output 'grad_operand' match.
-  //
-  // We intend to verify the following properties
-  //  P1. Inputs 'operand' & 'grad_output' has the same shape with fp
-  //      element-types, ignoring fp-precision : Inferred from (1) & (2).
-  //  P2. The feature dimension 'feature_index' is a valid index in 'operand':
-  //      Inferred from check C2 below.
-  //  P3. Inputs 'scale', 'mean', 'variance' must be 1D tensors with same shape
-  //      and fp element-type (ignoring precision) and the number of elements
-  //      in its sole-dimension == number of features in the 'operand's
-  //      feature-dimension 'feature_index': Inferred from (3) and check C3
-  //      below.
-  //  P4. Outputs 'grad_scale' & 'grad_offset' are 1D tensors with
-  //      element-type == element-type of(operand) and same shape as any of
-  //      the inputs 'scale', 'mean', or 'variance': Inferred from (3), (4) and
-  //      check C3 below.
-  //  P5. The type (shape + element-type) of input 'operand' and
-  //      output 'grad_operand' must match: Inferred from (5).
+LogicalResult verifyBatchNorm(Location loc, Value operand,
+                              int64_t feature_index, Value scale) {
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  if (static_cast<int64_t>(feature_index) >= operandType.getRank())
+    return emitError(loc) << "expects feature_index to be smaller "
+                             "than the rank of operand type; got feature_index "
+                          << feature_index << ", and rank "
+                          << operandType.getRank() << ".";
 
-  // C2.
-  auto operandType = operand().getType().cast<RankedTensorType>();
-  if (static_cast<int64_t>(feature_index()) >= operandType.getRank())
-    return emitOpError() << "expects feature_index to be smaller "
-                            "than the rank of operand type; got feature_index "
-                         << feature_index() << ", and rank "
-                         << operandType.getRank() << ".";
+  if (static_cast<int64_t>(feature_index) < 0)
+    return emitError(loc) << "expects feature_index to be a "
+                          << "non-negative number, got "
+                          << static_cast<int64_t>(feature_index) << ".";
 
-  if (static_cast<int64_t>(feature_index()) < 0)
-    return emitOpError() << "expects feature_index to be a "
-                         << "non-negative number, got "
-                         << static_cast<int64_t>(feature_index()) << ".";
-
-  auto gradOutputType = grad_output().getType().cast<RankedTensorType>();
-  if (operandType.getRank() != gradOutputType.getRank())
-    return emitOpError() << "expects 'operand' and 'grad_output' to have the "
-                            "same rank. but got rank(oprand) "
-                         << operandType.getRank() << " and rank(grad_output) "
-                         << gradOutputType.getRank() << ".";
-
-  // C3.
-  const int64_t featureCount = operandType.getShape()[feature_index()];
+  const int64_t featureCount = operandType.getShape()[feature_index];
   const int64_t scaleShape =
-      scale().getType().cast<RankedTensorType>().getShape()[0];
+      scale.getType().cast<RankedTensorType>().getShape()[0];
+  // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
+  // this also infers that featureCount is aligned with them.
   if (scaleShape != featureCount)
-    return emitOpError() << "expects the size of scale factor to be "
-                            "same as the feature count,"
-                            " but the size of scale factor is "
-                         << scaleShape << " and the feature count is "
-                         << featureCount << ".";
+    return emitError(loc) << "expects the size of scale factor to be "
+                             "same as the feature count,"
+                             " but the size of scale factor is "
+                          << scaleShape << " and the feature count is "
+                          << featureCount << ".";
 
+  return success();
+}
+
+// Refer ODS for properties that are already enforced including shapes and
+// element types. This verifier includes additional checks.
+LogicalResult BatchNormGradOp::verify() {
+  if (failed(verifyBatchNorm(getLoc(), operand(), feature_index(), scale())))
+    return failure();
+  return success();
+}
+
+LogicalResult BatchNormGradOp::inferReturnTypeComponents(
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
+
+  RankedTensorType operandType =
+      adaptor.operand().getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(operandType.getShape(),
+                                    operandType.getElementType());
+
+  const int64_t featureCount = operandType.getShape()[adaptor.feature_index()];
+  SmallVector<int64_t> featureShape(1, featureCount);
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   return success();
 }
 
@@ -2360,41 +2353,29 @@ LogicalResult BatchNormGradOp::verify() {
 // BatchNormTrainingOp
 //===----------------------------------------------------------------------===//
 
+// Refer ODS for properties that are already enforced including shapes and
+// element types. This verifier includes additional checks.
 LogicalResult BatchNormTrainingOp::verify() {
-  // The following properties are already enforced by the ODS:
-  //  1. 'operand' and 'output' are ranked tensors.
-  //  2. 'scale', 'offset', 'batch_mean', 'batch_var' are 1D tensors.
-  //  3. Types of 'operand' and 'output' matches.
-  //  4. Same element-types for 'operand', 'batch_mean', & 'batch_var'.
-  //  5. Same shapes for 'scale', 'offset', 'batch_mean', & 'batch_var'.
+  if (failed(verifyBatchNorm(getLoc(), operand(), feature_index(), scale())))
+    return failure();
+  return success();
+}
 
-  auto operandType = operand().getType().cast<RankedTensorType>();
-  if (static_cast<int64_t>(feature_index()) >= operandType.getRank())
-    return emitOpError() << "expects feature_index to be smaller "
-                            "than the rank of operand type; got feature_index "
-                         << feature_index() << ", and rank "
-                         << operandType.getRank() << ".";
+LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
 
-  if (static_cast<int64_t>(feature_index()) < 0)
-    return emitOpError() << "expects feature_index to be a "
-                         << "non-negative number, got "
-                         << static_cast<int64_t>(feature_index()) << ".";
+  RankedTensorType operandType =
+      adaptor.operand().getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(operandType.getShape(),
+                                    operandType.getElementType());
 
-  // Note:A valid value of feature-index implies 'operand_type.getRank() >=1'.
-
-  const int64_t featureCount = operandType.getShape()[feature_index()];
-  const int64_t scaleShape =
-      scale().getType().cast<RankedTensorType>().getShape()[0];
-  // Check number of elements in input 'scale' equals feature_count.
-  // Together with (5) implies that 'scale', 'offset', 'batch_mean', &
-  // 'batch_var' all have the same shape.
-  if (scaleShape != featureCount)
-    return emitOpError() << "expects the size of scale factor to be "
-                            "same as the feature count,"
-                            " but the size of scale factor is "
-                         << scaleShape << " and the feature count is "
-                         << featureCount << ".";
-
+  const int64_t featureCount = operandType.getShape()[adaptor.feature_index()];
+  SmallVector<int64_t> featureShape(1, featureCount);
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   return success();
 }
 
@@ -2402,40 +2383,23 @@ LogicalResult BatchNormTrainingOp::verify() {
 // BatchNormInferenceOp
 //===----------------------------------------------------------------------===//
 
+// Refer ODS for properties that are already enforced including shapes and
+// element types. This verifier includes additional checks.
 LogicalResult BatchNormInferenceOp::verify() {
-  // The following properties are already enforced by the ODS:
-  //  1. 'operand' and 'result' are ranked tensors.
-  //  2. 'scale', 'offset', 'mean', 'variance' are 1D tensors.
-  //  3. Types of 'operand' and 'result' matches.
-  //  4. Same shapes for 'scale', 'offset', 'mean', & 'variance'.
+  if (failed(verifyBatchNorm(getLoc(), operand(), feature_index(), scale())))
+    return failure();
+  return success();
+}
 
-  auto operandType = operand().getType().cast<RankedTensorType>();
-  if (static_cast<int64_t>(feature_index()) >= operandType.getRank())
-    return emitOpError() << "expects feature_index to be smaller "
-                            "than the rank of operand type; got feature_index "
-                         << feature_index() << ", and rank "
-                         << operandType.getRank() << ".";
-
-  if (static_cast<int64_t>(feature_index()) < 0)
-    return emitOpError() << "expects feature_index to be a "
-                         << "non-negative number, got "
-                         << static_cast<int64_t>(feature_index()) << ".";
-
-  // Note:A valid value of feature-index implies 'operand_type.getRank() >=1'.
-
-  const int64_t featureCount = operandType.getShape()[feature_index()];
-  const int64_t scaleSize =
-      scale().getType().cast<RankedTensorType>().getShape()[0];
-  // Check number of elements in input 'scale' equals feature_count.
-  // Together with (4) implies that 'scale', 'offset', 'mean', &
-  // 'variance' all have the same shape.
-  if (scaleSize != featureCount)
-    return emitOpError() << "expects the size of scale factor to be "
-                            "same as the feature count,"
-                            " but the size of scale factor is "
-                         << scaleSize << " and the feature count is "
-                         << featureCount << ".";
-
+LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
+  RankedTensorType operandType =
+      adaptor.operand().getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(operandType.getShape(),
+                                    operandType.getElementType());
   return success();
 }
 
