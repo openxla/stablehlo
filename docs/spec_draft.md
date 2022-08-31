@@ -32,7 +32,7 @@ array, represented in the opset as `tensor<SxE>` such that
 
 ## Programs
 
-StableHLO programs consist of functions. Each function has arguments and results
+StableHLO programs consist of functions. Each function has operands and results
 of supported types and a list of ops in static single-assignment (SSA) form
 which is terminated by a return op which produces the results of the function.
 StableHLO ops take operands and produce results.
@@ -100,18 +100,18 @@ of the followings:
 For floating-point element types, corner cases are defined by the IEEE-754
 specification.
 
-### Arguments
+### Operands
 
-| Operand Name(s) | Type |
+| Name | Type |
 |-|-|
-| `lhs` | `tensor` of Integer, Floating-point and Complex element types |
-| `rhs` | `tensor` of Integer, Floating-point and Complex element types |
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Result Name | Type |
+| Name | Type |
 |-|-|
-| `result` | `tensor` of Integer, Floating-point, and Complex element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
@@ -126,4 +126,84 @@ specification.
 // %y: [[5, 6], [7, 8]]
 %z = stablehlo.add %x, %y : tensor<2x2xf32>
 // %z: [[6, 8], [10, 12]]
+```
+
+## stablehlo.maximum
+
+`stablehlo.maximum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the larger of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.max %lhs, %rhs : tensor<2x2xi32>
+// %result: [[5, 6], [7, 8]]
+```
+
+## stablehlo.minimum
+
+`stablehlo.minimum(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For floating-point element type, implements IEEE 754 semantics:
+Returns the smaller of two operands, propagating `NaN`s and treating `-0` as
+less than `+0`. For complex element type,  performs lexicographic comparison on
+the (real, imaginary) pairs.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * `lhs`, `rhs` have the same type.
+  * Supported shapes: all static shapes.
+  * `result` must have the type as that of `lhs` (or `rhs`).
+
+### Examples
+
+```
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = stablehlo.min %lhs, %rhs : tensor<2x2xi32>
+// %result: [[1, 2], [3, 4]]
 ```
