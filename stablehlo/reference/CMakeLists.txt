@@ -52,5 +52,3 @@ add_mlir_library(StablehloReferenceInterpreter
   StablehloReferenceOps
   StablehloReferenceTensor
 )
-
-add_subdirectory(tests)
