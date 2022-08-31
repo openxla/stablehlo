@@ -10,6 +10,13 @@ There is an image at the bottom of the page which shows difference in the bianry
 ### Attributes
 
 ```
+ArgResultAlias {
+  argTupleIndices: svarint[]
+  resultIndex: svarint
+  resultIndex: svarint[]
+  isMustAlias: varint
+}
+
 ChannelHandleAttr {
   handle: svarint
   type: svarint
