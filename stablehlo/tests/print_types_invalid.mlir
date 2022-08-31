@@ -121,7 +121,7 @@ func.func @reduce_precision_no_e_num(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>
 // -----
 
 func.func @reduce_precision_overflow_int32_e(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse exponent or mantissa 2147483648, 1}}
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse exponent '2147483648'}}
   %0 = stablehlo.reduce_precision %arg0, format = e2147483648m1 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }
@@ -129,7 +129,7 @@ func.func @reduce_precision_overflow_int32_e(%arg0: tensor<3x4xf32>) -> (tensor<
 // -----
 
 func.func @reduce_precision_overflow_int32_m(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
-  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse exponent or mantissa 1, 2147483648}}
+  // expected-error @+1 {{custom op 'stablehlo.reduce_precision' unable to parse mantissa '2147483648'}}
   %0 = stablehlo.reduce_precision %arg0, format = e1m2147483648 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }

@@ -3631,11 +3631,13 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
 
   // Parse as base 10 integer strings
   int exp, mant;
-  if (expS.getAsInteger(/*radix=*/10, exp) ||
-      manS.getAsInteger(/*radix=*/10, mant)) {
-    parser.emitError(loc, "unable to parse exponent or mantissa ")
-        << expS.str() << ", " << manS.str();
-    return failure();
+  if (expS.getAsInteger(/*radix=*/10, exp)) {
+    return parser.emitError(loc, "unable to parse exponent '")
+           << expS.str() << "'";
+  }
+  if (manS.getAsInteger(/*radix=*/10, mant)) {
+    return parser.emitError(loc, "unable to parse mantissa '")
+           << manS.str() << "'";
   }
 
   exponent = parser.getBuilder().getI32IntegerAttr(exp);
