@@ -123,9 +123,6 @@ into the bytecode implementations in the Builtin Dialect.
 
 The following attributes / types are not yet implemented:
 
-- StableHLO_ArgResultAlias
-  + This class may be unused in StableHLO/MHLO?
-  + It may be used in near future, investigation required before removal.
 - CHLO_ComparisonDirectionAttr
   + CHLO bytecode will come in a future changelist.
 - CHLO_ComparisonTypeAttr
