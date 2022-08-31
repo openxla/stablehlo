@@ -1,7 +1,7 @@
 // RUN: stablehlo-opt %s | FileCheck %s
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt | FileCheck %s
-// RUN: stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
-// RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
 
 // CHECK-LABEL: func @chlo_acos(

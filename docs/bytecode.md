@@ -90,6 +90,23 @@ TokenType {
 }
 ```
 
+### CHLO Attributes
+
+CHLO only has two custom attributes and no custom types. 
+
+They are encoded as follows:
+
+```
+ComparisonDirectionAttr
+  ComparisonDirection: varint
+}
+
+ComparisonTypeAttr
+  ComparisonType: varint
+}
+```
+
+
 ### Not Included:
 The following attributes / types are subclasses of builtin machinery and call
 into the bytecode implementations in the Builtin Dialect.
@@ -138,15 +155,6 @@ Special Cases:
     and not an `EnumAttr` of the `StablehloDialect`. This differs from
    `FftType` and other enum attributes. Because of this, it is handled by
     the builtin encoding.
-
-### Still to do:
-
-The following attributes / types are not yet implemented:
-
-- CHLO_ComparisonDirectionAttr
-  + CHLO bytecode will come in a future changelist.
-- CHLO_ComparisonTypeAttr
-  + CHLO bytecode will come in a future changelist.
 
 ## Other Notes
 
