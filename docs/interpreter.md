@@ -3,11 +3,11 @@
 
 ## Class Hierarchy
 
-Stablehlo programs are computations over Tensors (n-dimensional arrays), hence
-most of the input/output data values for an op are Tensors with the exception of
-constant
-[Attribute](https://docs.google.com/document/d/1GAAK_yHk7q2cZdJ3zBhsiNcrqzfpyjwQ-oWLD7q__Ss/edit#heading=h.5nem09i7p9va)
-values of primitive types (e.g., Int, float etc.).
+At the moment, StableHLO programs are computations over Tensors (n-dimensional
+    arrays), hence most of the input/output data values for an op are Tensors
+with the exception of constant
+[Attribute](https://mlir.llvm.org/docs/LangRef/#attributes) values of primitive
+types (e.g., Int, float etc.).
 
 In the current design, the class `Tensor` implements Tensor data. The underlying
 storage class for `Tensor` objects, `detail:Buffer`, stores the type of the
@@ -35,11 +35,11 @@ which does the followings:
 1. Maps SSA values with `Tensor` values.
 2. Invokes `eval` on each of the ops within `func`.
 
-The op-level `eval` as  mentioned in (2) is responsible for implementing the
-execution semantics of the op. Following is an example for Stablehlo::AddOp.  In
-the example, individual elements of the `lhs` and `rhs` Tensors are pairwise
+The op-level `eval` as mentioned in (2) is responsible for implementing the
+execution semantics of the op. Following is an example for `stablehloadd` op.
+In the example, individual elements of the `lhs` and `rhs` Tensors are pairwise
 extracted as `Element` objects which are then added. The result of the addition,
-          an `Element`  object, is stored in the  final `result` Tensor.
+          an `Element` object, is stored in the final `result` Tensor.
 
 
 ```C++
