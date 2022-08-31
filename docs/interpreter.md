@@ -6,9 +6,10 @@
 At the moment, StableHLO programs are computations over tensors (n-dimensional
     arrays), which, in the current model, are implemented using class `Tensor`.
 The underlying storage class for a `Tensor` object, `detail:Buffer`, stores the
-type of the tensor along with a contiguous byte array representing its data laid
-out in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
-`detail::Buffer` objects are reference-counted to simplify memory management.
+`mlir::ShapedType` of the tensor along with a contiguous byte array representing
+its data laid out in [major-to-minor
+order](https://www.tensorflow.org/xla/shapes).  `detail::Buffer` objects are
+reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
