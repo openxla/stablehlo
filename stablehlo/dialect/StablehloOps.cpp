@@ -44,6 +44,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
@@ -1855,8 +1856,7 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
 }
 
 LogicalResult CollectivePermuteOp::verify() {
-  return verifyCollectivePermuteSourceTargetPairs(*this,
-                                                       source_target_pairs());
+  return verifyCollectivePermuteSourceTargetPairs(*this, source_target_pairs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3590,6 +3590,61 @@ Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
 //===----------------------------------------------------------------------===//
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//
+
+namespace {
+// Print attributes as e#m#
+void printExponentMantissa(AsmPrinter& p, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  p << 'e';
+  p.printAttributeWithoutType(exponent);
+  p << 'm';
+  p.printAttributeWithoutType(mantissa);
+}
+
+void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  printExponentMantissa(p, exponent, mantissa);
+}
+
+// Parse e#m# as exponent=# and mantissa=#
+ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
+                                  IntegerAttr& mantissa) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  llvm::StringRef expMan;
+  if (parser.parseKeyword(&expMan)) {
+    return failure();
+  }
+
+  // Validate format e#m#
+  llvm::Regex expManRegex("^e([0-9]+)m([0-9]+)$");
+  llvm::SmallVector<llvm::StringRef> matches;
+  if (!expManRegex.match(expMan, &matches)) {
+    return parser.emitError(loc,
+                            "expected exponent mantissa in format e#m#, saw ")
+           << expMan;
+  }
+
+  // Parse off digits of exp/man
+  assert(matches.size() == 3);  // matches[0] is entire regex match.
+  llvm::StringRef expS = matches[1];
+  llvm::StringRef manS = matches[2];
+
+  // Parse as base 10 integer strings
+  int exp, mant;
+  if (expS.getAsInteger(/*radix=*/10, exp)) {
+    return parser.emitError(loc, "unable to parse exponent '")
+           << expS.str() << "'";
+  }
+  if (manS.getAsInteger(/*radix=*/10, mant)) {
+    return parser.emitError(loc, "unable to parse mantissa '")
+           << manS.str() << "'";
+  }
+
+  exponent = parser.getBuilder().getI32IntegerAttr(exp);
+  mantissa = parser.getBuilder().getI32IntegerAttr(mant);
+  return success();
+}
+}  // namespace
 
 // The following property is already enforced by the ODS:
 //  P0. operand element type is float
