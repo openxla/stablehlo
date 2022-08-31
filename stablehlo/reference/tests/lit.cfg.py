@@ -64,7 +64,7 @@ tool_dirs = [
     config.llvm_tools_dir,
 ]
 tools = [
-    'stablehlo-interpreter-runner',
+    'stablehlo-interpreter',
     'mlir-cpu-runner',
     ToolSubst(
         '%mlir_runner_utils_dir',

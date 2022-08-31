@@ -1,27 +1,30 @@
 # Interpreter Design
 
 
-## Class Hierarchy
+## Data Model
 
-At the moment, StableHLO programs are computations over Tensors (n-dimensional
-    arrays), hence most of the input/output data values for an op are Tensors
-with the exception of constant
-[Attribute](https://mlir.llvm.org/docs/LangRef/#attributes) values of primitive
-types (e.g., Int, float etc.).
+At the moment, StableHLO programs are computations over tensors (n-dimensional
+    arrays), which, in the current model, are implemented using class `Tensor`.
+The underlying storage class for a `Tensor` object, `detail:Buffer`, stores the
+type of the tensor along with a contiguous byte array representing its data laid
+out in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
+`detail::Buffer` objects are reference-counted to simplify memory management.
 
-In the current design, the class `Tensor` implements Tensor data. The underlying
-storage class for `Tensor` objects, `detail:Buffer`, stores the type of the
-Tensor along with a contiguous byte array representing its data.
+Individual elements of a tensor are represented using `Element` class which uses
+`mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
+this means that we don't have to implement our own machinery for storing values
+of different types inside Element.
 
-Individual elements of a Tensor are represented using `Element` class which uses
-`mlir::Attribute` for storage.
-
-`Tensor`
-class has the following APIs to interact with it's individual elements:
+`Tensor` class has the following APIs to interact with its individual elements:
   - `Element Tensor::get(int64_t index)`: To extract an individual tensor
   element at index `index` as `Element` object.
   - `void Tensor::set(int64_t index, Element element);`: To insert an `Element`
-  object `element` into a Tensor at index `index`.
+  object `element` into a tensor at index `index`.
+
+For the skeleton of the interpreter, we chose the above linearized APIs for
+accessing tensor elements to simplify the implementation. This is sufficient for
+elementwise ops, and in the future we're planning to expand this to cover more
+complicated op.
 
 ## Working of the interpreter
 
@@ -30,17 +33,20 @@ The entry function to the interpreter is
 ```C++
 SmallVector<Tensor> eval(func::FuncOp func, ArrayRef<Tensor> args);
 ```
-
 which does the followings:
-1. Maps SSA values with `Tensor` values.
-2. Invokes `eval` on each of the ops within `func`.
+
+* Tracks the SSA arguments of `func` and their associated runtime `Tensor`
+   values, provided in `args`, using a symbol table map, M.
+* Foreach op within `func` in their SSACFG order:
+  - Invokes `eval` on op. For each SSA operand of the op, extract its
+  runtime value from M to be provided as argument to the `eval` invocation.
+  - Tracks the SSA result(s) of the op and the evaluated value in M.
 
 The op-level `eval` as mentioned in (2) is responsible for implementing the
-execution semantics of the op. Following is an example for `stablehloadd` op.
-In the example, individual elements of the `lhs` and `rhs` Tensors are pairwise
+execution semantics of the op. Following is an example for `stablehlo::AddOp`.
+In the example, individual elements of the `lhs` and `rhs` tensors are pairwise
 extracted as `Element` objects which are then added. The result of the addition,
-          an `Element` object, is stored in the final `result` Tensor.
-
+          an `Element` object, is stored in the final `result` tensor.
 
 ```C++
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
@@ -52,17 +58,38 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
 }
 ```
 
-In general, the `Element` class simplifies the execution semantics as specified
-in the `eval` function by encapsulating details about how different types are
-handled.
+Overall, the design of the interpreter is optimized for readability of
+implementations of eval functions for individual ops because it's meant to serve
+as a reference implementation for StableHLO. For example, instead of defining
+eval as a template function and parameterizing it with element types, we
+encapsulate details about how different element types are handled in
+Element::operator+ etc, simplifying the implementation of eval.
 
 ## Interpreter used for constant folding
-We can use the interpreter mechanism to fold operations with constant
-operand/attribute vales.
 
-A high level idea of the implementation would looks like
-  - Check if an op is constant-foldable.
-  - If yes, invoke the op-level `eval` function.
+We can use the interpreter mechanism to fold operations with constant operand
+values. The following code snippet demonstrates an idea of the implementation
+for folding `stablehlo::AddOp` with floating-point typed operands:
+
+```
+OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
+  DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
+  DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
+  if (!lhs || !rhs) return {};
+
+  auto lhs = Tensor(lhsData);
+  auto rhs = Tensor(rhsData);
+  auto result = eval(addOp, lhs, rhs);
+
+  SmallVector<APFloat> values;
+  for (auto i = 0; i < result.getNumElements(); ++i) {
+    Element element = result.get(i);
+    values.push_back(element.getValue().cast<FloatAttr>().getValue());
+  }
+
+  return DenseElementsAttr::get(result.getType(), values);
+}
+```
 
 ## Testing the interpreter
 
@@ -71,30 +98,30 @@ StableHLO program, and (B) data values to be fed to the program, and generates
 output data values, which are matched against the user-provided expected data
 values.
 
-In the current implementation, we package the inputs (mlir program + input data
+In the current implementation, we package the inputs (MLIR program + input data
     values) and outputs in a
-[lit-based]((https://llvm.org/docs/CommandGuide/lit.html)) unit-test as follows:
+[lit-based]((https://llvm.org/docs/CommandGuide/lit.html)) test as follows:
 
 ```c++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
-// CHECK-NEXT:  tensor<2xui4>
-// CHECK-NEXT:    15 : ui4
-// CHECK-NEXT:    5 : ui4
-
 func.func @add_op_test_ui4() -> tensor<2xui4> {
   %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>
   %1 = stablehlo.constant dense<[15, 3]> : tensor<2xui4>
   %2 = stablehlo.add %0, %1 : tensor<2xui4>
   func.return %2 : tensor<2xui4>
+  // CHECK-NEXT:  tensor<2xui4>
+  // CHECK-NEXT:    15 : ui4
+  // CHECK-NEXT:    5 : ui4
 }
 ```
 
-A test utility `stablehlo-interpreter-runner`
-([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests/StablehloInterpreterRunner.cpp))
-is responsible for parsing the program and interpret each function and return
-the resulting tensor(s) to be matched against the output tensor provided in
-[FileCheck directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We
-have a dedicated test-suite, consisting of several unit-tests, for each
-StableHLO Op. The unit-suites can be found
+A test utility `stablehlo-interpreter`
+([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests/StablehloInterpreterMain.cpp))
+is responsible for parsing the program, interpreting each function, and
+returning the resulting tensor(s) to be matched against the output tensor
+provided in [FileCheck
+directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We have a
+dedicated test-suite, consisting of several unit-tests, for each StableHLO Op.
+The unit-suites can be found
 [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests).
 

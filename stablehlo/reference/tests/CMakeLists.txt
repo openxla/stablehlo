@@ -21,9 +21,9 @@ configure_lit_site_cfg(
 
 set(STABLEHLO_INTERPRETER_TEST_DEPENDS
         FileCheck count not
-        stablehlo-interpreter-runner
+        stablehlo-interpreter
 )
-add_lit_testsuite(check-stablehlo-interpreter-lit "Running the StableHLO interpreter unit tests"
+add_lit_testsuite(check-stablehlo-interpreter-lit "Running the StableHLO interpreter tests"
         ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${STABLEHLO_INTERPRETER_TEST_DEPENDS}
         )
@@ -32,9 +32,9 @@ set_target_properties(check-stablehlo-interpreter-lit PROPERTIES FOLDER "Tests")
 add_lit_testsuites(STABLEHLO_INTERPRETER_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_INTERPRETER_TEST_DEPENDS})
 add_dependencies(check-stablehlo check-stablehlo-interpreter-lit)
 
-add_llvm_executable(stablehlo-interpreter-runner StablehloInterpreterRunner.cpp)
-llvm_update_compile_flags(stablehlo-interpreter-runner)
-target_link_libraries(stablehlo-interpreter-runner PRIVATE
+add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)
+llvm_update_compile_flags(stablehlo-interpreter)
+target_link_libraries(stablehlo-interpreter PRIVATE
   MLIRAsmParser
   MLIRDataLayoutInterfaces
   MLIRFuncDialect
@@ -47,4 +47,4 @@ target_link_libraries(stablehlo-interpreter-runner PRIVATE
   StablehloReferenceTensor
 )
 
-mlir_check_all_link_libraries(stablehlo-interpreter-runner)
+mlir_check_all_link_libraries(stablehlo-interpreter)

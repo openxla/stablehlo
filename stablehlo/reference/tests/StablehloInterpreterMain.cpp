@@ -29,7 +29,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
 
         // Run the test model.
         auto results = mlir::stablehlo::eval(funcOp, {});
-        if (!(bool)results) {
+        if (!results) {
           llvm::errs() << toString(results.takeError());
           return failure();
         }
@@ -48,5 +48,6 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
 }  //  namespace mlir
 
 int main(int argc, char **argv) {
-  return failed(mlir::mlirTranslateMain(argc, argv, "StableHLO Interpreter"));
+  return failed(
+      mlir::mlirTranslateMain(argc, argv, "StableHLO interpreter driver\n"));
 }
