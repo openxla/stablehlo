@@ -212,7 +212,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in StableHLO
-  // Ex: write(SomeAttr attr, DialectBytecodeWriter &writer) const;
+  // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
   void write(ArgResultAliasAttr attr, DialectBytecodeWriter &writer) const;
   void write(ChannelHandleAttr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
@@ -245,7 +245,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   TokenType readTokenType(DialectBytecodeReader &reader) const;
 
   // TO ADD TYPE: Include a write method for each type in StableHLO
-  // Ex: write(SomeType attr, DialectBytecodeWriter &writer) const;
+  // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
 
  private:
