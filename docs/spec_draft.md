@@ -9,7 +9,9 @@ Following are the supported element types in StableHLO:
     document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}
     * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}
-  * **Boolean types** referred to in the document as `pred`
+  * **Boolean types** referred to in the document as `pred`. Exact
+  representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
+  is implementation-defined.
   * **Floating-point types**
     * Single precision `f32`, double precision `f64` and half precision `f16`
     floating-points complying with [IEEE 754
@@ -88,7 +90,7 @@ The specification of an op comprises of the following components (in the order
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise sum has an
-unsigned/signed overflow/underflow, the result is implementation defined and one
+unsigned/signed overflow/underflow, the result is implementation-defined and one
 of the followings:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result.
@@ -168,7 +170,7 @@ logical operation.
 // Logical operation with with boolean tensors
   // %x: [[false, false], [true, true]]
   // %y: [[false, true], [false, true]]
-  %z = stablehlo.or %x, %y : tensor<2x2xpred>
+  %z = stablehlo.and %x, %y : tensor<2x2xpred>
   // %z: [[false, false], [false, true]]
 ```
 
