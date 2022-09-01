@@ -40,7 +40,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
         return WalkResult::advance();
       });
 
-      return walkResult.wasInterrupted() ? failure() : success();
+      return success(!walkResult.wasInterrupted());
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
