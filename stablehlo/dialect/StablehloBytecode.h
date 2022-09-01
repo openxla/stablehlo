@@ -19,8 +19,8 @@ namespace mlir {
 namespace stablehlo {
 class StablehloDialect;
 
-// Add the interfaces necessary for encoding the stablehlo dialect components
-// in bytecode.
+// Add the interface necessary for encoding and decoding StableHLO dialect
+// components in bytecode.
 void addBytecodeInterface(StablehloDialect *dialect);
 }  // namespace stablehlo
 }  // namespace mlir

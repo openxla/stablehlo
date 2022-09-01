@@ -1,16 +1,11 @@
 # StableHLO Bytecode
 
-## Basic Example
-A minimalist example which only encodes a single attribute in StableHLO can be found [at this commit](https://github.com/openxla/stablehlo/commit/00e3dc98d8d956e5e494be3022df973821e58e91).
-
-There is an image at the bottom of the page which shows difference in the bianry file.
-
 ## Currently Encoded Attributes / Types
 
 ### Attributes
 
 ```
-ArgResultAlias {
+ArgResultAliasAttr {
   argTupleIndices: svarint[]
   resultIndex: svarint
   resultIndex: svarint[]
@@ -23,11 +18,11 @@ ChannelHandleAttr {
 }
 
 ComparisonDirectionAttr
-  ComparisonDirection: varint
+  value: varint (encoded enum)
 }
 
 ComparisonTypeAttr
-  ComparisonType: varint
+  value: varint (encoded enum)
 }
 
 ConvDimensionNumbersAttr {
@@ -42,15 +37,15 @@ ConvDimensionNumbersAttr {
   outputSpatialDimensions: svarint[]
 }
 
-GatherDimensionNumbersAttr {
+DotDimensionNumbersAttr {
   lhsBatchingDimensions: svarint[]
   rhsBatchingDimensions: svarint[]
   lhsContractingDimensions: svarint[]
-  rhsContractingDimensions: svarint
+  rhsContractingDimensions: svarint[]
 }
 
 FftTypeAttr
-  FftType: varint
+  value: varint (encoded enum)
 }
 
 GatherDimensionNumbersAttr {
@@ -61,15 +56,15 @@ GatherDimensionNumbersAttr {
 }
 
 PrecisionAttr {
-  Precision: varint
+  value: varint (encoded enum)
 }
 
 RngAlgorithmAttr {
-  RngAlgorithm: varint
+  value: varint (encoded enum)
 }
 
 RngDistributionAttr {
-  RngDistribution: varint
+  value: varint (encoded enum)
 }
 
 ScatterDimensionNumbersAttr {
@@ -80,7 +75,7 @@ ScatterDimensionNumbersAttr {
 }
 
 TransposeAttr {
-  Transpose: varint
+  value: varint (encoded enum)
 }
 
 TypeExtensionsAttr {
@@ -99,32 +94,43 @@ TokenType {
 The following attributes / types are subclasses of builtin machinery and call
 into the bytecode implementations in the Builtin Dialect.
 
-- StableHLO_BoolElementsAttr
-- StableHLO_FlatSymbolRefArrayAttr
-- StableHLO_ArrayOfLayoutAttr
-- StableHLO_LayoutAttr
-- HLO_ComplexTensor
-- HLO_DimensionTensor
-- HLO_DimensionValue
-- HLO_Fp32Or64Tensor
-- HLO_FpOrComplexTensor
-- HLO_FpTensor
-- HLO_IntFpOrComplexTensor
-- HLO_IntOrFpTensor
-- HLO_IntTensor
-- HLO_PredIntOrFpTensor
-- HLO_PredOrIntTensor
-- HLO_PredTensor
-- HLO_QuantizedInt
-- HLO_QuantizedIntTensor
-- HLO_QuantizedSignedInt
-- HLO_QuantizedUnsignedInt
-- HLO_ScalarIntTensor
-- HLO_StaticShapeTensor
-- HLO_Tensor
-- HLO_TensorOrToken
-- HLO_TensorOrTokenOrTuple
-- HLO_Tuple
+- `StableHLO_ArrayOfLayoutAttr`
+- `StableHLO_BoolElementsAttr`
+- `StableHLO_FlatSymbolRefArrayAttr`
+- `StableHLO_LayoutAttr`
+- `HLO_ComplexTensor`
+- `HLO_Complex`
+- `HLO_DimensionTensor`
+- `HLO_DimensionValue`
+- `HLO_Float32Or64`
+- `HLO_Float`
+- `HLO_Fp32Or64Tensor`
+- `HLO_FpOrComplexTensor`
+- `HLO_FpTensor`
+- `HLO_IntFpOrComplexTensor`
+- `HLO_IntOrFpTensor`
+- `HLO_IntTensor`
+- `HLO_Int`
+- `HLO_PredIntOrFpTensor`
+- `HLO_PredOrIntTensor`
+- `HLO_PredTensor`
+- `HLO_Pred`
+- `HLO_QuantizedIntTensor`
+- `HLO_QuantizedInt`
+- `HLO_QuantizedSignedInt`
+- `HLO_QuantizedUnsignedInt`
+- `HLO_SInt`
+- `HLO_ScalarIntTensor`
+- `HLO_StaticShapeTensor`
+- `HLO_TensorOrTokenOrTuple`
+- `HLO_TensorOrToken`
+- `HLO_Tensor`
+- `HLO_Tuple`
+- `HLO_UInt`
+
+Additionally, despite its name, `StableHLO_ConvolutionAttributes` is not 
+an attribute and is not encoded. Rather, it is a dag which gets expanded
+into several attributes which are all encoded separately.
 
 ### Still to do:
 
@@ -149,9 +155,10 @@ $ stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-
 Since attributes and types that don't get encoded are instead stored as strings,
 the `strings` command can be used to see what attributes were missed:
 
-_Note: The following trace is from a previous revision where the `scatter` attribute was not
-implemented. Currently all types/attrs are implemented and log only shows 
-the dialect name `stablehlo` and the custom `stablehlo.frontend_attributes` and `stablehlo.sharding` properties._
+_Note: The following trace is from a previous revision where the `scatter` attribute 
+was not implemented. Currently all types/attrs are implemented and log only shows 
+the dialect name `stablehlo` and the unregistered `stablehlo.frontend_attributes` 
+and `stablehlo.sharding` attributes._
 
 ```
 $ stablehlo-opt -emit-bytecode file.mlir | strings | grep stablehlo
@@ -191,18 +198,5 @@ depending on the change. Ensure that each location tagged with `TO ADD`
 instructions is addressed. If so, bytecode for the attr/type should be generated
 on next call to `stablehlo-opt -emit-bytecode`.
 
-
 ### Encoding `enum class` values
 Enum class values can be encoded as their underlying numeric types using `varint`. Currently all enums in StableHLO use `uint32_t` as the underlying value.
-
-## Open Questions
-### Is the compatibility guarantee of StableHLO dependent on other dialects?
-If something about the way the builtin dialect serializes information changes,
-are all other dialects compatibility broken? Since our artifacts will include
-bits that need to be (de)serialized using builtin dialect information.
-
-### Any way to reduce the reliance on attribute/op name?
-What would happen if we renamed `fft_length` to `fft_length_int` for example, 
-is this a breaking change?
-
-Similar quesiton for renaming `cross-replica-sum` to `cross_replica_sum`.

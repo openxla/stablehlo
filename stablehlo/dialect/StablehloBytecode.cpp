@@ -52,13 +52,13 @@ namespace stablehlo_encoding {
 enum AttributeCode {
   // TO ADD ATTRIBUTE: Add an enum value with doc string for new attr.
 
-  ///   ArgResultAlias {
+  ///   ArgResultAliasAttr {
   ///     argTupleIndices: svarint[]
   ///     resultIndex: svarint
   ///     resultIndex: svarint[]
   ///     isMustAlias: varint
   ///   }
-  kArgResultAlias = 0,
+  kArgResultAliasAttr = 0,
 
   ///   ChannelHandleAttr {
   ///     handle: svarint
@@ -89,11 +89,11 @@ enum AttributeCode {
   ///   }
   kConvDimensionNumbersAttr = 4,
 
-  ///   GatherDimensionNumbersAttr {
+  ///   DotDimensionNumbersAttr {
   ///     lhsBatchingDimensions: svarint[]
   ///     rhsBatchingDimensions: svarint[]
   ///     lhsContractingDimensions: svarint[]
-  ///     rhsContractingDimensions: svarint
+  ///     rhsContractingDimensions: svarint[]
   ///   }
   kDotDimensionNumbers = 5,
 
@@ -152,7 +152,7 @@ enum AttributeCode {
 /// To add a type, search for "TO ADD TYPE" in this file and ensure each
 /// location is updated.
 enum TypeCode {
-  // TO ADD TYPE: Add an enum value with doc string for new attr.
+  // TO ADD TYPE: Add an enum value with doc string for new type.
 
   ///   TokenType {
   ///   }
@@ -170,7 +170,7 @@ namespace mlir {
 namespace stablehlo {
 
 namespace {
-/// This class implements the bytecode interface for the stablehlo dialect.
+/// This class implements the bytecode interface for the StableHLO dialect.
 class StablehloBytecodeInterface : public BytecodeDialectInterface {
  public:
   StablehloBytecodeInterface(Dialect *dialect)
@@ -179,7 +179,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Attributes
 
-  // These methods are invoked by superclass when an attr from stablehlo dialect
+  // These methods are invoked by superclass when an attr from StableHLO dialect
   // is encountered.
   Attribute readAttribute(DialectBytecodeReader &reader) const override;
   LogicalResult writeAttribute(Attribute attr,
@@ -234,7 +234,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Types
 
-  // These methods are invoked by superclass when a type from stablehlo dialect
+  // These methods are invoked by superclass when a type from StableHLO dialect
   // is encountered.
   Type readType(DialectBytecodeReader &reader) const override;
   LogicalResult writeType(Type type,
@@ -295,7 +295,7 @@ Attribute StablehloBytecodeInterface::readAttribute(
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Attribute();
   switch (code) {
-    case stablehlo_encoding::kArgResultAlias:
+    case stablehlo_encoding::kArgResultAliasAttr:
       return readArgResultAliasAttr(reader);
     case stablehlo_encoding::kChannelHandleAttr:
       return readChannelHandleAttr(reader);
@@ -536,7 +536,7 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
 
 void StablehloBytecodeInterface::write(ArgResultAliasAttr attr,
                                        DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(stablehlo_encoding::kArgResultAlias);
+  writer.writeVarInt(stablehlo_encoding::kArgResultAliasAttr);
   writer.writeSignedVarInts(attr.getArgTupleIndices());
   writer.writeSignedVarInt(attr.getResultIndex());
   writer.writeSignedVarInts(attr.getResultTupleIndices());
