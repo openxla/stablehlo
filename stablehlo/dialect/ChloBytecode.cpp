@@ -223,13 +223,13 @@ ChloBytecodeInterface::writeAttribute(Attribute attr,
 }
 
 void ChloBytecodeInterface::write(ComparisonDirectionAttr attr,
-                                       DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter &writer) const {
   writer.writeVarInt(chlo_encoding::kComparisonDirectionAttr);
   writeEnumAttribute<ComparisonDirection>(attr, writer);
 }
 
 void ChloBytecodeInterface::write(ComparisonTypeAttr attr,
-                                       DialectBytecodeWriter &writer) const {
+                                  DialectBytecodeWriter &writer) const {
   writer.writeVarInt(chlo_encoding::kComparisonTypeAttr);
   writeEnumAttribute<ComparisonType>(attr, writer);
 }
