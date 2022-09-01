@@ -28,28 +28,18 @@ fi
 LLVM_BUILD_DIR="$1"
 STABLEHLO_BUILD_DIR="$2"
 
-# Check for LLD
-FLAGS=""
-LLD_FLAG="-DLLVM_ENABLE_LLD=ON"
-if command -v lld &> /dev/null
-then
-  echo "lld found, appending flag '$LLD_FLAG'"
-  FLAGS="$LLD_FLAG"
-else
-  echo "lld not found, using default linker"
-fi
-
-# Build StableHLO
+# Configure StableHLO
 cmake -GNinja \
-  "$FLAGS" \
   -B"$STABLEHLO_BUILD_DIR" \
+  -DLLVM_ENABLE_LLD=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ENABLE_ASSERTIONS=On \
+  -DMLIR_DIR="$LLVM_BUILD_DIR/lib/cmake/mlir" \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DLLVM_ENABLE_ASSERTIONS=On \
-  -DMLIR_DIR="$LLVM_BUILD_DIR/lib/cmake/mlir"
 
+# Build and Check StableHLO
 cd "$STABLEHLO_BUILD_DIR"
 ninja check-stablehlo

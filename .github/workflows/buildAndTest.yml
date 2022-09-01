@@ -27,16 +27,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-arch: [maci-x86_64, ubuntu-x86_64]
+        os-arch: [ubuntu-x86_64]
         include:
           - os-arch: ubuntu-x86_64
             os: ubuntu-22.04
-          - os-arch: maci-x86_64 
-            os: macos-latest
     runs-on: ${{ matrix.os }}
 
     steps:
-    # Check out StableHLO repo
     - name: Checkout StableHLO
       uses: actions/checkout@v2
 
@@ -53,13 +50,11 @@ jobs:
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
 
-    # Configuration for linux
     - name: Configure and Build LLVM os-arch='${{ matrix.os-arch }}'
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_llvm.sh "$GITHUB_WORKSPACE/llvm-project/" "$GITHUB_WORKSPACE/llvm-build"
 
-    # Configure for linux
     - name: Build and Test StableHLO os-arch='${{ matrix.os-arch }}'
       run: |
         ./build_tools/github_actions/ci_build_stablehlo.sh "$GITHUB_WORKSPACE/llvm-build" "$GITHUB_WORKSPACE/stablehlo-build"

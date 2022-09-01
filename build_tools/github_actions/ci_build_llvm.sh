@@ -25,21 +25,12 @@ fi
 LLVM_SRC_DIR="$1"
 LLVM_BUILD_DIR="$2"
 
-# Check for LLD
-LLVM_ENABLE_LLD=""
-if command -v lld &> /dev/null
-then
-  LLVM_ENABLE_LLD="-DLLVM_ENABLE_LLD=ON"
-  echo "lld found, compiling with '$LLVM_ENABLE_LLD'"
-else
-  echo "lld not found, using default linker"
-fi
-
+# Configure LLVM
 cmake -GNinja \
   "-H$LLVM_SRC_DIR/llvm" \
   "-B$LLVM_BUILD_DIR" \
   -DLLVM_INSTALL_UTILS=ON \
-  "$LLVM_ENABLE_LLD" \
+  -DLLVM_ENABLE_LLD=ON \
   -DLLVM_ENABLE_PROJECTS=mlir \
   -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
   -DLLVM_INCLUDE_TOOLS=ON \
