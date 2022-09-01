@@ -256,13 +256,13 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   // Use the attributes underlying type to get the numeric value.
   // Note this may cause issues if enums use an int64_t and have a large value.
   // All enums in StableHLO currently use int32_t.
-  template <typename EnumType, typename EnumTypeAttr, typename SymbolizeFn>
+  template <typename EnumTypeAttr, typename SymbolizeFn>
   EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
                                  SymbolizeFn symbolizeFn) const {
     uint64_t code;
     if (failed(reader.readVarInt(code))) return EnumTypeAttr();
 
-    llvm::Optional<EnumType> enumOpt = symbolizeFn(static_cast<uint32_t>(code));
+    auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
     if (!enumOpt.has_value()) return EnumTypeAttr();
 
     return EnumTypeAttr::get(getContext(), enumOpt.value());
@@ -364,14 +364,14 @@ ChannelHandleAttr StablehloBytecodeInterface::readChannelHandleAttr(
 ComparisonDirectionAttr StablehloBytecodeInterface::readComparisonDirectionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<ComparisonDirection, ComparisonDirectionAttr>(
+  return readEnumAttribute<ComparisonDirectionAttr>(
       reader, [](uint32_t val) { return symbolizeComparisonDirection(val); });
 }
 
 ComparisonTypeAttr StablehloBytecodeInterface::readComparisonTypeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<ComparisonType, ComparisonTypeAttr>(
+  return readEnumAttribute<ComparisonTypeAttr>(
       reader, [](uint32_t val) { return symbolizeComparisonType(val); });
 }
 
@@ -428,7 +428,7 @@ DotDimensionNumbersAttr StablehloBytecodeInterface::readDotDimensionNumbersAttr(
 FftTypeAttr StablehloBytecodeInterface::readFftTypeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<FftType, FftTypeAttr>(
+  return readEnumAttribute<FftTypeAttr>(
       reader, [](uint32_t val) { return symbolizeFftType(val); });
 }
 
@@ -454,21 +454,21 @@ StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
 PrecisionAttr StablehloBytecodeInterface::readPrecisionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<Precision, PrecisionAttr>(
+  return readEnumAttribute<PrecisionAttr>(
       reader, [](uint32_t val) { return symbolizePrecision(val); });
 }
 
 RngAlgorithmAttr StablehloBytecodeInterface::readRngAlgorithmAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<RngAlgorithm, RngAlgorithmAttr>(
+  return readEnumAttribute<RngAlgorithmAttr>(
       reader, [](uint32_t val) { return symbolizeRngAlgorithm(val); });
 }
 
 RngDistributionAttr StablehloBytecodeInterface::readRngDistributionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<RngDistribution, RngDistributionAttr>(
+  return readEnumAttribute<RngDistributionAttr>(
       reader, [](uint32_t val) { return symbolizeRngDistribution(val); });
 }
 
@@ -495,7 +495,7 @@ StablehloBytecodeInterface::readScatterDimensionNumbersAttr(
 TransposeAttr StablehloBytecodeInterface::readTransposeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<Transpose, TransposeAttr>(
+  return readEnumAttribute<TransposeAttr>(
       reader, [](uint32_t val) { return symbolizeTranspose(val); });
 }
 

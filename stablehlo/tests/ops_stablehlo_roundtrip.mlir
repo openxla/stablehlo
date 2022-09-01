@@ -1,3 +1,4 @@
+// RUN: stablehlo-opt %s | stablehlo-opt
 // RUN: diff <(stablehlo-opt %s) <(stablehlo-opt -emit-bytecode %s | stablehlo-opt)
 // RUN: stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
@@ -21,24 +22,6 @@ func.func @test_add(%arg0: tensor<2xi1>) -> tensor<2xi1> {
 func.func @test_after_all(%arg0: !stablehlo.token, %arg1: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.after_all"(%arg0, %arg1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
   func.return %0 : !stablehlo.token
-}
-
-func.func @test_reduce_scatter(%arg0: tensor<10xf32>) -> tensor<5xf32> {
-  %0 = "stablehlo.reduce_scatter"(%arg0) ({
-  // Perform max reduction inside the region
-  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
-    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
-    "stablehlo.return"(%max) : (tensor<f32>) -> ()
-  })
-  {
-    replica_groups = dense<[[0, 2], [1, 3]]> : tensor<2x2xi64>,
-    channel_handle = #stablehlo.channel_handle<
-      handle = 5,
-      type = 2
-    >,
-    scatter_dimension = 0 : i64
-  } : (tensor<10xf32>) -> tensor<5xf32>
-  func.return %0 : tensor<5xf32>
 }
 
 func.func @test_all_gather(%arg0: tensor<128x32xf32>) -> tensor<128x128xf32> {
@@ -104,24 +87,6 @@ func.func @test_all_reduce3(%arg0: tensor<10xf32>) -> tensor<10xf32> {
   func.return %0 : tensor<10xf32>
 }
 
-func.func @test_reduce_scatter2(%arg0: tensor<10xf32>) -> tensor<5xf32> {
-  %0 = "stablehlo.reduce_scatter"(%arg0) ({
-  // Perform max reduction inside the region
-  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
-    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
-    "stablehlo.return"(%max) : (tensor<f32>) -> ()
-  })
-  {
-    replica_groups = dense<[[0, 2], [1, 3]]> : tensor<2x2xi64>,
-    channel_handle = #stablehlo.channel_handle<
-      handle = 5,
-      type = 2
-    >,
-    scatter_dimension = 0 : i64
-  } : (tensor<10xf32>) -> tensor<5xf32>
-  func.return %0 : tensor<5xf32>
-}
-
 func.func @test_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %mean: tensor<2xf32>, %variance: tensor<2xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>> {
   %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   %1 = "stablehlo.tuple"(%0#0, %0#1, %0#2) : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
@@ -132,14 +97,6 @@ func.func @test_batch_norm_training(%input: tensor<2x2x2x2xf32>, %scale: tensor<
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 3 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   %1 = "stablehlo.tuple"(%0#0, %0#1, %0#2) : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
   func.return %1 : tuple<tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>>
-}
-
-func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) {
-  %0 = stablehlo.atan2 %arg0, %arg1 : tensor<4xi32>
-  %1 = stablehlo.shift_left %arg0, %arg1 : tensor<4xi32>
-  %2 = stablehlo.shift_right_arithmetic %arg0, %arg1 : tensor<4xi32>
-  %3 = stablehlo.shift_right_logical %arg0, %arg1 : tensor<4xi32>
-  func.return %0, %1, %2, %3 : tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>
 }
 
 func.func @test_bitcast_convert(%arg0: tensor<2xi32>) -> tensor<2xf32> {
@@ -159,12 +116,7 @@ func.func @test_broadcast_in_dim(%arg0: tensor<1xf32>) -> tensor<1x10xf32> {
   func.return %result : tensor<1x10xf32>
 }
 
-func.func @test_create_token() -> !stablehlo.token {
-  %0 = "stablehlo.create_token"() : () -> !stablehlo.token
-  func.return %0 : !stablehlo.token
-}
-
-func.func @test_add_call(%arg0: tensor<4xi32>) -> tensor<4xi32> {
+func.func @test_call_add(%arg0: tensor<4xi32>) -> tensor<4xi32> {
   %0 = func.call @callee_add(%arg0, %arg0) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
   %1 = func.call @callee_add(%0, %0) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
   func.return %1 : tensor<4xi32>
@@ -175,7 +127,7 @@ func.func @callee_add(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> tensor<4xi3
   func.return %0 : tensor<4xi32>
 }
 
-func.func @test_add_mult_call(%arg0: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>) {
+func.func @test_call_add_mult(%arg0: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>) {
   %0:2 = func.call @callee_add_mult(%arg0, %arg0) : (tensor<4xi32>, tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>)
   func.return %0#0, %0#1 : tensor<4xi32>, tensor<4xi32>
 }
@@ -184,6 +136,12 @@ func.func @callee_add_mult(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tenso
   %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
   %1 = "stablehlo.multiply"(%arg0, %arg1) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
   func.return %0, %1 : tensor<4xi32>, tensor<4xi32>
+}
+
+func.func @test_cast(%arg0: tensor<4xi32>) -> tensor<*xi32> {
+  %0 = "stablehlo.not"(%arg0) : (tensor<4xi32>) -> tensor<4xi32>
+  %1 = tensor.cast %0 : tensor<4xi32> to tensor<*xi32>
+  func.return %1 : tensor<*xi32>
 }
 
 func.func @test_collective_permute(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
@@ -297,7 +255,12 @@ func.func @test_convert(%arg0: tensor<2xi32>) -> tensor<2xf32> {
   func.return %0 : tensor<2xf32>
 }
 
-func.func @test_crs(%arg0: tensor<10xf32>) -> tensor<10xf32> {
+func.func @test_create_token() -> !stablehlo.token {
+  %0 = "stablehlo.create_token"() : () -> !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+func.func @test_cross_replica_sum(%arg0: tensor<10xf32>) -> tensor<10xf32> {
   %0 = stablehlo.constant dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi32>
   %1 = "stablehlo.cross-replica-sum"(%arg0) {replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>} : (tensor<10xf32>) -> tensor<10xf32>
   func.return %1 : tensor<10xf32>
@@ -306,6 +269,32 @@ func.func @test_crs(%arg0: tensor<10xf32>) -> tensor<10xf32> {
 func.func @test_custom_call(%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<1x2x3xf32> {
   %0 = "stablehlo.custom_call"(%arg0, %arg1) {backend_config = "bar", call_target_name = "foo", has_side_effect = true} : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
   func.return %0 : tensor<1x2x3xf32>
+}
+
+// The following op sharding is used:
+// Proto debug string:
+//   type: OTHER
+//   tile_assignment_dimensions: 1
+//   tile_assignment_dimensions: 2
+//   tile_assignment_devices: 0
+//   tile_assignment_devices: 1
+// Serialized string:
+//   "\08\03\1A\02\01\02\22\02\00\01"
+func.func @test_custom_call2(%arg0: tensor<16x16xf32>) -> tensor<16x16xf32> {
+  %0 = "stablehlo.custom_call"(%arg0) {backend_config = "", call_target_name = "Sharding", stablehlo.sharding = "\08\03\1A\02\01\02\22\02\00\01"} : (tensor<16x16xf32>) -> tensor<16x16xf32>
+  func.return %0 : tensor<16x16xf32>
+}
+
+func.func @test_custom_call3(%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<2x3xf32> {
+        %0 = "stablehlo.custom_call"(%arg0, %arg1) {
+    call_target_name = "callee_foo",
+    called_computations = [@callee_foo]
+  } : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<2x3xf32>
+  func.return %0 : tensor<2x3xf32>
+}
+
+func.func @callee_foo (%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<2x3xf32> {
+  func.return %arg0 : tensor<2x3xf32>
 }
 
 // Test dot i8xi8 -> i64
@@ -325,6 +314,11 @@ func.func @test_dot_general(%arg0: tensor<2x2x2xi8>, %arg1: tensor<2x2x3xi8>) ->
     >,
     precision_config = []} : (tensor<2x2x2xi8>, tensor<2x2x3xi8>) -> tensor<2x2x3xi32>
   func.return %0 : tensor<2x2x3xi32>
+}
+
+func.func @test_dynamic_slice(%arg: tensor<3x4xi32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xi32> {
+  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  func.return %0 : tensor<1x4xi32>
 }
 
 func.func @test_einsum(%arg0: tensor<3x4xi32>, %arg1: tensor<4x5xi32>) -> tensor<3x5xi32> {
@@ -404,6 +398,11 @@ func.func @test_map2(%arg0: tensor<4xf32>, %arg1: tensor<4xi32>) -> tensor<4xf32
   func.return %0 : tensor<4xf32>
 }
 
+func.func @test_optimization_barrier(%arg0: tensor<4x4xf32>, %arg1: tensor<3x4xf32>) -> (tensor<4x4xf32>, tensor<3x4xf32>) {
+  %0, %1 = "stablehlo.optimization_barrier"(%arg0, %arg1) : (tensor<4x4xf32>, tensor<3x4xf32>) -> (tensor<4x4xf32>, tensor<3x4xf32>)
+  func.return %0, %1 : tensor<4x4xf32>, tensor<3x4xf32>
+}
+
 func.func @test_outfeed(%data: tensor<3xi32>, %token: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.outfeed"(%data, %token) {outfeed_config = "foobar"} : (tensor<3xi32>, !stablehlo.token) -> !stablehlo.token
   func.return %0 : !stablehlo.token
@@ -469,6 +468,47 @@ func.func @test_reduce(%arg0 : tensor<1x10xf32>, %arg1 : tensor<1x10xi32>, %arg2
   func.return %result0, %result1 : tensor<1xf32>, tensor<1xi32>
 }
 
+func.func @test_reduce_precision(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
+  %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits = 8 : i32, mantissa_bits = 10 : i32} : (tensor<3x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+func.func @test_reduce_scatter(%arg0: tensor<10xf32>) -> tensor<5xf32> {
+  %0 = "stablehlo.reduce_scatter"(%arg0) ({
+  // Perform max reduction inside the region
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
+    "stablehlo.return"(%max) : (tensor<f32>) -> ()
+  })
+  {
+    replica_groups = dense<[[0, 2], [1, 3]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 2
+    >,
+    scatter_dimension = 0 : i64
+  } : (tensor<10xf32>) -> tensor<5xf32>
+  func.return %0 : tensor<5xf32>
+}
+
+func.func @test_reduce_scatter2(%arg0: tensor<10xf32>) -> tensor<5xf32> {
+  %0 = "stablehlo.reduce_scatter"(%arg0) ({
+  // Perform max reduction inside the region
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
+    "stablehlo.return"(%max) : (tensor<f32>) -> ()
+  })
+  {
+    replica_groups = dense<[[0, 2], [1, 3]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 2
+    >,
+    scatter_dimension = 0 : i64
+  } : (tensor<10xf32>) -> tensor<5xf32>
+  func.return %0 : tensor<5xf32>
+}
+
 func.func @test_reduce_window(%arg0: tensor<2x17x31x7xi32>) -> tensor<2x5x8x7xi32> {
   %0 = stablehlo.constant dense<-2147483648> : tensor<i32>
   %1 = "stablehlo.reduce_window"(%arg0, %0) ({
@@ -483,6 +523,19 @@ func.func @test_reduce_window(%arg0: tensor<2x17x31x7xi32>) -> tensor<2x5x8x7xi3
     window_dilations = dense<[1, 2, 2, 1]> : tensor<4xi64>
   } : (tensor<2x17x31x7xi32>, tensor<i32>) -> tensor<2x5x8x7xi32>
   func.return %1 : tensor<2x5x8x7xi32>
+}
+
+func.func @test_reduce_window2(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>, %init0: tensor<f32>, %init1: tensor<i32>) -> (tensor<2x2xf32>, tensor<2x2xi32>) {
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>, %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> } : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) -> (tensor<2x2xf32>, tensor<2x2xi32>)
+  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
 }
 
 func.func @test_reshape(%arg0: tensor<2xf32>) -> tensor<1x2xf32> {
@@ -509,6 +562,12 @@ func.func @test_rng_uniform() -> tensor<2x3x5xf32> {
   %2 = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   %3 = "stablehlo.rng"(%0, %1, %2) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %3 : tensor<2x3x5xf32>
+}
+
+func.func @test_rng_bit_generator(%arg: tensor<3xui64>) -> tuple<tensor<3xui64>, tensor<2x2xui32>> {
+  %0:2 = "stablehlo.rng_bit_generator"(%arg) {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>} : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
+  %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<3xui64>, tensor<2x2xui32>) -> tuple<tensor<3xui64>, tensor<2x2xui32>>
+  func.return %1 : tuple<tensor<3xui64>, tensor<2x2xui32>>
 }
 
 func.func @test_scatter(%input_tensor: tensor<200x100x300xf32>, %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) -> tensor<200x100x300xf32> {
@@ -599,46 +658,17 @@ func.func @test_set_dimension_size(%arg: tensor<4x4xf32>, %size: tensor<i32>) ->
   func.return %0 : tensor<4x4xf32>
 }
 
+func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) {
+  %0 = stablehlo.atan2 %arg0, %arg1 : tensor<4xi32>
+  %1 = stablehlo.shift_left %arg0, %arg1 : tensor<4xi32>
+  %2 = stablehlo.shift_right_arithmetic %arg0, %arg1 : tensor<4xi32>
+  %3 = stablehlo.shift_right_logical %arg0, %arg1 : tensor<4xi32>
+  func.return %0, %1, %2, %3 : tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>
+}
+
 func.func @test_slice(%arg: tensor<3x4xi32>) -> tensor<1x2xi32> {
   %0 = "stablehlo.slice"(%arg) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
-}
-
-func.func @test_dynamic_slice(%arg: tensor<3x4xi32>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<1x4xi32> {
-  %0 = "stablehlo.dynamic_slice"(%arg, %start1, %start2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
-  func.return %0 : tensor<1x4xi32>
-}
-
-func.func @test_transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
-  func.return %0 : tensor<2x1x4x3xi32>
-}
-
-func.func @test_triangular_solve(%arg0: tensor<4x4xf32>, %arg1: tensor<4x3xf32>) -> tensor<4x3xf32> {
-  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<4x4xf32>, tensor<4x3xf32>) -> tensor<4x3xf32>
-  func.return %0 : tensor<4x3xf32>
-}
-
-func.func @test_tuple(%arg0: tensor<f32>, %arg1 : tensor<i32>) -> tuple<tensor<f32>, tensor<i32>> {
-  %result = "stablehlo.tuple"(%arg0, %arg1) {} : (tensor<f32>, tensor<i32>) -> tuple<tensor<f32>, tensor<i32>>
-  func.return %result : tuple<tensor<f32>, tensor<i32>>
-}
-
-func.func @test_exponential_minus_one(%arg_f32: tensor<4xf32>, %arg_i32: tensor<4xi32>) -> (tensor<4xf32>, tensor<4xf32>, tensor<4xi32>, tensor<4xi32>) {
-      %expm1 = "stablehlo.exponential_minus_one"(%arg_f32) : (tensor<4xf32>) -> tensor<4xf32>
-
-    %log1p = "stablehlo.log_plus_one"(%arg_f32) : (tensor<4xf32>) -> tensor<4xf32>
-
-      %not = "stablehlo.not"(%arg_i32) : (tensor<4xi32>) -> tensor<4xi32>
-
-    %popcnt = "stablehlo.popcnt"(%arg_i32) : (tensor<4xi32>) -> tensor<4xi32>
-
-  func.return %expm1, %log1p, %not, %popcnt : tensor<4xf32>, tensor<4xf32>, tensor<4xi32>, tensor<4xi32>
-}
-
-func.func @test_xor(%arg0: tensor<4xi1>, %arg1: tensor<4xi1>) -> tensor<4xi1> {
-      %0 = stablehlo.xor %arg0, %arg1 : tensor<4xi1>
-    func.return %0 : tensor<4xi1>
 }
 
 func.func @test_sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
@@ -659,89 +689,14 @@ func.func @test_sort2(%input0: tensor<16x16xf32>) {
   func.return
 }
 
-// The following op sharding is used:
-// Proto debug string:
-//   type: OTHER
-//   tile_assignment_dimensions: 1
-//   tile_assignment_dimensions: 2
-//   tile_assignment_devices: 0
-//   tile_assignment_devices: 1
-// Serialized string:
-//   "\08\03\1A\02\01\02\22\02\00\01"
-func.func @test_custom_call2(%arg0: tensor<16x16xf32>) -> tensor<16x16xf32> {
-  %0 = "stablehlo.custom_call"(%arg0) {backend_config = "", call_target_name = "Sharding", stablehlo.sharding = "\08\03\1A\02\01\02\22\02\00\01"} : (tensor<16x16xf32>) -> tensor<16x16xf32>
-  func.return %0 : tensor<16x16xf32>
+func.func @test_transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
+  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  func.return %0 : tensor<2x1x4x3xi32>
 }
 
-func.func @foo (%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<2x3xf32> {
-  func.return %arg0 : tensor<2x3xf32>
-}
-
-func.func @test_custom_call3(%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<2x3xf32> {
-        %0 = "stablehlo.custom_call"(%arg0, %arg1) {
-    call_target_name = "foo",
-    called_computations = [@foo]
-  } : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<2x3xf32>
-  func.return %0 : tensor<2x3xf32>
-}
-
-func.func @test_abs(%arg0: tensor<2xcomplex<f32>>, %arg1: tensor<2xcomplex<f64>>) -> (tensor<2xf32>, tensor<2xf64>) {
-  %0 = "stablehlo.abs"(%arg0) : (tensor<2xcomplex<f32>>) -> (tensor<2xf32>)
-  %1 = "stablehlo.abs"(%arg1) : (tensor<2xcomplex<f64>>) -> (tensor<2xf64>)
-  func.return %0, %1 : tensor<2xf32>, tensor<2xf64>
-}
-
-func.func @test_not(%arg0: tensor<4xui8>) -> tensor<4xui8> {
-  %0 = "stablehlo.not"(%arg0) : (tensor<4xui8>) -> tensor<4xui8>
-  func.return %0 : tensor<4xui8>
-}
-
-func.func @test_not2(%arg0: tensor<4xi32>) -> tensor<*xi32> {
-  %0 = "stablehlo.not"(%arg0) : (tensor<4xi32>) -> tensor<4xi32>
-  %1 = tensor.cast %0 : tensor<4xi32> to tensor<*xi32>
-  func.return %1 : tensor<*xi32>
-}
-
-func.func @test_set_dimension_size_cast(%arg: tensor<4xf32>, %size: tensor<i32>) -> tensor<?xf32> {
-  %0 = "stablehlo.set_dimension_size"(%arg, %size) {dimension = 0 : i64} : (tensor<4xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>
-  %1 = tensor.cast %0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>> to tensor<?xf32>
-  func.return %1 : tensor<?xf32>
-}
-
-// Tests ops with different frontend attributes
-func.func @test_send_revc(%arg: tensor<3x4xf32>, %token: !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token> {
-  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_dtoh_0"}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
-  %1:2 = "stablehlo.recv"(%0) {channel_handle = #stablehlo.channel_handle<handle = 2, type = 3>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_htod_0"}} : (!stablehlo.token) -> (tensor<3x4xf32>, !stablehlo.token)
-  %2 = "stablehlo.tuple"(%1#0, %1#1) : (tensor<3x4xf32>, !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token>
-  func.return %2 : tuple<tensor<3x4xf32>, !stablehlo.token>
-}
-
-// Tests ops with empty frontend attributes do not have frontend_attributes
-func.func @test_send_fe_attrs(%arg: tensor<3x4xf32>, %token: !stablehlo.token) -> !stablehlo.token {
-  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
-  func.return %0 : !stablehlo.token
-}
-
-// Checks exporting rng-bit-generator.
-func.func @test_rng_bit_generator(%arg: tensor<3xui64>) -> tuple<tensor<3xui64>, tensor<2x2xui32>> {
-  %0:2 = "stablehlo.rng_bit_generator"(%arg) {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>} : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
-  %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<3xui64>, tensor<2x2xui32>) -> tuple<tensor<3xui64>, tensor<2x2xui32>>
-  func.return %1 : tuple<tensor<3xui64>, tensor<2x2xui32>>
-}
-
-func.func @test_cbrt(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
-  %0 = "stablehlo.cbrt"(%arg) : (tensor<3x4xf32>) -> tensor<3x4xf32>
-  func.return %0 : tensor<3x4xf32>
-}
-
-func.func @test_reduce_precision(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
-  %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits = 8 : i32, mantissa_bits = 10 : i32} : (tensor<3x4xf32>) -> tensor<3x4xf32>
-  func.return %0 : tensor<3x4xf32>
-}
-
-func.func @test_optimization_barrier(%arg0: tensor<4x4xf32>, %arg1: tensor<3x4xf32>) -> (tensor<4x4xf32>, tensor<3x4xf32>) {
-  %0, %1 = "stablehlo.optimization_barrier"(%arg0, %arg1) : (tensor<4x4xf32>, tensor<3x4xf32>) -> (tensor<4x4xf32>, tensor<3x4xf32>)
-  func.return %0, %1 : tensor<4x4xf32>, tensor<3x4xf32>
+func.func @test_triangular_solve(%arg0: tensor<4x4xf32>, %arg1: tensor<4x3xf32>) -> tensor<4x3xf32> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<4x4xf32>, tensor<4x3xf32>) -> tensor<4x3xf32>
+  func.return %0 : tensor<4x3xf32>
 }
 
 func.func @test_triangular_solve2(%arg0: tensor<4x4xf32>, %arg1: tensor<3x4xf32>) -> tensor<3x4xf32> {
@@ -749,26 +704,54 @@ func.func @test_triangular_solve2(%arg0: tensor<4x4xf32>, %arg1: tensor<3x4xf32>
   func.return %0: tensor<3x4xf32>
 }
 
-func.func @test_reduce_window2(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>, %init0: tensor<f32>, %init1: tensor<i32>) -> (tensor<2x2xf32>, tensor<2x2xi32>) {
-  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
-         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>, %b0: tensor<f32>, %b1: tensor<i32>):
-              %2 = stablehlo.add %a0, %b0 : tensor<f32>
-              %3 = stablehlo.add %a1, %b1 : tensor<i32>
-              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
-            })
-         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-           window_strides = dense<[3, 1]> : tensor<2xi64> } : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) -> (tensor<2x2xf32>, tensor<2x2xi32>)
-  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
+func.func @test_tuple(%arg0: tensor<f32>, %arg1 : tensor<i32>) -> tuple<tensor<f32>, tensor<i32>> {
+  %result = "stablehlo.tuple"(%arg0, %arg1) {} : (tensor<f32>, tensor<i32>) -> tuple<tensor<f32>, tensor<i32>>
+  func.return %result : tuple<tensor<f32>, tensor<i32>>
 }
 
-func.func @test_round_nearest_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+func.func @test_unary(%arg_f32: tensor<4xf32>, %arg_i32: tensor<4xi32>) -> (tensor<4xf32>, tensor<4xf32>, tensor<4xi32>, tensor<4xi32>) {
+  %expm1 = "stablehlo.exponential_minus_one"(%arg_f32) : (tensor<4xf32>) -> tensor<4xf32>
+  %log1p = "stablehlo.log_plus_one"(%arg_f32) : (tensor<4xf32>) -> tensor<4xf32>
+  %not = "stablehlo.not"(%arg_i32) : (tensor<4xi32>) -> tensor<4xi32>
+  %popcnt = "stablehlo.popcnt"(%arg_i32) : (tensor<4xi32>) -> tensor<4xi32>
+  func.return %expm1, %log1p, %not, %popcnt : tensor<4xf32>, tensor<4xf32>, tensor<4xi32>, tensor<4xi32>
+}
+
+func.func @test_unary_abs(%arg0: tensor<2xcomplex<f32>>, %arg1: tensor<2xcomplex<f64>>) -> (tensor<2xf32>, tensor<2xf64>) {
+  %0 = "stablehlo.abs"(%arg0) : (tensor<2xcomplex<f32>>) -> (tensor<2xf32>)
+  %1 = "stablehlo.abs"(%arg1) : (tensor<2xcomplex<f64>>) -> (tensor<2xf64>)
+  func.return %0, %1 : tensor<2xf32>, tensor<2xf64>
+}
+
+func.func @test_unary_cbrt(%arg: tensor<3x4xf32>) -> tensor<3x4xf32> {
+  %0 = "stablehlo.cbrt"(%arg) : (tensor<3x4xf32>) -> tensor<3x4xf32>
+  func.return %0 : tensor<3x4xf32>
+}
+
+func.func @test_unary_round_nearest_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {
     %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2xf32>) -> tensor<2xf32>
     func.return %0 : tensor<2xf32>
 }
 
-// Test result alias
-func.func @test_alias_attribute (%arg0: tuple<tensor<f32>>
+func.func @test_xor(%arg0: tensor<4xi1>, %arg1: tensor<4xi1>) -> tensor<4xi1> {
+      %0 = stablehlo.xor %arg0, %arg1 : tensor<4xi1>
+    func.return %0 : tensor<4xi1>
+}
+
+// Attribute Tests:
+func.func @test_attr_frontend_attributes(%arg: tensor<3x4xf32>, %token: !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token> {
+  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_dtoh_0"}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
+  %1:2 = "stablehlo.recv"(%0) {channel_handle = #stablehlo.channel_handle<handle = 2, type = 3>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_htod_0"}} : (!stablehlo.token) -> (tensor<3x4xf32>, !stablehlo.token)
+  %2 = "stablehlo.tuple"(%1#0, %1#1) : (tensor<3x4xf32>, !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token>
+  func.return %2 : tuple<tensor<3x4xf32>, !stablehlo.token>
+}
+
+func.func @test_attr_frontend_attributes_empty(%arg: tensor<3x4xf32>, %token: !stablehlo.token) -> !stablehlo.token {
+  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+func.func @test_attr_result_alias (%arg0: tuple<tensor<f32>>
     {stablehlo.result_alias = #stablehlo.result_alias<
       tuple_indices = [0],
       result_index = [0, 0],
@@ -777,4 +760,10 @@ func.func @test_alias_attribute (%arg0: tuple<tensor<f32>>
   %0 = stablehlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>>) -> tensor<f32>
   %1 = stablehlo.tuple %0 : tuple<tensor<f32>>
   func.return %1 : tuple<tensor<f32>>
+}
+
+func.func @test_attr_type_extensions(%arg: tensor<4xf32>, %size: tensor<i32>) -> tensor<?xf32> {
+  %0 = "stablehlo.set_dimension_size"(%arg, %size) {dimension = 0 : i64} : (tensor<4xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>
+  %1 = tensor.cast %0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>> to tensor<?xf32>
+  func.return %1 : tensor<?xf32>
 }
