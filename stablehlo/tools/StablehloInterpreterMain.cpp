@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "mlir/IR/OpDefinition.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -23,7 +24,7 @@ namespace mlir {
 TranslateFromMLIRRegistration stablehlo_interpreter(
     "interpret",
     [](ModuleOp module, raw_ostream &os) {
-      for (auto funcOp : module.getBodyRegion().getOps<mlir::func::FuncOp>()) {
+      auto walkResult = module.walk([&](func::FuncOp funcOp) {
         os << "\nEvaluated results of function: " << funcOp.getSymName()
            << "\n";
 
@@ -31,14 +32,15 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
         auto results = mlir::stablehlo::eval(funcOp, {});
         if (!results) {
           llvm::errs() << toString(results.takeError());
-          return failure();
+          return WalkResult::interrupt();
         }
 
         // Dump the results.
         for (auto &result : *results) result.print(os);
-      }
+        return WalkResult::advance();
+      });
 
-      return success();
+      return walkResult.wasInterrupted() ? failure() : success();
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();

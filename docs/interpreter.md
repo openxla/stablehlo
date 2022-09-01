@@ -3,18 +3,17 @@
 
 ## Data Model
 
-At the moment, StableHLO programs are computations over tensors (n-dimensional
-    arrays), which, in the current model, are implemented using class `Tensor`.
-The underlying storage class for a `Tensor` object, `detail:Buffer`, stores the
+StableHLO programs are computations over tensors (n-dimensional arrays), which,
+in the current model, are implemented using class `Tensor`. The underlying
+storage class for a `Tensor` object, `detail::Buffer`, stores the
 `mlir::ShapedType` of the tensor along with a contiguous byte array representing
-its data laid out in [major-to-minor
-order](https://www.tensorflow.org/xla/shapes).  `detail::Buffer` objects are
-reference-counted to simplify memory management.
+its data laid out in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
+`detail::Buffer` objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
 this means that we don't have to implement our own machinery for storing values
-of different types inside Element.
+of different types inside `Element`.
 
 `Tensor` class has the following APIs to interact with its individual elements:
   - `Element Tensor::get(int64_t index)`: To extract an individual tensor
@@ -24,7 +23,7 @@ of different types inside Element.
 
 For the skeleton of the interpreter, we chose the above linearized APIs for
 accessing tensor elements to simplify the implementation. This is sufficient for
-elementwise ops, and in the future we're planning to expand this to cover more
+element-wise ops, and in the future we're planning to expand this to cover more
 complicated op.
 
 ## Working of the interpreter
@@ -34,7 +33,7 @@ The entry function to the interpreter is
 ```C++
 SmallVector<Tensor> eval(func::FuncOp func, ArrayRef<Tensor> args);
 ```
-which does the followings:
+which does the following:
 
 * Tracks the SSA arguments of `func` and their associated runtime `Tensor`
    values, provided in `args`, using a symbol table map, M.
@@ -47,7 +46,7 @@ The op-level `eval` as mentioned in (2) is responsible for implementing the
 execution semantics of the op. Following is an example for `stablehlo::AddOp`.
 In the example, individual elements of the `lhs` and `rhs` tensors are pairwise
 extracted as `Element` objects which are then added. The result of the addition,
-          an `Element` object, is stored in the final `result` tensor.
+an `Element` object, is stored in the final `result` tensor.
 
 ```C++
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
@@ -60,13 +59,13 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
 ```
 
 Overall, the design of the interpreter is optimized for readability of
-implementations of eval functions for individual ops because it's meant to serve
+implementations of `eval` functions for individual ops because it's meant to serve
 as a reference implementation for StableHLO. For example, instead of defining
-eval as a template function and parameterizing it with element types, we
+`eval` as a template function and parameterizing it with element types, we
 encapsulate details about how different element types are handled in
-Element::operator+ etc, simplifying the implementation of eval.
+`Element::operator+` etc, simplifying the implementation of `eval`.
 
-## Interpreter used for constant folding
+## Using interpreter for constant folding
 
 We can use the interpreter mechanism to fold operations with constant operand
 values. The following code snippet demonstrates an idea of the implementation
@@ -76,11 +75,11 @@ for folding `stablehlo::AddOp` with floating-point typed operands:
 OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
   DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
   DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
-  if (!lhs || !rhs) return {};
+  if (!lhsData || !rhsData) return {};
 
   auto lhs = Tensor(lhsData);
   auto rhs = Tensor(rhsData);
-  auto result = eval(addOp, lhs, rhs);
+  auto result = eval(*this, lhs, rhs);
 
   SmallVector<APFloat> values;
   for (auto i = 0; i < result.getNumElements(); ++i) {
@@ -92,16 +91,22 @@ OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
 }
 ```
 
+At the moment, we aren't actively working on integrating the interpreter into
+constant folding because we aren't planning to implement folder for StableHLO.
+However, in the future, we are planning to leverage the interpreter for constant
+folding in MHLO, at which point we'll improve ergonomics of the code snippet
+above (e.g. we could have a helper function which packs constant operands into
+`Tensor` objects and unpacks `Tensor` results into `OpFoldResult`).
+
 ## Testing the interpreter
 
-The interpreter takes as inputs (A) a
-StableHLO program, and (B) data values to be fed to the program, and generates
-output data values, which are matched against the user-provided expected data
-values.
+The interpreter takes as inputs (A) a StableHLO program, and (B) data values to
+be fed to the program, and generates output data values, which are matched
+against the user-provided expected data values.
 
 In the current implementation, we package the inputs (MLIR program + input data
-    values) and outputs in a
-[lit-based]((https://llvm.org/docs/CommandGuide/lit.html)) test as follows:
+values) and outputs in a
+[lit-based](https://llvm.org/docs/CommandGuide/lit.html) test as follows:
 
 ```c++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
@@ -122,7 +127,6 @@ is responsible for parsing the program, interpreting each function, and
 returning the resulting tensor(s) to be matched against the output tensor
 provided in [FileCheck
 directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We have a
-dedicated test-suite, consisting of several unit-tests, for each StableHLO Op.
-The unit-suites can be found
+dedicated test-suite, consisting of several tests exercising various runtime
+behaviors, for each StableHLO Op. The tests can be found
 [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests).
-

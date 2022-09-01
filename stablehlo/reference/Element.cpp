@@ -44,7 +44,7 @@ bool isSupportedUnsignedIntegerType(Type type) {
 }
 
 bool isSupportedSignedIntegerType(Type type) {
-  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.

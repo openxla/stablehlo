@@ -107,7 +107,7 @@ Element Tensor::get(int64_t index) const {
   }
 
   // Handle signed integer types.
-  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.
@@ -225,7 +225,7 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   // Handle signed integer types.
-  // TODO(##22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.
