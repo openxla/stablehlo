@@ -28,7 +28,6 @@ runs:
 
   # Get LLD - Improves build speed on Linux
   - name: Install LLD
-    if: "runner.os == 'Linux'"
     shell: bash
     run: |
       sudo apt-get install -y lld
