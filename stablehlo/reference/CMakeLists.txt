@@ -1,0 +1,54 @@
+# Copyright 2022 The StableHLO Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+add_mlir_library(StablehloReferenceElement
+  PARTIAL_SOURCES_INTENDED
+  Element.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+)
+
+add_mlir_library(StablehloReferenceTensor
+  PARTIAL_SOURCES_INTENDED
+  Tensor.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  StablehloReferenceElement
+)
+
+add_mlir_library(StablehloReferenceOps
+  PARTIAL_SOURCES_INTENDED
+  Ops.cpp
+
+  LINK_LIBS PUBLIC
+  StablehloOps
+  StablehloReferenceElement
+  StablehloReferenceTensor
+)
+
+add_mlir_library(StablehloReferenceInterpreter
+  PARTIAL_SOURCES_INTENDED
+  Interpreter.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRFuncDialect
+  MLIRIR
+  MLIRSupport
+  StablehloOps
+  StablehloReferenceOps
+  StablehloReferenceTensor
+)
