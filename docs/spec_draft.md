@@ -206,8 +206,8 @@ Produces a `result` tensor from a constant `value`.
 
 ### Examples
 
-```c
-%0 = stablehlo.constant dense<1> : tensor<pred>
+```mlir
+%0 = stablehlo.constant dense<true> : tensor<pred>
 // %0: true 
 
 %1 = stablehlo.constant dense<0> : tensor<i32>
