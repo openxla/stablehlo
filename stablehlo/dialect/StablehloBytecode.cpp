@@ -182,9 +182,9 @@ enum AttributeCode {
   kTypeExtensionsAttr = 13,
 };
 
-/// This enum contains marker codes used to indicate which type is currently
-/// being decoded, and how it should be decoded. The order of these codes should
-/// generally be unchanged, as any changes will inevitably break compatibility
+/// This enum contains marker codes used to indicate which type is
+/// currently being decoded, and how it should be decoded. The order of these
+/// codes must not be changed, as any changes will break compatibility
 /// with older bytecode.
 ///
 /// To add a type, search for "TO ADD TYPE" in this file and ensure each
