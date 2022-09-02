@@ -19,10 +19,10 @@ namespace mlir {
 namespace chlo {
 class ChloDialect;
 
-// Add the interfaces necessary for encoding the chlo dialect components
+// Add the interface necessary for encoding the CHLO dialect components
 // in bytecode.
 void addBytecodeInterface(ChloDialect *dialect);
-} // namespace chlo
-} // namespace mlir
+}  // namespace chlo
+}  // namespace mlir
 
-#endif // CHLO_DIALECT_CHLO_BYTECODE_H
+#endif  // CHLO_DIALECT_CHLO_BYTECODE_H

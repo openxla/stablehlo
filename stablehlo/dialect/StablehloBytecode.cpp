@@ -47,10 +47,6 @@ limitations under the License.
       "stablehlo-bytecode", \
       llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
 
-//===----------------------------------------------------------------------===//
-// Debug Trace Helpers
-//===----------------------------------------------------------------------===//
-
 // Enable logging with flag:
 //   stablehlo-opt -debug-only=stablehlo-bytecode [...]
 //
@@ -105,12 +101,12 @@ enum AttributeCode {
   kChannelHandleAttr = 1,
 
   ///   ComparisonDirectionAttr
-  ///     ComparisonDirection: varint
+  ///     value: varint (encoded enum)
   ///   }
   kComparisonDirectionAttr = 2,
 
   ///   ComparisonTypeAttr
-  ///     ComparisonType: varint
+  ///     value: varint (encoded enum)
   ///   }
   kComparisonTypeAttr = 3,
 
@@ -136,7 +132,7 @@ enum AttributeCode {
   kDotDimensionNumbers = 5,
 
   ///   FftTypeAttr
-  ///     FftType: varint
+  ///     value: varint (encoded enum)
   ///   }
   kFftTypeAttr = 6,
 
@@ -149,17 +145,17 @@ enum AttributeCode {
   kGatherDimensionNumbers = 7,
 
   ///   PrecisionAttr {
-  ///     Precision: varint
+  ///     value: varint (encoded enum)
   ///   }
   kPrecisionAttr = 8,
 
   ///   RngAlgorithmAttr {
-  ///     RngAlgorithm: varint
+  ///     value: varint (encoded enum)
   ///   }
   kRngAlgorithmAttr = 9,
 
   ///   RngDistributionAttr {
-  ///     RngDistribution: varint
+  ///     value: varint (encoded enum)
   ///   }
   kRngDistributionAttr = 10,
 
@@ -172,7 +168,7 @@ enum AttributeCode {
   kScatterDimensionNumbersAttr = 11,
 
   ///   TransposeAttr {
-  ///     Transpose: varint
+  ///     value: varint (encoded enum)
   ///   }
   kTransposeAttr = 12,
 
@@ -209,10 +205,10 @@ namespace stablehlo {
 
 namespace {
 /// This class implements the bytecode interface for the StableHLO dialect.
-class StablehloBytecodeInterface : public BytecodeDialectInterface {
+class StablehloBytecodeInterface : public hlo::BaseBytecodeDialectInterface {
  public:
   StablehloBytecodeInterface(Dialect *dialect)
-      : BytecodeDialectInterface(dialect) {}
+      : hlo::BaseBytecodeDialectInterface(dialect) {}
 
   //===--------------------------------------------------------------------===//
   // Attributes
@@ -285,40 +281,6 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   // TO ADD TYPE: Include a write method for each type in StableHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
-
- private:
-  //===--------------------------------------------------------------------===//
-  // Helper methods
-
-  // Enum reader and writer. Many attrs have a single enum type to serialize.
-  // Use the attributes underlying type to get the numeric value.
-  // Note this may cause issues if enums use an int64_t and have a large value.
-  // All enums in StableHLO currently use int32_t.
-  template <typename EnumTypeAttr, typename SymbolizeFn>
-  EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
-                                 SymbolizeFn symbolizeFn) const {
-    uint64_t code;
-    if (failed(reader.readVarInt(code))) return EnumTypeAttr();
-
-    auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
-    if (!enumOpt.has_value()) return EnumTypeAttr();
-
-    return EnumTypeAttr::get(getContext(), enumOpt.value());
-  }
-
-  template <typename EnumType, typename EnumTypeAttr>
-  void writeEnumAttribute(EnumTypeAttr val,
-                          DialectBytecodeWriter &writer) const {
-    static_assert(
-        std::is_same<typename std::underlying_type<EnumType>::type,
-                     uint32_t>::value,
-        "writeEnumAttribute is only implemented for uint32_t enum values");
-
-    uint32_t enumVal =
-        static_cast<typename std::underlying_type<EnumType>::type>(
-            val.getValue());
-    writer.writeVarInt(enumVal);
-  }
 };
 
 //===----------------------------------------------------------------------===//

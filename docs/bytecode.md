@@ -2,110 +2,28 @@
 
 ## Currently Encoded Attributes / Types
 
-### Attributes
+### StableHLO Attributes and Types
 
-```
-ArgResultAliasAttr {
-  argTupleIndices: svarint[]
-  resultIndex: svarint
-  resultIndex: svarint[]
-  isMustAlias: varint
-}
+Documentation on the structure of the encoded attributes and types can be found in the
+following code comments:
 
-ChannelHandleAttr {
-  handle: svarint
-  type: svarint
-}
+**Attributes:** See `stablehlo_encoding::AttributeCode` in `StablehloBytecode.cpp`
+[[link](https://github.com/openxla/stablehlo/search?q=filename%3AStablehloBytecode+AttributeCode)]
 
-ComparisonDirectionAttr
-  value: varint (encoded enum)
-}
+**Types:**
+See `stablehlo_encoding::TypeCode` in `StablehloBytecode.cpp`
+[[link](https://github.com/openxla/stablehlo/search?q=filename%3AStablehloBytecode+TypeCode)]
 
-ComparisonTypeAttr
-  value: varint (encoded enum)
-}
+### CHLO Attributes and Types
 
-ConvDimensionNumbersAttr {
-  inputBatchDimension: svarint
-  inputFeatureDimension: svarint
-  inputSpatialDimensions: svarint[]
-  kernelInputFeatureDimension: svarint
-  kernelOutputFeatureDimension: svarint
-  kernelSpatialDimensions: svarint[]
-  outputBatchDimension: svarint
-  outputFeatureDimension: svarint
-  outputSpatialDimensions: svarint[]
-}
+Documentation on the structure of the encoded attributes and types can be found in the
+following code comments:
 
-DotDimensionNumbersAttr {
-  lhsBatchingDimensions: svarint[]
-  rhsBatchingDimensions: svarint[]
-  lhsContractingDimensions: svarint[]
-  rhsContractingDimensions: svarint[]
-}
+**Attributes:** See `chlo_encoding::AttributeCode` in `ChloBytecode.cpp`
+[[link](https://github.com/openxla/stablehlo/search?q=filename%3AChloBytecode+AttributeCode)]
 
-FftTypeAttr
-  value: varint (encoded enum)
-}
-
-GatherDimensionNumbersAttr {
-  offsetDims: svarint[]
-  collapsedSliceDims: svarint[]
-  startIndexMap: svarint[]
-  indexVectorDim: svarint
-}
-
-PrecisionAttr {
-  value: varint (encoded enum)
-}
-
-RngAlgorithmAttr {
-  value: varint (encoded enum)
-}
-
-RngDistributionAttr {
-  value: varint (encoded enum)
-}
-
-ScatterDimensionNumbersAttr {
-  updateWindowDims: svarint[]
-  insertedWindowDims: svarint[]
-  scatterDimsToOperandDims: svarint[]
-  indexVectorDim: svarint
-}
-
-TransposeAttr {
-  value: varint (encoded enum)
-}
-
-TypeExtensionsAttr {
-  bounds : svarint[]
-}
-```
-
-### Types
-
-```
-TokenType {
-}
-```
-
-### CHLO Attributes
-
-CHLO only has two custom attributes and no custom types. 
-
-They are encoded as follows:
-
-```
-ComparisonDirectionAttr
-  ComparisonDirection: varint
-}
-
-ComparisonTypeAttr
-  ComparisonType: varint
-}
-```
-
+**Types:** See `chlo_encoding::TypeCode` in `ChloBytecode.cpp`
+[[link](https://github.com/openxla/stablehlo/search?q=filename%3AChloBytecode+TypeCode)]
 
 ### Not Included:
 The following attributes / types are subclasses of builtin machinery and call
@@ -145,7 +63,7 @@ into the bytecode implementations in the Builtin Dialect.
 - `HLO_Tuple`
 - `HLO_UInt`
 
-Special Cases:
+**Special Cases:**
 - `StableHLO_ConvolutionAttributes`
   + Despite its name,  is not an attribute and is not encoded.
     Rather, it is a dag which gets expanded into several attributes
@@ -183,7 +101,7 @@ stablehlo.sharding
 
 ### Debugging Bytecode with Traces
 
-Each read/write function called during bytecoding is traced, and can be viewed using the flag: `-debug-only=stablehlo-bytecode`.
+Each read/write function called during bytecoding is traced, and can be viewed using the flag `-debug-only=stablehlo-bytecode` for StableHLO and `-debug-only=chlo-bytecode` for CHLO.
 
 ```
 stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode ../tmp.mlir
@@ -206,10 +124,10 @@ Called: readRngAlgorithmAttr(mlir::DialectBytecodeReader &) const
 ### Adding Bytecode for a New Type / Attribute
 
 Adding bytecode for a new type or attribute is simple. In the file 
-`StablehloBytecode.cpp` search for the term `TO ADD ATTRIBUTE` or `TO ADD TYPE`
+`StablehloBytecode.cpp` or `ChloBytecode.cpp` search for the term `TO ADD ATTRIBUTE` or `TO ADD TYPE`
 depending on the change. Ensure that each location tagged with `TO ADD` 
 instructions is addressed. If so, bytecode for the attr/type should be generated
-on next call to `stablehlo-opt -emit-bytecode`.
+on next call to `stablehlo-opt -emit-bytecode`. This can be verified using the proper bytecode trace.
 
 ### Encoding `enum class` values
 Enum class values can be encoded as their underlying numeric types using `varint`. Currently all enums in StableHLO use `uint32_t` as the underlying value.
