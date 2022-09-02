@@ -102,45 +102,43 @@ namespace {
 /// This class implements the bytecode interface for the  CHLO dialect.
 class ChloBytecodeInterface : public BytecodeDialectInterface {
  public:
-   ChloBytecodeInterface(Dialect *dialect)
-       : BytecodeDialectInterface(dialect) {}
+  ChloBytecodeInterface(Dialect *dialect) : BytecodeDialectInterface(dialect) {}
 
-   //===--------------------------------------------------------------------===//
-   // Attributes
+  //===--------------------------------------------------------------------===//
+  // Attributes
 
-   // These methods are invoked by superclass when an attr from  CHLO dialect
-   // is encountered.
-   Attribute readAttribute(DialectBytecodeReader &reader) const override;
-   LogicalResult writeAttribute(Attribute attr,
-                                DialectBytecodeWriter &writer) const override;
+  // These methods are invoked by superclass when an attr from  CHLO dialect
+  // is encountered.
+  Attribute readAttribute(DialectBytecodeReader &reader) const override;
+  LogicalResult writeAttribute(Attribute attr,
+                               DialectBytecodeWriter &writer) const override;
 
-   // TO ADD ATTRIBUTE: Include a read method for each attribute in CHLO
-   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-   ComparisonDirectionAttr
-   readComparisonDirectionAttr(DialectBytecodeReader &reader) const;
-   ComparisonTypeAttr
-   readComparisonTypeAttr(DialectBytecodeReader &reader) const;
+  // TO ADD ATTRIBUTE: Include a read method for each attribute in CHLO
+  // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
+  ComparisonDirectionAttr readComparisonDirectionAttr(
+      DialectBytecodeReader &reader) const;
+  ComparisonTypeAttr readComparisonTypeAttr(
+      DialectBytecodeReader &reader) const;
 
-   // TO ADD ATTRIBUTE: Include a write method for each attribute in CHLO
-   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
-   void write(ComparisonDirectionAttr attr,
-              DialectBytecodeWriter &writer) const;
-   void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
+  // TO ADD ATTRIBUTE: Include a write method for each attribute in CHLO
+  // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
 
-   //===--------------------------------------------------------------------===//
-   // Types
+  //===--------------------------------------------------------------------===//
+  // Types
 
-   // These methods are invoked by superclass when a type from  CHLO dialect
-   // is encountered.
-   Type readType(DialectBytecodeReader &reader) const override;
-   LogicalResult writeType(Type type,
-                           DialectBytecodeWriter &writer) const override;
+  // These methods are invoked by superclass when a type from  CHLO dialect
+  // is encountered.
+  Type readType(DialectBytecodeReader &reader) const override;
+  LogicalResult writeType(Type type,
+                          DialectBytecodeWriter &writer) const override;
 
-   // TO ADD TYPE: Include a read method for each type in CHLO
-   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
+  // TO ADD TYPE: Include a read method for each type in CHLO
+  // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
 
-   // TO ADD TYPE: Include a write method for each type in CHLO
-   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
+  // TO ADD TYPE: Include a write method for each type in CHLO
+  // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
 };
 
 //===----------------------------------------------------------------------===//
