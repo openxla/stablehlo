@@ -183,10 +183,10 @@ namespace stablehlo {
 
 namespace {
 /// This class implements the bytecode interface for the StableHLO dialect.
-class StablehloBytecodeInterface : public hlo::BaseBytecodeDialectInterface {
+class StablehloBytecodeInterface : public BytecodeDialectInterface {
  public:
   StablehloBytecodeInterface(Dialect *dialect)
-      : hlo::BaseBytecodeDialectInterface(dialect) {}
+      : BytecodeDialectInterface(dialect) {}
 
   //===--------------------------------------------------------------------===//
   // Attributes
@@ -342,15 +342,17 @@ ChannelHandleAttr StablehloBytecodeInterface::readChannelHandleAttr(
 ComparisonDirectionAttr StablehloBytecodeInterface::readComparisonDirectionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<ComparisonDirectionAttr>(
-      reader, [](uint32_t val) { return symbolizeComparisonDirection(val); });
+  return hlo::bytecode::readEnumAttribute<ComparisonDirectionAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeComparisonDirection(val); });
 }
 
 ComparisonTypeAttr StablehloBytecodeInterface::readComparisonTypeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<ComparisonTypeAttr>(
-      reader, [](uint32_t val) { return symbolizeComparisonType(val); });
+  return hlo::bytecode::readEnumAttribute<ComparisonTypeAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeComparisonType(val); });
 }
 
 ConvDimensionNumbersAttr
@@ -406,8 +408,8 @@ DotDimensionNumbersAttr StablehloBytecodeInterface::readDotDimensionNumbersAttr(
 FftTypeAttr StablehloBytecodeInterface::readFftTypeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<FftTypeAttr>(
-      reader, [](uint32_t val) { return symbolizeFftType(val); });
+  return hlo::bytecode::readEnumAttribute<FftTypeAttr>(
+      reader, getContext(), [](uint32_t val) { return symbolizeFftType(val); });
 }
 
 GatherDimensionNumbersAttr
@@ -432,22 +434,25 @@ StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
 PrecisionAttr StablehloBytecodeInterface::readPrecisionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<PrecisionAttr>(
-      reader, [](uint32_t val) { return symbolizePrecision(val); });
+  return hlo::bytecode::readEnumAttribute<PrecisionAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizePrecision(val); });
 }
 
 RngAlgorithmAttr StablehloBytecodeInterface::readRngAlgorithmAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<RngAlgorithmAttr>(
-      reader, [](uint32_t val) { return symbolizeRngAlgorithm(val); });
+  return hlo::bytecode::readEnumAttribute<RngAlgorithmAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeRngAlgorithm(val); });
 }
 
 RngDistributionAttr StablehloBytecodeInterface::readRngDistributionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<RngDistributionAttr>(
-      reader, [](uint32_t val) { return symbolizeRngDistribution(val); });
+  return hlo::bytecode::readEnumAttribute<RngDistributionAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeRngDistribution(val); });
 }
 
 ScatterDimensionNumbersAttr
@@ -473,8 +478,9 @@ StablehloBytecodeInterface::readScatterDimensionNumbersAttr(
 TransposeAttr StablehloBytecodeInterface::readTransposeAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return readEnumAttribute<TransposeAttr>(
-      reader, [](uint32_t val) { return symbolizeTranspose(val); });
+  return hlo::bytecode::readEnumAttribute<TransposeAttr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeTranspose(val); });
 }
 
 TypeExtensionsAttr StablehloBytecodeInterface::readTypeExtensionsAttr(
@@ -531,13 +537,13 @@ void StablehloBytecodeInterface::write(ChannelHandleAttr attr,
 void StablehloBytecodeInterface::write(ComparisonDirectionAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kComparisonDirectionAttr);
-  writeEnumAttribute<ComparisonDirection>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<ComparisonDirection>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(ComparisonTypeAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kComparisonTypeAttr);
-  writeEnumAttribute<ComparisonType>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<ComparisonType>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(ConvDimensionNumbersAttr attr,
@@ -566,7 +572,7 @@ void StablehloBytecodeInterface::write(DotDimensionNumbersAttr attr,
 void StablehloBytecodeInterface::write(FftTypeAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kFftTypeAttr);
-  writeEnumAttribute<FftType>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<FftType>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
@@ -581,19 +587,19 @@ void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
 void StablehloBytecodeInterface::write(PrecisionAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kPrecisionAttr);
-  writeEnumAttribute<Precision>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<Precision>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(RngAlgorithmAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kRngAlgorithmAttr);
-  writeEnumAttribute<RngAlgorithm>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<RngAlgorithm>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(RngDistributionAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kRngDistributionAttr);
-  writeEnumAttribute<RngDistribution>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<RngDistribution>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
@@ -608,7 +614,7 @@ void StablehloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
 void StablehloBytecodeInterface::write(TransposeAttr attr,
                                        DialectBytecodeWriter &writer) const {
   writer.writeVarInt(stablehlo_encoding::kTransposeAttr);
-  writeEnumAttribute<Transpose>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<Transpose>(attr, writer);
 }
 
 void StablehloBytecodeInterface::write(TypeExtensionsAttr attr,

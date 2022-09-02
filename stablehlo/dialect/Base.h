@@ -79,46 +79,39 @@ class BoundedDialectInterface
   virtual Attribute createBoundedAttr(ArrayRef<int64_t> bounds) const = 0;
 };
 
-// This interface is used for HLO dialect bytecoding. It provides utility
-// methods for StableHLO and CHLO bytecode.
-class BaseBytecodeDialectInterface : public BytecodeDialectInterface {
- protected:
-  BaseBytecodeDialectInterface(Dialect *dialect)
-      : BytecodeDialectInterface(dialect) {}
+namespace bytecode {
+// Helper methods for bytecode
+// Enum reader and writer. Many attrs have a single enum type to serialize.
+// Use the attributes underlying type to get the numeric value.
+// Note this may cause issues if enums use an int64_t and have a large value.
+// All enums in CHLO currently use int32_t.
+template <typename EnumTypeAttr, typename SymbolizeFn>
+EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
+                               MLIRContext *context,
+                               SymbolizeFn symbolizeFn) {
+  uint64_t code;
+  if (failed(reader.readVarInt(code)))
+    return EnumTypeAttr();
 
-  //===--------------------------------------------------------------------===//
-  // Helper methods
+  auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
+  if (!enumOpt.has_value())
+    return EnumTypeAttr();
 
-  // Enum reader and writer. Many attrs have a single enum type to serialize.
-  // Use the attributes underlying type to get the numeric value.
-  // Note this may cause issues if enums use an int64_t and have a large value.
-  // All enums in CHLO currently use int32_t.
-  template <typename EnumTypeAttr, typename SymbolizeFn>
-  EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
-                                 SymbolizeFn symbolizeFn) const {
-    uint64_t code;
-    if (failed(reader.readVarInt(code))) return EnumTypeAttr();
+  return EnumTypeAttr::get(context, enumOpt.value());
+}
 
-    auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
-    if (!enumOpt.has_value()) return EnumTypeAttr();
+template <typename EnumType, typename EnumTypeAttr>
+void writeEnumAttribute(EnumTypeAttr val, DialectBytecodeWriter &writer) {
+  static_assert(
+      std::is_same<typename std::underlying_type<EnumType>::type,
+                   uint32_t>::value,
+      "writeEnumAttribute is only implemented for uint32_t enum values");
 
-    return EnumTypeAttr::get(getContext(), enumOpt.value());
-  }
-
-  template <typename EnumType, typename EnumTypeAttr>
-  void writeEnumAttribute(EnumTypeAttr val,
-                          DialectBytecodeWriter &writer) const {
-    static_assert(
-        std::is_same<typename std::underlying_type<EnumType>::type,
-                     uint32_t>::value,
-        "writeEnumAttribute is only implemented for uint32_t enum values");
-
-    uint32_t enumVal =
-        static_cast<typename std::underlying_type<EnumType>::type>(
-            val.getValue());
-    writer.writeVarInt(enumVal);
-  }
-};
+  uint32_t enumVal = static_cast<typename std::underlying_type<EnumType>::type>(
+      val.getValue());
+  writer.writeVarInt(enumVal);
+}
+}  // namespace bytecode
 
 namespace OpTrait {
 
