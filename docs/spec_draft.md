@@ -174,6 +174,55 @@ logical operation.
   // %z: [[false, false], [false, true]]
 ```
 
+## stablehlo.constant
+
+`stablehlo.constant(value) -> result`
+
+### Semantics
+
+Produces a `result` tensor from a constant `value`.
+
+### Attributes
+
+| Name | Type |
+|-|-|
+| `value` | `tensor` of boolean, integer, floating-point or complex element types |
+
+### Operands 
+
+| Name | Type |
+|-|-|
+| `value` | Constant n-dimensional data of boolean, integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | `tensor` of boolean, integer, floating-point, or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+
+### Examples
+
+```mlir
+%0 = stablehlo.constant dense<true> : tensor<pred>
+// %0: true 
+
+%1 = stablehlo.constant dense<0> : tensor<i32>
+// %1: 0
+
+%2 = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+// %2: [
+//       [0.0, 1.0],
+//       [2.0, 3.0]
+//     ]
+
+%3 = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
+// %3: [(0.0, 1.0), (2.0, 3.0)]
+```
+
 ## stablehlo.maximum
 
 `stablehlo.maximum(lhs, rhs) -> result`
