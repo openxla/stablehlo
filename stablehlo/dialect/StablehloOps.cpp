@@ -44,6 +44,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
@@ -69,6 +70,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
+#include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 
 // Include order matters
@@ -1855,8 +1857,7 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
 }
 
 LogicalResult CollectivePermuteOp::verify() {
-  return verifyCollectivePermuteSourceTargetPairs(*this,
-                                                       source_target_pairs());
+  return verifyCollectivePermuteSourceTargetPairs(*this, source_target_pairs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2861,6 +2862,94 @@ LogicalResult ClampOp::reifyReturnTypeShapes(
 // ComplexOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+// Utility function, used by printSelectOpType and
+// printSameOperandsAndResultType. Given a FunctionType, assign the types
+// to operands and results, erroring if any mismatch in number of operands
+// or results occurs.
+ParseResult assignFromFunctionType(OpAsmParser& parser, llvm::SMLoc loc,
+                                   ArrayRef<Type*> operands, Type& result,
+                                   FunctionType& fnType) {
+  assert(fnType);
+  if (fnType.getInputs().size() != operands.size()) {
+    return parser.emitError(loc)
+           << operands.size() << " operands present, but expected "
+           << fnType.getInputs().size();
+  }
+
+  // Set operand types to function input types
+  for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
+    *operand = input;
+  }
+
+  // Set result type
+  if (fnType.getResults().size() != 1) {
+    return parser.emitError(loc, "expected single output");
+  }
+  result = fnType.getResults()[0];
+
+  return success();
+}
+
+// createRealType takes a tensor type that may have complex elements and
+// returns a type that maintains the shape, but with real numeric data types.
+//   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
+Type createRealType(TensorType type) {
+  auto elementTy = type.getElementType();
+  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
+    elementTy = complexTy.getElementType();
+  }
+  return hlo::getSameShapeTensorType(type, elementTy);
+}
+
+// ComplexOpType - only print result type if the inferred complex type
+// matches all operand types.
+//
+// Inferring operand types for complex ops:
+//  %0 = stablehlo.complex %1, %2 : tensor<4xcomplex<f32>>
+//    %0 : tensor<4xcomplex<f32>>
+//    %1 : tensor<4xf32>
+//    %2 : tensor<4xf32>
+void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
+                        Type result) {
+  Type realType = createRealType(result.cast<TensorType>());
+
+  if (lhs != realType || rhs != realType) {
+    p.printFunctionalType(op);
+    return;
+  }
+
+  p.printType(result);
+}
+
+ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
+                               Type& result) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  Type type;
+  if (failed(parser.parseType(type))) {
+    return failure();
+  }
+
+  // Handle if function type, all operand types did not match result type.
+  if (auto fnType = type.dyn_cast<FunctionType>()) {
+    return assignFromFunctionType(parser, loc, {&lhs, &rhs}, result, fnType);
+  }
+
+  // Otherwise, operand type is inferred from complex type
+  auto tensorType = type.dyn_cast<TensorType>();
+  if (!tensorType || !tensorType.getElementType().isa<ComplexType>()) {
+    return parser.emitError(loc, "expected tensor with complex element type");
+  }
+
+  // Assign LHS and RHS to inferred type
+  Type realType = createRealType(type.cast<TensorType>());
+  lhs = rhs = realType;
+  result = type;
+  return success();
+}
+
+}  // namespace
+
 LogicalResult ComplexOp::inferReturnTypes(
     MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
     RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
@@ -2874,16 +2963,6 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 // ImagOp
 //===----------------------------------------------------------------------===//
-
-namespace {
-Type createRealType(TensorType type) {
-  auto elementTy = type.getElementType();
-  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
-    elementTy = complexTy.getElementType();
-  }
-  return hlo::getSameShapeTensorType(type, elementTy);
-}
-}  // namespace
 
 LogicalResult ImagOp::inferReturnTypes(
     MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
@@ -3591,6 +3670,61 @@ Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+// Print attributes as e#m#
+void printExponentMantissa(AsmPrinter& p, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  p << 'e';
+  p.printAttributeWithoutType(exponent);
+  p << 'm';
+  p.printAttributeWithoutType(mantissa);
+}
+
+void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
+                           IntegerAttr mantissa) {
+  printExponentMantissa(p, exponent, mantissa);
+}
+
+// Parse e#m# as exponent=# and mantissa=#
+ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
+                                  IntegerAttr& mantissa) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  llvm::StringRef expMan;
+  if (parser.parseKeyword(&expMan)) {
+    return failure();
+  }
+
+  // Validate format e#m#
+  llvm::Regex expManRegex("^e([0-9]+)m([0-9]+)$");
+  llvm::SmallVector<llvm::StringRef> matches;
+  if (!expManRegex.match(expMan, &matches)) {
+    return parser.emitError(loc,
+                            "expected exponent mantissa in format e#m#, saw ")
+           << expMan;
+  }
+
+  // Parse off digits of exp/man
+  assert(matches.size() == 3);  // matches[0] is entire regex match.
+  llvm::StringRef expS = matches[1];
+  llvm::StringRef manS = matches[2];
+
+  // Parse as base 10 integer strings
+  int exp, mant;
+  if (expS.getAsInteger(/*radix=*/10, exp)) {
+    return parser.emitError(loc, "unable to parse exponent '")
+           << expS.str() << "'";
+  }
+  if (manS.getAsInteger(/*radix=*/10, mant)) {
+    return parser.emitError(loc, "unable to parse mantissa '")
+           << manS.str() << "'";
+  }
+
+  exponent = parser.getBuilder().getI32IntegerAttr(exp);
+  mantissa = parser.getBuilder().getI32IntegerAttr(mant);
+  return success();
+}
+}  // namespace
+
 // The following property is already enforced by the ODS:
 //  P0. operand element type is float
 //  P1. mantissa_bits >= 0
@@ -4163,6 +4297,51 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 // SelectOp
 //===----------------------------------------------------------------------===//
+
+namespace {
+void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
+                       Type onFalse, Type result) {
+  // Print functional type if true/false branches don't match return type.
+  if (onTrue != result || onFalse != result) {
+    p.printFunctionalType(op);
+    return;
+  }
+
+  // Print pred type and result type
+  p << pred << ", " << result;
+}
+
+ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
+                              Type& onFalse, Type& result) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  SmallVector<Type> types;
+  if (parser.parseTypeList(types)) {
+    return failure();
+  }
+
+  // Error handling for invalid types
+  // Fail if not two types, or single functional type
+  bool isValidType = (types.size() == 2 ||
+                      (types.size() == 1 && types[0].isa<FunctionType>()));
+  if (!isValidType) {
+    return parser.emitError(loc,
+                            "expected functional type or list of two types");
+  }
+
+  // stablehlo.select %0, %1 : <pred_type>, <op_and_result_type>
+  if (types.size() == 2) {
+    pred = types[0];
+    onTrue = onFalse = result = types[1];
+    return success();
+  }
+
+  // stablehlo.select %0, %1 : (<op_types> ...) -> <result_type>
+  auto fnType = types[0].cast<FunctionType>();
+  return assignFromFunctionType(parser, loc, {&pred, &onTrue, &onFalse}, result,
+                                fnType);
+}
+
+}  // namespace
 
 LogicalResult SelectOp::verify() {
   // The operands 'on_true' and 'on_false' should have compatible types, i.e.,
@@ -5583,9 +5762,9 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 //   type($operand2))
 //
 //   Generic:
-//     %0 = "mhlo.operation"(%0, %1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
+//     %0 = "stablehlo.op"(%0, %1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
 //   Custom:
-//     %0 = mhlo.operation(%0, %1) : tensor<i1>
+//     %0 = stablehlo.op(%0, %1) : tensor<i1>
 //
 // Falls back to `printFunctionalType` if all operands do not match result type.
 //
@@ -5595,8 +5774,6 @@ void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
                                         TypeRange operands, Type result) {
   // Handle zero operand types `() -> a` prints `a`
   if (operands.empty()) {
-    // TODO(gleasonk): Unit test these lines once after_all is converted, with a
-    // call that has no operands and single output.
     p.printType(result);
     return;
   }
@@ -5625,21 +5802,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
 
   // Handle if function type, all operand types did not match result type.
   if (auto fnType = type.dyn_cast<FunctionType>()) {
-    if (fnType.getInputs().size() != operands.size()) {
-      return parser.emitError(loc)
-             << operands.size() << " operands present, but expected "
-             << fnType.getInputs().size();
-    }
-    if (fnType.getResults().size() != 1) {
-      return parser.emitError(loc, "expected single output");
-    }
-
-    // Set operand types to function input types
-    for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
-      *operand = input;
-    }
-    result = fnType.getResults().front();
-    return success();
+    return assignFromFunctionType(parser, loc, operands, result, fnType);
   }
 
   // Handle bare types. ` : type` indicating all input/output types match.
@@ -5670,10 +5833,34 @@ ParseResult parseSameOperandsAndResultType(OpAsmParser& parser,
                                             *typesRef.back());
 }
 
+void printVariadicSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
+                                            OperandRange operands,
+                                            TypeRange opTypes, Type result) {
+  return printSameOperandsAndResultTypeImpl(p, op, opTypes, result);
+}
+
+ParseResult parseVariadicSameOperandsAndResultType(
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
+    SmallVectorImpl<Type>& opTypes, Type& result) {
+  // Insert a type for each operand. Need to do this since passing the type of
+  // a variadic op gives no indication of how many operands were provided.
+  opTypes.resize(operands.size());
+
+  // Make a pointer list to the operands
+  SmallVector<Type*> typePtrs;
+  typePtrs.reserve(opTypes.size());
+  for (Type& t : opTypes) {
+    typePtrs.push_back(&t);
+  }
+
+  return parseSameOperandsAndResultTypeImpl(parser, typePtrs, result);
+}
+
 // TuplesOp - only print result type. Operand type is trivially inferrable.
 //
 // Inferring operand types from tuple type:
-//  %3 = mhlo.tuple %1, %2 : tuple<tensor<i1>, tensor<f32>>
+//  %3 = stablehlo.tuple %1, %2 : tuple<tensor<i1>, tensor<f32>>
 //    %1 : tensor<i1>
 //    %2 : tensor<f32>
 //    %3 : tuple<tensor<i1>, tensor<f32>>
@@ -5704,7 +5891,7 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
 // inferrable.
 //
 // Inferring operand types for pairwise ops:
-//  %3, %4 = mhlo.operation %1, %2 : tensor<i1>, tensor<f32>
+//  %3, %4 = stablehlo.operation %1, %2 : tensor<i1>, tensor<f32>
 //    %1 : tensor<i1>
 //    %2 : tensor<f32>
 //    %3 : tensor<i1>
@@ -5717,7 +5904,6 @@ void printPairwiseOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
 ParseResult parsePairwiseOpType(OpAsmParser& parser,
                                 SmallVectorImpl<Type>& operands,
                                 SmallVectorImpl<Type>& results) {
-  // Operand and result types are the same, use copy constructor
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseTypeList(operands)) {
     return parser.emitError(loc, "expected type list");
@@ -5760,6 +5946,7 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >();
   addInterfaces<HLOBoundedDialectInterface>();
+  addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST

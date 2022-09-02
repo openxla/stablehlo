@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set(LLVM_OPTIONAL_SOURCES
+  StablehloOptMain.cpp
+  StablehloInterpreterMain.cpp
+)
+
+# stablehlo-opt
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 set(LIBS
@@ -27,3 +33,19 @@ llvm_update_compile_flags(stablehlo-opt)
 target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
 
 mlir_check_all_link_libraries(stablehlo-opt)
+
+# stablehlo-interpreter
+add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)
+llvm_update_compile_flags(stablehlo-interpreter)
+target_link_libraries(stablehlo-interpreter PRIVATE
+  MLIRDataLayoutInterfaces
+  MLIRFuncDialect
+  MLIRIR
+  MLIRSupport
+  MLIRTranslateLib
+  StablehloOps
+  StablehloReferenceInterpreter
+  StablehloReferenceTensor
+)
+
+mlir_check_all_link_libraries(stablehlo-interpreter)

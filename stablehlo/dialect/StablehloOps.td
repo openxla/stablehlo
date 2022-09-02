@@ -678,12 +678,20 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [NoSideEffect,
   let description = [{
     Performs element-wise conversion of a pair of real and imaginary values to
     a complex value.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.complex %arg0, %arg0 : tensor<4xcomplex<f32>>
+    ```
   }];
   let arguments = (ins HLO_Fp32Or64Tensor:$lhs, HLO_Fp32Or64Tensor:$rhs);
   let results = (outs HLO_ComplexTensor:$result);
 
-  // TODO(b/241767457): Remove parens when cleaning up BinaryOps.
-  let assemblyFormat = "`(`operands`)` attr-dict `:` `(`type(operands)`)` `->` type($result)";
+  let assemblyFormat = [{
+    operands attr-dict 
+      `:` custom<ComplexOpType>(type($lhs), type($rhs), type($result))
+  }];
 }
 
 def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
@@ -1068,14 +1076,17 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
     Example:
 
     ```mlir
-    %0 = stablehlo.after_all %arg0, %arg1 : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+    %0 = stablehlo.after_all %arg0, %arg1 : !stablehlo.token
     ```
   }];
 
   let arguments = (ins Variadic<HLO_Token>:$operands);
-  let results = (outs HLO_Token);
+  let results = (outs HLO_Token:$result);
 
-  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = [{
+    $operands attr-dict
+      `:` custom<VariadicSameOperandsAndResultType>(ref($operands), type($operands), type($result))
+  }];
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,
@@ -1709,6 +1720,7 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
 
     ```mlir
     %0 = stablehlo.clamp %arg0, %arg1, %arg2 : (tensor<f32>, tensor<4xf32>, tensor<f32>) -> tensor<4xf32>
+    %1 = stablehlo.clamp %arg1, %arg1, %arg1 : tensor<4xf32>
     ```
   }];
 
@@ -1717,7 +1729,7 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
     HLO_Tensor:$operand,
     HLO_Tensor:$max
   );
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_Tensor:$result);
 
   let hasVerifier = 1;
 
@@ -1732,7 +1744,10 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
     }
   }];
 
-  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = [{
+    $min `,` $operand `,` $max attr-dict 
+      `:` custom<SameOperandsAndResultType>(type($min), type($operand), type($max), type($result))
+  }];
 }
 
 def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
@@ -1878,7 +1893,15 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
        result tuple.
 
     See https://www.tensorflow.org/xla/operation_semantics#customcall.
+
+    Example:
+
+    ```mlir
+    %1 = stablehlo.custom_call "foo"(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
+          : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
+    ```
   }];
+
   let arguments = (ins
     Variadic<HLO_TensorOrTokenOrTuple>:$operands,
     StrAttr:$call_target_name,
@@ -1896,6 +1919,11 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   );
   let results = (outs Variadic<HLO_TensorOrTokenOrTuple>);
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $call_target_name `(` $operands `)` attr-dict
+      `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_DotOp: StableHLO_Op<"dot",
@@ -2146,6 +2174,13 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [NoSideEffect, HLO_BroadcastingEl
     broadcasted.
 
     See https://www.tensorflow.org/xla/operation_semantics#select.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>, tensor<2x3xi32>
+    %1 = stablehlo.select %arg0, %arg2, %arg3 : (tensor<2x3xi1>, tensor<2x?xi32>, tensor<?x2xi32>) -> tensor<2x?xi32>
+    ```
   }];
   let arguments = (ins
     HLO_PredTensor:$pred,
@@ -2153,7 +2188,7 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [NoSideEffect, HLO_BroadcastingEl
     HLO_Tensor:$on_false
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_Tensor:$result);
 
   let hasVerifier = 1;
 
@@ -2161,6 +2196,11 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [NoSideEffect, HLO_BroadcastingEl
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return succeeded(mlir::verifyCompatibleShapes(l, r));
     }
+  }];
+
+  let assemblyFormat = [{
+    operands attr-dict `:`
+      custom<SelectOpType>(type($pred), type($on_true), type($on_false), type($result))
   }];
 }
 
@@ -2627,6 +2667,12 @@ def StableHLO_ReducePrecisionOp :
     implementations.
 
     See https://www.tensorflow.org/xla/operation_semantics#reduceprecision.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.reduce_precision %arg0, format = e8m10 : tensor<3x4xf32>
+    ```
   }];
   let arguments = (ins
     HLO_FpTensor:$operand,
@@ -2635,6 +2681,11 @@ def StableHLO_ReducePrecisionOp :
   );
   let hasVerifier = 1;
   let results = (outs HLO_FpTensor:$output);
+
+  let assemblyFormat = [{
+    $operand `,` `format` `=` custom<ExponentMantissa>($exponent_bits, $mantissa_bits)
+      attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($output))
+  }];
 }
 
 def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<
@@ -2759,13 +2810,18 @@ def StableHLO_ComputeReshapeShapeOp :
     ```
     %0 = hlo.compute_reshape_shape 12, [2, -1] -> [2, 6]
     ```
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.compute_reshape_shape %arg0, %arg1 : (index, tensor<2xi32>) -> tensor<2xi32>
+    ```
   }];
 
   let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
   let results = (outs 1DTensorOf<[AnyInteger, Index]>:$result);
 
-  // TODO (b/241767462): Use functional-type for type printing for consistency.
-  let assemblyFormat = "$num_elements `,` $dynamic_shape attr-dict `:` type($num_elements) `,` type($dynamic_shape) `->` type($result)";
+  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
 def StableHLO_CstrReshapableOp :
@@ -2780,13 +2836,18 @@ def StableHLO_CstrReshapableOp :
     %0 = stablehlo.cstr_reshapable 12, [2, -1] -> success
     %1 = stablehlo.cstr_reshapable 13, [2, -1] -> failure
     ```
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.cstr_reshapable %arg0, %arg1 : (index, tensor<3xi32>) -> !shape.witness
+    ```
   }];
 
   let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
   let results = (outs Shape_WitnessType:$result);
 
-  // TODO (b/241767462): Use functional-type for type printing for consistency.
-  let assemblyFormat = "$num_elements `,` $dynamic_shape attr-dict `:` type($num_elements) `,` type($dynamic_shape)";
+  let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

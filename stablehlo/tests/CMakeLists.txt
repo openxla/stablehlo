@@ -23,6 +23,7 @@ configure_lit_site_cfg(
 set(STABLEHLO_TEST_DEPENDS
         FileCheck count not
         stablehlo-opt
+        stablehlo-interpreter
 )
 add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -30,6 +31,7 @@ add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
         )
 set_target_properties(check-stablehlo-lit PROPERTIES FOLDER "Tests")
 add_lit_testsuites(STABLEHLO_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
+
 add_dependencies(check-stablehlo check-stablehlo-lit)
 
 set(LLVM_TARGET_DEFINITIONS TestUtils.td)

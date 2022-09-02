@@ -1,0 +1,25 @@
+# Copyright 2022 The StableHLO Authors.
+
+name: Lint
+
+on: [pull_request]
+
+jobs:
+  clang-format:
+    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
+    if: "github.event_name == 'pull_request'"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installing dependencies
+        run: |
+          wget https://raw.githubusercontent.com/llvm-mirror/clang/master/tools/clang-format/git-clang-format -O /tmp/git-clang-format
+          chmod +x /tmp/git-clang-format
+      - name: Checking out repository
+        uses: actions/checkout@v2
+      - name: Fetching Base Branch
+        # We have to explicitly fetch the base branch as well
+        run: git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
+      - name: Running clang-format on changed source files
+        run: |
+          /tmp/git-clang-format "${GITHUB_BASE_REF?}" --style=google
+          git diff --exit-code
