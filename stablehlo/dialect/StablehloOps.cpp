@@ -5774,7 +5774,6 @@ void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
                                         TypeRange operands, Type result) {
   // Handle zero operand types `() -> a` prints `a`
   if (operands.empty()) {
-    // call that has no operands and single output.
     p.printType(result);
     return;
   }
