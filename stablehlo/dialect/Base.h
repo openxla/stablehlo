@@ -87,15 +87,12 @@ namespace bytecode {
 // All enums in CHLO currently use int32_t.
 template <typename EnumTypeAttr, typename SymbolizeFn>
 EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
-                               MLIRContext *context,
-                               SymbolizeFn symbolizeFn) {
+                               MLIRContext *context, SymbolizeFn symbolizeFn) {
   uint64_t code;
-  if (failed(reader.readVarInt(code)))
-    return EnumTypeAttr();
+  if (failed(reader.readVarInt(code))) return EnumTypeAttr();
 
   auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
-  if (!enumOpt.has_value())
-    return EnumTypeAttr();
+  if (!enumOpt.has_value()) return EnumTypeAttr();
 
   return EnumTypeAttr::get(context, enumOpt.value());
 }
