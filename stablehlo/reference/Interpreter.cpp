@@ -65,7 +65,9 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     auto fetchOperand = [&](Value value) -> Tensor {
       auto it = stackFrame.find(value);
       if (it != stackFrame.end()) return it->second;
-      llvm_unreachable("Expected an evaluated operand");
+
+      auto err = invalidArgument("Expected a terminator when evaluating func");
+      report_fatal_error(std::move(err));
     };
     auto populateResults = [&](ArrayRef<Tensor> runtimeValues) {
       assert(op.getNumResults() == runtimeValues.size());
@@ -94,7 +96,7 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     }
   }
 
-  llvm_unreachable("Expected a terminator when evaluating func");
+  return invalidArgument("Expected a terminator when evaluating func");
 }
 
 }  // namespace stablehlo

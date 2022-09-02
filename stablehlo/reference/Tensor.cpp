@@ -19,13 +19,21 @@ limitations under the License.
 #include <complex>
 
 #include "llvm/ADT/APFloat.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Support/DebugStringHelper.h"
 
 namespace mlir {
 namespace stablehlo {
 
 namespace {
+
+template <typename... Ts>
+inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
+  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
+}
 
 int64_t getSizeInBytes(Type type) {
   if (auto shapedType = type.dyn_cast<ShapedType>())
@@ -38,7 +46,8 @@ int64_t getSizeInBytes(Type type) {
   if (auto complexType = type.dyn_cast<mlir::ComplexType>())
     return getSizeInBytes(complexType.getElementType()) * 2;
 
-  llvm_unreachable("Unsupported element type");
+  auto err = invalidArgument("Unsupported type: %s", debugString(type).c_str());
+  report_fatal_error(std::move(err));
 }
 
 }  // namespace
@@ -177,7 +186,9 @@ Element Tensor::get(int64_t index) const {
     }
   }
 
-  llvm_unreachable("Unsupported element type");
+  auto err = invalidArgument("Unsupported element type: %s",
+                             debugString(elementType).c_str());
+  report_fatal_error(std::move(err));
 }
 
 namespace {
@@ -309,7 +320,9 @@ void Tensor::set(int64_t index, Element element) {
     }
   }
 
-  llvm_unreachable("Unsupported element type");
+  auto err = invalidArgument("Unsupported element type: %s",
+                             debugString(elementType).c_str());
+  report_fatal_error(std::move(err));
 }
 
 void Tensor::print(raw_ostream &os) const {
@@ -334,8 +347,11 @@ Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
   if (auto complexTy = elemType.dyn_cast<ComplexType>()) {
     auto complexElemTy = complexTy.getElementType();
     auto floatType = complexElemTy.dyn_cast<FloatType>();
-    if (!floatType)
-      llvm_unreachable("Unsupported element type for complex type");
+    if (!floatType) {
+      auto err = invalidArgument("Unsupported element type %s for complex type",
+                                 debugString(complexElemTy).c_str());
+      report_fatal_error(std::move(err));
+    }
 
     auto floatValues = llvm::to_vector(
         llvm::map_range(strData, [&](StringRef strNum) -> APFloat {
@@ -366,7 +382,9 @@ Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
     return Tensor(DenseElementsAttr::get(type, intValues));
   }
 
-  llvm_unreachable("Unsupported element type");
+  auto err =
+      invalidArgument("Unsupported type: %s", debugString(elemType).c_str());
+  report_fatal_error(std::move(err));
 }
 
 }  // namespace stablehlo

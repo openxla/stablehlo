@@ -18,13 +18,21 @@ limitations under the License.
 #include <complex>
 
 #include "llvm/ADT/APFloat.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Support/DebugStringHelper.h"
 
 namespace mlir {
 namespace stablehlo {
 
 namespace {
+
+template <typename... Ts>
+inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
+  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
+}
 
 bool areApproximatelyEqual(APFloat f, APFloat g) {
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
@@ -117,7 +125,10 @@ Element Element::operator+(const Element &other) const {
                                                rightComplexValue.imag())}));
   }
 
-  llvm_unreachable("Unsupported element type");
+  // Report error.
+  auto err = invalidArgument("Unsupported element type: %s",
+                             debugString(type).c_str());
+  report_fatal_error(std::move(err));
 }
 
 bool Element::operator==(const Element &other) const {
@@ -146,7 +157,10 @@ bool Element::operator==(const Element &other) const {
                                  rightComplexValue.imag());
   }
 
-  llvm_unreachable("Unsupported element type");
+  // Report error.
+  auto err = invalidArgument("Unsupported element type: %s",
+                             debugString(type).c_str());
+  report_fatal_error(std::move(err));
 }
 
 bool Element::operator!=(const Element &other) const {
