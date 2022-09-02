@@ -267,7 +267,7 @@ func.func @test_cross_replica_sum(%arg0: tensor<10xf32>) -> tensor<10xf32> {
 }
 
 func.func @test_custom_call(%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<1x2x3xf32> {
-  %0 = "stablehlo.custom_call"(%arg0, %arg1) {backend_config = "bar", call_target_name = "foo", has_side_effect = true} : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
+  %0 = "stablehlo.custom_call"(%arg0, %arg1) {api_version = 2 : i32, backend_config = "bar", call_target_name = "foo", has_side_effect = true} : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
   func.return %0 : tensor<1x2x3xf32>
 }
 

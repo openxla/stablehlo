@@ -44,8 +44,8 @@ namespace stablehlo_encoding {
 
 /// This enum contains marker codes used to indicate which attribute is
 /// currently being decoded, and how it should be decoded. The order of these
-/// codes should generally be unchanged, as any changes will inevitably break
-/// compatibility with older bytecode.
+/// codes must not be changed, as any changes will break compatibility
+/// with older bytecode.
 ///
 /// To add an attribute, search for "TO ADD ATTRIBUTE" in this file and ensure
 /// each location is updated.
