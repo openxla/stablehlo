@@ -162,14 +162,12 @@ $ stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-
 Since attributes and types that don't get encoded are instead stored as strings,
 the `strings` command can be used to see what attributes were missed:
 
-_Note: The following trace is from a previous revision where the `scatter` attribute 
-was not implemented. Currently all types/attrs are implemented and log only shows 
+_Note: Currently all types/attrs are implemented and log only shows 
 the dialect name `stablehlo` and the unregistered `stablehlo.frontend_attributes` 
 and `stablehlo.sharding` attributes._
 
 ```
 $ stablehlo-opt -emit-bytecode file.mlir | strings | grep stablehlo
-#stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0, 1], scatter_dims_to_operand_dims = [0, 1], index_vector_dim = 1>
 stablehlo
 stablehlo.frontend_attributes
 stablehlo.sharding
