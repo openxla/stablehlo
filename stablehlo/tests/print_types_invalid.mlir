@@ -39,6 +39,46 @@ func.func @binary_eltwise_multiple_out(%arg0: tensor<?x?xf64>,
 
 // -----
 
+func.func @complex_type_not_type(%arg0: tensor<1xf64>) -> tensor<1xf64> {
+  // expected-error @+1 {{expected non-function type}}
+  %0 = stablehlo.complex %arg0, %arg0 : %arg0
+  func.return %0 : tensor<1xf64>
+}
+
+// -----
+
+func.func @complex_type_not_tensor(%arg0: tensor<1xf64>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.complex' expected tensor with complex element type}}
+  %0 = stablehlo.complex %arg0, %arg0 : complex<f64>
+  func.return
+}
+
+// -----
+
+func.func @complex_type_not_complex(%arg0: tensor<1xf64>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.complex' expected tensor with complex element type}}
+  %0 = stablehlo.complex %arg0, %arg0 : tensor<1xf64>
+  func.return
+}
+
+// -----
+
+func.func @select_type_wrong_type(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.select' expected functional type or list of two types}}
+  %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>
+  func.return %0
+}
+
+// -----
+
+func.func @select_type_too_many(%arg0: tensor<2x3xi1>, %arg1: tensor<2x3xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.select' expected functional type or list of two types}}
+  %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>, tensor<2x3xi32>, tensor<2x3xi32>
+  func.return
+}
+
+// -----
+
 func.func @tuple_type_mismatch(%arg0: tensor<1xf64>) -> tensor<1xf64> {
   // expected-error @+1 {{custom op 'stablehlo.tuple' expected tuple type}}
   %0 = stablehlo.tuple %arg0, %arg1 : tensor<1xf64>, tensor<1xf32>
@@ -72,7 +112,7 @@ func.func @pairwise_count_mismatch(%arg0: tensor<1xf64>) -> tensor<1xf64> {
 // -----
 
 func.func @pairwise_type_not_list(%arg0: tensor<1xf64>) -> tensor<1xf64> {
-  // expected-error @+2 {{xpected non-function type}}
+  // expected-error @+2 {{expected non-function type}}
   // expected-error @+1 {{custom op 'stablehlo.optimization_barrier' expected type list}}
   %0 = stablehlo.optimization_barrier %arg0, %arg0 : %arg0
   func.return %0 : tensor<1xf64>
@@ -81,7 +121,7 @@ func.func @pairwise_type_not_list(%arg0: tensor<1xf64>) -> tensor<1xf64> {
 // -----
 
 func.func @one_result_type(%arg0: tensor<1xf64>) -> tensor<1xf64> {
-  // expected-error @+1 {{xpected non-function type}}
+  // expected-error @+1 {{expected non-function type}}
   %0 = stablehlo.abs %arg0 : %arg0
   func.return %0 : tensor<1xf64>
 }
