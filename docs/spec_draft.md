@@ -86,6 +86,7 @@ The specification of an op comprises of the following components (in the order
 
 
 ## Index of Documented Ops
+   * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
    * [ceil](#stablehloceil)
@@ -93,9 +94,70 @@ The specification of an op comprises of the following components (in the order
    * [floor](#stablehlofloor)
    * [max](#stablehlomaximum)
    * [min](#stablehlominimum)
+   * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
    * [xor](#stablehloxor)
+
+### stablehlo.abs
+
+`stablehlo.abs(operand) -> result`
+
+### Semantics
+
+Performs element-wise absolute value of `operand` tensor and produces a `result`
+tensor. For floating-point element types, implements the `abs` operation from
+the IEEE-754 specification. For a complex value `(a, b)`, the absolute value is
+defined as $\sqrt(a^2 + b^2)$.
+
+For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation
+defined and one of the followings:
+
+  * Saturation to $2^{n-1}-1$
+  * $-2^n-1$
+
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of signed integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of signed integer, floating-point, or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same shape as the `operand`.
+  * `result` has the same element type as the `operand` except when the element
+  type of the `operand` is complex type, in which case the element type of the
+  `result` is the element type of the complex type (e.g. the element type of
+      `result` is `f64` for operand type `c128`).
+
+### Examples
+
+```mlir
+// integers
+// %a: [-2, 0, 2]
+%x = stablehlo.abs %a : tensor<3xsi32>
+// %x: [2, 0, 2]
+
+// floats
+// %b: [-2.2, 0.0, 2.2]
+%y = stablehlo.abs %b : tensor<3xf32>
+// %y = [2.2, 0.0, 2.2]
+
+// complex
+// %c: [(0.0, 1.0), (4.0, -3.0)]
+%z = stablehlo.abs %c : tensor<2xc128>
+// %z = [1, 5.0]
+```
+
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.add
 
@@ -393,6 +455,57 @@ lexicographic comparison on the (real, imaginary) pairs.
 // %rhs: [[5, 6], [3, 4]]
 %result = stablehlo.min %lhs, %rhs : tensor<2x2xi32>
 // %result: [[1, 2], [3, 4]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.negate
+
+`stablehlo.negate(operand) -> result`
+
+### Semantics
+
+Performs element-wise negation of `operand` tensor and produces a `result`
+tensor. For floating-point element types, implements the `nagate` operation from
+the IEEE-754 specification. For complex types, the operation negates both the
+real and the imaginary parts.
+
+For n-bit signed integer, the negation of $-2^{n-1}$ is implementation
+defined and one of the followings:
+
+  * Saturation to $2^{n-1}-1$
+  * $-2^n-1$
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of signed integer, floating-point, or complex element types |
+
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of signed integer, floating-point, or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// Negation operation with integer Tensors
+  // %x: [0, -2]
+  %z = stablehlo.negate %x : tensor<2xsi32>
+  // %z: [0, 2]
+
+// Negation operation with with complex tensors
+  // %x: (2.5, 0.0)
+  %z = stablehlo.negate %x : tensor<1xc64>
+  // %z: [-2.5, -0.0]
 ```
 
 [Back to Ops](#index-of-documented-ops)
