@@ -70,6 +70,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
+#include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 
 // Include order matters
@@ -5815,6 +5816,7 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >();
   addInterfaces<HLOBoundedDialectInterface>();
+  addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST
