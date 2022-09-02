@@ -186,19 +186,19 @@ Produces a `result` tensor from a constant `value`.
 
 | Name | Type |
 |-|-|
-| `value` | `tensor` of boolean, integer, floating-point or complex element types |
+| `value` | `tensor` of any supported type |
 
 ### Operands 
 
 | Name | Type |
 |-|-|
-| `value` | Constant n-dimensional data of boolean, integer, floating-point, or complex element types |
+| `value` | Constant n-dimensional data of any supported type |
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | `tensor` of boolean, integer, floating-point, or complex element types |
+| `result` | `tensor` of any supported type |
 
 ### Constraints
 
