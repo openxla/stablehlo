@@ -24,7 +24,6 @@ limitations under the License.
 #include <array>
 #include <cstdint>
 #include <functional>
-#include <iostream>  // FIXME
 #include <numeric>
 #include <set>
 #include <unordered_map>
@@ -2892,33 +2891,30 @@ ParseResult assignFromFunctionType(OpAsmParser& parser, llvm::SMLoc loc,
   return success();
 }
 
-// getInferredComplexType takes a complex tensor type and returns a
-// type that maintains the shape, but removes the complex type for the
-// underlying data type
+// createRealType takes a tensor type that may have complex elements and
+// returns a type that maintains the shape, but with real numeric data types.
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
-Type getInferredComplexType(Type result) {
-  assert(result.isa<TensorType>() &&
-         result.cast<TensorType>().getElementType().isa<ComplexType>());
-  TensorType tensorTy = result.cast<TensorType>();
-  ComplexType complexTy = tensorTy.getElementType().cast<ComplexType>();
-  Type elementTy = complexTy.getElementType();
-
-  return hlo::getSameShapeTensorType(tensorTy, elementTy);
+Type createRealType(TensorType type) {
+  auto elementTy = type.getElementType();
+  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
+    elementTy = complexTy.getElementType();
+  }
+  return hlo::getSameShapeTensorType(type, elementTy);
 }
 
 // ComplexOpType - only print result type if the inferred complex type
 // matches all operand types.
 //
 // Inferring operand types for complex ops:
-//  %0 = mhlo.complex %1, %2 : tensor<4xcomplex<f32>>
+//  %0 = stablehlo.complex %1, %2 : tensor<4xcomplex<f32>>
 //    %0 : tensor<4xcomplex<f32>>
 //    %1 : tensor<4xf32>
 //    %2 : tensor<4xf32>
 void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
                         Type result) {
-  Type inferredResult = getInferredComplexType(result);
+  Type realType = createRealType(result.cast<TensorType>());
 
-  if (lhs != inferredResult || rhs != inferredResult) {
+  if (lhs != realType || rhs != realType) {
     p.printFunctionalType(op);
     return;
   }
@@ -2928,7 +2924,6 @@ void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
 
 ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
                                Type& result) {
-  // Operand and result types are the same, use copy constructor
   llvm::SMLoc loc = parser.getCurrentLocation();
   Type type;
   if (failed(parser.parseType(type))) {
@@ -2941,14 +2936,14 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
   }
 
   // Otherwise, operand type is inferred from complex type
-  if (!type.isa<TensorType>() ||
-      !type.dyn_cast<TensorType>().getElementType().isa<ComplexType>()) {
+  auto tensorType = type.dyn_cast<TensorType>();
+  if (!tensorType || !tensorType.getElementType().isa<ComplexType>()) {
     return parser.emitError(loc, "expected tensor with complex element type");
   }
 
   // Assign LHS and RHS to inferred type
-  Type inferredTy = getInferredComplexType(type);
-  lhs = rhs = inferredTy;
+  Type realType = createRealType(type.cast<TensorType>());
+  lhs = rhs = realType;
   result = type;
   return success();
 }
@@ -2968,16 +2963,6 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 // ImagOp
 //===----------------------------------------------------------------------===//
-
-namespace {
-Type createRealType(TensorType type) {
-  auto elementTy = type.getElementType();
-  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
-    elementTy = complexTy.getElementType();
-  }
-  return hlo::getSameShapeTensorType(type, elementTy);
-}
-}  // namespace
 
 LogicalResult ImagOp::inferReturnTypes(
     MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
@@ -4328,7 +4313,6 @@ void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
 
 ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
                               Type& onFalse, Type& result) {
-  // Operand and result types are the same, use copy constructor
   llvm::SMLoc loc = parser.getCurrentLocation();
   SmallVector<Type> types;
   if (parser.parseTypeList(types)) {
@@ -4352,7 +4336,7 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
   }
 
   // stablehlo.select %0, %1 : (<op_types> ...) -> <result_type>
-  auto fnType = types[0].dyn_cast<FunctionType>();
+  auto fnType = types[0].cast<FunctionType>();
   return assignFromFunctionType(parser, loc, {&pred, &onTrue, &onFalse}, result,
                                 fnType);
 }
@@ -5778,9 +5762,9 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 //   type($operand2))
 //
 //   Generic:
-//     %0 = "mhlo.operation"(%0, %1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
+//     %0 = "stablehlo.op"(%0, %1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
 //   Custom:
-//     %0 = mhlo.operation(%0, %1) : tensor<i1>
+//     %0 = stablehlo.op(%0, %1) : tensor<i1>
 //
 // Falls back to `printFunctionalType` if all operands do not match result type.
 //
@@ -5877,7 +5861,7 @@ ParseResult parseVariadicSameOperandsAndResultType(
 // TuplesOp - only print result type. Operand type is trivially inferrable.
 //
 // Inferring operand types from tuple type:
-//  %3 = mhlo.tuple %1, %2 : tuple<tensor<i1>, tensor<f32>>
+//  %3 = stablehlo.tuple %1, %2 : tuple<tensor<i1>, tensor<f32>>
 //    %1 : tensor<i1>
 //    %2 : tensor<f32>
 //    %3 : tuple<tensor<i1>, tensor<f32>>
@@ -5908,7 +5892,7 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
 // inferrable.
 //
 // Inferring operand types for pairwise ops:
-//  %3, %4 = mhlo.operation %1, %2 : tensor<i1>, tensor<f32>
+//  %3, %4 = stablehlo.operation %1, %2 : tensor<i1>, tensor<f32>
 //    %1 : tensor<i1>
 //    %2 : tensor<f32>
 //    %3 : tensor<i1>
@@ -5921,7 +5905,6 @@ void printPairwiseOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
 ParseResult parsePairwiseOpType(OpAsmParser& parser,
                                 SmallVectorImpl<Type>& operands,
                                 SmallVectorImpl<Type>& results) {
-  // Operand and result types are the same, use copy constructor
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseTypeList(operands)) {
     return parser.emitError(loc, "expected type list");
