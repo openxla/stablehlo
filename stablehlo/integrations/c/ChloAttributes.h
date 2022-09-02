@@ -29,8 +29,8 @@ extern "C" {
 MLIR_CAPI_EXPORTED MlirAttribute
 chloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef direction);
 
-MLIR_CAPI_EXPORTED bool chloAttributeIsAComparisonDirectionAttr(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+chloAttributeIsAComparisonDirectionAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
 chloComparisonDirectionAttrGetDirection(MlirAttribute attr);
@@ -51,4 +51,4 @@ chloComparisonTypeAttrGetType(MlirAttribute attr);
 }
 #endif
 
-#endif  // STABLEHLO_INTEGRATIONS_C_CHLO_ATTRIBUTES_H
+#endif // STABLEHLO_INTEGRATIONS_C_CHLO_ATTRIBUTES_H

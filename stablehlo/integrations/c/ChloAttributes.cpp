@@ -47,7 +47,8 @@ MlirStringRef chloComparisonDirectionAttrGetDirection(MlirAttribute attr) {
 MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef type) {
   llvm::Optional<mlir::chlo::ComparisonType> compareType =
       mlir::chlo::symbolizeComparisonType(unwrap(type));
-  if (!compareType) llvm_unreachable("Invalid comparison-type specified.");
+  if (!compareType)
+    llvm_unreachable("Invalid comparison-type specified.");
   return wrap(
       mlir::chlo::ComparisonTypeAttr::get(unwrap(ctx), compareType.value()));
 }

@@ -22,7 +22,7 @@ namespace hlo {
 
 void registerAllTestPasses();
 
-}  // namespace hlo
-}  // namespace mlir
+} // namespace hlo
+} // namespace mlir
 
 #endif

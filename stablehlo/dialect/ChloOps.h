@@ -17,8 +17,6 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_CHLO_OPS_H
 #define STABLEHLO_DIALECT_CHLO_OPS_H
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -36,6 +34,8 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "stablehlo/dialect/Base.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/StringRef.h"
 
 // Include order matters
 #include "stablehlo/dialect/ChloEnums.h.inc"
@@ -46,20 +46,20 @@ namespace mlir {
 namespace chlo {
 
 class ChloDialect : public Dialect {
- public:
-  explicit ChloDialect(MLIRContext* context);
+public:
+  explicit ChloDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "chlo"; }
 
-  Operation* materializeConstant(OpBuilder& builder, Attribute value, Type type,
+  Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
                                  Location loc) override;
 
-  Attribute parseAttribute(DialectAsmParser& parser, Type type) const override;
+  Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
 
-  void printAttribute(Attribute attr, DialectAsmPrinter& os) const override;
+  void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
 };
 
-}  // namespace chlo
-}  // namespace mlir
+} // namespace chlo
+} // namespace mlir
 
 namespace mlir {
 namespace chlo {
@@ -69,11 +69,11 @@ template <typename ConcreteType>
 class Broadcasting
     : public mlir::OpTrait::TraitBase<ConcreteType, Broadcasting> {};
 
-}  // namespace OpTrait
-}  // namespace chlo
-}  // namespace mlir
+} // namespace OpTrait
+} // namespace chlo
+} // namespace mlir
 
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/ChloOps.h.inc"
 
-#endif  // STABLEHLO_DIALECT_CHLO_OPS_H
+#endif // STABLEHLO_DIALECT_CHLO_OPS_H

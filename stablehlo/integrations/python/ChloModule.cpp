@@ -24,7 +24,7 @@ auto toPyString(MlirStringRef mlirStringRef) {
   return py::str(mlirStringRef.data, mlirStringRef.length);
 }
 
-}  // namespace
+} // namespace
 
 PYBIND11_MODULE(_chlo, m) {
   m.doc() = "chlo main python extension";

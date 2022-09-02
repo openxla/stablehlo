@@ -15,11 +15,11 @@ limitations under the License.
 
 #include "stablehlo/dialect/StablehloBytecode.h"
 
-#include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/Debug.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Diagnostics.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Debug.h"
 
 //===----------------------------------------------------------------------===//
 // Debug Trace Helpers
@@ -31,21 +31,21 @@ limitations under the License.
 // Extract after function name, remove namespace.
 //   Called: write(mlir::stablehlo::TokenType, mlir::DialectBytecodeWriter ...
 //   ***Not Implemened: write(...
-#define _EXTRACT_AFTER(a, b) \
+#define _EXTRACT_AFTER(a, b)                                                   \
   llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
 
-#define _LOG_CALL_TO(func)                                                    \
-  DEBUG_WITH_TYPE(                                                            \
-      "stablehlo-bytecode",                                                   \
-      llvm::errs() << "Called: " << _EXTRACT_AFTER(__PRETTY_FUNCTION__, func) \
-                   << '\n')
+#define _LOG_CALL_TO(func)                                                     \
+  DEBUG_WITH_TYPE("stablehlo-bytecode",                                        \
+                  llvm::errs()                                                 \
+                      << "Called: "                                            \
+                      << _EXTRACT_AFTER(__PRETTY_FUNCTION__, func) << '\n')
 
 #define LOG_WRITE_CALL _LOG_CALL_TO("write")
 #define LOG_READ_CALL _LOG_CALL_TO(__func__)
-#define LOG_NOT_IMPLEMENTED \
-  DEBUG_WITH_TYPE(          \
-      "stablehlo-bytecode", \
-      llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
+#define LOG_NOT_IMPLEMENTED                                                    \
+  DEBUG_WITH_TYPE("stablehlo-bytecode", llvm::errs()                           \
+                                            << "***Not Implemented: "          \
+                                            << __PRETTY_FUNCTION__ << '\n')
 
 //===----------------------------------------------------------------------===//
 // Encoding
@@ -171,8 +171,8 @@ enum TypeCode {
   kTokenType = 0,
 };
 
-}  // namespace stablehlo_encoding
-}  // namespace
+} // namespace stablehlo_encoding
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // StablehloBytecodeInterface
@@ -184,7 +184,7 @@ namespace stablehlo {
 namespace {
 /// This class implements the bytecode interface for the StableHLO dialect.
 class StablehloBytecodeInterface : public BytecodeDialectInterface {
- public:
+public:
   StablehloBytecodeInterface(Dialect *dialect)
       : BytecodeDialectInterface(dialect) {}
 
@@ -199,29 +199,29 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in StableHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-  ArgResultAliasAttr readArgResultAliasAttr(
-      DialectBytecodeReader &reader) const;
+  ArgResultAliasAttr
+  readArgResultAliasAttr(DialectBytecodeReader &reader) const;
   ChannelHandleAttr readChannelHandleAttr(DialectBytecodeReader &reader) const;
-  ComparisonDirectionAttr readComparisonDirectionAttr(
-      DialectBytecodeReader &reader) const;
-  ComparisonTypeAttr readComparisonTypeAttr(
-      DialectBytecodeReader &reader) const;
-  ConvDimensionNumbersAttr readConvDimensionNumbersAttr(
-      DialectBytecodeReader &reader) const;
-  DotDimensionNumbersAttr readDotDimensionNumbersAttr(
-      DialectBytecodeReader &reader) const;
+  ComparisonDirectionAttr
+  readComparisonDirectionAttr(DialectBytecodeReader &reader) const;
+  ComparisonTypeAttr
+  readComparisonTypeAttr(DialectBytecodeReader &reader) const;
+  ConvDimensionNumbersAttr
+  readConvDimensionNumbersAttr(DialectBytecodeReader &reader) const;
+  DotDimensionNumbersAttr
+  readDotDimensionNumbersAttr(DialectBytecodeReader &reader) const;
   FftTypeAttr readFftTypeAttr(DialectBytecodeReader &reader) const;
-  GatherDimensionNumbersAttr readGatherDimensionNumbersAttr(
-      DialectBytecodeReader &reader) const;
+  GatherDimensionNumbersAttr
+  readGatherDimensionNumbersAttr(DialectBytecodeReader &reader) const;
   PrecisionAttr readPrecisionAttr(DialectBytecodeReader &reader) const;
   RngAlgorithmAttr readRngAlgorithmAttr(DialectBytecodeReader &reader) const;
-  RngDistributionAttr readRngDistributionAttr(
-      DialectBytecodeReader &reader) const;
-  ScatterDimensionNumbersAttr readScatterDimensionNumbersAttr(
-      DialectBytecodeReader &reader) const;
+  RngDistributionAttr
+  readRngDistributionAttr(DialectBytecodeReader &reader) const;
+  ScatterDimensionNumbersAttr
+  readScatterDimensionNumbersAttr(DialectBytecodeReader &reader) const;
   TransposeAttr readTransposeAttr(DialectBytecodeReader &reader) const;
-  TypeExtensionsAttr readTypeExtensionsAttr(
-      DialectBytecodeReader &reader) const;
+  TypeExtensionsAttr
+  readTypeExtensionsAttr(DialectBytecodeReader &reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in StableHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
@@ -260,7 +260,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
 
- private:
+private:
   //===--------------------------------------------------------------------===//
   // Helper methods
 
@@ -272,10 +272,12 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
                                  SymbolizeFn symbolizeFn) const {
     uint64_t code;
-    if (failed(reader.readVarInt(code))) return EnumTypeAttr();
+    if (failed(reader.readVarInt(code)))
+      return EnumTypeAttr();
 
     auto enumOpt = symbolizeFn(static_cast<uint32_t>(code));
-    if (!enumOpt.has_value()) return EnumTypeAttr();
+    if (!enumOpt.has_value())
+      return EnumTypeAttr();
 
     return EnumTypeAttr::get(getContext(), enumOpt.value());
   }
@@ -302,43 +304,44 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
 // Attributes: Reader
 
 // TO ADD ATTRIBUTE: Update the switch to include a branch for the attr.
-Attribute StablehloBytecodeInterface::readAttribute(
-    DialectBytecodeReader &reader) const {
+Attribute
+StablehloBytecodeInterface::readAttribute(DialectBytecodeReader &reader) const {
   uint64_t code;
-  if (failed(reader.readVarInt(code))) return Attribute();
+  if (failed(reader.readVarInt(code)))
+    return Attribute();
   switch (code) {
-    case stablehlo_encoding::kArgResultAliasAttr:
-      return readArgResultAliasAttr(reader);
-    case stablehlo_encoding::kChannelHandleAttr:
-      return readChannelHandleAttr(reader);
-    case stablehlo_encoding::kComparisonDirectionAttr:
-      return readComparisonDirectionAttr(reader);
-    case stablehlo_encoding::kComparisonTypeAttr:
-      return readComparisonTypeAttr(reader);
-    case stablehlo_encoding::kConvDimensionNumbersAttr:
-      return readConvDimensionNumbersAttr(reader);
-    case stablehlo_encoding::kDotDimensionNumbers:
-      return readDotDimensionNumbersAttr(reader);
-    case stablehlo_encoding::kFftTypeAttr:
-      return readFftTypeAttr(reader);
-    case stablehlo_encoding::kGatherDimensionNumbers:
-      return readGatherDimensionNumbersAttr(reader);
-    case stablehlo_encoding::kPrecisionAttr:
-      return readPrecisionAttr(reader);
-    case stablehlo_encoding::kRngAlgorithmAttr:
-      return readRngAlgorithmAttr(reader);
-    case stablehlo_encoding::kRngDistributionAttr:
-      return readRngDistributionAttr(reader);
-    case stablehlo_encoding::kScatterDimensionNumbersAttr:
-      return readScatterDimensionNumbersAttr(reader);
-    case stablehlo_encoding::kTransposeAttr:
-      return readTransposeAttr(reader);
-    case stablehlo_encoding::kTypeExtensionsAttr:
-      return readTypeExtensionsAttr(reader);
+  case stablehlo_encoding::kArgResultAliasAttr:
+    return readArgResultAliasAttr(reader);
+  case stablehlo_encoding::kChannelHandleAttr:
+    return readChannelHandleAttr(reader);
+  case stablehlo_encoding::kComparisonDirectionAttr:
+    return readComparisonDirectionAttr(reader);
+  case stablehlo_encoding::kComparisonTypeAttr:
+    return readComparisonTypeAttr(reader);
+  case stablehlo_encoding::kConvDimensionNumbersAttr:
+    return readConvDimensionNumbersAttr(reader);
+  case stablehlo_encoding::kDotDimensionNumbers:
+    return readDotDimensionNumbersAttr(reader);
+  case stablehlo_encoding::kFftTypeAttr:
+    return readFftTypeAttr(reader);
+  case stablehlo_encoding::kGatherDimensionNumbers:
+    return readGatherDimensionNumbersAttr(reader);
+  case stablehlo_encoding::kPrecisionAttr:
+    return readPrecisionAttr(reader);
+  case stablehlo_encoding::kRngAlgorithmAttr:
+    return readRngAlgorithmAttr(reader);
+  case stablehlo_encoding::kRngDistributionAttr:
+    return readRngDistributionAttr(reader);
+  case stablehlo_encoding::kScatterDimensionNumbersAttr:
+    return readScatterDimensionNumbersAttr(reader);
+  case stablehlo_encoding::kTransposeAttr:
+    return readTransposeAttr(reader);
+  case stablehlo_encoding::kTypeExtensionsAttr:
+    return readTypeExtensionsAttr(reader);
 
-    default:
-      reader.emitError() << "unknown stablehlo attribute code: " << code;
-      return Attribute();
+  default:
+    reader.emitError() << "unknown stablehlo attribute code: " << code;
+    return Attribute();
   }
 }
 
@@ -657,20 +660,21 @@ void StablehloBytecodeInterface::write(TypeExtensionsAttr attr,
 // TO ADD TYPE: Update the case selection to include the new type.
 Type StablehloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
   uint64_t code;
-  if (failed(reader.readVarInt(code))) return Type();
+  if (failed(reader.readVarInt(code)))
+    return Type();
 
   switch (code) {
-    case stablehlo_encoding::kTokenType:
-      return readTokenType(reader);
+  case stablehlo_encoding::kTokenType:
+    return readTokenType(reader);
 
-    default:
-      reader.emitError() << "unknown builtin type code: " << code;
-      return Type();
+  default:
+    reader.emitError() << "unknown builtin type code: " << code;
+    return Type();
   }
 }
 
-TokenType StablehloBytecodeInterface::readTokenType(
-    DialectBytecodeReader &) const {
+TokenType
+StablehloBytecodeInterface::readTokenType(DialectBytecodeReader &) const {
   LOG_READ_CALL;
   return TokenType::get(getContext());
 }
@@ -679,8 +683,9 @@ TokenType StablehloBytecodeInterface::readTokenType(
 // Types: Writer
 
 // TO ADD TYPE: Update the case selection to include the new type.
-LogicalResult StablehloBytecodeInterface::writeType(
-    Type type, DialectBytecodeWriter &writer) const {
+LogicalResult
+StablehloBytecodeInterface::writeType(Type type,
+                                      DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
       .Case<TokenType>([&](auto type) {
         LOG_WRITE_CALL;
@@ -698,10 +703,10 @@ void StablehloBytecodeInterface::write(TokenType type,
   writer.writeVarInt(stablehlo_encoding::kTokenType);
 }
 
-}  // namespace
+} // namespace
 
 void addBytecodeInterface(StablehloDialect *dialect) {
   dialect->addInterfaces<StablehloBytecodeInterface>();
 }
-}  // namespace stablehlo
-}  // namespace mlir
+} // namespace stablehlo
+} // namespace mlir

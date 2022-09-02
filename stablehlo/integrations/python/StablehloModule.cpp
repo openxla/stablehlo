@@ -38,7 +38,7 @@ auto toPyString(MlirStringRef mlirStringRef) {
   return py::str(mlirStringRef.data, mlirStringRef.length);
 }
 
-}  // namespace
+} // namespace
 
 PYBIND11_MODULE(_stablehlo, m) {
   m.doc() = "stablehlo main python extension";

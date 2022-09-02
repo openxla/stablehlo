@@ -19,8 +19,6 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "llvm/ADT/Sequence.h"
-#include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -34,6 +32,8 @@ limitations under the License.
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
+#include "llvm/ADT/Sequence.h"
+#include "llvm/ADT/SmallVector.h"
 
 // Include order matters
 #include "stablehlo/dialect/BaseAttrInterfaces.h.inc"
@@ -56,9 +56,9 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 //    : (i64, i64) -> tensor<2xi64>
 //
 // and returns %4 as the shape value.
-LogicalResult deriveShapeFromOperand(
-    OpBuilder *builder, Operation *op, Value operand,
-    SmallVectorImpl<Value> *reifiedReturnShapes);
+LogicalResult
+deriveShapeFromOperand(OpBuilder *builder, Operation *op, Value operand,
+                       SmallVectorImpl<Value> *reifiedReturnShapes);
 
 // Type derivation function that returns a tensor type with a new element type.
 TensorType getSameShapeTensorType(TensorType tensorType, Type elementType);
@@ -73,7 +73,7 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
 // of accompanying shaped types.
 class BoundedDialectInterface
     : public DialectInterface::Base<BoundedDialectInterface> {
- public:
+public:
   BoundedDialectInterface(Dialect *dialect) : Base(dialect) {}
   virtual Attribute createBoundedAttr(ArrayRef<int64_t> bounds) const = 0;
 };
@@ -88,7 +88,7 @@ template <typename ConcreteType>
 class PairwiseSameOperandAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       PairwiseSameOperandAndResultType> {
- public:
+public:
   static LogicalResult verifyTrait(Operation *op) {
     const int numOperands = op->getNumOperands();
     const int numResults = op->getNumResults();
@@ -112,12 +112,15 @@ template <typename ConcreteType>
 class CompatibleOperandsAndResultType
     : public mlir::OpTrait::TraitBase<ConcreteType,
                                       CompatibleOperandsAndResultType> {
- public:
+public:
   static LogicalResult verifyTrait(Operation *op) {
     Type expected;
-    if (op->getNumResults() != 0) expected = op->getResult(0).getType();
-    if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
-    if (!expected) return failure();
+    if (op->getNumResults() != 0)
+      expected = op->getResult(0).getType();
+    if (op->getNumOperands() != 0)
+      expected = op->getOperand(0).getType();
+    if (!expected)
+      return failure();
 
     auto typeMatch = [&](Type actual) {
       return isCompatibleForHloTypeInference(actual, expected);
@@ -132,10 +135,11 @@ class CompatibleOperandsAndResultType
     return success(allMatch);
   }
 
-  static LogicalResult inferReturnTypes(
-      MLIRContext * /*context*/, Optional<Location> location,
-      ValueRange operands, DictionaryAttr /*attributes*/,
-      RegionRange /*regions*/, SmallVectorImpl<Type> &inferredReturnTypes) {
+  static LogicalResult
+  inferReturnTypes(MLIRContext * /*context*/, Optional<Location> location,
+                   ValueRange operands, DictionaryAttr /*attributes*/,
+                   RegionRange /*regions*/,
+                   SmallVectorImpl<Type> &inferredReturnTypes) {
     // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
     // support quantization or sparsity.
     if (operands.empty())
@@ -165,7 +169,7 @@ class CompatibleOperandsAndResultType
     return success();
   }
 
- private:
+private:
   // Cases of infer return shape with bounds (lhs and rhs are commutative):
   //       Dim of lhs     Dim of rhs      Infer
   //  c0:  3              3               3
@@ -178,9 +182,10 @@ class CompatibleOperandsAndResultType
   //  c7:  ?, bound=3     ?, bound=4      ?, bound=3
   // This method generalizes it to multiple inputs: 1) get the static input dims
   // (if any) as infer dim, and 2) get min of input bounds as infer bound
-  static LogicalResult inferMostSpecificType(
-      Optional<Location> location, ValueTypeRange<ValueRange> inputTypes,
-      SmallVectorImpl<Type> &inferredReturnTypes) {
+  static LogicalResult
+  inferMostSpecificType(Optional<Location> location,
+                        ValueTypeRange<ValueRange> inputTypes,
+                        SmallVectorImpl<Type> &inferredReturnTypes) {
     SmallVector<RankedTensorType> rankedTypes;
     for (auto inputType : inputTypes)
       if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -252,8 +257,8 @@ class CompatibleOperandsAndResultType
   }
 };
 
-}  // namespace OpTrait
-}  // namespace hlo
-}  // namespace mlir
+} // namespace OpTrait
+} // namespace hlo
+} // namespace mlir
 
 #endif

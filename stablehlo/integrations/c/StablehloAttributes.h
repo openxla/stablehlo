@@ -27,15 +27,15 @@ extern "C" {
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloScatterDimensionNumbersGet(
-    MlirContext ctx,                                                  //
-    intptr_t nUpdateWindowDims, const int64_t *updateWindowDims,      //
-    intptr_t nInsertedWindowDims, const int64_t *insertedWindowDims,  //
-    intptr_t nScatteredDimsToOperandDims,                             //
-    const int64_t *scatteredDimsToOperandDims,                        //
+    MlirContext ctx,                                                 //
+    intptr_t nUpdateWindowDims, const int64_t *updateWindowDims,     //
+    intptr_t nInsertedWindowDims, const int64_t *insertedWindowDims, //
+    intptr_t nScatteredDimsToOperandDims,                            //
+    const int64_t *scatteredDimsToOperandDims,                       //
     int64_t indexVectorDim);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsAScatterDimensionNumbers(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsAScatterDimensionNumbers(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED intptr_t
 stablehloScatterDimensionNumbersGetUpdateWindowDimsSize(MlirAttribute attr);
@@ -66,8 +66,8 @@ MLIR_CAPI_EXPORTED MlirAttribute stablehloGatherDimensionNumbersGet(
     intptr_t nStartIndexMap, const int64_t *startIndexMap,
     int64_t indexVectorDim);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsAGatherDimensionNumbers(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsAGatherDimensionNumbers(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED intptr_t
 stablehloGatherDimensionNumbersGetOffsetDimsSize(MlirAttribute attr);
@@ -90,16 +90,16 @@ stablehloGatherDimensionNumbersGetIndexVectorDim(MlirAttribute attr);
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloDotDimensionNumbersGet(
-    MlirContext ctx,                                                        //
-    intptr_t nLhsBatchingDimensions, const int64_t *lhsBatchingDimensions,  //
-    intptr_t nRhsBatchingDimensions, const int64_t *rhsBatchingDimensions,  //
-    intptr_t nLhsContractingDimensions,                                     //
-    const int64_t *lhsContractingDimensions,                                //
-    intptr_t nRhsContractingDimensions,                                     //
+    MlirContext ctx,                                                       //
+    intptr_t nLhsBatchingDimensions, const int64_t *lhsBatchingDimensions, //
+    intptr_t nRhsBatchingDimensions, const int64_t *rhsBatchingDimensions, //
+    intptr_t nLhsContractingDimensions,                                    //
+    const int64_t *lhsContractingDimensions,                               //
+    intptr_t nRhsContractingDimensions,                                    //
     const int64_t *rhsContractingDimensions);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsADotDimensionNumbers(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsADotDimensionNumbers(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED intptr_t
 stablehloDotDimensionNumbersGetLhsBatchingDimensionsSize(MlirAttribute attr);
@@ -135,8 +135,8 @@ MLIR_CAPI_EXPORTED MlirAttribute stablehloConvDimensionNumbersGet(
     intptr_t nOutputSpatialDimensions, const int64_t *outputSpatialDimensions);
 
 // Returns true of the given attribute is a ConvDimensionNumbers attribute.
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsAConvDimensionNumbers(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsAConvDimensionNumbers(MlirAttribute attr);
 
 // Returns the properties of ConvDimensionNumbers attributes.
 MLIR_CAPI_EXPORTED int64_t
@@ -176,8 +176,8 @@ stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(MlirAttribute attr,
 MLIR_CAPI_EXPORTED MlirAttribute
 stablehloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef direction);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsAComparisonDirectionAttr(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsAComparisonDirectionAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
 stablehloComparisonDirectionAttrGetDirection(MlirAttribute attr);
@@ -189,8 +189,8 @@ stablehloComparisonDirectionAttrGetDirection(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirAttribute
 stablehloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef type);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsAComparisonTypeAttr(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsAComparisonTypeAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
 stablehloComparisonTypeAttrGetType(MlirAttribute attr);
@@ -238,8 +238,8 @@ stablehloTransposeAttrGetTranspose(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirAttribute
 stablehloRngDistributionAttrGet(MlirContext ctx, MlirStringRef distribution);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsARngDistributionAttr(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsARngDistributionAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
 stablehloRngDistributionAttrGetRngDistribution(MlirAttribute attr);
@@ -251,8 +251,8 @@ stablehloRngDistributionAttrGetRngDistribution(MlirAttribute attr);
 MLIR_CAPI_EXPORTED MlirAttribute
 stablehloRngAlgorithmAttrGet(MlirContext ctx, MlirStringRef algorithm);
 
-MLIR_CAPI_EXPORTED bool stablehloAttributeIsARngAlgorithmAttr(
-    MlirAttribute attr);
+MLIR_CAPI_EXPORTED bool
+stablehloAttributeIsARngAlgorithmAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
 stablehloRngAlgorithmAttrGetRngAlgorithm(MlirAttribute attr);
@@ -289,4 +289,4 @@ stablehloTypeExtensionsGetBoundsElem(MlirAttribute attr, intptr_t pos);
 }
 #endif
 
-#endif  // STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H
+#endif // STABLEHLO_INTEGRATIONS_C_STABLEHLO_ATTRIBUTES_H

@@ -43,12 +43,12 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
 // broadcastable.
 Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,
                                                         Value rhs,
-                                                        OpBuilder& builder);
+                                                        OpBuilder &builder);
 Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
                                                       ValueRange operands,
-                                                      OpBuilder& builder);
+                                                      OpBuilder &builder);
 
-}  // namespace hlo
-}  // namespace mlir
+} // namespace hlo
+} // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_BROADCAST_UTILS_H
+#endif // STABLEHLO_DIALECT_BROADCAST_UTILS_H

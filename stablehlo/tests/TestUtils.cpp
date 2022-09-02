@@ -19,8 +19,6 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -34,6 +32,8 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace mlir {
 namespace hlo {
@@ -45,11 +45,13 @@ struct InferReturnTypesPattern : public RewritePattern {
       : RewritePattern("hlo_test_infer.get_return_types", 1, context) {}
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
-    if (op->getNumOperands() != 1) return failure();
+    if (op->getNumOperands() != 1)
+      return failure();
     auto *definingOp = op->getOperand(0).getDefiningOp();
     auto definingOpInt =
         llvm::dyn_cast_or_null<InferTypeOpInterface>(definingOp);
-    if (!definingOpInt) return failure();
+    if (!definingOpInt)
+      return failure();
     SmallVector<Type, 4> types;
     if (failed(definingOpInt.inferReturnTypes(
             op->getContext(), op->getLoc(), definingOp->getOperands(),
@@ -78,11 +80,13 @@ struct InferReturnTypeComponentsPattern : public RewritePattern {
                        context) {}
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
-    if (op->getNumOperands() != 1) return failure();
+    if (op->getNumOperands() != 1)
+      return failure();
     auto *definingOp = op->getOperand(0).getDefiningOp();
     auto definingOpInt =
         llvm::dyn_cast_or_null<InferShapedTypeOpInterface>(definingOp);
-    if (!definingOpInt) return failure();
+    if (!definingOpInt)
+      return failure();
     SmallVector<ShapedTypeComponents, 4> components;
     if (failed(definingOpInt.inferReturnTypeComponents(
             op->getContext(), op->getLoc(), definingOp->getOperands(),
@@ -116,10 +120,12 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
       : RewritePattern("hlo_test_infer.reify_return_type_shapes", 1, context) {}
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
-    if (op->getNumOperands() != 1) return failure();
+    if (op->getNumOperands() != 1)
+      return failure();
     auto definingOp =
         op->getOperand(0).getDefiningOp<InferShapedTypeOpInterface>();
-    if (!definingOp) return failure();
+    if (!definingOp)
+      return failure();
     SmallVector<Value, 4> returnShapes;
     if (failed(definingOp.reifyReturnTypeShapes(
             rewriter, definingOp->getOperands(), returnShapes))) {
@@ -153,9 +159,9 @@ std::unique_ptr<OperationPass<func::FuncOp>> createHloTestInferPass() {
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/tests/TestUtils.h.inc"
 
-}  // namespace
+} // namespace
 
 void registerAllTestPasses() { registerHloTestPasses(); }
 
-}  // namespace hlo
-}  // namespace mlir
+} // namespace hlo
+} // namespace mlir

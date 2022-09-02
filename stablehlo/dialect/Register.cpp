@@ -29,5 +29,5 @@ void registerAllDialects(mlir::DialectRegistry &registry) {
   // clang-format on
 }
 
-}  // namespace stablehlo
-}  // namespace mlir
+} // namespace stablehlo
+} // namespace mlir

@@ -25,7 +25,7 @@ namespace stablehlo {
 // Add chlo and stablehlo dialects to the provided registry.
 void registerAllDialects(DialectRegistry &registry);
 
-}  // namespace stablehlo
-}  // namespace mlir
+} // namespace stablehlo
+} // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_REGISTER_H
+#endif // STABLEHLO_DIALECT_REGISTER_H

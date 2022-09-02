@@ -16,12 +16,12 @@ limitations under the License.
 
 #include "stablehlo/dialect/Base.h"
 
-#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LLVM.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 // Include order matters
 #include "stablehlo/dialect/BaseAttrInterfaces.cpp.inc"
@@ -36,15 +36,18 @@ Type getExpressedTypeOrSelf(Type type) {
 }
 
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
-  if (failed(verifyCompatibleShape(type1, type2))) return failure();
+  if (failed(verifyCompatibleShape(type1, type2)))
+    return failure();
 
   // Verify shapes against bounds
   auto isCompatible = [](ArrayRef<int64_t> shape,
                          BoundedAttrInterface boundedAttr) {
-    if (shape.empty() || !boundedAttr) return true;
+    if (shape.empty() || !boundedAttr)
+      return true;
     auto bounds = boundedAttr.getBounds();
-    for (auto [dim_size, bound] : llvm::zip(shape, bounds))  // NOLINT
-      if (bound != ShapedType::kDynamicSize && bound < dim_size) return false;
+    for (auto [dim_size, bound] : llvm::zip(shape, bounds)) // NOLINT
+      if (bound != ShapedType::kDynamicSize && bound < dim_size)
+        return false;
     return true;
   };
 
@@ -61,7 +64,7 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   }
   return success();
 }
-}  // namespace
+} // namespace
 
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   // Dynamism: We don't require shapes to be the same, we only require them
@@ -108,9 +111,9 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   return etp1 == etp2;
 }
 
-LogicalResult deriveShapeFromOperand(
-    OpBuilder* builder, Operation* op, Value operand,
-    SmallVectorImpl<Value>* reifiedReturnShapes) {
+LogicalResult
+deriveShapeFromOperand(OpBuilder *builder, Operation *op, Value operand,
+                       SmallVectorImpl<Value> *reifiedReturnShapes) {
   auto shapedTy = operand.getType().dyn_cast<ShapedType>();
   if (!shapedTy) {
     op->emitOpError() << "operand is not a shaped type";
@@ -139,5 +142,5 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
   return success();
 }
 
-}  // namespace hlo
-}  // namespace mlir
+} // namespace hlo
+} // namespace mlir

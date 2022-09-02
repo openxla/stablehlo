@@ -19,8 +19,6 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -40,6 +38,8 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
+#include "llvm/ADT/SmallSet.h"
+#include "llvm/ADT/StringRef.h"
 
 // Include order matters.
 #include "stablehlo/dialect/StablehloEnums.h.inc"
@@ -50,7 +50,7 @@ namespace mlir {
 namespace stablehlo {
 
 class StablehloDialect : public Dialect {
- public:
+public:
   explicit StablehloDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "stablehlo"; }
 
@@ -83,7 +83,7 @@ class StablehloDialect : public Dialect {
 };
 
 class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
- public:
+public:
   using Base::Base;
 };
 
@@ -99,7 +99,7 @@ auto getReplicaGroups(OpT op, char)
     -> decltype(op.replica_groups(), DenseIntElementsAttr{}) {
   return op.replica_groups();
 }
-}  // namespace accessor_dispatch
+} // namespace accessor_dispatch
 
 // Verifies replica groups attached to collective communication operations.
 // If the attribute is not empty, it must be a rank 2 tensor, and each replica
@@ -155,8 +155,9 @@ LogicalResult verifyReplicaGroups(OpT op, bool isUniformSized) {
 }
 
 // Verifies the source target pairs attached to collective permute.
-LogicalResult verifyCollectivePermuteSourceTargetPairs(
-    Operation *op, DenseIntElementsAttr attr);
+LogicalResult
+verifyCollectivePermuteSourceTargetPairs(Operation *op,
+                                         DenseIntElementsAttr attr);
 
 LogicalResult verifyReduceScatter(Operation *op, TypeRange operandTypes,
                                   TypeRange resultTypes,
@@ -183,8 +184,8 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
                                   DenseIntElementsAttr &rhsDilation,
                                   DenseElementsAttr &windowReversal);
 
-}  // end namespace stablehlo
-}  // end namespace mlir
+} // end namespace stablehlo
+} // end namespace mlir
 
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.h.inc"
@@ -197,7 +198,7 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
                     const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction);
 
-}  // end namespace stablehlo
-}  // end namespace mlir
+} // end namespace stablehlo
+} // end namespace mlir
 
-#endif  // STABLEHLO_DIALECT_STABLEHLO_OPS_H
+#endif // STABLEHLO_DIALECT_STABLEHLO_OPS_H

@@ -18,10 +18,10 @@ limitations under the License.
 
 #include <algorithm>
 
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
 
 namespace mlir {
 namespace hlo {
@@ -30,8 +30,10 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
                                  DenseIntElementsAttr broadcastDims) {
   RankedTensorType lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   RankedTensorType rhsType = rhs.getType().dyn_cast<RankedTensorType>();
-  if (!lhsType || !rhsType) return false;
-  if (lhsType.getRank() == rhsType.getRank()) return true;
+  if (!lhsType || !rhsType)
+    return false;
+  if (lhsType.getRank() == rhsType.getRank())
+    return true;
 
   // Otherwise, verify that broadcast_dims strictly performs left-padding.
   auto smallerRank = std::min(lhsType.getRank(), rhsType.getRank());
@@ -48,14 +50,14 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
 
 Value computeBinaryElementwiseBroadcastingResultExtents(Location loc, Value lhs,
                                                         Value rhs,
-                                                        OpBuilder& builder) {
+                                                        OpBuilder &builder) {
   return computeNaryElementwiseBroadcastingResultExtents(
       loc, ValueRange{lhs, rhs}, builder);
 }
 
 Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
                                                       ValueRange operands,
-                                                      OpBuilder& builder) {
+                                                      OpBuilder &builder) {
   auto shapes = llvm::to_vector<4>(llvm::map_range(operands, [&](Value v) {
     return builder.createOrFold<shape::ShapeOfOp>(loc, v);
   }));
@@ -77,5 +79,5 @@ Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
                                                   /*error=*/nullptr);
 }
 
-}  // namespace hlo
-}  // namespace mlir
+} // namespace hlo
+} // namespace mlir

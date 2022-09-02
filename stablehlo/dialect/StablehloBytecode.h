@@ -22,7 +22,7 @@ class StablehloDialect;
 // Add the interface necessary for encoding and decoding StableHLO dialect
 // components in bytecode.
 void addBytecodeInterface(StablehloDialect *dialect);
-}  // namespace stablehlo
-}  // namespace mlir
+} // namespace stablehlo
+} // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_STABLEHLO_BYTECODE_H
+#endif // STABLEHLO_DIALECT_STABLEHLO_BYTECODE_H
