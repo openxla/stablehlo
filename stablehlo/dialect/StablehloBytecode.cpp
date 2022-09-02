@@ -47,28 +47,6 @@ limitations under the License.
       "stablehlo-bytecode", \
       llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
 
-// Enable logging with flag:
-//   stablehlo-opt -debug-only=stablehlo-bytecode [...]
-//
-// Extract after function name, remove namespace.
-//   Called: write(mlir::stablehlo::TokenType, mlir::DialectBytecodeWriter ...
-//   ***Not Implemened: write(...
-#define _EXTRACT_AFTER(a, b) \
-  llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
-
-#define _LOG_CALL_TO(func)                                                    \
-  DEBUG_WITH_TYPE(                                                            \
-      "stablehlo-bytecode",                                                   \
-      llvm::errs() << "Called: " << _EXTRACT_AFTER(__PRETTY_FUNCTION__, func) \
-                   << '\n')
-
-#define LOG_WRITE_CALL _LOG_CALL_TO("write")
-#define LOG_READ_CALL _LOG_CALL_TO(__func__)
-#define LOG_NOT_IMPLEMENTED \
-  DEBUG_WITH_TYPE(          \
-      "stablehlo-bytecode", \
-      llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
-
 //===----------------------------------------------------------------------===//
 // Encoding
 //===----------------------------------------------------------------------===//
