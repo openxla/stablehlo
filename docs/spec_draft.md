@@ -88,7 +88,9 @@ The specification of an op comprises of the following components (in the order
 ## Index of Documented Ops
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [ceil](#stablehloceil)
    * [constant](#stablehloconstant)
+   * [floor](#stablehlofloor)
    * [max](#stablehlomaximum)
    * [min](#stablehlominimum)
    * [not](#stablehlonot)
@@ -191,6 +193,45 @@ logical operation.
 
 [Back to Ops](#index-of-documented-ops)
 
+## stablehlo.ceil
+
+`stablehlo.ceil(operand) -> result`
+
+### Semantics
+
+Performs element-wise ceil of `operand` tensor and produces a `result` tensor,
+         where ceil of a floating-point value is defined as the smallest integer
+         greater than or equal to the value. Implements the rounding to integral
+         towards positive infinity operation from the IEEE-754 specification.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point element types |
+
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %x: [-0.8166, -0.2530, 0.2530, 0.8166, 2.0]
+%z = stablehlo.ceil %x : tensor<5xf32>
+// %z: [-0.0, -0.0, 1.0, 1.0, 2.0]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
 ## stablehlo.constant
 
 `stablehlo.constant(value) -> result`
@@ -233,6 +274,45 @@ Produces a `result` tensor from a constant `value`.
 
 %result = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
 // %result: [(0.0, 1.0), (2.0, 3.0)]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.floor
+
+`stablehlo.floor(operand) -> result`
+
+### Semantics
+
+Performs element-wise floor of `operand` tensor and produces a `result` tensor,
+         where floor of a floating-point value is defined as the largest integer
+         less than or equal to the value. Implements the rounding to integral
+         towards negative infinity operation from the IEEE-754 specification.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point element types |
+
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %x: [-0.8166, -0.2530, 0.2530, 0.8166, 2.0]
+%z = stablehlo.floor %x : tensor<5xf32>
+// %z: [-1.0, -1.0, 0.0, 0.0, 2.0]
 ```
 
 [Back to Ops](#index-of-documented-ops)
