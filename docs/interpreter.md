@@ -122,11 +122,12 @@ func.func @add_op_test_ui4() -> tensor<2xui4> {
 ```
 
 A test utility `stablehlo-interpreter`
-([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests/StablehloInterpreterMain.cpp))
+([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/tools/StablehloInterpreterMain.cpp))
 is responsible for parsing the program, interpreting each function, and
 returning the resulting tensor(s) to be matched against the output tensor
 provided in [FileCheck
 directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We have a
 dedicated test-suite, consisting of several tests exercising various runtime
 behaviors, for each StableHLO Op. The tests can be found
-[here](https://github.com/openxla/stablehlo/tree/main/stablehlo/reference/tests).
+[here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/) (e.g.
+interpret\_\*.mlir).
