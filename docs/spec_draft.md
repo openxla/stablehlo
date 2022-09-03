@@ -82,6 +82,17 @@ The specification of an op comprises of the following components (in the order
   * **Constraints** Type constraints on the operand(s), result(s).
   * **Examples** Examples demonstrating the working of the op.
 
+
+## Index of documented ops
+   * [AddOp](#stablehloadd)
+   * [AndOp](#stablehloand)
+   * [ConstantOp](#stablehloconstant)
+   * [MaxOp](#stablehlomaximum)
+   * [MinOp](#stablehlominimum)
+   * [NotOp](#stablehlonot)
+   * [OrOp](#stablehloor)
+   * [XorOp](#stablehloxor)
+
 ## stablehlo.add
 
 `stablehlo.add(lhs, rhs) -> result`
@@ -129,6 +140,8 @@ specification.
 // %z: [[6, 8], [10, 12]]
 ```
 
+[top](#index-of-documented-ops)
+
 ## stablehlo.and
 
 `stablehlo.and(lhs, rhs) -> result`
@@ -173,6 +186,8 @@ logical operation.
   %z = stablehlo.and %x, %y : tensor<2x2xpred>
   // %z: [[false, false], [false, true]]
 ```
+
+[top](#index-of-documented-ops)
 
 ## stablehlo.constant
 
@@ -223,6 +238,8 @@ Produces a `result` tensor from a constant `value`.
 // %3: [(0.0, 1.0), (2.0, 3.0)]
 ```
 
+[top](#index-of-documented-ops)
+
 ## stablehlo.maximum
 
 `stablehlo.maximum(lhs, rhs) -> result`
@@ -262,6 +279,8 @@ the (real, imaginary) pairs.
 %result = stablehlo.max %lhs, %rhs : tensor<2x2xi32>
 // %result: [[5, 6], [7, 8]]
 ```
+
+[top](#index-of-documented-ops)
 
 ## stablehlo.minimum
 
@@ -303,6 +322,8 @@ the (real, imaginary) pairs.
 // %result: [[1, 2], [3, 4]]
 ```
 
+[top](#index-of-documented-ops)
+
 ## stablehlo.not
 
 `stablehlo.not(operand) -> result`
@@ -339,6 +360,8 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
   %z = "stablehlo.not"(%x) : (tensor<2xpred>) -> tensor<2xpred>
   // %z: [false, true]
 ```
+
+[top](#index-of-documented-ops)
 
 ## stablehlo.or
 
@@ -385,6 +408,8 @@ operation.
   // %z: [[false, true], [true, true]]
 ```
 
+[top](#index-of-documented-ops)
+
 ## stablehlo.xor
 
 `stablehlo.xor(lhs, rhs) -> result`
@@ -430,3 +455,5 @@ logical operation.
   %z = stablehlo.xor %x, %y : tensor<2x2xpred>
   // %z: [[false, true], [true, false]]
 ```
+
+[top](#index-of-documented-ops)
