@@ -123,10 +123,10 @@ specification.
 ### Examples
 
 ```mlir
-// %x: [[1, 2], [3, 4]]
-// %y: [[5, 6], [7, 8]]
-%z = stablehlo.add %x, %y : tensor<2x2xf32>
-// %z: [[6, 8], [10, 12]]
+// %lhs: [[1, 2], [3, 4]]
+// %rhs: [[5, 6], [7, 8]]
+%result = stablehlo.add %lhs, %rhs : tensor<2x2xf32>
+// %result: [[6, 8], [10, 12]]
 ```
 
 ## stablehlo.and
@@ -162,16 +162,65 @@ logical operation.
 
 ```mlir
 // Bitwise operation with with integer tensors
-  // %x: [[1, 2], [3, 4]]
-  // %y: [[5, 6], [7, 8]]
-  %z = stablehlo.and %x, %y : tensor<2x2xsi32>
-  // %z: [[1, 2], [3, 0]]
+  // %lhs: [[1, 2], [3, 4]]
+  // %rhs: [[5, 6], [7, 8]]
+  %result = stablehlo.and %lhs, %rhs : tensor<2x2xsi32>
+  // %result: [[1, 2], [3, 0]]
 
 // Logical operation with with boolean tensors
-  // %x: [[false, false], [true, true]]
-  // %y: [[false, true], [false, true]]
-  %z = stablehlo.and %x, %y : tensor<2x2xpred>
-  // %z: [[false, false], [false, true]]
+  // %lhs: [[false, false], [true, true]]
+  // %rhs: [[false, true], [false, true]]
+  %result = stablehlo.and %lhs, %rhs : tensor<2x2xpred>
+  // %result: [[false, false], [false, true]]
+```
+
+## stablehlo.constant
+
+`stablehlo.constant(value) -> result`
+
+### Semantics
+
+Produces a `result` tensor from a constant `value`.
+
+### Attributes
+
+| Name | Type |
+|-|-|
+| `value` | `tensor` of any supported type |
+
+### Operands 
+
+| Name | Type |
+|-|-|
+| `value` | Constant n-dimensional data of any supported type |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | `tensor` of any supported type |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+
+### Examples
+
+```mlir
+%0 = stablehlo.constant dense<true> : tensor<pred>
+// %0: true 
+
+%1 = stablehlo.constant dense<0> : tensor<i32>
+// %1: 0
+
+%2 = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+// %2: [
+//       [0.0, 1.0],
+//       [2.0, 3.0]
+//     ]
+
+%3 = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
+// %3: [(0.0, 1.0), (2.0, 3.0)]
 ```
 
 ## stablehlo.constant
@@ -330,14 +379,14 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 
 ```mlir
 // Bitwise operation with with integer tensors
-  // %x: [[1, 2], [3, 4]]
-  %z = stablehlo.not %x : tensor<2x2xsi32>
-  // %z: [[-2, -3], [-4, -5]]
+  // %operand: [[1, 2], [3, 4]]
+  %result = stablehlo.not %operand : tensor<2x2xsi32>
+  // %result: [[-2, -3], [-4, -5]]
 
 // Bitwise operation with with boolean tensors
-  // %x: [true, false]
-  %z = "stablehlo.not"(%x) : (tensor<2xpred>) -> tensor<2xpred>
-  // %z: [false, true]
+  // %operand: [true, false]
+  %result = stablehlo.not %operand : tensor<2xpred>
+  // %result: [false, true]
 ```
 
 ## stablehlo.or
@@ -373,16 +422,16 @@ operation.
 
 ```mlir
 // Bitwise operation with with integer tensors
-  // %x: [[1, 2], [3, 4]]
-  // %y: [[5, 6], [7, 8]]
-  %z = stablehlo.or %x, %y : tensor<2x2xsi32>
-  // %z: [[5, 6], [7, 12]]
+  // %lhs: [[1, 2], [3, 4]]
+  // %rhs: [[5, 6], [7, 8]]
+  %result = stablehlo.or %lhs, %rhs : tensor<2x2xsi32>
+  // %result: [[5, 6], [7, 12]]
 
 // Logical operation with with boolean tensors
-  // %x: [[false, false], [true, true]]
-  // %y: [[false, true], [false, true]]
-  %z = stablehlo.or %x, %y : tensor<2x2xpred>
-  // %z: [[false, true], [true, true]]
+  // %lhs: [[false, false], [true, true]]
+  // %rhs: [[false, true], [false, true]]
+  %result = stablehlo.or %lhs, %rhs : tensor<2x2xpred>
+  // %result: [[false, true], [true, true]]
 ```
 
 ## stablehlo.xor
@@ -419,14 +468,14 @@ logical operation.
 
 ```mlir
 // Bitwise operation with with integer tensors
-  // %x: [[1, 2], [3, 4]]
-  // %y: [[5, 6], [7, 8]]
-  %z = stablehlo.xor %x, %y : tensor<2x2xsi32>
-  // %z: [[4, 4], [4, 12]]
+  // %lhs: [[1, 2], [3, 4]]
+  // %rhs: [[5, 6], [7, 8]]
+  %result = stablehlo.xor %lhs, %rhs : tensor<2x2xsi32>
+  // %result: [[4, 4], [4, 12]]
 
 // Logical operation with with boolean tensors
-  // %x: [[false, false], [true, true]]
-  // %y: [[false, true], [false, true]]
-  %z = stablehlo.xor %x, %y : tensor<2x2xpred>
-  // %z: [[false, true], [true, false]]
+  // %lhs: [[false, false], [true, true]]
+  // %rhs: [[false, true], [false, true]]
+  %result = stablehlo.xor %lhs, %rhs : tensor<2x2xpred>
+  // %result: [[false, true], [true, false]]
 ```
