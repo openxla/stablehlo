@@ -24,6 +24,7 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
+#include "stablehlo/dialect/ChloBytecode.h"
 
 // Include order matters
 #include "stablehlo/dialect/ChloEnums.cpp.inc"
@@ -526,6 +527,8 @@ ChloDialect::ChloDialect(MLIRContext* context)
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/ChloAttrs.cpp.inc"
       >();
+
+  addBytecodeInterface(this);
 }
 
 Operation* ChloDialect::materializeConstant(OpBuilder& builder, Attribute value,

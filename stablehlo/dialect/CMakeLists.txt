@@ -55,6 +55,7 @@ add_public_tablegen_target(ChloOpsIncGen)
 add_mlir_dialect_library(ChloOps
   PARTIAL_SOURCES_INTENDED
   ChloOps.cpp
+  ChloBytecode.cpp
 
   DEPENDS
   ChloOpsIncGen
