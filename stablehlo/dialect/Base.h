@@ -84,7 +84,7 @@ namespace bytecode {
 // Enum reader and writer. Many attrs have a single enum type to serialize.
 // Use the attributes underlying type to get the numeric value.
 // Note this may cause issues if enums use an int64_t and have a large value.
-// All enums in CHLO currently use int32_t.
+// All enums in StableHLO and CHLO currently use uint32_t.
 template <typename EnumTypeAttr, typename SymbolizeFn>
 EnumTypeAttr readEnumAttribute(DialectBytecodeReader &reader,
                                MLIRContext *context, SymbolizeFn symbolizeFn) {
