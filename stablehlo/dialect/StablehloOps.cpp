@@ -407,39 +407,39 @@ bool compatibleShapeAndElementType(Type type1, Type type2,
 }
 
 LogicalResult verifyReducerShape(
-    Location loc, Block& block, ArrayRef<TensorType> inputArgTypes,
+    Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
     ArrayRef<TensorType> initValueTypes, int64_t numInputs,
     ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
     SmallVectorImpl<TensorType>& accumulatorSubShapes) {
   // Check that the number of reduction-region arguments matches with that of
   // reduce-op's arguments.
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
-    return mlir::emitError(loc)
-           << "Reduction-region must take " << numInputs * 2
-           << " parameters, but takes " << block.getArguments().size()
-           << " parameter(s)";
+    return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
+                             " parameters, but takes ",
+                             block.getArguments().size(), " parameter(s)");
 
   // Check if the reduction-region produces non-zero outputs.
   if (block.getTerminator()->getOperands().empty())
-    return mlir::emitError(loc)
-           << "The reduction-region expected to return some value(s)";
+    return emitOptionalError(
+        loc, "The reduction-region expected to return some value(s)");
 
   // Check that the reduction-region returns list- of tensors.
   // The number of result-tensors must match the `numInputs`.
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
-    return mlir::emitError(loc)
-           << "Reduction-region here must produce " << numInputs
-           << " tensors, but produces "
-           << block.getTerminator()->getOperands().size() << " instead";
+    return emitOptionalError(loc, "Reduction-region here must produce ",
+                             numInputs, " tensors, but produces ",
+                             block.getTerminator()->getOperands().size(),
+                             " instead");
 
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto tensorTy = retOperand.getType().dyn_cast<TensorType>();
     if (!tensorTy)
-      return mlir::emitError(loc) << "Reduction-region here must produce "
-                                     "tensor-typed result(s), but "
-                                     "produces "
-                                  << retOperand.getType() << " instead";
+      return emitOptionalError(loc,
+                               "Reduction-region here must produce "
+                               "tensor-typed result(s), but "
+                               "produces ",
+                               retOperand.getType(), " instead");
 
     accumulatorSubShapes.push_back(tensorTy);
   }
@@ -478,45 +478,42 @@ LogicalResult verifyReducerShape(
     // Check C1.
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
-      return mlir::emitError(loc)
-             << "The type of reduction-region's parameter at index " << inputIdx
-             << " is different than the corresponding result type: "
-             << block.getArgument(inputIdx).getType() << " vs "
-             << accumulatorSubShapes[inputIdx];
+      return emitOptionalError(
+          loc, "The type of reduction-region's parameter at index ", inputIdx,
+          " is different than the corresponding result type: ",
+          block.getArgument(inputIdx).getType(), " vs ",
+          accumulatorSubShapes[inputIdx]);
 
     // Check C2.
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
             /*ignoreFpPrecision=*/true))
-      return mlir::emitError(loc)
-             << "The type of reduction-region's parameter at index "
-             << numInputs + inputIdx
-             << " is different than the corresponding result type: "
-             << block.getArgument(numInputs + inputIdx).getType() << " vs "
-             << accumulatorSubShapes[inputIdx];
+      return emitOptionalError(
+          loc, "The type of reduction-region's parameter at index ",
+          numInputs + inputIdx,
+          " is different than the corresponding result type: ",
+          block.getArgument(numInputs + inputIdx).getType(), " vs ",
+          accumulatorSubShapes[inputIdx]);
 
     // Check C3.
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
-      return mlir::emitError(loc)
-             << "The type of reduction-region's result type at index "
-             << inputIdx
-             << " differs from the op's corresponding init-value type: "
-             << accumulatorSubShapes[inputIdx] << " vs "
-             << initValueTypes[inputIdx];
+      return emitOptionalError(
+          loc, "The type of reduction-region's result type at index ", inputIdx,
+          " differs from the op's corresponding init-value type: ",
+          accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
     // Check C4.1.
     if (!tensorsHaveSameElType(
             inputArgTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
-      return mlir::emitError(loc)
-             << "The element-type of reduction-region's argument at index "
-             << numInputs + inputIdx << " is expected to be "
-             << inputArgTypes[inputIdx].getElementType() << ", but got "
-             << block.getArgument(numInputs + inputIdx).getType()
-             << " as its type.";
+      return emitOptionalError(
+          loc, "The element-type of reduction-region's argument at index ",
+          numInputs + inputIdx, " is expected to be ",
+          inputArgTypes[inputIdx].getElementType(), ", but got ",
+          block.getArgument(numInputs + inputIdx).getType(), " as its type.");
 
     // Check C4.2.
     Type blockArgType = block.getArgument(numInputs + inputIdx).getType();
@@ -526,11 +523,11 @@ LogicalResult verifyReducerShape(
 
     auto argShape = blockArgTensorTy.getShape();
     if (argShape.size() > allowedDimensions.size())
-      return mlir::emitError(loc)
-             << "The rank of reduction-region's argument at index "
-             << numInputs + inputIdx
-             << " is expected to be <= " << allowedDimensions.size() << ", got "
-             << argShape.size();
+      return emitOptionalError(
+          loc, "The rank of reduction-region's argument at index ",
+          numInputs + inputIdx,
+          " is expected to be <= ", allowedDimensions.size(), ", got ",
+          argShape.size());
 
     int64_t argShapeIdx = 0;
     for (int64_t outputShapeIdx = 0;
@@ -542,12 +539,12 @@ LogicalResult verifyReducerShape(
         argShapeIdx++;
 
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
-      return mlir::emitError(loc)
-             << "The shape of reduction-region's argument at index "
-             << numInputs + inputIdx
-             << " is not compatible with that of reduce-op's input-parameter "
-                "at index "
-             << inputIdx;
+      return emitOptionalError(
+          loc, "The shape of reduction-region's argument at index ",
+          numInputs + inputIdx,
+          " is not compatible with that of reduce-op's input-parameter "
+          "at index ",
+          inputIdx);
   }
 
   return success();
@@ -3954,18 +3951,18 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
 }
 
 LogicalResult ReduceOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Collect the input and init-value operands. Note that the operand-type is
   // enforced as "TensorType" by ODS.
   if (operands.size() % 2 != 0 || operands.size() == 0)
-    return emitOptionalError(location, "expects the size of operands to be even and >= 2");
+    return emitOptionalError(
+        location, "expects the size of operands to be even and >= 2");
   int64_t numInputs = operands.size() / 2;
   auto operandTensorTypes = llvm::to_vector<4>(llvm::map_range(
       operands.getTypes(),
-      [](Type t) -> TensorType
-      { return t.cast<TensorType>(); }));
+      [](Type t) -> TensorType { return t.cast<TensorType>(); }));
   ArrayRef<TensorType> inputArgTypes(operandTensorTypes.begin(),
                                      operandTensorTypes.begin() + numInputs);
   ArrayRef<TensorType> initValueTypes(operandTensorTypes.begin() + numInputs,
@@ -4030,16 +4027,16 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
   }
 
   Block& block = adaptor.body().front();
-  SmallVector<TensorType> accumulatorSubShapes;
-  if (failed(verifyReducerShape(location.getValue(), block, inputArgTypes,
-                                initValueTypes, numInputs, newDimensions,
-                                allInputsUnranked, accumulatorSubShapes)))
+  SmallVector<TensorType> accumulatorResultTypes;
+  if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
+                                numInputs, newDimensions, allInputsUnranked,
+                                accumulatorResultTypes)))
     return failure();
-  
-  for (auto resultType : accumulatorSubShapes)
-  {
+
+  for (auto resultType : accumulatorResultTypes) {
     if (resultType.isa<RankedTensorType>())
-      inferredReturnShapes.emplace_back(newDimensions, resultType.getElementType());
+      inferredReturnShapes.emplace_back(newDimensions,
+                                        resultType.getElementType());
     else
       inferredReturnShapes.emplace_back(resultType.getElementType());
   }
