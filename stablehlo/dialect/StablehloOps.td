@@ -1479,7 +1479,6 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [NoSideEffect,
     I64Attr:$feature_index
   );
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
   let results = (outs
       RankedTensorOf<[HLO_Float]>:$grad_operand,
       1DTensorOf<[HLO_Float]>:$grad_scale,
