@@ -2313,7 +2313,7 @@ LogicalResult verifyBatchNorm(Location loc, Value operand,
 
   const int64_t featureCount = operandType.getDimSize(feature_index);
   const int64_t scaleShape =
-      scale.getType().cast<RankedTensorType>().getShape()[0];
+      scale.getType().cast<RankedTensorType>().getDimSize(0);
   // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
   // this also infers that featureCount is aligned with them.
   if (scaleShape != featureCount)
@@ -2341,11 +2341,10 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
   BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
 
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.getShape(),
-                                    operandType.getElementType());
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
   const int64_t featureCount = operandType.getDimSize(adaptor.feature_index());
-  SmallVector<int64_t> featureShape({featureCount});
+  SmallVector<int64_t> featureShape{featureCount};
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   return success();
@@ -2370,11 +2369,10 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
   BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
 
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.getShape(),
-                                    operandType.getElementType());
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
   const int64_t featureCount = operandType.getDimSize(adaptor.feature_index());
-  SmallVector<int64_t> featureShape({featureCount});
+  SmallVector<int64_t> featureShape{featureCount};
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   return success();
@@ -2398,8 +2396,7 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.getShape(),
-                                    operandType.getElementType());
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
 
@@ -2808,8 +2805,7 @@ LogicalResult ClampOp::inferReturnTypeComponents(
   ClampOp::Adaptor adaptor(operands, attributes, regions);
   RankedTensorType operandType =
       adaptor.operand().getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.getShape(),
-                                    operandType.getElementType());
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
 
