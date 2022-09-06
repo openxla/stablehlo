@@ -22,7 +22,7 @@ Following are the supported element types in StableHLO:
  * **Complex types** represents a pair of floating-point types. Supported ones
  are `c64` (represents paired `f32`) and `c128` (represents paired `f64`).
 
-StableHLO supports a type `tensor`, to model the type of a n-dimensional
+StableHLO supports a shaped tensor to model the type of a n-dimensional
 array, represented in the opset as `tensor<SxE>` such that
 
   * Shape `S` is a list of number of elements in each of the dimensions and
@@ -197,27 +197,22 @@ logical operation.
 
 Produces a `result` tensor from a constant `value`.
 
-### Attributes
-
-| Name | Type |
-|-|-|
-| `value` | `tensor` of any supported type |
-
 ### Operands 
 
 | Name | Type |
 |-|-|
-| `value` | Constant n-dimensional data of any supported type |
+| `value` | tensor of any supported types |
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | `tensor` of any supported type |
+| `result` | tensor of any supported types |
 
 ### Constraints
 
   * Supported shapes: all static shapes.
+  * `result` must have the type as that of `value`.
 
 ### Examples
 
