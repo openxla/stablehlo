@@ -15,9 +15,3 @@ body:
         What would you like added or changed?
     validations:
       required: true
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Add any other context about your request here.
-      placeholder: For example, is a similar feature already implemented?
