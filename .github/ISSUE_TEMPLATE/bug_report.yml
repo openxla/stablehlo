@@ -35,9 +35,3 @@ body:
       label: Version information
       description: What version of our software are you using?
       placeholder: This could be a git commit hash.
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Add any other context about the problem here.
-      placeholder: For example, did what you were trying work before?
