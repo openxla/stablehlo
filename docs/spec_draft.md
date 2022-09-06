@@ -83,15 +83,15 @@ The specification of an op comprises of the following components (in the order
   * **Examples** Examples demonstrating the working of the op.
 
 
-## Index of documented ops
-   * [AddOp](#stablehloadd)
-   * [AndOp](#stablehloand)
-   * [ConstantOp](#stablehloconstant)
-   * [MaxOp](#stablehlomaximum)
-   * [MinOp](#stablehlominimum)
-   * [NotOp](#stablehlonot)
-   * [OrOp](#stablehloor)
-   * [XorOp](#stablehloxor)
+## Index of Documented Ops
+   * [add](#stablehloadd)
+   * [and](#stablehloand)
+   * [constant](#stablehloconstant)
+   * [max](#stablehlomaximum)
+   * [min](#stablehlominimum)
+   * [not](#stablehlonot)
+   * [or](#stablehloor)
+   * [xor](#stablehloxor)
 
 ## stablehlo.add
 
@@ -140,7 +140,7 @@ specification.
 // %z: [[6, 8], [10, 12]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.and
 
@@ -187,7 +187,7 @@ logical operation.
   // %z: [[false, false], [false, true]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.constant
 
@@ -238,7 +238,7 @@ Produces a `result` tensor from a constant `value`.
 // %3: [(0.0, 1.0), (2.0, 3.0)]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.maximum
 
@@ -280,7 +280,7 @@ the (real, imaginary) pairs.
 // %result: [[5, 6], [7, 8]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.minimum
 
@@ -322,7 +322,7 @@ the (real, imaginary) pairs.
 // %result: [[1, 2], [3, 4]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.not
 
@@ -361,7 +361,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
   // %z: [false, true]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.or
 
@@ -408,7 +408,7 @@ operation.
   // %z: [[false, true], [true, true]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.xor
 
@@ -456,4 +456,4 @@ logical operation.
   // %z: [[false, true], [true, false]]
 ```
 
-[top](#index-of-documented-ops)
+[Back to Ops](#index-of-documented-ops)
