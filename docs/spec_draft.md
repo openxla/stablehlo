@@ -111,7 +111,7 @@ of the followings:
       underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
         unsigned underflow).
 
-For floating-point element types, implements the addition operation from the
+For floating-point element types, implements the `addition` operation from the
 IEEE-754 specification.
 
 ### Operands
@@ -244,7 +244,7 @@ Produces a `result` tensor from a constant `value`.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element types, implements the maxNum
+`result` tensor. For floating-point element types, implements the `maximum`
 operation from the IEEE-754 specification. For complex element type,  performs
 lexicographic comparison on the (real, imaginary) pairs.
 
@@ -285,7 +285,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element types, implements the minNum
+`result` tensor. For floating-point element types, implements the `minimum`
 operation from the IEEE-754 specification. For complex element type,  performs
 lexicographic comparison on the (real, imaginary) pairs.
 
