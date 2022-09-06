@@ -236,6 +236,49 @@ func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex> {
   func.return %1 : tensor<3x9xindex>
 }
 
+// -----
+
+// CHECK-LABEL: func @batch_norm_grad 
+func.func @batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %mean: tensor<2xf32>, %variance: tensor<2xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xindex> {
+  %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  // CHECK: (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0#0) : (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xindex> 
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %2 = "hlo_test_infer.get_return_type_components"(%0#1) : (tensor<2xf32>) -> tensor<2xindex> 
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %3 = "hlo_test_infer.get_return_type_components"(%0#2) : (tensor<2xf32>) -> tensor<2xindex> 
+  func.return %1 : tensor<2x2x2x2xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @batch_norm_train
+func.func @batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xindex> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  // CHECK: (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0#0) : (tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xindex> 
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %2 = "hlo_test_infer.get_return_type_components"(%0#1) : (tensor<2xf32>) -> tensor<2xindex> 
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %3 = "hlo_test_infer.get_return_type_components"(%0#2) : (tensor<2xf32>) -> tensor<2xindex> 
+  func.return %1 : tensor<2x2x2x2xindex>
+}
+
+// -----
+// CHECK-LABEL: @batch_norm_inference 
+func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xindex>) {
+  %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 1 : i64} :
+      (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>,
+        tensor<256xf32>) -> tensor<4x256xf32>
+  // CHECK: (tensor<4x256xf32>) -> tensor<4x256xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<4x256xf32>) -> tensor<4x256xindex> 
+  func.return %1 : tensor<4x256xindex>
+}
+
+//===----------------------------------------------------------------------===//
+// Sparsity
+//===----------------------------------------------------------------------===//
+
 #CSR = #sparse_tensor.encoding<{
   dimLevelType = ["dense", "compressed"]
 }>
@@ -308,6 +351,10 @@ func.func @complex_sparsity(%arg0: tensor<10x10xf32, #CSR>, %arg1: tensor<10x10x
 // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<10x10xcomplex<f32>, {{.*}}>} : (tensor<10x10xcomplex<f32>>) -> tensor<10x10xindex>
   func.return %1 : tensor<10x10xindex>
 }
+
+//===----------------------------------------------------------------------===//
+// Bounded Dynamism
+//===----------------------------------------------------------------------===//
 
 // -----
 

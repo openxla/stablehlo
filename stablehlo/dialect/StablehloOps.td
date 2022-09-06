@@ -1482,7 +1482,8 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [NoSideEffect,
         "grad_offset"]>,
     AllShapesMatch<["operand", "grad_output"]>,
     AllElementTypesMatch<["operand", "grad_scale", "grad_offset"]>,
-    AllTypesMatch<["operand", "grad_operand"]>]> {
+    AllTypesMatch<["operand", "grad_operand"]>,
+    InferTensorType]> {
   let summary = "Batch Normalization Gradient";
   let description = [{
     Calculates gradients of batch norm.
@@ -1500,7 +1501,6 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [NoSideEffect,
     I64Attr:$feature_index
   );
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
   let results = (outs
       RankedTensorOf<[HLO_Float]>:$grad_operand,
       1DTensorOf<[HLO_Float]>:$grad_scale,
@@ -1511,7 +1511,8 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [NoSideEffect,
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     [NoSideEffect, AllTypesMatch<["operand", "result"]>,
-    AllShapesMatch<["scale", "offset", "mean", "variance"]>]> {
+    AllShapesMatch<["scale", "offset", "mean", "variance"]>,
+    InferTensorType]> {
   let summary = "Batch Normalization for Inference";
   let description = [{
     Normalizes an array across batch and spatial dimensions.
@@ -1537,7 +1538,8 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
     [NoSideEffect, AllTypesMatch<["operand", "output"]>,
     AllElementTypesMatch<["operand", "batch_mean", "batch_var"]>,
-    AllShapesMatch<["scale", "offset", "batch_mean", "batch_var"]>]> {
+    AllShapesMatch<["scale", "offset", "batch_mean", "batch_var"]>,
+    InferTensorType]> {
   let summary = "Batch Normalization for Training";
   let description = [{
     Normalizes an array across batch and spatial dimensions.
