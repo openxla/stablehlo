@@ -219,20 +219,20 @@ Produces a `result` tensor from a constant `value`.
 ### Examples
 
 ```mlir
-%0 = stablehlo.constant dense<true> : tensor<pred>
-// %0: true 
+%result = stablehlo.constant dense<true> : tensor<pred>
+// %result: true 
 
-%1 = stablehlo.constant dense<0> : tensor<i32>
-// %1: 0
+%result = stablehlo.constant dense<0> : tensor<i32>
+// %result: 0
 
-%2 = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
-// %2: [
+%result = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+// %result: [
 //       [0.0, 1.0],
 //       [2.0, 3.0]
 //     ]
 
-%3 = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
-// %3: [(0.0, 1.0), (2.0, 3.0)]
+%result = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
+// %result: [(0.0, 1.0), (2.0, 3.0)]
 ```
 
 [Back to Ops](#index-of-documented-ops)
@@ -335,6 +335,9 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 | `operand` | tensor of integer or boolean element types |
 
 ### Results
+
+| Name | Type |
+|-|-|
 | `result` | tensor of integer or boolean element types |
 
 ### Constraints
