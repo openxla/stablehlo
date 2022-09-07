@@ -577,7 +577,6 @@ implementation-defined.
 Performs element-wise tanh operation on `operand` tensor and produces a `result`
 tensor, according to the IEEE-754 specification. Numeric precision is
 implementation-defined.
-$$tanh(x)=\frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}$$
 
 ### Operands
 
