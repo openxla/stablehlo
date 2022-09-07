@@ -263,7 +263,7 @@ Produces a `result` tensor from a constant `value`.
 
 ```mlir
 %result = stablehlo.constant dense<true> : tensor<pred>
-// %result: true 
+// %result: true
 
 %result = stablehlo.constant dense<0> : tensor<i32>
 // %result: 0
@@ -287,8 +287,8 @@ Produces a `result` tensor from a constant `value`.
 ### Semantics
 
 Performs element-wise cosine operation on `operand` tensor and produces a
-`result` tensor, according to the IEEE-754 specification. Numeric precision is
-implementation-defined.
+`result` tensor, implementing the `cos` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
 
 ### Operands
 
@@ -535,8 +535,8 @@ operation.
 ### Semantics
 
 Performs element-wise sine operation on `operand` tensor and produces a `result`
-tensor, according to the IEEE-754 specification. Numeric precision is
-implementation-defined.
+tensor, implementing the `sin` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
 
 ### Operands
 
@@ -575,8 +575,8 @@ implementation-defined.
 ### Semantics
 
 Performs element-wise tanh operation on `operand` tensor and produces a `result`
-tensor, according to the IEEE-754 specification. Numeric precision is
-implementation-defined.
+tensor, implementing the `tanh` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
 
 ### Operands
 
