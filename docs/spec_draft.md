@@ -107,8 +107,7 @@ The specification of an op comprises of the following components (in the order
 
 Performs element-wise absolute value of `operand` tensor and produces a `result`
 tensor. For floating-point element types, implements the `abs` operation from
-the IEEE-754 specification. For a complex value `(a, b)`, the absolute value is
-defined as $\sqrt(a^2 + b^2)$.
+the IEEE-754 specification.
 
 For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation
 defined and one of the following:
@@ -121,13 +120,13 @@ defined and one of the following:
 
 | Name | Type |
 |-|-|
-| `operand` | tensor of signed integer, floating-point, or complex element types |
+| `operand` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | tensor of signed integer, floating-point, or complex element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
@@ -467,14 +466,15 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 Performs element-wise negation of `operand` tensor and produces a `result`
 tensor. For floating-point element types, implements the `nagate` operation from
-the IEEE-754 specification. For complex types, the operation negates both the
-real and the imaginary parts.
+the IEEE-754 specification. For integer types, performs the [two's complement](https://en.wikipedia.org/wiki/Two's_complement)
+operation.
 
-For n-bit signed integer, the negation of $-2^{n-1}$ is implementation
-defined and one of the following:
+For n-bit signed integer, the negation of $-2^{n-1}$ is implementation defined
+and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
+
 
 ### Operands
 
