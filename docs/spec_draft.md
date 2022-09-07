@@ -465,29 +465,30 @@ lexicographic comparison on the (real, imaginary) pairs.
 ### Semantics
 
 Performs element-wise negation of `operand` tensor and produces a `result`
-tensor. For floating-point element types, implements the `nagate` operation from
-the IEEE-754 specification. For integer types, performs the [two's complement](https://en.wikipedia.org/wiki/Two's_complement)
-operation.
-
-For n-bit signed integer, the negation of $-2^{n-1}$ is implementation defined
+tensor. For floating-point element types, implements the `negate` operation from
+the IEEE-754 specification. For signed integer types, performs the regular
+negation operation, where the negation of $-2^{n-1}$ is implementation defined
 and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
 
+For unsigned integer types, bitcasts to the corresponding signed integer type,
+    performs the regular negation operation and bitcasts back to the original
+    unsigned integer type.
 
 ### Operands
 
 | Name | Type |
 |-|-|
-| `operand` | tensor of signed integer, floating-point, or complex element types |
+| `operand` | tensor of integer, floating-point, or complex element types |
 
 
 ### Results
 
 | Name | Type |
 |-|-|
-| `result` | tensor of signed integer, floating-point, or complex element types |
+| `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
 
