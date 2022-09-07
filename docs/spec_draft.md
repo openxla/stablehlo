@@ -199,10 +199,9 @@ logical operation.
 
 ### Semantics
 
-Performs element-wise ceil of `operand` tensor and produces a `result` tensor,
-         where ceil of a floating-point value is defined as the smallest integer
-         greater than or equal to the value. Implements the rounding to integral
-         towards positive infinity operation from the IEEE-754 specification.
+Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
+Implements the rounding to integral towards positive infinity operation from the
+IEEE-754 specification.
 
 ### Operands
 
@@ -284,10 +283,9 @@ Produces a `result` tensor from a constant `value`.
 
 ### Semantics
 
-Performs element-wise floor of `operand` tensor and produces a `result` tensor,
-         where floor of a floating-point value is defined as the largest integer
-         less than or equal to the value. Implements the rounding to integral
-         towards negative infinity operation from the IEEE-754 specification.
+Performs element-wise floor of `operand` tensor and produces a `result` tensor.
+Implements the rounding to integral towards negative infinity operation from the
+IEEE-754 specification.
 
 ### Operands
 
