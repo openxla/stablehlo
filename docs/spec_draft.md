@@ -90,11 +90,14 @@ The specification of an op comprises of the following components (in the order
    * [and](#stablehloand)
    * [ceil](#stablehloceil)
    * [constant](#stablehloconstant)
+   * [cosine](#stablehlocosine)
    * [floor](#stablehlofloor)
    * [max](#stablehlomaximum)
    * [min](#stablehlominimum)
    * [not](#stablehlonot)
    * [or](#stablehloor)
+   * [sine](#stablehlosine)
+   * [tanh](#stablehlotanh)
    * [xor](#stablehloxor)
 
 ## stablehlo.add
@@ -277,6 +280,46 @@ Produces a `result` tensor from a constant `value`.
 
 [Back to Ops](#index-of-documented-ops)
 
+## stablehlo.cosine
+
+`stablehlo.cosine(operand) -> result`
+
+### Semantics
+
+Performs element-wise cosine operation on `operand` tensor and produces a
+`result` tensor, according to the IEEE-754 specification. Numeric precision is
+implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [
+              [0.0, 1.57079632],       // [0, pi/2]
+              [3.14159265, 4.71238898] // [pi, 3pi/2]
+             ]
+%result = stablehlo.cosine %operand : tensor<2x2xf32>
+// %result: [[1.0, 0.0], [-1.0, 0.0]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
 ## stablehlo.floor
 
 `stablehlo.floor(operand) -> result`
@@ -292,7 +335,6 @@ IEEE-754 specification.
 | Name | Type |
 |-|-|
 | `operand` | tensor of floating-point element types |
-
 
 ### Results
 
@@ -482,6 +524,84 @@ operation.
   // %rhs: [[false, true], [false, true]]
   %result = stablehlo.or %lhs, %rhs : tensor<2x2xpred>
   // %result: [[false, true], [true, true]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.sine
+
+`stablehlo.sine(operand) -> result`
+
+### Semantics
+
+Performs element-wise sine operation on `operand` tensor and produces a `result`
+tensor, according to the IEEE-754 specification. Numeric precision is
+implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [
+              [0.0, 1.57079632],       // [0, pi/2]
+              [3.14159265, 4.71238898] // [pi, 3pi/2]
+             ]
+%result = stablehlo.sine %operand : tensor<2x2xf32>
+// %result: [[0.0, 1.0], [0.0, -1.0]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.tanh
+
+`stablehlo.tanh(operand) -> result`
+
+### Semantics
+
+Performs element-wise tanh operation on `operand` tensor and produces a `result`
+tensor, according to the IEEE-754 specification. Numeric precision is
+implementation-defined.
+$$tanh(x)=\frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}$$
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [-1.0, 0.0, 1.0]
+%result = stablehlo.tanh %operand : tensor<3xf32>
+// %result: [-0.76159416, 0.0, 0.76159416]
 ```
 
 [Back to Ops](#index-of-documented-ops)
