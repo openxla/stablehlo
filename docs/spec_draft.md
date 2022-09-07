@@ -111,7 +111,7 @@ the IEEE-754 specification. For a complex value `(a, b)`, the absolute value is
 defined as $\sqrt(a^2 + b^2)$.
 
 For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation
-defined and one of the followings:
+defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
@@ -168,7 +168,7 @@ defined and one of the followings:
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise sum has an
 unsigned/signed overflow/underflow, the result is implementation-defined and one
-of the followings:
+of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
@@ -471,7 +471,7 @@ the IEEE-754 specification. For complex types, the operation negates both the
 real and the imaginary parts.
 
 For n-bit signed integer, the negation of $-2^{n-1}$ is implementation
-defined and one of the followings:
+defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
