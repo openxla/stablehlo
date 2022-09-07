@@ -18,8 +18,10 @@ Following are the supported element types in StableHLO:
     format](https://ieeexplore.ieee.org/document/8766229).
     * Bfloat16 `bf16` floating-point complying with [Brain Floating-Point Format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
     Provides the same number of exponent bits as `f32`, so that it matches its
-    dynamic range, but with greatly reduced precision.
- * **Complex types** represents a pair of floating-point types. Supported ones
+    dynamic range, but with greatly reduced precision. This also ensures
+    identical behavior for underflows, overflows, and NaNs. However, `bf16`
+    handles denormals differently from `f32`: it flushes them to zero.
+  * **Complex types** represents a pair of floating-point types. Supported ones
  are `c64` (represents paired `f32`) and `c128` (represents paired `f64`).
 
 StableHLO supports a shaped tensor to model the type of a n-dimensional
@@ -109,8 +111,8 @@ of the followings:
       underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
         unsigned underflow).
 
-For floating-point element types, corner cases are defined by the IEEE-754
-specification.
+For floating-point element types, implements the `addition` operation from the
+IEEE-754 specification.
 
 ### Operands
 
@@ -217,20 +219,20 @@ Produces a `result` tensor from a constant `value`.
 ### Examples
 
 ```mlir
-%0 = stablehlo.constant dense<true> : tensor<pred>
-// %0: true 
+%result = stablehlo.constant dense<true> : tensor<pred>
+// %result: true 
 
-%1 = stablehlo.constant dense<0> : tensor<i32>
-// %1: 0
+%result = stablehlo.constant dense<0> : tensor<i32>
+// %result: 0
 
-%2 = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
-// %2: [
+%result = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+// %result: [
 //       [0.0, 1.0],
 //       [2.0, 3.0]
 //     ]
 
-%3 = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
-// %3: [(0.0, 1.0), (2.0, 3.0)]
+%result = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
+// %result: [(0.0, 1.0), (2.0, 3.0)]
 ```
 
 [Back to Ops](#index-of-documented-ops)
@@ -242,10 +244,9 @@ Produces a `result` tensor from a constant `value`.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element type, implements IEEE 754 semantics:
-Returns the larger of two operands, propagating `NaN`s and treating `-0` as
-less than `+0`. For complex element type,  performs lexicographic comparison on
-the (real, imaginary) pairs.
+`result` tensor. For floating-point element types, implements the `maximum`
+operation from the IEEE-754 specification. For complex element type,  performs
+lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
 
@@ -284,10 +285,9 @@ the (real, imaginary) pairs.
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element type, implements IEEE 754 semantics:
-Returns the smaller of two operands, propagating `NaN`s and treating `-0` as
-less than `+0`. For complex element type,  performs lexicographic comparison on
-the (real, imaginary) pairs.
+`result` tensor. For floating-point element types, implements the `minimum`
+operation from the IEEE-754 specification. For complex element type,  performs
+lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
 
@@ -335,6 +335,9 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 | `operand` | tensor of integer or boolean element types |
 
 ### Results
+
+| Name | Type |
+|-|-|
 | `result` | tensor of integer or boolean element types |
 
 ### Constraints
