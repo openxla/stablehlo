@@ -650,8 +650,9 @@ operation.
 
 ### Semantics
 
-Performs element-wise reciprocal square root operation on `operand` tensor and produces a `result` tensor.
-$$rsqrt(x) = \frac{1}{\sqrt{x}}$$
+Performs element-wise reciprocal square root operation on `operand` tensor and
+produces a `result` tensor, implementing the `rSqrt` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
 
 ### Operands
 
@@ -726,7 +727,9 @@ specification. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Performs element-wise square root operation on `operand` tensor and produces a `result` tensor.
+Performs element-wise square root operation on `operand` tensor and produces a
+`result` tensor, implementing the `sqrt` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
 
 ### Operands
 
