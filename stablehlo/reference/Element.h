@@ -16,6 +16,11 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_ELEMENT_H
 #define STABLHLO_REFERENCE_ELEMENT_H
 
+#include <variant>
+#include <vector>
+
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
@@ -27,7 +32,7 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, Attribute value) : type_(type), value_(value) {}
+  Element(Type type, Attribute attr);
 
   Element(const Element &other) = default;
   /// @}
@@ -39,7 +44,7 @@ class Element {
   Type getType() const { return type_; }
 
   /// Returns the underlying storage of Element object.
-  Attribute getValue() const { return value_; }
+  Attribute getValue() const;
 
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
@@ -55,7 +60,7 @@ class Element {
 
  private:
   Type type_;
-  Attribute value_;
+  std::variant<APInt, std::vector<APFloat>> value_;
 };
 
 /// Returns element-wise ceil of Element object.
