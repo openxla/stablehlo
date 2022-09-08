@@ -98,7 +98,9 @@ The specification of an op comprises of the following components (in the order
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
+   * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
+   * [sqrt](#stablehlosqrt)
    * [tanh](#stablehlotanh)
    * [xor](#stablehloxor)
 
@@ -642,6 +644,47 @@ operation.
 
 [Back to Ops](#index-of-documented-ops)
 
+## stablehlo.rsqrt
+
+`stablehlo.rsqrt(operand) -> result`
+
+### Semantics
+
+Performs element-wise reciprocal square root operation on `operand` tensor and
+produces a `result` tensor, implementing the `rSqrt` operation from the IEEE-754
+specification. Numeric precision is implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [[1.0, 4.0], [9.0, 25.0]]
+%result = stablehlo.rsqrt %operand : tensor<2x2xf32>
+// %result: [[1.0, 0.5], [0.33333343, 0.2]]
+
+// %operand: [(1.0, 2.0)]
+%result = stablehlo.rsqrt %operand : tensor<complex<f32>>
+// %result: [(0.56886448, -0.35157758)]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
 ## stablehlo.sine
 
 `stablehlo.sine(operand) -> result`
@@ -678,6 +721,47 @@ specification. Numeric precision is implementation-defined.
              ]
 %result = stablehlo.sine %operand : tensor<2x2xf32>
 // %result: [[0.0, 1.0], [0.0, -1.0]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.sqrt
+
+`stablehlo.sqrt(operand) -> result`
+
+### Semantics
+
+Performs element-wise square root operation on `operand` tensor and produces a
+`result` tensor, implementing the `squareRoot` operation from the IEEE-754
+specification.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * Supported shapes: all static shapes.
+  * `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [4.0, 9.0]]
+%result = stablehlo.sqrt %operand : tensor<2x2xf32>
+// %result: [[0.0, 1.0], [2.0, 3.0]]
+
+// %operand: [(1.0, 2.0)]
+%result = stablehlo.sqrt %operand : tensor<complex<f32>>
+// %result: [(1.27201965, 0.78615138)]
 ```
 
 [Back to Ops](#index-of-documented-ops)
