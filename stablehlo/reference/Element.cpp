@@ -34,17 +34,6 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
 }
 
-bool areApproximatelyEqual(APFloat f, APFloat g) {
-  llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
-  if (cmpResult == APFloat::cmpEqual) return true;
-
-  if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
-
-  auto absFloat = abs(f - g);
-  APFloat err(f.getSemantics(), "1e-5");
-  return absFloat.compare(err) == APFloat::cmpLessThan;
-}
-
 bool isSupportedUnsignedIntegerType(Type type) {
   return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
          type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
@@ -129,42 +118,6 @@ Element Element::operator+(const Element &other) const {
   auto err = invalidArgument("Unsupported element type: %s",
                              debugString(type).c_str());
   report_fatal_error(std::move(err));
-}
-
-bool Element::operator==(const Element &other) const {
-  auto type = getType();
-  assert(type == other.getType());
-
-  if (isSupportedFloatType(type)) {
-    auto left = getFloatValue(*this);
-    auto right = getFloatValue(other);
-    return areApproximatelyEqual(left, right);
-  }
-
-  if (isSupportedIntegerType(type)) {
-    auto left = getIntegerValue(*this);
-    auto right = getIntegerValue(other);
-    return left == right;
-  }
-
-  if (isSupportedComplexType(type)) {
-    auto leftComplexValue = getComplexValue(*this);
-    auto rightComplexValue = getComplexValue(other);
-
-    return areApproximatelyEqual(leftComplexValue.real(),
-                                 rightComplexValue.real()) &&
-           areApproximatelyEqual(leftComplexValue.imag(),
-                                 rightComplexValue.imag());
-  }
-
-  // Report error.
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(type).c_str());
-  report_fatal_error(std::move(err));
-}
-
-bool Element::operator!=(const Element &other) const {
-  return !(*this == other);
 }
 
 void Element::print(raw_ostream &os) const { value_.print(os); }
