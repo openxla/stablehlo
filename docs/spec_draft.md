@@ -728,7 +728,7 @@ specification. Numeric precision is implementation-defined.
 ### Semantics
 
 Performs element-wise square root operation on `operand` tensor and produces a
-`result` tensor, implementing the `sqrt` operation from the IEEE-754
+`result` tensor, implementing the `squareRoot` operation from the IEEE-754
 specification. Numeric precision is implementation-defined.
 
 ### Operands
