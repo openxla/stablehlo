@@ -94,6 +94,7 @@ The specification of an op comprises of the following components (in the order
    * [cosine](#stablehlocosine)
    * [floor](#stablehlofloor)
    * [log](#stablehlolog)
+   * [logistic](#stablehlologistic)
    * [max](#stablehlomaximum)
    * [min](#stablehlominimum)
    * [negate](#stablehlonegate)
@@ -450,6 +451,48 @@ implementation-defined.
 // %operand: (1.0, 2.0)
 %result = stablehlo.log %operand : tensor<complex<f32>>
 // %result: (0.80471896, 1.10714871)
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.logistic
+
+`stablehlo.logistic(operand) -> result`
+
+### Semantics
+
+Performs element-wise logistic (sigmoid) function on `operand` tensor and
+produces a `result` tensor. For floating-point element types, it implements:
+$$logistic(x)=\frac{1}{1+e^{-x}}$$
+For complex element types, computes a complex logistic function, with corner
+cases TBD. Numeric precision is implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [2.0, 3.0]]
+%result = stablehlo.logistic %operand : tensor<2x2xf32>
+// %result: [[0.5, 0.73105858], [0.88079708, 0.95257413]]
+
+// %operand: (1.0, 2.0)
+%result = stablehlo.logistic %operand : tensor<complex<f32>>
+// %result: (1.02141536, 0.40343871)
 ```
 
 [Back to Ops](#index-of-documented-ops)
