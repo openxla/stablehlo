@@ -2438,7 +2438,8 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       RecursiveSideEffects,
       SameVariadicOperandSize,
-      SingleBlockImplicitTerminator<"ReturnOp">
+      SingleBlockImplicitTerminator<"ReturnOp">,
+      InferTensorType,
     ]> {
   let summary = "ReduceWindow operator";
   let description = [{
@@ -2448,9 +2449,6 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     See https://www.tensorflow.org/xla/operation_semantics#reducewindow.
   }];
 
-  // TODO(hinsu): Verify that padding attribute is 2-d and the remaining
-  // attributes are 1-d. Attributes' leading dimension should match rank of the
-  // operands.
   let arguments = (ins
     Variadic<HLO_Tensor>:$operands,
     Variadic<HLO_Tensor>:$init_values,
@@ -2466,8 +2464,6 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  // TODO(hinsu): Verify that the attached body arguments and results are
-  // compatible with reduce op's operands.
   let regions = (region SizedRegion<1>:$body);
 
   // Builder for non-variadic version of the operation.
@@ -2486,12 +2482,21 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     }]>
   ];
 
-  let hasVerifier = 1;
   // TODO(hinsu): Implement custom printer and parser.
 
   let extraClassDeclaration = [{
-     // Get the operation used for reduction applied to `result_index`th result.
-     Operation *getReductionOp(int result_index);
+    // Get the operation used for reduction applied to `result_index`th result.
+    Operation *getReductionOp(int result_index);
+
+    // Relax the strict default implementation with one that allows
+    // for StableHLO-specific differences.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      if (l.size() != r.size()) return false;
+      for (auto [lt, rt] : llvm::zip(l, r))
+        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
+          return false;
+      return true;
+    }
   }];
 }
 
