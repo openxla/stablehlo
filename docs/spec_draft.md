@@ -677,6 +677,10 @@ specification. Numeric precision is implementation-defined.
 // %operand: [[1.0, 4.0], [9.0, 25.0]]
 %result = stablehlo.rsqrt %operand : tensor<2x2xf32>
 // %result: [[1.0, 0.5], [0.33333343, 0.2]]
+
+// %operand: [(1.0, 2.0)]
+%result = stablehlo.rsqrt %operand : tensor<complex<f32>>
+// %result: [(0.56886448, -0.35157758)]
 ```
 
 [Back to Ops](#index-of-documented-ops)
@@ -729,7 +733,7 @@ specification. Numeric precision is implementation-defined.
 
 Performs element-wise square root operation on `operand` tensor and produces a
 `result` tensor, implementing the `squareRoot` operation from the IEEE-754
-specification. Numeric precision is implementation-defined.
+specification.
 
 ### Operands
 
@@ -754,6 +758,10 @@ specification. Numeric precision is implementation-defined.
 // %operand: [[0.0, 1.0], [4.0, 9.0]]
 %result = stablehlo.sqrt %operand : tensor<2x2xf32>
 // %result: [[0.0, 1.0], [2.0, 3.0]]
+
+// %operand: [(1.0, 2.0)]
+%result = stablehlo.sqrt %operand : tensor<complex<f32>>
+// %result: [(1.27201965, 0.78615138)]
 ```
 
 [Back to Ops](#index-of-documented-ops)
