@@ -44,12 +44,6 @@ class Element {
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
 
-  /// Overloaded == operator.
-  bool operator==(const Element &other) const;
-
-  /// Overloaded != operator.
-  bool operator!=(const Element &other) const;
-
   /// Print utilities for Element objects.
   void print(raw_ostream &os) const;
 
