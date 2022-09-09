@@ -136,8 +136,8 @@ defined and one of the following:
 
 ### Constraints
 
-  * (C1) `result` has the same shape as the `operand`.
-  * (C2) `result` has the same element type as the `operand` except when the
+  * (C1)  `operand` and `result` have the same shape.
+  * (C2)  `operand` and `result` have the same element type, except when the
   element type of the `operand` is complex type, in which case the element type
   of the `result` is the element type of the complex type (e.g. the element type
   of the `result` is `f64` for operand type `c128`).
@@ -438,7 +438,7 @@ implementation-defined.
 
 ### Constraints
 
-  * (C1) `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -851,7 +851,7 @@ logical operation.
 
 ## Constraints
 
-  * (C1) `operand` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ## Examples
 
