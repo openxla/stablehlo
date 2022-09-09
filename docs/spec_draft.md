@@ -93,6 +93,7 @@ The specification of an op comprises of the following components (in the order
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
    * [floor](#stablehlofloor)
+   * [log](#stablehlolog)
    * [max](#stablehlomaximum)
    * [min](#stablehlominimum)
    * [negate](#stablehlonegate)
@@ -407,6 +408,48 @@ IEEE-754 specification.
 // %x: [-0.8166, -0.2530, 0.2530, 0.8166, 2.0]
 %z = stablehlo.floor %x : tensor<5xf32>
 // %z: [-1.0, -1.0, 0.0, 0.0, 2.0]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.log
+
+`stablehlo.log(operand) -> result`
+
+### Semantics
+
+Performs element-wise logarithm operation on `operand` tensor and produces a
+`result` tensor. For floating-point element types, implements the `log`
+operation from the IEEE-754 specification. For complex element types, computes a
+complex logarithm, with corner cases TBD. Numeric precision is
+implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `result` must have the same type as that of `operand`.
+
+### Examples
+
+```mlir
+// %operand: [[1.0, 2.0], [3.0, 4.0]]
+%result = stablehlo.log %operand : tensor<2x2xf32>
+// %result: [[0.0, 0.69314718], [1.09861229, 1.38629436]]
+
+// %operand: (1.0, 2.0)
+%result = stablehlo.log %operand : tensor<complex<f32>>
+// %result: (0.80471896, 1.10714871)
 ```
 
 [Back to Ops](#index-of-documented-ops)
