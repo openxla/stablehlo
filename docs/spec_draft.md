@@ -81,7 +81,7 @@ The specification of an op comprises of the following components (in the order
   * **Semantics** Semantics of the operation.
   * **Operands** Meaning of operand(s) and their type(s).
   * **Results** Meaning of the result(s) and the type(s).
-  * **Constraints** Type constraints on the operand(s), result(s).
+  * **Constraints** Constraints on the operand(s), result(s).
   * **Examples** Examples demonstrating the working of the op.
 
 
@@ -135,12 +135,11 @@ defined and one of the following:
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same shape as the `operand`.
-  * `result` has the same element type as the `operand` except when the element
-  type of the `operand` is complex type, in which case the element type of the
-  `result` is the element type of the complex type (e.g. the element type of
-      `result` is `f64` for operand type `c128`).
+  * (C1) `result` has the same shape as the `operand`.
+  * (C2) `result` has the same element type as the `operand` except when the
+  element type of the `operand` is complex type, in which case the element type
+  of the `result` is the element type of the complex type (e.g. the element type
+  of the `result` is `f64` for operand type `c128`).
 
 ### Examples
 
@@ -197,9 +196,7 @@ IEEE-754 specification.
 
 ### Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `lhs` (or `rhs`).
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -237,9 +234,7 @@ logical operation.
 
 ## Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `lhs` (or `rhs`).
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ## Examples
 
@@ -284,8 +279,7 @@ IEEE-754 specification.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -305,7 +299,7 @@ IEEE-754 specification.
 
 Produces a `result` tensor from a constant `value`.
 
-### Operands 
+### Operands
 
 | Name | Type |
 |-|-|
@@ -319,8 +313,7 @@ Produces a `result` tensor from a constant `value`.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the type as that of `value`.
+  * (C1) `value` and `result` have the same type.
 
 ### Examples
 
@@ -367,8 +360,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -407,8 +399,7 @@ IEEE-754 specification.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -446,9 +437,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 ### Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the type as that of `lhs` (or `rhs`).
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -487,9 +476,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 ### Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the type as that of `lhs` (or `rhs`).
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -536,8 +523,7 @@ For unsigned integer types, bitcasts to the corresponding signed integer type,
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -578,8 +564,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -622,9 +607,7 @@ operation.
 
 ## Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `lhs` (or `rhs`).
+  * (C1) `operand` and `result` have the same type.
 
 ## Examples
 
@@ -668,8 +651,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -709,8 +691,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -749,8 +730,7 @@ specification.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -790,8 +770,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -829,9 +808,7 @@ logical operation.
 
 ## Constraints
 
-  * `lhs`, `rhs` have the same type.
-  * Supported shapes: all static shapes.
-  * `result` must have the same type as that of `lhs` (or `rhs`).
+  * (C1) `operand` and `result` have the same type.
 
 ## Examples
 
