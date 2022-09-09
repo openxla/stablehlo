@@ -92,6 +92,7 @@ The specification of an op comprises of the following components (in the order
    * [ceil](#stablehloceil)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
+   * [divide](#stablehlodivide)
    * [floor](#stablehlofloor)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
@@ -100,6 +101,7 @@ The specification of an op comprises of the following components (in the order
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
+   * [remainder](#stablehloremainder)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
    * [sqrt](#stablehlosqrt)
@@ -377,6 +379,51 @@ specification. Numeric precision is implementation-defined.
 
 [Back to Ops](#index-of-documented-ops)
 
+## stablehlo.divide
+
+`stablehlo.divide(dividend, divisor) -> result`
+
+### Semantics
+
+Performs element-wise division of tensors `dividend` and `divisor` and produces
+a `result` tensor. For floating-point element types, implements the `division`
+operation from IEEE-754 specification. For n-bit integer types, division
+overflow (division by zero or division of $-2^{n-1}$ with $-1$) produces an
+implementation-defined value.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `dividend` | tensor of integer, floating-point or complex element types |
+| `divisor` | tensor of integer, floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `dividend`, `divisor` and `result` have the same type.
+
+### Examples
+
+  ```mlir
+// %dividend: [17.1, -17.1, 17.1, -17.1]
+// %divisor: [3.0, 3.0, -3.0, -3.0]
+%result = stablehlo.divide %dividend, %divisor : tensor<4xf32>
+// %result: [5.66666651, -5.66666651, -5.66666651, 5.66666651]
+
+// %dividend: [17, -17, 17, -17]
+// %divisor: [3, 3, -3, -3]
+%result = stablehlo.divide %dividend, %divisor : tensor<4xi32>
+// %result: [5, -5, -5, 5]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
 ## stablehlo.floor
 
 `stablehlo.floor(operand) -> result`
@@ -506,7 +553,7 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, implements the `maximum`
-operation from the IEEE-754 specification. For complex element type,  performs
+operation from the IEEE-754 specification. For complex element type, performs
 lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
@@ -545,7 +592,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, implements the `minimum`
-operation from the IEEE-754 specification. For complex element type,  performs
+operation from the IEEE-754 specification. For complex element type, performs
 lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
@@ -710,6 +757,54 @@ operation.
   // %rhs: [[false, true], [false, true]]
   %result = stablehlo.or %lhs, %rhs : tensor<2x2xpred>
   // %result: [[false, true], [true, true]]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.remainder
+
+`stablehlo.remainder(dividend, divisor) -> result`
+
+### Semantics
+
+Performs element-wise remainder of tensors `dividend` and `divisor` and produces
+a `result` tensor. The sign of the result is taken from the dividend, and the
+absolute value of the result is always less than the divisor's absolute value.
+For floating-point element types, remainder of the any division operation `x/y`
+is calculated as `x - n*y`, where `n` is `x/y` with its fractional part
+truncated. The corner cases are TBD. For n-bit integer, division overflow
+(remainder by zero or remainder of $-2^{n-1}$ with $-1$) produces an
+implementation-defined value.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `dividend` | tensor of integer, floating-point or complex element types |
+| `divisor` | tensor of integer, floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `dividend`, `divisor` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %dividend: [17.1, -17.1, 17.1, -17.1]
+// %divisor: [3.0, 3.0, -3.0, -3.0]
+%result = stablehlo.remainder %dividend, %divisor : tensor<4xf32>
+// %result: [2.1, -2.1, 2.1, -2.1]
+
+// %dividend: [17, -17, 17, -17]
+// %divisor: [3, 3, -3, -3]
+%result = stablehlo.remainder %dividend, %divisor : tensor<4xi32>
+// %result: [2, -2, 2, -2]
 ```
 
 [Back to Ops](#index-of-documented-ops)
