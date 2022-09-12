@@ -18,12 +18,12 @@ if [[ $# -ne 3 ]] ; then
 fi
 
 LLVM_PROJ_DIR="$1"
-STABLEHLO_API_BUILD_DIR="$2"
+STABLEHLO_PYTHON_BUILD_DIR="$2"
 STABLEHLO_ROOT_DIR="$3"
 
-# Configure StableHLO Bindings
+# Configure StableHLO Python Bindings
 cmake -GNinja \
-  -B"$STABLEHLO_API_BUILD_DIR" \
+  -B"$STABLEHLO_PYTHON_BUILD_DIR" \
   $LLVM_PROJ_DIR/llvm \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_PROJECTS=mlir \
@@ -39,5 +39,5 @@ cmake -GNinja \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
 # Build and Check StableHLO Python Bindings
-cd "$STABLEHLO_API_BUILD_DIR"
+cd "$STABLEHLO_PYTHON_BUILD_DIR"
 ninja check-stablehlo-python

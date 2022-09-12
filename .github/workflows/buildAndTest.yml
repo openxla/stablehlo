@@ -25,10 +25,10 @@ concurrency:
 jobs:
   build-test:
     env:
-      LLVM_PROJ_DIR: "llvm-project"
+      LLVM_PROJECT_DIR: "llvm-project"
       LLVM_BUILD_DIR: "llvm-build"
       STABLEHLO_BUILD_DIR: "stablehlo-build"
-      STABLEHLO_API_BUILD_DIR: "stablehlo-api-build"
+      STABLEHLO_PYTHON_BUILD_DIR: "stablehlo-python-build"
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +58,7 @@ jobs:
     - name: Configure and Build LLVM os-arch='${{ matrix.os-arch }}'
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_llvm.sh "$LLVM_PROJ_DIR" "$LLVM_BUILD_DIR"
+        ./build_tools/github_actions/ci_build_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
 
     - name: Build and Test StableHLO os-arch='${{ matrix.os-arch }}'
       shell: bash
@@ -68,4 +68,4 @@ jobs:
     - name: Build and Test StableHLO Python API os-arch='${{ matrix.os-arch }}'
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_stablehlo_api.sh "$LLVM_PROJ_DIR" "$STABLEHLO_API_BUILD_DIR" "$GITHUB_WORKSPACE"
+        ./build_tools/github_actions/ci_build_stablehlo_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"

@@ -19,7 +19,7 @@ runs:
     with:
       repository: llvm/llvm-project
       ref: ${{ inputs.llvm-version }}
-      path: llvm-project 
+      path: llvm-project
       fetch-depth: 1
 
   # Get ninja for cmake build.
@@ -49,8 +49,4 @@ runs:
   - name: Install MLIR python requirements
     shell: bash
     run: |
-      pwd
-      ls
-      ls llvm-project
-      ls $GITHUB_WORKSPACE/llvm-project
       pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt
