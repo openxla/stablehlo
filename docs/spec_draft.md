@@ -481,7 +481,7 @@ cases TBD. Numeric precision is implementation-defined.
 
 ### Constraints
 
-  * (C1) `result` must have the same type as that of `operand`.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
