@@ -17,14 +17,14 @@ if [[ $# -ne 3 ]] ; then
   exit 1
 fi
 
-LLVM_PROJ_DIR="$1"
+LLVM_PROJECT_DIR="$1"
 STABLEHLO_PYTHON_BUILD_DIR="$2"
 STABLEHLO_ROOT_DIR="$3"
 
 # Configure StableHLO Python Bindings
 cmake -GNinja \
   -B"$STABLEHLO_PYTHON_BUILD_DIR" \
-  $LLVM_PROJ_DIR/llvm \
+  $LLVM_PROJECT_DIR/llvm \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_PROJECTS=mlir \
   -DLLVM_EXTERNAL_PROJECTS=stablehlo \
