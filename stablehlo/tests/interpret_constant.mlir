@@ -2,30 +2,30 @@
 
 // CHECK-LABEL: Evaluated results of function: constant_op_test_i32
 func.func @constant_op_test_i32() -> tensor<2x3xi32> {
-  %0 = stablehlo.constant dense<[[-1, -1, -1], [-1, -1, -1]]>: tensor<2x3xi32>
+  %0 = stablehlo.constant dense<[[1, 2, 3], [4, 5, 6]]>: tensor<2x3xi32>
   func.return %0 : tensor<2x3xi32>
   // CHECK-NEXT: tensor<2x3xi32>
-  // CHECK-NEXT: -1 : i32
-  // CHECK-NEXT: -1 : i32
-  // CHECK-NEXT: -1 : i32
-  // CHECK-NEXT: -1 : i32
-  // CHECK-NEXT: -1 : i32
-  // CHECK-NEXT: -1 : i32
+  // CHECK-NEXT: 1 : i32
+  // CHECK-NEXT: 2 : i32
+  // CHECK-NEXT: 3 : i32
+  // CHECK-NEXT: 4 : i32
+  // CHECK-NEXT: 5 : i32
+  // CHECK-NEXT: 6 : i32
 }
 
 // -----
 
 // CHECK-LABEL: Evaluated results of function: constant_op_test_ui32
 func.func @constant_op_test_ui32() -> tensor<2x3xui32> {
-  %0 = stablehlo.constant dense<[[1, 1, 1], [1, 1, 1]]>: tensor<2x3xui32>
+  %0 = stablehlo.constant dense<[[1, 2, 3], [4, 5, 6]]>: tensor<2x3xui32>
   func.return %0 : tensor<2x3xui32>
   // CHECK-NEXT: tensor<2x3xui32>
   // CHECK-NEXT: 1 : ui32
-  // CHECK-NEXT: 1 : ui32
-  // CHECK-NEXT: 1 : ui32
-  // CHECK-NEXT: 1 : ui32
-  // CHECK-NEXT: 1 : ui32
-  // CHECK-NEXT: 1 : ui32
+  // CHECK-NEXT: 2 : ui32
+  // CHECK-NEXT: 3 : ui32
+  // CHECK-NEXT: 4 : ui32
+  // CHECK-NEXT: 5 : ui32
+  // CHECK-NEXT: 6 : ui32
 }
 
 // -----
