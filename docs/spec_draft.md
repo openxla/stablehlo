@@ -463,9 +463,10 @@ implementation-defined.
 
 Performs element-wise logistic (sigmoid) function on `operand` tensor and
 produces a `result` tensor. For floating-point element types, it implements:
-$$logistic(x)=\frac{1}{1+e^{-x}}$$
-For complex element types, computes a complex logistic function, with corner
-cases TBD. Numeric precision is implementation-defined.
+$$logistic(x) = division(1, addition(1, exp(-x)))$$
+where `addition`, `division`, and `exp` are operations from IEEE-754
+specification. For complex element types, computes a complex logistic function,
+with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Operands
 
