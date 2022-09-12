@@ -381,22 +381,23 @@ specification. Numeric precision is implementation-defined.
 
 ## stablehlo.divide
 
-`stablehlo.divide(dividend, divisor) -> result`
+`stablehlo.divide(lhs, rhs) -> result`
 
 ### Semantics
 
-Performs element-wise division of tensors `dividend` and `divisor` and produces
-a `result` tensor. For floating-point element types, implements the `division`
-operation from IEEE-754 specification. For n-bit integer types, division
-overflow (division by zero or division of $-2^{n-1}$ with $-1$) produces an
-implementation-defined value.
+Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
+produces a `result` tensor. For floating-point element types, implements the
+`division` operation from IEEE-754 specification. For integer element types,
+  implements integer division truncating any fractional part. For n-bit integer
+  types, division overflow (division by zero or division of $-2^{n-1}$ with
+      $-1$) produces an implementation-defined value.
 
 ### Operands
 
 | Name | Type |
 |-|-|
-| `dividend` | tensor of integer, floating-point or complex element types |
-| `divisor` | tensor of integer, floating-point or complex element types |
+| `lhs` | tensor of integer, floating-point or complex element types |
+| `rhs` | tensor of integer, floating-point or complex element types |
 
 ### Results
 
@@ -406,19 +407,19 @@ implementation-defined value.
 
 ### Constraints
 
-  * (C1) `dividend`, `divisor` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
   ```mlir
-// %dividend: [17.1, -17.1, 17.1, -17.1]
-// %divisor: [3.0, 3.0, -3.0, -3.0]
-%result = stablehlo.divide %dividend, %divisor : tensor<4xf32>
+// %lhs: [17.1, -17.1, 17.1, -17.1]
+// %rhs: [3.0, 3.0, -3.0, -3.0]
+%result = stablehlo.divide %lhs, %rhs : tensor<4xf32>
 // %result: [5.66666651, -5.66666651, -5.66666651, 5.66666651]
 
-// %dividend: [17, -17, 17, -17]
-// %divisor: [3, 3, -3, -3]
-%result = stablehlo.divide %dividend, %divisor : tensor<4xi32>
+// %lhs: [17, -17, 17, -17]
+// %rhs: [3, 3, -3, -3]
+%result = stablehlo.divide %lhs, %rhs : tensor<4xi32>
 // %result: [5, -5, -5, 5]
 ```
 
@@ -763,25 +764,28 @@ operation.
 
 ## stablehlo.remainder
 
-`stablehlo.remainder(dividend, divisor) -> result`
+`stablehlo.remainder(lhs, rhs) -> result`
 
 ### Semantics
 
-Performs element-wise remainder of tensors `dividend` and `divisor` and produces
-a `result` tensor. The sign of the result is taken from the dividend, and the
-absolute value of the result is always less than the divisor's absolute value.
-For floating-point element types, remainder of the any division operation `x/y`
-is calculated as `x - n*y`, where `n` is `x/y` with its fractional part
-truncated. The corner cases are TBD. For n-bit integer, division overflow
-(remainder by zero or remainder of $-2^{n-1}$ with $-1$) produces an
-implementation-defined value.
+Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors and
+produces a `result` tensor. The sign of the result is taken from the dividend,
+         and the absolute value of the result is always less than the divisor's
+         absolute value. The remainder of the any division operation `x/y` is
+         calculated as `x - n*y`, where `n` is `x/y` with its fractional part
+         truncated. For floating-point element types, this is in contrast with
+         the `remainder` operation from IEEE-754 specification where `n` is an
+         integral value nearest the exact value `x/y` with ties to even. For
+         floating-point types, the corner cases are TBD. For n-bit integer,
+         division overflow (remainder by zero or remainder of $-2^{n-1}$ with
+             $-1$) produces an implementation-defined value.
 
 ### Operands
 
 | Name | Type |
 |-|-|
-| `dividend` | tensor of integer, floating-point or complex element types |
-| `divisor` | tensor of integer, floating-point or complex element types |
+| `lhs` | tensor of integer, floating-point or complex element types |
+| `rhs` | tensor of integer, floating-point or complex element types |
 
 ### Results
 
@@ -791,19 +795,19 @@ implementation-defined value.
 
 ### Constraints
 
-  * (C1) `dividend`, `divisor` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
 ```mlir
-// %dividend: [17.1, -17.1, 17.1, -17.1]
-// %divisor: [3.0, 3.0, -3.0, -3.0]
-%result = stablehlo.remainder %dividend, %divisor : tensor<4xf32>
+// %lhs: [17.1, -17.1, 17.1, -17.1]
+// %rhs: [3.0, 3.0, -3.0, -3.0]
+%result = stablehlo.remainder %lhs, %rhs : tensor<4xf32>
 // %result: [2.1, -2.1, 2.1, -2.1]
 
-// %dividend: [17, -17, 17, -17]
-// %divisor: [3, 3, -3, -3]
-%result = stablehlo.remainder %dividend, %divisor : tensor<4xi32>
+// %lhs: [17, -17, 17, -17]
+// %rhs: [3, 3, -3, -3]
+%result = stablehlo.remainder %lhs, %rhs : tensor<4xi32>
 // %result: [2, -2, 2, -2]
 ```
 
