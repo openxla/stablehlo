@@ -5,8 +5,10 @@ name: Build and Test
 on:
   pull_request:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   push:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   schedule:
     # Run buildAndTest workflow once a day
     - cron:  '* 12 * * *'
