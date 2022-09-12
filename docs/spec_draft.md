@@ -56,6 +56,12 @@ implementation-defined, as long as ops are evaluated before their uses. Possible
 execution orders of the above example program are `%1` → `%2` → `%3` → `return`
 or `%2` → `%1` → `%3` → `return`.
 
+### Floating-point Exceptions
+
+The execution envorinment of StableHLO does not maintain any exception state.
+Therefore, there is no attempt to create or preserve invalid operation,
+  division-by-zero, overflow, underflow, or inexact exceptions.
+
 ## Constants
 
 The section describes the constants supported in StableHLO along with their
