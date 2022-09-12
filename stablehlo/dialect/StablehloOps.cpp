@@ -178,46 +178,37 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
 //===----------------------------------------------------------------------===//
 
 // Convert a 1D dense int64 attribute to a list of values.
-FailureOr<SmallVector<int64_t>> convertDenseIntAttr(
-    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc) {
+FailureOr<SmallVector<int64_t>> convert1DAttribute(
+    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc,
+    StringRef attrName) {
   if (!optionalAttr.has_value()) return SmallVector<int64_t>{};
 
   DenseIntElementsAttr attr = *optionalAttr;
-  auto attrType = attr.getType().cast<RankedTensorType>();  // ensured by ODS.
+  auto attrType = attr.getType().cast<RankedTensorType>();
   if (attrType.getRank() != 1)
-    return (emitOptionalError(
-                loc, "expects the shape of attribute to be 1-D, but got {",
-                attrType.getShape(), "}."),
+    return (emitOptionalError(loc, "expects the shape of ", attrName,
+                              " attribute to be 1-D, but got {",
+                              attrType.getShape(), "}."),
             failure());
   auto values = attr.getValues<int64_t>();
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
 
-// Convert a 1D or Nx2 dense int64 padding attribute to a list of tuples.
+// Convert a Nx2 dense int64 padding attribute to a list of tuples.
 FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc) {
   if (!optionalAttr.has_value())
     return SmallVector<std::pair<int64_t, int64_t>>{};
 
   DenseIntElementsAttr attr = *optionalAttr;
-  auto attrType = attr.getType().cast<RankedTensorType>();  // ensured by ODS.
-  if (attrType.getRank() > 1) {
-    if (attrType.getRank() != 2 || attrType.getShape()[1] != 2)
-      return (
-          emitOptionalError(
-              loc,
-              "expects the shape of padding-attribute to be {N, 2}, but got {",
-              attrType.getShape(), "}."),
-          failure());
-  } else {
-    // Padding values can be provided as a 1D vector as well.
-    if (attr.getValues<int64_t>().size() % 2 != 0)
-      return (emitOptionalError(loc,
-                                "expects the padding-entries to have even "
-                                "number of elements, but got ",
-                                attr.getValues<int64_t>().size(), " elements."),
-              failure());
-  }
+  auto attrType = attr.getType().cast<RankedTensorType>();
+  if (attrType.getRank() != 2 || attrType.getShape()[1] != 2)
+    return (
+        emitOptionalError(
+            loc,
+            "expects the shape of padding-attribute to be {N, 2}, but got {",
+            attrType.getShape(), "}."),
+        failure());
 
   auto it = attr.getValues<int64_t>().begin();
   SmallVector<std::pair<int64_t, int64_t>> out(attr.getNumElements() / 2);
@@ -2125,11 +2116,15 @@ LogicalResult ConvolutionOp::verify() {
   auto paddingOrErr = convertPaddingAttribute(this->padding(), getLoc());
   if (failed(paddingOrErr)) return failure();
 
-  auto windowStridesOrErr = convertDenseIntAttr(window_strides(), getLoc());
+  // TODO: add missing tests for ConvolutionOp.
+  auto windowStridesOrErr =
+      convert1DAttribute(window_strides(), getLoc(), "window_strides");
   if (failed(windowStridesOrErr)) return failure();
-  auto lhsDilationOrErr = convertDenseIntAttr(lhs_dilation(), getLoc());
+  auto lhsDilationOrErr =
+      convert1DAttribute(lhs_dilation(), getLoc(), "lhs_dilation");
   if (failed(lhsDilationOrErr)) return failure();
-  auto rhsDilationOrErr = convertDenseIntAttr(rhs_dilation(), getLoc());
+  auto rhsDilationOrErr =
+      convert1DAttribute(rhs_dilation(), getLoc(), "rhs_dilation");
   if (failed(rhsDilationOrErr)) return failure();
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
@@ -3527,8 +3522,8 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
 
   // P3.
   ReduceWindowOp::Adaptor adaptor(operands, attributes, regions);
-  auto windowDimsOrErr =
-      convertDenseIntAttr(adaptor.window_dimensions(), location);
+  auto windowDimsOrErr = convert1DAttribute(adaptor.window_dimensions(),
+                                            location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   for (const auto inputType : inputArgTypes) {
     if (!inputType.hasRank()) continue;
@@ -3544,13 +3539,13 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
   if (failed(paddingOrErr)) return failure();
 
   auto windowStridesOrErr =
-      convertDenseIntAttr(adaptor.window_strides(), location);
+      convert1DAttribute(adaptor.window_strides(), location, "window_strides");
   if (failed(windowStridesOrErr)) return failure();
   auto baseDilationsOrErr =
-      convertDenseIntAttr(adaptor.base_dilations(), location);
+      convert1DAttribute(adaptor.base_dilations(), location, "base_dilations");
   if (failed(baseDilationsOrErr)) return failure();
-  auto windowDilationsOrErr =
-      convertDenseIntAttr(adaptor.window_dilations(), location);
+  auto windowDilationsOrErr = convert1DAttribute(adaptor.window_dilations(),
+                                                 location, "window_dilations");
   if (failed(windowDilationsOrErr)) return failure();
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
@@ -5178,7 +5173,9 @@ LogicalResult SelectAndScatterOp::verify() {
     return failure();
 
   // P3.
-  auto windowDimsOrErr = convertDenseIntAttr(window_dimensions(), getLoc());
+  // TODO: add missing tests of convert1DAttribute for SelectAndScatterOp.
+  auto windowDimsOrErr =
+      convert1DAttribute(window_dimensions(), getLoc(), "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   if (operandType.hasRank()) {
     if (operandType.getRank() !=
@@ -5195,7 +5192,9 @@ LogicalResult SelectAndScatterOp::verify() {
   auto paddingOrErr = convertPaddingAttribute(padding(), getLoc());
   if (failed(paddingOrErr)) return failure();
 
-  auto windowStridesOrErr = convertDenseIntAttr(window_strides(), getLoc());
+  // TODO: add missing tests of convert1DAttribute for SelectAndScatterOp.
+  auto windowStridesOrErr =
+      convert1DAttribute(window_strides(), getLoc(), "window_strides");
   if (failed(windowStridesOrErr)) return failure();
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
