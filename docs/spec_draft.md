@@ -388,9 +388,9 @@ specification. Numeric precision is implementation-defined.
 Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor. For floating-point element types, implements the
 `division` operation from IEEE-754 specification. For integer element types,
-  implements integer division truncating any fractional part. For n-bit integer
-  types, division overflow (division by zero or division of $-2^{n-1}$ with
-      $-1$) produces an implementation-defined value.
+implements integer division truncating any fractional part. For n-bit integer
+types, division overflow (division by zero or division of $-2^{n-1}$ with $-1$)
+produces an implementation-defined value.
 
 ### Operands
 
@@ -770,15 +770,14 @@ operation.
 
 Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor. The sign of the result is taken from the dividend,
-         and the absolute value of the result is always less than the divisor's
-         absolute value. The remainder of the any division operation `x/y` is
-         calculated as `x - n*y`, where `n` is `x/y` with its fractional part
-         truncated. For floating-point element types, this is in contrast with
-         the `remainder` operation from IEEE-754 specification where `n` is an
-         integral value nearest the exact value `x/y` with ties to even. For
-         floating-point types, the corner cases are TBD. For n-bit integer,
-         division overflow (remainder by zero or remainder of $-2^{n-1}$ with
-             $-1$) produces an implementation-defined value.
+and the absolute value of the result is always less than the divisor's absolute
+value. The remainder is calculated as `lhs - d * rhs`, where
+`d = stablehlo.divide`. For floating-point element types, this is in contrast
+with the `remainder` operation from IEEE-754 specification where `d` is an
+integral value nearest to the exact value of `lhs/rhs` with ties to even. For
+floating-point types, the corner cases are TBD. For n-bit integer, division
+overflow (remainder by zero or remainder of $-2^{n-1}$ with $-1$) produces an
+implementation-defined value.
 
 ### Operands
 
