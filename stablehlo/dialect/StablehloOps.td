@@ -2080,7 +2080,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
       [RecursiveSideEffects, SameOperandsAndResultShape,
-       SingleBlockImplicitTerminator<"ReturnOp">]> {
+       SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operator";
   let description = [{
   Applies a scalar function over the given operands arrays, producing an array
@@ -2100,7 +2100,6 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   );
   let regions = (region SizedRegion<1>:$computation);
   let results = (outs HLO_Tensor);
-  let hasVerifier = 1;
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",

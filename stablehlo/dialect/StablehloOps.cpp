@@ -3357,84 +3357,95 @@ LogicalResult InfeedOp::verify() {
 // MapOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult MapOp::verify() {
+LogicalResult MapOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Checks if the number of `operands` match the arity of the map `computation`
   // region.
-  auto& computationBlock = computation().front();
+  MapOp::Adaptor adaptor(operands, attributes, regions);
+  auto& computationBlock = adaptor.computation().front();
   auto computationArgs = computationBlock.getArguments();
-  if (operands().size() != computationArgs.size())
-    return emitOpError() << "expects number of operands to match the arity "
-                            "of map computation, but got: "
-                         << operands().size() << " and "
-                         << computationArgs.size();
+  if (operands.size() != computationArgs.size())
+    return emitOptionalError(location,
+                             "expects number of operands to match the arity of "
+                             "map computation, but got: ",
+                             operands.size(), " and ", computationArgs.size());
 
   // The parameters of computation should all be scalars and match the element
   // type of operands.
   for (const auto& indexedArg : llvm::enumerate(computationArgs)) {
     auto argType = indexedArg.value().getType().dyn_cast<TensorType>();
     if (!argType || argType.getRank() != 0)
-      return emitOpError()
-             << "computation arguments must be 0-rank tensor, but got: arg #"
-             << indexedArg.index() << " of type "
-             << indexedArg.value().getType();
-    auto operandElemTy = operands()[indexedArg.index()]
+      return emitOptionalError(
+          location,
+          "computation arguments must be 0-rank tensor, but got: arg #",
+          indexedArg.index(), " of type ", indexedArg.value().getType());
+    auto operandElemTy = operands[indexedArg.index()]
                              .getType()
                              .cast<TensorType>()
                              .getElementType();
     if (argType.getElementType() != operandElemTy) {
-      return emitOpError()
-             << "element type of operands and computation arguments must "
-                "match, but got: "
-             << operandElemTy << " and " << argType.getElementType();
+      return emitOptionalError(location,
+                               "element type of operands and computation "
+                               "arguments must match, but got: ",
+                               operandElemTy, " and ",
+                               argType.getElementType());
     }
   }
 
   // Mapped computation must return single output
   auto computationOutputs = computationBlock.getTerminator()->getOperands();
   if (computationOutputs.size() != 1)
-    return emitOpError() << "computation must return single output, but got: "
-                         << computationOutputs.size();
+    return emitOptionalError(location,
+                             "computation must return single output, but got: ",
+                             computationOutputs.size());
 
   // The output of computation must be scalar and have the same element type
   // as op result.
   auto computationOutputType =
       computationOutputs[0].getType().dyn_cast<TensorType>();
   if (!computationOutputType || computationOutputType.getRank() != 0)
-    return emitOpError() << "computation must return 0-rank tensor, but got: "
-                         << computationOutputs[0].getType();
-
-  auto resultType = getType().cast<TensorType>();
-  if (computationOutputType.getElementType() != resultType.getElementType())
-    return emitOpError() << "element type of result and computation output "
-                            "must match, but got: "
-                         << resultType.getElementType() << " and "
-                         << computationOutputType.getElementType();
+    return emitOptionalError(location,
+                             "computation must return 0-rank tensor, but got: ",
+                             computationOutputs[0].getType());
 
   // Checks that the requested map dimension numbers are monotonically
   // increasing.
-  DenseIntElementsAttr dimensions = this->dimensions();
+  DenseIntElementsAttr dimensions = adaptor.dimensions();
   for (const auto& indexedValue :
        llvm::enumerate(dimensions.getValues<int64_t>())) {
     if (indexedValue.value() != static_cast<int64_t>(indexedValue.index()))
-      return emitOpError() << "requires monotonically increasing dimension "
-                              "numbers, but got: "
-                           << dimensions;
+      return emitOptionalError(
+          location,
+          "requires monotonically increasing dimension numbers, but got: ",
+          dimensions);
   }
 
   // Checks that number of dimensions of operands matches the size of
   // `dimensions` since we currently only support mapping across all
   // dimensions: i.e., scalar map functions.
-  auto operandType = operands()[0].getType().cast<TensorType>();
-  if (operandType.hasRank()) {
-    if (dimensions.size() !=
-        static_cast<int64_t>(operandType.getShape().size()))
-      return emitOpError()
-             << "applied to a subset of dimensions currently not supported: "
-                "operand dimensions = "
-             << operandType.getShape().size()
-             << ", requested map dimensions size = " << dimensions.size();
+  ArrayRef<int64_t> resultShape;
+  for (auto operand : operands) {
+    auto operandType = operand.getType().cast<TensorType>();
+    if (operandType.hasRank()) {
+      if (dimensions.size() !=
+          static_cast<int64_t>(operandType.getShape().size()))
+        return emitOptionalError(
+            location,
+            "applied to a subset of dimensions currently not supported: "
+            "operand dimensions = ",
+            operandType.getShape().size(),
+            ", requested map dimensions size = ", dimensions.size());
+      resultShape = operandType.dyn_cast<ShapedType>().getShape();
+    }
   }
 
+  if (resultShape.empty())  // infer unranked when all inputs are unranked.
+    inferredReturnShapes.emplace_back(computationOutputType.getElementType());
+  else
+    inferredReturnShapes.emplace_back(resultShape,
+                                      computationOutputType.getElementType());
   return success();
 }
 
