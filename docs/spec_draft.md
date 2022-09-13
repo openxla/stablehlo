@@ -56,6 +56,23 @@ implementation-defined, as long as ops are evaluated before their uses. Possible
 execution orders of the above example program are `%1` → `%2` → `%3` → `return`
 or `%2` → `%1` → `%3` → `return`.
 
+### Errors
+
+StableHLO programs are validated through an extensive set of constraints for
+individual ops, which rules out many classes of errors prior to run time.
+However, error conditions are still possible, e.g. through integer overflows,
+out-of-bounds accesses, etc. Unless explicitly called out, all these errors
+result in implementation-defined behavior.
+
+As an exception to this rule, floating-point exceptions in StableHLO programs
+have well-defined behavior. Operations which result in exceptions defined by the
+IEEE-754 standard (invalid operation, division-by-zero, overflow, underflow, or
+inexact exceptions) produce default results (as defined in the standard) and
+continue execution without raising the corresponding status flag; similar to
+`raiseNoFlag` exception handling from the standard. Exceptions for nonstandard
+operations (e.g. complex arithmetic and certain transcendental functions) are
+implementation-defined.
+
 ## Constants
 
 The section describes the constants supported in StableHLO along with their
