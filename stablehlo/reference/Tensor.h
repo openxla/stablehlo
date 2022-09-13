@@ -22,6 +22,7 @@ limitations under the License.
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
@@ -69,15 +70,15 @@ class Tensor {
   /// @{
   Tensor();
   explicit Tensor(ShapedType type);
-  explicit Tensor(DenseElementsAttr attr);
-  Tensor(const Tensor &other) = default;
+  explicit Tensor(ShapedType type, AsmResourceBlob blob);
+  Tensor(const Tensor &other);
   /// @}
 
   /// Assignment operator.
-  Tensor &operator=(const Tensor &other) = default;
+  Tensor &operator=(const Tensor &other);
 
   /// Returns type of the Tensor object.
-  ShapedType getType() const;
+  ShapedType getType() const { return type_; };
 
   /// Returns the number of elements.
   int64_t getNumElements() const;
@@ -101,7 +102,17 @@ class Tensor {
   IndexSpaceIterator index_end() const;
 
  private:
-  llvm::IntrusiveRefCntPtr<detail::Buffer> impl_;
+  /// Type of a Tensor object.
+  ShapedType type_;
+
+  /// Underlying storage class for a Tensor object.
+  AsmResourceBlob blob_;
+
+  /// Provides access to the underlying non-mutable storage.
+  ArrayRef<char> getData() const { return blob_.getData(); }
+
+  /// Provides access to the underlying mutable storage.
+  MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
 };
 
 /// Print utilities for Tensor objects.

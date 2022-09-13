@@ -82,43 +82,34 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
 
 }  // namespace
 
-namespace detail {
-
-Buffer::Buffer(ShapedType type) : type_(type), data_(getSizeInBytes(type), 0) {}
-
-Buffer::Buffer(ShapedType type, void *data)
-    : Buffer(type, static_cast<const void *>(data)) {}
-
-Buffer::Buffer(ShapedType type, const void *data)
-    : type_(type),
-      data_(static_cast<const char *>(data),
-            static_cast<const char *>(data) + getSizeInBytes(type)) {}
-
-}  // namespace detail
-
 Tensor::Tensor() {}
 
-Tensor::Tensor(ShapedType type)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
-
-Tensor::Tensor(DenseElementsAttr attr) {
-  // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
-  // simplicity, because it provides a contiguous representation of underlying
-  // data in most cases. However, this doesn't always work (e.g. for splat or
-  // for i1), so we'll be migrating to something more reliable in the near
-  // future.
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                    attr.getRawData().data());
+Tensor::Tensor(ShapedType type) : type_(type) {
+  blob_ = HeapAsmResourceBlob::allocateAndCopy(
+      ArrayRef<char>(std::vector<char>(getSizeInBytes(type), 0)),
+      alignof(char));
 }
 
-ShapedType Tensor::getType() const { return impl_->getType(); }
+Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
+    : type_(type), blob_(std::move(blob)) {}
+
+Tensor::Tensor(const Tensor &other) {
+  type_ = other.getType();
+  blob_ = HeapAsmResourceBlob::allocateAndCopy(other.getData(), alignof(char));
+}
+
+Tensor &Tensor::operator=(const Tensor &other) {
+  type_ = other.getType();
+  blob_ = HeapAsmResourceBlob::allocateAndCopy(other.getData(), alignof(char));
+  return *this;
+}
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
 Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() +
+      blob_->getData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -214,7 +205,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() +
+      blob_.getMutableData().data()
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
