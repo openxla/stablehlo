@@ -130,10 +130,10 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
   }
 };
 
-#define GEN_PASS_CLASSES
+#define GEN_PASS_DEF_HLOTESTINFERPASS
 #include "stablehlo/tests/TestUtils.h.inc"
 
-struct HloTestInferPass : public HloTestInferPassBase<HloTestInferPass> {
+struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
     patterns.add<InferReturnTypesPattern>(&getContext());
