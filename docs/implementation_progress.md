@@ -6,12 +6,12 @@ still plenty to do to review the existing implementations for completeness and
 provide new implementations where none exist.
 
 This live document is for the developers to track the progress on various
-aspects of the implementation - pretty-printing, verification, shape inference,
+aspects of the implementation - pretty printing, verification, type inference,
 specification, interpreter etc.
 
 ### How to use it
 
-The progress of a stableHLO op, as mentioned in the corresponding row, on a
+The progress of a StableHLO op, as mentioned in the corresponding row, on a
 particular implementation aspect, as mentioned in the corresponding column, is
 tracked using one of the following tracking labels:
 
@@ -22,7 +22,7 @@ tracked using one of the following tracking labels:
 
 ## Audit chart
 
-| StableHLO Operation (114) | Specification () | Verifier | Shape-Inference | Pretty-Printer | Interpreter (2) |
+| StableHLO Operation (114) | Specification (21) | Verifier | Type Inference | Pretty Printer | Interpreter (2) |
 |:--:|:--:|:--:|:--:|:--:|:--:|
 | AbsOP |yes||||no|
 | AddOP |yes|||| yes|
