@@ -265,6 +265,7 @@ func.func @batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, 
 }
 
 // -----
+
 // CHECK-LABEL: @batch_norm_inference 
 func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xindex>) {
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 1 : i64} :
@@ -273,6 +274,16 @@ func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf3
   // CHECK: (tensor<4x256xf32>) -> tensor<4x256xindex>
   %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<4x256xf32>) -> tensor<4x256xindex> 
   func.return %1 : tensor<4x256xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve
+func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>
+  // CHECK: (tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> 
+  func.return %1 : tensor<10x5x4x4xindex>
 }
 
 //===----------------------------------------------------------------------===//

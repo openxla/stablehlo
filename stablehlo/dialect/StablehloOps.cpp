@@ -4978,56 +4978,64 @@ LogicalResult TransposeOp::inferReturnTypes(
 // TriangularSolveOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult TriangularSolveOp::verify() {
-  auto aType = a().getType().dyn_cast<RankedTensorType>();
+LogicalResult TriangularSolveOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
+  // ODS enforces that a and b are of same element type: float or complex.
+  auto elementType = adaptor.a().getType().cast<ShapedType>().getElementType();
+  auto aType = adaptor.a().getType().dyn_cast<RankedTensorType>();
+  if (!aType) {
+    inferredReturnShapes.emplace_back(elementType);
+    return success();
+  }
 
-  // Skip verifier if a is unranked tensor.
-  if (!aType) return success();
-
-  // Check that a should have rank >= 2
   auto aRank = aType.getRank();
   if (aRank < 2)
-    return emitOpError() << "operand 'a' must have rank >= 2, but got "
-                         << aType;
+    return emitOptionalError(
+        location, "operand 'a' must have rank >= 2, but got ", aType);
 
-  // The two minor dimensions of a must have same size.
   if (aType.getDimSize(aRank - 2) != aType.getDimSize(aRank - 1))
-    return emitOpError() << "two minor dimensions of operand 'a' must have "
-                            "equal size, but got "
-                         << aType;
+    return emitOptionalError(location,
+                             "two minor dimensions of operand 'a' must have "
+                             "equal size, but got ",
+                             aType);
 
-  auto bType = b().getType().dyn_cast<RankedTensorType>();
-  // If b is unranked skip remaining checks.
-  if (!bType) return success();
+  auto bType = adaptor.b().getType().dyn_cast<RankedTensorType>();
+  if (!bType) {
+    inferredReturnShapes.emplace_back(elementType);
+    return success();
+  }
 
-  // Check that a and b have same rank.
   auto bRank = bType.getRank();
   if (aRank != bRank)
-    return emitOpError() << "operands must have equal rank, but got " << aType
-                         << " and " << bType;
+    return emitOptionalError(location,
+                             "operands must have equal rank, but got ", aType,
+                             " and ", bType);
 
   // The shared dimension of a and b should match.
   if (aType.getDimSize(aRank - 1) !=
-      bType.getDimSize(bRank - (left_side() ? 2 : 1)))
-    return emitOpError() << "shared dimension of operands 'a' and 'b' does "
-                            "not match, but got "
-                         << aType << " and " << bType;
+      bType.getDimSize(bRank - (adaptor.left_side() ? 2 : 1)))
+    return emitOptionalError(location,
+                             "shared dimension of operands 'a' and 'b' does "
+                             "not match, but got ",
+                             aType, " and ", bType);
 
   // The leading batch dimensions of a and b must be equal.
   auto aBatchDims = aType.getShape().drop_back(2);
   auto bBatchDims = bType.getShape().drop_back(2);
   if (aBatchDims != bBatchDims)
-    return emitOpError()
-           << "leading batch dimensions of the operands must be same, but got "
-           << aType << " and " << bType;
+    return emitOptionalError(
+        location,
+        "leading batch dimensions of the operands must be same, but got ",
+        aType, " and ", bType);
 
-  // Result and argument b must have same shape.
-  auto resultType = getType().dyn_cast<RankedTensorType>();
-  if (!resultType) return success();
-  if (resultType != bType)
-    return emitOpError()
-           << "result and operand 'b' must have same shape, but got "
-           << resultType << " and " << bType;
+  if (adaptor.transpose_a() == Transpose::TRANSPOSE_INVALID)
+    return emitOptionalError(
+        location, "Invalid transpose option value for triangular solve");
+
+  inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
   return success();
 }
 
