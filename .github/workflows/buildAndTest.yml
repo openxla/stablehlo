@@ -5,8 +5,10 @@ name: Build and Test
 on:
   pull_request:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   push:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   schedule:
     # Run buildAndTest workflow once a day
     - cron:  '* 12 * * *'
@@ -24,6 +26,11 @@ concurrency:
 # Use Cached LLVM to improve build times.
 jobs:
   build-test:
+    env:
+      LLVM_PROJECT_DIR: "llvm-project"
+      LLVM_BUILD_DIR: "llvm-build"
+      STABLEHLO_BUILD_DIR: "stablehlo-build"
+      STABLEHLO_PYTHON_BUILD_DIR: "stablehlo-python-build"
     strategy:
       fail-fast: false
       matrix:
@@ -53,8 +60,14 @@ jobs:
     - name: Configure and Build LLVM os-arch='${{ matrix.os-arch }}'
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_llvm.sh "$GITHUB_WORKSPACE/llvm-project/" "$GITHUB_WORKSPACE/llvm-build"
+        ./build_tools/github_actions/ci_build_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
 
     - name: Build and Test StableHLO os-arch='${{ matrix.os-arch }}'
+      shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_stablehlo.sh "$GITHUB_WORKSPACE/llvm-build" "$GITHUB_WORKSPACE/stablehlo-build"
+        ./build_tools/github_actions/ci_build_stablehlo.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
+
+    - name: Build and Test StableHLO Python API os-arch='${{ matrix.os-arch }}'
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_stablehlo_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"

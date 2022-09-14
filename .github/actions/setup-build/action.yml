@@ -39,3 +39,14 @@ runs:
     with:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
+
+  # Install Python/Numpy for API tests
+  - name: Install Python and Pip
+    uses: actions/setup-python@v4
+    with:
+      python-version: '3.10.6'
+      cache: 'pip' # caching pip dependencies
+  - name: Install MLIR python requirements
+    shell: bash
+    run: |
+      pip install -r $GITHUB_WORKSPACE/llvm-project/mlir/python/requirements.txt

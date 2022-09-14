@@ -265,6 +265,7 @@ func.func @batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, 
 }
 
 // -----
+
 // CHECK-LABEL: @batch_norm_inference 
 func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xindex>) {
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 1 : i64} :
@@ -290,6 +291,14 @@ func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xind
 }
 
 // -----
+
+// CHECK-LABEL: func @triangular_solve
+func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>
+  // CHECK: (tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> 
+  func.return %1 : tensor<10x5x4x4xindex>
+}
 
 //===----------------------------------------------------------------------===//
 // Sparsity
@@ -368,10 +377,6 @@ func.func @complex_sparsity(%arg0: tensor<10x10xf32, #CSR>, %arg1: tensor<10x10x
   func.return %1 : tensor<10x10xindex>
 }
 
-//===----------------------------------------------------------------------===//
-// Bounded Dynamism
-//===----------------------------------------------------------------------===//
-
 // -----
 
 // CHECK-LABEL: func @reduce
@@ -391,6 +396,37 @@ func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
 }
 
 // -----
+
+// CHECK-LABEL: func @reduce_window
+func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
+                    %init0: tensor<f32>, %init1: tensor<i32>) ->
+                      (tensor<2x2xindex>, tensor<2x2xindex>) {
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<2x2xf32>, tensor<2x2xi32>)
+  // CHECK: %1 = "mhlo_test.get_return_type_components"(%0#0) : (tensor<2x2xf32>) -> tensor<2x2xindex> 
+  %1 = "mhlo_test.get_return_type_components"(%0#0)
+      : (tensor<2x2xf32>) -> tensor<2x2xindex>
+  // CHECK: %2 = "mhlo_test.get_return_type_components"(%0#1) : (tensor<2x2xi32>) -> tensor<2x2xindex> 
+  %2 = "mhlo_test.get_return_type_components"(%0#1)
+      : (tensor<2x2xi32>) -> tensor<2x2xindex>
+  func.return %1, %2 : tensor<2x2xindex>, tensor<2x2xindex> 
+}
+
+// -----
+
+//===----------------------------------------------------------------------===//
+// Bounded Dynamism
+//===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: @tensor_bounds
 func.func @tensor_bounds(%arg0: tensor<3x5xf32>, %arg1: tensor<i32>) -> tensor<*xindex> {
