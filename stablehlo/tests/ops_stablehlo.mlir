@@ -1015,6 +1015,53 @@ func.func @iota_invalid_iota_dimension() -> tensor<4xi32> {
 
 // -----
 
+// CHECK-LABEL: func @map
+func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.constant dense<2.0> : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  func.return %0 : tensor<4x5xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_heterogeneous_inputs
+func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) -> tensor<2xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<i32>):
+    "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
+  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_scalar_operands
+func.func @map_scalar_operands(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_unranked
+func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
 func.func @map_mismatched_args(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> tensor<4xf32> {
   // expected-error@+1 {{expects number of operands to match the arity of map computation, but got: 2 and 1}}
   %0 = "stablehlo.map"(%arg0, %arg1) ({
@@ -1076,7 +1123,7 @@ func.func @main_non_scalar_computation_output(%arg0: tensor<4x5xf32>, %arg1: ten
 // -----
 
 func.func @mismatch_computation_output_type(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
-  // expected-error@+1 {{element type of result and computation output must match, but got: 'f32' and 'i32'}}
+  // expected-error@+1 {{inferred type(s) 'tensor<4x5xi32>' are incompatible with return type(s) of operation 'tensor<4x5xf32>'}}
   %0 = "stablehlo.map"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2> : tensor<i32>
@@ -1107,30 +1154,6 @@ func.func @map_mismatch_arguments_and_dimensions(%arg0: tensor<4x5xf32>, %arg1: 
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
   }) {dimensions = dense<[0, 1, 2]> : tensor<3xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
-}
-
-// -----
-
-// CHECK-LABEL: func @map_heterogeneous_inputs
-func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) -> tensor<2xf32> {
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<i32>):
-    "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
-  func.return %0 : tensor<2xf32>
-}
-
-// -----
-
-
-// CHECK-LABEL: func @map_unranked
-func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
-    "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return %0 : tensor<*xf32>
 }
 
 // -----

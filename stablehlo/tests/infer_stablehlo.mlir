@@ -278,6 +278,20 @@ func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf3
 
 // -----
 
+// CHECK-LABEL: func @map
+func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xindex> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.constant dense<2.0> : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  // CHECK: (tensor<4x5xf32>) -> tensor<4x5xindex> 
+  %2 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<4x5xf32>) -> tensor<4x5xindex>
+  func.return %2 : tensor<4x5xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @triangular_solve
 func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> {
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>
