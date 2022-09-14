@@ -3366,22 +3366,23 @@ LogicalResult MapOp::inferReturnTypeComponents(
   MapOp::Adaptor adaptor(operands, attributes, regions);
   auto& computationBlock = adaptor.computation().front();
   auto computationArgs = computationBlock.getArguments();
-  if (operands.size() != computationArgs.size())
+  if (adaptor.operands().size() != computationArgs.size())
     return emitOptionalError(location,
                              "expects number of operands to match the arity of "
                              "map computation, but got: ",
-                             operands.size(), " and ", computationArgs.size());
+                             adaptor.operands().size(), " and ",
+                             computationArgs.size());
 
   // The parameters of computation should all be scalars and match the element
   // type of operands.
   for (const auto& indexedArg : llvm::enumerate(computationArgs)) {
-    auto argType = indexedArg.value().getType().dyn_cast<TensorType>();
+    auto argType = indexedArg.value().getType().dyn_cast<RankedTensorType>();
     if (!argType || argType.getRank() != 0)
       return emitOptionalError(
           location,
           "computation arguments must be 0-rank tensor, but got: arg #",
           indexedArg.index(), " of type ", indexedArg.value().getType());
-    auto operandElemTy = operands[indexedArg.index()]
+    auto operandElemTy = adaptor.operands()[indexedArg.index()]
                              .getType()
                              .cast<TensorType>()
                              .getElementType();
@@ -3404,7 +3405,7 @@ LogicalResult MapOp::inferReturnTypeComponents(
   // The output of computation must be scalar and have the same element type
   // as op result.
   auto computationOutputType =
-      computationOutputs[0].getType().dyn_cast<TensorType>();
+      computationOutputs[0].getType().dyn_cast<RankedTensorType>();
   if (!computationOutputType || computationOutputType.getRank() != 0)
     return emitOptionalError(location,
                              "computation must return 0-rank tensor, but got: ",
@@ -3426,7 +3427,8 @@ LogicalResult MapOp::inferReturnTypeComponents(
   // `dimensions` since we currently only support mapping across all
   // dimensions: i.e., scalar map functions.
   ArrayRef<int64_t> resultShape;
-  for (auto operand : operands) {
+  bool allInputsUnranked = true;
+  for (auto operand : adaptor.operands()) {
     auto operandType = operand.getType().cast<TensorType>();
     if (operandType.hasRank()) {
       if (dimensions.size() !=
@@ -3437,11 +3439,12 @@ LogicalResult MapOp::inferReturnTypeComponents(
             "operand dimensions = ",
             operandType.getShape().size(),
             ", requested map dimensions size = ", dimensions.size());
-      resultShape = operandType.dyn_cast<ShapedType>().getShape();
+      resultShape = operandType.getShape();
+      allInputsUnranked = false;
     }
   }
 
-  if (resultShape.empty())  // infer unranked when all inputs are unranked.
+  if (allInputsUnranked)
     inferredReturnShapes.emplace_back(computationOutputType.getElementType());
   else
     inferredReturnShapes.emplace_back(resultShape,
