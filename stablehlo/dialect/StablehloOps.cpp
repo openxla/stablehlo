@@ -5057,6 +5057,10 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
         "leading batch dimensions of the operands must be same, but got ",
         aType, " and ", bType);
 
+  if (adaptor.transpose_a() == Transpose::TRANSPOSE_INVALID)
+    return emitOptionalError(
+        location, "Invalid transpose option value for triangular solve");
+
   inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
   return success();
 }
