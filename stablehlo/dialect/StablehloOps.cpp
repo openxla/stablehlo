@@ -4660,33 +4660,39 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verifyConditionalBranch(Operation* op, Region& region,
-                                             llvm::Twine branchName) {
+static LogicalResult verifyConditionalBranch(Region& region,
+                                             llvm::Twine branchName,
+                                             Optional<Location> loc) {
   if (region.getNumArguments() != 0)
-    return op->emitOpError()
-           << branchName << " must have 0 arguments, but found "
-           << region.getNumArguments();
-
-  TypeRange branchReturnTypes =
-      region.front().getTerminator()->getOperandTypes();
-  if (branchReturnTypes != op->getResultTypes())
-    return op->emitOpError()
-           << branchName << " returned types (" << branchReturnTypes
-           << ") do not match op result types (" << op->getResultTypes() << ")";
-
+    return emitOptionalError(loc, branchName,
+                             " must have 0 arguments, but found ",
+                             region.getNumArguments());
   return success();
 }
 
-LogicalResult IfOp::verify() {
-  if (failed(verifyConditionalBranch(*this, true_branch(),
-                                     /*branchName=*/"true_branch"))) {
+LogicalResult IfOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  IfOp::Adaptor adaptor(operands, attributes, regions);
+  if (failed(verifyConditionalBranch(adaptor.true_branch(),
+                                     /*branchName=*/"true_branch", location)))
     return failure();
-  }
+  if (failed(verifyConditionalBranch(adaptor.false_branch(),
+                                     /*branchName=*/"false_branch", location)))
+    return failure();
 
-  if (failed(verifyConditionalBranch(*this, false_branch(),
-                                     /*branchName=*/"false_branch"))) {
-    return failure();
-  }
+  auto trueBranchRetureTypes =
+      adaptor.true_branch().front().getTerminator()->getOperandTypes();
+  auto falseBranchRetureTypes =
+      adaptor.false_branch().front().getTerminator()->getOperandTypes();
+  if (trueBranchRetureTypes != falseBranchRetureTypes)
+    return emitOptionalError(
+        location, "true_branch and false_branch mismatched return types: ",
+        trueBranchRetureTypes, " vs ", falseBranchRetureTypes);
+
+  for (auto trueBranchRetureType : trueBranchRetureTypes)
+    inferredReturnShapes.emplace_back(trueBranchRetureType.cast<ShapedType>());
   return success();
 }
 
@@ -4694,14 +4700,29 @@ LogicalResult IfOp::verify() {
 // Case Op
 //===----------------------------------------------------------------------===//
 
-LogicalResult CaseOp::verify() {
-  auto numBranches = branches().size();
+LogicalResult CaseOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CaseOp::Adaptor adaptor(operands, attributes, regions);
 
-  for (unsigned i = 0; i < numBranches; ++i)
-    if (failed(verifyConditionalBranch(*this, branches()[i],
-                                       /*branchName=*/"branch " + Twine(i))))
+  TypeRange branch0ResultTypes;
+  for (unsigned i = 0; i < adaptor.branches().size(); ++i) {
+    Twine branchName = "branch " + Twine(i);
+    Region* region = adaptor.branches()[i];
+    if (failed(verifyConditionalBranch(*region, branchName, location)))
       return failure();
 
+    auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
+    if (i == 0)
+      branch0ResultTypes = branchResultTypes;
+    else if (branch0ResultTypes != branchResultTypes)
+      return emitOptionalError(location, "branch 0 and ", branchName,
+                               " have mismatched return types: ",
+                               branch0ResultTypes, " vs ", branchResultTypes);
+  }
+  for (auto resultType : branch0ResultTypes)
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
 

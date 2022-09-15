@@ -488,6 +488,18 @@ func.func @broadcast_in_dim_unranked_operand(%arg0 : tensor<*xf32>) -> tensor<2x
 
 // -----
 
+// CHECK-LABEL: if 
+func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
 // CHECK-LABEL: @if_nested_different_return_types(
 func.func @if_nested_different_return_types(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
   %0 = "stablehlo.if"(%pred) ({
@@ -505,10 +517,11 @@ func.func @if_nested_different_return_types(%pred : tensor<i1>, %branch_operand 
 
 // -----
 
-func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<f32>, %wrong_type : tensor<3xf32>) {
-  // @expected-error@+1 {{true_branch returned types ('tensor<3xf32>') do not match op result types ('tensor<f32>')}}
+func.func @if_unexpected_arguments_in_region_of_true_branch(%pred : tensor<i1>, %branch_operand : tensor<f32>, %wrong_type : tensor<f32>) {
+  // @expected-error@+1 {{true_branch must have 0 arguments, but found 1}}
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%wrong_type) : (tensor<3xf32>) -> ()
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%wrong_type) : (tensor<f32>) -> ()
     }, {
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }) : (tensor<i1>) -> tensor<f32>
@@ -517,13 +530,61 @@ func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<
 
 // -----
 
-func.func @if_mismatch_num_return_types(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
-  // @expected-error@+1 {{true_branch returned types ('tensor<f32>', 'tensor<f32>') do not match op result types ('tensor<f32>')}}
+func.func @if_unexpected_arguments_in_region_of_false_branch(%pred : tensor<i1>, %branch_operand : tensor<f32>, %wrong_type : tensor<f32>) {
+  // @expected-error@+1 {{false_branch must have 0 arguments, but found 1}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%wrong_type) : (tensor<f32>) -> ()
+    }, {
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @if_mismatch_types_in_branches(%pred : tensor<i1>, %true_branch : tensor<3xf32>, %false_branch : tensor<f32>) {
+  // @expected-error@+1 {{true_branch and false_branch mismatched return types: 'tensor<3xf32>' vs 'tensor<f32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch) : (tensor<3xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @if_mismatch_num_types_in_branches(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{true_branch and false_branch mismatched return types: 'tensor<f32>', 'tensor<f32>' vs 'tensor<f32>'}}
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
     }, {
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+// -----
+
+func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<i32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case
+func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
   func.return
 }
 
@@ -544,8 +605,21 @@ func.func @case_nested_different_return_types(%index : tensor<i32>, %branch_oper
 
 // -----
 
-func.func @case_mismatch_return_type(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
-  // expected-error@+1 {{branch 1 returned types ('tensor<i32>') do not match op result types ('tensor<f32>')}}
+func.func @case_unexpected_arguments_in_region_of_branch_1(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 1 must have 0 arguments, but found 1}}
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }, {
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }) : (tensor<i32>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @case_mismatch_types_in_branches(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
+  // expected-error@+1 {{branch 0 and branch 1 have mismatched return types: 'tensor<f32>' vs 'tensor<i32>'}}
   %0 = "stablehlo.case"(%index) ({
       %1 = "stablehlo.negate"(%operand_1) : (tensor<f32>) -> tensor<f32>
       "stablehlo.return"(%1) : (tensor<f32>) -> ()
@@ -558,6 +632,18 @@ func.func @case_mismatch_return_type(%index: tensor<i32>, %operand_1: tensor<f32
     }
   ) : (tensor<i32>) -> tensor<f32>
   func.return %0 : tensor<f32>
+}
+
+// -----
+
+func.func @case_mismatch_return_type(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return
 }
 
 // -----

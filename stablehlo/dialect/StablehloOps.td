@@ -1094,7 +1094,8 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
 // conditional use of kConditional HLO.
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveSideEffects,
-    SingleBlockImplicitTerminator<"ReturnOp">]> {
+    SingleBlockImplicitTerminator<"ReturnOp">, 
+    InferTensorType]> {
   let summary = "If operator";
 
   let description = [{
@@ -1117,8 +1118,6 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
                         SizedRegion<1>:$false_branch);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
-
-  let hasVerifier = 1;
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,
@@ -1126,7 +1125,8 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 // conditional use of kConditional HLO.
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveSideEffects,
-      SingleBlockImplicitTerminator<"ReturnOp">
+      SingleBlockImplicitTerminator<"ReturnOp">,
+      InferTensorType
     ]> {
   let summary = "Switch-Case operator";
   let description = [{
@@ -1147,8 +1147,6 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
-
-  let hasVerifier = 1;
 }
 
 

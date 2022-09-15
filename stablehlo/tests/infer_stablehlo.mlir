@@ -275,6 +275,34 @@ func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf3
   func.return %1 : tensor<4x256xindex>
 }
 
+// -----
+
+// CHECK-LABEL: if 
+func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xindex>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case
+func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xindex>
+  func.return
+}
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//
