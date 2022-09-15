@@ -98,7 +98,7 @@ The specification of an op comprises of the following components (in the order
   * **Semantics** Semantics of the operation.
   * **Operands** Meaning of operand(s) and their type(s).
   * **Results** Meaning of the result(s) and the type(s).
-  * **Constraints** Constraints on the operand(s), result(s).
+  * **Constraints** Constraints on the operand(s) and the result(s).
   * **Examples** Examples demonstrating the working of the op.
 
 
@@ -135,7 +135,7 @@ Performs element-wise absolute value of `operand` tensor and produces a `result`
 tensor. For floating-point element types, it implements the `abs` operation from
 the IEEE-754 specification.
 
-For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation
+For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
@@ -650,13 +650,13 @@ lexicographic comparison on the (real, imaginary) pairs.
 Performs element-wise negation of `operand` tensor and produces a `result`
 tensor. For floating-point element types, it implements the `negate` operation
 from the IEEE-754 specification. For signed integer types, it performs the
-regular negation operation, where the negation of $-2^{n-1}$ is implementation
+regular negation operation where the negation of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
 
-For unsigned integer types, bitcasts to the corresponding signed integer type,
+For unsigned integer types, it bitcasts to the corresponding signed integer type,
 performs the regular negation operation and bitcasts back to the original
 unsigned integer type.
 
