@@ -1,33 +1,33 @@
 ## About
 
 When bootstrapping StableHLO from MHLO, we have inherited MHLO's implementation
-of verification. It already has significant coverage of the opset, but there's
+of many things, including prettyprinting, verification and shape inference.
+Thanks to that, we already have significant coverage of the opset, but there's
 still plenty to do to review the existing implementations for completeness and
 provide new implementations where none exist.
 
-This live document is for the developers to track the progress on various
-aspects of the implementation - pretty printing, verification, type inference,
+This live document is for the developers and the users to track the progress on
+various aspects of the opset - pretty printing, verification, type inference,
 specification, interpreter etc.
 
 ### How to use it
 
 The progress of a StableHLO op, as mentioned in the corresponding row, on a
-particular implementation aspect, as mentioned in the corresponding column, is
-tracked using one of the following tracking labels.
+particular aspect, as mentioned in the corresponding column, is tracked using
+one of the following tracking labels.
 
  - Generic labels
     - **yes**: complete
     - **wip**: semi-complete: Work in progress or under review.
-    - **no**: not complete yet, but plan to do so in near future.
-    - **no-plan**: not complete and not planned.
+    - **no**: not complete yet, but part of [the roadmap](https://github.com/openxla/stablehlo#roadmap).
  - Customized labels
     - Verifier
        - **match-xla**:  verifier in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
        - **match-spec**: verifier in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
 
-## Audit chart
+## Status
 
-| StableHLO Operation (114) | Specification (21) | Verifier | Type Inference | Pretty Printer | Interpreter (2) |
+| StableHLO Op (114) | Specification (21) | Verifier | Type Inference | Pretty Printer | Interpreter (2) |
 |:--:|:--:|:--:|:--:|:--:|:--:|
 | AbsOP |yes||||no|
 | AddOP |yes|||| yes|
