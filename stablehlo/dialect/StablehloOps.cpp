@@ -186,10 +186,9 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
   DenseIntElementsAttr attr = *optionalAttr;
   auto attrType = attr.getType().cast<RankedTensorType>();
   if (attrType.getRank() != 1)
-    return (emitOptionalError(loc, "expects the shape of ", attrName,
-                              " attribute to be 1-D, but got {",
-                              attrType.getShape(), "}."),
-            failure());
+    return emitOptionalError(loc, "expects the shape of ", attrName,
+                             " attribute to be 1-D, but got {",
+                             attrType.getShape(), "}.");
   auto values = attr.getValues<int64_t>();
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
@@ -203,12 +202,9 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
   DenseIntElementsAttr attr = *optionalAttr;
   auto attrType = attr.getType().cast<RankedTensorType>();
   if (attrType.getRank() != 2 || attrType.getShape()[1] != 2)
-    return (
-        emitOptionalError(
-            loc,
-            "expects the shape of padding-attribute to be {N, 2}, but got {",
-            attrType.getShape(), "}."),
-        failure());
+    return emitOptionalError(
+        loc, "expects the shape of padding-attribute to be {N, 2}, but got {",
+        attrType.getShape(), "}.");
 
   auto it = attr.getValues<int64_t>().begin();
   SmallVector<std::pair<int64_t, int64_t>> out(attr.getNumElements() / 2);
@@ -310,33 +306,27 @@ verifyWindowAttributesAndInferWindowDimensions(
 
     dim.size = windowDimensions[i];
     if (!isDynamicDimSize(dim.size) && dim.size <= 0)
-      return (
-          emitOptionalError(loc, "expects window to have positive value for ",
-                            i, "-th window dimension, but got ", dim.size, "."),
-          failure());
+      return emitOptionalError(loc,
+                               "expects window to have positive value for ", i,
+                               "-th window dimension, but got ", dim.size, ".");
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
     if (dim.stride <= 0)
-      return (emitOptionalError(
-                  loc, "expects window to have positive stride for ", i,
-                  "-th window dimension, but got ", dim.stride, "."),
-              failure());
+      return emitOptionalError(
+          loc, "expects window to have positive stride for ", i,
+          "-th window dimension, but got ", dim.stride, ".");
 
     if (!lhsDilation.empty()) dim.baseDilation = lhsDilation[i];
     if (dim.baseDilation <= 0)
-      return (
-          emitOptionalError(
-              loc, "expects window to have positive base dilation factor for ",
-              i, "-th window dimension, but got ", dim.baseDilation, "."),
-          failure());
+      return emitOptionalError(
+          loc, "expects window to have positive base dilation factor for ", i,
+          "-th window dimension, but got ", dim.baseDilation, ".");
 
     if (!rhsDilation.empty()) dim.windowDilation = rhsDilation[i];
     if (dim.windowDilation <= 0)
-      return (emitOptionalError(
-                  loc,
-                  "expects window to have positive window dilation factor for ",
-                  i, "-th window dimension, but got ", dim.windowDilation, "."),
-              failure());
+      return emitOptionalError(
+          loc, "expects window to have positive window dilation factor for ", i,
+          "-th window dimension, but got ", dim.windowDilation, ".");
 
     if (!padding.empty()) {
       dim.paddingLow = padding[i].first;
@@ -5918,7 +5908,7 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
   StringRef attrTag;
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
-  if (parseResult.hasValue()) return attr;
+  if (parseResult.has_value()) return attr;
   parser.emitError(parser.getNameLoc(), "unknown stablehlo attribute");
   return Attribute();
 }
@@ -6337,8 +6327,8 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
       int64_t spatialDim;
       auto dimLocation = parser.getCurrentLocation();
       OptionalParseResult parseResult = parser.parseOptionalInteger(spatialDim);
-      if (parseResult.hasValue()) {
-        if (parseResult.getValue().failed()) {
+      if (parseResult.has_value()) {
+        if (parseResult.value().failed()) {
           return failure();
         }
         // We were successful in parsing an integer. Check if it is a valid
