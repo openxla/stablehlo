@@ -1,89 +1,5 @@
 // RUN: stablehlo-interpreter --interpret -split-input-file %s | FileCheck %s
 
-// CHECK-LABEL: Evaluated results of function: add_op_test_f16
-func.func @add_op_test_f16() -> tensor<10xf16> {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.141, 0x7C00, 0x7C00, 0xFC00, 0x7C00]> : tensor<10xf16>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.141, 0.0, 0x7C00, 0xFC00, 0x7C00]> : tensor<10xf16>
-  %2 = stablehlo.add %0, %1 : tensor<10xf16>
-  func.return %2 : tensor<10xf16>
-  // CHECK-NEXT: tensor<10xf16>
-  // CHECK-NEXT: 0.000000e+00 : f16
-  // CHECK-NEXT: -0.000000e+00 : f16
-  // CHECK-NEXT: 8.000000e+00 : f16
-  // CHECK-NEXT: 8.750000e-01 : f16
-  // CHECK-NEXT: 3.999020e-01 : f16
-  // CHECK-NEXT: 6.281250e+00 : f16
-  // CHECK-NEXT: 0x7C00 : f16
-  // CHECK-NEXT: 0x7C00 : f16
-  // CHECK-NEXT: 0xFC00 : f16
-  // CHECK-NEXT: 0x7C00 : f16
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: add_op_test_bf16
-func.func @add_op_test_bf16() -> tensor<10xbf16> {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.140625, 0x7F80, 0x7F80, 0xFF80, 0x7F80]> : tensor<10xbf16>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.140625, 0.0, 0x7F80, 0xFF80, 0xFF80]> : tensor<10xbf16>
-  %2 = stablehlo.add %0, %1 : tensor<10xbf16>
-  func.return %2 : tensor<10xbf16>
-  // CHECK-NEXT: tensor<10xbf16>
-  // CHECK-NEXT: 0.000000e+00 : bf16
-  // CHECK-NEXT: -0.000000e+00 : bf16
-  // CHECK-NEXT: 8.000000e+00 : bf16
-  // CHECK-NEXT: 8.750000e-01 : bf16
-  // CHECK-NEXT: 4.003910e-01 : bf16
-  // CHECK-NEXT: 6.281250e+00 : bf16
-  // CHECK-NEXT: 0x7F80 : bf16
-  // CHECK-NEXT: 0x7F80 : bf16
-  // CHECK-NEXT: 0xFF80 : bf16
-  // CHECK-NEXT: 0x7FC0 : bf16
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: add_op_test_f32
-// CHECK-NEXT: tensor<10xf32>
-// CHECK-NEXT: 0.000000e+00 : f32
-// CHECK-NEXT: -0.000000e+00 : f32
-// CHECK-NEXT: 8.000000e+00 : f32
-// CHECK-NEXT: 8.750000e-01 : f32
-// CHECK-NEXT: 4.000000e-01 : f32
-// CHECK-NEXT: 6.28318548 : f32
-// CHECK-NEXT: 0x7F800000 : f32
-// CHECK-NEXT: 0x7F800000 : f32
-// CHECK-NEXT: 0xFF800000 : f32
-// CHECK-NEXT: 0x7FC00000 : f32
-func.func @add_op_test_f32() -> tensor<10xf32> {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159265, 0x7F800000, 0x7F800000, 0xFF800000, 0x7F800000]> : tensor<10xf32>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.14159265, 0.0, 0x7F800000, 0xFF800000, 0xFF800000]> : tensor<10xf32>
-  %2 = stablehlo.add %0, %1 : tensor<10xf32>
-  func.return %2 : tensor<10xf32>
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: add_op_test_f64
-func.func @add_op_test_f64() -> tensor<10xf64> {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159265358979323846, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000000, 0x7FF0000000000000]> : tensor<10xf64>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.14159265358979323846, 0.0, 0x7FF0000000000000, 0xFFF0000000000000, 0xFFF0000000000000]> : tensor<10xf64>
-  %2 = stablehlo.add %0, %1 : tensor<10xf64>
-  func.return %2 : tensor<10xf64>
-  // CHECK-NEXT: tensor<10xf64>
-  // CHECK-NEXT: 0.000000e+00 : f64
-  // CHECK-NEXT: -0.000000e+00 : f64
-  // CHECK-NEXT: 8.000000e+00 : f64
-  // CHECK-NEXT: 8.750000e-01 : f64
-  // CHECK-NEXT: 4.000000e-01 : f64
-  // CHECK-NEXT: 6.2831853071795862 : f64
-  // CHECK-NEXT: 0x7FF0000000000000 : f64
-  // CHECK-NEXT: 0x7FF0000000000000 : f64
-  // CHECK-NEXT: 0xFFF0000000000000 : f64
-  // CHECK-NEXT: 0x7FF8000000000000 : f64
-}
-
-// -----
-
 // CHECK-LABEL: Evaluated results of function: add_op_test_si4
 func.func @add_op_test_si4() -> tensor<5xi4> {
   %0 = stablehlo.constant dense<[0, 1, 2, -3, 0]> : tensor<5xi4>
@@ -229,8 +145,92 @@ func.func @add_op_test_ui64() -> tensor<2xui64> {
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: add_op_test_c32
-func.func @add_op_test_c32() -> tensor<2xcomplex<f32>> {
+// CHECK-LABEL: Evaluated results of function: add_op_test_bf16
+func.func @add_op_test_bf16() -> tensor<10xbf16> {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.140625, 0x7F80, 0x7F80, 0xFF80, 0x7F80]> : tensor<10xbf16>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.140625, 0.0, 0x7F80, 0xFF80, 0xFF80]> : tensor<10xbf16>
+  %2 = stablehlo.add %0, %1 : tensor<10xbf16>
+  func.return %2 : tensor<10xbf16>
+  // CHECK-NEXT: tensor<10xbf16>
+  // CHECK-NEXT: 0.000000e+00 : bf16
+  // CHECK-NEXT: -0.000000e+00 : bf16
+  // CHECK-NEXT: 8.000000e+00 : bf16
+  // CHECK-NEXT: 8.750000e-01 : bf16
+  // CHECK-NEXT: 4.003910e-01 : bf16
+  // CHECK-NEXT: 6.281250e+00 : bf16
+  // CHECK-NEXT: 0x7F80 : bf16
+  // CHECK-NEXT: 0x7F80 : bf16
+  // CHECK-NEXT: 0xFF80 : bf16
+  // CHECK-NEXT: 0x7FC0 : bf16
+}
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_test_f16
+func.func @add_op_test_f16() -> tensor<10xf16> {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.141, 0x7C00, 0x7C00, 0xFC00, 0x7C00]> : tensor<10xf16>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.141, 0.0, 0x7C00, 0xFC00, 0x7C00]> : tensor<10xf16>
+  %2 = stablehlo.add %0, %1 : tensor<10xf16>
+  func.return %2 : tensor<10xf16>
+  // CHECK-NEXT: tensor<10xf16>
+  // CHECK-NEXT: 0.000000e+00 : f16
+  // CHECK-NEXT: -0.000000e+00 : f16
+  // CHECK-NEXT: 8.000000e+00 : f16
+  // CHECK-NEXT: 8.750000e-01 : f16
+  // CHECK-NEXT: 3.999020e-01 : f16
+  // CHECK-NEXT: 6.281250e+00 : f16
+  // CHECK-NEXT: 0x7C00 : f16
+  // CHECK-NEXT: 0x7C00 : f16
+  // CHECK-NEXT: 0xFC00 : f16
+  // CHECK-NEXT: 0x7C00 : f16
+}
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_test_f32
+func.func @add_op_test_f32() -> tensor<10xf32> {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159265, 0x7F800000, 0x7F800000, 0xFF800000, 0x7F800000]> : tensor<10xf32>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.14159265, 0.0, 0x7F800000, 0xFF800000, 0xFF800000]> : tensor<10xf32>
+  %2 = stablehlo.add %0, %1 : tensor<10xf32>
+  func.return %2 : tensor<10xf32>
+  // CHECK-NEXT: tensor<10xf32>
+  // CHECK-NEXT: 0.000000e+00 : f32
+  // CHECK-NEXT: -0.000000e+00 : f32
+  // CHECK-NEXT: 8.000000e+00 : f32
+  // CHECK-NEXT: 8.750000e-01 : f32
+  // CHECK-NEXT: 4.000000e-01 : f32
+  // CHECK-NEXT: 6.28318548 : f32
+  // CHECK-NEXT: 0x7F800000 : f32
+  // CHECK-NEXT: 0x7F800000 : f32
+  // CHECK-NEXT: 0xFF800000 : f32
+  // CHECK-NEXT: 0x7FC00000 : f32
+}
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_test_f64
+func.func @add_op_test_f64() -> tensor<10xf64> {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159265358979323846, 0x7FF0000000000000, 0x7FF0000000000000, 0xFFF0000000000000, 0x7FF0000000000000]> : tensor<10xf64>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.14159265358979323846, 0.0, 0x7FF0000000000000, 0xFFF0000000000000, 0xFFF0000000000000]> : tensor<10xf64>
+  %2 = stablehlo.add %0, %1 : tensor<10xf64>
+  func.return %2 : tensor<10xf64>
+  // CHECK-NEXT: tensor<10xf64>
+  // CHECK-NEXT: 0.000000e+00 : f64
+  // CHECK-NEXT: -0.000000e+00 : f64
+  // CHECK-NEXT: 8.000000e+00 : f64
+  // CHECK-NEXT: 8.750000e-01 : f64
+  // CHECK-NEXT: 4.000000e-01 : f64
+  // CHECK-NEXT: 6.2831853071795862 : f64
+  // CHECK-NEXT: 0x7FF0000000000000 : f64
+  // CHECK-NEXT: 0x7FF0000000000000 : f64
+  // CHECK-NEXT: 0xFFF0000000000000 : f64
+  // CHECK-NEXT: 0x7FF8000000000000 : f64
+}
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_test_c64
+func.func @add_op_test_c64() -> tensor<2xcomplex<f32>> {
   %0 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5)]> : tensor<2xcomplex<f32>>
   %1 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5)]> : tensor<2xcomplex<f32>>
   %2 = stablehlo.add %0, %1 : tensor<2xcomplex<f32>>
@@ -242,8 +242,8 @@ func.func @add_op_test_c32() -> tensor<2xcomplex<f32>> {
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: add_op_test_c64
-func.func @add_op_test_c64() -> tensor<2xcomplex<f64>> {
+// CHECK-LABEL: Evaluated results of function: add_op_test_c128
+func.func @add_op_test_c128() -> tensor<2xcomplex<f64>> {
   %0 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5)]> : tensor<2xcomplex<f64>>
   %1 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5)]> : tensor<2xcomplex<f64>>
   %2 = stablehlo.add %0, %1 : tensor<2xcomplex<f64>>
