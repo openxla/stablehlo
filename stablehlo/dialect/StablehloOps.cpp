@@ -5617,12 +5617,13 @@ LogicalResult WhileOp::verify() {
 /// assignment ::= ssa-value `=` ssa-value
 void WhileOp::print(OpAsmPrinter& p) {
   p << '(';
-  llvm::interleaveComma(llvm::zip(getBody()->getArguments(), getOperands()), p,
-                        [&](auto zip) {
-                          p.printOperand(std::get<0>(zip));
-                          p << " = ";
-                          p.printOperand(std::get<1>(zip));
-                        });
+  llvm::interleaveComma(
+      llvm::zip(SingleBlock::getBody()->getArguments(), getOperands()), p,
+      [&](auto zip) {
+        p.printOperand(std::get<0>(zip));
+        p << " = ";
+        p.printOperand(std::get<1>(zip));
+      });
   p << ")";
   if (getNumOperands()) {
     p << " : ";
