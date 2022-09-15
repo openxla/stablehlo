@@ -452,8 +452,8 @@ produces an implementation-defined value.
 Performs element-wise exponential operation on `operand` tensor and produces a
 `result` tensor. For floating-point element types, it implements the `exp`
 operation from the IEEE-754 specification. For complex element types, it
-computes a complex form of exponential using Euler's formula, with corner cases
-TBD. Numeric precision is implementation-defined.
+computes a complex exponential, with corner cases TBD. Numeric precision is
+implementation-defined.
 
 ### Operands
 
