@@ -13,12 +13,17 @@ specification, interpreter etc.
 
 The progress of a StableHLO op, as mentioned in the corresponding row, on a
 particular implementation aspect, as mentioned in the corresponding column, is
-tracked using one of the following tracking labels:
+tracked using one of the following tracking labels.
 
- - yes: complete
- - wip: semi-complete: Work in progress or under review.
- - no: not complete yet, but plan to do so in near future.
- - no-plan: not complete and not planned.
+ - Generic labels
+    - **yes**: complete
+    - **wip**: semi-complete: Work in progress or under review.
+    - **no**: not complete yet, but plan to do so in near future.
+    - **no-plan**: not complete and not planned.
+ - Customized labels
+    - Verifier
+       - **match-xla**:  verifier in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
+       - **match-spec**: verifier in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
 
 ## Audit chart
 
