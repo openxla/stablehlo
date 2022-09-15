@@ -3,12 +3,13 @@
 
 ## Data Model
 
-StableHLO programs are computations over tensors (n-dimensional arrays), which,
-in the current model, are implemented using class `Tensor`. The underlying
-storage class for a `Tensor` object, `detail::Buffer`, stores the
-`mlir::ShapedType` of the tensor along with a contiguous byte array representing
-its data laid out in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
-`detail::Buffer` objects are reference-counted to simplify memory management.
+[StableHLO programs](spec_draft.md#programs) are computations over tensors
+(n-dimensional arrays), which, in the current model, are implemented using class
+`Tensor`. The underlying storage class for a `Tensor` object, `detail::Buffer`,
+stores the `mlir::ShapedType` of the tensor along with a contiguous byte array
+representing its data laid out in
+[major-to-minor order](https://www.tensorflow.org/xla/shapes). `detail::Buffer`
+objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
@@ -59,10 +60,10 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
 ```
 
 Overall, the design of the interpreter is optimized for readability of
-implementations of `eval` functions for individual ops because it's meant to serve
-as a reference implementation for StableHLO. For example, instead of defining
-`eval` as a template function and parameterizing it with element types, we
-encapsulate details about how different element types are handled in
+implementations of `eval` functions for individual ops because it's meant to
+serve as a reference implementation for StableHLO. For example, instead of
+defining `eval` as a template function and parameterizing it with element types,
+we encapsulate details about how different element types are handled in
 `Element::operator+` etc, simplifying the implementation of `eval`.
 
 ## Using interpreter for constant folding
