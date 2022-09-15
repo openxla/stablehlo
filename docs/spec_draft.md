@@ -110,6 +110,7 @@ The specification of an op comprises of the following components (in the order
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
    * [divide](#stablehlodivide)
+   * [exp](#stablehloexp)
    * [floor](#stablehlofloor)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
@@ -438,6 +439,48 @@ produces an implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = stablehlo.divide %lhs, %rhs : tensor<4xi32>
 // %result: [5, -5, -5, 5]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.exp
+
+`stablehlo.exp(operand) -> result`
+
+### Semantics
+
+Performs element-wise exponential operation on `operand` tensor and produces a
+`result` tensor. For floating-point element types, it implements the `exp`
+operation from the IEEE-754 specification. For complex element types, it
+computes a complex form of exponential using Euler's formula, with corner cases
+TBD. Numeric precision is implementation-defined.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [2.0, 3.0]]
+%result = stablehlo.exp %operand : tensor<2x2xf32>
+// %result: [[1.0, 2.71828183], [7.38905610, 20.08553692]]
+
+// %operand: (1.0, 2.0)
+%result = stablehlo.exp %operand : tensor<complex<f32>>
+// %result: (-1.13120438, 2.47172667)
 ```
 
 [Back to Ops](#index-of-documented-ops)
