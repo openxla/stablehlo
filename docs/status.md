@@ -27,7 +27,7 @@ one of the following tracking labels.
 
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verifier | Type Inference | Pretty Printer | Interpreter (2) |
+| StableHLO Op (114) | Specification (21) | Verification | Type Inference | Prettyprinting | Interpreter (2) |
 |:--:|:--:|:--:|:--:|:--:|:--:|
 | AbsOP |yes||||no|
 | AddOP |yes|||| yes|
