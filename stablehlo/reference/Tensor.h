@@ -40,8 +40,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   Buffer(Buffer &&other) = default;
   /// @}
 
-  /// Assignment operator.
-  Buffer &operator=(Buffer &&other) = default;
+  /// Move assignment operator deleted in RefCountedBase
+  Buffer &operator=(Buffer &&other) = delete;
 
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
