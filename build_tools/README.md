@@ -1,6 +1,7 @@
 # Build instructions
 
-To build the code in this repository, you need a clone of the LLVM/MLIR git repository:
+To build the code in this repository, you need a clone of the LLVM/MLIR
+git repository:
 
 `$ git clone https://github.com/llvm/llvm-project.git`
 
@@ -28,7 +29,7 @@ $ cmake .. -GNinja \
 $ ninja check-stablehlo
 ```
 
-### Python API
+## Python API
 
 Note that the python package produced by this procedure includes the `mlir`
 package and is not suitable for deployment as-is (but it can be included into
