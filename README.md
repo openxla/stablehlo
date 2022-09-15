@@ -10,20 +10,20 @@ StableHLO is a portability layer between ML frameworks and ML compilers.
 We are aiming for adoption by a wide variety of ML frameworks including
 TensorFlow, JAX and PyTorch, as well as ML compilers including XLA and IREE.
 
-# Development
+## Development
 
 We're using GitHub issues / pull requests to organize development and
-[GitHub discussions](https://github.com/orgs/openxla/discussions/categories/stablehlo) 
+[GitHub discussions](https://github.com/orgs/openxla/discussions/categories/stablehlo)
 to have longer discussions. We also have a `#stablehlo`
 channel on [the OpenXLA Discord server](https://discord.gg/PeWUTaecrA).
 
-# Community
+## Community
 
 With StableHLO, our goal is to create a community to build an amazing
 portability layer between ML frameworks and ML compilers. Let's work together
 on figuring out the appropriate governance to make this happen.
 
-# Roadmap
+## Roadmap
 
 * Workstream #1: Stable version of HLO/MHLO, including
   [the spec](https://github.com/openxla/stablehlo/labels/Spec),
@@ -31,9 +31,10 @@ on figuring out the appropriate governance to make this happen.
   [prettyprinting](https://github.com/openxla/stablehlo/labels/Prettyprinting),
   [verification](https://github.com/openxla/stablehlo/labels/Verification) and
   [type inference](https://github.com/openxla/stablehlo/labels/Type%20inference),
-  and [the interpeter](https://github.com/openxla/stablehlo/labels/Interpreter) - ETA: H2 2022.
+  and [the interpeter](https://github.com/openxla/stablehlo/labels/Interpreter).
+  ETA: H2 2022.
 * Workstream #2: Evolution beyond what's currently in HLO/MHLO.
   Ongoing work on [dynamism](https://github.com/openxla/stablehlo/labels/Dynamism),
-  sparsity, quantization and extensibility - ETA: H2 2022.
+  sparsity, quantization and extensibility. ETA: H2 2022.
 * Workstream #3: Support for ML frameworks (TensorFlow, JAX, PyTorch) and
-  ML compilers (XLA and IREE) - ETA: H2 2022.
+  ML compilers (XLA and IREE). ETA: H2 2022.
