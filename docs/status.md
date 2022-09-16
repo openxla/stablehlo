@@ -28,14 +28,14 @@ one of the following tracking labels.
 ## Status
 
 | StableHLO Op (114) | Specification (21) | Verification | Type Inference | Prettyprinting | Interpreter (2) |
-|:--:|:--:|:--:|:--:|:--:|:--:|
-| AbsOP |yes||||no|
-| AddOP |yes|||| yes|
-| AfterAllOP |no||||no |
-| AllGatherOP |no||||no|
-| AllReduceOP |no||||no|
-| AllToAllOP |no||||no|
-| AndOP |yes|||| no|
+|:--|:--:|:--:|:--:|:--:|:--:|
+| AbsOp |yes||||no|
+| AddOp |yes|||| yes|
+| AfterAllOp |no||||no |
+| AllGatherOp |no||||no|
+| AllReduceOp |no||||no|
+| AllToAllOp |no||||no|
+| AndOp |yes|||| no|
 | Atan2Op |no||||no|
 | BatchNormGradOp |no||||no|
 | BatchNormInferenceOp |no||||no|
