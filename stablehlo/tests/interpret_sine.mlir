@@ -95,7 +95,7 @@ func.func @sine_op_test_c64() -> tensor<2xcomplex<f32>> {
   func.return %1 : tensor<2xcomplex<f32>>
   // CHECK-NEXT: tensor<2xcomplex<f32>>
   // CHECK-NEXT: [6.1169281 : f32, 0.427974522 : f32]
-  // CHECK-NEXT: [-15.7901974 : f32, -42.1433716 : f32]
+  // CHECK-NEXT: [-15.7901983 : f32, -42.1433716 : f32]
 }
 
 // -----
