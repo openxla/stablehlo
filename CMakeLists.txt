@@ -50,9 +50,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   
   # Issue with LLD and -Werror. Similar to golang/go#41527, iree-org/iree#7450
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror") 
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument") 
-  endif()
 endif()
 
 #-------------------------------------------------------------------------------
