@@ -35,7 +35,7 @@ Tensor eval(ConstantOp op, ElementsAttr value) {
 Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, sin(operand.get(i)));
+    result.set(i, sine(operand.get(i)));
   }
   return result;
 }

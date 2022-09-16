@@ -120,7 +120,7 @@ Element Element::operator+(const Element &other) const {
   report_fatal_error(std::move(err));
 }
 
-Element sin(const Element &e) {
+Element sine(const Element &e) {
   Type type = e.getType();
   if (isSupportedComplexType(type)) {
     auto complex = getComplexValue(e);

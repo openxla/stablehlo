@@ -56,7 +56,7 @@ class Element {
 };
 
 /// Returns element-wise sine of Element object.
-Element sin(const Element &e);
+Element sine(const Element &e);
 
 /// Print utilities for Element objects.
 inline raw_ostream &operator<<(raw_ostream &os, Element element) {
