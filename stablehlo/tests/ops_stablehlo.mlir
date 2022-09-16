@@ -500,6 +500,42 @@ func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type :
 
 // -----
 
+// CHECK-LABEL: if_dynamic_op_result
+func.func @if_dynamic_op_result(%pred : tensor<i1>, %true_branch_type: tensor<2xf32>, %false_branch_type : tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_type) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<?xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: if_dynamic_branch_result
+func.func @if_dynamic_branch_result(%pred : tensor<i1>, %true_branch_type: tensor<2xf32>, %false_branch_type : tensor<?xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_type) : (tensor<?xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: if_unranked
+func.func @if_unranked(%pred : tensor<i1>, %true_branch_type: tensor<2xf32>, %false_branch_type : tensor<*xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_type) : (tensor<*xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<*xf32>
+  func.return
+}
+
+// -----
+
 // CHECK-LABEL: @if_nested_different_return_types(
 func.func @if_nested_different_return_types(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
   %0 = "stablehlo.if"(%pred) ({
@@ -585,6 +621,42 @@ func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
   }, {
       "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
   }) : (tensor<i32>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_op_result
+func.func @case_dynamic_op_result(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<?xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_branch_result
+func.func @case_dynamic_branch_result(%index : tensor<i32>, %branch_operand : tensor<?xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_unranked
+func.func @case_unranked(%index : tensor<i32>, %branch_operand : tensor<*xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<*xf32>
   func.return
 }
 

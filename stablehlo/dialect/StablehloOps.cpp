@@ -4670,6 +4670,17 @@ static LogicalResult verifyConditionalBranch(Region& region,
   return success();
 }
 
+bool isCompatibleForTypeRange(ValueTypeRange<OperandRange> typeRange1,
+                              ValueTypeRange<OperandRange> typeRange2) {
+  if (typeRange1.size() != typeRange2.size()) return false;
+  for (auto it : llvm::zip(typeRange1, typeRange2)) {
+    if (!mlir::hlo::isCompatibleForHloTypeInference(std::get<0>(it),
+                                                    std::get<1>(it)))
+      return false;
+  }
+  return true;
+}
+
 LogicalResult IfOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
@@ -4686,7 +4697,8 @@ LogicalResult IfOp::inferReturnTypeComponents(
       adaptor.true_branch().front().getTerminator()->getOperandTypes();
   auto falseBranchRetureTypes =
       adaptor.false_branch().front().getTerminator()->getOperandTypes();
-  if (trueBranchRetureTypes != falseBranchRetureTypes)
+  
+  if (!isCompatibleForTypeRange(trueBranchRetureTypes, falseBranchRetureTypes))
     return emitOptionalError(
         location, "true_branch and false_branch mismatched return types: ",
         trueBranchRetureTypes, " vs ", falseBranchRetureTypes);
@@ -4705,8 +4717,9 @@ LogicalResult CaseOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
+  ValueTypeRange<OperandRange> branch0ResultTypes =
+      adaptor.branches()[0]->front().getTerminator()->getOperandTypes();
 
-  TypeRange branch0ResultTypes;
   for (unsigned i = 0; i < adaptor.branches().size(); ++i) {
     Twine branchName = "branch " + Twine(i);
     Region* region = adaptor.branches()[i];
@@ -4714,9 +4727,7 @@ LogicalResult CaseOp::inferReturnTypeComponents(
       return failure();
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (i == 0)
-      branch0ResultTypes = branchResultTypes;
-    else if (branch0ResultTypes != branchResultTypes)
+    if (!isCompatibleForTypeRange(branch0ResultTypes, branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
