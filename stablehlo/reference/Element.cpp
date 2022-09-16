@@ -124,55 +124,33 @@ Element sine(const Element &e) {
   Type type = e.getType();
   if (isSupportedComplexType(type)) {
     auto complex = getComplexValue(e);
-    APFloat realAPF = complex.real();
-    APFloat imagAPF = complex.imag();
     Type elementType = e.getValue()
                            .cast<ArrayAttr>()
                            .getValue()[0]
                            .cast<FloatAttr>()
                            .getType();
-    if (elementType.isF32()) {
-      std::complex<float> complex(realAPF.convertToFloat(),
-                                  imagAPF.convertToFloat());
-      std::complex<float> sinVal = std::sin(complex);
-      return Element(
-          elementType,
-          ArrayAttr::get(
-              elementType.getContext(),
-              {FloatAttr::get(elementType, APFloat(sinVal.real())),
-               FloatAttr::get(elementType, APFloat(sinVal.imag()))}));
-    } else if (elementType.isF64()) {
-      std::complex<double> complex(realAPF.convertToDouble(),
-                                   imagAPF.convertToDouble());
-      std::complex<double> sinVal = std::sin(complex);
-      return Element(
-          elementType,
-          ArrayAttr::get(
-              elementType.getContext(),
-              {FloatAttr::get(elementType, APFloat(sinVal.real())),
-               FloatAttr::get(elementType, APFloat(sinVal.imag()))}));
-    }
+    const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
+    std::complex<double> complexVal(complex.real().convertToDouble(),
+                                    complex.imag().convertToDouble());
+    std::complex<double> sinVal = std::sin(complexVal);
+    bool roundingErr;
+    APFloat realAPF(sinVal.real());
+    realAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat imagAPF(sinVal.imag());
+    imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type,
+                   ArrayAttr::get(elementType.getContext(),
+                                  {FloatAttr::get(elementType, realAPF),
+                                   FloatAttr::get(elementType, imagAPF)}));
   } else if (isSupportedFloatType(type)) {
     APFloat val = e.getValue().cast<FloatAttr>().getValue();
-    if (type.isBF16()) {
-      APFloat sinVal = APFloat(std::sin(val.convertToFloat()));
-      bool roundingErr;
-      sinVal.convert(APFloat::BFloat(), llvm::RoundingMode::NearestTiesToEven,
-                     &roundingErr);
-      return Element(type, FloatAttr::get(type, sinVal));
-    } else if (type.isF16()) {
-      APFloat sinVal = APFloat(std::sin(val.convertToFloat()));
-      bool roundingErr;
-      sinVal.convert(APFloat::IEEEhalf(), llvm::RoundingMode::NearestTiesToEven,
-                     &roundingErr);
-      return Element(type, FloatAttr::get(type, sinVal));
-    } else if (type.isF32()) {
-      float sinVal = std::sin(val.convertToFloat());
-      return Element(type, FloatAttr::get(type, APFloat(sinVal)));
-    } else if (type.isF64()) {
-      double sinVal = std::sin(val.convertToDouble());
-      return Element(type, FloatAttr::get(type, APFloat(sinVal)));
-    }
+    const llvm::fltSemantics &oldSemantics = val.getSemantics();
+    bool roundingErr;
+    val.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
+                &roundingErr);
+    APFloat sinVal(std::sin(val.convertToDouble()));
+    sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, FloatAttr::get(type, sinVal));
   }
 
   // Report error.
