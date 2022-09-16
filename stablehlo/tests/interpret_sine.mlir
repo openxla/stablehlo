@@ -32,6 +32,7 @@ func.func @sine_op_test_f16() -> tensor<8xf16> {
   // CHECK-NEXT: 9.675020e-04 : f16
   // CHECK-NEXT: 0x7F80 : f16
   // CHECK-NEXT: 0xFF80 : f16
+}
 
 // -----
 
