@@ -122,13 +122,18 @@ Element Element::operator+(const Element &other) const {
 
 Element sine(const Element &e) {
   Type type = e.getType();
-  if (isSupportedComplexType(type)) {
+  if (isSupportedFloatType(type)) {
+    APFloat val = e.getValue().cast<FloatAttr>().getValue();
+    const llvm::fltSemantics &oldSemantics = val.getSemantics();
+    bool roundingErr;
+    val.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
+                &roundingErr);
+    APFloat sinVal(std::sin(val.convertToDouble()));
+    sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, FloatAttr::get(type, sinVal));
+  } else if (isSupportedComplexType(type)) {
     auto complex = getComplexValue(e);
-    Type elementType = e.getValue()
-                           .cast<ArrayAttr>()
-                           .getValue()[0]
-                           .cast<FloatAttr>()
-                           .getType();
+    Type elementType = type.cast<ComplexType>().getElementType();
     const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
     std::complex<double> complexVal(complex.real().convertToDouble(),
                                     complex.imag().convertToDouble());
@@ -139,18 +144,9 @@ Element sine(const Element &e) {
     APFloat imagAPF(sinVal.imag());
     imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type,
-                   ArrayAttr::get(elementType.getContext(),
+                   ArrayAttr::get(type.getContext(),
                                   {FloatAttr::get(elementType, realAPF),
                                    FloatAttr::get(elementType, imagAPF)}));
-  } else if (isSupportedFloatType(type)) {
-    APFloat val = e.getValue().cast<FloatAttr>().getValue();
-    const llvm::fltSemantics &oldSemantics = val.getSemantics();
-    bool roundingErr;
-    val.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
-                &roundingErr);
-    APFloat sinVal(std::sin(val.convertToDouble()));
-    sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, FloatAttr::get(type, sinVal));
   }
 
   // Report error.
