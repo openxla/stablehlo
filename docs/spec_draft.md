@@ -120,6 +120,7 @@ The specification of an op comprises of the following components (in the order
    * [not](#stablehlonot)
    * [or](#stablehloor)
    * [remainder](#stablehloremainder)
+   * [reshape](#stablehloreshape)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
    * [sqrt](#stablehlosqrt)
@@ -870,6 +871,44 @@ implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = stablehlo.remainder %lhs, %rhs : tensor<4xi32>
 // %result: [2, -2, 2, -2]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.reshape
+
+`stablehlo.reshape(operand) -> result`
+
+### Semantics
+
+Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
+collapses the dimensions of `operand` starting from slowest-varying
+dimension `0` to fastest-varying dimension `rank-1`, and then refines the
+flatenned vector into the shape of  `result`.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of any supported types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `operand` and `result` have the same number of elements.
+
+### Examples
+
+```mlir
+// %operand: [[1,2,3],[4,5,6]]]
+%result = stablehlo.reshape %operand : tensor<3x2xi32>
+// %result: [[1,2],[3,4],[5,6]]
 ```
 
 [Back to Ops](#index-of-documented-ops)
