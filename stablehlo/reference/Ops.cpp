@@ -57,6 +57,14 @@ Tensor eval(FloorOp op, const Tensor &operand) {
   return result;
 }
 
+Tensor eval(ReshapeOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < operand.getNumElements(); ++i) {
+    result.set(i, operand.get(i));
+  }
+  return result;
+}
+
 Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
