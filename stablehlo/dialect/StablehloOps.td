@@ -35,7 +35,7 @@ def StableHLO_Dialect : Dialect {
     a portability layer between ML frameworks and ML compilers.
   }];
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Raw;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
 }
@@ -689,7 +689,7 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [NoSideEffect,
   let results = (outs HLO_ComplexTensor:$result);
 
   let assemblyFormat = [{
-    operands attr-dict 
+    operands attr-dict
       `:` custom<ComplexOpType>(type($lhs), type($rhs), type($result))
   }];
 }
@@ -1758,7 +1758,7 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
   }];
 
   let assemblyFormat = [{
-    $min `,` $operand `,` $max attr-dict 
+    $min `,` $operand `,` $max attr-dict
       `:` custom<SameOperandsAndResultType>(type($min), type($operand), type($max), type($result))
   }];
 }
