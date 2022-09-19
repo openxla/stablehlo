@@ -125,10 +125,8 @@ Element sine(const Element &e) {
   if (isSupportedFloatType(type)) {
     APFloat val = getFloatValue(e);
     const llvm::fltSemantics &oldSemantics = val.getSemantics();
-    bool roundingErr;
-    val.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
-                &roundingErr);
     APFloat sinVal(std::sin(val.convertToDouble()));
+    bool roundingErr;
     sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type, FloatAttr::get(type, sinVal));
   } else if (isSupportedComplexType(type)) {
