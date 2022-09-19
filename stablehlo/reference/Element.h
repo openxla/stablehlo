@@ -55,6 +55,9 @@ class Element {
   Attribute value_;
 };
 
+/// Returns element-wise sine of Element object.
+Element sine(const Element &e);
+
 /// Print utilities for Element objects.
 inline raw_ostream &operator<<(raw_ostream &os, Element element) {
   element.print(os);
