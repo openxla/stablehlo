@@ -1809,7 +1809,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      Example:
 
      ```mlir
-     %0 = mhlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     %0 = mhlo.concatenate %arg0, %arg1 with dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
      ```
    }];
 
@@ -1829,7 +1829,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   }];
 
   let assemblyFormat = [{
-    `(` $val `)` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+     $val `with` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
