@@ -47,9 +47,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(stablehlo LANGUAGES CXX C)
   set(CMAKE_C_STANDARD 11)
   set(CMAKE_CXX_STANDARD 17)
-  
-  # Issue with LLD and -Werror. Similar to golang/go#41527, iree-org/iree#7450
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror") 
+  set(LLVM_ENABLE_WARNINGS ON)
+  set(LLVM_ENABLE_WERROR ON)
 endif()
 
 #-------------------------------------------------------------------------------
