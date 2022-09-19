@@ -231,6 +231,8 @@ the IEEE-754 specification.
 // %result: [[6, 8], [10, 12]]
 ```
 
+&nbsp;[More Examples](https://github.com/sdasgup3/stablehlo/blob/main/stablehlo/tests/interpret_add.mlir)
+
 [Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.and
@@ -357,6 +359,8 @@ Produces a `result` tensor from a constant `value`.
 %result = stablehlo.constant dense<[(0.0, 1.0), (2.0, 3.0)]> : tensor<2xcomplex<f32>>
 // %result: [(0.0, 1.0), (2.0, 3.0)]
 ```
+
+&nbsp;[More Examples](https://github.com/sdasgup3/stablehlo/blob/main/stablehlo/tests/interpret_constant.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
@@ -950,6 +954,8 @@ specification. Numeric precision is implementation-defined.
 %result = stablehlo.sine %operand : tensor<2x2xf32>
 // %result: [[0.0, 1.0], [0.0, -1.0]]
 ```
+
+&nbsp;[More Examples](https://github.com/sdasgup3/stablehlo/blob/main/stablehlo/tests/interpret_sine.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
