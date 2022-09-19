@@ -37,17 +37,17 @@ limitations under the License.
   llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
 
 #define _LOG_CALL_TO(func)                                                     \
-  DEBUG_WITH_TYPE("chlo-bytecode",                                             \
-                  llvm::errs()                                                 \
-                      << "Called: "                                            \
-                      << _EXTRACT_AFTER(LLVM_PRETTY_FUNCTION, func) << '\n')
+  DEBUG_WITH_TYPE(                                                             \
+      "chlo-bytecode",                                                         \
+      llvm::errs() << "Called: " << _EXTRACT_AFTER(LLVM_PRETTY_FUNCTION, func) \
+                   << '\n')
 
 #define LOG_WRITE_CALL _LOG_CALL_TO("write")
 #define LOG_READ_CALL _LOG_CALL_TO(__func__)
-#define LOG_NOT_IMPLEMENTED                                                    \
-  DEBUG_WITH_TYPE("chlo-bytecode", llvm::errs()                                \
-                                       << "***Not Implemented: "               \
-                                       << LLVM_PRETTY_FUNCTION << '\n')
+#define LOG_NOT_IMPLEMENTED \
+  DEBUG_WITH_TYPE(          \
+      "chlo-bytecode",      \
+      llvm::errs() << "***Not Implemented: " << LLVM_PRETTY_FUNCTION << '\n')
 
 //===----------------------------------------------------------------------===//
 // Encoding

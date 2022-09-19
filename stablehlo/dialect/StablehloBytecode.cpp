@@ -36,10 +36,10 @@ limitations under the License.
   llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
 
 #define _LOG_CALL_TO(func)                                                     \
-  DEBUG_WITH_TYPE("stablehlo-bytecode",                                        \
-                  llvm::errs()                                                 \
-                      << "Called: "                                            \
-                      << _EXTRACT_AFTER(LLVM_PRETTY_FUNCTION, func) << '\n')
+  DEBUG_WITH_TYPE(                                                             \
+      "stablehlo-bytecode",                                                    \
+      llvm::errs() << "Called: " << _EXTRACT_AFTER(LLVM_PRETTY_FUNCTION, func) \
+                   << '\n')
 
 #define LOG_WRITE_CALL _LOG_CALL_TO("write")
 #define LOG_READ_CALL _LOG_CALL_TO(__func__)
