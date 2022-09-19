@@ -123,7 +123,7 @@ Element Element::operator+(const Element &other) const {
 Element sine(const Element &e) {
   Type type = e.getType();
   if (isSupportedFloatType(type)) {
-    APFloat val = e.getValue().cast<FloatAttr>().getValue();
+    APFloat val = getFloatValue(e);
     const llvm::fltSemantics &oldSemantics = val.getSemantics();
     bool roundingErr;
     val.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
