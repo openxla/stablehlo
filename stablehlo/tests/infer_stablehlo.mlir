@@ -302,6 +302,7 @@ func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4x
 
 // -----
 
+<<<<<<< HEAD
 // CHECK-LABEL: func @if 
 func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
   %0 = "stablehlo.if"(%pred) ({
@@ -330,6 +331,22 @@ func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
 
 // -----
 
+=======
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xindex> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
+  %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
+  func.return %2 : tensor<2x4x5xindex>
+}
+
+>>>>>>> da8fa72 (Add type inferece for stablehlo.dot_general)
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//

@@ -1207,6 +1207,46 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
   return success();
 }
 
+LogicalResult DotGeneralOp::inferReturnTypes(
+    MLIRContext*, Optional<Location>, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
+  auto elementType = lhs.getElementType();
+  if (!lhs.hasRank() || !rhs.hasRank()) {
+    inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
+    return success();
+  }
+  auto dimNumbers = adaptor.dot_dimension_numbers();
+  auto lhsBatchingDims = dimNumbers.getLhsBatchingDimensions();
+  auto rhsBatchingDims = dimNumbers.getRhsBatchingDimensions();
+  auto lhsContractingDims = dimNumbers.getLhsContractingDimensions();
+  auto rhsContractingDims = dimNumbers.getRhsContractingDimensions();
+  auto lhsShape = lhs.getShape();
+  auto rhsShape = rhs.getShape();
+
+  // Infer the output dimensions of the operation.
+  SmallVector<int64_t> dimensions;
+  for (const int64_t lhsBatchingDim : lhsBatchingDims) {
+    dimensions.push_back(lhsShape[lhsBatchingDim]);
+  }
+  for (int64_t i = 0; i < lhs.getRank(); i++) {
+    if (!llvm::is_contained(lhsBatchingDims, i) &&
+        !llvm::is_contained(lhsContractingDims, i)) {
+      dimensions.push_back(lhsShape[i]);
+    }
+  }
+  for (int64_t i = 0; i < rhs.getRank(); i++) {
+    if (!llvm::is_contained(rhsBatchingDims, i) &&
+        !llvm::is_contained(rhsContractingDims, i)) {
+      dimensions.push_back(rhsShape[i]);
+    }
+  }
+
+  inferredReturnTypes.push_back(RankedTensorType::get(dimensions, elementType));
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // FftOp
 //===----------------------------------------------------------------------===//
