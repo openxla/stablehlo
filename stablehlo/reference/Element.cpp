@@ -244,10 +244,6 @@ Element tanh(const Element &e) {
       [](std::complex<double> e) { return std::tanh(e); });
 }
 
-bool Element::operator!=(const Element &other) const {
-  return !(*this == other);
-}
-
 void Element::print(raw_ostream &os) const { getValue().print(os); }
 
 void Element::dump() const {
