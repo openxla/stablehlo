@@ -124,6 +124,7 @@ The specification of an op comprises of the following components (in the order
    * [sine](#stablehlosine)
    * [sqrt](#stablehlosqrt)
    * [tanh](#stablehlotanh)
+   * [transpose](#stablehlotranspose)
    * [xor](#stablehloxor)
 
 ### stablehlo.abs
@@ -1025,6 +1026,74 @@ specification. Numeric precision is implementation-defined.
 // %operand: [-1.0, 0.0, 1.0]
 %result = stablehlo.tanh %operand : tensor<3xf32>
 // %result: [-0.76159416, 0.0, 0.76159416]
+```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.transpose
+
+`stablehlo.transpose(operand, permutation) -> result`
+
+### Semantics
+
+Permutes the dimensions of `operand` tensor using a permutation of its shape
+`permutation` and produces a `result` tensor. The $i^{th}$ dimension of the
+`result` is given by `permutation`$[i]^{th}$ dimension of the `operand`.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of any supported types |
+| `permutation` | array of type `ui64` |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `permutation` is a permutation of `operand`'s shape.
+
+### Examples
+
+```mlir
+// %operand: [
+//   [
+//     [1,2], [3,4], [5,6]
+//   ],
+//   [
+//     [7,8], [9,10], [11,12]
+//   ]
+// ]
+
+%result = "stablehlo.transpose"(%operand) { permutation = [2, 1, 0] }
+                 : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+// %result: [
+//   [
+//    [1,7], [3,9], [5,11]
+//   ],
+//   [
+//    [2,8], [4,10], [6,12]
+//   ]
+// ]
+
+%result = "stablehlo.transpose"(%operand) { permutation = [1, 0, 2] }
+                 : (tensor<2x3x2xi32>) -> tensor<3x2x2xi32>
+// %result: [
+//   [
+//    [1,2], [7,8]
+//   ],
+//   [
+//    [3,4], [9,10]
+//   ],
+//   [
+//    [5,6], [11,12]
+//   ]
+// ]
 ```
 
 [Back to Ops](#index-of-documented-ops)
