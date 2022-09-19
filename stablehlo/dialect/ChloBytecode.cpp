@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/dialect/ChloBytecode.h"
 
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Diagnostics.h"
@@ -35,10 +36,10 @@ limitations under the License.
 #define _EXTRACT_AFTER(a, b) \
   llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
 
-#define _LOG_CALL_TO(func)                                                    \
-  DEBUG_WITH_TYPE(                                                            \
-      "chlo-bytecode",                                                        \
-      llvm::errs() << "Called: " << _EXTRACT_AFTER(__PRETTY_FUNCTION__, func) \
+#define _LOG_CALL_TO(func)                                                     \
+  DEBUG_WITH_TYPE(                                                             \
+      "chlo-bytecode",                                                         \
+      llvm::errs() << "Called: " << _EXTRACT_AFTER(LLVM_PRETTY_FUNCTION, func) \
                    << '\n')
 
 #define LOG_WRITE_CALL _LOG_CALL_TO("write")
@@ -46,7 +47,7 @@ limitations under the License.
 #define LOG_NOT_IMPLEMENTED \
   DEBUG_WITH_TYPE(          \
       "chlo-bytecode",      \
-      llvm::errs() << "***Not Implemented: " << __PRETTY_FUNCTION__ << '\n')
+      llvm::errs() << "***Not Implemented: " << LLVM_PRETTY_FUNCTION << '\n')
 
 //===----------------------------------------------------------------------===//
 // Encoding
