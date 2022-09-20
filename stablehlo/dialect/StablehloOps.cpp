@@ -1212,6 +1212,8 @@ LogicalResult DotGeneralOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
+  auto lhs = adaptor.lhs().getType().cast<ShapedType>();
+  auto rhs = adaptor.rhs().getType().cast<ShapedType>();
   auto elementType = lhs.getElementType();
   if (!lhs.hasRank() || !rhs.hasRank()) {
     inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
