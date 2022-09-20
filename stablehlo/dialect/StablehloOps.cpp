@@ -1025,8 +1025,8 @@ LogicalResult DotOp::verify() {
   return success();
 }
 
-// Certain enum values have custom printers that include `<` `>`, i.e. `<PHILOX>`
-// This method parses the enum value without `<` `>`.
+// Certain enum values have custom printers that include `<` `>`
+// i.e. `<PHILOX>` This method parses the enum value without `<` `>`.
 template <typename EnumAttrKind, typename SymbolizeFn>
 ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
                          llvm::StringRef errStr, SymbolizeFn symbolizeFn) {
@@ -1042,10 +1042,10 @@ ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
   return success();
 }
 
-
 // PrecisionConfig - Optional attribute, print the array as raw enums
 //
-// {precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]}
+// {precision_config = [#stablehlo<precision DEFAULT>,
+//                      #stablehlo<precision DEFAULT>]}
 // ==> ..., precision = [DEFAULT, DEFAULT]
 void printPrecisionConfig(OpAsmPrinter& p, Operation*,
                           llvm::Optional<mlir::ArrayAttr> attrOpt) {
