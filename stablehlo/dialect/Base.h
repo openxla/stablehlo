@@ -47,7 +47,7 @@ namespace hlo {
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 
 // Returns true if the given type ranges have same types for the purposes of HLO
-// type type inference, accounting for special properties of quantization and
+// type inference, accounting for special properties of quantization and
 // sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 

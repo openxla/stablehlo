@@ -353,11 +353,11 @@ func.func @chlo_zeta(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tens
 // CHECK-LABEL: func @chlo_broadcast_complex(
 // CHECK-SAME:  %[[A0:.*]]: tensor<2x3x4xf64>,
 // CHECK-SAME:  %[[A1:.*]]: tensor<2x3x4xf64>
-// CHECK:       %[[T:.*]] = chlo.broadcast_complex %[[A0]], %[[A1]] : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f32>>
-// CHECK:       return %[[T]] : tensor<2x3x4xcomplex<f32>>
-func.func @chlo_broadcast_complex(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f32>> {
-  %0 = chlo.broadcast_complex %arg0, %arg1 : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f32>>
-  return %0 : tensor<2x3x4xcomplex<f32>>
+// CHECK:       %[[T:.*]] = chlo.broadcast_complex %[[A0]], %[[A1]] : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f64>>
+// CHECK:       return %[[T]] : tensor<2x3x4xcomplex<f64>>
+func.func @chlo_broadcast_complex(%arg0: tensor<2x3x4xf64>, %arg1: tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f64>> {
+  %0 = chlo.broadcast_complex %arg0, %arg1 : (tensor<2x3x4xf64>, tensor<2x3x4xf64>) -> tensor<2x3x4xcomplex<f64>>
+  return %0 : tensor<2x3x4xcomplex<f64>>
 }
 
 
