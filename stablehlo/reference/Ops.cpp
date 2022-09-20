@@ -16,6 +16,7 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {

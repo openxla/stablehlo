@@ -98,7 +98,9 @@ Buffer::Buffer(ShapedType type, const void *data)
 Tensor::Tensor() {}
 
 Tensor::Tensor(ShapedType type)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {
+  strides_ = computeStride(getType().getShape());
+}
 
 Tensor::Tensor(DenseElementsAttr attr) {
   // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
@@ -108,9 +110,24 @@ Tensor::Tensor(DenseElementsAttr attr) {
   // future.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
                                                     attr.getRawData().data());
+  strides_ = computeStride(attr.getType().getShape());
+}
+
+Tensor::Tensor(const Tensor &other) : strides_(other.strides_) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+}
+
+Tensor &Tensor::operator=(const Tensor &other) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+  strides_ = other.strides_;
+  return *this;
 }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
+
+void Tensor::setType(ShapedType type) { impl_->setType(type); }
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
@@ -353,6 +370,20 @@ void Tensor::print(raw_ostream &os) const {
 }
 
 void Tensor::dump() const { print(llvm::errs()); }
+
+std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
+  if (std::any_of(shape.begin(), shape.end(),
+                  [](int64_t i) { return i == 0 || i < 0; }))
+    llvm::report_fatal_error(
+        StringRef("Only static shapes with non-zero elemnsts are supported."));
+
+  std::vector<int64_t> stride(shape.size());
+  stride[shape.size() - 1] = 1;
+  for (int i = shape.size() - 2; i >= 0; --i) {
+    stride[i] = stride[i + 1] * shape[i + 1];
+  }
+  return stride;
+}
 
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
   auto elemType = type.getElementType();
