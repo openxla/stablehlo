@@ -5856,8 +5856,7 @@ ParseResult parseVariadicOperandWithAttribute(
   while (resultOpt.has_value() && succeeded(resultOpt.value())) {
     operands.push_back(operand);
     if (failed(parser.parseComma())) {
-      return parser.emitError(parser.getNameLoc())
-             << "expected SSA list followed by attribute";
+      return failure();
     }
     resultOpt = parser.parseOptionalOperand(operand);
   }
