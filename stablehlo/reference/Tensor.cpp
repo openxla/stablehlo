@@ -125,9 +125,26 @@ Tensor &Tensor::operator=(const Tensor &other) {
   return *this;
 }
 
+Tensor::Tensor(const Tensor &other) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+  computeStride();
+}
+
+Tensor &Tensor::operator=(const Tensor &other) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+  computeStride();
+
+  return *this;
+}
+
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
-void Tensor::setType(ShapedType type) { impl_->setType(type); }
+void Tensor::setType(ShapedType type) {
+  impl_->setType(type);
+  computeStride();
+}
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 

@@ -124,6 +124,11 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(tanhOp.getOperand());
       Tensor runtimeResult = eval(tanhOp, runtimeOperand);
       populateResults({runtimeResult});
+    } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
+      Tensor runtimeOperand = fetchOperand(transposeOp.operand());
+      Tensor runtimeResult =
+          eval(transposeOp, runtimeOperand, transposeOp.getPermutation());
+      populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
     }

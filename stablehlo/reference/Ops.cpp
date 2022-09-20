@@ -98,5 +98,15 @@ Tensor eval(TanhOp op, const Tensor &operand) {
   return result;
 }
 
+Tensor eval(TransposeOp op, const Tensor &operand,
+            DenseIntElementsAttr permutation) {
+  (void)permutation;
+
+  Tensor result(operand);
+  result.setType(op.getType());
+
+  return result;
+}
+
 }  // namespace stablehlo
 }  // namespace mlir

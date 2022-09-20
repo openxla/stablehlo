@@ -33,6 +33,8 @@ Tensor eval(ReshapeOp op, const Tensor &operand);
 Tensor eval(SineOp op, const Tensor &operand);
 Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(TanhOp op, const Tensor &operand);
+Tensor eval(TransposeOp op, const Tensor &operand,
+            DenseIntElementsAttr permutation);
 
 }  // namespace stablehlo
 }  // namespace mlir
