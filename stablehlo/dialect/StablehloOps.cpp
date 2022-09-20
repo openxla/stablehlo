@@ -5841,6 +5841,29 @@ ParseResult parsePairwiseOpType(OpAsmParser& parser,
   return success();
 }
 
+void printVariadicOperandWithAttribute(OpAsmPrinter &p, Operation *,
+                                       OperandRange operands) {
+  llvm::interleaveComma(operands, p);
+  p << ",";
+}
+
+ParseResult parseVariadicOperandWithAttribute(
+    OpAsmParser &parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operands) {
+  // Parse operands as well as trailing commas. Stops when first non-ssa value seen.
+  OpAsmParser::UnresolvedOperand operand;
+  auto resultOpt = parser.parseOptionalOperand(operand);
+  while (resultOpt.has_value() && succeeded(resultOpt.value())) {
+    operands.push_back(operand);
+    if (failed(parser.parseComma())) {
+      return parser.emitError(parser.getNameLoc())
+             << "expected SSA list followed by attribute";
+    }
+    resultOpt = parser.parseOptionalOperand(operand);
+  }
+  return success();
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
 

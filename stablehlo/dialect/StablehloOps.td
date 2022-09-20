@@ -1829,7 +1829,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   }];
 
   let assemblyFormat = [{
-     $val `with` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+     custom<VariadicOperandWithAttribute>($val) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
