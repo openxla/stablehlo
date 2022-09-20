@@ -17,6 +17,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 
 #include <assert.h>
+#include <iterator>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -4660,18 +4661,8 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verifyConditionalBranch(Region& region,
-                                             llvm::Twine branchName,
-                                             Optional<Location> loc) {
-  if (region.getNumArguments() != 0)
-    return emitOptionalError(loc, branchName,
-                             " must have 0 arguments, but found ",
-                             region.getNumArguments());
-  return success();
-}
-
-bool isCompatibleForTypeRange(ValueTypeRange<OperandRange> typeRange1,
-                              ValueTypeRange<OperandRange> typeRange2) {
+// TODO: remove after https://github.com/openxla/stablehlo/pull/145 landed.
+bool isCompatibleForTypeRange(TypeRange typeRange1, TypeRange typeRange2) {
   if (typeRange1.size() != typeRange2.size()) return false;
   for (auto it : llvm::zip(typeRange1, typeRange2)) {
     if (!mlir::hlo::isCompatibleForHloTypeInference(std::get<0>(it),
@@ -4681,31 +4672,41 @@ bool isCompatibleForTypeRange(ValueTypeRange<OperandRange> typeRange1,
   return true;
 }
 
+static LogicalResult inferConditionalReturnTypeComponents(
+    RegionRange branches, Optional<Location> location,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (branches.empty())
+    return emitOptionalError(location, "expect as lease one branch");
+
+  ValueTypeRange<OperandRange> branch0ResultTypes =
+      branches[0]->front().getTerminator()->getOperandTypes();
+  for (unsigned i = 0; i < branches.size(); ++i) {
+    Twine branchName = "branch " + Twine(i);
+    Region* region = branches[i];
+    if (region->getNumArguments() != 0)
+      return emitOptionalError(location, branchName,
+                               " must have 0 arguments, but found ",
+                               region->getNumArguments());
+
+    auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
+    if (!isCompatibleForTypeRange(branch0ResultTypes, branchResultTypes))
+      return emitOptionalError(location, "branch 0 and ", branchName,
+                               " have mismatched return types: ",
+                               branch0ResultTypes, " vs ", branchResultTypes);
+  }
+  for (auto resultType : branch0ResultTypes)
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  return success();
+}
+
 LogicalResult IfOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  if (failed(verifyConditionalBranch(adaptor.true_branch(),
-                                     /*branchName=*/"true_branch", location)))
-    return failure();
-  if (failed(verifyConditionalBranch(adaptor.false_branch(),
-                                     /*branchName=*/"false_branch", location)))
-    return failure();
-
-  auto trueBranchRetureTypes =
-      adaptor.true_branch().front().getTerminator()->getOperandTypes();
-  auto falseBranchRetureTypes =
-      adaptor.false_branch().front().getTerminator()->getOperandTypes();
-  
-  if (!isCompatibleForTypeRange(trueBranchRetureTypes, falseBranchRetureTypes))
-    return emitOptionalError(
-        location, "true_branch and false_branch mismatched return types: ",
-        trueBranchRetureTypes, " vs ", falseBranchRetureTypes);
-
-  for (auto trueBranchRetureType : trueBranchRetureTypes)
-    inferredReturnShapes.emplace_back(trueBranchRetureType.cast<ShapedType>());
-  return success();
+  return inferConditionalReturnTypeComponents(
+      ArrayRef<Region*>{&adaptor.true_branch(), &adaptor.false_branch()},
+      location, inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4717,24 +4718,8 @@ LogicalResult CaseOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  ValueTypeRange<OperandRange> branch0ResultTypes =
-      adaptor.branches()[0]->front().getTerminator()->getOperandTypes();
-
-  for (unsigned i = 0; i < adaptor.branches().size(); ++i) {
-    Twine branchName = "branch " + Twine(i);
-    Region* region = adaptor.branches()[i];
-    if (failed(verifyConditionalBranch(*region, branchName, location)))
-      return failure();
-
-    auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!isCompatibleForTypeRange(branch0ResultTypes, branchResultTypes))
-      return emitOptionalError(location, "branch 0 and ", branchName,
-                               " have mismatched return types: ",
-                               branch0ResultTypes, " vs ", branchResultTypes);
-  }
-  for (auto resultType : branch0ResultTypes)
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
-  return success();
+  return inferConditionalReturnTypeComponents(adaptor.branches(), location,
+                                              inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
