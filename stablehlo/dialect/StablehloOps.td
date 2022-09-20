@@ -2029,7 +2029,6 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   );
 
   let results = (outs HLO_Tensor);
-  let hasVerifier = 1;
 
   let extraClassDeclaration = [{
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
