@@ -67,15 +67,15 @@ bool isSupportedComplexType(Type type) {
   return complexElemTy.isF32() || complexElemTy.isF64();
 }
 
-APFloat getFloatValue(Element element) {
+APFloat getFloatValue(const Element &element) {
   return element.getValue().cast<FloatAttr>().getValue();
 }
 
-APInt getIntegerValue(Element element) {
+APInt getIntegerValue(const Element &element) {
   return element.getValue().cast<IntegerAttr>().getValue();
 }
 
-std::complex<APFloat> getComplexValue(Element element) {
+std::complex<APFloat> getComplexValue(const Element &element) {
   auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
   return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
                                arryOfAttr[1].cast<FloatAttr>().getValue());

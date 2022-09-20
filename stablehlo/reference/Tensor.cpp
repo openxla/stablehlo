@@ -69,7 +69,9 @@ Buffer::Buffer(ShapedType type, const void *data)
 Tensor::Tensor() {}
 
 Tensor::Tensor(ShapedType type)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {
+  strides_ = computeStride(getType().getShape());
+}
 
 Tensor::Tensor(DenseElementsAttr attr) {
   // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
@@ -79,15 +81,42 @@ Tensor::Tensor(DenseElementsAttr attr) {
   // future.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
                                                     attr.getRawData().data());
+  strides_ = computeStride(attr.getType().getShape());
+}
+
+Tensor::Tensor(const Tensor &other) : strides_(other.strides_) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+}
+
+Tensor &Tensor::operator=(const Tensor &other) {
+  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
+                                                    other.impl_->getData());
+  strides_ = other.strides_;
+  return *this;
 }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
+void Tensor::setType(ShapedType type) { impl_->setType(type); }
+
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-Element Tensor::get(int64_t index) const {
+int64_t Tensor::flattenIndices(const std::vector<int64_t> &indices) const {
+  if (indices.size() != strides_.size())
+    llvm::report_fatal_error(StringRef("Unable to flatten indices."));
+
+  int64_t idx = 0;
+  for (size_t i = 0; i < indices.size(); i++) {
+    idx += strides_[i] * indices[i];
+  }
+  return idx;
+}
+
+Element Tensor::get(const std::vector<int64_t> &indices) const {
   Type elementType = getType().getElementType();
-  char *elementPtr = impl_->getData() + getSizeInBytes(elementType) * index;
+  char *elementPtr =
+      impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
@@ -193,15 +222,15 @@ Element Tensor::get(int64_t index) const {
 
 namespace {
 
-APFloat getFloatValue(Element element) {
+APFloat getFloatValue(const Element &element) {
   return element.getValue().cast<FloatAttr>().getValue();
 }
 
-APInt getIntegerValue(Element element) {
+APInt getIntegerValue(const Element &element) {
   return element.getValue().cast<IntegerAttr>().getValue();
 }
 
-std::complex<APFloat> getComplexValue(Element element) {
+std::complex<APFloat> getComplexValue(const Element &element) {
   auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
   return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
                                arryOfAttr[1].cast<FloatAttr>().getValue());
@@ -209,9 +238,10 @@ std::complex<APFloat> getComplexValue(Element element) {
 
 }  // namespace
 
-void Tensor::set(int64_t index, Element element) {
+void Tensor::set(const std::vector<int64_t> &indices, const Element &element) {
   Type elementType = getType().getElementType();
-  char *elementPtr = impl_->getData() + getSizeInBytes(elementType) * index;
+  char *elementPtr =
+      impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
 
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {
@@ -248,8 +278,7 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(
-        impl_->getData() + getSizeInBytes(elementType) * index);
+    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int16_t)value.getSExtValue();
     return;
@@ -328,15 +357,33 @@ void Tensor::set(int64_t index, Element element) {
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
   os << " {\n";
-  for (auto i = 0; i < getNumElements(); ++i) {
-    os << "  " << get(i) << "\n";
+
+  DimensionIterator dimIter(getType().getShape());
+  while (dimIter.canIncrement()) {
+    auto nextIndex = dimIter.getNextIndex();
+    os << "  " << get(nextIndex) << "\n";
   }
+
   os << "}";
 }
 
 void Tensor::dump() const {
   print(llvm::errs());
   llvm::errs() << "\n";
+}
+
+std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
+  if (std::any_of(shape.begin(), shape.end(),
+                  [](int64_t i) { return i == 0 || i < 0; }))
+    llvm::report_fatal_error(
+        StringRef("Only static shapes with non-zero elemnsts are supported."));
+
+  std::vector<int64_t> stride(shape.size());
+  stride[shape.size() - 1] = 1;
+  for (int i = shape.size() - 2; i >= 0; --i) {
+    stride[i] = stride[i + 1] * shape[i + 1];
+  }
+  return stride;
 }
 
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {

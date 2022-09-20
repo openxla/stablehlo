@@ -16,14 +16,18 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
-  for (auto i = 0; i < lhs.getNumElements(); ++i) {
-    result.set(i, lhs.get(i) + rhs.get(i));
+
+  DimensionIterator dimIter(lhs.getType().getShape());
+  while (dimIter.canIncrement()) {
+    auto nextIndex = dimIter.getNextIndex();
+    result.set(nextIndex, lhs.get(nextIndex) + rhs.get(nextIndex));
   }
   return result;
 }
@@ -58,8 +62,11 @@ Tensor eval(FloorOp op, const Tensor &operand) {
 
 Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
-  for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, sine(operand.get(i)));
+
+  DimensionIterator dimIter(operand.getType().getShape());
+  while (dimIter.canIncrement()) {
+    auto nextIndex = dimIter.getNextIndex();
+    result.set(nextIndex, sine(operand.get(nextIndex)));
   }
   return result;
 }

@@ -9,7 +9,9 @@
 stores the `mlir::ShapedType` of the tensor along with a contiguous byte array
 representing its data laid out in
 [major-to-minor order](https://www.tensorflow.org/xla/shapes). `detail::Buffer`
-objects are reference-counted to simplify memory management.
+objects are reference-counted to simplify memory management. A `Tensor` object
+also stores [stride](https://en.wikipedia.org/wiki/Stride_of_an_array) for each
+dimension to interpret the underlying 1-D storage as a multi-dimensional tensor.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
@@ -17,15 +19,15 @@ this means that we don't have to implement our own machinery for storing values
 of different types inside `Element`.
 
 `Tensor` class has the following APIs to interact with its individual elements:
-  - `Element Tensor::get(int64_t index)`: To extract an individual tensor
-  element at index `index` as `Element` object.
-  - `void Tensor::set(int64_t index, Element element);`: To insert an `Element`
-  object `element` into a tensor at index `index`.
+  - `Element Tensor::get(const std::vector<int64_t> &indices)`: To extract an
+     individual tensor element at multi-dimensional index `indices` as `Element`
+     object.
+  - `void Tensor::set(const std::vector<int64_t> &indices, Element element);`:
+  To insert an `Element` object `element` into a tensor at multi-dimensional
+  index `indices`.
 
-For the skeleton of the interpreter, we chose the above linearized APIs for
-accessing tensor elements to simplify the implementation. This is sufficient for
-element-wise ops, and in the future we're planning to expand this to cover more
-complicated op.
+The above multi-dimensional indices are mapped to the underlying 1-D storage of
+a tensor using the strides, as mentioned above.
 
 ## Working of the interpreter
 
@@ -52,9 +54,15 @@ an `Element` object, is stored in the final `result` tensor.
 ```C++
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
-  for (auto i = 0; i < lhs.getNumElements(); ++i) {
-    result.set(i, lhs.get(i) + rhs.get(i));
+
+  // An iterator over the indices of a tensor.
+  DimensionIterator dimIter(lhs.getType().getShape());
+
+  while (dimIter.canIncrement()) {
+    auto nextIndex = dimIter.getNextIndex();
+    result.set(nextIndex, lhs.get(nextIndex) + rhs.get(nextIndex));
   }
+
   return result;
 }
 ```
