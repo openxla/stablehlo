@@ -1216,7 +1216,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
   auto rhs = adaptor.rhs().getType().cast<ShapedType>();
   auto elementType = lhs.getElementType();
   if (!lhs.hasRank() || !rhs.hasRank()) {
-    inferredReturnShapes.push_back(UnrankedTensorType::get(elementType));
+    inferredReturnShapes.emplace_back(elementType);
     return success();
   }
   auto dimNumbers = adaptor.dot_dimension_numbers();
@@ -1245,7 +1245,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     }
   }
 
-  inferredReturnShapes.push_back(RankedTensorType::get(dimensions, elementType));
+  inferredReturnShapes.emplace_back(dimensions, elementType);
   return success();
 }
 

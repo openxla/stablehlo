@@ -302,8 +302,7 @@ func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4x
 
 // -----
 
-<<<<<<< HEAD
-// CHECK-LABEL: func @if 
+// CHECK-LABEL: func @if
 func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
@@ -331,7 +330,6 @@ func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
 
 // -----
 
-=======
 // CHECK-LABEL: func @dot_general
 func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xindex> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
@@ -343,11 +341,12 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
     >
   } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
-  // CHECK: %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [2, 4, 5], element_type0 = f32} : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
   func.return %1 : tensor<2x4x5xindex>
 }
 
->>>>>>> da8fa72 (Add type inferece for stablehlo.dot_general)
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//
