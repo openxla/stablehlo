@@ -196,8 +196,8 @@ unsigned/signed overflow/underflow, the result is implementation-defined and one
 of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed interger overlfow/underlow, wraps
-  the result around the representatble range $[2^{n-1} - 1$, $-2^{n-1}]$.
+  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
+  the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
       underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
         unsigned underflow).
