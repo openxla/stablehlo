@@ -2013,7 +2013,7 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
 }
 
 def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
-    [NoSideEffect, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+    [NoSideEffect, InferTensorTypeWithReify]> {
   let summary = "General Dot operator";
   let description = [{
     Performs general dot products between vectors, vector/matrix and

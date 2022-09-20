@@ -1207,16 +1207,16 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
   return success();
 }
 
-LogicalResult DotGeneralOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands,
+LogicalResult DotGeneralOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
   auto lhs = adaptor.lhs().getType().cast<ShapedType>();
   auto rhs = adaptor.rhs().getType().cast<ShapedType>();
   auto elementType = lhs.getElementType();
   if (!lhs.hasRank() || !rhs.hasRank()) {
-    inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
+    inferredReturnShapes.push_back(UnrankedTensorType::get(elementType));
     return success();
   }
   auto dimNumbers = adaptor.dot_dimension_numbers();
@@ -1245,7 +1245,7 @@ LogicalResult DotGeneralOp::inferReturnTypes(
     }
   }
 
-  inferredReturnTypes.push_back(RankedTensorType::get(dimensions, elementType));
+  inferredReturnShapes.push_back(RankedTensorType::get(dimensions, elementType));
   return success();
 }
 

@@ -342,8 +342,9 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
-  %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
-  func.return %2 : tensor<2x4x5xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
+  // CHECK: %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
+  func.return %1 : tensor<2x4x5xindex>
 }
 
 >>>>>>> da8fa72 (Add type inferece for stablehlo.dot_general)
