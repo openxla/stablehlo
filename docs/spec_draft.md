@@ -916,6 +916,8 @@ flatenned vector into the shape of  `result`.
 // %result: [[1,2],[3,4],[5,6]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
+
 [Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.rsqrt
