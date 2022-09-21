@@ -27,7 +27,7 @@ one of the following tracking labels.
 
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verification | Type Inference | Prettyprinting | Interpreter (2) |
+| StableHLO Op (114) | Specification (23) | Verification | Type Inference | Prettyprinting | Interpreter (2) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes||||no|
 | AddOp |yes|||| yes|
@@ -75,7 +75,7 @@ one of the following tracking labels.
 | DynamicUpdateSliceOp |no||||no|
 | EinsumOp |no||||no|
 | Expm1Op |no||||no|
-| ExpOp |no||||no|
+| ExpOp |yes||||no|
 | FftOp |no||||no|
 | FloorOp |yes||||no|
 | GatherOp |no||||no|
@@ -135,7 +135,7 @@ one of the following tracking labels.
 | TanhOp |yes||||no|
 | TorchIndexSelectOp |no||||no|
 | TraceOp |no||||no|
-| TransposeOp |no||||no|
+| TransposeOp |yes||||no|
 | TriangularSolveOp |no||||no|
 | TupleOp |no||||no|
 | UnaryEinsumOp |no||||no|
