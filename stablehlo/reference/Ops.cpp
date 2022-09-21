@@ -60,7 +60,8 @@ Tensor eval(FloorOp op, const Tensor &operand) {
 Tensor eval(ReshapeOp op, const Tensor &operand) {
   // The fact that the interpreter stores the tensor internally as contiguous
   // byte arrays allows to reshape the dimensions of tensor merely by modifying
-  // it's strides, while storing the same internal memory as that of operand.
+  // it's strides, while storing the same internal memory as that of the
+  // operand.
 
   Tensor result(operand);
   result.setType(op.getType());
