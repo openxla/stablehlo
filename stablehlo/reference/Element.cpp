@@ -213,36 +213,9 @@ Element floor(const Element &e) {
 }
 
 Element cosine(const Element &e) {
-  Type type = e.getType();
-  if (isSupportedFloatType(type)) {
-    APFloat val = getFloatValue(e);
-    const llvm::fltSemantics &oldSemantics = val.getSemantics();
-    APFloat cosVal(std::cos(val.convertToDouble()));
-    bool roundingErr;
-    cosVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, FloatAttr::get(type, cosVal));
-  } else if (isSupportedComplexType(type)) {
-    auto complex = getComplexValue(e);
-    Type elementType = type.cast<ComplexType>().getElementType();
-    const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
-    std::complex<double> complexVal(complex.real().convertToDouble(),
-                                    complex.imag().convertToDouble());
-    std::complex<double> cosVal = std::cos(complexVal);
-    bool roundingErr;
-    APFloat realAPF(cosVal.real());
-    realAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat imagAPF(cosVal.imag());
-    imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type,
-                   ArrayAttr::get(type.getContext(),
-                                  {FloatAttr::get(elementType, realAPF),
-                                   FloatAttr::get(elementType, imagAPF)}));
-  }
-
-  // Report error.
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(type).c_str());
-  report_fatal_error(std::move(err));
+  return mapWithUpcastToDouble(
+      e, [](double e) { return std::cos(e); },
+      [](std::complex<double> e) { return std::cos(e); });
 }
 
 Element sine(const Element &e) {
@@ -252,36 +225,9 @@ Element sine(const Element &e) {
 }
 
 Element tanh(const Element &e) {
-  Type type = e.getType();
-  if (isSupportedFloatType(type)) {
-    APFloat val = getFloatValue(e);
-    const llvm::fltSemantics &oldSemantics = val.getSemantics();
-    APFloat tanhVal(std::tanh(val.convertToDouble()));
-    bool roundingErr;
-    tanhVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, FloatAttr::get(type, tanhVal));
-  } else if (isSupportedComplexType(type)) {
-    auto complex = getComplexValue(e);
-    Type elementType = type.cast<ComplexType>().getElementType();
-    const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
-    std::complex<double> complexVal(complex.real().convertToDouble(),
-                                    complex.imag().convertToDouble());
-    std::complex<double> tanhVal = std::tanh(complexVal);
-    bool roundingErr;
-    APFloat realAPF(tanhVal.real());
-    realAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat imagAPF(tanhVal.imag());
-    imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type,
-                   ArrayAttr::get(type.getContext(),
-                                  {FloatAttr::get(elementType, realAPF),
-                                   FloatAttr::get(elementType, imagAPF)}));
-  }
-
-  // Report error.
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(type).c_str());
-  report_fatal_error(std::move(err));
+  return mapWithUpcastToDouble(
+      e, [](double e) { return std::tanh(e); },
+      [](std::complex<double> e) { return std::tanh(e); });
 }
 
 void Element::print(raw_ostream &os) const { value_.print(os); }
