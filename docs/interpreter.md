@@ -7,9 +7,8 @@
 (n-dimensional arrays), which, in the current model, are implemented using class
 `Tensor`, which stores the shape (an `mlir::ShapedType` object) and the
 underlying data storage (an `mlir::HeapAsmResourceBlob` object) of the tensor.
-The `mlir::HeapAsmResourceBlob` object represents a mutable blob of data laid
-out as a contiguous byte array in
-[major-to-minor order](https://www.tensorflow.org/xla/shapes).
+The data storage contains a mutable blob of data laid out as a contiguous byte
+array in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
 
 Individual elements of a tensor are represented using `Element` class which uses
 discriminated union holding one of `APInt`, `APFloat` or `pair<APFloat,APFloat>`

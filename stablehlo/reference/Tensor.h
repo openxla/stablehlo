@@ -121,10 +121,8 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
   return os;
 }
 
-/// Creates a Tensor using `type` as the static type and data provided as an
-/// array of string literal which will be parsed using the corresponding element
-/// type.
-Tensor makeTensor(ShapedType type, llvm::ArrayRef<llvm::StringRef> strData);
+/// Creates a Tensor using 'DenseElementsAttr' object 'attr'.
+Tensor makeTensor(DenseElementsAttr attr);
 
 }  // namespace stablehlo
 }  // namespace mlir
