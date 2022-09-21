@@ -627,7 +627,7 @@ func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
 // -----
 
 func.func @case_zero_branches(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
-  // @expected-error@+1 {{expect as lease one branch}}
+  // @expected-error@+1 {{expect at least one branch}}
   %0 = "stablehlo.case"(%index) : (tensor<i32>) -> tensor<2xf32>
   func.return
 }

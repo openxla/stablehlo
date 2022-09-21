@@ -4661,22 +4661,11 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-// TODO: remove after https://github.com/openxla/stablehlo/pull/145 landed.
-bool isCompatibleForTypeRange(TypeRange typeRange1, TypeRange typeRange2) {
-  if (typeRange1.size() != typeRange2.size()) return false;
-  for (auto it : llvm::zip(typeRange1, typeRange2)) {
-    if (!mlir::hlo::isCompatibleForHloTypeInference(std::get<0>(it),
-                                                    std::get<1>(it)))
-      return false;
-  }
-  return true;
-}
-
 static LogicalResult inferConditionalReturnTypeComponents(
     RegionRange branches, Optional<Location> location,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (branches.empty())
-    return emitOptionalError(location, "expect as lease one branch");
+    return emitOptionalError(location, "expect at least one branch");
 
   ValueTypeRange<OperandRange> branch0ResultTypes =
       branches[0]->front().getTerminator()->getOperandTypes();
@@ -4689,7 +4678,8 @@ static LogicalResult inferConditionalReturnTypeComponents(
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!isCompatibleForTypeRange(branch0ResultTypes, branchResultTypes))
+    if (!mlir::hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
+                                                    branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
@@ -4704,9 +4694,8 @@ LogicalResult IfOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  return inferConditionalReturnTypeComponents(
-      ArrayRef<Region*>{&adaptor.true_branch(), &adaptor.false_branch()},
-      location, inferredReturnShapes);
+  return inferConditionalReturnTypeComponents(adaptor.getRegions(), location,
+                                              inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4718,7 +4707,7 @@ LogicalResult CaseOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  return inferConditionalReturnTypeComponents(adaptor.branches(), location,
+  return inferConditionalReturnTypeComponents(adaptor.getRegions(), location,
                                               inferredReturnShapes);
 }
 
