@@ -27,7 +27,7 @@ one of the following tracking labels.
 
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (6) |
+| StableHLO Op (114) | Specification (22) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (7) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes|yes*|yes*|yes|no|
 | AddOp |yes|yes*|yes*|yes| yes|
@@ -110,7 +110,7 @@ one of the following tracking labels.
 | ReduceWindowOp |no|yes*|yes*|no|no|
 | RemOp |yes|yes*|yes*|yes|no|
 | ReplicaIdOp |no|yes*|yes(need-revisit)|yes|no|
-| ReshapeOp |no|yes*|infeasible|yes|no|
+| ReshapeOp |yes|yes*|infeasible|yes|yes|
 | ReturnOp |no|yes*|no|yes|no|
 | ReverseOp |no|yes*|yes*|no|no|
 | RngBitGeneratorOp |no|yes*|infeasible|yes|no|
