@@ -19,15 +19,15 @@ one of the following tracking labels.
  - Generic labels
     - **yes**: complete
     - **no**: not complete yet, but part of [the roadmap](https://github.com/openxla/stablehlo#roadmap).
- - Customized labels for Verifier and Type Inference 
+ - Customized labels for Verifier and Type Inference
     - **yes\***: in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
     - **yes**: in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
     - **yes(need-revisit)**: implemented but need revisit for the sync with XLA or spec
     - **infeasible**: infeasible to implement by design
-    
+
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (4) |
+| StableHLO Op (114) | Specification (21) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (6) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes|yes*|yes*|yes|no|
 | AddOp |yes|yes*|yes*|yes| yes|
@@ -57,7 +57,7 @@ one of the following tracking labels.
 | ConstantOp |yes|yes*|yes*|yes|yes|
 | ConvertOp |no|yes*|infeasible|yes|no|
 | ConvolutionOp |no|yes*|no|yes(need-revisit)|no|
-| CosineOp |yes|yes*|yes*|yes|no|
+| CosineOp |yes|yes*|yes*|yes|yes|
 | CreateTokenOp |no|yes*|no|yes|no|
 | CrossReplicaSumOp |no|no|yes*|no|no|
 | CstrReshapableOp |no|yes*|no|yes|no|
@@ -132,7 +132,7 @@ one of the following tracking labels.
 | SortOp |no|yes*|no|no|no|
 | SqrtOp |yes|yes*|yes*|yes|no|
 | SubtractOp |no|yes*|yes*|yes|no|
-| TanhOp |yes|yes*|yes*|yes|no|
+| TanhOp |yes|yes*|yes*|yes|yes|
 | TorchIndexSelectOp |no|no|no|no|no|
 | TraceOp |no|yes*|no|yes|no|
 | TransposeOp |no|yes*|yes*|no|no|
