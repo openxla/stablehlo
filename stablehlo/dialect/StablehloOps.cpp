@@ -1068,43 +1068,6 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
 // DotGeneralOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult DotGeneralOp::reifyReturnTypeShapes(
-    OpBuilder& builder, ValueRange operands,
-    SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto lhsType = getLhs().getType().dyn_cast<ShapedType>();
-  auto rhsType = getRhs().getType().dyn_cast<ShapedType>();
-  if (!lhsType || !rhsType) {
-    return failure();
-  }
-
-  Adaptor adaptor(operands);
-  auto dimNumbers = getDotDimensionNumbers();
-  SmallVector<Value> dimensions;
-  for (const int64_t lhsDim : dimNumbers.getLhsBatchingDimensions()) {
-    dimensions.push_back(
-        builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), lhsDim));
-  }
-
-  for (int64_t i = 0; i < lhsType.getRank(); i++) {
-    if (!llvm::is_contained(dimNumbers.getLhsContractingDimensions(), i) &&
-        !llvm::is_contained(dimNumbers.getLhsBatchingDimensions(), i)) {
-      dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), i));
-    }
-  }
-  for (int64_t i = 0; i < rhsType.getRank(); i++) {
-    if (!llvm::is_contained(dimNumbers.getRhsContractingDimensions(), i) &&
-        !llvm::is_contained(dimNumbers.getRhsBatchingDimensions(), i)) {
-      dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.getRhs(), i));
-    }
-  }
-
-  reifiedReturnShapes.push_back(
-      builder.create<tensor::FromElementsOp>(getLoc(), dimensions));
-  return success();
-}
-
 LogicalResult DotGeneralOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
@@ -1238,6 +1201,43 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
   }
 
   inferredReturnShapes.emplace_back(dimensions, elementType);
+  return success();
+}
+
+LogicalResult DotGeneralOp::reifyReturnTypeShapes(
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
+  auto lhsType = lhs().getType().dyn_cast<ShapedType>();
+  auto rhsType = rhs().getType().dyn_cast<ShapedType>();
+  if (!lhsType || !rhsType) {
+    return failure();
+  }
+
+  Adaptor adaptor(operands);
+  auto dimNumbers = dot_dimension_numbers();
+  SmallVector<Value> dimensions;
+  for (const int64_t lhsDim : dimNumbers.getLhsBatchingDimensions()) {
+    dimensions.push_back(
+        builder.create<tensor::DimOp>(getLoc(), adaptor.lhs(), lhsDim));
+  }
+
+  for (int64_t i = 0; i < lhsType.getRank(); i++) {
+    if (!llvm::is_contained(dimNumbers.getLhsContractingDimensions(), i) &&
+        !llvm::is_contained(dimNumbers.getLhsBatchingDimensions(), i)) {
+      dimensions.push_back(
+          builder.create<tensor::DimOp>(getLoc(), adaptor.lhs(), i));
+    }
+  }
+  for (int64_t i = 0; i < rhsType.getRank(); i++) {
+    if (!llvm::is_contained(dimNumbers.getRhsContractingDimensions(), i) &&
+        !llvm::is_contained(dimNumbers.getRhsBatchingDimensions(), i)) {
+      dimensions.push_back(
+          builder.create<tensor::DimOp>(getLoc(), adaptor.rhs(), i));
+    }
+  }
+
+  reifiedReturnShapes.push_back(
+      builder.create<tensor::FromElementsOp>(getLoc(), dimensions));
   return success();
 }
 
