@@ -241,6 +241,21 @@ func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @dimension_attr
+func.func @dimension_attr(%arg0 : tensor<1x2xf32>, %arg1 : tensor<3xi32>, %arg2 : tensor<3x4xi32>, %arg3 : tensor<i64>) -> () {
+  // CHECK:      %0 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<1x2xf32>) -> tensor<1x2x3xf32>
+  // CHECK-NEXT: %1 = stablehlo.broadcast %arg1, sizes = [1, 2] : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  // CHECK-NEXT: %2 = stablehlo.reverse %arg0, dims = [0, 1] : tensor<1x2xf32>
+  // CHECK-NEXT: %3 = stablehlo.transpose %arg0, perm = [1, 0] : (tensor<1x2xf32>) -> tensor<2x1xf32>
+  // CHECK-NEXT: %4 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<1x2x3xf32>
+  %1 = "stablehlo.broadcast"(%arg1) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %2 = "stablehlo.reverse"(%arg0) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<1x2xf32>
+  %3 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<2x1xf32>
+  %4 = "stablehlo.dynamic_slice"(%arg2, %arg3, %arg3) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  "stablehlo.return"() : () -> ()
+}
+
 // CHECK-LABEL: func @extensions
 func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>,
                 %arg1 : tensor<i32>) -> () {

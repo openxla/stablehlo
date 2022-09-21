@@ -280,6 +280,27 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
+void printDenseI64Array(OpAsmPrinter &p, Operation *op, DenseIntElementsAttr attr) {
+  assert(attr.getType().getRank() == 1); // Only works for 1D array attrs.
+  auto values = llvm::to_vector(attr.getValues<int64_t>());
+  DenseI64ArrayAttr arrayAttr = DenseI64ArrayAttr::get(op->getContext(), values);
+  arrayAttr.print(p);
+}
+
+ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr) {
+   DenseI64ArrayAttr arrayAttr =
+       DenseI64ArrayAttr::parse(parser, Type{}).dyn_cast<DenseI64ArrayAttr>();
+   if (!arrayAttr) {
+    return failure();
+   }
+
+   ArrayRef<int64_t> data = arrayAttr.asArrayRef();
+   RankedTensorType type =
+       RankedTensorType::get(data.size(), parser.getBuilder().getI64Type());
+   attr = DenseIntElementsAttr::get(type, data);
+   return success();
+}
+
 // Print attributes as e#m#
 void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
                            IntegerAttr mantissa) {
