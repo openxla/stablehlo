@@ -146,10 +146,6 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
   }
 };
 
-std::unique_ptr<OperationPass<func::FuncOp>> createHloTestInferPass() {
-  return std::make_unique<HloTestInferPass>();
-}
-
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/tests/TestUtils.h.inc"
 
