@@ -82,7 +82,7 @@ class Tensor {
   /// Returns type of the Tensor object.
   ShapedType getType() const;
 
-  /// Updates type of the Tensor object.
+  /// Updates type and stride of the Tensor object.
   void setType(ShapedType type);
 
   /// Updates stride of the Tensor object.

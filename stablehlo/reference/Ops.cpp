@@ -98,13 +98,33 @@ Tensor eval(TanhOp op, const Tensor &operand) {
   return result;
 }
 
-Tensor eval(TransposeOp op, const Tensor &operand,
-            DenseIntElementsAttr permutation) {
-  (void)permutation;
+namespace {
 
+// Appies permutation `perm` to an array `array` where perm[i] indicates the
+// location where the current array[i] goes.
+void applyInPlacePermutation(std::vector<int64_t> &array,
+                             const std::vector<int64_t> &perm) {
+  size_t swapIdx;
+  for (size_t i = 0; i < perm.size(); i++) {
+    swapIdx = perm[i];
+    while (swapIdx < i) {
+      swapIdx = perm[swapIdx];
+    }
+    std::swap(array[i], array[swapIdx]);
+  }
+}
+
+}  // namespace
+
+Tensor eval(TransposeOp op, const Tensor &operand, DenseIntElementsAttr perm) {
   Tensor result(operand);
   result.setType(op.getType());
 
+  std::vector<int64_t> stride(operand.getStrides());
+  std::vector<int64_t> permutation(perm.getValues<int64_t>().begin(),
+                                   perm.getValues<int64_t>().end());
+  applyInPlacePermutation(stride, permutation);
+  result.setStrides(stride);
   return result;
 }
 
