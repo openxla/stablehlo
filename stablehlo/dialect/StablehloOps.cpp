@@ -1117,12 +1117,14 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
   auto rhsContractingDims = dimNumbers.getRhsContractingDimensions();
 
   if (lhsBatchingDims.size() != rhsBatchingDims.size()) {
-    return emitOptionalError(location, "lhs and rhs should have the same "
-        "number of batching dimensions");
+    return emitOptionalError(location,
+                             "lhs and rhs should have the same "
+                             "number of batching dimensions");
   }
   if (lhsContractingDims.size() != rhsContractingDims.size()) {
-    return emitOptionalError(location, "lhs and rhs should have the same "
-        "number of contracting dimensions");
+    return emitOptionalError(location,
+                             "lhs and rhs should have the same "
+                             "number of contracting dimensions");
   }
 
   llvm::SmallDenseSet<int64_t> dimSet;
@@ -1136,7 +1138,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
       auto [_, wasInserted] = dimSet.insert(dim);
       if (!wasInserted) {
         return emitOptionalError(location, "has duplicated dimension from ",
-            lhs, " and ", rhs, ": ", dim);
+                                 lhs, " and ", rhs, ": ", dim);
       }
     }
     return success();
@@ -1161,7 +1163,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
         std::find_if_not(dims.begin(), dims.end(), inRange);
     if (dimsNotInRange != dims.end()) {
       return emitOptionalError(location, dimName, " value: ", *dimsNotInRange,
-          " is out of range: ", "[0, ", rank, ")");
+                               " is out of range: ", "[0, ", rank, ")");
     }
     return success();
   };
@@ -1193,14 +1195,16 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
 
     for (auto [lhs, rhs] : llvm::zip(lhsBatchingDims, rhsBatchingDims)) {
       if (lhsShape[lhs] != rhsShape[rhs]) {
-        return emitOptionalError(location, "batching dimension sizes must "
-            "match for lhs/rhs");
+        return emitOptionalError(location,
+                                 "batching dimension sizes must "
+                                 "match for lhs/rhs");
       }
     }
     for (auto [lhs, rhs] : llvm::zip(lhsContractingDims, rhsContractingDims)) {
       if (lhsShape[lhs] != rhsShape[rhs]) {
-        return emitOptionalError(location, "contracting dimension sizes must "
-            "match for lhs/rhs");
+        return emitOptionalError(location,
+                                 "contracting dimension sizes must "
+                                 "match for lhs/rhs");
       }
     }
   }
