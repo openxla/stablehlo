@@ -4223,7 +4223,6 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 //
 // {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>}
 // ==> PHILOX
-void printPrecisionConfig(OpAsmPrinter& p, Operation*,
 void printRngAlgorithm(OpAsmPrinter& p, Operation*, RngAlgorithmAttr val) {
   p << stringifyRngAlgorithm(val.getValue());
 }
