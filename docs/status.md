@@ -20,126 +20,127 @@ one of the following tracking labels.
     - **yes**: complete
     - **wip**: semi-complete: Work in progress or under review.
     - **no**: not complete yet, but part of [the roadmap](https://github.com/openxla/stablehlo#roadmap).
- - Customized labels
-    - Verifier
-       - **match-xla**:  verifier in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
-       - **match-spec**: verifier in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
-
+ - Customized labels for Verifier and Type Inference 
+    - **yes(match-xla)**:  in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
+    - **yes(match-spec)**: in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
+    - **yes(need-revisit)**: implemented but need revisit for the sync with XLA or spec
+    - **no-plan**: infeasible or no plan to implement by design
+    
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verification | Type Inference | Prettyprinting | Interpreter (2) |
+| StableHLO Op (114) | Specification (21) | Verifier(104) | Type Inference(79) | Prettyprinting | Interpreter (2) |
 |:--|:--:|:--:|:--:|:--:|:--:|
-| AbsOp |yes||||no|
-| AddOp |yes|||| yes|
-| AfterAllOp |no||||no |
-| AllGatherOp |no||||no|
-| AllReduceOp |no||||no|
-| AllToAllOp |no||||no|
-| AndOp |yes|||| no|
-| Atan2Op |no||||no|
-| BatchNormGradOp |no||||no|
-| BatchNormInferenceOp |no||||no|
-| BatchNormTrainingOp |no||||no|
-| BitcastConvertOp |no||||no|
-| BroadcastInDimOp |no||||no|
-| BroadcastOp |no||||no|
-| CaseOp |no||||no|
-| CbrtOp |no||||no|
-| CeilOp |yes||||no|
-| CholeskyOp |no||||no|
-| ClampOp |no||||no|
-| ClzOp |no||||no|
-| CollectivePermuteOp |no||||no|
-| CompareOp |no||||no|
-| ComplexOp |no||||no|
-| ComputeReshapeShapeOp |no||||no|
-| ConcatenateOp |no||||no|
-| ConstantOp |yes|||| yes|
-| ConvertOp |no||||no|
-| ConvolutionOp |no||||no|
-| CosineOp |yes||||no|
-| CreateTokenOp |no||||no|
-| CrossReplicaSumOp |no||||no|
-| CstrReshapableOp |no||||no|
-| CustomCallOp |no||||no|
-| DivOp |yes||||no|
-| DotGeneralOp |no||||no|
-| DotOp |no||||no|
-| DynamicBroadcastInDimOp |no||||no|
-| DynamicConvOp |no||||no|
-| DynamicGatherOp |no||||no|
-| DynamicIotaOp |no||||no|
-| DynamicPadOp |no||||no|
-| DynamicReshapeOp |no||||no|
-| DynamicSliceOp |no||||no|
-| DynamicUpdateSliceOp |no||||no|
-| EinsumOp |no||||no|
-| Expm1Op |no||||no|
-| ExpOp |no||||no|
-| FftOp |no||||no|
-| FloorOp |yes||||no|
-| GatherOp |no||||no|
-| GetDimensionSizeOp |no||||no|
-| GetTupleElementOp |no||||no|
-| IfOp |no||||no|
-| ImagOp |no||||no|
-| InfeedOp |no||||no|
-| IotaOp |no||||no|
-| IsFiniteOp |no||||no|
-| Log1pOp |no||||no|
-| LogisticOp |yes||||no|
-| LogOp |yes||||no|
-| MapOp |no||||no|
-| MaxOp |yes||||no|
-| MinOp |yes||||no|
-| MulOp |no||||no|
-| NegOp |yes||||no|
-| NotOp |yes||||no|
-| OptimizationBarrierOp |no||||no|
-| OrOp |yes||||no|
-| OutfeedOp |no||||no|
-| PadOp |no||||no|
-| PopulationCountOp |no||||no|
-| PowOp |no||||no|
-| RealDynamicSliceOp |no||||no|
-| RealOp |no||||no|
-| RecvOp |no||||no|
-| ReduceOp |no||||no|
-| ReducePrecisionOp |no||||no|
-| ReduceScatterOp |no||||no|
-| ReduceWindowOp |no||||no|
-| RemOp |yes||||no|
-| ReplicaIdOp |no||||no|
-| ReshapeOp |no||||no|
-| ReturnOp |no||||no|
-| ReverseOp |no||||no|
-| RngBitGeneratorOp |no||||no|
-| RngOp |no||||no|
-| RoundNearestEvenOp |no||||no|
-| RoundOp |no||||no|
-| RsqrtOp |yes||||no|
-| ScatterOp |no||||no|
-| SelectAndScatterOp |no||||no|
-| SelectOp |no||||no|
-| SendOp |no||||no|
-| SetDimensionSizeOp |no||||no|
-| ShiftLeftOp |no||||no|
-| ShiftRightArithmeticOp |no||||no|
-| ShiftRightLogicalOp |no||||no|
-| SignOp |no||||no|
-| SineOp |yes||||no|
-| SliceOp |no||||no|
-| SortOp |no||||no|
-| SqrtOp |yes||||no|
-| SubtractOp |no||||no|
-| TanhOp |yes||||no|
-| TorchIndexSelectOp |no||||no|
-| TraceOp |no||||no|
-| TransposeOp |no||||no|
-| TriangularSolveOp |no||||no|
-| TupleOp |no||||no|
-| UnaryEinsumOp |no||||no|
-| UniformDequantizeOp |no||||no|
-| UniformQuantizeOp |no||||no|
-| WhileOp |no||||no|
-| XorOp |yes||||no|
+| AbsOp |yes|yes(match-xla)|yes(match-xla)||no|
+| AddOp |yes|yes(match-xla)|yes(match-xla)|| yes|
+| AfterAllOp |no|no|no||no |
+| AllGatherOp |no|yes(match-xla)|no||no|
+| AllReduceOp |no|no|no||no|
+| AllToAllOp |no|yes(match-xla)|yes(match-xla)||no|
+| AndOp |yes|yes(match-xla)|yes(match-xla)|| no|
+| Atan2Op |no|yes(match-xla)|yes(match-xla)||no|
+| BatchNormGradOp |no|yes(match-xla)|yes(match-xla)||no|
+| BatchNormInferenceOp |no|yes(match-xla)|yes(match-xla)||no|
+| BatchNormTrainingOp |no|yes(match-xla)|yes(match-xla)||no|
+| BitcastConvertOp |no|yes(match-xla)|no-plan||no|
+| BroadcastInDimOp |no|yes(match-xla)|no-plan||no|
+| BroadcastOp |no|yes(match-xla)|yes(match-xla)||no|
+| CaseOp |no|yes(match-xla)|wip||no|
+| CbrtOp |no|yes(match-xla)|yes(match-xla)||no|
+| CeilOp |yes|yes(match-xla)|yes(match-xla)||no|
+| CholeskyOp |no|yes(match-xla)|yes(match-xla)||no|
+| ClampOp |no|yes(match-xla)|yes(match-xla)||no|
+| ClzOp |no|yes(match-xla)|yes(match-xla)||no|
+| CollectivePermuteOp |no|yes(match-xla)|yes(match-xla)||no|
+| CompareOp |no|yes(match-xla)|yes(match-xla)||no|
+| ComplexOp |no|yes(match-xla)|yes(match-xla)||no|
+| ComputeReshapeShapeOp |no|no|no||no|
+| ConcatenateOp |no|yes(match-xla)|yes(match-xla)||no|
+| ConstantOp |yes|yes(match-xla)|yes(match-xla)|| yes|
+| ConvertOp |no|yes(match-xla)|no-plan||no|
+| ConvolutionOp |no|yes(match-xla)|no||no|
+| CosineOp |yes|yes(match-xla)|yes(match-xla)||no|
+| CreateTokenOp |no|yes(match-xla)|no||no|
+| CrossReplicaSumOp |no|no|yes(match-xla)||no|
+| CstrReshapableOp |no|yes(match-xla)|no||no|
+| CustomCallOp |no|yes(match-xla)|no-plan||no|
+| DivOp |yes|yes(match-xla)|yes(match-xla)||no|
+| DotGeneralOp |no|yes(match-xla)|wip||no|
+| DotOp |no|yes(match-xla)|yes(need-revisit)||no|
+| DynamicBroadcastInDimOp |no|yes(match-xla)|no||no|
+| DynamicConvOp |no|no|no||no|
+| DynamicGatherOp |no|no|yes(need-revisit)||no|
+| DynamicIotaOp |no|no|no||no|
+| DynamicPadOp |no|yes(match-xla)|no||no|
+| DynamicReshapeOp |no|yes(match-xla)|no||no|
+| DynamicSliceOp |no|yes(match-xla)|yes(match-xla)||no|
+| DynamicUpdateSliceOp |no|yes(match-xla)|no||no|
+| EinsumOp |no|no|no||no|
+| Expm1Op |no|yes(match-xla)|yes(match-xla)||no|
+| ExpOp |no|yes(match-xla)|yes(match-xla)||no|
+| FftOp |no|yes(match-xla)|yes(match-xla)||no|
+| FloorOp |yes|yes(match-xla)|yes(match-xla)||no|
+| GatherOp |no|yes(match-xla)|yes(match-xla)||no|
+| GetDimensionSizeOp |no|yes(match-xla)|no||no|
+| GetTupleElementOp |no|yes(match-xla)|yes(need-revisit)||no|
+| IfOp |no|yes(match-xla)|wip||no|
+| ImagOp |no|yes(match-xla)|yes(match-xla)||no|
+| InfeedOp |no|yes(match-xla)|no||no|
+| IotaOp |no|yes(match-xla)|no-plan||no|
+| IsFiniteOp |no|yes(match-xla)|yes(match-xla)||no|
+| Log1pOp |no|yes(match-xla)|yes(match-xla)||no|
+| LogisticOp |yes|yes(match-xla)|yes(match-xla)||no|
+| LogOp |yes|yes(match-xla)|yes(match-xla)||no|
+| MapOp |no|yes(match-xla)|no||no|
+| MaxOp |yes|yes(match-xla)|yes(match-xla)||no|
+| MinOp |yes|yes(match-xla)|yes(match-xla)||no|
+| MulOp |no|yes(match-xla)|yes(match-xla)||no|
+| NegOp |yes|yes(match-xla)|yes(match-xla)||no|
+| NotOp |yes|yes(match-xla)|yes(match-xla)||no|
+| OptimizationBarrierOp |no|yes(match-xla)|no||no|
+| OrOp |yes|yes(match-xla)|yes(match-xla)||no|
+| OutfeedOp |no|yes(match-xla)|no||no|
+| PadOp |no|yes(match-xla)|yes(match-xla)||no|
+| PopulationCountOp |no|yes(match-xla)|yes(match-xla)||no|
+| PowOp |no|yes(match-xla)|yes(match-xla)||no|
+| RealDynamicSliceOp |no|yes(match-xla)|no||no|
+| RealOp |no|yes(match-xla)|yes(match-xla)||no|
+| RecvOp |no|yes(match-xla)|no||no|
+| ReduceOp |no|yes(match-xla)|yes(match-xla)||no|
+| ReducePrecisionOp |no|yes(match-xla)|yes(match-xla)||no|
+| ReduceScatterOp |no|yes(match-xla)|no||no|
+| ReduceWindowOp |no|yes(match-xla)|yes(match-xla)||no|
+| RemOp |yes|yes(match-xla)|yes(match-xla)||no|
+| ReplicaIdOp |no|yes(match-xla)|yes(need-revisit)||no|
+| ReshapeOp |no|yes(match-xla)|no-plan||no|
+| ReturnOp |no|yes(match-xla)|no||no|
+| ReverseOp |no|yes(match-xla)|yes(match-xla)||no|
+| RngBitGeneratorOp |no|yes(match-xla)|no-plan||no|
+| RngOp |no|yes(match-xla)|yes(match-xla)||no|
+| RoundNearestEvenOp |no|yes(match-xla)|yes(match-xla)||no|
+| RoundOp |no|yes(match-xla)|yes(match-xla)||no|
+| RsqrtOp |yes|yes(match-xla)|yes(match-xla)||no|
+| ScatterOp |no|yes(match-xla)|no||no|
+| SelectAndScatterOp |no|yes(match-xla)|no||no|
+| SelectOp |no|yes(match-xla)|yes(match-xla)||no|
+| SendOp |no|yes(match-xla)|no||no|
+| SetDimensionSizeOp |no|yes(match-xla)|yes(need-revisit)||no|
+| ShiftLeftOp |no|yes(match-xla)|yes(match-xla)||no|
+| ShiftRightArithmeticOp |no|yes(match-xla)|yes(match-xla)||no|
+| ShiftRightLogicalOp |no|yes(match-xla)|yes(match-xla)||no|
+| SignOp |no|yes(match-xla)|yes(match-xla)||no|
+| SineOp |yes|yes(match-xla)|yes(match-xla)||no|
+| SliceOp |no|yes(match-xla)|yes(match-xla)||no|
+| SortOp |no|yes(match-xla)|no||no|
+| SqrtOp |yes|yes(match-xla)|yes(match-xla)||no|
+| SubtractOp |no|yes(match-xla)|yes(match-xla)||no|
+| TanhOp |yes|yes(match-xla)|yes(match-xla)||no|
+| TorchIndexSelectOp |no|no|no||no|
+| TraceOp |no|yes(match-xla)|no||no|
+| TransposeOp |no|yes(match-xla)|yes(match-xla)||no|
+| TriangularSolveOp |no|yes(match-xla)|no||no|
+| TupleOp |no|yes(match-xla)|yes(need-revisit)||no|
+| UnaryEinsumOp |no|no|no||no|
+| UniformDequantizeOp |no|yes(match-xla)|yes(match-xla)||no|
+| UniformQuantizeOp |no|yes(match-xla)|no-plan||no|
+| WhileOp |no|yes(match-xla)|no||no|
+| XorOp |yes|yes(match-xla)|yes(match-xla)||no|
