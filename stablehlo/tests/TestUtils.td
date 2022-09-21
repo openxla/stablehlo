@@ -18,6 +18,5 @@ include "mlir/Pass/PassBase.td"
 
 def HloTestInferPass : Pass<"hlo-test-infer", "func::FuncOp"> {
   let summary = "Uses test ops to invoke InferShapedTypeOpInterface methods.";
-  let constructor = "createHloTestInferPass()";
   let dependentDialects = ["shape::ShapeDialect"];
 }
