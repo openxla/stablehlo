@@ -120,6 +120,8 @@ Tensor eval(TransposeOp op, const Tensor &operand, DenseIntElementsAttr perm) {
   Tensor result(operand);
   result.setType(op.getType());
 
+  // The operation itself does not require any copying but involves swapping
+  // strides.
   std::vector<int64_t> stride(operand.getStrides());
   std::vector<int64_t> permutation(perm.getValues<int64_t>().begin(),
                                    perm.getValues<int64_t>().end());
