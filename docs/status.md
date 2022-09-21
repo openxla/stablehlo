@@ -20,14 +20,14 @@ one of the following tracking labels.
     - **yes**: complete
     - **no**: not complete yet, but part of [the roadmap](https://github.com/openxla/stablehlo#roadmap).
  - Customized labels for Verifier and Type Inference 
-    - **yes\***:  in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
+    - **yes\***: in sync with  [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
     - **yes**: in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
     - **yes(need-revisit)**: implemented but need revisit for the sync with XLA or spec
     - **infeasible**: infeasible to implement by design
     
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verifier(104) | Type Inference(82) | Prettyprinting | Interpreter (2) |
+| StableHLO Op (114) | Specification (21) | Verification(104) | Type Inference(82) | Prettyprinting | Interpreter (2) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes|yes*|yes*||no|
 | AddOp |yes|yes*|yes*|| yes|
