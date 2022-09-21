@@ -4248,7 +4248,6 @@ LogicalResult RngBitGeneratorOp::verify() {
 // RngOp
 //===----------------------------------------------------------------------===//
 
-
 // RngDistributionAttr - Print raw enum without surrounding `<` `>`
 //
 // {rng_distribution = #stablehlo.rng_distribution<NORMAL>}
