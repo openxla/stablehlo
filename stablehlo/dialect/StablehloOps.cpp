@@ -5841,15 +5841,15 @@ ParseResult parsePairwiseOpType(OpAsmParser& parser,
   return success();
 }
 
-void printVariadicOperandWithAttribute(OpAsmPrinter &p, Operation *,
+void printVariadicOperandWithAttribute(OpAsmPrinter& p, Operation*,
                                        OperandRange operands) {
   llvm::interleaveComma(operands, p);
   p << ",";
 }
 
 ParseResult parseVariadicOperandWithAttribute(
-    OpAsmParser &parser,
-    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operands) {
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands) {
   // Parse operands as well as trailing commas. Stops when first non-ssa value
   // seen.
   OpAsmParser::UnresolvedOperand operand;
