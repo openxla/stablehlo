@@ -1048,11 +1048,11 @@ ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
 //                      #stablehlo<precision DEFAULT>]}
 // ==> ..., precision = [DEFAULT, DEFAULT]
 void printPrecisionConfig(OpAsmPrinter& p, Operation*,
-                          llvm::Optional<mlir::ArrayAttr> attrOpt) {
-  if (!attrOpt.has_value() || !attrOpt.value()) return;
+                          ::mlir::ArrayAttr attrArr) {
+  if (!attrArr) return;
 
   p << ", precision = [";
-  llvm::interleaveComma(attrOpt.value(), p, [&](Attribute const& attr) {
+  llvm::interleaveComma(attrArr, p, [&](Attribute const& attr) {
     p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
   });
   p << ']';

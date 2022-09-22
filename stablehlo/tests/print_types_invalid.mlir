@@ -215,3 +215,4 @@ func.func @reduce_precision_overflow_int32_m(%arg0: tensor<3x4xf32>) -> (tensor<
   %0 = stablehlo.reduce_precision %arg0, format = e1m2147483648 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }
+
