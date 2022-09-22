@@ -244,12 +244,46 @@ Element tanh(const Element &e) {
       [](std::complex<double> e) { return std::tanh(e); });
 }
 
-void Element::print(raw_ostream &os) const { getValue().print(os); }
+void Element::print(raw_ostream &os) const {
+  // Converting APFlots/APInts to mlir::Attribute to leverage the its
+  // pretty-printing.
+  auto convertToFloatAttr = [](Type type, APFloat apf) -> Attribute {
+    return FloatAttr::get(type, apf);
+  };
 
-void Element::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+  auto convertToIntAttr = [](Type type, APInt api) -> Attribute {
+    return IntegerAttr::get(type, api);
+  };
+
+  if (isSupportedSignedIntegerType(type_)) {
+    convertToIntAttr(type_, getIntegerValue()).print(os);
+    return;
+  }
+
+  if (isSupportedUnsignedIntegerType(type_)) {
+    convertToIntAttr(type_, getIntegerValue()).print(os);
+    return;
+  }
+
+  if (isSupportedFloatType(type_)) {
+    convertToFloatAttr(type_, getFloatValue()).print(os);
+    return;
+  }
+
+  if (isSupportedComplexType(type_)) {
+    auto complexTy = type_.dyn_cast<mlir::ComplexType>().getElementType();
+    auto complexVal = getComplexValue();
+
+    os << "[";
+    convertToFloatAttr(complexTy, complexVal.real()).print(os);
+    os << ", ";
+    convertToFloatAttr(complexTy, complexVal.imag()).print(os);
+    os << "]";
+    return;
+  }
 }
+
+void Element::dump() const { print(llvm::errs()); }
 
 }  // namespace stablehlo
 }  // namespace mlir

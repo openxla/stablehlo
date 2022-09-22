@@ -15,13 +15,11 @@ limitations under the License.
 
 #include "stablehlo/reference/Tensor.h"
 
-#include <algorithm>
 #include <complex>
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "mlir/AsmParser/AsmParser.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Index.h"
@@ -121,73 +119,68 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
   // Handle floating-point types.
   if (elementType.isF16()) {
     auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
-    auto value =
-        APFloat(llvm::APFloatBase::IEEEhalf(), APInt(16, *elementData));
-    return Element(elementType, FloatAttr::get(elementType, value));
+    return Element(elementType, APFloat(llvm::APFloatBase::IEEEhalf(),
+                                        APInt(16, *elementData)));
   }
 
   if (elementType.isBF16()) {
     auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
-    auto value = APFloat(llvm::APFloatBase::BFloat(), APInt(16, *elementData));
-    return Element(elementType, FloatAttr::get(elementType, value));
+    return Element(elementType, APFloat(llvm::APFloatBase::BFloat(),
+                                        APInt(16, *elementData)));
   }
 
   if (elementType.isF32()) {
     auto elementData = reinterpret_cast<float *>(elementPtr);
-    return Element(elementType,
-                   FloatAttr::get(elementType, APFloat(*elementData)));
+    return Element(elementType, APFloat(*elementData));
   }
 
   if (elementType.isF64()) {
     auto elementData = reinterpret_cast<double *>(elementPtr);
-    return Element(elementType,
-                   FloatAttr::get(elementType, APFloat(*elementData)));
+    return Element(elementType, APFloat(*elementData));
   }
 
-  // Handle signed integer types.
+  // Handle integer types.
   // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
   // integer variants.
-  if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
-    auto elementData = reinterpret_cast<int8_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
+  if (isSupportedIntegerType(elementType)) {
+    IntegerType intTy = elementType.cast<IntegerType>();
 
-  if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  if (elementType.isSignlessInteger(32)) {
-    auto elementData = reinterpret_cast<int32_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  if (elementType.isSignlessInteger(64)) {
-    auto elementData = reinterpret_cast<int64_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  // Handle unsigned integer types.
-  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
-    auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  if (elementType.isUnsignedInteger(16)) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  if (elementType.isUnsignedInteger(32)) {
-    auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
-  }
-
-  if (elementType.isUnsignedInteger(64)) {
-    auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
-    return Element(elementType, IntegerAttr::get(elementType, *elementData));
+    if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
+      auto elementData = reinterpret_cast<int8_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isSignlessInteger(16)) {
+      auto elementData = reinterpret_cast<int16_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isSignlessInteger(32)) {
+      auto elementData = reinterpret_cast<int32_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isSignlessInteger(64)) {
+      auto elementData = reinterpret_cast<int64_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isUnsignedInteger(4) ||
+               elementType.isUnsignedInteger(8)) {
+      auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isUnsignedInteger(16)) {
+      auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isUnsignedInteger(32)) {
+      auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    } else if (elementType.isUnsignedInteger(64)) {
+      auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
+      return Element(elementType, APInt(intTy.getWidth(), *elementData,
+                                        intTy.isSignedInteger()));
+    }
   }
 
   // Handle complex types.
@@ -196,22 +189,16 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 
     if (complexElemTy.isF32()) {
       auto elementData = reinterpret_cast<std::complex<float> *>(elementPtr);
-      return Element(
-          elementType,
-          ArrayAttr::get(
-              elementType.getContext(),
-              {FloatAttr::get(complexElemTy, APFloat(elementData->real())),
-               FloatAttr::get(complexElemTy, APFloat(elementData->imag()))}));
+      return Element(elementType,
+                     std::complex<APFloat>(APFloat(elementData->real()),
+                                           APFloat(elementData->imag())));
     }
 
     if (complexElemTy.isF64()) {
       auto elementData = reinterpret_cast<std::complex<double> *>(elementPtr);
-      return Element(
-          elementType,
-          ArrayAttr::get(
-              elementType.getContext(),
-              {FloatAttr::get(complexElemTy, APFloat(elementData->real())),
-               FloatAttr::get(complexElemTy, APFloat(elementData->imag()))}));
+      return Element(elementType,
+                     std::complex<APFloat>(APFloat(elementData->real()),
+                                           APFloat(elementData->imag())));
     }
   }
 
@@ -247,21 +234,21 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {
     auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
-    auto value = getFloatValue(element);
+    auto value = element.getFloatValue();
     *elementData = (uint16_t)value.bitcastToAPInt().getZExtValue();
     return;
   }
 
   if (elementType.isF32()) {
     auto elementData = reinterpret_cast<float *>(elementPtr);
-    auto value = getFloatValue(element);
+    auto value = element.getFloatValue();
     *elementData = value.convertToFloat();
     return;
   }
 
   if (elementType.isF64()) {
     auto elementData = reinterpret_cast<double *>(elementPtr);
-    auto value = getFloatValue(element);
+    auto value = element.getFloatValue();
     *elementData = value.convertToDouble();
     return;
   }
@@ -273,7 +260,7 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   // integer variants.
   if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
     auto elementData = reinterpret_cast<int8_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (int8_t)value.getSExtValue();
     return;
   }
@@ -287,14 +274,14 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 
   if (elementType.isSignlessInteger(32)) {
     auto elementData = reinterpret_cast<int32_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (int32_t)value.getSExtValue();
     return;
   }
 
   if (elementType.isSignlessInteger(64)) {
     auto elementData = reinterpret_cast<int64_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (int64_t)value.getSExtValue();
     return;
   }
@@ -302,28 +289,28 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   // Handle unsigned integer types.
   if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(16)) {
     auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (uint16_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(32)) {
     auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (uint32_t)value.getZExtValue();
     return;
   }
 
   if (elementType.isUnsignedInteger(64)) {
     auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (uint64_t)value.getZExtValue();
     return;
   }
@@ -331,10 +318,10 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   // Handle complex types.
   if (elementType.isa<ComplexType>()) {
     auto complexElemTy = elementType.cast<ComplexType>().getElementType();
+    auto complexValue = element.getComplexValue();
 
     if (complexElemTy.isF32()) {
       auto elementData = reinterpret_cast<std::complex<float> *>(elementPtr);
-      auto complexValue = getComplexValue(element);
       *elementData = std::complex<float>(complexValue.real().convertToFloat(),
                                          complexValue.imag().convertToFloat());
       return;
@@ -342,7 +329,6 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 
     if (complexElemTy.isF64()) {
       auto elementData = reinterpret_cast<std::complex<double> *>(elementPtr);
-      auto complexValue = getComplexValue(element);
       *elementData =
           std::complex<double>(complexValue.real().convertToDouble(),
                                complexValue.imag().convertToDouble());

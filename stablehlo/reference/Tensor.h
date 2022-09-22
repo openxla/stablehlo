@@ -23,7 +23,6 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
 

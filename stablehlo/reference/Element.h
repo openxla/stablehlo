@@ -16,13 +16,11 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_ELEMENT_H
 #define STABLHLO_REFERENCE_ELEMENT_H
 
+#include <complex>
 #include <variant>
-#include <vector>
 
 #include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
 
 namespace mlir {
@@ -32,7 +30,10 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, Attribute attr);
+  Element(Type type, APInt val) : type_(type), value_(val) {}
+  Element(Type type, APFloat val) : type_(type), value_(val) {}
+  Element(Type type, std::complex<APFloat> val)
+      : type_(type), value_(std::make_pair(val.real(), val.imag())) {}
 
   Element(const Element &other) = default;
   /// @}
@@ -43,8 +44,12 @@ class Element {
   /// Returns type of the Element object.
   Type getType() const { return type_; }
 
-  /// Returns the underlying storage of Element object.
-  Attribute getValue() const;
+  APFloat getFloatValue() const { return std::get<APFloat>(value_); }
+  APInt getIntegerValue() const { return std::get<APInt>(value_); }
+  std::complex<APFloat> getComplexValue() const {
+    auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
+    return std::complex<APFloat>(floatPair.first, floatPair.second);
+  }
 
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
@@ -60,7 +65,7 @@ class Element {
 
  private:
   Type type_;
-  std::variant<APInt, std::vector<APFloat>> value_;
+  std::variant<APInt, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
 /// Returns element-wise ceil of Element object.

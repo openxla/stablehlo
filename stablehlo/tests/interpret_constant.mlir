@@ -226,6 +226,6 @@ func.func @constant_op_test_c128() -> tensor<2xcomplex<f64>> {
   %0 = stablehlo.constant dense<[(1.5, 2.5), (3.5, 4.5)]> : tensor<2xcomplex<f64>>
   func.return %0 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [1.500000e+00, 2.500000e+00]
-  // CHECK-NEXT: [3.500000e+00, 4.500000e+00]
+  // CHECK-NEXT: [1.500000e+00 : f64, 2.500000e+00 : f64]
+  // CHECK-NEXT: [3.500000e+00 : f64, 4.500000e+00 : f64]
 }
