@@ -4719,49 +4719,54 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verifyConditionalBranch(Operation* op, Region& region,
-                                             llvm::Twine branchName) {
-  if (region.getNumArguments() != 0)
-    return op->emitOpError()
-           << branchName << " must have 0 arguments, but found "
-           << region.getNumArguments();
+static LogicalResult inferConditionalReturnTypeComponents(
+    RegionRange branches, Optional<Location> location,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (branches.empty())
+    return emitOptionalError(location, "expect at least one branch");
 
-  TypeRange branchReturnTypes =
-      region.front().getTerminator()->getOperandTypes();
-  if (branchReturnTypes != op->getResultTypes())
-    return op->emitOpError()
-           << branchName << " returned types (" << branchReturnTypes
-           << ") do not match op result types (" << op->getResultTypes() << ")";
+  ValueTypeRange<OperandRange> branch0ResultTypes =
+      branches[0]->front().getTerminator()->getOperandTypes();
+  for (unsigned i = 0; i < branches.size(); ++i) {
+    Twine branchName = "branch " + Twine(i);
+    Region* region = branches[i];
+    if (region->getNumArguments() != 0)
+      return emitOptionalError(location, branchName,
+                               " must have 0 arguments, but found ",
+                               region->getNumArguments());
 
+    auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
+    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
+                                              branchResultTypes))
+      return emitOptionalError(location, "branch 0 and ", branchName,
+                               " have mismatched return types: ",
+                               branch0ResultTypes, " vs ", branchResultTypes);
+  }
+  for (auto resultType : branch0ResultTypes)
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
 
-LogicalResult IfOp::verify() {
-  if (failed(verifyConditionalBranch(*this, true_branch(),
-                                     /*branchName=*/"true_branch"))) {
-    return failure();
-  }
-
-  if (failed(verifyConditionalBranch(*this, false_branch(),
-                                     /*branchName=*/"false_branch"))) {
-    return failure();
-  }
-  return success();
+LogicalResult IfOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  IfOp::Adaptor adaptor(operands, attributes, regions);
+  return inferConditionalReturnTypeComponents(adaptor.getRegions(), location,
+                                              inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
 // Case Op
 //===----------------------------------------------------------------------===//
 
-LogicalResult CaseOp::verify() {
-  auto numBranches = branches().size();
-
-  for (unsigned i = 0; i < numBranches; ++i)
-    if (failed(verifyConditionalBranch(*this, branches()[i],
-                                       /*branchName=*/"branch " + Twine(i))))
-      return failure();
-
-  return success();
+LogicalResult CaseOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CaseOp::Adaptor adaptor(operands, attributes, regions);
+  return inferConditionalReturnTypeComponents(adaptor.getRegions(), location,
+                                              inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -5893,6 +5898,29 @@ ParseResult parsePairwiseOpType(OpAsmParser& parser,
     return parser.emitError(loc, "expected type list");
   }
   results = operands;
+  return success();
+}
+
+void printVariadicOperandWithAttribute(OpAsmPrinter& p, Operation*,
+                                       OperandRange operands) {
+  llvm::interleaveComma(operands, p);
+  p << ",";
+}
+
+ParseResult parseVariadicOperandWithAttribute(
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands) {
+  // Parse operands as well as trailing commas. Stops when first non-ssa value
+  // seen.
+  OpAsmParser::UnresolvedOperand operand;
+  auto resultOpt = parser.parseOptionalOperand(operand);
+  while (resultOpt.has_value() && succeeded(resultOpt.value())) {
+    operands.push_back(operand);
+    if (failed(parser.parseComma())) {
+      return failure();
+    }
+    resultOpt = parser.parseOptionalOperand(operand);
+  }
   return success();
 }
 
