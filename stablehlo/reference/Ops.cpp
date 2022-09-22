@@ -15,8 +15,6 @@ limitations under the License.
 
 #include "stablehlo/reference/Ops.h"
 
-#include "mlir/IR/AsmState.h"
-#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
 
 namespace mlir {

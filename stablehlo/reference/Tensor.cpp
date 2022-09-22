@@ -107,7 +107,7 @@ int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      blob_->getImmutableData().data() +
+      impl_->getImmutableData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -203,7 +203,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      blob_.getData().data()
+      impl_.getData().data()
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -399,6 +399,9 @@ Tensor makeTensor(DenseElementsAttr attr) {
         attr.getValues<APFloat>(), [&](APFloat value) -> uint16_t {
           return value.bitcastToAPInt().getZExtValue();
         }));
+
+    // For both f16 and bf16 floating-point types, we use uint16_t as their
+    // storage type because there are no buitin types for those.
     return Tensor(type,
                   HeapAsmResourceBlob::allocateAndCopy<uint16_t>(floatValues));
   }

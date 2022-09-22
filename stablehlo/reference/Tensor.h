@@ -49,7 +49,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   ShapedType getType() { return type_; }
 
   /// Provides access to the underlying non-mutable storage.
-  ArrayRef<char> getImmutableData() const { return blob_.getData(); }
+  ArrayRef<char> getData() const { return blob_.getData(); }
 
   /// Provides access to the underlying mutable storage.
   MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }

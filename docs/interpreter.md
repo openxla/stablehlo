@@ -5,10 +5,12 @@
 
 [StableHLO programs](spec_draft.md#programs) are computations over tensors
 (n-dimensional arrays), which, in the current model, are implemented using class
-`Tensor`, which stores the shape (an `mlir::ShapedType` object) and the
-underlying data storage (an `mlir::HeapAsmResourceBlob` object) of the tensor.
-The data storage contains a mutable blob of data laid out as a contiguous byte
-array in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
+`Tensor`. The underlying storage class for a `Tensor` object, `detail::Buffer`,
+stores the `mlir::ShapedType` of the tensor along with a
+`mlir::HeapAsmResourceBlob` object representing a mutable blob of tensor
+data laid out as contiguous byte array in
+[major-to-minor order](https://www.tensorflow.org/xla/shapes).
+`detail::Buffer` objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 discriminated union holding one of `APInt`, `APFloat` or `pair<APFloat,APFloat>`
