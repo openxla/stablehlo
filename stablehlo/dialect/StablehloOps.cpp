@@ -186,10 +186,9 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
   DenseIntElementsAttr attr = *optionalAttr;
   auto attrType = attr.getType().cast<RankedTensorType>();
   if (attrType.getRank() != 1)
-    return (emitOptionalError(loc, "expects the shape of ", attrName,
-                              " attribute to be 1-D, but got {",
-                              attrType.getShape(), "}."),
-            failure());
+    return emitOptionalError(loc, "expects the shape of ", attrName,
+                             " attribute to be 1-D, but got {",
+                             attrType.getShape(), "}.");
   auto values = attr.getValues<int64_t>();
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
@@ -203,12 +202,9 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
   DenseIntElementsAttr attr = *optionalAttr;
   auto attrType = attr.getType().cast<RankedTensorType>();
   if (attrType.getRank() != 2 || attrType.getShape()[1] != 2)
-    return (
-        emitOptionalError(
-            loc,
-            "expects the shape of padding-attribute to be {N, 2}, but got {",
-            attrType.getShape(), "}."),
-        failure());
+    return emitOptionalError(
+        loc, "expects the shape of padding-attribute to be {N, 2}, but got {",
+        attrType.getShape(), "}.");
 
   auto it = attr.getValues<int64_t>().begin();
   SmallVector<std::pair<int64_t, int64_t>> out(attr.getNumElements() / 2);
@@ -310,33 +306,27 @@ verifyWindowAttributesAndInferWindowDimensions(
 
     dim.size = windowDimensions[i];
     if (!isDynamicDimSize(dim.size) && dim.size <= 0)
-      return (
-          emitOptionalError(loc, "expects window to have positive value for ",
-                            i, "-th window dimension, but got ", dim.size, "."),
-          failure());
+      return emitOptionalError(loc,
+                               "expects window to have positive value for ", i,
+                               "-th window dimension, but got ", dim.size, ".");
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
     if (dim.stride <= 0)
-      return (emitOptionalError(
-                  loc, "expects window to have positive stride for ", i,
-                  "-th window dimension, but got ", dim.stride, "."),
-              failure());
+      return emitOptionalError(
+          loc, "expects window to have positive stride for ", i,
+          "-th window dimension, but got ", dim.stride, ".");
 
     if (!lhsDilation.empty()) dim.baseDilation = lhsDilation[i];
     if (dim.baseDilation <= 0)
-      return (
-          emitOptionalError(
-              loc, "expects window to have positive base dilation factor for ",
-              i, "-th window dimension, but got ", dim.baseDilation, "."),
-          failure());
+      return emitOptionalError(
+          loc, "expects window to have positive base dilation factor for ", i,
+          "-th window dimension, but got ", dim.baseDilation, ".");
 
     if (!rhsDilation.empty()) dim.windowDilation = rhsDilation[i];
     if (dim.windowDilation <= 0)
-      return (emitOptionalError(
-                  loc,
-                  "expects window to have positive window dilation factor for ",
-                  i, "-th window dimension, but got ", dim.windowDilation, "."),
-              failure());
+      return emitOptionalError(
+          loc, "expects window to have positive window dilation factor for ", i,
+          "-th window dimension, but got ", dim.windowDilation, ".");
 
     if (!padding.empty()) {
       dim.paddingLow = padding[i].first;
@@ -3358,84 +3348,98 @@ LogicalResult InfeedOp::verify() {
 // MapOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult MapOp::verify() {
+LogicalResult MapOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Checks if the number of `operands` match the arity of the map `computation`
   // region.
-  auto& computationBlock = computation().front();
+  MapOp::Adaptor adaptor(operands, attributes, regions);
+  auto& computationBlock = adaptor.computation().front();
   auto computationArgs = computationBlock.getArguments();
-  if (operands().size() != computationArgs.size())
-    return emitOpError() << "expects number of operands to match the arity "
-                            "of map computation, but got: "
-                         << operands().size() << " and "
-                         << computationArgs.size();
+  if (adaptor.operands().size() != computationArgs.size())
+    return emitOptionalError(location,
+                             "expects number of operands to match the arity of "
+                             "map computation, but got: ",
+                             adaptor.operands().size(), " and ",
+                             computationArgs.size());
 
   // The parameters of computation should all be scalars and match the element
   // type of operands.
   for (const auto& indexedArg : llvm::enumerate(computationArgs)) {
-    auto argType = indexedArg.value().getType().dyn_cast<TensorType>();
+    auto argType = indexedArg.value().getType().dyn_cast<RankedTensorType>();
     if (!argType || argType.getRank() != 0)
-      return emitOpError()
-             << "computation arguments must be 0-rank tensor, but got: arg #"
-             << indexedArg.index() << " of type "
-             << indexedArg.value().getType();
-    auto operandElemTy = operands()[indexedArg.index()]
+      return emitOptionalError(
+          location,
+          "computation arguments must be 0-rank tensor, but got: arg #",
+          indexedArg.index(), " of type ", indexedArg.value().getType());
+    auto operandElemTy = adaptor.operands()[indexedArg.index()]
                              .getType()
                              .cast<TensorType>()
                              .getElementType();
     if (argType.getElementType() != operandElemTy) {
-      return emitOpError()
-             << "element type of operands and computation arguments must "
-                "match, but got: "
-             << operandElemTy << " and " << argType.getElementType();
+      return emitOptionalError(location,
+                               "element type of operands and computation "
+                               "arguments must match, but got: ",
+                               operandElemTy, " and ",
+                               argType.getElementType());
     }
   }
 
   // Mapped computation must return single output
   auto computationOutputs = computationBlock.getTerminator()->getOperands();
   if (computationOutputs.size() != 1)
-    return emitOpError() << "computation must return single output, but got: "
-                         << computationOutputs.size();
+    return emitOptionalError(location,
+                             "computation must return single output, but got: ",
+                             computationOutputs.size());
 
   // The output of computation must be scalar and have the same element type
   // as op result.
   auto computationOutputType =
-      computationOutputs[0].getType().dyn_cast<TensorType>();
+      computationOutputs[0].getType().dyn_cast<RankedTensorType>();
   if (!computationOutputType || computationOutputType.getRank() != 0)
-    return emitOpError() << "computation must return 0-rank tensor, but got: "
-                         << computationOutputs[0].getType();
-
-  auto resultType = getType().cast<TensorType>();
-  if (computationOutputType.getElementType() != resultType.getElementType())
-    return emitOpError() << "element type of result and computation output "
-                            "must match, but got: "
-                         << resultType.getElementType() << " and "
-                         << computationOutputType.getElementType();
+    return emitOptionalError(location,
+                             "computation must return 0-rank tensor, but got: ",
+                             computationOutputs[0].getType());
 
   // Checks that the requested map dimension numbers are monotonically
   // increasing.
-  DenseIntElementsAttr dimensions = this->dimensions();
+  DenseIntElementsAttr dimensions = adaptor.dimensions();
   for (const auto& indexedValue :
        llvm::enumerate(dimensions.getValues<int64_t>())) {
     if (indexedValue.value() != static_cast<int64_t>(indexedValue.index()))
-      return emitOpError() << "requires monotonically increasing dimension "
-                              "numbers, but got: "
-                           << dimensions;
+      return emitOptionalError(
+          location,
+          "requires monotonically increasing dimension numbers, but got: ",
+          dimensions);
   }
 
   // Checks that number of dimensions of operands matches the size of
   // `dimensions` since we currently only support mapping across all
   // dimensions: i.e., scalar map functions.
-  auto operandType = operands()[0].getType().cast<TensorType>();
-  if (operandType.hasRank()) {
-    if (dimensions.size() !=
-        static_cast<int64_t>(operandType.getShape().size()))
-      return emitOpError()
-             << "applied to a subset of dimensions currently not supported: "
-                "operand dimensions = "
-             << operandType.getShape().size()
-             << ", requested map dimensions size = " << dimensions.size();
+  ArrayRef<int64_t> resultShape;
+  bool allInputsUnranked = true;
+  for (auto operand : adaptor.operands()) {
+    auto operandType = operand.getType().cast<TensorType>();
+    if (operandType.hasRank()) {
+      if (dimensions.size() !=
+          static_cast<int64_t>(operandType.getShape().size()))
+        return emitOptionalError(
+            location,
+            "applied to a subset of dimensions currently not supported: "
+            "operand dimensions = ",
+            operandType.getShape().size(),
+            ", requested map dimensions size = ", dimensions.size());
+      resultShape = operandType.getShape();
+      allInputsUnranked = false;
+    }
   }
 
+  if (allInputsUnranked)
+    inferredReturnShapes.emplace_back(computationOutputType.getElementType());
+  else
+    inferredReturnShapes.emplace_back(resultShape,
+                                      computationOutputType.getElementType());
   return success();
 }
 
@@ -4983,56 +4987,64 @@ LogicalResult TransposeOp::inferReturnTypes(
 // TriangularSolveOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult TriangularSolveOp::verify() {
-  auto aType = a().getType().dyn_cast<RankedTensorType>();
+LogicalResult TriangularSolveOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
+  // ODS enforces that a and b are of same element type: float or complex.
+  auto elementType = adaptor.a().getType().cast<ShapedType>().getElementType();
+  auto aType = adaptor.a().getType().dyn_cast<RankedTensorType>();
+  if (!aType) {
+    inferredReturnShapes.emplace_back(elementType);
+    return success();
+  }
 
-  // Skip verifier if a is unranked tensor.
-  if (!aType) return success();
-
-  // Check that a should have rank >= 2
   auto aRank = aType.getRank();
   if (aRank < 2)
-    return emitOpError() << "operand 'a' must have rank >= 2, but got "
-                         << aType;
+    return emitOptionalError(
+        location, "operand 'a' must have rank >= 2, but got ", aType);
 
-  // The two minor dimensions of a must have same size.
   if (aType.getDimSize(aRank - 2) != aType.getDimSize(aRank - 1))
-    return emitOpError() << "two minor dimensions of operand 'a' must have "
-                            "equal size, but got "
-                         << aType;
+    return emitOptionalError(location,
+                             "two minor dimensions of operand 'a' must have "
+                             "equal size, but got ",
+                             aType);
 
-  auto bType = b().getType().dyn_cast<RankedTensorType>();
-  // If b is unranked skip remaining checks.
-  if (!bType) return success();
+  auto bType = adaptor.b().getType().dyn_cast<RankedTensorType>();
+  if (!bType) {
+    inferredReturnShapes.emplace_back(elementType);
+    return success();
+  }
 
-  // Check that a and b have same rank.
   auto bRank = bType.getRank();
   if (aRank != bRank)
-    return emitOpError() << "operands must have equal rank, but got " << aType
-                         << " and " << bType;
+    return emitOptionalError(location,
+                             "operands must have equal rank, but got ", aType,
+                             " and ", bType);
 
   // The shared dimension of a and b should match.
   if (aType.getDimSize(aRank - 1) !=
-      bType.getDimSize(bRank - (left_side() ? 2 : 1)))
-    return emitOpError() << "shared dimension of operands 'a' and 'b' does "
-                            "not match, but got "
-                         << aType << " and " << bType;
+      bType.getDimSize(bRank - (adaptor.left_side() ? 2 : 1)))
+    return emitOptionalError(location,
+                             "shared dimension of operands 'a' and 'b' does "
+                             "not match, but got ",
+                             aType, " and ", bType);
 
   // The leading batch dimensions of a and b must be equal.
   auto aBatchDims = aType.getShape().drop_back(2);
   auto bBatchDims = bType.getShape().drop_back(2);
   if (aBatchDims != bBatchDims)
-    return emitOpError()
-           << "leading batch dimensions of the operands must be same, but got "
-           << aType << " and " << bType;
+    return emitOptionalError(
+        location,
+        "leading batch dimensions of the operands must be same, but got ",
+        aType, " and ", bType);
 
-  // Result and argument b must have same shape.
-  auto resultType = getType().dyn_cast<RankedTensorType>();
-  if (!resultType) return success();
-  if (resultType != bType)
-    return emitOpError()
-           << "result and operand 'b' must have same shape, but got "
-           << resultType << " and " << bType;
+  if (adaptor.transpose_a() == Transpose::TRANSPOSE_INVALID)
+    return emitOptionalError(
+        location, "Invalid transpose option value for triangular solve");
+
+  inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
   return success();
 }
 
@@ -5600,12 +5612,13 @@ LogicalResult WhileOp::verify() {
 /// assignment ::= ssa-value `=` ssa-value
 void WhileOp::print(OpAsmPrinter& p) {
   p << '(';
-  llvm::interleaveComma(llvm::zip(getBody()->getArguments(), getOperands()), p,
-                        [&](auto zip) {
-                          p.printOperand(std::get<0>(zip));
-                          p << " = ";
-                          p.printOperand(std::get<1>(zip));
-                        });
+  llvm::interleaveComma(
+      llvm::zip(SingleBlock::getBody()->getArguments(), getOperands()), p,
+      [&](auto zip) {
+        p.printOperand(std::get<0>(zip));
+        p << " = ";
+        p.printOperand(std::get<1>(zip));
+      });
   p << ")";
   if (getNumOperands()) {
     p << " : ";
@@ -5833,6 +5846,29 @@ ParseResult parsePairwiseOpType(OpAsmParser& parser,
   return success();
 }
 
+void printVariadicOperandWithAttribute(OpAsmPrinter& p, Operation*,
+                                       OperandRange operands) {
+  llvm::interleaveComma(operands, p);
+  p << ",";
+}
+
+ParseResult parseVariadicOperandWithAttribute(
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands) {
+  // Parse operands as well as trailing commas. Stops when first non-ssa value
+  // seen.
+  OpAsmParser::UnresolvedOperand operand;
+  auto resultOpt = parser.parseOptionalOperand(operand);
+  while (resultOpt.has_value() && succeeded(resultOpt.value())) {
+    operands.push_back(operand);
+    if (failed(parser.parseComma())) {
+      return failure();
+    }
+    resultOpt = parser.parseOptionalOperand(operand);
+  }
+  return success();
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
 
@@ -5901,7 +5937,7 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
   StringRef attrTag;
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
-  if (parseResult.hasValue()) return attr;
+  if (parseResult.has_value()) return attr;
   parser.emitError(parser.getNameLoc(), "unknown stablehlo attribute");
   return Attribute();
 }
@@ -6320,8 +6356,8 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
       int64_t spatialDim;
       auto dimLocation = parser.getCurrentLocation();
       OptionalParseResult parseResult = parser.parseOptionalInteger(spatialDim);
-      if (parseResult.hasValue()) {
-        if (parseResult.getValue().failed()) {
+      if (parseResult.has_value()) {
+        if (parseResult.value().failed()) {
           return failure();
         }
         // We were successful in parsing an integer. Check if it is a valid

@@ -120,6 +120,39 @@ Element Element::operator+(const Element &other) const {
   report_fatal_error(std::move(err));
 }
 
+Element sine(const Element &e) {
+  Type type = e.getType();
+  if (isSupportedFloatType(type)) {
+    APFloat val = getFloatValue(e);
+    const llvm::fltSemantics &oldSemantics = val.getSemantics();
+    APFloat sinVal(std::sin(val.convertToDouble()));
+    bool roundingErr;
+    sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, FloatAttr::get(type, sinVal));
+  } else if (isSupportedComplexType(type)) {
+    auto complex = getComplexValue(e);
+    Type elementType = type.cast<ComplexType>().getElementType();
+    const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
+    std::complex<double> complexVal(complex.real().convertToDouble(),
+                                    complex.imag().convertToDouble());
+    std::complex<double> sinVal = std::sin(complexVal);
+    bool roundingErr;
+    APFloat realAPF(sinVal.real());
+    realAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat imagAPF(sinVal.imag());
+    imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type,
+                   ArrayAttr::get(type.getContext(),
+                                  {FloatAttr::get(elementType, realAPF),
+                                   FloatAttr::get(elementType, imagAPF)}));
+  }
+
+  // Report error.
+  auto err = invalidArgument("Unsupported element type: %s",
+                             debugString(type).c_str());
+  report_fatal_error(std::move(err));
+}
+
 void Element::print(raw_ostream &os) const { value_.print(os); }
 
 void Element::dump() const {

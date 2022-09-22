@@ -24,6 +24,7 @@ namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(ConstantOp op, ElementsAttr value);
+Tensor eval(SineOp op, const Tensor &operand);
 
 }  // namespace stablehlo
 }  // namespace mlir

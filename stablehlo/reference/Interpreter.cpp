@@ -91,6 +91,10 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
         runtimeOperands.push_back(fetchOperand(ssaOperand));
       }
       return runtimeOperands;
+    } else if (auto sineOp = dyn_cast<SineOp>(op)) {
+      Tensor runtimeOperand = fetchOperand(sineOp.operand());
+      Tensor runtimeResult = eval(sineOp, runtimeOperand);
+      populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
     }
