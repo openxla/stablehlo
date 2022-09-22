@@ -26,4 +26,4 @@ jobs:
       - name: Running clang-format on changed source files
         run: |
           git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
-          ./build_tools/github_actions/lint_clang_format.sh
+          ./build_tools/github_actions/lint_clang_format.sh -b "${GITHUB_BASE_REF}"

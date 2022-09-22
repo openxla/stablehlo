@@ -36,6 +36,11 @@ fi
 
 echo "Gathering changed files..."
 CLANG_FILES=$(git diff --name-only HEAD $BASE_BRANCH | grep '.*\.h\|.*\.cpp' | xargs)
+if [[ -z "$CLANG_FILES" ]]; then
+  echo "No files to format."
+  exit 0
+fi
+
 echo "Running clang-format [mode=$FORMAT_MODE]..."
 echo "  Files: $CLANG_FILES"
 if [[ $FORMAT_MODE == 'fix' ]]; then
