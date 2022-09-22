@@ -83,7 +83,7 @@ namespace stablehlo {
 namespace {
 void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
                 ArrayRef<Type> types,
-                SmallVector<OpAsmParser::Argument> &args) {
+                SmallVector<OpAsmParser::Argument>& args) {
   for (auto argAndType : llvm::zip(operands, types)) {
     auto& arg = args.emplace_back();
     arg.ssaName = std::get<0>(argAndType);
@@ -91,7 +91,7 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
   }
 }
 
-const auto hasDuplicates = [](SmallVector<int64_t> &nums) {
+const auto hasDuplicates = [](SmallVector<int64_t>& nums) {
   if (!llvm::is_sorted(nums)) std::sort(nums.begin(), nums.end());
   auto* last = std::unique(nums.begin(), nums.end());
   return last != nums.end();
@@ -128,9 +128,9 @@ inline static bool isDynamicDimSize(int64_t val) {
 
 // Common shape function helper for RngNormal and RngUniform.
 static LogicalResult rngInferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (operands.size() != 3)
     return emitOptionalError(location, "expected 3 operands");
 
@@ -159,7 +159,7 @@ static LogicalResult rngInferReturnTypeComponents(
 
   // `shape` operand is a constant.
   shapeVector.reserve(shape.size());
-  for (const APInt &fp : shape.getValues<APInt>())
+  for (const APInt& fp : shape.getValues<APInt>())
     shapeVector.push_back(fp.getSExtValue());
   inferredReturnShapes.emplace_back(shapeVector, elementType);
   return success();
@@ -167,7 +167,7 @@ static LogicalResult rngInferReturnTypeComponents(
 
 // Returns a new scalar integer value having type `type`. Here `type` must be
 // an integer or index type.
-Value maybeCastTo(OpBuilder &b, Location loc, Value value, Type type) {
+Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   if (type == value.getType()) return value;
   assert(type.isIndex() || value.getType().isIndex());
   return b.create<arith::IndexCastOp>(loc, type, value);
@@ -302,7 +302,7 @@ verifyWindowAttributesAndInferWindowDimensions(
 
   SmallVector<WindowDimension> window(windowDimensions.size());
   for (size_t i = 0; i < windowDimensions.size(); i++) {
-    WindowDimension &dim = window[i];
+    WindowDimension& dim = window[i];
 
     dim.size = windowDimensions[i];
     if (!isDynamicDimSize(dim.size) && dim.size <= 0)
@@ -396,10 +396,10 @@ bool compatibleShapeAndElementType(Type type1, Type type2,
 }
 
 LogicalResult verifyReducerShape(
-    Optional<Location> loc, Block &block, ArrayRef<TensorType> inputArgTypes,
+    Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
     ArrayRef<TensorType> initValueTypes, int64_t numInputs,
     ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
-    SmallVectorImpl<TensorType> &accumulatorSubShapes) {
+    SmallVectorImpl<TensorType>& accumulatorSubShapes) {
   // Check that the number of reduction-region arguments matches with that of
   // reduce-op's arguments.
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
@@ -562,7 +562,7 @@ LogicalResult TypeExtensionsAttr::verifyEncoding(
 //===----------------------------------------------------------------------===//
 
 void AllReduceOp::build(
-    ::mlir::OpBuilder &ods_builder, ::mlir::OperationState &ods_state,
+    ::mlir::OpBuilder& ods_builder, ::mlir::OperationState& ods_state,
     ::mlir::Type result_type, ::mlir::Value operand,
     ::mlir::DenseIntElementsAttr replica_groups,
     /*optional*/ ::mlir::stablehlo::ChannelHandleAttr channel_handle) {
@@ -574,7 +574,7 @@ void AllReduceOp::build(
 // ReduceScatterOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyReduceScatter(Operation *op, TypeRange operandTypes,
+LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
                                   TypeRange resultTypes,
                                   uint64_t scatterDimension) {
   // If operand and result are both ranked, then the size of the scatter
@@ -630,7 +630,7 @@ LogicalResult ReduceScatterOp::verify() {
     return failure();
   auto operandType = operand().getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
-  Block &block = computation().front();
+  Block& block = computation().front();
   SmallVector<TensorType> accumulatorSubshapes;
   if (failed(verifyReducerShape(
           this->getLoc(), block, {operandType},
@@ -653,10 +653,10 @@ LogicalResult ReduceScatterOp::verify() {
 // support quantization or sparsity.
 #define INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Op)                        \
   LogicalResult Op::inferReturnTypeComponents(                                \
-      MLIRContext *context, Optional<Location> location,                      \
+      MLIRContext* context, Optional<Location> location,                      \
       ValueShapeRange operands, DictionaryAttr attributes,                    \
       RegionRange regions,                                                    \
-      SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {          \
+      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {          \
     return inferReturnTypeComponentsFromOperands(context, location, operands, \
                                                  attributes, regions,         \
                                                  inferredReturnShapes);       \
@@ -715,7 +715,7 @@ OpFoldResult ConstantOp::fold(ArrayRef<Attribute> operands) {
 }
 
 // Builds a constant op with the specified attribute `value`.
-void ConstantOp::build(OpBuilder & /*builder*/, OperationState &result,
+void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
                        Attribute value) {
   Type type;
   if (auto elemAttr = value.dyn_cast<ElementsAttr>()) {
@@ -741,9 +741,9 @@ void ConstantOp::build(OpBuilder & /*builder*/, OperationState &result,
 }
 
 LogicalResult ConstantOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands,
+    MLIRContext*, Optional<Location>, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   ConstantOpAdaptor adaptor(operands, attributes);
   Type type = adaptor.value().getType();
   inferredReturnTypes.push_back(type);
@@ -764,7 +764,7 @@ bool ConstantOp::isCompatibleReturnTypes(TypeRange l, TypeRange r) {
   return lhsTy == rhsTy;
 }
 
-ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ConstantOp::parse(OpAsmParser& parser, OperationState& result) {
   // Parse the generic form.
   if (succeeded(parser.parseOptionalLParen())) {
     if (parser.parseRParen()) return failure();
@@ -797,7 +797,7 @@ ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
 ///
 /// When the `value` and `output` have different type, it just uses the default
 /// operator assembly format as a fallback.
-void ConstantOp::print(::mlir::OpAsmPrinter &p) {
+void ConstantOp::print(::mlir::OpAsmPrinter& p) {
   // If not all types are the same, use generic form.
   if (value().getType() != getType()) {
     p.printGenericOp(getOperation(), /*printOpName=*/false);
@@ -828,7 +828,7 @@ LogicalResult CustomCallOp::verify() {
   // Helper function to verify types and the corresponding layouts.
   auto verifyTypesAndLayouts =
       [this](TypeRange types, mlir::ArrayAttr layouts,
-             const std::string &valueName) -> LogicalResult {
+             const std::string& valueName) -> LogicalResult {
     if (types.size() != layouts.size())
       return emitOpError() << "Number of " << valueName
                            << "s must match the number of " << valueName
@@ -904,8 +904,8 @@ LogicalResult CustomCallOp::verify() {
 }
 
 void CustomCallOp::getEffects(
-    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
-        &effects) {
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>&
+        effects) {
   // CustomCall has "all possible effects" unless the has_side_effect is present
   // and set to false.
   auto hasSideEffect = (*this)->getAttrOfType<BoolAttr>("has_side_effect");
@@ -926,9 +926,9 @@ void CustomCallOp::getEffects(
 //   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
 //   P2. The two minor dimensions of 'a' must have equal size, got %s.
 LogicalResult CholeskyOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CholeskyOp::Adaptor adaptor(operands, attributes, regions);
   Type aType = adaptor.a().getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
@@ -997,8 +997,8 @@ ShapedType inferDotReturnType(ShapedType lhs, ShapedType rhs) {
 }  // namespace
 
 LogicalResult DotOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   DotOp::Adaptor op(operands);
   auto lhsType = op.lhs().getType().cast<ShapedType>();
   auto rhsType = op.rhs().getType().cast<ShapedType>();
@@ -1052,7 +1052,7 @@ LogicalResult DotGeneralOp::verify() {
 
   auto checkDimsDistinct =
       [this](ArrayRef<int64_t> batchingDims, ArrayRef<int64_t> contractingDims,
-             llvm::SmallDenseSet<int64_t> &dimSet, llvm::StringRef lhs,
+             llvm::SmallDenseSet<int64_t>& dimSet, llvm::StringRef lhs,
              llvm::StringRef rhs) -> LogicalResult {
     auto dims = llvm::concat<const int64_t>(batchingDims, contractingDims);
     for (auto dim : dims) {
@@ -1132,8 +1132,8 @@ LogicalResult DotGeneralOp::verify() {
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   auto lhsType = lhs().getType().dyn_cast<ShapedType>();
   auto rhsType = rhs().getType().dyn_cast<ShapedType>();
   if (!lhsType || !rhsType) {
@@ -1177,9 +1177,9 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
 // P2. Element types agree with fft_type
 // P3. Operand shape dimensions agree with fft_length for the given fft_type
 LogicalResult FftOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   FftOp::Adaptor adaptor(operands, attributes, regions);
   auto fftLength = adaptor.fft_length().getValues<int64_t>();
   int64_t fftRank = fftLength.size();
@@ -1296,17 +1296,17 @@ namespace {
 // (i.e. we pick adjusted_slice_sizes[k] where adjusted_slice_sizes is
 // slice_sizes with the bounds at indices collapsed_slice_dims removed).
 
-void getSliceSizeValues(GatherOp *gather, OpBuilder &builder, Location loc,
+void getSliceSizeValues(GatherOp* gather, OpBuilder& builder, Location loc,
                         ValueRange operands,
-                        SmallVectorImpl<Value> &sliceSizes) {
+                        SmallVectorImpl<Value>& sliceSizes) {
   for (int64_t val : gather->slice_sizes().getValues<int64_t>()) {
     sliceSizes.push_back(builder.create<arith::ConstantIndexOp>(loc, val));
   }
 }
 
-void getSliceSizeValues(DynamicGatherOp * /*dGather*/, OpBuilder &builder,
+void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
                         Location loc, ValueRange operands,
-                        SmallVectorImpl<Value> &sliceSizeValues) {
+                        SmallVectorImpl<Value>& sliceSizeValues) {
   DynamicGatherOp::Adaptor adaptor(operands);
   Value sliceSizes = adaptor.slice_sizes();
   auto sliceSizesTy = sliceSizes.getType().cast<ShapedType>();
@@ -1479,7 +1479,7 @@ static void inferGatherShape(
     int64_t resultRank, llvm::function_ref<dimTy(int64_t)> getStartIndicesDim,
     llvm::function_ref<dimTy(int64_t)> getSliceDim,
     GatherDimensionNumbersAttr dimensionNumbers,
-    SmallVectorImpl<dimTy> &shape) {
+    SmallVectorImpl<dimTy>& shape) {
   ArrayRef<int64_t> collapsedSliceDims =
       dimensionNumbers.getCollapsedSliceDims();
   int64_t indexVectorDim = dimensionNumbers.getIndexVectorDim();
@@ -1541,7 +1541,7 @@ static LogicalResult inferGatherReturnTypeComponents(
     ShapeAdaptor operandShape, ShapeAdaptor startIndicesShape,
     llvm::function_ref<int64_t(int64_t)> getSliceDim,
     GatherDimensionNumbersAttr dimensionNumbers,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
     llvm::function_ref<InFlightDiagnostic()> errorEmitter) {
   Type elementType = operandShape.getElementType();
 
@@ -1579,8 +1579,8 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 template <typename Op>
-LogicalResult reifyGatherShape(Op *op, OpBuilder &builder, ValueRange operands,
-                               SmallVectorImpl<Value> &reifiedReturnShapes) {
+LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
+                               SmallVectorImpl<Value>& reifiedReturnShapes) {
   // No support for unranked gather output shape a.t.m.
   auto resultTy =
       op->getResult().getType().template dyn_cast<RankedTensorType>();
@@ -1622,8 +1622,8 @@ LogicalResult reifyGatherShape(Op *op, OpBuilder &builder, ValueRange operands,
 }  // namespace
 
 LogicalResult GatherOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   return reifyGatherShape(this, builder, operands, reifiedReturnShapes);
 }
 
@@ -1633,9 +1633,9 @@ LogicalResult GatherOp::reifyReturnTypeShapes(
 //  Verifications by verifyStaticGather() and verifyGather() inside it.
 //  Verifications by inferGatherReturnTypeComponents.
 LogicalResult GatherOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Location loc = location.value_or(UnknownLoc::get(context));
   auto errorEmitter = [&loc]() {
     return mlir::emitError(loc)
@@ -1670,15 +1670,15 @@ LogicalResult GatherOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicGatherOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   return reifyGatherShape(this, builder, operands, reifiedReturnShapes);
 }
 
 LogicalResult DynamicGatherOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // This can get called before other op verify methods, so we have to do a
   // bunch of verification up front. With a better story for ordering and/or
   // multi-phase op verification, this should hopefully all go away.
@@ -1735,7 +1735,7 @@ LogicalResult IotaOp::verify() {
 // DynamicIotaOp
 //===----------------------------------------------------------------------===//
 
-static Value castToIndexTensor(OpBuilder &builder, Location loc,
+static Value castToIndexTensor(OpBuilder& builder, Location loc,
                                Value shapeOp) {
   ShapedType resultTy = shape::getExtentTensorType(
       builder.getContext(), shapeOp.getType().cast<ShapedType>().getDimSize(0));
@@ -1744,8 +1744,8 @@ static Value castToIndexTensor(OpBuilder &builder, Location loc,
 }
 
 LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   DynamicIotaOp::Adaptor adaptor(operands);
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.output_shape()));
@@ -1784,8 +1784,8 @@ LogicalResult DynamicUpdateSliceOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult AbsOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandTy = (*operands.begin()).getType().cast<ShapedType>();
   Type elementTy = operandTy.getElementType();
   if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
@@ -1811,7 +1811,7 @@ LogicalResult AbsOp::inferReturnTypes(
 
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
-    Operation *op, DenseIntElementsAttr attr) {
+    Operation* op, DenseIntElementsAttr attr) {
   auto type = attr.getType().dyn_cast<RankedTensorType>();
   if (type.getRank() != 2)
     return op->emitError() << "expect source_target_pairs attribute to be of "
@@ -2149,7 +2149,7 @@ LogicalResult ConvolutionOp::verify() {
 // ConvertOp
 //===----------------------------------------------------------------------===//
 
-void ConvertOp::build(OpBuilder &builder, OperationState &result, Value operand,
+void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
                       Type resultElementTy) {
   Type resultTy;
   Type operandTy = operand.getType();
@@ -2208,9 +2208,9 @@ LogicalResult TupleOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllToAllOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllToAllOp::Adaptor adaptor(operands, attributes, regions);
   Type operandType = adaptor.operand().getType();
   RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
@@ -2325,9 +2325,9 @@ LogicalResult BatchNormGradOp::verify() {
 }
 
 LogicalResult BatchNormGradOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
 
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
@@ -2353,9 +2353,9 @@ LogicalResult BatchNormTrainingOp::verify() {
 }
 
 LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
 
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
@@ -2381,9 +2381,9 @@ LogicalResult BatchNormInferenceOp::verify() {
 }
 
 LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
   auto operandType = adaptor.operand().getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
@@ -2395,8 +2395,8 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   auto operandType = operands[0].getType().dyn_cast<RankedTensorType>();
   auto resultType = getType().dyn_cast<RankedTensorType>();
 
@@ -2518,9 +2518,9 @@ LogicalResult BroadcastOp::verify() {
 }
 
 LogicalResult BroadcastOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastOp::Adaptor adaptor(operands, attributes, regions);
   Value operand = adaptor.operand();
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
@@ -2541,8 +2541,8 @@ LogicalResult BroadcastOp::inferReturnTypeComponents(
 }
 
 LogicalResult BroadcastOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   BroadcastOp::Adaptor adaptor(operands);
   Value operand = adaptor.operand();
 
@@ -2721,9 +2721,9 @@ LogicalResult DynamicBroadcastInDimOp::verify() {
   int64_t numKnownExpansionBehavior = 0;
   DenseSet<int64_t> knownExpansionBehavior;
   auto collectExpansionBehaviorDims =
-      [&](const Optional<DenseIntElementsAttr> &attr) {
+      [&](const Optional<DenseIntElementsAttr>& attr) {
         if (!attr) return;
-        for (const APInt &it : *attr) {
+        for (const APInt& it : *attr) {
           numKnownExpansionBehavior++;
           knownExpansionBehavior.insert(it.getLimitedValue());
         }
@@ -2747,8 +2747,8 @@ LogicalResult DynamicBroadcastInDimOp::verify() {
 }
 
 LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   DynamicBroadcastInDimOp::Adaptor adaptor(operands);
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.output_dimensions()));
@@ -2789,9 +2789,9 @@ LogicalResult ClampOp::verify() {
 }
 
 LogicalResult ClampOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> /*location*/, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> /*location*/, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ClampOp::Adaptor adaptor(operands, attributes, regions);
   RankedTensorType operandType =
       adaptor.operand().getType().cast<RankedTensorType>();
@@ -2800,8 +2800,8 @@ LogicalResult ClampOp::inferReturnTypeComponents(
 }
 
 LogicalResult ClampOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   // For `stablehlo.clamp`, the first operand may be a scalar.
   return hlo::deriveShapeFromOperand(&builder, getOperation(), operands[1],
                                      &reifiedReturnShapes);
@@ -2816,9 +2816,9 @@ namespace {
 // printSameOperandsAndResultType. Given a FunctionType, assign the types
 // to operands and results, erroring if any mismatch in number of operands
 // or results occurs.
-ParseResult assignFromFunctionType(OpAsmParser &parser, llvm::SMLoc loc,
-                                   ArrayRef<Type *> operands, Type &result,
-                                   FunctionType &fnType) {
+ParseResult assignFromFunctionType(OpAsmParser& parser, llvm::SMLoc loc,
+                                   ArrayRef<Type*> operands, Type& result,
+                                   FunctionType& fnType) {
   assert(fnType);
   if (fnType.getInputs().size() != operands.size()) {
     return parser.emitError(loc)
@@ -2859,7 +2859,7 @@ Type createRealType(TensorType type) {
 //    %0 : tensor<4xcomplex<f32>>
 //    %1 : tensor<4xf32>
 //    %2 : tensor<4xf32>
-void printComplexOpType(OpAsmPrinter &p, Operation *op, Type lhs, Type rhs,
+void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
                         Type result) {
   Type realType = createRealType(result.cast<TensorType>());
 
@@ -2871,8 +2871,8 @@ void printComplexOpType(OpAsmPrinter &p, Operation *op, Type lhs, Type rhs,
   p.printType(result);
 }
 
-ParseResult parseComplexOpType(OpAsmParser &parser, Type &lhs, Type &rhs,
-                               Type &result) {
+ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
+                               Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   Type type;
   if (failed(parser.parseType(type))) {
@@ -2900,8 +2900,8 @@ ParseResult parseComplexOpType(OpAsmParser &parser, Type &lhs, Type &rhs,
 }  // namespace
 
 LogicalResult ComplexOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   TensorType operandType = operands[0].getType().cast<TensorType>();
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
   inferredReturnTypes.push_back(
@@ -2914,8 +2914,8 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ImagOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
       createRealType(operands[0].getType().cast<TensorType>()));
   return success();
@@ -2926,8 +2926,8 @@ LogicalResult ImagOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IsFiniteOp::inferReturnTypes(
-    MLIRContext *ctx, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext* ctx, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   auto argTy = operands.front().getType().cast<TensorType>();
   Builder b(ctx);
   inferredReturnTypes.push_back(
@@ -2940,8 +2940,8 @@ LogicalResult IsFiniteOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult RealOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
+    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
       createRealType(operands[0].getType().cast<TensorType>()));
   return success();
@@ -2952,9 +2952,9 @@ LogicalResult RealOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ConcatenateOp::inferReturnTypes(
-    MLIRContext *, Optional<Location> location, ValueRange operands,
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   if (operands.empty()) {
     return failure();
   }
@@ -3074,8 +3074,8 @@ LogicalResult ConcatenateOp::verify() {
 }
 
 LogicalResult ConcatenateOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   ConcatenateOp::Adaptor adaptor(operands);
   auto inputs = adaptor.val();
 
@@ -3143,8 +3143,8 @@ LogicalResult DynamicReshapeOp::verify() {
 }
 
 LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   DynamicReshapeOp::Adaptor adaptor(operands);
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.output_shape()));
@@ -3192,9 +3192,9 @@ LogicalResult DynamicSliceOp::verify() {
 }
 
 LogicalResult DynamicSliceOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicSliceOp::Adaptor adaptor(operands, attributes, regions);
   Value operand = adaptor.operand();
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
@@ -3242,8 +3242,8 @@ LogicalResult RealDynamicSliceOp::verify() {
 }
 
 LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   RealDynamicSliceOp::Adaptor adaptor(operands);
   Value operand = adaptor.operand();
   Value startIndices = adaptor.start_indices();
@@ -3349,9 +3349,9 @@ LogicalResult InfeedOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult MapOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Checks if the number of `operands` match the arity of the map `computation`
   // region.
   MapOp::Adaptor adaptor(operands, attributes, regions);
@@ -3444,8 +3444,8 @@ LogicalResult MapOp::inferReturnTypeComponents(
 }
 
 LogicalResult MapOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   return hlo::deriveShapeFromOperand(&builder, getOperation(), operands.front(),
                                      &reifiedReturnShapes);
 }
@@ -3481,9 +3481,9 @@ LogicalResult RecvOp::verify() {
 //  P4. Verify and collect the window atributes.
 //  P5. Verify the inner block defining the reducer function.
 LogicalResult ReduceWindowOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // P1.
   // Collect the input and init-value operands. Note that the operand-type is
   // enforced as "TensorType" by ODS.
@@ -3558,7 +3558,7 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
   if (failed(windowOrErr)) return failure();
 
   // P5.
-  Block &block = adaptor.body().front();
+  Block& block = adaptor.body().front();
   SmallVector<TensorType> accumulatorSubshapes;
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, *windowDimsOrErr, allInputsUnranked,
@@ -3580,9 +3580,9 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
 // Get the operation used for reduction applied to `result_index`th result. Its
 // expected to be a binary operation that consumes `result_index`th and
 // `result_index + operands().size`th arguments of the body.
-Operation *ReduceWindowOp::getReductionOp(int resultIndex) {
+Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
   auto returnOp = cast<ReturnOp>(body().front().getTerminator());
-  Operation *computeOp = returnOp.results()[resultIndex].getDefiningOp();
+  Operation* computeOp = returnOp.results()[resultIndex].getDefiningOp();
   if (computeOp->getNumOperands() != 2) return nullptr;
   auto arg0 = computeOp->getOperand(0).dyn_cast<BlockArgument>();
   auto arg1 = computeOp->getOperand(1).dyn_cast<BlockArgument>();
@@ -3603,7 +3603,7 @@ Operation *ReduceWindowOp::getReductionOp(int resultIndex) {
 
 namespace {
 // Print attributes as e#m#
-void printExponentMantissa(AsmPrinter &p, IntegerAttr exponent,
+void printExponentMantissa(AsmPrinter& p, IntegerAttr exponent,
                            IntegerAttr mantissa) {
   p << 'e';
   p.printAttributeWithoutType(exponent);
@@ -3611,14 +3611,14 @@ void printExponentMantissa(AsmPrinter &p, IntegerAttr exponent,
   p.printAttributeWithoutType(mantissa);
 }
 
-void printExponentMantissa(AsmPrinter &p, Operation *, IntegerAttr exponent,
+void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
                            IntegerAttr mantissa) {
   printExponentMantissa(p, exponent, mantissa);
 }
 
 // Parse e#m# as exponent=# and mantissa=#
-ParseResult parseExponentMantissa(AsmParser &parser, IntegerAttr &exponent,
-                                  IntegerAttr &mantissa) {
+ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
+                                  IntegerAttr& mantissa) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   llvm::StringRef expMan;
   if (parser.parseKeyword(&expMan)) {
@@ -3676,7 +3676,7 @@ LogicalResult ReducePrecisionOp::verify() {
 // specified dimensions.
 static TensorType getReduceResultType(Type operandTy,
                                       DenseIntElementsAttr dimensions,
-                                      Builder *builder) {
+                                      Builder* builder) {
   Type elementTy = getElementTypeOrSelf(operandTy);
 
   auto rankedTy = operandTy.dyn_cast<RankedTensorType>();
@@ -3694,7 +3694,7 @@ static TensorType getReduceResultType(Type operandTy,
   return RankedTensorType::get(shape, elementTy);
 }
 
-void ReduceOp::build(OpBuilder &builder, OperationState &state,
+void ReduceOp::build(OpBuilder& builder, OperationState& state,
                      ValueRange operands, ValueRange initValues,
                      DenseIntElementsAttr dimensions) {
   SmallVector<Type, 1> resultTy;
@@ -3707,7 +3707,7 @@ void ReduceOp::build(OpBuilder &builder, OperationState &state,
   build(builder, state, resultTy, operands, initValues, dimensions);
 }
 
-bool hasSameOperandAndResultTypes(Operation &op) {
+bool hasSameOperandAndResultTypes(Operation& op) {
   Type expected;
   if (op.getNumResults() != 0) expected = op.getResult(0).getType();
   if (op.getNumOperands() != 0) expected = op.getOperand(0).getType();
@@ -3737,7 +3737,7 @@ static bool isEligibleForCompactPrint(ReduceOp op) {
   auto& block = op.body().front();
   if (!hasSingleElement(block.without_terminator())) return false;
 
-  Operation &innerOp = *block.begin();
+  Operation& innerOp = *block.begin();
 
   // Check E2.
   if (innerOp.getDialect() != op->getDialect()) return false;
@@ -3775,7 +3775,7 @@ static bool isEligibleForCompactPrint(ReduceOp op) {
   return llvm::equal(innerOp.getResults(), retOp.getOperands());
 }
 
-void ReduceOp::print(OpAsmPrinter &p) {
+void ReduceOp::print(OpAsmPrinter& p) {
   {
     // Print the pairs of operands under the form:
     //   (%arg0 init: %arg3), (%arg1 init: %arg4), (%arg2 init: %arg5)
@@ -3794,7 +3794,7 @@ void ReduceOp::print(OpAsmPrinter &p) {
   // have some simplifying assumptions (refer to IsEligibleForCompactPrint::E3)
   // to derive the type from that of reduce-op.
   if (isEligibleForCompactPrint(*this)) {
-    Operation &innerOp = body().front().front();
+    Operation& innerOp = body().front().front();
     p << " applies ";
     printEscapedString(innerOp.getName().getStringRef(), p.getStream());
 
@@ -3815,7 +3815,7 @@ void ReduceOp::print(OpAsmPrinter &p) {
     {
       // Print the pairs of block operands under the form:
       //   (%arg0_elt, %arg0_acc) (%arg1_elt, %arg1_acc):
-      Block &reducer = body().front();
+      Block& reducer = body().front();
       int numOperandPairs = getNumOperands() / 2;
       for (int opId : llvm::seq<int>(0, numOperandPairs)) {
         p << "(";
@@ -3830,7 +3830,7 @@ void ReduceOp::print(OpAsmPrinter &p) {
   }
 }
 
-ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   Location currLocation = parser.getEncodedSourceLoc(loc);
 
@@ -3885,9 +3885,9 @@ ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
     SmallVector<Optional<Location>, 2> reducerLocs;
     SmallVector<Optional<Location>, 2> reducerInitLocs;
     auto parseBlockOperand =
-        [&](SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operands,
-            SmallVectorImpl<Type> &types,
-            SmallVectorImpl<Optional<Location>> &locs) -> ParseResult {
+        [&](SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
+            SmallVectorImpl<Type>& types,
+            SmallVectorImpl<Optional<Location>>& locs) -> ParseResult {
       OpAsmParser::UnresolvedOperand operand;
       Type type;
       Optional<Location> loc;
@@ -3938,7 +3938,7 @@ ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
   if (failed(innerOpNameInfo)) return failure();
 
   StringRef innerOpName = innerOpNameInfo->getStringRef();
-  Dialect *innerOpDialect = innerOpNameInfo->getDialect();
+  Dialect* innerOpDialect = innerOpNameInfo->getDialect();
   if (!innerOpDialect || !innerOpDialect->getNamespace().equals("stablehlo") ||
       !innerOpNameInfo->hasTrait<mlir::OpTrait::NOperands<2>::Impl>() ||
       !innerOpNameInfo->hasTrait<mlir::OpTrait::OneResult>() ||
@@ -3987,10 +3987,10 @@ ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
       /*shape=*/{}, getElementTypeOrSelf(reduceOpFntype.getInput(0)));
 
   // Add a region for reduce-op.
-  Region &region = *result.addRegion();
+  Region& region = *result.addRegion();
 
   // Create a basic-block inside reduce-op's region.
-  Block &block = region.emplaceBlock();
+  Block& block = region.emplaceBlock();
   auto lhs = block.addArgument(innerOpType, reduceOpLoc);
   auto rhs = block.addArgument(innerOpType, reduceOpLoc);
 
@@ -4003,7 +4003,7 @@ ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
   innerOpState.operands.push_back(rhs);
   innerOpState.addTypes(innerOpType);
 
-  Operation *innerOp = builder.create(innerOpState);
+  Operation* innerOp = builder.create(innerOpState);
 
   // Insert a return statement in the block returning the inner-op's result.
   builder.create<ReturnOp>(innerOp->getLoc(), innerOp->getResults());
@@ -4025,9 +4025,9 @@ ParseResult ReduceOp::parse(OpAsmParser &parser, OperationState &result) {
 //      2. the dimension-attribute have no duplicate entries.
 //  P4. Verify the inner block defining the reducer function.
 LogicalResult ReduceOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // P1.
   // Collect the input and init-value operands. Note that the operand-type is
   // enforced as "TensorType" by ODS.
@@ -4098,7 +4098,7 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
     }
   }
 
-  Block &block = adaptor.body().front();
+  Block& block = adaptor.body().front();
   SmallVector<TensorType> accumulatorResultTypes;
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, newDimensions, allInputsUnranked,
@@ -4117,8 +4117,8 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
 }
 
 LogicalResult ReduceOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   ReduceOp::Adaptor adaptor(operands);
   auto inputs = adaptor.operands();
 
@@ -4191,16 +4191,16 @@ LogicalResult RngOp::verify() {
 }
 
 LogicalResult RngOp::inferReturnTypeComponents(
-    MLIRContext *context, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return rngInferReturnTypeComponents(context, location, operands, attributes,
                                       regions, inferredReturnShapes);
 }
 
 LogicalResult RngOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   RngOp::Adaptor adaptor(operands);
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.shape()));
@@ -4212,7 +4212,7 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 namespace {
-void printSelectOpType(OpAsmPrinter &p, Operation *op, Type pred, Type onTrue,
+void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
                        Type onFalse, Type result) {
   // Print functional type if true/false branches don't match return type.
   if (onTrue != result || onFalse != result) {
@@ -4224,8 +4224,8 @@ void printSelectOpType(OpAsmPrinter &p, Operation *op, Type pred, Type onTrue,
   p << pred << ", " << result;
 }
 
-ParseResult parseSelectOpType(OpAsmParser &parser, Type &pred, Type &onTrue,
-                              Type &onFalse, Type &result) {
+ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
+                              Type& onFalse, Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   SmallVector<Type> types;
   if (parser.parseTypeList(types)) {
@@ -4280,16 +4280,16 @@ LogicalResult SelectOp::verify() {
 // Makes it such that a SelectOp that is a non-root operation in a DRR infers
 // the return type based on operand type.
 LogicalResult SelectOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SelectOp::Adaptor op(operands, attributes);
   auto trueType = op.on_true().getType().cast<TensorType>();
   auto falseType = op.on_false().getType().cast<TensorType>();
 
   // The output shape should be the most general of the operand shapes at each
   // dimension.
-  ShapedTypeComponents &outputType = inferredReturnShapes.emplace_back();
+  ShapedTypeComponents& outputType = inferredReturnShapes.emplace_back();
   if (trueType == falseType || !trueType.hasRank()) {
     outputType = ShapedTypeComponents(trueType.cast<ShapedType>());
   } else if (!falseType.hasRank()) {
@@ -4309,8 +4309,8 @@ LogicalResult SelectOp::inferReturnTypeComponents(
 }
 
 LogicalResult SelectOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   // For `hlo.select`, the first operand may be a scalar.
   return hlo::deriveShapeFromOperand(&builder, getOperation(), operands[1],
                                      &reifiedReturnShapes);
@@ -4332,9 +4332,9 @@ LogicalResult SetDimensionSizeOp::verify() {
 // TODO(b/238903565): Switch to inferReturnTypeComponents after adding support
 // for the encoding upstream.
 LogicalResult SetDimensionSizeOp::inferReturnTypes(
-    MLIRContext *context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   Location loc = location.value_or(UnknownLoc::get(context));
 
   SetDimensionSizeOp::Adaptor adaptor(operands, attributes, regions);
@@ -4375,9 +4375,9 @@ LogicalResult SetDimensionSizeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult PadOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   PadOp::Adaptor adaptor(operands, attributes, regions);
   auto inputType = adaptor.operand().getType().cast<RankedTensorType>();
   auto padType = adaptor.padding_value().getType().cast<RankedTensorType>();
@@ -4450,8 +4450,8 @@ LogicalResult PadOp::inferReturnTypeComponents(
 }
 
 LogicalResult PadOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   PadOp::Adaptor adaptor(operands, this->getOperation()->getAttrDictionary());
   auto loc = this->getLoc();
   Value operand = adaptor.operand();
@@ -4469,13 +4469,13 @@ LogicalResult PadOp::reifyReturnTypeShapes(
   padLow.reserve(padLowAttr.getNumElements());
   padInterior.reserve(padInteriorAttr.getNumElements());
 
-  for (const APInt &val : padHighAttr.getValues<APInt>())
+  for (const APInt& val : padHighAttr.getValues<APInt>())
     padHigh.push_back(val.getSExtValue());
 
-  for (const APInt &val : padLowAttr.getValues<APInt>())
+  for (const APInt& val : padLowAttr.getValues<APInt>())
     padLow.push_back(val.getSExtValue());
 
-  for (const APInt &val : padInteriorAttr.getValues<APInt>())
+  for (const APInt& val : padInteriorAttr.getValues<APInt>())
     padInterior.push_back(val.getSExtValue());
 
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1).getResult();
@@ -4562,8 +4562,8 @@ LogicalResult DynamicPadOp::verify() {
 }
 
 LogicalResult DynamicPadOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   DynamicPadOp::Adaptor adaptor(operands);
   Value operand = adaptor.operand();
   Value edgePaddingLow = adaptor.edge_padding_low();
@@ -4653,8 +4653,8 @@ LogicalResult ReshapeOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReplicaIdOp::inferReturnTypes(
-    MLIRContext *context, Optional<Location>, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type> &inferredReturnTypes) {
+    MLIRContext* context, Optional<Location>, ValueRange operands,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(RankedTensorType::get(
       /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
   return success();
@@ -4664,7 +4664,7 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verifyConditionalBranch(Operation *op, Region &region,
+static LogicalResult verifyConditionalBranch(Operation* op, Region& region,
                                              llvm::Twine branchName) {
   if (region.getNumArguments() != 0)
     return op->emitOpError()
@@ -4732,9 +4732,9 @@ static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
 LogicalResult SliceOp::inferReturnTypes(
-    MLIRContext *context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   SliceOpAdaptor slice(operands, attributes);
   Type ty = slice.operand().getType();
   RankedTensorType rankedTy = ty.dyn_cast<RankedTensorType>();
@@ -4806,7 +4806,7 @@ LogicalResult SliceOp::inferReturnTypes(
 // SortOp
 //===----------------------------------------------------------------------===//
 
-void SortOp::build(OpBuilder &builder, OperationState &state,
+void SortOp::build(OpBuilder& builder, OperationState& state,
                    ValueRange operands, int64_t dimension, bool isStable) {
   state.addOperands(operands);
   state.addAttribute("dimension", builder.getI64IntegerAttr(dimension));
@@ -4840,7 +4840,7 @@ LogicalResult SortOp::verify() {
              << rank << ", " << rank << "), but found " << cmpDim;
   }
 
-  Block &block = comparator().front();
+  Block& block = comparator().front();
   size_t numOperands = getOperation()->getNumOperands();
   if (block.getNumArguments() != 2 * numOperands)
     return emitOpError("comparator block should have ")
@@ -4899,8 +4899,8 @@ LogicalResult SortOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult TransposeOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   TransposeOp::Adaptor adaptor(operands);
   Value operand = adaptor.operand();
 
@@ -4938,9 +4938,9 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
 // Method for InferTypeOpInterface: infer the return type from the operand type
 // and the permutation.
 LogicalResult TransposeOp::inferReturnTypes(
-    MLIRContext * /*context*/, Optional<Location> loc, ValueRange operands,
+    MLIRContext* /*context*/, Optional<Location> loc, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operands[0].getType();
   auto rankedTy = type.dyn_cast<RankedTensorType>();
   if (!rankedTy) {
@@ -4983,9 +4983,9 @@ LogicalResult TransposeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult TriangularSolveOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
   // ODS enforces that a and b are of same element type: float or complex.
   auto elementType = adaptor.a().getType().cast<ShapedType>().getElementType();
@@ -5048,9 +5048,9 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult GetTupleElementOp::inferReturnTypes(
-    MLIRContext *, Optional<Location>, ValueRange operands,
+    MLIRContext*, Optional<Location>, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   auto tupleType = operands[0].getType().dyn_cast<TupleType>();
   if (!tupleType) return failure();
 
@@ -5068,9 +5068,9 @@ LogicalResult GetTupleElementOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult TupleOp::inferReturnTypes(
-    MLIRContext *context, Optional<Location>, ValueRange operands,
+    MLIRContext* context, Optional<Location>, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(TupleType::get(context, TypeRange(operands)));
   return success();
 }
@@ -5079,7 +5079,7 @@ LogicalResult TupleOp::inferReturnTypes(
 // CompareOp
 //===----------------------------------------------------------------------===//
 
-void CompareOp::build(OpBuilder &builder, OperationState &result, Value lhs,
+void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
                       Value rhs, ComparisonDirection comparisonDirection,
                       ComparisonType compareType) {
   build(builder, result, lhs, rhs,
@@ -5088,10 +5088,10 @@ void CompareOp::build(OpBuilder &builder, OperationState &result, Value lhs,
 }
 
 LogicalResult CompareOp::inferReturnTypeComponents(
-    mlir::MLIRContext *ctx, llvm::Optional<mlir::Location>,
+    mlir::MLIRContext* ctx, llvm::Optional<mlir::Location>,
     ValueShapeRange operands, mlir::DictionaryAttr, mlir::RegionRange,
-    llvm::SmallVectorImpl<mlir::ShapedTypeComponents> &inferredReturnTypes) {
-  ShapedTypeComponents &components =
+    llvm::SmallVectorImpl<mlir::ShapedTypeComponents>& inferredReturnTypes) {
+  ShapedTypeComponents& components =
       inferredReturnTypes.emplace_back(IntegerType::get(ctx, /*width=*/1));
   auto argTy = operands.front().getType().cast<TensorType>();
   if (argTy.hasRank()) {
@@ -5102,8 +5102,8 @@ LogicalResult CompareOp::inferReturnTypeComponents(
 }
 
 LogicalResult CompareOp::reifyReturnTypeShapes(
-    OpBuilder &builder, ValueRange operands,
-    SmallVectorImpl<Value> &reifiedReturnShapes) {
+    OpBuilder& builder, ValueRange operands,
+    SmallVectorImpl<Value>& reifiedReturnShapes) {
   return hlo::deriveShapeFromOperand(&builder, getOperation(), operands.front(),
                                      &reifiedReturnShapes);
 }
@@ -5141,7 +5141,7 @@ LogicalResult SelectAndScatterOp::verify() {
   auto resultType = getResult().getType().cast<TensorType>();
 
   // P1.
-  Block &selectBlock = select().front();
+  Block& selectBlock = select().front();
 
   if (selectBlock.getArguments().size() != 2)
     return emitOpError()
@@ -5174,7 +5174,7 @@ LogicalResult SelectAndScatterOp::verify() {
                          << selectResult[0].getType();
 
   // P2.
-  Block &scatterBlock = scatter().front();
+  Block& scatterBlock = scatter().front();
   SmallVector<TensorType> accumulatorSubshapes;
   if (failed(verifyReducerShape(
           this->getLoc(), scatterBlock,
@@ -5392,7 +5392,7 @@ LogicalResult ScatterOp::verify() {
   }
 
   // P2.
-  Block &block = update_computation().front();
+  Block& block = update_computation().front();
   SmallVector<TensorType> accumulatorSubshapes;
   SmallVector<TensorType> inputTypes, initValueTypes;
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
@@ -5605,7 +5605,7 @@ LogicalResult WhileOp::verify() {
 ///         `do` region
 /// assignment-list ::= assignment | assignment `,` assignment-list
 /// assignment ::= ssa-value `=` ssa-value
-void WhileOp::print(OpAsmPrinter &p) {
+void WhileOp::print(OpAsmPrinter& p) {
   p << '(';
   llvm::interleaveComma(
       llvm::zip(SingleBlock::getBody()->getArguments(), getOperands()), p,
@@ -5627,7 +5627,7 @@ void WhileOp::print(OpAsmPrinter &p) {
   p.printRegion(getRegion(1), /*printEntryBlockArgs=*/false);
 }
 
-ParseResult WhileOp::parse(OpAsmParser &parser, OperationState &result) {
+ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   // Parse the operands of the while: these are of the form:
   //   %iter_arg = %init_val
@@ -5665,9 +5665,9 @@ ParseResult WhileOp::parse(OpAsmParser &parser, OperationState &result) {
 }
 
 LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
-    MLIRContext *, Optional<Location> /*location*/, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> /*location*/, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   UniformDequantizeOp::Adaptor adaptor(operands, attributes, regions);
   auto operandType = (*operands.begin()).getType().cast<ShapedType>();
   // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
@@ -5699,7 +5699,7 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 //
 // Note that `type($result)` is the first argument, this is done because the
 // behavior of trailing parameter packs is easily understandable.
-void printSameOperandsAndResultTypeImpl(OpAsmPrinter &p, Operation *op,
+void printSameOperandsAndResultTypeImpl(OpAsmPrinter& p, Operation* op,
                                         TypeRange operands, Type result) {
   // Handle zero operand types `() -> a` prints `a`
   if (operands.empty()) {
@@ -5719,9 +5719,9 @@ void printSameOperandsAndResultTypeImpl(OpAsmPrinter &p, Operation *op,
   p.printFunctionalType(op);
 }
 
-ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser &parser,
-                                               ArrayRef<Type *> operands,
-                                               Type &result) {
+ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
+                                               ArrayRef<Type*> operands,
+                                               Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
 
   Type type;
@@ -5735,7 +5735,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser &parser,
   }
 
   // Handle bare types. ` : type` indicating all input/output types match.
-  for (Type *t : operands) {
+  for (Type* t : operands) {
     *t = type;
   }
   result = type;
@@ -5743,7 +5743,7 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser &parser,
 }
 
 template <class... OpTypes>
-void printSameOperandsAndResultType(OpAsmPrinter &p, Operation *op,
+void printSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
                                     OpTypes... types) {
   static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
   SmallVector<Type> typesVec{types...};
@@ -5753,33 +5753,33 @@ void printSameOperandsAndResultType(OpAsmPrinter &p, Operation *op,
 }
 
 template <class... OpTypes>
-ParseResult parseSameOperandsAndResultType(OpAsmParser &parser,
-                                           OpTypes &...types) {
+ParseResult parseSameOperandsAndResultType(OpAsmParser& parser,
+                                           OpTypes&... types) {
   static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
-  SmallVector<Type *> typesVec{&types...};
-  ArrayRef<Type *> typesRef = makeArrayRef(typesVec);
+  SmallVector<Type*> typesVec{&types...};
+  ArrayRef<Type*> typesRef = makeArrayRef(typesVec);
   return parseSameOperandsAndResultTypeImpl(parser, typesRef.drop_back(1),
                                             *typesRef.back());
 }
 
-void printVariadicSameOperandsAndResultType(OpAsmPrinter &p, Operation *op,
+void printVariadicSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
                                             OperandRange operands,
                                             TypeRange opTypes, Type result) {
   return printSameOperandsAndResultTypeImpl(p, op, opTypes, result);
 }
 
 ParseResult parseVariadicSameOperandsAndResultType(
-    OpAsmParser &parser,
-    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operands,
-    SmallVectorImpl<Type> &opTypes, Type &result) {
+    OpAsmParser& parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
+    SmallVectorImpl<Type>& opTypes, Type& result) {
   // Insert a type for each operand. Need to do this since passing the type of
   // a variadic op gives no indication of how many operands were provided.
   opTypes.resize(operands.size());
 
   // Make a pointer list to the operands
-  SmallVector<Type *> typePtrs;
+  SmallVector<Type*> typePtrs;
   typePtrs.reserve(opTypes.size());
-  for (Type &t : opTypes) {
+  for (Type& t : opTypes) {
     typePtrs.push_back(&t);
   }
 
@@ -5793,13 +5793,13 @@ ParseResult parseVariadicSameOperandsAndResultType(
 //    %1 : tensor<i1>
 //    %2 : tensor<f32>
 //    %3 : tuple<tensor<i1>, tensor<f32>>
-void printTupleOpType(OpAsmPrinter &p, Operation *, TypeRange operands,
+void printTupleOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
                       Type result) {
   p.printType(result);
 }
 
-ParseResult parseTupleOpType(OpAsmParser &parser,
-                             SmallVectorImpl<Type> &operands, Type &result) {
+ParseResult parseTupleOpType(OpAsmParser& parser,
+                             SmallVectorImpl<Type>& operands, Type& result) {
   // Result type must be tuple type.
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseType(result)) {
@@ -5825,14 +5825,14 @@ ParseResult parseTupleOpType(OpAsmParser &parser,
 //    %2 : tensor<f32>
 //    %3 : tensor<i1>
 //    %4 : tensor<f32>
-void printPairwiseOpType(OpAsmPrinter &p, Operation *, TypeRange operands,
+void printPairwiseOpType(OpAsmPrinter& p, Operation*, TypeRange operands,
                          TypeRange results) {
   llvm::interleaveComma(operands, p);
 }
 
-ParseResult parsePairwiseOpType(OpAsmParser &parser,
-                                SmallVectorImpl<Type> &operands,
-                                SmallVectorImpl<Type> &results) {
+ParseResult parsePairwiseOpType(OpAsmParser& parser,
+                                SmallVectorImpl<Type>& operands,
+                                SmallVectorImpl<Type>& results) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseTypeList(operands)) {
     return parser.emitError(loc, "expected type list");
@@ -5891,7 +5891,7 @@ struct HLOBoundedDialectInterface : public hlo::BoundedDialectInterface {
 // StableHLO Dialect Constructor
 //===----------------------------------------------------------------------===//
 
-StablehloDialect::StablehloDialect(MLIRContext *context)
+StablehloDialect::StablehloDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context, TypeID::get<StablehloDialect>()) {
   addOperations<
 #define GET_OP_LIST
@@ -5907,7 +5907,7 @@ StablehloDialect::StablehloDialect(MLIRContext *context)
   context->loadDialect<tensor::TensorDialect>();
 }
 
-Type StablehloDialect::parseType(DialectAsmParser &parser) const {
+Type StablehloDialect::parseType(DialectAsmParser& parser) const {
   StringRef dataType;
   if (parser.parseKeyword(&dataType)) return Type();
 
@@ -5917,7 +5917,7 @@ Type StablehloDialect::parseType(DialectAsmParser &parser) const {
   return nullptr;
 }
 
-void StablehloDialect::printType(Type type, DialectAsmPrinter &os) const {
+void StablehloDialect::printType(Type type, DialectAsmPrinter& os) const {
   if (type.isa<TokenType>()) {
     os << "token";
     return;
@@ -5927,7 +5927,7 @@ void StablehloDialect::printType(Type type, DialectAsmPrinter &os) const {
 
 // Entry point for Attribute parsing, TableGen generated code will handle the
 // dispatch to the individual classes.
-Attribute StablehloDialect::parseAttribute(DialectAsmParser &parser,
+Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
                                            Type type) const {
   StringRef attrTag;
   Attribute attr;
@@ -5940,7 +5940,7 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser &parser,
 // Entry point for Attribute printing, TableGen generated code will handle the
 // dispatch to the individual classes.
 void StablehloDialect::printAttribute(Attribute attr,
-                                      DialectAsmPrinter &os) const {
+                                      DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
@@ -5948,7 +5948,7 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 /// Helpers for attributes parsing.
 
-static ParseResult parseDims(AsmParser &parser, SmallVector<int64_t> &dims) {
+static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
   dims.clear();
   if (parser.parseLSquare()) return failure();
   while (failed(parser.parseOptionalRSquare())) {
@@ -5959,8 +5959,8 @@ static ParseResult parseDims(AsmParser &parser, SmallVector<int64_t> &dims) {
   return success();
 }
 
-static ParseResult parseDimsWithMinimumElements(AsmParser &parser,
-                                                SmallVector<int64_t> &dims,
+static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
+                                                SmallVector<int64_t>& dims,
                                                 int minElements) {
   if (failed(parseDims(parser, dims))) return failure();
   if (static_cast<int64_t>(dims.size()) < minElements)
@@ -5980,7 +5980,7 @@ static ParseResult parseDimsWithMinimumElements(AsmParser &parser,
 /// '=' follows the keyword (see baz in the example above) for a field. If
 /// not provided, all fields must be followed by a '='.
 static ParseResult parseStruct(
-    AsmParser &parser, ArrayRef<StringRef> keywords,
+    AsmParser& parser, ArrayRef<StringRef> keywords,
     ArrayRef<llvm::function_ref<ParseResult()>> parseFuncs,
     ArrayRef<bool> parseEqual = {}) {
   assert(keywords.size() == parseFuncs.size());
@@ -6020,16 +6020,16 @@ static ParseResult parseStruct(
 // Helpers to print an optional array or integer field, to simplify writing
 // attribute printers.
 template <typename T>
-static void printField(AsmPrinter &printer, StringRef name, T field,
-                       StringRef &separator) {
+static void printField(AsmPrinter& printer, StringRef name, T field,
+                       StringRef& separator) {
   if (field != 0) {
     printer << separator << name << " = " << field;
     separator = ", ";
   }
 }
 template <typename T>
-static void printField(AsmPrinter &printer, StringRef name, ArrayRef<T> field,
-                       StringRef &separator) {
+static void printField(AsmPrinter& printer, StringRef name, ArrayRef<T> field,
+                       StringRef& separator) {
   if (!field.empty()) {
     printer << separator << name << " = [";
     llvm::interleaveComma(field, printer);
@@ -6038,7 +6038,7 @@ static void printField(AsmPrinter &printer, StringRef name, ArrayRef<T> field,
   }
 }
 template <typename... Ts>
-static void printStruct(AsmPrinter &printer, StringRef name,
+static void printStruct(AsmPrinter& printer, StringRef name,
                         Ts... printFields) {
   printer << "<";
   StringRef separator = "";
@@ -6052,7 +6052,7 @@ static void printStruct(AsmPrinter &printer, StringRef name,
 }
 
 // Custom printer and parser for ScatterDimensionNumbersAttr.
-void ScatterDimensionNumbersAttr::print(AsmPrinter &printer) const {
+void ScatterDimensionNumbersAttr::print(AsmPrinter& printer) const {
   printStruct(printer, "scatter",
               std::make_pair("update_window_dims", getUpdateWindowDims()),
               std::make_pair("inserted_window_dims", getInsertedWindowDims()),
@@ -6060,7 +6060,7 @@ void ScatterDimensionNumbersAttr::print(AsmPrinter &printer) const {
                              getScatterDimsToOperandDims()),
               std::make_pair("index_vector_dim", getIndexVectorDim()));
 }
-Attribute ScatterDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
+Attribute ScatterDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
   SmallVector<int64_t> updateWindowDims;
   SmallVector<int64_t> insertedWindowDims;
@@ -6086,14 +6086,14 @@ Attribute ScatterDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
 }
 
 // Custom printer and parser for GatherDimensionNumbersAttr.
-void GatherDimensionNumbersAttr::print(AsmPrinter &printer) const {
+void GatherDimensionNumbersAttr::print(AsmPrinter& printer) const {
   printStruct(printer, "gather", std::make_pair("offset_dims", getOffsetDims()),
               std::make_pair("collapsed_slice_dims", getCollapsedSliceDims()),
               std::make_pair("start_index_map", getStartIndexMap()),
               std::make_pair("index_vector_dim", getIndexVectorDim()));
 }
 
-Attribute GatherDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
+Attribute GatherDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
 
   SmallVector<int64_t> offsetDims;
@@ -6120,7 +6120,7 @@ Attribute GatherDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
 }
 
 // Custom printer and parser for DotDimensionNumbersAttr.
-void DotDimensionNumbersAttr::print(AsmPrinter &printer) const {
+void DotDimensionNumbersAttr::print(AsmPrinter& printer) const {
   printStruct(
       printer, "dot",
       std::make_pair("lhs_batching_dimensions", getLhsBatchingDimensions()),
@@ -6131,7 +6131,7 @@ void DotDimensionNumbersAttr::print(AsmPrinter &printer) const {
                      getRhsContractingDimensions()));
 }
 
-Attribute DotDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
+Attribute DotDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
 
   SmallVector<int64_t> lhsBatchingDimensions;
@@ -6173,11 +6173,11 @@ struct DenseMapInfoNonSpatialDim {
     return NonSpatialDim(DenseMapInfo<int64_t>::getTombstoneKey());
   }
 
-  static unsigned getHashValue(const NonSpatialDim &key) {
+  static unsigned getHashValue(const NonSpatialDim& key) {
     return DenseMapInfo<int64_t>::getHashValue(key);
   }
 
-  static bool isEqual(const NonSpatialDim &lhs, const NonSpatialDim &rhs) {
+  static bool isEqual(const NonSpatialDim& lhs, const NonSpatialDim& rhs) {
     return lhs == rhs;
   }
 };
@@ -6198,7 +6198,7 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 }  // namespace
 
 // Custom printer and parser for convolution attribute.
-void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums) {
+void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
   // TODO(b/202040055): we should check the attribute invariant and print the
   // "raw" form if they are violated, otherwise we'll crash here.
   constexpr int64_t kUnknownDim = std::numeric_limits<int64_t>::min();
@@ -6217,7 +6217,7 @@ void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums) {
         llvm::SmallVector<int64_t> dims(numDims, kUnknownDim);
         // Fill each element of dims with a (< 0) NonSpatialDim enum or a (>=0)
         // spatial dimension index.
-        for (const std::pair<int64_t, NonSpatialDim> &nonSpatialDim :
+        for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
              nonSpatialDims) {
           dims[nonSpatialDim.first] = nonSpatialDim.second;
         }
@@ -6253,13 +6253,13 @@ void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums) {
             {dnums.getOutputFeatureDimension(), IOFeature}});
 }
 
-void printConvolutionDimensions(AsmPrinter &p, Operation *,
+void printConvolutionDimensions(AsmPrinter& p, Operation*,
                                 ConvDimensionNumbersAttr dnums) {
   printConvolutionDimensions(p, dnums);
 }
 
 // Custom printer and parser for ConvDimensionNumbersAttr.
-void ConvDimensionNumbersAttr::print(AsmPrinter &printer) const {
+void ConvDimensionNumbersAttr::print(AsmPrinter& printer) const {
   printer << "<";
   printConvolutionDimensions(printer, *this);
   printer << ">";
@@ -6269,7 +6269,7 @@ void ConvDimensionNumbersAttr::print(AsmPrinter &printer) const {
 // a struct instead of the compressed format. This enables writing tests
 // covering impossible/invalid internal representation for the attribute.
 static ParseResult parseConvolutionDimensionsRaw(
-    AsmParser &parser, ConvDimensionNumbersAttr &dnums) {
+    AsmParser& parser, ConvDimensionNumbersAttr& dnums) {
   int64_t inputBatchDimension = 0;
   int64_t inputFeatureDimension = 0;
   SmallVector<int64_t> inputSpatialDimensions;
@@ -6314,8 +6314,8 @@ static ParseResult parseConvolutionDimensionsRaw(
   return success();
 }
 
-ParseResult parseConvolutionDimensions(AsmParser &parser,
-                                       ConvDimensionNumbersAttr &dnums) {
+ParseResult parseConvolutionDimensions(AsmParser& parser,
+                                       ConvDimensionNumbersAttr& dnums) {
   // Parsing a single set of dim numbers gives the spatial dimensions as a
   // single ArrayRef<int64_t> and a list of non-spatial dimensions as
   // IntegerAttrs (indexed by the NonSpatialDim enum).
@@ -6329,7 +6329,7 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
   // error messages, so making it a set keeps the error messages deterministic.
   auto parseDims =
       [&](std::set<NonSpatialDim, std::greater<>> allowedNonSpatialDims,
-          parse_dim_result_t &parsedDims) -> ParseResult {
+          parse_dim_result_t& parsedDims) -> ParseResult {
     auto& spatialDims = std::get<0>(parsedDims);
     auto& nonSpatialDims = std::get<1>(parsedDims);
     spatialDims.clear();
@@ -6497,7 +6497,7 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
   return success();
 }
 
-Attribute ConvDimensionNumbersAttr::parse(AsmParser &parser, Type type) {
+Attribute ConvDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
   ConvDimensionNumbersAttr dnums;
   if (succeeded(parser.parseOptionalKeyword("raw"))) {
@@ -6514,7 +6514,7 @@ constexpr char kMustAlias[] = "must_alias";
 constexpr char kResult[] = "result_index";
 constexpr char kArgTupleIndices[] = "tuple_indices";
 
-void ArgResultAliasAttr::print(AsmPrinter &printer) const {
+void ArgResultAliasAttr::print(AsmPrinter& printer) const {
   printer << "<";
 
   // The attribute can have empty tuple indices. Only print argument tuple
@@ -6536,7 +6536,7 @@ void ArgResultAliasAttr::print(AsmPrinter &printer) const {
   printer << ">";
 }
 
-Attribute ArgResultAliasAttr::parse(AsmParser &parser, Type type) {
+Attribute ArgResultAliasAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
   llvm::SmallVector<int64_t> argTupleIndices;
   // The first element of result indices holds the aliased result index and the
@@ -6592,7 +6592,7 @@ static Type getTypeFromTupleIndices(Type type, ArrayRef<int64_t> indices) {
 static LogicalResult verifyArgResultAliasAttr(StringAttr attrName,
                                               ArgResultAliasAttr aliasAttr,
                                               unsigned argIndex,
-                                              Operation *op) {
+                                              Operation* op) {
   // The attribute can only be applied to function-like operations.
   if (!isa<mlir::FunctionOpInterface>(op))
     return op->emitOpError() << "attribute " << attrName
@@ -6642,7 +6642,7 @@ static LogicalResult verifyArgResultAliasAttr(StringAttr attrName,
 
 namespace {
 // Custom formatting for convolution window attributes.
-void printWindowAttribute(OpAsmPrinter &p, DenseElementsAttr attribute) {
+void printWindowAttribute(OpAsmPrinter& p, DenseElementsAttr attribute) {
   if (attribute.getElementType().isInteger(/*width=*/1)) {
     // boolean attribute.
     llvm::interleaveComma(attribute.getValues<bool>(), p,
@@ -6671,7 +6671,7 @@ void printWindowAttribute(OpAsmPrinter &p, DenseElementsAttr attribute) {
 }
 }  // namespace
 
-void printWindowAttributes(OpAsmPrinter &p, Operation * /*op*/,
+void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
                            llvm::Optional<DenseIntElementsAttr> windowStrides,
                            llvm::Optional<DenseIntElementsAttr> padding,
                            llvm::Optional<DenseIntElementsAttr> lhsDilation,
@@ -6689,21 +6689,21 @@ void printWindowAttributes(OpAsmPrinter &p, Operation * /*op*/,
   // Do not print attributes that do no exist.
   auto nonNullAttributes = llvm::make_filter_range(
       printedAttributes,
-      [](const pair_t &a) { return static_cast<bool>(a.first); });
+      [](const pair_t& a) { return static_cast<bool>(a.first); });
 
-  llvm::interleaveComma(nonNullAttributes, p, [&](const pair_t &a) {
+  llvm::interleaveComma(nonNullAttributes, p, [&](const pair_t& a) {
     p << a.second << " = [";
     printWindowAttribute(p, a.first);
     p << "]";
   });
 }
 
-ParseResult parseWindowAttributes(OpAsmParser &parser,
-                                  DenseIntElementsAttr &windowStrides,
-                                  DenseIntElementsAttr &padding,
-                                  DenseIntElementsAttr &lhsDilation,
-                                  DenseIntElementsAttr &rhsDilation,
-                                  DenseElementsAttr &windowReversal) {
+ParseResult parseWindowAttributes(OpAsmParser& parser,
+                                  DenseIntElementsAttr& windowStrides,
+                                  DenseIntElementsAttr& padding,
+                                  DenseIntElementsAttr& lhsDilation,
+                                  DenseIntElementsAttr& rhsDilation,
+                                  DenseElementsAttr& windowReversal) {
   StringRef attributeName;
 
   llvm::StringSet<> allowedAttributeNames{
@@ -6802,11 +6802,11 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
 static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                                     ComparisonDirection direction,
                                     llvm::Optional<StringRef> compareType,
-                                    Region *body, OpBuilder *builder) {
+                                    Region* body, OpBuilder* builder) {
   OpBuilder::InsertionGuard insertionPointGurad(*builder);
 
   Location loc = body->getLoc();
-  Block *block = builder->createBlock(body);
+  Block* block = builder->createBlock(body);
   // Add two arguments for each element type.
   for (Type elementType : elementTypes) {
     TensorType tensorType = RankedTensorType::get({}, elementType);
@@ -6825,9 +6825,9 @@ static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
   builder->create<ReturnOp>(loc, compare);
 }
 
-SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
-                    const llvm::ArrayRef<Value> &operands,
-                    const llvm::ArrayRef<Type> &elementTypes, int64_t dimension,
+SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
+                    const llvm::ArrayRef<Value>& operands,
+                    const llvm::ArrayRef<Type>& elementTypes, int64_t dimension,
                     bool isStable, ComparisonDirection direction) {
   assert(!operands.empty() && "No operands to sort");
   // Create the sort op.
@@ -6836,7 +6836,7 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.
   llvm::Optional<StringRef> compareType = llvm::None;
-  for (auto const &elementType : elementTypes)
+  for (auto const& elementType : elementTypes)
     if (elementType.isa<FloatType>()) {
       compareType.emplace("TOTALORDER");
       break;
@@ -6850,7 +6850,7 @@ SortOp createSortOp(PatternRewriter *rewriter, const Location &loc,
 // StableHLO Dialect Hooks
 //===----------------------------------------------------------------------===//
 
-Operation *StablehloDialect::materializeConstant(OpBuilder &builder,
+Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
                                                  Attribute value, Type type,
                                                  Location loc) {
   auto elementsAttr = value.dyn_cast<ElementsAttr>();
@@ -6864,7 +6864,7 @@ Operation *StablehloDialect::materializeConstant(OpBuilder &builder,
 }
 
 LogicalResult StablehloDialect::verifyRegionArgAttribute(
-    Operation *op, unsigned /*regionIndex*/, unsigned argIndex,
+    Operation* op, unsigned /*regionIndex*/, unsigned argIndex,
     NamedAttribute attr) {
   if (auto aliasAttr = attr.getValue().dyn_cast<ArgResultAliasAttr>()) {
     if (failed(
@@ -6874,7 +6874,7 @@ LogicalResult StablehloDialect::verifyRegionArgAttribute(
   return success();
 }
 
-LogicalResult StablehloDialect::verifyOperationAttribute(Operation *op,
+LogicalResult StablehloDialect::verifyOperationAttribute(Operation* op,
                                                          NamedAttribute attr) {
   if (auto aliasAttr = attr.getValue().dyn_cast<ArgResultAliasAttr>()) {
     if (!isa<mlir::FunctionOpInterface>(op))
