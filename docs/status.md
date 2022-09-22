@@ -27,7 +27,7 @@ one of the following tracking labels.
 
 ## Status
 
-| StableHLO Op (114) | Specification (22) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (7) |
+| StableHLO Op (114) | Specification (23) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (8) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes|yes*|yes*|yes|no|
 | AddOp |yes|yes*|yes*|yes| yes|
@@ -131,7 +131,7 @@ one of the following tracking labels.
 | SliceOp |no|yes*|yes*|no|no|
 | SortOp |no|yes*|no|no|no|
 | SqrtOp |yes|yes*|yes*|yes|no|
-| SubtractOp |no|yes*|yes*|yes|no|
+| SubtractOp |yes|yes*|yes*|yes|yes|
 | TanhOp |yes|yes*|yes*|yes|yes|
 | TorchIndexSelectOp |no|no|no|no|no|
 | TraceOp |no|yes*|no|yes|no|

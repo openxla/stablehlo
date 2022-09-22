@@ -169,6 +169,7 @@ described below)
    * [reshape](#stablehloreshape)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
+   * [subtract](#stablehlosubtract)
    * [sqrt](#stablehlosqrt)
    * [tanh](#stablehlotanh)
    * [xor](#stablehloxor)
@@ -997,6 +998,55 @@ Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.subtract
+
+`stablehlo.subtract(lhs, rhs) -> result`
+
+### Semantics
+
+Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
+`result` tensor. For integer element types, if the element-wise difference has
+an unsigned/signed overflow/underflow, the result is implementation-defined and
+one of the following:
+
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
+  the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
+      underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
+        unsigned underflow).
+
+For floating-point element types, it implements the `subtraction` operation from
+the IEEE-754 specification.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `lhs` | tensor of integer, floating-point, or complex element types |
+| `rhs` | tensor of integer, floating-point, or complex element types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [[6, 8], [10, 12]]
+// %rhs: [[5, 6], [7, 8]]
+%result = stablehlo.subtract %lhs, %rhs : tensor<2x2xf32>
+// %result: [[1, 2], [3, 4]]
+```
 
 [Back to Ops](#index-of-documented-ops)
 

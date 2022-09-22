@@ -200,6 +200,20 @@ Element Element::operator+(const Element &other) const {
       });
 }
 
+Element Element::operator-(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
+      [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
+        // because the default implementation for the std::complex template
+        // needs operator-= which is not defined on APFloat.
+        auto resultReal = lhs.real() - rhs.real();
+        auto resultImag = lhs.imag() - rhs.imag();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
 Element ceil(const Element &e) {
   APFloat val = getFloatValue(e);
   val.roundToIntegral(APFloat::rmTowardPositive);
