@@ -89,7 +89,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
     Example:
 
     ```mlir
-    %0 = mhlo.iota dim = 1 : tensor<1x10xf32>
+    %0 = stablehlo.iota dim = 1 : tensor<1x10xf32>
     ```
   }];
   let arguments = (ins I64Attr:$iota_dimension);
@@ -113,7 +113,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSide
     Example:
 
     ```mlir
-    %0 = mhlo.dynamic_iota %arg0, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
+    %0 = stablehlo.dynamic_iota %arg0, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
     ```
   }];
 
@@ -1342,7 +1342,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [NoSideEffect
     Example:
 
     ```mlir
-    %0 = mhlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
+    %0 = stablehlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
     ```
   }];
   let arguments = (ins
@@ -1809,7 +1809,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      Example:
 
      ```mlir
-     %0 = mhlo.concatenate %arg0, %arg1 with dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     %0 = stablehlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
      ```
    }];
 
@@ -2113,7 +2113,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
     Example:
 
     ```mlir
-    %0 = mhlo.get_dimension_size %arg0, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
+    %0 = stablehlo.get_dimension_size %arg0, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
     ```
   }];
   let arguments = (ins
@@ -2312,7 +2312,7 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
     Example:
 
     ```mlir
-    %0 = mhlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+    %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
     ```
   }];
   let arguments = (ins
