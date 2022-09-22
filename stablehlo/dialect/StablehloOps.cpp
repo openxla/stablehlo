@@ -85,7 +85,7 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
                 ArrayRef<Type> types,
                 SmallVector<OpAsmParser::Argument> &args) {
   for (auto argAndType : llvm::zip(operands, types)) {
-    auto &arg = args.emplace_back();
+    auto& arg = args.emplace_back();
     arg.ssaName = std::get<0>(argAndType);
     arg.type = std::get<1>(argAndType);
   }
@@ -93,7 +93,7 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 
 const auto hasDuplicates = [](SmallVector<int64_t> &nums) {
   if (!llvm::is_sorted(nums)) std::sort(nums.begin(), nums.end());
-  auto *last = std::unique(nums.begin(), nums.end());
+  auto* last = std::unique(nums.begin(), nums.end());
   return last != nums.end();
 };
 
@@ -208,7 +208,7 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
 
   auto it = attr.getValues<int64_t>().begin();
   SmallVector<std::pair<int64_t, int64_t>> out(attr.getNumElements() / 2);
-  for (auto &item : out) {
+  for (auto& item : out) {
     int64_t first = *it;
     ++it;
     int64_t second = *it;
@@ -354,7 +354,7 @@ SmallVector<int64_t> inferWindowOutputShape(
     if (isDynamicDimSize(baseShape[i]) || isDynamicDimSize(window[i].size)) {
       outputDimensions[i] = ShapedType::kDynamicSize;
     } else {
-      const auto &dim = window[i];
+      const auto& dim = window[i];
 
       const int64_t dilatedBase = dilatedBound(baseShape[i], dim.baseDilation);
       const int64_t paddedDilatedBase =
@@ -835,7 +835,7 @@ LogicalResult CustomCallOp::verify() {
                            << " layouts, " << types.size()
                            << " != " << layouts.size();
 
-    for (const auto &indexedTypeAndLayout :
+    for (const auto& indexedTypeAndLayout :
          llvm::enumerate(llvm::zip(types, layouts))) {
       // Get index for more descriptive error message.
       auto index = indexedTypeAndLayout.index();
@@ -1080,7 +1080,7 @@ LogicalResult DotGeneralOp::verify() {
   auto checkDimsInRange = [this](int64_t rank, ArrayRef<int64_t> dims,
                                  llvm::StringRef dimName) -> LogicalResult {
     auto inRange = [&](int64_t i) -> bool { return 0 <= i && i < rank; };
-    const auto *dimsNotInRange =
+    const auto* dimsNotInRange =
         std::find_if_not(dims.begin(), dims.end(), inRange);
     if (dimsNotInRange != dims.end()) {
       return emitOpError() << dimName << " value: " << *dimsNotInRange
@@ -1461,7 +1461,7 @@ static LogicalResult verifyStaticGather(
 
   // P3.
   if (operandShape.hasRank()) {
-    for (const auto &it : llvm::enumerate(sliceSizes.getValues<int64_t>())) {
+    for (const auto& it : llvm::enumerate(sliceSizes.getValues<int64_t>())) {
       if (operandShape.isDynamicDim(it.index())) continue;
       auto operandDimSize = operandShape.getDimSize(it.index());
       auto sliceDimSize = it.value();
@@ -1488,7 +1488,7 @@ static void inferGatherShape(
   // can't be larger than the highest collapsed dimension. So go through those
   // and populate the leading dimensions of adjustedSliceSizes. The trailing
   // dimensions can just be adjusted by an offset.
-  const auto *maxCollapsedDimIt =
+  const auto* maxCollapsedDimIt =
       std::max_element(collapsedSliceDims.begin(), collapsedSliceDims.end());
   int64_t maxCollapsedDim = -1;
   if (maxCollapsedDimIt != collapsedSliceDims.end())
@@ -1514,14 +1514,14 @@ static void inferGatherShape(
     if (!llvm::is_contained(offsetDims, dim)) batchDims.push_back(dim);
 
   for (int i = 0; i < resultRank; ++i) {
-    const auto *offsetDimsIt =
+    const auto* offsetDimsIt =
         std::find(offsetDims.begin(), offsetDims.end(), i);
     if (offsetDimsIt != offsetDims.end()) {
       auto index = std::distance(offsetDims.begin(), offsetDimsIt);
       shape.push_back(getAdjustedSliceDim(index));
       continue;
     }
-    auto *batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
+    auto* batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
     assert(batchDimsIt != batchDims.end());
     auto index = std::distance(batchDims.begin(), batchDimsIt);
     // This can never run into the special case where start_indices gets
@@ -2193,7 +2193,7 @@ LogicalResult TupleOp::verify() {
     return emitOpError(
         "number of operands to tuple expected to match number of types in "
         "resultant tuple type");
-  for (const auto &it :
+  for (const auto& it :
        llvm::enumerate(llvm::zip_first(getOperandTypes(), opType.getTypes()))) {
     if (std::get<0>(it.value()) != std::get<1>(it.value()))
       return emitOpError("has return type mismatch at ")
@@ -2554,7 +2554,7 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
   SmallVector<Value, 4> shapeValues;
 
   // Collect the broadcast sizes.
-  for (const auto &size : broadcast_sizes()) {
+  for (const auto& size : broadcast_sizes()) {
     shapeValues.push_back(
         builder.create<arith::ConstantIndexOp>(loc, size.getZExtValue()));
   }
@@ -2989,7 +2989,7 @@ LogicalResult ConcatenateOp::inferReturnTypes(
       continue;
     }
 
-    for (const auto &it : llvm::enumerate(shapedTy.getShape())) {
+    for (const auto& it : llvm::enumerate(shapedTy.getShape())) {
       // If a dimension is not dynamic, the output shape should match.
       if (ShapedType::isDynamic(outShape[it.index()])) {
         outShape[it.index()] = it.value();
@@ -3096,7 +3096,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
     if (!operandType) return failure();
 
     SmallVector<Value, 4> shapeVals;
-    for (const auto &element : llvm::enumerate(operandType.getShape())) {
+    for (const auto& element : llvm::enumerate(operandType.getShape())) {
       Value valueDim = toShapeScalarType(
           builder.create<tensor::DimOp>(loc, operand, element.index()));
       shapeVals.push_back(valueDim);
@@ -3105,9 +3105,9 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
   }
 
   int axis = this->dimension();
-  auto &shapeValues = allShapeValues[0];
+  auto& shapeValues = allShapeValues[0];
   for (size_t vecId = 1; vecId < allShapeValues.size(); ++vecId) {
-    auto &otherShapeValues = allShapeValues[vecId];
+    auto& otherShapeValues = allShapeValues[vecId];
     if (otherShapeValues.size() != shapeValues.size()) {
       this->emitOpError()
           << "Concatenate expects all operands must be of the same rank";
@@ -3261,7 +3261,7 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
       startIndices.getType().cast<ShapedType>().getElementType();
   Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
   one = maybeCastTo(builder, loc, one, shapeScalarType);
-  for (const auto &element : llvm::enumerate(operandType.getShape())) {
+  for (const auto& element : llvm::enumerate(operandType.getShape())) {
     Value offset = builder.create<arith::ConstantIndexOp>(loc, element.index());
     Value valueStart =
         builder.create<tensor::ExtractOp>(loc, startIndices, offset);
@@ -3355,7 +3355,7 @@ LogicalResult MapOp::inferReturnTypeComponents(
   // Checks if the number of `operands` match the arity of the map `computation`
   // region.
   MapOp::Adaptor adaptor(operands, attributes, regions);
-  auto &computationBlock = adaptor.computation().front();
+  auto& computationBlock = adaptor.computation().front();
   auto computationArgs = computationBlock.getArguments();
   if (adaptor.operands().size() != computationArgs.size())
     return emitOptionalError(location,
@@ -3366,7 +3366,7 @@ LogicalResult MapOp::inferReturnTypeComponents(
 
   // The parameters of computation should all be scalars and match the element
   // type of operands.
-  for (const auto &indexedArg : llvm::enumerate(computationArgs)) {
+  for (const auto& indexedArg : llvm::enumerate(computationArgs)) {
     auto argType = indexedArg.value().getType().dyn_cast<RankedTensorType>();
     if (!argType || argType.getRank() != 0)
       return emitOptionalError(
@@ -3405,7 +3405,7 @@ LogicalResult MapOp::inferReturnTypeComponents(
   // Checks that the requested map dimension numbers are monotonically
   // increasing.
   DenseIntElementsAttr dimensions = adaptor.dimensions();
-  for (const auto &indexedValue :
+  for (const auto& indexedValue :
        llvm::enumerate(dimensions.getValues<int64_t>())) {
     if (indexedValue.value() != static_cast<int64_t>(indexedValue.index()))
       return emitOptionalError(
@@ -3734,7 +3734,7 @@ bool hasSameOperandAndResultTypes(Operation &op) {
 //     return.
 static bool isEligibleForCompactPrint(ReduceOp op) {
   // Check E1.
-  auto &block = op.body().front();
+  auto& block = op.body().front();
   if (!hasSingleElement(block.without_terminator())) return false;
 
   Operation &innerOp = *block.begin();
@@ -4135,9 +4135,9 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
     return maybeCastTo(builder, loc, v, shapeScalarType);
   };
 
-  for (const auto &element : llvm::enumerate(operandType.getShape())) {
+  for (const auto& element : llvm::enumerate(operandType.getShape())) {
     int64_t idx = element.index();
-    auto *it = std::find(dimensions.begin(), dimensions.end(), idx);
+    auto* it = std::find(dimensions.begin(), dimensions.end(), idx);
     if (it != dimensions.end()) {
       continue;
     }
@@ -4389,7 +4389,7 @@ LogicalResult PadOp::inferReturnTypeComponents(
                                 padType.getRank()));
   }
 
-  const auto &paddingLow = adaptor.edge_padding_low();
+  const auto& paddingLow = adaptor.edge_padding_low();
   if (paddingLow.getType().getNumElements() != inputType.getRank()) {
     return emitOptionalError(
         location,
@@ -4398,7 +4398,7 @@ LogicalResult PadOp::inferReturnTypeComponents(
             paddingLow.getType().getNumElements(), inputType.getRank()));
   }
 
-  const auto &paddingHigh = adaptor.edge_padding_high();
+  const auto& paddingHigh = adaptor.edge_padding_high();
   if (paddingHigh.getType().getNumElements() != inputType.getRank()) {
     return emitOptionalError(
         location,
@@ -4407,7 +4407,7 @@ LogicalResult PadOp::inferReturnTypeComponents(
             paddingHigh.getType().getNumElements(), inputType.getRank()));
   }
 
-  const auto &paddingInterior = adaptor.interior_padding();
+  const auto& paddingInterior = adaptor.interior_padding();
   if (paddingInterior.getType().getNumElements() != inputType.getRank()) {
     return emitOptionalError(
         location,
@@ -4846,7 +4846,7 @@ LogicalResult SortOp::verify() {
     return emitOpError("comparator block should have ")
            << 2 * numOperands << " arguments";
 
-  for (const auto &indexedOperand : llvm::enumerate(operands)) {
+  for (const auto& indexedOperand : llvm::enumerate(operands)) {
     int index = indexedOperand.index();
     Type elementType =
         indexedOperand.value().getType().cast<ShapedType>().getElementType();
@@ -4917,9 +4917,9 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
     return maybeCastTo(builder, loc, v, shapeScalarType);
   };
 
-  for (const auto &element : llvm::enumerate(operandType.getShape())) {
+  for (const auto& element : llvm::enumerate(operandType.getShape())) {
     int64_t idx = element.index();
-    auto *it = std::find(permutation.begin(), permutation.end(), idx);
+    auto* it = std::find(permutation.begin(), permutation.end(), idx);
     Value valueDim = toShapeScalarType(
         builder.createOrFold<tensor::DimOp>(loc, operand, element.index()));
     shapeValues[std::distance(permutation.begin(), it)] = valueDim;
@@ -5150,7 +5150,7 @@ LogicalResult SelectAndScatterOp::verify() {
 
   Type expectedSelectArgType =
       RankedTensorType::get({}, operandType.getElementType());
-  for (const auto &selectArgIt : llvm::enumerate(selectBlock.getArguments()))
+  for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
     if (!compatibleShapeAndElementType(expectedSelectArgType,
                                        selectArgIt.value().getType(),
                                        /*ignoreFpPrecision=*/true))
@@ -5544,11 +5544,11 @@ LogicalResult WhileOp::verify() {
     return emitOpError() << "mismatch in operand count (" << getNumOperands()
                          << ") vs the body block argument count ("
                          << body().front().getNumArguments() << ")";
-  for (const auto &enumeratedOperands : llvm::enumerate(
+  for (const auto& enumeratedOperands : llvm::enumerate(
            llvm::zip(getOperandTypes(), cond().front().getArgumentTypes(),
                      body().front().getArgumentTypes()))) {
     int argCount = enumeratedOperands.index();
-    const auto &operands = enumeratedOperands.value();
+    const auto& operands = enumeratedOperands.value();
     Type operandType = std::get<0>(operands);
     Type condType = std::get<1>(operands);
     Type bodyType = std::get<2>(operands);
@@ -5583,7 +5583,7 @@ LogicalResult WhileOp::verify() {
       return bodyReturnOp.emitOpError()
              << "expects body to return a many value as the operands ("
              << getNumOperands() << "), got " << bodyReturnOp->getNumOperands();
-    for (const auto &enumeratedOperandTypes : llvm::enumerate(
+    for (const auto& enumeratedOperandTypes : llvm::enumerate(
              llvm::zip(bodyReturnOp->getOperandTypes(), getOperandTypes()))) {
       Type operandType = std::get<0>(enumeratedOperandTypes.value());
       Type returnType = std::get<1>(enumeratedOperandTypes.value());
@@ -5988,7 +5988,7 @@ static ParseResult parseStruct(
   SmallVector<bool> seen(keywords.size(), false);
   while (failed(parser.parseOptionalGreater())) {
     bool foundOne = false;
-    for (const auto &it : llvm::enumerate(keywords)) {
+    for (const auto& it : llvm::enumerate(keywords)) {
       size_t index = it.index();
       StringRef keyword = it.value();
       if (succeeded(parser.parseOptionalKeyword(keyword))) {
@@ -6210,7 +6210,7 @@ void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums) {
           numDims =
               *std::max_element(spatialDims.begin(), spatialDims.end()) + 1;
         }
-        for (const auto &dim : nonSpatialDims) {
+        for (const auto& dim : nonSpatialDims) {
           numDims = std::max(numDims, dim.first + 1);
         }
 
@@ -6221,7 +6221,7 @@ void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums) {
              nonSpatialDims) {
           dims[nonSpatialDim.first] = nonSpatialDim.second;
         }
-        for (const auto &spatialDim : llvm::enumerate(spatialDims)) {
+        for (const auto& spatialDim : llvm::enumerate(spatialDims)) {
           dims[spatialDim.value()] = static_cast<int64_t>(spatialDim.index());
         }
 
@@ -6330,8 +6330,8 @@ ParseResult parseConvolutionDimensions(AsmParser &parser,
   auto parseDims =
       [&](std::set<NonSpatialDim, std::greater<>> allowedNonSpatialDims,
           parse_dim_result_t &parsedDims) -> ParseResult {
-    auto &spatialDims = std::get<0>(parsedDims);
-    auto &nonSpatialDims = std::get<1>(parsedDims);
+    auto& spatialDims = std::get<0>(parsedDims);
+    auto& nonSpatialDims = std::get<1>(parsedDims);
     spatialDims.clear();
     nonSpatialDims.clear();
 
@@ -6654,7 +6654,7 @@ void printWindowAttribute(OpAsmPrinter &p, DenseElementsAttr attribute) {
     auto it = attribute.value_begin<int64_t>();
     std::vector<std::pair<int64_t, int64_t>> values(attribute.getNumElements() /
                                                     2);
-    for (auto &item : values) {
+    for (auto& item : values) {
       int64_t first = *it;
       ++it;
       int64_t second = *it;
