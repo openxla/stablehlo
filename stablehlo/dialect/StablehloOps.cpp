@@ -1069,11 +1069,9 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
   SmallVector<Attribute> attrs;
   if (failed(
           parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
-            attrs.emplace_back();
-            return parseRawEnum<PrecisionAttr>(
-                parser, attrs.back(), "precision", [](llvm::StringRef enumStr) {
-                  return symbolizePrecision(enumStr);
-                });
+            attrs.push_back(PrecisionAttr::parse(parser, {}));
+            if (!attrs.back()) return failure();
+            return success();
           }))) {
     return failure();
   }

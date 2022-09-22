@@ -145,7 +145,8 @@ func.func @precision_missing_equals(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi3
 // -----
 
 func.func @precision_invalid_enum(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
-  // expected-error @+1 {{custom op 'stablehlo.dot' expected precision enum}}
+  // expected-error @+2 {{custom op 'stablehlo.dot' expected valid keyword}}
+  // expected-error @+1 {{custom op 'stablehlo.dot' failed to parse StableHLO_PrecisionAttr parameter 'value' which is to be a `::mlir::stablehlo::Precision`}}
   %0 = stablehlo.dot %arg0, %arg1, precision = [%arg0] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
   func.return
 }
@@ -153,7 +154,8 @@ func.func @precision_invalid_enum(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>
 // -----
 
 func.func @precision_invalid_enum_value(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
-  // expected-error @+1 {{custom op 'stablehlo.dot' invalid precision enum value NOT_AN_ENUM}}
+  // expected-error @+2 {{custom op 'stablehlo.dot' failed to parse StableHLO_PrecisionAttr parameter 'value' which is to be a `::mlir::stablehlo::Precision`}}
+  // expected-error @+1 {{custom op 'stablehlo.dot' expected ::mlir::stablehlo::Precision to be one of: DEFAULT, HIGH, HIGHEST}}
   %0 = stablehlo.dot %arg0, %arg1, precision = [NOT_AN_ENUM] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
   func.return
 }
