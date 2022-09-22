@@ -2,7 +2,17 @@
 
 name: Lint
 
-on: [pull_request]
+on: 
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**']
+
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   clang-format:
@@ -10,16 +20,10 @@ jobs:
     if: "github.event_name == 'pull_request'"
     runs-on: ubuntu-latest
     steps:
-      - name: Installing dependencies
-        run: |
-          wget https://raw.githubusercontent.com/llvm-mirror/clang/master/tools/clang-format/git-clang-format -O /tmp/git-clang-format
-          chmod +x /tmp/git-clang-format
       - name: Checking out repository
         uses: actions/checkout@v2
-      - name: Fetching Base Branch
-        # We have to explicitly fetch the base branch as well
-        run: git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
+
       - name: Running clang-format on changed source files
         run: |
-          /tmp/git-clang-format "${GITHUB_BASE_REF?}" --style=google
-          git diff --exit-code
+          git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
+          ./build_tools/github_actions/lint_clang_format.sh
