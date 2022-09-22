@@ -2630,7 +2630,7 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
   }];
 
   let assemblyFormat = [{
-    $a `,` $b `,` $shape `,` `distribution` `=` custom<RngDistribution>($rng_distribution)
+    $a `,` $b `,` $shape `,` `distribution` `=` $rng_distribution
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2663,7 +2663,7 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [NoSideEffec
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $initial_state `,` `algorithm` `=` custom<RngAlgorithm>($rng_algorithm) attr-dict 
+    $initial_state `,` `algorithm` `=` $rng_algorithm attr-dict 
       `:` functional-type(operands, results)
   }];
 }

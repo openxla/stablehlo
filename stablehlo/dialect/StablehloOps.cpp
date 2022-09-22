@@ -4217,20 +4217,6 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 // RngBitGeneratorOp
 //===----------------------------------------------------------------------===//
 
-// RngAlgorithmAttr - Print raw enum without surrounding `<` `>`
-//
-// {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>}
-// ==> PHILOX
-void printRngAlgorithm(OpAsmPrinter& p, Operation*, RngAlgorithmAttr val) {
-  p << stringifyRngAlgorithm(val.getValue());
-}
-
-ParseResult parseRngAlgorithm(OpAsmParser& parser, RngAlgorithmAttr& val) {
-  return parseRawEnum<RngAlgorithmAttr>(
-      parser, val, "",
-      [](llvm::StringRef enumStr) { return symbolizeRngAlgorithm(enumStr); });
-}
-
 // Verify that input state has the same shape as output shape
 LogicalResult RngBitGeneratorOp::verify() {
   auto initialShape = initial_state().getType().dyn_cast<RankedTensorType>();
@@ -4245,23 +4231,6 @@ LogicalResult RngBitGeneratorOp::verify() {
 //===----------------------------------------------------------------------===//
 // RngOp
 //===----------------------------------------------------------------------===//
-
-// RngDistributionAttr - Print raw enum without surrounding `<` `>`
-//
-// {rng_distribution = #stablehlo.rng_distribution<NORMAL>}
-// ==> NORMAL
-void printRngDistribution(OpAsmPrinter& p, Operation*,
-                          RngDistributionAttr val) {
-  p << stringifyRngDistribution(val.getValue());
-}
-
-ParseResult parseRngDistribution(OpAsmParser& parser,
-                                 RngDistributionAttr& val) {
-  return parseRawEnum<RngDistributionAttr>(
-      parser, val, "", [](llvm::StringRef enumStr) {
-        return symbolizeRngDistribution(enumStr);
-      });
-}
 
 LogicalResult RngOp::verify() {
   auto dist = rng_distribution();
