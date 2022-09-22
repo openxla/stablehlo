@@ -85,12 +85,20 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
   let summary = "Iota operator";
   let description = [{
     Creates a rank 1 array of values starting at zero and incrementing by one.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.iota dim = 1 : tensor<1x10xf32>
+    ```
   }];
   let arguments = (ins I64Attr:$iota_dimension);
 
   let results = (outs HLO_IntFpOrComplexTensor:$output);
 
   let hasVerifier = 1;
+
+  let assemblyFormat = "`dim` `=` $iota_dimension attr-dict `:` type($output)";
 }
 
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSideEffect]> {
@@ -101,10 +109,20 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [NoSide
 
     Requires:
     - The output length of the tensor result.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.dynamic_iota %arg0, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
+    ```
   }];
 
   let arguments = (ins HLO_DimensionTensor:$output_shape, I64Attr:$iota_dimension);
   let results = (outs HLO_Tensor:$result);
+
+  let assemblyFormat = [{
+    $output_shape `,` `dim` `=` $iota_dimension attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_CreateTokenOp : StableHLO_Op<"create_token", [NoSideEffect]> {
@@ -1320,6 +1338,12 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [NoSideEffect
     Returns a member of a tuple specified by an index.
 
     See https://www.tensorflow.org/xla/operation_semantics#gettupleelement.
+    
+    Example:
+
+    ```mlir
+    %0 = stablehlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
+    ```
   }];
   let arguments = (ins
     HLO_Tuple:$operand,
@@ -1688,32 +1712,42 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
       [NoSideEffect, SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "Cholesky operator";
   let description = [{
-  Computes the Cholesky decomposition of a batch of symmetric (Hermitian)
-  positive definite matrices.
+    Computes the Cholesky decomposition of a batch of symmetric (Hermitian)
+    positive definite matrices.
 
-  If lower is true, computes lower-triangular matrices l such that
-  `a=l.Transpose(l)`. If lower is false, computes upper-triangular matrices u such
-  that `a=Transpose(u).u`.
+    If lower is true, computes lower-triangular matrices l such that
+    `a=l.Transpose(l)`. If lower is false, computes upper-triangular matrices u such
+    that `a=Transpose(u).u`.
 
-  Input data is read only from the lower/upper triangle of a, depending on the
-  value of lower. Values from the other triangle are ignored. Output data is
-  returned in the same triangle; the values in the other triangle are
-  implementation-defined and may be anything.
+    Input data is read only from the lower/upper triangle of a, depending on the
+    value of lower. Values from the other triangle are ignored. Output data is
+    returned in the same triangle; the values in the other triangle are
+    implementation-defined and may be anything.
 
-  If the rank of a is greater than 2, a is treated as a batch of matrices, where
-  all except the minor 2 dimensions are batch dimensions.
+    If the rank of a is greater than 2, a is treated as a batch of matrices, where
+    all except the minor 2 dimensions are batch dimensions.
 
-  If a is not symmetric (Hermitian) positive definite, the result is
-  implementation-defined.
+    If a is not symmetric (Hermitian) positive definite, the result is
+    implementation-defined.
 
     See https://www.tensorflow.org/xla/operation_semantics#cholesky.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
+    ```
   }];
   let arguments = (ins
     HLO_FpOrComplexTensor:$a,
     DefaultValuedAttr<BoolAttr, "false">:$lower
   );
 
-  let results = (outs HLO_FpOrComplexTensor);
+  let results = (outs HLO_FpOrComplexTensor:$result);
+
+  let assemblyFormat = [{
+    $a `,` `lower` `=` $lower attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
+  }];
 }
 
 def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
@@ -1771,6 +1805,12 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      Concatenates a set of tensors along the specified dimension.
 
      See https://www.tensorflow.org/xla/operation_semantics#concatenate.
+
+     Example:
+
+     ```mlir
+     %0 = stablehlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     ```
    }];
 
   let arguments = (ins
@@ -1786,6 +1826,10 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return succeeded(mlir::verifyCompatibleShapes(l, r));
     }
+  }];
+
+  let assemblyFormat = [{
+     custom<VariadicOperandWithAttribute>($val) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
@@ -2065,6 +2109,12 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
 
     See
     https://www.tensorflow.org/xla/operation_semantics#getdimensionsize.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.get_dimension_size %arg0, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2076,6 +2126,10 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffe
   let results = (outs I32Tensor);
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
@@ -2254,6 +2308,12 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
     will be ignored by downstream reduction ops.
 
     See https://www.tensorflow.org/xla/operation_semantics#setdimensionsize.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2274,6 +2334,11 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   }];
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` $size  `,` `dim` `=` $dimension attr-dict 
+      `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
