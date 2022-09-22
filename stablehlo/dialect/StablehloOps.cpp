@@ -17,7 +17,6 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 
 #include <assert.h>
-#include <iterator>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -4678,8 +4677,8 @@ static LogicalResult inferConditionalReturnTypeComponents(
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!mlir::hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
-                                                    branchResultTypes))
+    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
+                                              branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);

@@ -277,7 +277,7 @@ func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf3
 
 // -----
 
-// CHECK-LABEL: if 
+// CHECK-LABEL: func @if 
 func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
@@ -291,7 +291,7 @@ func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type :
 
 // -----
 
-// CHECK-LABEL: @case
+// CHECK-LABEL: func @case
 func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
   %0 = "stablehlo.case"(%index) ({
       "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
