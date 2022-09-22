@@ -38,8 +38,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   /// \name Constructors
   /// @{
   explicit Buffer(ShapedType type);
-  Buffer(ShapedType type, void *data);
-  Buffer(ShapedType type, const void *data);
+  Buffer(ShapedType type, AsmResourceBlob blob);
   Buffer(Buffer &&other) = default;
   /// @}
 
@@ -49,15 +48,15 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
 
-  /// Returns the raw data as a byte array.
-  char *getData() { return data_.data(); }
+  /// Provides access to the underlying non-mutable storage.
+  ArrayRef<char> getImmutableData() const { return blob_.getData(); }
 
-  /// Returns the size in bytes of the raw data.
-  size_t getSize() { return data_.size(); }
+  /// Provides access to the underlying mutable storage.
+  MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
 
  private:
   ShapedType type_;
-  std::vector<char> data_;
+  AsmResourceBlob blob_;
 };
 
 }  // namespace detail
@@ -71,14 +70,14 @@ class Tensor {
   Tensor();
   explicit Tensor(ShapedType type);
   explicit Tensor(ShapedType type, AsmResourceBlob blob);
-  Tensor(const Tensor &other);
+  Tensor(const Tensor &other) = default;
   /// @}
 
   /// Assignment operator.
-  Tensor &operator=(const Tensor &other);
+  Tensor &operator=(const Tensor &other) = default;
 
   /// Returns type of the Tensor object.
-  ShapedType getType() const { return type_; };
+  ShapedType getType() const { return impl_->getType(); };
 
   /// Returns the number of elements.
   int64_t getNumElements() const;
@@ -102,17 +101,7 @@ class Tensor {
   IndexSpaceIterator index_end() const;
 
  private:
-  /// Type of a Tensor object.
-  ShapedType type_;
-
-  /// Underlying storage class for a Tensor object.
-  AsmResourceBlob blob_;
-
-  /// Provides access to the underlying non-mutable storage.
-  ArrayRef<char> getData() const { return blob_.getData(); }
-
-  /// Provides access to the underlying mutable storage.
-  MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
+  llvm::IntrusiveRefCntPtr<detail::Buffer> impl_;
 };
 
 /// Print utilities for Tensor objects.

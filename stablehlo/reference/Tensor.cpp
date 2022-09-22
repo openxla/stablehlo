@@ -82,32 +82,32 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
 
 }  // namespace
 
-Tensor::Tensor() {}
+namespace detail {
 
-Tensor::Tensor(ShapedType type) : type_(type) {
-  blob_ = HeapAsmResourceBlob::allocate(getSizeInBytes(type), alignof(char));
-}
+Buffer::Buffer(ShapedType type)
+    : type_(type),
+      blob_(
+          HeapAsmResourceBlob::allocate(getSizeInBytes(type), alignof(char))) {}
 
-Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
+Buffer::Buffer(ShapedType type, AsmResourceBlob blob)
     : type_(type), blob_(std::move(blob)) {}
 
-Tensor::Tensor(const Tensor &other) {
-  type_ = other.getType();
-  blob_ = HeapAsmResourceBlob::allocateAndCopy(other.getData(), alignof(char));
-}
+}  // namespace detail
 
-Tensor &Tensor::operator=(const Tensor &other) {
-  type_ = other.getType();
-  blob_ = HeapAsmResourceBlob::allocateAndCopy(other.getData(), alignof(char));
-  return *this;
-}
+Tensor::Tensor() {}
+
+Tensor::Tensor(ShapedType type)
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
+
+Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
 Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      blob_->getData().data() +
+      blob_->getImmutableData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -203,7 +203,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      blob_.getMutableData().data()
+      blob_.getData().data()
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
