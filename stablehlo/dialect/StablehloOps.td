@@ -1112,7 +1112,8 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
 // conditional use of kConditional HLO.
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveSideEffects,
-    SingleBlockImplicitTerminator<"ReturnOp">]> {
+    SingleBlockImplicitTerminator<"ReturnOp">, 
+    InferTensorType]> {
   let summary = "If operator";
 
   let description = [{
@@ -1136,7 +1137,16 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 
-  let hasVerifier = 1;
+  let extraClassDeclaration = [{
+    // Method from InferTypeOpInterface interface.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      if (l.size() != r.size()) return false;
+      for (auto [lt, rt] : llvm::zip(l, r))
+        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
+          return false;
+      return true;
+    }
+  }];
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,
@@ -1144,7 +1154,8 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 // conditional use of kConditional HLO.
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveSideEffects,
-      SingleBlockImplicitTerminator<"ReturnOp">
+      SingleBlockImplicitTerminator<"ReturnOp">,
+      InferTensorType
     ]> {
   let summary = "Switch-Case operator";
   let description = [{
@@ -1166,7 +1177,16 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 
-  let hasVerifier = 1;
+  let extraClassDeclaration = [{
+    // Method from InferTypeOpInterface interface.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      if (l.size() != r.size()) return false;
+      for (auto [lt, rt] : llvm::zip(l, r))
+        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
+          return false;
+      return true;
+    }
+  }];
 }
 
 
