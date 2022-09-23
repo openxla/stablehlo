@@ -100,6 +100,16 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(negOp.getOperand());
       Tensor runtimeResult = eval(negOp, runtimeOperand);
       populateResults({runtimeResult});
+    } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
+      Tensor runtimeLhs = fetchOperand(maxOp.lhs());
+      Tensor runtimeRhs = fetchOperand(maxOp.rhs());
+      Tensor runtimeResult = eval(maxOp, runtimeLhs, runtimeRhs);
+      populateResults({runtimeResult});
+    } else if (auto minOp = dyn_cast<MinOp>(op)) {
+      Tensor runtimeLhs = fetchOperand(minOp.lhs());
+      Tensor runtimeRhs = fetchOperand(minOp.rhs());
+      Tensor runtimeResult = eval(minOp, runtimeLhs, runtimeRhs);
+      populateResults({runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       Tensor runtimeOperand = fetchOperand(reshapeOp.getOperand());
       Tensor runtimeResult = eval(reshapeOp, runtimeOperand);

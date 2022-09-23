@@ -85,6 +85,22 @@ Tensor eval(ReshapeOp op, const Tensor &operand) {
   return result;
 }
 
+Tensor eval(MaxOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < lhs.getNumElements(); ++i) {
+    result.set(i, max(lhs.get(i), rhs.get(i)));
+  }
+  return result;
+}
+
+Tensor eval(MinOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < lhs.getNumElements(); ++i) {
+    result.set(i, min(lhs.get(i), rhs.get(i)));
+  }
+  return result;
+}
+
 Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
