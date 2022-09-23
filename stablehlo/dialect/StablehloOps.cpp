@@ -1051,8 +1051,8 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
     return failure();
 
   SmallVector<Attribute> attrs;
-  if (failed(
-          parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() -> ParseResult {
+  if (failed(parser.parseCommaSeparatedList(
+          AsmParser::Delimiter::Square, [&]() -> ParseResult {
             attrs.push_back(PrecisionAttr::parse(parser, {}));
             return success(/*isSuccess=*/bool(attrs.back()));
           }))) {
