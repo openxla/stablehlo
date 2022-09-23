@@ -552,7 +552,7 @@ func.func @test_reverse(%arg0 : tensor<10x11x12x13xf32>) -> tensor<10x11x12x13xf
 
 func.func @test_rng(%mu: tensor<f32>, %sigma: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
-  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -560,12 +560,12 @@ func.func @test_rng_uniform() -> tensor<2x3x5xf32> {
   %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
   %1 = stablehlo.constant dense<1.000000e+00> : tensor<f32>
   %2 = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
-  %3 = "stablehlo.rng"(%0, %1, %2) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %3 = "stablehlo.rng"(%0, %1, %2) {rng_distribution = #stablehlo<rng_distribution UNIFORM>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %3 : tensor<2x3x5xf32>
 }
 
 func.func @test_rng_bit_generator(%arg: tensor<3xui64>) -> tuple<tensor<3xui64>, tensor<2x2xui32>> {
-  %0:2 = "stablehlo.rng_bit_generator"(%arg) {rng_algorithm = #stablehlo.rng_algorithm<PHILOX>} : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
+  %0:2 = "stablehlo.rng_bit_generator"(%arg) {rng_algorithm = #stablehlo<rng_algorithm PHILOX>} : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
   %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<3xui64>, tensor<2x2xui32>) -> tuple<tensor<3xui64>, tensor<2x2xui32>>
   func.return %1 : tuple<tensor<3xui64>, tensor<2x2xui32>>
 }

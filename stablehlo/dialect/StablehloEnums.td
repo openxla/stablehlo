@@ -178,9 +178,7 @@ def StableHLO_RngDistribution : I32EnumAttr<"RngDistribution",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_RngDistributionAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngDistribution, "rng_distribution"> {
-  let assemblyFormat = "`<` $value `>`";
-}
+def StableHLO_RngDistributionAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngDistribution, "rng_distribution">;
 
 def STABLEHLO_RNG_ALGORITHM_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
 def STABLEHLO_RNG_ALGORITHM_THREE_FRY : I32EnumAttrCase<"THREE_FRY", 1>;
@@ -197,8 +195,6 @@ def StableHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
   let cppNamespace = "::mlir::stablehlo";
 }
 
-def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngAlgorithm, "rng_algorithm"> {
-  let assemblyFormat = "`<` $value `>`";
-}
+def StableHLO_RngAlgorithmAttr : EnumAttr<StableHLO_Dialect, StableHLO_RngAlgorithm, "rng_algorithm">;
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_ENUMS

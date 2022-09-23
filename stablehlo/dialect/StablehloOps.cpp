@@ -1025,6 +1025,44 @@ LogicalResult DotOp::verify() {
   return success();
 }
 
+// PrecisionConfig - Optional attribute, print the array as raw enums
+//
+// {precision_config = [#stablehlo<precision DEFAULT>,
+//                      #stablehlo<precision DEFAULT>]}
+// ==> ..., precision = [DEFAULT, DEFAULT]
+void printPrecisionConfig(OpAsmPrinter& p, Operation*,
+                          ::mlir::ArrayAttr attrArr) {
+  // Precision config is an optional attribute, passes null if not specified.
+  if (!attrArr) return;
+
+  p << ", precision = [";
+  llvm::interleaveComma(attrArr, p, [&](Attribute const& attr) {
+    p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
+  });
+  p << ']';
+}
+
+ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
+  if (failed(parser.parseOptionalComma())) {
+    return success();  // No precision config specified
+  }
+
+  if (failed(parser.parseKeyword("precision")) || failed(parser.parseEqual()))
+    return failure();
+
+  SmallVector<Attribute> attrs;
+  if (failed(parser.parseCommaSeparatedList(
+          AsmParser::Delimiter::Square, [&]() -> ParseResult {
+            attrs.push_back(PrecisionAttr::parse(parser, {}));
+            return success(/*isSuccess=*/bool(attrs.back()));
+          }))) {
+    return failure();
+  }
+
+  attr = mlir::ArrayAttr::get(parser.getContext(), attrs);
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // DotGeneralOp
 //===----------------------------------------------------------------------===//
