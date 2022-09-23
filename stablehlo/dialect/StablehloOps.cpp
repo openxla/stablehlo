@@ -1025,23 +1025,6 @@ LogicalResult DotOp::verify() {
   return success();
 }
 
-// Certain enum values have custom printers that include `<` `>`
-// i.e. `<PHILOX>` This method parses the enum value without `<` `>`.
-template <typename EnumAttrKind, typename SymbolizeFn>
-ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
-                         llvm::StringRef errStr, SymbolizeFn symbolizeFn) {
-  llvm::SMLoc loc = parser.getCurrentLocation();
-  llvm::StringRef enumStr;
-  if (failed(parser.parseOptionalKeyword(&enumStr)))
-    return parser.emitError(loc) << "expected " << errStr << " enum";
-  auto enumValOpt = symbolizeFn(enumStr);
-  if (!enumValOpt.has_value())
-    return parser.emitError(loc)
-           << "invalid " << errStr << " enum value " << enumStr;
-  enumAttr = EnumAttrKind::get(parser.getContext(), enumValOpt.value());
-  return success();
-}
-
 // PrecisionConfig - Optional attribute, print the array as raw enums
 //
 // {precision_config = [#stablehlo<precision DEFAULT>,
@@ -1049,6 +1032,7 @@ ParseResult parseRawEnum(OpAsmParser& parser, Attribute& enumAttr,
 // ==> ..., precision = [DEFAULT, DEFAULT]
 void printPrecisionConfig(OpAsmPrinter& p, Operation*,
                           ::mlir::ArrayAttr attrArr) {
+  // Precision config is an optional attribute, passes null if not specified.
   if (!attrArr) return;
 
   p << ", precision = [";
@@ -1068,10 +1052,9 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
 
   SmallVector<Attribute> attrs;
   if (failed(
-          parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+          parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() -> ParseResult {
             attrs.push_back(PrecisionAttr::parse(parser, {}));
-            if (!attrs.back()) return failure();
-            return success();
+            return success(/*isSuccess=*/bool(attrs.back()));
           }))) {
     return failure();
   }
