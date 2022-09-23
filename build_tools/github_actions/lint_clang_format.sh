@@ -14,11 +14,11 @@
 print_usage() {
   echo "Usage: $0 [-fd]"
   echo "    -f           Auto-fix clang-format issues."
-  echo "    -b <branch>  Base branch name, default origin."
+  echo "    -b <branch>  Base branch name, default to origin/main."
 }
 
 FORMAT_MODE='validate'
-BASE_BRANCH='origin'
+BASE_BRANCH="$(git merge-base HEAD origin/main)"
 while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
@@ -35,16 +35,16 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 echo "Gathering changed files..."
-CLANG_FILES=$(git diff --name-only HEAD $BASE_BRANCH | grep '.*\.h\|.*\.cpp' | xargs)
-if [[ -z "$CLANG_FILES" ]]; then
+CHANGED_FILES=$(git diff --name-only HEAD $BASE_BRANCH | grep '.*\.h\|.*\.cpp' | xargs)
+if [[ -z "$CHANGED_FILES" ]]; then
   echo "No files to format."
   exit 0
 fi
 
 echo "Running clang-format [mode=$FORMAT_MODE]..."
-echo "  Files: $CLANG_FILES"
+echo "  Files: $CHANGED_FILES"
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  clang-format --style=google -i $CLANG_FILES
+  clang-format --style=google -i $CHANGED_FILES
 else
-  clang-format --style=google --dry-run --Werror $CLANG_FILES
+  clang-format --style=google --dry-run --Werror $CHANGED_FILES
 fi
