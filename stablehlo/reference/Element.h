@@ -55,6 +55,12 @@ class Element {
   Attribute value_;
 };
 
+/// Returns element-wise ceil of Element object.
+Element ceil(const Element &e);
+
+/// Returns element-wise floor of Element object.
+Element floor(const Element &e);
+
 /// Returns element-wise sine of Element object.
 Element sine(const Element &e);
 

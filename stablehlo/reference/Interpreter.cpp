@@ -82,8 +82,16 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeRhs = fetchOperand(addOp.rhs());
       Tensor runtimeResult = eval(addOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
+    } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
+      Tensor runtimeOpr = fetchOperand(ceilOp.operand());
+      Tensor runtimeResult = eval(ceilOp, runtimeOpr);
+      populateResults({runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       Tensor runtimeResult = eval(constantOp, constantOp.value());
+      populateResults({runtimeResult});
+    } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
+      Tensor runtimeOpr = fetchOperand(floorOp.operand());
+      Tensor runtimeResult = eval(floorOp, runtimeOpr);
       populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;

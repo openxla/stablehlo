@@ -28,8 +28,24 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   return result;
 }
 
+Tensor eval(CeilOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < operand.getNumElements(); ++i) {
+    result.set(i, ceil(operand.get(i)));
+  }
+  return result;
+}
+
 Tensor eval(ConstantOp op, ElementsAttr value) {
   return Tensor(value.cast<DenseElementsAttr>());
+}
+
+Tensor eval(FloorOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < operand.getNumElements(); ++i) {
+    result.set(i, floor(operand.get(i)));
+  }
+  return result;
 }
 
 Tensor eval(SineOp op, const Tensor &operand) {

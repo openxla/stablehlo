@@ -308,6 +308,8 @@ IEEE-754 specification.
 // %result: [-0.0, -0.0, 1.0, 1.0, 2.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
+
 [Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.constant
@@ -495,6 +497,8 @@ IEEE-754 specification.
 %result = "stablehlo.floor"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
 // %result: [-1.0, -1.0, 0.0, 0.0, 2.0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
