@@ -81,76 +81,129 @@ std::complex<APFloat> getComplexValue(Element element) {
                                arryOfAttr[1].cast<FloatAttr>().getValue());
 }
 
-}  // namespace
-
-Element Element::operator+(const Element &other) const {
-  auto type = getType();
-  assert(type == other.getType());
-
-  if (isSupportedFloatType(type)) {
-    auto left = getFloatValue(*this);
-    auto right = getFloatValue(other);
-    return Element(type, FloatAttr::get(type, left + right));
-  }
+template <typename IntegerFn, typename FloatFn, typename ComplexFn>
+Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
+            ComplexFn complexFn) {
+  Type type = el.getType();
 
   if (isSupportedIntegerType(type)) {
-    auto left = getIntegerValue(*this);
-    auto right = getIntegerValue(other);
-    return Element(type, IntegerAttr::get(type, left + right));
+    auto intEl = getIntegerValue(el);
+    return Element(type, IntegerAttr::get(type, integerFn(intEl)));
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatEl = getFloatValue(el);
+    return Element(type, FloatAttr::get(type, floatFn(floatEl)));
   }
 
   if (isSupportedComplexType(type)) {
     auto complexElemTy = type.cast<ComplexType>().getElementType();
-    auto leftComplexValue = getComplexValue(*this);
-    auto rightComplexValue = getComplexValue(other);
+    auto complexEl = getComplexValue(el);
+    auto complexResult = complexFn(complexEl);
 
     return Element(
         type,
-        ArrayAttr::get(
-            type.getContext(),
-            {FloatAttr::get(complexElemTy,
-                            leftComplexValue.real() + rightComplexValue.real()),
-             FloatAttr::get(complexElemTy, leftComplexValue.imag() +
-                                               rightComplexValue.imag())}));
+        ArrayAttr::get(type.getContext(),
+                       {FloatAttr::get(complexElemTy, complexResult.real()),
+                        FloatAttr::get(complexElemTy, complexResult.imag())}));
   }
 
-  // Report error.
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(type).c_str());
-  report_fatal_error(std::move(err));
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+template <typename IntegerFn, typename FloatFn, typename ComplexFn>
+Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
+            FloatFn floatFn, ComplexFn complexFn) {
+  Type type = lhs.getType();
+  if (lhs.getType() != rhs.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(lhs.getType()).c_str(),
+                                       debugString(rhs.getType()).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue(lhs);
+    auto intRhs = getIntegerValue(rhs);
+    return Element(type, IntegerAttr::get(type, integerFn(intLhs, intRhs)));
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue(lhs);
+    auto floatRhs = getFloatValue(rhs);
+    return Element(type, FloatAttr::get(type, floatFn(floatLhs, floatRhs)));
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexElemTy = type.cast<ComplexType>().getElementType();
+    auto complexLhs = getComplexValue(lhs);
+    auto complexRhs = getComplexValue(rhs);
+    auto complexResult = complexFn(complexLhs, complexRhs);
+
+    return Element(
+        type,
+        ArrayAttr::get(type.getContext(),
+                       {FloatAttr::get(complexElemTy, complexResult.real()),
+                        FloatAttr::get(complexElemTy, complexResult.imag())}));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+template <typename FloatFn, typename ComplexFn>
+Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
+                              ComplexFn complexFn) {
+  Type type = el.getType();
+
+  if (isSupportedFloatType(type)) {
+    APFloat elVal = getFloatValue(el);
+    const llvm::fltSemantics &elSemantics = elVal.getSemantics();
+    APFloat resultVal(floatFn(elVal.convertToDouble()));
+    bool roundingErr;
+    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, FloatAttr::get(type, resultVal));
+  }
+
+  if (isSupportedComplexType(type)) {
+    Type elType = type.cast<ComplexType>().getElementType();
+    auto elVal = getComplexValue(el);
+    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+    auto resultVal = complexFn(std::complex{elVal.real().convertToDouble(),
+                                            elVal.imag().convertToDouble()});
+    bool roundingErr;
+    APFloat resultReal(resultVal.real());
+    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat resultImag(resultVal.imag());
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, ArrayAttr::get(type.getContext(),
+                                        {FloatAttr::get(elType, resultReal),
+                                         FloatAttr::get(elType, resultImag)}));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+}  // namespace
+
+Element Element::operator+(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
+      [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // NOTE: lhs + rhs doesn't work for std::complex<APFloat>
+        // because the default implementation for the std::complex template
+        // needs operator+= which is not defined on APFloat.
+        auto resultReal = lhs.real() + rhs.real();
+        auto resultImag = lhs.imag() + rhs.imag();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
 }
 
 Element sine(const Element &e) {
-  Type type = e.getType();
-  if (isSupportedFloatType(type)) {
-    APFloat val = getFloatValue(e);
-    const llvm::fltSemantics &oldSemantics = val.getSemantics();
-    APFloat sinVal(std::sin(val.convertToDouble()));
-    bool roundingErr;
-    sinVal.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, FloatAttr::get(type, sinVal));
-  } else if (isSupportedComplexType(type)) {
-    auto complex = getComplexValue(e);
-    Type elementType = type.cast<ComplexType>().getElementType();
-    const llvm::fltSemantics &oldSemantics = complex.real().getSemantics();
-    std::complex<double> complexVal(complex.real().convertToDouble(),
-                                    complex.imag().convertToDouble());
-    std::complex<double> sinVal = std::sin(complexVal);
-    bool roundingErr;
-    APFloat realAPF(sinVal.real());
-    realAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat imagAPF(sinVal.imag());
-    imagAPF.convert(oldSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type,
-                   ArrayAttr::get(type.getContext(),
-                                  {FloatAttr::get(elementType, realAPF),
-                                   FloatAttr::get(elementType, imagAPF)}));
-  }
-
-  // Report error.
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(type).c_str());
-  report_fatal_error(std::move(err));
+  return mapWithUpcastToDouble(
+      e, [](double e) { return std::sin(e); },
+      [](std::complex<double> e) { return std::sin(e); });
 }
 
 void Element::print(raw_ostream &os) const { value_.print(os); }
