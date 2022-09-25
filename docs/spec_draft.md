@@ -31,8 +31,8 @@ Following are the supported element types in StableHLO:
 immutable n-dimensional arrays and are referred to in the document as
 `tensor<SxE>` where:
 
-  * **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is an array of
-  **dimension sizes** `di`, in the increasing order of the corresponding
+  * **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is a 1-dimensional array
+  of **dimension sizes** `di`, in the increasing order of the corresponding
   **dimensions** (which are also called **axes**) 0, 1, ..., R-1.
   The size `R` of this array is called **rank**. Dimension sizes have type
   `si64` and are non-negative (dimension sizes equal to zero are allowed,
@@ -45,12 +45,13 @@ For example, `tensor<2x3xf32>` is a tensor type with shape `2x3` and element
 type `f32`. It has two dimensions (or, in other words, two axes) whose sizes
 are 2 and 3. Its rank is 2.
 
-At the logical level, a `tensor<SxE>` maps `R`-dimensional **indices**
+At the logical level, a `tensor<SxE>` maps a 1-dimensional array of **indices**
 `{i0, i1, ..., iR-1}` on **elements** of type `E`. Individual indices have type
 `si64` and are within the range `[0, di)` defined by the corresponding
-dimension. At the moment, StableHLO only supports dense tensors, so each tensor
-has `(d0)x(d1)x...x(dR-1)` elements whose indices are drawn from an
-**index space** which is a Cartesian product of its dimensions. For example:
+dimension. The size of the array is equal to `R`. At the moment, StableHLO only
+supports dense tensors, so each tensor has `(d0)x(d1)x...x(dR-1)` elements whose
+indices are drawn from an **index space** which is a Cartesian product of its
+dimensions. For example:
   * `tensor<2x3xf32>` has 6 elements whose indices are
     `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
   * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
@@ -59,9 +60,17 @@ has `(d0)x(d1)x...x(dR-1)` elements whose indices are drawn from an
     0 elements. Such tensors are allowed and are useful in rare cases, e.g.
     to model empty slices.
 
+**Canonical representation** of a tensor is a 1-dimensional array of elements
+which correspond to indices ordered lexicographically. For example, for a
+`tensor<2x3xf32>` with the following mapping from indices to elements:
+`{0, 0} => 1`, `{0, 1} => 2`, `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`,
+`{1, 2} => 6` - the canonical representation would be: `[1, 2, 3, 4, 5, 6]`.
+
 Exact representation of tensors is implementation-defined. This specification
-does not define in which order tensor elements are laid out in memory and how
-individual tensor elements are packed together into a tensor.
+does not define in which order tensor elements are laid out in memory (e.g.
+whether/when they follow the canonical order) and how individual tensor elements
+in a particular order are packed together into a tensor (e.g. how these elements
+are aligned, whether they are stored contiguously, etc).
 
 ## Programs
 
@@ -123,7 +132,7 @@ syntax.
   * **Tensor constants** use NumPy notation. For example,
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
-  `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 5`.
+  `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
 
 ## Structure of an Op’s Specification
 
