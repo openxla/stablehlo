@@ -21,7 +21,7 @@ Following are the supported element types in StableHLO:
     dynamic range, but with greatly reduced precision. This also ensures
     identical behavior for underflows, overflows, and NaNs. However, `bf16`
     handles denormals differently from `f32`: it flushes them to zero.
-  * **Complex types** represents a pair of floating-point types. Supported ones
+  * **Complex types** represent a pair of floating-point types. Supported ones
     are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
     (represents a pair of `f64`).
 
