@@ -168,8 +168,8 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
     Type elType = type.cast<ComplexType>().getElementType();
     auto elVal = getComplexValue(el);
     const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
-    auto resultVal = complexFn(std::complex{elVal.real().convertToDouble(),
-                                            elVal.imag().convertToDouble()});
+    auto resultVal = complexFn(std::complex<double>(
+        elVal.real().convertToDouble(), elVal.imag().convertToDouble()));
     bool roundingErr;
     APFloat resultReal(resultVal.real());
     resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
