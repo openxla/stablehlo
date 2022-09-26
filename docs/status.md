@@ -27,7 +27,7 @@ one of the following tracking labels.
     
 ## Status
 
-| StableHLO Op (114) | Specification (21) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (2) |
+| StableHLO Op (114) | Specification (21) | Verification (104) | Type Inference (82) | Prettyprinting (76) | Interpreter (4) |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | AbsOp |yes|yes*|yes*|yes|no|
 | AddOp |yes|yes*|yes*|yes| yes|
@@ -45,7 +45,7 @@ one of the following tracking labels.
 | BroadcastOp |no|yes*|yes*|no|no|
 | CaseOp |no|yes*|yes*|no|no|
 | CbrtOp |no|yes*|yes*|yes|no|
-| CeilOp |yes|yes*|yes*|yes|no|
+| CeilOp |yes|yes*|yes*|yes|yes|
 | CholeskyOp |no|yes*|yes*|yes|no|
 | ClampOp |no|yes*|yes*|yes|no|
 | ClzOp |no|yes*|yes*|yes|no|
@@ -77,7 +77,7 @@ one of the following tracking labels.
 | Expm1Op |no|yes*|yes*|yes|no|
 | ExpOp |no|yes*|yes*|yes|no|
 | FftOp |no|yes*|yes*|no|no|
-| FloorOp |yes|yes*|yes*|yes|no|
+| FloorOp |yes|yes*|yes*|yes|yes|
 | GatherOp |no|yes*|yes*|no|no|
 | GetDimensionSizeOp |no|yes*|no|yes|no|
 | GetTupleElementOp |no|yes*|yes(need-revisit)|yes|no|

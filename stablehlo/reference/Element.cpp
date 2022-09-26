@@ -200,6 +200,18 @@ Element Element::operator+(const Element &other) const {
       });
 }
 
+Element ceil(const Element &e) {
+  APFloat val = getFloatValue(e);
+  val.roundToIntegral(APFloat::rmTowardPositive);
+  return Element(e.getType(), FloatAttr::get(e.getType(), val));
+}
+
+Element floor(const Element &e) {
+  APFloat val = getFloatValue(e);
+  val.roundToIntegral(APFloat::rmTowardNegative);
+  return Element(e.getType(), FloatAttr::get(e.getType(), val));
+}
+
 Element sine(const Element &e) {
   return mapWithUpcastToDouble(
       e, [](double e) { return std::sin(e); },
