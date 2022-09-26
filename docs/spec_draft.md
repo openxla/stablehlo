@@ -46,12 +46,14 @@ type `f32`. It has two dimensions (or, in other words, two axes) whose sizes
 are 2 and 3. Its rank is 2.
 
 At the logical level, a `tensor<SxE>` maps a 1-dimensional array of **indices**
-`{i0, i1, ..., iR-1}` on **elements** of type `E`. Individual indices have type
-`si64` and are within the range `[0, di)` defined by the corresponding
-dimension. The size of the array is equal to `R`. At the moment, StableHLO only
-supports dense tensors, so each tensor has `(d0)x(d1)x...x(dR-1)` elements whose
-indices are drawn from an **index space** which is a Cartesian product of its
-dimensions. For example:
+`{i0, i1, ..., iR-1}` on **elements** of type `E`. If a tensor `t` maps an index
+`i` on an element `e`, we say that `t[i0, i1, ... iR-1] = e`.
+
+Individual indices have type `si64` and are within the range `[0, di)` defined
+by the corresponding dimension. The size of the index array is equal to `R`.
+At the moment, StableHLO only supports dense tensors, so each tensor has
+`(d0)x(d1)x...x(dR-1)` elements whose indices are drawn from an **index space**
+which is a Cartesian product of its dimensions. For example:
   * `tensor<2x3xf32>` has 6 elements whose indices are
     `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
   * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
