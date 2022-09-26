@@ -97,7 +97,7 @@ implementation-defined, as long as ops are evaluated before their uses. Possible
 execution orders of the above example program are `%0` → `%1` → `%2` → `return`
 or `%1` → `%0` → `%2` → `return`.
 
-### Errors
+## Errors
 
 StableHLO programs are validated through an extensive set of constraints for
 individual ops, which rules out many classes of errors prior to run time.
@@ -139,7 +139,7 @@ syntax.
 ## Structure of an Op’s Specification
 
 The specification of an op comprises of the following components (in the order
-    described below)
+described below)
 
   * **Semantics** Semantics of the operation.
   * **Operands** Meaning of operand(s) and their type(s).
@@ -148,8 +148,7 @@ The specification of an op comprises of the following components (in the order
   * **Examples** Examples demonstrating the working of the op using
     [MLIR generic syntax](https://mlir.llvm.org/docs/LangRef/#operations).
 
-
-## Index of Documented Ops
+## Index of Ops
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
@@ -173,7 +172,7 @@ The specification of an op comprises of the following components (in the order
    * [tanh](#stablehlotanh)
    * [xor](#stablehloxor)
 
-### stablehlo.abs
+## stablehlo.abs
 
 ### Semantics
 
@@ -186,7 +185,6 @@ defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
   * $-2^n-1$
-
 
 ### Operands
 
@@ -242,8 +240,8 @@ of the following:
   for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
   the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-      underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-        unsigned underflow).
+  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
+  unsigned underflow).
 
 For floating-point element types, it implements the `addition` operation from
 the IEEE-754 specification.
@@ -334,7 +332,6 @@ IEEE-754 specification.
 | Name | Type |
 |-|-|
 | `operand` | tensor of floating-point element types |
-
 
 ### Results
 
@@ -726,7 +723,6 @@ unsigned integer type.
 |-|-|
 | `operand` | tensor of integer, floating-point, or complex element types |
 
-
 ### Results
 
 | Name | Type |
@@ -926,8 +922,8 @@ specification. Numeric precision is implementation-defined.
 ### Semantics
 
 Performs element-wise sine operation on `operand` tensor and produces a `result`
-tensor, implementing the `sin` operation from the IEEE-754
-specification. Numeric precision is implementation-defined.
+tensor, implementing the `sin` operation from the IEEE-754 specification.
+Numeric precision is implementation-defined.
 
 ### Operands
 
@@ -1003,8 +999,8 @@ specification.
 ### Semantics
 
 Performs element-wise tanh operation on `operand` tensor and produces a `result`
-tensor, implementing the `tanh` operation from the IEEE-754
-specification. Numeric precision is implementation-defined.
+tensor, implementing the `tanh` operation from the IEEE-754 specification.
+Numeric precision is implementation-defined.
 
 ### Operands
 
@@ -1046,7 +1042,6 @@ logical operation.
 |-|-|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
-
 
 ## Results
 
