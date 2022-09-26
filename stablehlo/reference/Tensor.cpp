@@ -24,6 +24,7 @@ limitations under the License.
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Index.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -48,6 +49,26 @@ int64_t getSizeInBytes(Type type) {
 
   auto err = invalidArgument("Unsupported type: %s", debugString(type).c_str());
   report_fatal_error(std::move(err));
+}
+
+// Computes the stride of a tensor shape: The number of locations in memory
+// between beginnings of successive array elements, measured in units of the
+// size of the array's elements.
+// Example: For a tensor shape [1,2,3], stride = [6,3,1]
+//
+// Assumption: Only static shapes, with non-zero elements, are supported.
+std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
+  if (std::any_of(shape.begin(), shape.end(),
+                  [](int64_t i) { return i == 0 || i < 0; }))
+    llvm::report_fatal_error(
+        StringRef("Only static shapes with non-zero elemnsts are supported."));
+
+  std::vector<int64_t> stride(shape.size());
+  stride[shape.size() - 1] = 1;
+  for (int i = shape.size() - 2; i >= 0; --i) {
+    stride[i] = stride[i + 1] * shape[i + 1];
+  }
+  return stride;
 }
 
 }  // namespace
@@ -98,11 +119,9 @@ Tensor &Tensor::operator=(const Tensor &other) {
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
-void Tensor::setType(ShapedType type) { impl_->setType(type); }
-
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-int64_t Tensor::flattenIndices(const std::vector<int64_t> &indices) const {
+int64_t Tensor::flattenIndices(llvm::ArrayRef<int64_t> indices) const {
   if (indices.size() != strides_.size())
     llvm::report_fatal_error(StringRef("Unable to flatten indices."));
 
@@ -113,7 +132,7 @@ int64_t Tensor::flattenIndices(const std::vector<int64_t> &indices) const {
   return idx;
 }
 
-Element Tensor::get(const std::vector<int64_t> &indices) const {
+Element Tensor::get(llvm::ArrayRef<int64_t> indices) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
       impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
@@ -238,7 +257,7 @@ std::complex<APFloat> getComplexValue(const Element &element) {
 
 }  // namespace
 
-void Tensor::set(const std::vector<int64_t> &indices, const Element &element) {
+void Tensor::set(llvm::ArrayRef<int64_t> indices, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
       impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
@@ -354,15 +373,20 @@ void Tensor::set(const std::vector<int64_t> &indices, const Element &element) {
   report_fatal_error(std::move(err));
 }
 
+IndexSpaceIterator Tensor::indexBegin() const {
+  return IndexSpaceIterator(getType().getShape());
+}
+
+IndexSpaceIterator Tensor::indexEnd() const {
+  return IndexSpaceIterator(getType().getShape(), /*lastIndex*/ true);
+}
+
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
   os << " {\n";
 
-  DimensionIterator dimIter(getType().getShape());
-  while (dimIter.canIncrement()) {
-    auto nextIndex = dimIter.getNextIndex();
-    os << "  " << get(nextIndex) << "\n";
-  }
+  for (auto it = this->indexBegin(); it != this->indexEnd(); ++it)
+    os << "  " << get(*it) << "\n";
 
   os << "}";
 }
@@ -370,20 +394,6 @@ void Tensor::print(raw_ostream &os) const {
 void Tensor::dump() const {
   print(llvm::errs());
   llvm::errs() << "\n";
-}
-
-std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
-  if (std::any_of(shape.begin(), shape.end(),
-                  [](int64_t i) { return i == 0 || i < 0; }))
-    llvm::report_fatal_error(
-        StringRef("Only static shapes with non-zero elemnsts are supported."));
-
-  std::vector<int64_t> stride(shape.size());
-  stride[shape.size() - 1] = 1;
-  for (int i = shape.size() - 2; i >= 0; --i) {
-    stride[i] = stride[i + 1] * shape[i + 1];
-  }
-  return stride;
 }
 
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {

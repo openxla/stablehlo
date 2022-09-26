@@ -25,6 +25,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Index.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -47,9 +48,6 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
 
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
-
-  /// Updates type of the Buffer object.
-  void setType(ShapedType type) { type_ = type; }
 
   /// Returns the raw data as a byte array.
   char *getData() { return data_.data(); }
@@ -81,27 +79,18 @@ class Tensor {
   /// Returns type of the Tensor object.
   ShapedType getType() const;
 
-  /// Updates type of the Tensor object.
-  void setType(ShapedType type);
-
-  /// Updates stride of the Tensor object.
-  std::vector<int64_t> getStrides() const { return strides_; }
-
-  /// Updates stride of the Tensor object.
-  void setStrides(const std::vector<int64_t> &stride) { strides_ = stride; };
-
   /// Returns the number of elements.
   int64_t getNumElements() const;
 
   /// Provides read access to the tensor element indexed at 'indices'.
-  Element get(const std::vector<int64_t> &indices) const;
+  Element get(llvm::ArrayRef<int64_t> indices) const;
 
   /// Provides write access to the tensor element indexed at 'indices'.
   ///
   /// \param indices The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
   /// underlying storage pointed to by \a indices.
-  void set(const std::vector<int64_t> &indices, const Element &element);
+  void set(llvm::ArrayRef<int64_t> indices, const Element &element);
 
   /// Print utilities for Tensor objects.
   void print(raw_ostream &os) const;
@@ -109,13 +98,17 @@ class Tensor {
   /// Print utilities for Tensor objects.
   void dump() const;
 
+  /// Iterator utils.
+  IndexSpaceIterator indexBegin() const;
+  IndexSpaceIterator indexEnd() const;
+
  private:
   llvm::IntrusiveRefCntPtr<detail::Buffer> impl_;
   std::vector<int64_t> strides_;
 
   // Flattens multi-dimensional index `indices` of a tensor to a linearized
   // index into the underlying storage using the dimension strides `strides_`.
-  int64_t flattenIndices(const std::vector<int64_t> &indices) const;
+  int64_t flattenIndices(llvm::ArrayRef<int64_t> indices) const;
 };
 
 /// Print utilities for Tensor objects.
@@ -123,53 +116,6 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
   tensor.print(os);
   return os;
 }
-
-/// Iterator over the indices of a tensor in  major-to-minor order. As an
-/// example, for a tensor with shape [2,3], the iterator enumerates the
-/// following indices (0,0), (0,1), (0,2), (1,0), (1,1), and (1,2) in that
-/// order.
-class DimensionIterator {
- public:
-  /// \name Constructors
-  DimensionIterator(std::vector<int64_t> shape)
-      : dimensions_(shape), indices_(shape.size()) {
-    if (shape.size() == 0)
-      llvm::report_fatal_error(
-          StringRef("Shape with zero size not supported."));
-    indices_[shape.size() - 1] = -1;
-  }
-
-  /// Get the next index while iterating over the dimensions in major-to-minor
-  /// order.
-  std::vector<int64_t> getNextIndex() const { return indices_; }
-
-  /// Returns true: If it is possible to increment to the next valid index while
-  /// iterating over the dimensions in major-to-minor order.
-  /// Returns false: When all the valid indices are visited.
-  bool canIncrement() {
-    for (int64_t i = dimensions_.size() - 1; i >= 0; --i) {
-      indices_[i] += 1;
-      if (indices_[i] >= dimensions_[i]) {
-        indices_[i] = 0;
-      } else {
-        return true;
-      }
-    }
-    return false;
-  }
-
- private:
-  std::vector<int64_t> dimensions_;
-  std::vector<int64_t> indices_;
-};
-
-// Computes the stride of a tensor shape: The number of locations in memory
-// between beginnings of successive array elements, measured in units of the
-// size of the array's elements.
-// Example: For a tensor shape [1,2,3], stride = [6,3,1]
-//
-// Assumption: Only static shapes, with non-zero elements, are supported.
-std::vector<int64_t> computeStride(ArrayRef<int64_t> shape);
 
 /// Creates a Tensor using `type` as the static type and data provided as an
 /// array of string literal which will be parsed using the corresponding element

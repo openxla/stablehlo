@@ -23,20 +23,17 @@ namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
+  for (auto it = lhs.indexBegin(); it != lhs.indexEnd(); ++it)
+    result.set(*it, lhs.get(*it) + rhs.get(*it));
 
-  DimensionIterator dimIter(lhs.getType().getShape());
-  while (dimIter.canIncrement()) {
-    auto nextIndex = dimIter.getNextIndex();
-    result.set(nextIndex, lhs.get(nextIndex) + rhs.get(nextIndex));
-  }
   return result;
 }
 
 Tensor eval(CeilOp op, const Tensor &operand) {
   Tensor result(op.getType());
-  for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, ceil(operand.get(i)));
-  }
+  for (auto it = operand.indexBegin(); it != operand.indexEnd(); ++it)
+    result.set(*it, ceil(operand.get(*it)));
+
   return result;
 }
 
@@ -54,20 +51,17 @@ Tensor eval(CosineOp op, const Tensor &operand) {
 
 Tensor eval(FloorOp op, const Tensor &operand) {
   Tensor result(op.getType());
-  for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, floor(operand.get(i)));
-  }
+  for (auto it = operand.indexBegin(); it != operand.indexEnd(); ++it)
+    result.set(*it, floor(operand.get(*it)));
+
   return result;
 }
 
 Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
+  for (auto it = operand.indexBegin(); it != operand.indexEnd(); ++it)
+    result.set(*it, sine(operand.get(*it)));
 
-  DimensionIterator dimIter(operand.getType().getShape());
-  while (dimIter.canIncrement()) {
-    auto nextIndex = dimIter.getNextIndex();
-    result.set(nextIndex, sine(operand.get(nextIndex)));
-  }
   return result;
 }
 
