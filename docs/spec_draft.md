@@ -6,33 +6,73 @@ Following are the supported element types in StableHLO:
 
   * **Integer types**
     * Signed integer with two’s complement representation. Referred to in the
-    document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}
+    document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}.
     * Unsigned integer referred to in the document as `ui<N>`, where the
-    bit-width N ∊ {4, 8, 16, 32, 64}
+    bit-width N ∊ {4, 8, 16, 32, 64}.
   * **Boolean types** referred to in the document as `i1`. Exact
   representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
   is implementation-defined.
   * **Floating-point types**
     * Single precision `f32`, double precision `f64` and half precision `f16`
-    floating-points complying with [IEEE 754
+    floating-points complying with [IEEE 754-2019
     format](https://ieeexplore.ieee.org/document/8766229).
-    * Bfloat16 `bf16` floating-point complying with [Brain Floating-Point Format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
+    * Bfloat16 `bf16` floating-point complying with [BFloat16 format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
     Provides the same number of exponent bits as `f32`, so that it matches its
     dynamic range, but with greatly reduced precision. This also ensures
     identical behavior for underflows, overflows, and NaNs. However, `bf16`
     handles denormals differently from `f32`: it flushes them to zero.
   * **Complex types** represent a pair of floating-point types. Supported ones
     are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
-    (represents a pair of `f64`).
+    (represents a pair of `f64`). Exact representation of complex types
+    (e.g. whether the real part or the imaginary part comes first in memory)
+    is implementation-dependent.
 
-StableHLO supports a shaped tensor to model the type of a n-dimensional
-array, represented in the opset as `tensor<SxE>` such that
+**Tensor types** are the cornerstone of the StableHLO type system. They model
+immutable n-dimensional arrays and are referred to in the document as
+`tensor<SxE>` where:
 
-  * Shape `S` is a list of number of elements in each of the dimensions and
-  represented, in increasing order of the corresponding dimension number, as an
-  array of values of type `ui64`. A zero value in a dimension is allowed and
-  represents empty data in that dimension.
-  * Element type `E` is any one of the supported element types mentioned above.
+  * **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is a 1-dimensional array
+  of **dimension sizes** `di`, in the increasing order of the corresponding
+  **dimensions** (which are also called **axes**) 0, 1, ..., R-1.
+  The size `R` of this array is called **rank**. Dimension sizes have type
+  `si64` and are non-negative (dimension sizes equal to zero are allowed,
+  and their meaning is described below). Ranks equal to zero are also allowed,
+  and their meaning is also described below.
+  * **Element type** `E` is any one of the supported element types mentioned a
+  above.
+
+For example, `tensor<2x3xf32>` is a tensor type with shape `2x3` and element
+type `f32`. It has two dimensions (or, in other words, two axes) whose sizes
+are 2 and 3. Its rank is 2.
+
+At the logical level, a `tensor<SxE>` maps a 1-dimensional array of **indices**
+`{i0, i1, ..., iR-1}` on **elements** of type `E`. If a tensor `t` maps an index
+`i` on an element `e`, we say that `t[i0, i1, ... iR-1] = e`.
+
+Individual indices have type `si64` and are within the range `[0, di)` defined
+by the corresponding dimension. The size of the index array is equal to `R`.
+At the moment, StableHLO only supports dense tensors, so each tensor has
+`1*(d0)*(d1)*...*(dR-1)` elements whose indices are drawn from an
+**index space** which is a Cartesian product of its dimensions. For example:
+  * `tensor<2x3xf32>` has 6 elements whose indices are
+    `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
+  * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
+    allowed and are useful to model scalars.
+  * Tensors with dimensions of size zero, e.g. `tensor<2x0xf32>`, have
+    0 elements. Such tensors are allowed and are useful in rare cases, e.g.
+    to model empty slices.
+
+**Canonical representation** of a tensor is a 1-dimensional array of elements
+which correspond to indices ordered lexicographically. For example, for a
+`tensor<2x3xf32>` with the following mapping from indices to elements:
+`{0, 0} => 1`, `{0, 1} => 2`, `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`,
+`{1, 2} => 6` - the canonical representation would be: `[1, 2, 3, 4, 5, 6]`.
+
+Exact representation of tensors is implementation-defined. This specification
+does not define in which order tensor elements are laid out in memory (e.g.
+whether/when they follow the canonical order) and how individual tensor elements
+in a particular order are packed together into a tensor (e.g. how these elements
+are aligned, whether they are stored contiguously, etc).
 
 ## Programs
 
@@ -42,11 +82,11 @@ which is terminated by a return op which produces the results of the function.
 StableHLO ops take operands and produce results.
 
 ```mlir
-ml_program.func @example_func(%arg: tensor<4x16xf32>) -> tensor<4x16xf32> {
- %0 = "stablehlo.floor"(%arg) : (tensor<4x16xf32>) -> tensor<4x16xf32>
- %1 = "stablehlo.ceil"(%arg) : (tensor<4x16xf32>) -> tensor<4x16xf32>
- %2 = "stablehlo.add"(%0, %1) : (tensor<4x16xf32>, tensor<4x16xf32>) -> tensor<4x16xf32>
- ml_program.return %2 : tensor<4x16xf32>
+ml_program.func @example_func(%arg: tensor<2x3xf32>) -> tensor<2x3xf32> {
+ %0 = "stablehlo.floor"(%arg) : (tensor<2x3xf32>) -> tensor<2x3xf32>
+ %1 = "stablehlo.ceil"(%arg) : (tensor<2x3xf32>) -> tensor<2x3xf32>
+ %2 = "stablehlo.add"(%0, %1) : (tensor<2x3xf32>, tensor<2x3xf32>) -> tensor<2x3xf32>
+ ml_program.return %2 : tensor<2x3xf32>
 }
 ```
 
@@ -79,16 +119,22 @@ implementation-defined.
 The section describes the constants supported in StableHLO along with their
 syntax.
 
-  * **Integer Constants** Standard integers, e.g. `123`, are constants of the
-  integer type (signed or unsigned). Negative numbers can be used with signed
-  integer types.
-  * **Boolean Constants** `true` and `false` are both valid constants of the
-  `i1` type.
-  * **Floating-point Constants** Floating-point constants use standard decimal
-  notation, e.g. `123.421`, exponential notation, e.g. `1.23421e+2`, or a more
-  precise hexadecimal notation, e.g. `0x42f6d78d`.
-  * **Complex Constants** Complex constants are represented as a pair of real
-  and imaginary values of `f32` or `f64` types, e.g. `(12.34, 56,78)`.
+  * **Integer constants** use decimal notation, e.g. `123`, or hexadecimal
+  notation, e.g. `ff`. Negative numbers can be used with signed integer types,
+  but not with unsigned integer types.
+  * **Boolean constants** `true` and `false` are both valid constants of the
+  `pred` type.
+  * **Floating-point constants** use decimal notation, e.g. `123.421`,
+  exponential notation, e.g. `1.23421e+2`, or a more precise hexadecimal
+  notation, e.g. `0x42f6d78d`.
+  * **Complex constants** Complex constants are represented as a pair of
+  floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56,78)`,
+  where the first constant is the real part, and the second constant is the
+  imaginary part.
+  * **Tensor constants** use NumPy notation. For example,
+  `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
+  following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
+  `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
 
 ## Structure of an Op’s Specification
 
