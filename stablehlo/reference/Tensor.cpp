@@ -58,16 +58,14 @@ int64_t getSizeInBytes(Type type) {
 //
 // Assumption: Only static shapes, with non-zero elements, are supported.
 std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
-  if (std::any_of(shape.begin(), shape.end(),
-                  [](int64_t i) { return i == 0 || i < 0; }))
-    llvm::report_fatal_error(
-        StringRef("Only static shapes with non-zero elemnsts are supported."));
-
   std::vector<int64_t> stride(shape.size());
+  if(shape.size() == 0) return stride;
+
   stride[shape.size() - 1] = 1;
   for (int i = shape.size() - 2; i >= 0; --i) {
     stride[i] = stride[i + 1] * shape[i + 1];
   }
+
   return stride;
 }
 
