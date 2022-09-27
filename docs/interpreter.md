@@ -9,9 +9,7 @@
 stores the `mlir::ShapedType` of the tensor along with a contiguous byte array
 representing its data laid out in
 [major-to-minor order](https://www.tensorflow.org/xla/shapes). `detail::Buffer`
-objects are reference-counted to simplify memory management. A `Tensor` object
-also stores [stride](https://en.wikipedia.org/wiki/Stride_of_an_array) for each
-dimension to interpret the underlying 1-D storage as a multi-dimensional tensor.
+objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
@@ -19,15 +17,12 @@ this means that we don't have to implement our own machinery for storing values
 of different types inside `Element`.
 
 `Tensor` class has the following APIs to interact with its individual elements:
-  - `Element Tensor::get(const std::vector<int64_t> &indices)`: To extract an
+  - `Element Tensor::get(llvm::ArrayRef<int64_t> indices)`: To extract an
      individual tensor element at multi-dimensional index `indices` as `Element`
      object.
-  - `void Tensor::set(const std::vector<int64_t> &indices, Element element);`:
+  - `void Tensor::set(llvm::ArrayRef<int64_t> indices, Element element);`:
   To insert an `Element` object `element` into a tensor at multi-dimensional
   index `indices`.
-
-The above multi-dimensional indices are mapped to the underlying 1-D storage of
-a tensor using the strides, as mentioned above.
 
 ## Working of the interpreter
 
@@ -55,13 +50,8 @@ an `Element` object, is stored in the final `result` tensor.
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
 
-  // An iterator over the indices of a tensor.
-  DimensionIterator dimIter(lhs.getType().getShape());
-
-  while (dimIter.canIncrement()) {
-    auto nextIndex = dimIter.getNextIndex();
-    result.set(nextIndex, lhs.get(nextIndex) + rhs.get(nextIndex));
-  }
+  for (auto it = lhs.indexBegin(); it != lhs.indexEnd(); ++it)
+    result.set(*it, lhs.get(*it) + rhs.get(*it));
 
   return result;
 }

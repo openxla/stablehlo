@@ -20,20 +20,21 @@ limitations under the License.
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallVector.h"
 
 namespace mlir {
 namespace stablehlo {
 
-/// Iterator over the indices of a tensor in major-to-minor order. As an
-/// example, for a tensor with shape [2,3], the iterator enumerates the
-/// indices (0,0), (0,1), (0,2), (1,0), (1,1), and (1,2).
+/// Iterates over the index space of a tensor with a given shape, producing
+/// indices in lexicographical order. As an example, for a tensor with shape
+/// [2,3], the iterator enumerates the indices (0,0), (0,1), (0,2), (1,0),
+/// (1,1), and (1,2).
 class IndexSpaceIterator {
  public:
-  /// \name Constructors
-  explicit IndexSpaceIterator(const std::vector<int64_t> &shape,
-                              bool lastIndex = false);
+  /// \name Constructor
+  explicit IndexSpaceIterator(llvm::ArrayRef<int64_t> shape, int64_t counter);
 
-  /// Get the current index.
+  /// Get the current indices.
   llvm::ArrayRef<int64_t> operator*() const { return indices_; }
 
   bool operator==(const IndexSpaceIterator &it) {
@@ -42,15 +43,27 @@ class IndexSpaceIterator {
 
   bool operator!=(const IndexSpaceIterator &it) { return !(*this == it); }
 
-  /// Increment to the next valid index while iterating over the dimensions in
-  /// major-to-minor order.
+  /// Increment to the next valid index while iterating over the index space
+  /// of a tensor in lexicographical order. Incrementing beyond the last index
+  /// results in fatal error.
   IndexSpaceIterator &operator++();
   IndexSpaceIterator operator++(int);
 
  private:
-  std::vector<int64_t> shape_;
-  std::vector<int64_t> indices_;
+  /// Shape of the tensor whose index space to be iterated on.
+  llvm::SmallVector<int64_t> shape_;
+
+  /// Current multi-dimentional index.
+  llvm::SmallVector<int64_t> indices_;
+
+  /// Counter for the number of indices iterated. This is also used to set-up
+  /// past-the-end iterator.
   int64_t counter_;
+
+  /// For a tensor with shape 'shape_', 'num_elements_' provodes the total
+  /// number of indices to iterate on. Helps to flag increments beyong the last
+  /// (in lexicographical order) indices.
+  int64_t num_elements_;
 };
 
 }  // namespace stablehlo

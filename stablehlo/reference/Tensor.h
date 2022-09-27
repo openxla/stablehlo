@@ -70,11 +70,11 @@ class Tensor {
   Tensor();
   explicit Tensor(ShapedType type);
   explicit Tensor(DenseElementsAttr attr);
-  Tensor(const Tensor &other);
+  Tensor(const Tensor &other) = default;
   /// @}
 
   /// Assignment operator.
-  Tensor &operator=(const Tensor &other);
+  Tensor &operator=(const Tensor &other) = default;
 
   /// Returns type of the Tensor object.
   ShapedType getType() const;
@@ -83,32 +83,25 @@ class Tensor {
   int64_t getNumElements() const;
 
   /// Provides read access to the tensor element indexed at 'indices'.
-  Element get(llvm::ArrayRef<int64_t> indices) const;
+  Element get(ArrayRef<int64_t> indices) const;
 
   /// Provides write access to the tensor element indexed at 'indices'.
   ///
   /// \param indices The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
   /// underlying storage pointed to by \a indices.
-  void set(llvm::ArrayRef<int64_t> indices, const Element &element);
+  void set(ArrayRef<int64_t> indices, const Element &element);
 
-  /// Print utilities for Tensor objects.
+  /// Prints Tensor objects.
   void print(raw_ostream &os) const;
-
-  /// Print utilities for Tensor objects.
   void dump() const;
 
-  /// Iterator utils.
-  IndexSpaceIterator indexBegin() const;
-  IndexSpaceIterator indexEnd() const;
+  /// Iterate over the index space of a Tensor object.
+  IndexSpaceIterator index_begin() const;
+  IndexSpaceIterator index_end() const;
 
  private:
   llvm::IntrusiveRefCntPtr<detail::Buffer> impl_;
-  std::vector<int64_t> strides_;
-
-  // Flattens multi-dimensional index `indices` of a tensor to a linearized
-  // index into the underlying storage using the dimension strides `strides_`.
-  int64_t flattenIndices(llvm::ArrayRef<int64_t> indices) const;
 };
 
 /// Print utilities for Tensor objects.

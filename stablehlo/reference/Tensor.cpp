@@ -51,22 +51,30 @@ int64_t getSizeInBytes(Type type) {
   report_fatal_error(std::move(err));
 }
 
-// Computes the stride of a tensor shape: The number of locations in memory
-// between beginnings of successive array elements, measured in units of the
-// size of the array's elements.
-// Example: For a tensor shape [1,2,3], stride = [6,3,1]
-//
-// Assumption: Only static shapes, with non-zero elements, are supported.
-std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
-  std::vector<int64_t> stride(shape.size());
-  if (shape.size() == 0) return stride;
+// Flattens multi-dimensional index 'indices' of a tensor to a linearized
+// index into the underlying storage using the dimension strides `strides_`.
+int64_t flattenIndices(ArrayRef<int64_t> shape, ArrayRef<int64_t> indices) {
+  int64_t idx = 0;
+  if (shape.empty()) return idx;
 
-  stride[shape.size() - 1] = 1;
+  // Computes strides of a tensor shape: The number of locations in memory
+  // between beginnings of successive array elements, measured in units of the
+  // size of the array's elements.
+  // Example: For a tensor shape [1,2,3], strides = [6,3,1]
+  std::vector<int64_t> strides(shape.size());
+  strides[shape.size() - 1] = 1;
   for (int i = shape.size() - 2; i >= 0; --i) {
-    stride[i] = stride[i + 1] * shape[i + 1];
+    strides[i] = strides[i + 1] * shape[i + 1];
   }
 
-  return stride;
+  // Use the computed strides to flatten the multi-dimensional index 'indices'
+  // to a linearized index.
+  // Example: For a tensor with shape [1,2,3], strides = [6,3,1], and indices =
+  // [0, 1, 2], the flattened index = 0*6 + 1*3 + 2*1 = 5
+  for (size_t i = 0; i < indices.size(); i++) {
+    idx += strides[i] * indices[i];
+  }
+  return idx;
 }
 
 }  // namespace
@@ -88,9 +96,7 @@ Buffer::Buffer(ShapedType type, const void *data)
 Tensor::Tensor() {}
 
 Tensor::Tensor(ShapedType type)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {
-  strides_ = computeStride(getType().getShape());
-}
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(DenseElementsAttr attr) {
   // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
@@ -100,40 +106,17 @@ Tensor::Tensor(DenseElementsAttr attr) {
   // future.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
                                                     attr.getRawData().data());
-  strides_ = computeStride(attr.getType().getShape());
-}
-
-Tensor::Tensor(const Tensor &other) : strides_(other.strides_) {
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
-                                                    other.impl_->getData());
-}
-
-Tensor &Tensor::operator=(const Tensor &other) {
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
-                                                    other.impl_->getData());
-  strides_ = other.strides_;
-  return *this;
 }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-int64_t Tensor::flattenIndices(llvm::ArrayRef<int64_t> indices) const {
-  if (indices.size() != strides_.size())
-    llvm::report_fatal_error(StringRef("Unable to flatten indices."));
-
-  int64_t idx = 0;
-  for (size_t i = 0; i < indices.size(); i++) {
-    idx += strides_[i] * indices[i];
-  }
-  return idx;
-}
-
-Element Tensor::get(llvm::ArrayRef<int64_t> indices) const {
+Element Tensor::get(ArrayRef<int64_t> indices) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
+      impl_->getData() + getSizeInBytes(elementType) *
+                             flattenIndices(getType().getShape(), indices);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
@@ -255,10 +238,11 @@ std::complex<APFloat> getComplexValue(const Element &element) {
 
 }  // namespace
 
-void Tensor::set(llvm::ArrayRef<int64_t> indices, const Element &element) {
+void Tensor::set(ArrayRef<int64_t> indices, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() + getSizeInBytes(elementType) * flattenIndices(indices);
+      impl_->getData() + getSizeInBytes(elementType) *
+                             flattenIndices(getType().getShape(), indices);
 
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {
@@ -371,19 +355,24 @@ void Tensor::set(llvm::ArrayRef<int64_t> indices, const Element &element) {
   report_fatal_error(std::move(err));
 }
 
-IndexSpaceIterator Tensor::indexBegin() const {
-  return IndexSpaceIterator(getType().getShape());
+IndexSpaceIterator Tensor::index_begin() const {
+  auto shape = getType().getShape();
+  std::vector<int64_t> indices(shape.size());
+  return IndexSpaceIterator(shape, 0);
 }
 
-IndexSpaceIterator Tensor::indexEnd() const {
-  return IndexSpaceIterator(getType().getShape(), /*lastIndex*/ true);
+IndexSpaceIterator Tensor::index_end() const {
+  auto shape = getType().getShape();
+  int64_t numElements = 1;
+  for (auto shapeElm : shape) numElements *= shapeElm;
+  return IndexSpaceIterator(getType().getShape(), numElements);
 }
 
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
   os << " {\n";
 
-  for (auto it = this->indexBegin(); it != this->indexEnd(); ++it)
+  for (auto it = this->index_begin(); it != this->index_end(); ++it)
     os << "  " << get(*it) << "\n";
 
   os << "}";
