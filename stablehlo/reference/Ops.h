@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_OPS_H
 #define STABLHLO_REFERENCE_OPS_H
 
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Tensor.h"
 

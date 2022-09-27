@@ -18,7 +18,9 @@ limitations under the License.
 
 #include <vector>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -110,7 +112,7 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
 /// Creates a Tensor using `type` as the static type and data provided as an
 /// array of string literal which will be parsed using the corresponding element
 /// type.
-Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData);
+Tensor makeTensor(ShapedType type, llvm::ArrayRef<llvm::StringRef> strData);
 
 }  // namespace stablehlo
 }  // namespace mlir
