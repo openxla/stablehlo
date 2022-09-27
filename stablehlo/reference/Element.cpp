@@ -69,24 +69,10 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
                                        debugString(lhs.getType()).c_str(),
                                        debugString(rhs.getType()).c_str()));
 
-<<<<<<< HEAD
   if (isSupportedIntegerType(type)) {
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
     return Element(type, integerFn(intLhs, intRhs));
-=======
-  if (isSupportedSignedIntegerType(type)) {
-    auto intLhs = getIntegerValue(lhs);
-    auto intRhs = getIntegerValue(rhs);
-    return Element(type, IntegerAttr::get(type, integerFn(intLhs, intRhs)));
-  }
-
-  if (isSupportedUnsignedIntegerType(type)) {
-    auto intLhs = getIntegerValue(lhs);
-    auto intRhs = getIntegerValue(rhs);
-    return Element(type,
-                   IntegerAttr::get(type, unsignedIntegerFn(intLhs, intRhs)));
->>>>>>> 6b2f370 (Use map to implment the max/min as per review comments)
   }
 
   if (isSupportedFloatType(type)) {
@@ -135,6 +121,30 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
+}
+
+bool compareEqual(APFloat A, APFloat B) {
+  // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
+  // to ensure -0.0 < +0.0.
+  if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
+    return false;
+  return A.compare(B);
+}
+
+bool compareGreaterThan(APFloat A, APFloat B) {
+  // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
+  // to ensure -0.0 < +0.0.
+  if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
+    return !A.isNegative();
+  return A > B;
+}
+
+bool compareLessThan(APFloat A, APFloat B) {
+  // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
+  // to ensure -0.0 < +0.0.
+  if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
+    return A.isNegative();
+  return A < B;
 }
 
 }  // namespace
@@ -223,71 +233,33 @@ Element max(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
-        return e1.getType().isSignedInteger() ? llvm::APIntOps::smax(lhs, rhs)
-                                              : llvm::APIntOps::umax(lhs, rhs);
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smax(lhs, rhs)
+                   : llvm::APIntOps::umax(lhs, rhs);
       },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto isFloatGreaterThan = [](APFloat A,
-                                     APFloat B) -> llvm::Optional<bool> {
-          // APFloat::compare treats -0.0 == 0.0, but IEEE 754-2018 demands -0 <
-          // +0.
-          if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
-            return !A.isNegative();
-
-          auto cmpRes = A.compare(B);
-          if (cmpRes == APFloat::cmpGreaterThan) return true;
-          if (cmpRes == APFloat::cmpLessThan) return false;
-          if (cmpRes == APFloat::cmpUnordered) return A.isNaN();
-          return llvm::NoneType();
-        };
-
-        // Lexicographic comparison starts with real parts.
-        auto cmpReal = isFloatGreaterThan(lhs.real(), rhs.real());
-        if (cmpReal) return *cmpReal ? lhs : rhs;
-
-        // Real parts are equal, compare the imag parts.
-        auto cmpImag = isFloatGreaterThan(lhs.imag(), rhs.imag());
-        if (cmpImag) return *cmpImag ? lhs : rhs;
-
-        // Both real and imag parts are equal, return any (say the left
-        // operand).
-        return lhs;
+        auto cmpRes = compareEqual(lhs.real(), rhs.real())
+                          ? compareGreaterThan(lhs.imag(), rhs.imag())
+                          : compareGreaterThan(lhs.real(), rhs.real());
+        return cmpRes ? lhs : rhs;
       });
 }
 
 Element min(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
-      [](APInt lhs, APInt rhs) { return llvm::APIntOps::smin(lhs, rhs); },
-      [](APInt lhs, APInt rhs) { return llvm::APIntOps::umin(lhs, rhs); },
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smin(lhs, rhs)
+                   : llvm::APIntOps::umin(lhs, rhs);
+      },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto isFloatLessThan = [](APFloat A,
-                                  APFloat B) -> llvm::Optional<bool> {
-          // APFloat::compare treats -0.0 == 0.0, but IEEE 754-2018 demands -0 <
-          // +0.
-          if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
-            return A.isNegative();
-
-          auto cmpRes = A.compare(B);
-          if (cmpRes == APFloat::cmpLessThan) return true;
-          if (cmpRes == APFloat::cmpGreaterThan) return false;
-          if (cmpRes == APFloat::cmpUnordered) return A.isNaN();
-          return llvm::NoneType();
-        };
-
-        // Lexicographic comparison starts with real parts.
-        auto cmpReal = isFloatLessThan(lhs.real(), rhs.real());
-        if (cmpReal) return *cmpReal ? lhs : rhs;
-
-        // Real parts are equal, compare the imag parts.
-        auto cmpImag = isFloatLessThan(lhs.imag(), rhs.imag());
-        if (cmpImag) return *cmpImag ? lhs : rhs;
-
-        // Both real and imag parts are equal, return any (say the left
-        // operand).
-        return lhs;
+        auto cmpRes = compareEqual(lhs.real(), rhs.real())
+                          ? compareLessThan(lhs.imag(), rhs.imag())
+                          : compareLessThan(lhs.real(), rhs.real());
+        return cmpRes ? lhs : rhs;
       });
 }
 
