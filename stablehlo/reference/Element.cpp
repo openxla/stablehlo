@@ -60,11 +60,9 @@ Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
-template <typename SIntegerFn, typename UIntegerFn, typename FloatFn,
-          typename ComplexFn>
-Element map(const Element &lhs, const Element &rhs, SIntegerFn signedIntegerFn,
-            UIntegerFn unsignedIntegerFn, FloatFn floatFn,
-            ComplexFn complexFn) {
+template <typename IntegerFn, typename FloatFn, typename ComplexFn>
+Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
+            FloatFn floatFn, ComplexFn complexFn) {
   Type type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -80,8 +78,7 @@ Element map(const Element &lhs, const Element &rhs, SIntegerFn signedIntegerFn,
   if (isSupportedSignedIntegerType(type)) {
     auto intLhs = getIntegerValue(lhs);
     auto intRhs = getIntegerValue(rhs);
-    return Element(type,
-                   IntegerAttr::get(type, signedIntegerFn(intLhs, intRhs)));
+    return Element(type, IntegerAttr::get(type, integerFn(intLhs, intRhs)));
   }
 
   if (isSupportedUnsignedIntegerType(type)) {
@@ -173,7 +170,6 @@ std::complex<APFloat> Element::getComplexValue() const {
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
-      [](APInt lhs, APInt rhs) { return lhs + rhs; },
       [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         // NOTE: lhs + rhs doesn't work for std::complex<APFloat>
@@ -226,8 +222,10 @@ Element cosine(const Element &el) {
 Element max(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
-      [](APInt lhs, APInt rhs) { return llvm::APIntOps::smax(lhs, rhs); },
-      [](APInt lhs, APInt rhs) { return llvm::APIntOps::umax(lhs, rhs); },
+      [&](APInt lhs, APInt rhs) {
+        return e1.getType().isSignedInteger() ? llvm::APIntOps::smax(lhs, rhs)
+                                              : llvm::APIntOps::umax(lhs, rhs);
+      },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         auto isFloatGreaterThan = [](APFloat A,
