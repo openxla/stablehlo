@@ -12,12 +12,8 @@ representing its data laid out in
 objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
-discriminated union holding one of `APInt` or `vector<APFloat>` for storage. The
-later is used for storing elements with floating-point or complex types. Note
-that we use `mlir::Attribute` while constructing an `Element` object (via
-    `Element(Type type, Attribute attr)`) or extracting value from `Element`
-object (via `Attribute Element::getValue()`), in order to simplify these
-interfaces.
+discriminated union holding one of `APInt`, `APFloat` or `pair<APFloat,APFloat>`
+for storage. The last one is used for storing elements with complex types.
 
 `Tensor` class has the following APIs to interact with its individual elements:
   - `Element Tensor::get(llvm::ArrayRef<int64_t> index)`: To extract an

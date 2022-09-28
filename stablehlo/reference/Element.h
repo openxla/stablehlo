@@ -21,6 +21,7 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
 
 namespace mlir {
@@ -30,10 +31,10 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, APInt val) : type_(type), value_(val) {}
-  Element(Type type, APFloat val) : type_(type), value_(val) {}
-  Element(Type type, std::complex<APFloat> val)
-      : type_(type), value_(std::make_pair(val.real(), val.imag())) {}
+  Element(Type type, APInt value) : type_(type), value_(value) {}
+  Element(Type type, APFloat value) : type_(type), value_(value) {}
+  Element(Type type, std::complex<APFloat> value)
+      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
 
   Element(const Element &other) = default;
   /// @}
@@ -44,8 +45,16 @@ class Element {
   /// Returns type of the Element object.
   Type getType() const { return type_; }
 
+  /// Returns the underlying integer value stored in an Element object with
+  /// integer type.
   APFloat getFloatValue() const { return std::get<APFloat>(value_); }
+
+  /// Returns the underlying floating-point value stored in an Element object
+  /// with floating-point type.
   APInt getIntegerValue() const { return std::get<APInt>(value_); }
+
+  /// Returns the underlying complex value stored in an Element object with
+  /// complex type.
   std::complex<APFloat> getComplexValue() const {
     auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
     return std::complex<APFloat>(floatPair.first, floatPair.second);

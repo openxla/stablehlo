@@ -90,8 +90,8 @@ func.func @tanh_op_test_c64() -> tensor<2xcomplex<f32>> {
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f32>>
   func.return %1 : tensor<2xcomplex<f32>>
   // CHECK-NEXT: tensor<2xcomplex<f32>>
-  // CHECK-NEXT: [0.967786788 : f32, -0.0926378369 : f32]
-  // CHECK-NEXT: [1.00166273 : f32, 7.52857188E-4 : f32]
+  // CHECK-NEXT:#complex.number<:f32 0.967786788, -0.0926378369>
+  // CHECK-NEXT:#complex.number<:f32 1.00166273, 7.52857188E-4>
 }
 
 // -----
@@ -102,6 +102,6 @@ func.func @tanh_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.96778680215277412, -0.092637836268419898]
-  // CHECK-NEXT: [1.0016627850956348, 7.5285721538218659E-4]
+  // CHECK-NEXT: #complex.number<:f64 0.96778680215277412, -0.092637836268419898>
+  // CHECK-NEXT: #complex.number<:f64 1.0016627850956348, 7.5285721538218659E-4>
 }

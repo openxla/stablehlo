@@ -20,7 +20,6 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Index.h"
 
@@ -73,6 +72,27 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
     idx += strides[i] * index[i];
   }
   return idx;
+}
+
+bool isSupportedUnsignedIntegerType(Type type) {
+  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
+         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
+         type.isUnsignedInteger(64);
+}
+
+bool isSupportedSignedIntegerType(Type type) {
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
+  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
+         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
+         type.isSignlessInteger(64);
+}
+
+bool isSupportedIntegerType(Type type) {
+  return isSupportedUnsignedIntegerType(type) ||
+         isSupportedSignedIntegerType(type);
 }
 
 }  // namespace
@@ -207,24 +227,6 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
   report_fatal_error(std::move(err));
 }
 
-namespace {
-
-APFloat getFloatValue(Element element) {
-  return element.getValue().cast<FloatAttr>().getValue();
-}
-
-APInt getIntegerValue(Element element) {
-  return element.getValue().cast<IntegerAttr>().getValue();
-}
-
-std::complex<APFloat> getComplexValue(Element element) {
-  auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
-  return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
-                               arryOfAttr[1].cast<FloatAttr>().getValue());
-}
-
-}  // namespace
-
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
@@ -267,7 +269,7 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 
   if (elementType.isSignlessInteger(16)) {
     auto elementData = reinterpret_cast<int16_t *>(elementPtr);
-    auto value = getIntegerValue(element);
+    auto value = element.getIntegerValue();
     *elementData = (int16_t)value.getSExtValue();
     return;
   }
