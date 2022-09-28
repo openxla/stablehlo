@@ -131,7 +131,7 @@ one of the following tracking labels.
 | SliceOp |no|yes*|yes*|no|no|
 | SortOp |no|yes*|no|no|no|
 | SqrtOp |yes|yes*|yes*|yes|no|
-| SubtractOp |yes|yes*|yes*|yes|yes|
+| SubtractOp |yes|yes|yes|yes|yes|
 | TanhOp |yes|yes*|yes*|yes|yes|
 | TorchIndexSelectOp |no|no|no|no|no|
 | TraceOp |no|yes*|no|yes|no|

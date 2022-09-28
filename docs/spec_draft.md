@@ -1016,8 +1016,8 @@ one of the following:
   for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
   the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-      underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-        unsigned underflow).
+  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
+  unsigned underflow).
 
 For floating-point element types, it implements the `subtraction` operation from
 the IEEE-754 specification.
@@ -1044,9 +1044,11 @@ the IEEE-754 specification.
 ```mlir
 // %lhs: [[6, 8], [10, 12]]
 // %rhs: [[5, 6], [7, 8]]
-%result = stablehlo.subtract %lhs, %rhs : tensor<2x2xf32>
+%result = "stablehlo.subtract"(%lhs, %rhs) : (tensor<2x2xf32>) -> (tensor<2x2xf32>)
 // %result: [[1, 2], [3, 4]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_subtract.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
