@@ -57,6 +57,8 @@ class IndexSpaceIterator {
   /// Incrementing past the last index will result in a past-the-end iterator
   /// which cannot be dereferenced. Incrementing even further will result in
   /// a fatal error.
+  /// For scalar tensor, which empty 'shape_', incrementing the index result in
+  /// past-the-end iterator.
   IndexSpaceIterator &operator++();
   IndexSpaceIterator operator++(int);
 
