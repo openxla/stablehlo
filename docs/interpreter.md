@@ -9,9 +9,7 @@
 stores the `mlir::ShapedType` of the tensor along with a contiguous byte array
 representing its data laid out in
 [major-to-minor order](https://www.tensorflow.org/xla/shapes). `detail::Buffer`
-objects are reference-counted to simplify memory management. A `Tensor` object
-also stores [stride](https://en.wikipedia.org/wiki/Stride_of_an_array) for each
-dimension to interpret the underlying 1-D storage as a multi-dimensional tensor.
+objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
 `mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
@@ -23,7 +21,7 @@ of different types inside `Element`.
      individual tensor element at multi-dimensional index `index` as `Element`
      object.
   - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
-  To insert an `Element` object `element` into a tensor at multi-dimensional
+  To update an `Element` object `element` into a tensor at multi-dimensional
   index `index`.
 
 ## Working of the interpreter

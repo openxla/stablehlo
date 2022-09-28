@@ -96,9 +96,7 @@ Buffer::Buffer(ShapedType type, const void *data)
 Tensor::Tensor() {}
 
 Tensor::Tensor(ShapedType type)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {
-  strides_ = computeStride(getType().getShape());
-}
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(DenseElementsAttr attr) {
   // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
@@ -108,24 +106,9 @@ Tensor::Tensor(DenseElementsAttr attr) {
   // future.
   impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
                                                     attr.getRawData().data());
-  strides_ = computeStride(attr.getType().getShape());
-}
-
-Tensor::Tensor(const Tensor &other) : strides_(other.strides_) {
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
-                                                    other.impl_->getData());
-}
-
-Tensor &Tensor::operator=(const Tensor &other) {
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(other.getType(),
-                                                    other.impl_->getData());
-  strides_ = other.strides_;
-  return *this;
 }
 
 ShapedType Tensor::getType() const { return impl_->getType(); }
-
-void Tensor::setType(ShapedType type) { impl_->setType(type); }
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
@@ -239,15 +222,15 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 
 namespace {
 
-APFloat getFloatValue(const Element &element) {
+APFloat getFloatValue(Element element) {
   return element.getValue().cast<FloatAttr>().getValue();
 }
 
-APInt getIntegerValue(const Element &element) {
+APInt getIntegerValue(Element element) {
   return element.getValue().cast<IntegerAttr>().getValue();
 }
 
-std::complex<APFloat> getComplexValue(const Element &element) {
+std::complex<APFloat> getComplexValue(Element element) {
   auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
   return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
                                arryOfAttr[1].cast<FloatAttr>().getValue());
@@ -296,7 +279,8 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<int16_t *>(
+        impl_->getData() + getSizeInBytes(elementType) * index);
     auto value = getIntegerValue(element);
     *elementData = (int16_t)value.getSExtValue();
     return;
@@ -396,20 +380,6 @@ void Tensor::print(raw_ostream &os) const {
 void Tensor::dump() const {
   print(llvm::errs());
   llvm::errs() << "\n";
-}
-
-std::vector<int64_t> computeStride(ArrayRef<int64_t> shape) {
-  if (std::any_of(shape.begin(), shape.end(),
-                  [](int64_t i) { return i == 0 || i < 0; }))
-    llvm::report_fatal_error(
-        StringRef("Only static shapes with non-zero elemnsts are supported."));
-
-  std::vector<int64_t> stride(shape.size());
-  stride[shape.size() - 1] = 1;
-  for (int i = shape.size() - 2; i >= 0; --i) {
-    stride[i] = stride[i + 1] * shape[i + 1];
-  }
-  return stride;
 }
 
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
