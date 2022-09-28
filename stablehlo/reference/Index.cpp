@@ -15,32 +15,34 @@ limitations under the License.
 
 #include "stablehlo/reference/Index.h"
 
-#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 
 namespace mlir {
 namespace stablehlo {
 
-IndexSpaceIterator::IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
-                                       int64_t counter)
-    : shape_(shape), counter_(counter) {
-  num_elements_ = 1;
-  for (auto shapeElm : shape) num_elements_ *= shapeElm;
-  indices_.resize(shape.size());
+llvm::ArrayRef<int64_t> IndexSpaceIterator::operator*() const {
+  if (!index_)
+    llvm::report_fatal_error("Dereferencing a past-the-end iterator.");
+  return *index_;
 }
 
 IndexSpaceIterator &IndexSpaceIterator::operator++() {
-  if (counter_ == num_elements_)
-    report_fatal_error(llvm::StringRef("Incrementing beyond the last index."));
+  if (!index_)
+    llvm::report_fatal_error("Incrementing a past-the-end iterator.");
+
   for (int64_t i = shape_.size() - 1; i >= 0; --i) {
-    indices_[i] += 1;
-    if (indices_[i] >= shape_[i]) {
-      indices_[i] = 0;
+    (*index_)[i] += 1;
+    if ((*index_)[i] >= shape_[i]) {
+      (*index_)[i] = 0;
+      if (i == 0) {
+        index_.reset();
+        break;
+      }
     } else {
       break;
     }
   }
 
-  counter_++;
   return *this;
 }
 

@@ -357,15 +357,13 @@ void Tensor::set(ArrayRef<int64_t> indices, const Element &element) {
 
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
-  std::vector<int64_t> indices(shape.size());
-  return IndexSpaceIterator(shape, 0);
+  SmallVector<int64_t> indices(shape.size());
+  return IndexSpaceIterator(shape, indices);
 }
 
 IndexSpaceIterator Tensor::index_end() const {
   auto shape = getType().getShape();
-  int64_t numElements = 1;
-  for (auto shapeElm : shape) numElements *= shapeElm;
-  return IndexSpaceIterator(getType().getShape(), numElements);
+  return IndexSpaceIterator(shape, {});
 }
 
 void Tensor::print(raw_ostream &os) const {
