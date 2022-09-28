@@ -123,15 +123,15 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
-bool compareEqual(APFloat A, APFloat B) {
+bool fcmpOeq(APFloat A, APFloat B) {
   // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
   // to ensure -0.0 < +0.0.
   if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
     return false;
-  return A.compare(B);
+  return A.compare(B) == APFloat::cmpEqual;
 }
 
-bool compareGreaterThan(APFloat A, APFloat B) {
+bool fcmpOgt(APFloat A, APFloat B) {
   // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
   // to ensure -0.0 < +0.0.
   if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
@@ -139,7 +139,7 @@ bool compareGreaterThan(APFloat A, APFloat B) {
   return A > B;
 }
 
-bool compareLessThan(APFloat A, APFloat B) {
+bool fcmpOlt(APFloat A, APFloat B) {
   // APFloat::compare treats -0.0 == 0.0, hence following is an additional check
   // to ensure -0.0 < +0.0.
   if (A.isZero() && B.isZero() && (A.isNegative() != B.isNegative()))
@@ -239,9 +239,9 @@ Element max(const Element &e1, const Element &e2) {
       },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = compareEqual(lhs.real(), rhs.real())
-                          ? compareGreaterThan(lhs.imag(), rhs.imag())
-                          : compareGreaterThan(lhs.real(), rhs.real());
+        auto cmpRes = fcmpOeq(lhs.real(), rhs.real())
+                          ? fcmpOgt(lhs.imag(), rhs.imag())
+                          : fcmpOgt(lhs.real(), rhs.real());
         return cmpRes ? lhs : rhs;
       });
 }
@@ -256,9 +256,9 @@ Element min(const Element &e1, const Element &e2) {
       },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = compareEqual(lhs.real(), rhs.real())
-                          ? compareLessThan(lhs.imag(), rhs.imag())
-                          : compareLessThan(lhs.real(), rhs.real());
+        auto cmpRes = fcmpOeq(lhs.real(), rhs.real())
+                          ? fcmpOlt(lhs.imag(), rhs.imag())
+                          : fcmpOlt(lhs.real(), rhs.real());
         return cmpRes ? lhs : rhs;
       });
 }
