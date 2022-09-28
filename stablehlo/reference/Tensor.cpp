@@ -24,6 +24,7 @@ limitations under the License.
 #include "mlir/AsmParser/AsmParser.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Index.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -48,6 +49,32 @@ int64_t getSizeInBytes(Type type) {
 
   auto err = invalidArgument("Unsupported type: %s", debugString(type).c_str());
   report_fatal_error(std::move(err));
+}
+
+// Flattens multi-dimensional index 'index' of a tensor to a linearized index
+// into the underlying storage where elements are laid out in canonical order.
+int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
+  int64_t idx = 0;
+  if (shape.empty()) return idx;
+
+  // Computes strides of a tensor shape: The number of locations in memory
+  // between beginnings of successive array elements, measured in units of the
+  // size of the array's elements.
+  // Example: For a tensor shape [1,2,3], strides = [6,3,1]
+  std::vector<int64_t> strides(shape.size());
+  strides[shape.size() - 1] = 1;
+  for (int i = shape.size() - 2; i >= 0; --i) {
+    strides[i] = strides[i + 1] * shape[i + 1];
+  }
+
+  // Use the computed strides to flatten the multi-dimensional index 'index'
+  // to a linearized index.
+  // Example: For a tensor with shape [1,2,3], strides = [6,3,1], and index =
+  // [0, 1, 2], the flattened index = 0*6 + 1*3 + 2*1 = 5
+  for (size_t i = 0; i < index.size(); i++) {
+    idx += strides[i] * index[i];
+  }
+  return idx;
 }
 
 }  // namespace
@@ -85,9 +112,11 @@ ShapedType Tensor::getType() const { return impl_->getType(); }
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-Element Tensor::get(int64_t index) const {
+Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
-  char *elementPtr = impl_->getData() + getSizeInBytes(elementType) * index;
+  char *elementPtr =
+      impl_->getData() +
+      getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
@@ -193,15 +222,15 @@ Element Tensor::get(int64_t index) const {
 
 namespace {
 
-APFloat getFloatValue(Element element) {
+APFloat getFloatValue(const Element &element) {
   return element.getValue().cast<FloatAttr>().getValue();
 }
 
-APInt getIntegerValue(Element element) {
+APInt getIntegerValue(const Element &element) {
   return element.getValue().cast<IntegerAttr>().getValue();
 }
 
-std::complex<APFloat> getComplexValue(Element element) {
+std::complex<APFloat> getComplexValue(const Element &element) {
   auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
   return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
                                arryOfAttr[1].cast<FloatAttr>().getValue());
@@ -209,9 +238,11 @@ std::complex<APFloat> getComplexValue(Element element) {
 
 }  // namespace
 
-void Tensor::set(int64_t index, Element element) {
+void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
-  char *elementPtr = impl_->getData() + getSizeInBytes(elementType) * index;
+  char *elementPtr =
+      impl_->getData() +
+      getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {
@@ -248,8 +279,7 @@ void Tensor::set(int64_t index, Element element) {
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(
-        impl_->getData() + getSizeInBytes(elementType) * index);
+    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int16_t)value.getSExtValue();
     return;
@@ -325,12 +355,24 @@ void Tensor::set(int64_t index, Element element) {
   report_fatal_error(std::move(err));
 }
 
+IndexSpaceIterator Tensor::index_begin() const {
+  auto shape = getType().getShape();
+  SmallVector<int64_t> index(shape.size());
+  return IndexSpaceIterator(shape, index);
+}
+
+IndexSpaceIterator Tensor::index_end() const {
+  auto shape = getType().getShape();
+  return IndexSpaceIterator(shape, {});
+}
+
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);
   os << " {\n";
-  for (auto i = 0; i < getNumElements(); ++i) {
-    os << "  " << get(i) << "\n";
-  }
+
+  for (auto it = this->index_begin(); it != this->index_end(); ++it)
+    os << "  " << get(*it) << "\n";
+
   os << "}";
 }
 

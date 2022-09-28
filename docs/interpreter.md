@@ -17,15 +17,12 @@ this means that we don't have to implement our own machinery for storing values
 of different types inside `Element`.
 
 `Tensor` class has the following APIs to interact with its individual elements:
-  - `Element Tensor::get(int64_t index)`: To extract an individual tensor
-  element at index `index` as `Element` object.
-  - `void Tensor::set(int64_t index, Element element);`: To insert an `Element`
-  object `element` into a tensor at index `index`.
-
-For the skeleton of the interpreter, we chose the above linearized APIs for
-accessing tensor elements to simplify the implementation. This is sufficient for
-element-wise ops, and in the future we're planning to expand this to cover more
-complicated op.
+  - `Element Tensor::get(llvm::ArrayRef<int64_t> index)`: To extract an
+     individual tensor element at multi-dimensional index `index` as `Element`
+     object.
+  - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
+  To insert an `Element` object `element` into a tensor at multi-dimensional
+  index `index`.
 
 ## Working of the interpreter
 
@@ -52,9 +49,10 @@ an `Element` object, is stored in the final `result` tensor.
 ```C++
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
-  for (auto i = 0; i < lhs.getNumElements(); ++i) {
-    result.set(i, lhs.get(i) + rhs.get(i));
-  }
+
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+    result.set(*it, lhs.get(*it) + rhs.get(*it));
+
   return result;
 }
 ```
