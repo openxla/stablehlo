@@ -106,7 +106,8 @@ const auto hasDuplicates = [](SmallVector<int64_t>& nums) {
 template <typename OpT>
 static LogicalResult verifyDimAttr(OpT op) {
   int64_t rank = -1;
-  if (auto ty = op.getOperand().getType().template dyn_cast<RankedTensorType>()) {
+  if (auto ty =
+          op.getOperand().getType().template dyn_cast<RankedTensorType>()) {
     rank = ty.getRank();
   } else if (auto ty = op.getType().template dyn_cast<RankedTensorType>()) {
     rank = ty.getRank();
@@ -1876,7 +1877,8 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
 }
 
 LogicalResult CollectivePermuteOp::verify() {
-  return verifyCollectivePermuteSourceTargetPairs(*this, getSourceTargetPairs());
+  return verifyCollectivePermuteSourceTargetPairs(*this,
+                                                  getSourceTargetPairs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2007,11 +2009,11 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
 
   auto rhsType = op.getRhs().getType().cast<RankedTensorType>();
   const int64_t kernelInputFeatures =
-      rhsType
-          .getShape()[op.getDimensionNumbers().getKernelInputFeatureDimension()];
+      rhsType.getShape()[op.getDimensionNumbers()
+                             .getKernelInputFeatureDimension()];
   const int64_t kernelOutputFeatures =
-      rhsType
-          .getShape()[op.getDimensionNumbers().getKernelOutputFeatureDimension()];
+      rhsType.getShape()[op.getDimensionNumbers()
+                             .getKernelOutputFeatureDimension()];
 
   if (!isDynamicDimSize(kernelOutputFeatures)) {
     if (kernelOutputFeatures % batchGroupCount != 0)
@@ -2089,8 +2091,8 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
   const int64_t inputBatch =
       lhsType.getShape()[op.getDimensionNumbers().getInputBatchDimension()];
   const int64_t kernelOutputFeatures =
-      rhsType
-          .getShape()[op.getDimensionNumbers().getKernelOutputFeatureDimension()];
+      rhsType.getShape()[op.getDimensionNumbers()
+                             .getKernelOutputFeatureDimension()];
 
   outputDimensions[op.getDimensionNumbers().getOutputBatchDimension()] =
       isDynamicDimSize(inputBatch) ? ShapedType::kDynamicSize
@@ -2357,7 +2359,8 @@ LogicalResult verifyBatchNorm(Location loc, Value operand,
 // Refer ODS for properties that are already enforced including shapes and
 // element types. This verifier includes additional checks.
 LogicalResult BatchNormGradOp::verify() {
-  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(), getScale())))
+  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(),
+                             getScale())))
     return failure();
   return success();
 }
@@ -2371,7 +2374,8 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
   auto operandType = adaptor.getOperand().getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
-  const int64_t featureCount = operandType.getDimSize(adaptor.getFeatureIndex());
+  const int64_t featureCount =
+      operandType.getDimSize(adaptor.getFeatureIndex());
   SmallVector<int64_t> featureShape{featureCount};
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
@@ -2385,7 +2389,8 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
 // Refer ODS for properties that are already enforced including shapes and
 // element types. This verifier includes additional checks.
 LogicalResult BatchNormTrainingOp::verify() {
-  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(), getScale())))
+  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(),
+                             getScale())))
     return failure();
   return success();
 }
@@ -2399,7 +2404,8 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
   auto operandType = adaptor.getOperand().getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
-  const int64_t featureCount = operandType.getDimSize(adaptor.getFeatureIndex());
+  const int64_t featureCount =
+      operandType.getDimSize(adaptor.getFeatureIndex());
   SmallVector<int64_t> featureShape{featureCount};
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
   inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
@@ -2413,7 +2419,8 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
 // Refer ODS for properties that are already enforced including shapes and
 // element types. This verifier includes additional checks.
 LogicalResult BatchNormInferenceOp::verify() {
-  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(), getScale())))
+  if (failed(verifyBatchNorm(getLoc(), getOperand(), getFeatureIndex(),
+                             getScale())))
     return failure();
   return success();
 }
@@ -3171,7 +3178,8 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
 
 LogicalResult DynamicReshapeOp::verify() {
   auto resultType = getResult().getType().dyn_cast<RankedTensorType>();
-  auto outputShapeType = getOutputShape().getType().dyn_cast<RankedTensorType>();
+  auto outputShapeType =
+      getOutputShape().getType().dyn_cast<RankedTensorType>();
   if (resultType && outputShapeType && outputShapeType.hasStaticShape() &&
       outputShapeType.getDimSize(0) != resultType.getRank()) {
     return emitError() << "output should have a rank equal to the number of "
@@ -3580,11 +3588,11 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
   auto paddingOrErr = convertPaddingAttribute(adaptor.getPadding(), location);
   if (failed(paddingOrErr)) return failure();
 
-  auto windowStridesOrErr =
-      convert1DAttribute(adaptor.getWindowStrides(), location, "window_strides");
+  auto windowStridesOrErr = convert1DAttribute(adaptor.getWindowStrides(),
+                                               location, "window_strides");
   if (failed(windowStridesOrErr)) return failure();
-  auto baseDilationsOrErr =
-      convert1DAttribute(adaptor.getBaseDilations(), location, "base_dilations");
+  auto baseDilationsOrErr = convert1DAttribute(adaptor.getBaseDilations(),
+                                               location, "base_dilations");
   if (failed(baseDilationsOrErr)) return failure();
   auto windowDilationsOrErr = convert1DAttribute(adaptor.getWindowDilations(),
                                                  location, "window_dilations");
@@ -4166,7 +4174,8 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 
   Location loc = this->getLoc();
   SmallVector<Value, 4> shapeValues;
-  SmallVector<int64_t, 4> dimensions(this->getDimensions().getValues<int64_t>());
+  SmallVector<int64_t, 4> dimensions(
+      this->getDimensions().getValues<int64_t>());
   shapeValues.reserve(operandType.getRank());
   Type shapeScalarType = builder.getIndexType();
   auto toShapeScalarType = [&](Value v) {
@@ -4299,7 +4308,8 @@ LogicalResult SelectOp::verify() {
   //   (a) have the same element type, and
   //   (b) have compatible shapes (i.e. the same shape and/or at least one
   //       dynamic shape)
-  if (!compatibleShapeAndElementType(getOnTrue().getType(), getOnFalse().getType()))
+  if (!compatibleShapeAndElementType(getOnTrue().getType(),
+                                     getOnFalse().getType()))
     return emitOpError()
            << "requires compatible types for non-predicate operands";
 
@@ -4572,7 +4582,8 @@ LogicalResult DynamicPadOp::verify() {
                          << ") must match operand rank(" << inputRank << ").";
   }
 
-  auto paddingHighType = getEdgePaddingHigh().getType().cast<RankedTensorType>();
+  auto paddingHighType =
+      getEdgePaddingHigh().getType().cast<RankedTensorType>();
   if (paddingHighType.getNumElements() != inputRank) {
     return emitOpError() << "edge_padding_high length("
                          << paddingHighType.getNumElements()
@@ -4952,7 +4963,8 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
   if (!operandType) return failure();
 
   Location loc = this->getLoc();
-  SmallVector<int64_t, 4> permutation(this->getPermutation().getValues<int64_t>());
+  SmallVector<int64_t, 4> permutation(
+      this->getPermutation().getValues<int64_t>());
   SmallVector<Value, 4> shapeValues(permutation.size());
 
   Type shapeScalarType = builder.getIndexType();
@@ -5031,7 +5043,8 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
   // ODS enforces that a and b are of same element type: float or complex.
-  auto elementType = adaptor.getA().getType().cast<ShapedType>().getElementType();
+  auto elementType =
+      adaptor.getA().getType().cast<ShapedType>().getElementType();
   auto aType = adaptor.getA().getType().dyn_cast<RankedTensorType>();
   if (!aType) {
     inferredReturnShapes.emplace_back(elementType);
@@ -5408,14 +5421,17 @@ LogicalResult ScatterOp::verify() {
   // Get the first operand and update, since variadic Scatter is not yet
   // implemented
   auto numOperands = getInputs().size();
-  auto scatterIndicesType = getScatterIndices().getType().dyn_cast<TensorType>();
+  auto scatterIndicesType =
+      getScatterIndices().getType().dyn_cast<TensorType>();
 
   SmallVector<TensorType, 1> operandTypes =
       llvm::to_vector(llvm::map_range(getInputs().getTypes(), [](Type type) {
         return type.cast<TensorType>();
       }));
-  SmallVector<TensorType, 1> updatesTypes = llvm::to_vector(llvm::map_range(
-      getUpdates().getTypes(), [](Type type) { return type.cast<TensorType>(); }));
+  SmallVector<TensorType, 1> updatesTypes =
+      llvm::to_vector(llvm::map_range(getUpdates().getTypes(), [](Type type) {
+        return type.cast<TensorType>();
+      }));
   bool allOperandTypesRanked =
       llvm::all_of(getInputs().getTypes(),
                    [](Type type) { return type.isa<RankedTensorType>(); });
