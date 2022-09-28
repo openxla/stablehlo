@@ -21,7 +21,7 @@ of different types inside `Element`.
      individual tensor element at multi-dimensional index `index` as `Element`
      object.
   - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
-  To insert an `Element` object `element` into a tensor at multi-dimensional
+  To update an `Element` object `element` into a tensor at multi-dimensional
   index `index`.
 
 ## Working of the interpreter

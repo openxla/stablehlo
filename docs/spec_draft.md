@@ -166,6 +166,7 @@ described below)
    * [not](#stablehlonot)
    * [or](#stablehloor)
    * [remainder](#stablehloremainder)
+   * [reshape](#stablehloreshape)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
    * [sqrt](#stablehlosqrt)
@@ -876,6 +877,49 @@ implementation-defined value.
 %result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xsi32>, tensor<4xsi32>) -> tensor<4xsi32>
 // %result: [2, -2, 2, -2]
 ```
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.reshape
+
+`stablehlo.reshape(operand) -> result`
+
+### Semantics
+
+Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
+amounts to keeping the same canonical representation but potentially changing
+the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
+
+More formally, `result[i0, ..., iR-1]` is equal to `operand[j0, ..., jR'-1]`
+where `i` and `j` have the same position in the lexicographic ordering of
+the index spaces of `result` and `operand`.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of any supported types |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `operand` and `result` have the same number of elements.
+
+### Examples
+
+```mlir
+// %operand: [[1,2,3], [4,5,6]]]
+%result = "stablehlo.reshape"(%operand) : (tensor<2x3xi32>) -> tensor<3x2xi32>
+// %result: [[1,2], [3,4], [5,6]]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
