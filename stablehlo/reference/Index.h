@@ -17,17 +17,17 @@ limitations under the License.
 #define STABLEHLO_REFERENCE_INDEX_H_
 
 #include <cstdint>
-#include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Error.h"
 
 namespace mlir {
 namespace stablehlo {
 
 /// Iterates over the index space of a tensor with a given shape, producing
-/// indices in lexicographical order. As an example, for a tensor with shape
+/// index in lexicographical order. As an example, for a tensor with shape
 /// [2,3], the iterator enumerates the indices (0,0), (0,1), (0,2), (1,0),
 /// (1,1), (1,2) and <END> (special past-the-end element which cannot be
 /// dereferenced).
@@ -36,7 +36,10 @@ class IndexSpaceIterator {
   /// \name Constructor
   IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
                      llvm::Optional<llvm::SmallVector<int64_t>> index)
-      : shape_(shape), index_(index){};
+      : shape_(shape), index_(index) {
+    if (llvm::any_of(shape, [](int64_t shapeElm) { return shapeElm < 0; }))
+      llvm::report_fatal_error("Iterator supports static shapes only.");
+  }
 
   /// Get the current index.
   /// At any point in time, the iterator can either reference an actual index

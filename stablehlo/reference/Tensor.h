@@ -82,15 +82,15 @@ class Tensor {
   /// Returns the number of elements.
   int64_t getNumElements() const;
 
-  /// Provides read access to the tensor element indexed at 'indices'.
-  Element get(ArrayRef<int64_t> indices) const;
+  /// Provides read access to the tensor element indexed at 'index'.
+  Element get(ArrayRef<int64_t> index) const;
 
-  /// Provides write access to the tensor element indexed at 'indices'.
+  /// Provides write access to the tensor element indexed at 'index'.
   ///
-  /// \param indices The multi-dimensional index to write to.
+  /// \param index The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
-  /// underlying storage pointed to by \a indices.
-  void set(ArrayRef<int64_t> indices, const Element &element);
+  /// underlying storage pointed to by \a index.
+  void set(ArrayRef<int64_t> index, const Element &element);
 
   /// Prints Tensor objects.
   void print(raw_ostream &os) const;

@@ -30,7 +30,7 @@ IndexSpaceIterator &IndexSpaceIterator::operator++() {
   if (!index_)
     llvm::report_fatal_error("Incrementing a past-the-end iterator.");
 
-  if(shape_.empty()) index_.reset();
+  if (shape_.empty()) index_.reset();
 
   for (int64_t i = shape_.size() - 1; i >= 0; --i) {
     (*index_)[i] += 1;

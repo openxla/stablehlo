@@ -51,9 +51,9 @@ int64_t getSizeInBytes(Type type) {
   report_fatal_error(std::move(err));
 }
 
-// Flattens multi-dimensional index 'indices' of a tensor to a linearized
+// Flattens multi-dimensional index 'index' of a tensor to a linearized
 // index into the underlying storage using the dimension strides `strides_`.
-int64_t flattenIndices(ArrayRef<int64_t> shape, ArrayRef<int64_t> indices) {
+int64_t flattenindex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
   int64_t idx = 0;
   if (shape.empty()) return idx;
 
@@ -67,12 +67,12 @@ int64_t flattenIndices(ArrayRef<int64_t> shape, ArrayRef<int64_t> indices) {
     strides[i] = strides[i + 1] * shape[i + 1];
   }
 
-  // Use the computed strides to flatten the multi-dimensional index 'indices'
+  // Use the computed strides to flatten the multi-dimensional index 'index'
   // to a linearized index.
-  // Example: For a tensor with shape [1,2,3], strides = [6,3,1], and indices =
+  // Example: For a tensor with shape [1,2,3], strides = [6,3,1], and index =
   // [0, 1, 2], the flattened index = 0*6 + 1*3 + 2*1 = 5
-  for (size_t i = 0; i < indices.size(); i++) {
-    idx += strides[i] * indices[i];
+  for (size_t i = 0; i < index.size(); i++) {
+    idx += strides[i] * index[i];
   }
   return idx;
 }
@@ -112,11 +112,11 @@ ShapedType Tensor::getType() const { return impl_->getType(); }
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-Element Tensor::get(ArrayRef<int64_t> indices) const {
+Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() + getSizeInBytes(elementType) *
-                             flattenIndices(getType().getShape(), indices);
+      impl_->getData() +
+      getSizeInBytes(elementType) * flattenindex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
@@ -238,11 +238,11 @@ std::complex<APFloat> getComplexValue(const Element &element) {
 
 }  // namespace
 
-void Tensor::set(ArrayRef<int64_t> indices, const Element &element) {
+void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() + getSizeInBytes(elementType) *
-                             flattenIndices(getType().getShape(), indices);
+      impl_->getData() +
+      getSizeInBytes(elementType) * flattenindex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {
@@ -357,8 +357,8 @@ void Tensor::set(ArrayRef<int64_t> indices, const Element &element) {
 
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
-  SmallVector<int64_t> indices(shape.size());
-  return IndexSpaceIterator(shape, indices);
+  SmallVector<int64_t> index(shape.size());
+  return IndexSpaceIterator(shape, index);
 }
 
 IndexSpaceIterator Tensor::index_end() const {
