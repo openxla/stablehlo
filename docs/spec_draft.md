@@ -1137,16 +1137,17 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Permutes the dimensions of `operand` tensor using a permutation of its shape
-`permutation` and produces a `result` tensor. The $i^{th}$ dimension of the
-`result` is given by `permutation`$[i]^{th}$ dimension of the `operand`.
+Permutes the dimensions of `operand` tensor using `permutation` and produces a
+`result` tensor. More formally, `result[i0, ..., iR-1]` is equal to
+`operand[j0, ..., jR-1]` where `i[d] = j[permutation[d]]`.
+
 
 ### Operands
 
 | Name | Type |
 |-|-|
 | `operand` | tensor of any supported types |
-| `permutation` | array of type `ui64` |
+| `permutation` | 1-dimensional array of type `si64` |
 
 ### Results
 
@@ -1157,7 +1158,10 @@ Permutes the dimensions of `operand` tensor using a permutation of its shape
 ### Constraints
 
   * (C1) `operand` and `result` have the same element type.
-  * (C2) `permutation` is a permutation of `operand`'s shape.
+  * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
+  rank of `operand`.
+  * (C3) `result`'s shape is a permutation of `operand`'s shape.
+
 
 ### Examples
 

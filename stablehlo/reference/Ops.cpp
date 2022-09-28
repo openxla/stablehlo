@@ -16,10 +16,22 @@ limitations under the License.
 #include "stablehlo/reference/Ops.h"
 
 #include "stablehlo/reference/Element.h"
-#include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {
+
+namespace {
+
+// Appies the permutation `perm` to an array `array` where perm[i] indicates the
+// location where the current array[i] goes.
+std::vector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
+  std::vector<int64_t> result(array.size());
+  for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
+
+  return result;
+}
+
+}  // namespace
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
@@ -37,8 +49,8 @@ Tensor eval(CeilOp op, const Tensor &operand) {
   return result;
 }
 
-Tensor eval(ConstantOp op, ElementsAttr value) {
-  return Tensor(value.cast<DenseElementsAttr>());
+Tensor eval(ConstantOp op) {
+  return Tensor(op.value().cast<DenseElementsAttr>());
 }
 
 Tensor eval(CosineOp op, const Tensor &operand) {
@@ -98,35 +110,15 @@ Tensor eval(TanhOp op, const Tensor &operand) {
   return result;
 }
 
-namespace {
-
-// Appies permutation `perm` to an array `array` where perm[i] indicates the
-// location where the current array[i] goes.
-void applyInPlacePermutation(std::vector<int64_t> &array,
-                             const std::vector<int64_t> &perm) {
-  size_t swapIdx;
-  for (size_t i = 0; i < perm.size(); i++) {
-    swapIdx = perm[i];
-    while (swapIdx < i) {
-      swapIdx = perm[swapIdx];
-    }
-    std::swap(array[i], array[swapIdx]);
+Tensor eval(TransposeOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  SmallVector<int64_t> permutation =
+      to_vector(op.permutation().getValues<int64_t>());
+  for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
+       ++operandIt) {
+    auto resultIndex = permute(*operandIt, permutation);
+    result.set(resultIndex, operand.get(*operandIt));
   }
-}
-
-}  // namespace
-
-Tensor eval(TransposeOp op, const Tensor &operand, DenseIntElementsAttr perm) {
-  Tensor result(operand);
-  result.setType(op.getType());
-
-  // The operation itself does not require any copying but involves swapping
-  // strides.
-  std::vector<int64_t> stride(operand.getStrides());
-  std::vector<int64_t> permutation(perm.getValues<int64_t>().begin(),
-                                   perm.getValues<int64_t>().end());
-  applyInPlacePermutation(stride, permutation);
-  result.setStrides(stride);
   return result;
 }
 
