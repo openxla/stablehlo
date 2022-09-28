@@ -347,6 +347,27 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
 
 // -----
 
+func.func @while(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<4xf32>, %arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>, %arg8: tensor<i32>) -> tensor<index> {
+  %cst = arith.constant dense<-1> : tensor<i32>
+  %cst_0 = arith.constant dense<1> : tensor<i32>
+  %cst_1 = arith.constant dense<0> : tensor<i32>
+  %cst_2 = arith.constant dense<1000> : tensor<i32>
+  %1:3 = "stablehlo.while"(%cst_1, %cst, %cst_2) ({
+  ^bb0(%arg9: tensor<i32>, %arg10: tensor<i32>, %arg11: tensor<i32>):
+    %4 = "stablehlo.compare"(%arg9, %arg11) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%4) : (tensor<i1>) -> ()
+  },  {
+  ^bb0(%arg9: tensor<i32>, %arg10: tensor<i32>, %arg11: tensor<i32>):
+    %3 = stablehlo.add %arg9, %cst_0 : tensor<i32>
+    "stablehlo.return"(%3, %arg10, %arg11) : (tensor<i32>, tensor<i32>, tensor<i32>) -> ()
+  }) : (tensor<i32>, tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>, tensor<i32>)
+  // CHECK: (tensor<i32>) -> tensor<index>
+  %4 = "hlo_test_infer.get_return_type_components"(%1) : (tensor<i32>) -> tensor<index>
+  func.return %4 : tensor<index>
+}
+
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//

@@ -5612,66 +5612,45 @@ LogicalResult ScatterOp::verify() {
 // WhileOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult WhileOp::verify() {
-  if (getNumOperands() != getCond().front().getNumArguments())
-    return emitOpError() << "mismatch in operand count (" << getNumOperands()
-                         << ") vs the condition block argument count ("
-                         << getCond().front().getNumArguments() << ")";
-  if (getNumOperands() != getBody().front().getNumArguments())
-    return emitOpError() << "mismatch in operand count (" << getNumOperands()
-                         << ") vs the body block argument count ("
-                         << getBody().front().getNumArguments() << ")";
-  for (const auto& enumeratedOperands : llvm::enumerate(
-           llvm::zip(getOperandTypes(), getCond().front().getArgumentTypes(),
-                     getBody().front().getArgumentTypes()))) {
-    int argCount = enumeratedOperands.index();
-    const auto& operands = enumeratedOperands.value();
-    Type operandType = std::get<0>(operands);
-    Type condType = std::get<1>(operands);
-    Type bodyType = std::get<2>(operands);
-    if (operandType != condType)
-      return emitOpError() << "type mismatch between operand #" << argCount
-                           << " and the matching condition block argument: "
-                           << operandType << " vs " << condType;
-    if (operandType != bodyType)
-      return emitOpError() << "type mismatch between operand #" << argCount
-                           << " and the matching body block argument: "
-                           << operandType << " vs " << bodyType;
-  }
-  // Check the return type for the condition block.
-  {
-    auto condReturnOp = cast<ReturnOp>(getCond().front().back());
-    if (condReturnOp->getNumOperands() != 1)
-      return condReturnOp.emitOpError()
-             << "expects a single operand for while condition body return, got "
-             << condReturnOp->getNumOperands();
-    auto operandType =
-        condReturnOp->getOperand(0).getType().dyn_cast<RankedTensorType>();
-    if (!operandType || operandType.getRank() != 0 ||
-        !operandType.getElementType().isInteger(1))
-      return condReturnOp.emitOpError()
-             << "expects a zero-ranked tensor of i1, got "
-             << condReturnOp->getOperand(0).getType();
-  }
-  // Check the return type for the body block.
-  {
-    auto bodyReturnOp = cast<ReturnOp>(getBody().front().back());
-    if (bodyReturnOp->getNumOperands() != getNumOperands())
-      return bodyReturnOp.emitOpError()
-             << "expects body to return a many value as the operands ("
-             << getNumOperands() << "), got " << bodyReturnOp->getNumOperands();
-    for (const auto& enumeratedOperandTypes : llvm::enumerate(
-             llvm::zip(bodyReturnOp->getOperandTypes(), getOperandTypes()))) {
-      Type operandType = std::get<0>(enumeratedOperandTypes.value());
-      Type returnType = std::get<1>(enumeratedOperandTypes.value());
-      if (operandType != returnType)
-        return bodyReturnOp.emitOpError()
-               << "type mismatch between operand #"
-               << enumeratedOperandTypes.index()
-               << " and the enclosing WhileOp returned value: " << operandType
-               << " vs " << returnType;
-    }
-  }
+LogicalResult WhileOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  WhileOp::Adaptor adaptor(operands, attributes, regions);
+  auto operandTypes = adaptor.operand().getTypes();
+  auto condArgsTypes = adaptor.cond().front().getArgumentTypes();
+  auto bodyArgsTypes = adaptor.body().front().getArgumentTypes();
+  auto bodyReturnTypes =
+      cast<ReturnOp>(adaptor.body().front().getTerminator())->getOperandTypes();
+  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes)))
+    return emitOptionalError(
+        location, "expect operand matches condition block argument but got ",
+        operandTypes, " vs ", condArgsTypes);
+  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes)))
+    return emitOptionalError(
+        location, "expect operand matches body block argument but got ",
+        operandTypes, " vs ", bodyArgsTypes);
+  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes)))
+    return emitOptionalError(
+        location, "expect operand matches body block return type but got ",
+        operandTypes, " vs ", bodyReturnTypes);
+
+  auto condReturnTypes =
+      cast<ReturnOp>(adaptor.cond().front().back()).getOperandTypes();
+  if (condReturnTypes.size() != 1)
+    return emitOptionalError(
+        location, "expect condition body returns a single value but got ",
+        condReturnTypes.size());
+  auto operandType = condReturnTypes[0].dyn_cast<RankedTensorType>();
+  if (!operandType || operandType.getRank() != 0 ||
+      !operandType.getElementType().isInteger(1))
+    return emitOptionalError(
+        location,
+        "expect condition block return a zero-ranked tensor of i1 but got ",
+        condReturnTypes[0]);
+
+  for (const auto& resultType : adaptor.operand().getType())
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
 

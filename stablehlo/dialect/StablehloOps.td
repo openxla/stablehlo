@@ -1192,8 +1192,8 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
 def StableHLO_WhileOp: StableHLO_Op<"while", [
       RecursiveSideEffects,
-      HLO_PairwiseSameOperandAndResultType,
       SingleBlockImplicitTerminator<"ReturnOp">,
+      InferTensorType,
       OpAsmOpInterface
     ]> {
   let summary = "While operator";
@@ -1222,7 +1222,14 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     }
   }];
   let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
+  
+  // TODO: Remove this after https://github.com/openxla/stablehlo/pull/145 landed.
+  let extraClassDeclaration = [{
+    // Method from InferTypeOpInterface interface.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
+  }]; 
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultElementType]> {
