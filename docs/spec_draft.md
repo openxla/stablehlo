@@ -38,7 +38,7 @@ immutable n-dimensional arrays and are referred to in the document as
   `si64` and are non-negative (dimension sizes equal to zero are allowed,
   and their meaning is described below). Ranks equal to zero are also allowed,
   and their meaning is also described below.
-  * **Element type** `E` is any one of the supported element types mentioned a
+  * **Element type** `E` is any one of the supported element types mentioned
   above.
 
 For example, `tensor<2x3xf32>` is a tensor type with shape `2x3` and element
@@ -128,7 +128,7 @@ syntax.
   exponential notation, e.g. `1.23421e+2`, or a more precise hexadecimal
   notation, e.g. `0x42f6d78d`.
   * **Complex constants** Complex constants are represented as a pair of
-  floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56,78)`,
+  floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56.78)`,
   where the first constant is the real part, and the second constant is the
   imaginary part.
   * **Tensor constants** use NumPy notation. For example,
