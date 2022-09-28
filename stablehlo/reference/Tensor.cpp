@@ -51,9 +51,9 @@ int64_t getSizeInBytes(Type type) {
   report_fatal_error(std::move(err));
 }
 
-// Flattens multi-dimensional index 'index' of a tensor to a linearized
-// index into the underlying storage using the dimension strides `strides_`.
-int64_t flattenindex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
+// Flattens multi-dimensional index 'index' of a tensor to a linearized index
+// into the underlying storage where elements are laid out in canonical order.
+int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
   int64_t idx = 0;
   if (shape.empty()) return idx;
 
@@ -116,7 +116,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
   char *elementPtr =
       impl_->getData() +
-      getSizeInBytes(elementType) * flattenindex(getType().getShape(), index);
+      getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
@@ -242,7 +242,7 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
       impl_->getData() +
-      getSizeInBytes(elementType) * flattenindex(getType().getShape(), index);
+      getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16() || elementType.isBF16()) {

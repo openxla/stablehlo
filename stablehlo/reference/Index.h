@@ -27,7 +27,7 @@ namespace mlir {
 namespace stablehlo {
 
 /// Iterates over the index space of a tensor with a given shape, producing
-/// index in lexicographical order. As an example, for a tensor with shape
+/// indices in lexicographical order. As an example, for a tensor with shape
 /// [2,3], the iterator enumerates the indices (0,0), (0,1), (0,2), (1,0),
 /// (1,1), (1,2) and <END> (special past-the-end element which cannot be
 /// dereferenced).
@@ -60,8 +60,6 @@ class IndexSpaceIterator {
   /// Incrementing past the last index will result in a past-the-end iterator
   /// which cannot be dereferenced. Incrementing even further will result in
   /// a fatal error.
-  /// For scalar tensor, which empty 'shape_', incrementing the index result in
-  /// past-the-end iterator.
   IndexSpaceIterator &operator++();
   IndexSpaceIterator operator++(int);
 
