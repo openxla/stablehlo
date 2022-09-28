@@ -90,16 +90,16 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(constantOp, constantOp.value());
       populateResults({runtimeResult});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(cosineOp.operand());
-      Tensor runtimeResult = eval(cosineOp, runtimeOperand);
+      Tensor runtimeOpr = fetchOperand(cosineOp.operand());
+      Tensor runtimeResult = eval(cosineOp, runtimeOpr);
       populateResults({runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOpr = fetchOperand(floorOp.operand());
       Tensor runtimeResult = eval(floorOp, runtimeOpr);
       populateResults({runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(reshapeOp.operand());
-      Tensor runtimeResult = eval(reshapeOp, runtimeOperand);
+      Tensor runtimeOpr = fetchOperand(reshapeOp.operand());
+      Tensor runtimeResult = eval(reshapeOp, runtimeOpr);
       populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
@@ -108,8 +108,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       }
       return runtimeOperands;
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(sineOp.operand());
-      Tensor runtimeResult = eval(sineOp, runtimeOperand);
+      Tensor runtimeOpr = fetchOperand(sineOp.operand());
+      Tensor runtimeResult = eval(sineOp, runtimeOpr);
       populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = fetchOperand(subtractOp.lhs());
@@ -117,8 +117,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(subtractOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(tanhOp.operand());
-      Tensor runtimeResult = eval(tanhOp, runtimeOperand);
+      Tensor runtimeOpr = fetchOperand(tanhOp.operand());
+      Tensor runtimeResult = eval(tanhOp, runtimeOpr);
       populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
