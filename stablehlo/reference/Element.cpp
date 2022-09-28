@@ -212,10 +212,22 @@ Element floor(const Element &e) {
   return Element(e.getType(), FloatAttr::get(e.getType(), val));
 }
 
+Element cosine(const Element &e) {
+  return mapWithUpcastToDouble(
+      e, [](double e) { return std::cos(e); },
+      [](std::complex<double> e) { return std::cos(e); });
+}
+
 Element sine(const Element &e) {
   return mapWithUpcastToDouble(
       e, [](double e) { return std::sin(e); },
       [](std::complex<double> e) { return std::sin(e); });
+}
+
+Element tanh(const Element &e) {
+  return mapWithUpcastToDouble(
+      e, [](double e) { return std::tanh(e); },
+      [](std::complex<double> e) { return std::tanh(e); });
 }
 
 void Element::print(raw_ostream &os) const { value_.print(os); }

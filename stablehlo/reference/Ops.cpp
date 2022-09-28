@@ -40,6 +40,14 @@ Tensor eval(ConstantOp op, ElementsAttr value) {
   return Tensor(value.cast<DenseElementsAttr>());
 }
 
+Tensor eval(CosineOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < operand.getNumElements(); ++i) {
+    result.set(i, cosine(operand.get(i)));
+  }
+  return result;
+}
+
 Tensor eval(FloorOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto i = 0; i < operand.getNumElements(); ++i) {
@@ -52,6 +60,14 @@ Tensor eval(SineOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto i = 0; i < operand.getNumElements(); ++i) {
     result.set(i, sine(operand.get(i)));
+  }
+  return result;
+}
+
+Tensor eval(TanhOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto i = 0; i < operand.getNumElements(); ++i) {
+    result.set(i, tanh(operand.get(i)));
   }
   return result;
 }

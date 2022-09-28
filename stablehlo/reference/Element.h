@@ -58,11 +58,17 @@ class Element {
 /// Returns element-wise ceil of Element object.
 Element ceil(const Element &e);
 
+/// Returns element-wise cosine of Element object.
+Element cosine(const Element &e);
+
 /// Returns element-wise floor of Element object.
 Element floor(const Element &e);
 
 /// Returns element-wise sine of Element object.
 Element sine(const Element &e);
+
+/// Returns element-wise tanh of Element object.
+Element tanh(const Element &e);
 
 /// Print utilities for Element objects.
 inline raw_ostream &operator<<(raw_ostream &os, Element element) {
