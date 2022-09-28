@@ -47,7 +47,7 @@ are 2 and 3. Its rank is 2.
 
 At the logical level, a `tensor<SxE>` maps a 1-dimensional array of **indices**
 `{i0, i1, ..., iR-1}` on **elements** of type `E`. If a tensor `t` maps an index
-`i` on an element `e`, we say that `t[i0, i1, ... iR-1] = e`.
+`i` on an element `e`, we say that `t[i0, i1, ..., iR-1] = e`.
 
 Individual indices have type `si64` and are within the range `[0, di)` defined
 by the corresponding dimension. The size of the index array is equal to `R`.
@@ -240,7 +240,7 @@ of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
   underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
   unsigned underflow).
@@ -424,6 +424,8 @@ specification. Numeric precision is implementation-defined.
 %result = "stablehlo.cosine"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[1.0, 0.0], [-1.0, 0.0]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
@@ -915,9 +917,9 @@ the index spaces of `result` and `operand`.
 ### Examples
 
 ```mlir
-// %operand: [[1,2,3], [4,5,6]]]
+// %operand: [[1, 2, 3], [4, 5, 6]]]
 %result = "stablehlo.reshape"(%operand) : (tensor<2x3xi32>) -> tensor<3x2xi32>
-// %result: [[1,2], [3,4], [5,6]]
+// %result: [[1, 2], [3, 4], [5, 6]]
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
@@ -1014,7 +1016,7 @@ one of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
   underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
   unsigned underflow).
@@ -1121,6 +1123,8 @@ Numeric precision is implementation-defined.
 %result = "stablehlo.tanh"(%operand) : (tensor<3xf32>) -> tensor<3xf32>
 // %result: [-0.76159416, 0.0, 0.76159416]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 
