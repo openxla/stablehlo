@@ -279,8 +279,7 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   }
 
   if (elementType.isSignlessInteger(16)) {
-    auto elementData = reinterpret_cast<int16_t *>(
-        impl_->getData() + getSizeInBytes(elementType) * index);
+    auto elementData = reinterpret_cast<int16_t *>(elementPtr);
     auto value = getIntegerValue(element);
     *elementData = (int16_t)value.getSExtValue();
     return;
