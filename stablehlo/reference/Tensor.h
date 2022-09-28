@@ -61,7 +61,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
 
 }  // namespace detail
 
-/// Helper class to access the tensor elements in a linearized layout.
+/// Class to model a tensor, an n-dimensional array. Provide access to
+/// individual elements of the tensor using n-dimensional indices.
 class Tensor {
  public:
   /// \name Constructors

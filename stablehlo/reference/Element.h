@@ -27,6 +27,9 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+/// Class to represent an element of a tensor. An Element object stores the
+/// element type of the tensor and, depending on that element type, a constant
+/// value of type integer, floating-paint, or complex type.
 class Element {
  public:
   /// \name Constructors
