@@ -1079,19 +1079,16 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
   auto lhsContractingDims = dimNumbers.getLhsContractingDimensions();
   auto rhsContractingDims = dimNumbers.getRhsContractingDimensions();
 
-  if (lhsBatchingDims.size() != rhsBatchingDims.size()) {
+  if (lhsBatchingDims.size() != rhsBatchingDims.size())
     return emitOptionalError(location,
                              "lhs and rhs should have the same "
                              "number of batching dimensions");
-  }
-  if (lhsContractingDims.size() != rhsContractingDims.size()) {
+  if (lhsContractingDims.size() != rhsContractingDims.size())
     return emitOptionalError(location,
                              "lhs and rhs should have the same "
                              "number of contracting dimensions");
-  }
 
   llvm::SmallDenseSet<int64_t> dimSet;
-
   auto checkDimsDistinct =
       [&](ArrayRef<int64_t> batchingDims, ArrayRef<int64_t> contractingDims,
           llvm::SmallDenseSet<int64_t>& dimSet, llvm::StringRef lhs,
@@ -1099,38 +1096,35 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     auto dims = llvm::concat<const int64_t>(batchingDims, contractingDims);
     for (auto dim : dims) {
       auto [_, wasInserted] = dimSet.insert(dim);
-      if (!wasInserted) {
+      if (!wasInserted)
         return emitOptionalError(location, "has duplicated dimension from ",
                                  lhs, " and ", rhs, ": ", dim);
-      }
     }
     return success();
   };
 
   if (failed(checkDimsDistinct(lhsBatchingDims, lhsContractingDims, dimSet,
                                "lhs_batching_dimensions",
-                               "lhs_contracting_dimensions"))) {
+                               "lhs_contracting_dimensions")))
     return failure();
-  }
+
   dimSet.clear();
+
   if (failed(checkDimsDistinct(rhsBatchingDims, rhsContractingDims, dimSet,
                                "rhs_batching_dimensions",
-                               "rhs_contracting_dimensions"))) {
+                               "rhs_contracting_dimensions")))
     return failure();
-  }
 
   auto checkDimsInRange = [&](int64_t rank, ArrayRef<int64_t> dims,
                               llvm::StringRef dimName) -> LogicalResult {
     auto inRange = [&](int64_t i) -> bool { return 0 <= i && i < rank; };
     const auto* dimsNotInRange =
         std::find_if_not(dims.begin(), dims.end(), inRange);
-    if (dimsNotInRange != dims.end()) {
+    if (dimsNotInRange != dims.end())
       return emitOptionalError(location, dimName, " value: ", *dimsNotInRange,
                                " is out of range: ", "[0, ", rank, ")");
-    }
     return success();
   };
-
   auto lhsType = adaptor.lhs().getType().dyn_cast<RankedTensorType>();
   auto rhsType = adaptor.rhs().getType().dyn_cast<RankedTensorType>();
 
@@ -1138,67 +1132,57 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     if (failed(checkDimsInRange(lhsType.getRank(), lhsBatchingDims,
                                 "lhs_batching_dimensions")) ||
         failed(checkDimsInRange(lhsType.getRank(), lhsContractingDims,
-                                "lhs_contracting_dimensions"))) {
+                                "lhs_contracting_dimensions")))
       return failure();
-    }
   }
   if (rhsType) {
     if (failed(checkDimsInRange(rhsType.getRank(), rhsBatchingDims,
                                 "rhs_batching_dimensions")) ||
         failed(checkDimsInRange(rhsType.getRank(), rhsContractingDims,
-                                "rhs_contracting_dimensions"))) {
+                                "rhs_contracting_dimensions")))
       return failure();
-    }
   }
-
   if (lhsType && rhsType) {
     // Dimension sizes must be compatible for lhs/rhs.
     auto lhsShape = lhsType.getShape();
     auto rhsShape = rhsType.getShape();
 
-    for (auto [lhs, rhs] : llvm::zip(lhsBatchingDims, rhsBatchingDims)) {
-      if (lhsShape[lhs] != rhsShape[rhs]) {
+    for (auto [lhs, rhs] : llvm::zip(lhsBatchingDims, rhsBatchingDims))
+      if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "batching dimension sizes must "
                                  "match for lhs/rhs");
-      }
-    }
-    for (auto [lhs, rhs] : llvm::zip(lhsContractingDims, rhsContractingDims)) {
-      if (lhsShape[lhs] != rhsShape[rhs]) {
+    for (auto [lhs, rhs] : llvm::zip(lhsContractingDims, rhsContractingDims))
+      if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "contracting dimension sizes must "
                                  "match for lhs/rhs");
-      }
-    }
   }
 
   auto lhs = adaptor.lhs().getType().cast<ShapedType>();
   auto rhs = adaptor.rhs().getType().cast<ShapedType>();
   auto elementType = lhs.getElementType();
+
   if (!lhs.hasRank() || !rhs.hasRank()) {
     inferredReturnShapes.emplace_back(elementType);
     return success();
   }
+
   auto lhsShape = lhs.getShape();
   auto rhsShape = rhs.getShape();
 
   // Infer the output dimensions of the operation.
   SmallVector<int64_t> dimensions;
-  for (const int64_t lhsBatchingDim : lhsBatchingDims) {
+  for (const int64_t lhsBatchingDim : lhsBatchingDims)
     dimensions.push_back(lhsShape[lhsBatchingDim]);
-  }
-  for (int64_t i = 0; i < lhs.getRank(); i++) {
+  for (int64_t i = 0; i < lhs.getRank(); i++)
     if (!llvm::is_contained(lhsBatchingDims, i) &&
-        !llvm::is_contained(lhsContractingDims, i)) {
+        !llvm::is_contained(lhsContractingDims, i))
       dimensions.push_back(lhsShape[i]);
-    }
-  }
-  for (int64_t i = 0; i < rhs.getRank(); i++) {
+  for (int64_t i = 0; i < rhs.getRank(); i++)
     if (!llvm::is_contained(rhsBatchingDims, i) &&
-        !llvm::is_contained(rhsContractingDims, i)) {
+        !llvm::is_contained(rhsContractingDims, i))
       dimensions.push_back(rhsShape[i]);
-    }
-  }
 
   inferredReturnShapes.emplace_back(dimensions, elementType);
   return success();

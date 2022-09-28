@@ -488,7 +488,7 @@ func.func @broadcast_in_dim_unranked_operand(%arg0 : tensor<*xf32>) -> tensor<2x
 
 // -----
 
-// CHECK-LABEL: if 
+// CHECK-LABEL: if
 func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>) {
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
@@ -2335,6 +2335,21 @@ func.func @reshape_invalid_shapes(%operand: tensor<2x4xf32>) -> tensor<3x3xf32> 
 
 // -----
 
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
+  func.return %0 : tensor<2x4x5xf32>
+}
+
+// -----
+
 func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -2718,6 +2733,22 @@ func.func @dot_general(%arg0: tensor<?x2x?xf32>, %arg1: tensor<?x3x?xf32>) {
     >
   } : (tensor<?x2x?xf32>, tensor<?x3x?xf32>) -> tensor<?x?x?xf32>
   func.return
+}
+
+// -----
+
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x6xf32> {
+  // expected-error@+1 {{'stablehlo.dot_general' op inferred type(s) 'tensor<2x4x5xf32>' are incompatible with return type(s) of operation 'tensor<2x4x6xf32>'}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x6xf32>
+  func.return %0 : tensor<2x4x6xf32>
 }
 
 // -----
