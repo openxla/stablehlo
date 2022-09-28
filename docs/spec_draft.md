@@ -190,14 +190,14 @@ defined and one of the following:
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                                        |
+|-----------|-------------------------------------------------------------|
 | `operand` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -250,15 +250,15 @@ the IEEE-754 specification.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                        |
+|-------|-------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex element types |
 | `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -286,24 +286,24 @@ Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
 types and produces a `result` tensor. For boolean tensors, it computes the
 logical operation.
 
-## Operands
+### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                       |
+|-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-## Results
+### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                       |
+|----------|--------------------------------------------|
 | `result` | tensor of integer or boolean element types |
 
-## Constraints
+### Constraints
 
   * (C1) `lhs`, `rhs` and `result` have the same type.
 
-## Examples
+### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors
@@ -331,14 +331,14 @@ IEEE-754 specification.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                   |
+|-----------|----------------------------------------|
 | `operand` | tensor of floating-point element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                   |
+|----------|----------------------------------------|
 | `result` | tensor of floating-point element types |
 
 ### Constraints
@@ -365,14 +365,14 @@ Produces a `result` tensor from a constant `value`.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name    | Type                            |
+|---------|---------------------------------|
 | `value` | constant of any supported types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                          |
+|----------|-------------------------------|
 | `result` | tensor of any supported types |
 
 ### Constraints
@@ -400,14 +400,14 @@ specification. Numeric precision is implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -440,15 +440,15 @@ produces an implementation-defined value.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                       |
+|-------|------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex element types |
 | `rhs` | tensor of integer, floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                       |
+|----------|------------------------------------------------------------|
 | `result` | tensor of integer, floating-point or complex element types |
 
 ### Constraints
@@ -483,14 +483,14 @@ implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -521,14 +521,14 @@ IEEE-754 specification.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                   |
+|-----------|----------------------------------------|
 | `operand` | tensor of floating-point element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                   |
+|----------|----------------------------------------|
 | `result` | tensor of floating-point element types |
 
 ### Constraints
@@ -559,14 +559,14 @@ implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -600,14 +600,14 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -639,15 +639,15 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                        |
+|-------|-------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex element types |
 | `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -676,15 +676,15 @@ lexicographic comparison on the (real, imaginary) pairs.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                        |
+|-------|-------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex element types |
 | `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -721,14 +721,14 @@ unsigned integer type.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                                        |
+|-----------|-------------------------------------------------------------|
 | `operand` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -760,14 +760,14 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 
 ### Arguments
 
-| Name | Type |
-|-|-|
+| Name      | Type                                       |
+|-----------|--------------------------------------------|
 | `operand` | tensor of integer or boolean element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                       |
+|----------|--------------------------------------------|
 | `result` | tensor of integer or boolean element types |
 
 ### Constraints
@@ -798,24 +798,24 @@ Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
 and produces a `result` tensor. For boolean tensors, it computes the logical
 operation.
 
-## Operands
+### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                       |
+|-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-## Results
+### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                       |
+|----------|--------------------------------------------|
 | `result` | tensor of integer or boolean element types |
 
-## Constraints
+### Constraints
 
   * (C1) `operand` and `result` have the same type.
 
-## Examples
+### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors
@@ -850,15 +850,15 @@ implementation-defined value.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                       |
+|-------|------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex element types |
 | `rhs` | tensor of integer, floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                       |
+|----------|------------------------------------------------------------|
 | `result` | tensor of integer, floating-point or complex element types |
 
 ### Constraints
@@ -897,14 +897,14 @@ the index spaces of `result` and `operand`.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                          |
+|-----------|-------------------------------|
 | `operand` | tensor of any supported types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                          |
+|----------|-------------------------------|
 | `result` | tensor of any supported types |
 
 ### Constraints
@@ -934,14 +934,14 @@ specification. Numeric precision is implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -972,14 +972,14 @@ Numeric precision is implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -1024,15 +1024,15 @@ the IEEE-754 specification.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                                        |
+|-------|-------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex element types |
 | `rhs` | tensor of integer, floating-point, or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex element types |
 
 ### Constraints
@@ -1062,14 +1062,14 @@ specification.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -1100,14 +1100,14 @@ Numeric precision is implementation-defined.
 
 ### Operands
 
-| Name | Type |
-|-|-|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
 | `result` | tensor of floating-point or complex element types |
 
 ### Constraints
@@ -1132,24 +1132,24 @@ Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
 types and produces a `result` tensor. For boolean tensors, it computes the
 logical operation.
 
-## Operands
+### Operands
 
-| Name | Type |
-|-|-|
+| Name  | Type                                       |
+|-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-## Results
+### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                                       |
+|----------|--------------------------------------------|
 | `result` | tensor of integer or boolean element types |
 
-## Constraints
+### Constraints
 
   * (C1) `lhs`, `rhs` and `result` have the same type.
 
-## Examples
+### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors

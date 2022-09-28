@@ -229,7 +229,6 @@ func.func @add_op_test_f64() -> tensor<11xf64> {
   // CHECK-NEXT: 0x7FF0000000000000 : f64
   // CHECK-NEXT: 0xFFF0000000000000 : f64
   // CHECK-NEXT: 0x7FF8000000000000 : f64
-
   // CHECK-NEXT: 0.000000e+00 : f64
 }
 
