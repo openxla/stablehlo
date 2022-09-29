@@ -112,8 +112,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(sineOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
-      Tensor runtimeLhs = fetchOperand(subtractOp.lhs());
-      Tensor runtimeRhs = fetchOperand(subtractOp.rhs());
+      Tensor runtimeLhs = fetchOperand(subtractOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(subtractOp.getRhs());
       Tensor runtimeResult = eval(subtractOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
