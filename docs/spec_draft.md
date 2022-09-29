@@ -228,7 +228,7 @@ defined and one of the following:
 // %result = [1, 5.0]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.add
 
@@ -277,7 +277,7 @@ the IEEE-754 specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.and
 
@@ -320,7 +320,7 @@ logical operation.
 // %result: [[false, false], [false, true]]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.ceil
 
@@ -356,7 +356,7 @@ IEEE-754 specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.constant
 
@@ -389,7 +389,7 @@ Produces a `result` tensor from a constant `value`.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.cosine
 
@@ -428,7 +428,7 @@ specification. Numeric precision is implementation-defined.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.divide
 
@@ -472,7 +472,7 @@ produces an implementation-defined value.
 // %result: [5, -5, -5, 5]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.exp
 
@@ -512,7 +512,7 @@ implementation-defined.
 // %result: (-1.13120438, 2.47172667)
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.floor
 
@@ -548,7 +548,7 @@ IEEE-754 specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.log
 
@@ -588,7 +588,7 @@ implementation-defined.
 // %result: (0.80471896, 1.10714871)
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.logistic
 
@@ -629,7 +629,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 // %result: (1.02141536, 0.40343871)
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.maximum
 
@@ -666,7 +666,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 // %result: [[5, 6], [7, 8]]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.minimum
 
@@ -703,7 +703,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 // %result: [[1, 2], [3, 4]]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.negate
 
@@ -754,7 +754,7 @@ unsigned integer type.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_negate.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.not
 
@@ -793,7 +793,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 // %result: [false, true]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.or
 
@@ -836,7 +836,7 @@ operation.
 // %result: [[false, true], [true, true]]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.remainder
 
@@ -884,7 +884,7 @@ implementation-defined value.
 // %result: [2, -2, 2, -2]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.reshape
 
@@ -927,7 +927,7 @@ the index spaces of `result` and `operand`.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.rsqrt
 
@@ -965,7 +965,7 @@ specification. Numeric precision is implementation-defined.
 // %result: [(0.56886448, -0.35157758)]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.sine
 
@@ -1004,7 +1004,7 @@ Numeric precision is implementation-defined.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.subtract
 
@@ -1055,7 +1055,7 @@ the IEEE-754 specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_subtract.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.sqrt
 
@@ -1093,7 +1093,7 @@ specification.
 // %result: [(1.27201965, 0.78615138)]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.tanh
 
@@ -1129,7 +1129,7 @@ Numeric precision is implementation-defined.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.transpose
 
@@ -1178,7 +1178,7 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.xor
 
@@ -1221,4 +1221,4 @@ logical operation.
 // %result: [[false, true], [true, false]]
 ```
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
