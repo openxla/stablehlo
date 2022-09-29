@@ -102,6 +102,6 @@ func.func @tanh_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.96778680215277412, -0.092637836268419898]
-  // CHECK-NEXT: [1.0016627850956348, 7.5285721538218659E-4]
+  // CHECK-NEXT: [0.96778680215277412 : f64, -0.092637836268419898 : f64]
+  // CHECK-NEXT: [1.0016627850956348 : f64, 7.5285721538218659E-4 : f64]
 }

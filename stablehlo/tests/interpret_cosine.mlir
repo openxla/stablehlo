@@ -102,6 +102,6 @@ func.func @cosine_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.cosine %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.43378099760770306, -6.0350486377665726]
-  // CHECK-NEXT: [-42.153773835602316, 15.786301507647636]
+  // CHECK-NEXT: [0.43378099760770306 : f64, -6.0350486377665726 : f64]
+  // CHECK-NEXT: [-42.153773835602316 : f64, 15.786301507647636 : f64]
 }

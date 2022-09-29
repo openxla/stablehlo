@@ -12,9 +12,8 @@ representing its data laid out in
 objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
-`mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
-this means that we don't have to implement our own machinery for storing values
-of different types inside `Element`.
+discriminated union holding one of `APInt`, `APFloat` or `pair<APFloat,APFloat>`
+for storage. The last one is used for storing elements with complex types.
 
 `Tensor` class has the following APIs to interact with its individual elements:
   - `Element Tensor::get(llvm::ArrayRef<int64_t> index)`: To extract an
@@ -70,7 +69,7 @@ We can use the interpreter mechanism to fold operations with constant operand
 values. The following code snippet demonstrates an idea of the implementation
 for folding `stablehlo::AddOp` with floating-point typed operands:
 
-```
+```C++
 OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
   DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
   DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
@@ -107,7 +106,7 @@ In the current implementation, we package the inputs (MLIR program + input data
 values) and outputs in a
 [lit-based](https://llvm.org/docs/CommandGuide/lit.html) test as follows:
 
-```c++
+```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
 func.func @add_op_test_ui4() -> tensor<2xui4> {
   %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>

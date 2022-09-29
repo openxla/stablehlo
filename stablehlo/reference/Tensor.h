@@ -23,7 +23,6 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
 
@@ -62,7 +61,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
 
 }  // namespace detail
 
-/// Helper class to access the tensor elements in a linearized layout.
+/// Class to model a tensor, an n-dimensional array. Provide access to
+/// individual elements of the tensor using n-dimensional indices.
 class Tensor {
  public:
   /// \name Constructors

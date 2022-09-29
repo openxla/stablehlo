@@ -20,8 +20,8 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 
 namespace mlir {
@@ -34,78 +34,25 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
 }
 
-bool isSupportedUnsignedIntegerType(Type type) {
-  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
-         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
-         type.isUnsignedInteger(64);
-}
-
-bool isSupportedSignedIntegerType(Type type) {
-  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
-  // integers which was added in MHLO for legacy reasons. Going forward,
-  // StableHLO will adopt signfull integer semantics with signed and unsigned
-  // integer variants.
-  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
-         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
-         type.isSignlessInteger(64);
-}
-
-bool isSupportedIntegerType(Type type) {
-  return isSupportedUnsignedIntegerType(type) ||
-         isSupportedSignedIntegerType(type);
-}
-
-bool isSupportedFloatType(Type type) {
-  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
-}
-
-bool isSupportedComplexType(Type type) {
-  auto complexTy = type.dyn_cast<mlir::ComplexType>();
-  if (!complexTy) return false;
-
-  auto complexElemTy = complexTy.getElementType();
-  return complexElemTy.isF32() || complexElemTy.isF64();
-}
-
-APFloat getFloatValue(Element element) {
-  return element.getValue().cast<FloatAttr>().getValue();
-}
-
-APInt getIntegerValue(Element element) {
-  return element.getValue().cast<IntegerAttr>().getValue();
-}
-
-std::complex<APFloat> getComplexValue(Element element) {
-  auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
-  return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
-                               arryOfAttr[1].cast<FloatAttr>().getValue());
-}
-
 template <typename IntegerFn, typename FloatFn, typename ComplexFn>
 Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
             ComplexFn complexFn) {
   Type type = el.getType();
 
   if (isSupportedIntegerType(type)) {
-    auto intEl = getIntegerValue(el);
-    return Element(type, IntegerAttr::get(type, integerFn(intEl)));
+    auto intEl = el.getIntegerValue();
+    return Element(type, integerFn(intEl));
   }
 
   if (isSupportedFloatType(type)) {
-    auto floatEl = getFloatValue(el);
-    return Element(type, FloatAttr::get(type, floatFn(floatEl)));
+    auto floatEl = el.getFloatValue();
+    return Element(type, floatFn(floatEl));
   }
 
   if (isSupportedComplexType(type)) {
-    auto complexElemTy = type.cast<ComplexType>().getElementType();
-    auto complexEl = getComplexValue(el);
+    auto complexEl = el.getComplexValue();
     auto complexResult = complexFn(complexEl);
-
-    return Element(
-        type,
-        ArrayAttr::get(type.getContext(),
-                       {FloatAttr::get(complexElemTy, complexResult.real()),
-                        FloatAttr::get(complexElemTy, complexResult.imag())}));
+    return Element(type, complexResult);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -122,28 +69,22 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
                                        debugString(rhs.getType()).c_str()));
 
   if (isSupportedIntegerType(type)) {
-    auto intLhs = getIntegerValue(lhs);
-    auto intRhs = getIntegerValue(rhs);
-    return Element(type, IntegerAttr::get(type, integerFn(intLhs, intRhs)));
+    auto intLhs = lhs.getIntegerValue();
+    auto intRhs = rhs.getIntegerValue();
+    return Element(type, integerFn(intLhs, intRhs));
   }
 
   if (isSupportedFloatType(type)) {
-    auto floatLhs = getFloatValue(lhs);
-    auto floatRhs = getFloatValue(rhs);
-    return Element(type, FloatAttr::get(type, floatFn(floatLhs, floatRhs)));
+    auto floatLhs = lhs.getFloatValue();
+    auto floatRhs = rhs.getFloatValue();
+    return Element(type, floatFn(floatLhs, floatRhs));
   }
 
   if (isSupportedComplexType(type)) {
-    auto complexElemTy = type.cast<ComplexType>().getElementType();
-    auto complexLhs = getComplexValue(lhs);
-    auto complexRhs = getComplexValue(rhs);
+    auto complexLhs = lhs.getComplexValue();
+    auto complexRhs = rhs.getComplexValue();
     auto complexResult = complexFn(complexLhs, complexRhs);
-
-    return Element(
-        type,
-        ArrayAttr::get(type.getContext(),
-                       {FloatAttr::get(complexElemTy, complexResult.real()),
-                        FloatAttr::get(complexElemTy, complexResult.imag())}));
+    return Element(type, complexResult);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -156,17 +97,16 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
   Type type = el.getType();
 
   if (isSupportedFloatType(type)) {
-    APFloat elVal = getFloatValue(el);
+    APFloat elVal = el.getFloatValue();
     const llvm::fltSemantics &elSemantics = elVal.getSemantics();
     APFloat resultVal(floatFn(elVal.convertToDouble()));
     bool roundingErr;
     resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, FloatAttr::get(type, resultVal));
+    return Element(type, resultVal);
   }
 
   if (isSupportedComplexType(type)) {
-    Type elType = type.cast<ComplexType>().getElementType();
-    auto elVal = getComplexValue(el);
+    auto elVal = el.getComplexValue();
     const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
     auto resultVal = complexFn(std::complex<double>(
         elVal.real().convertToDouble(), elVal.imag().convertToDouble()));
@@ -175,9 +115,7 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
     resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
     APFloat resultImag(resultVal.imag());
     resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, ArrayAttr::get(type.getContext(),
-                                        {FloatAttr::get(elType, resultReal),
-                                         FloatAttr::get(elType, resultImag)}));
+    return Element(type, std::complex<APFloat>(resultReal, resultImag));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -185,6 +123,34 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 }
 
 }  // namespace
+
+APInt Element::getIntegerValue() const {
+  if (!isSupportedIntegerType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  return std::get<APInt>(value_);
+}
+
+APFloat Element::getFloatValue() const {
+  if (!isSupportedFloatType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  return std::get<APFloat>(value_);
+}
+
+std::complex<APFloat> Element::getComplexValue() const {
+  if (!isSupportedComplexType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
+  return std::complex<APFloat>(floatPair.first, floatPair.second);
+}
 
 Element Element::operator+(const Element &other) const {
   return map(
@@ -214,41 +180,93 @@ Element Element::operator-(const Element &other) const {
       });
 }
 
-Element ceil(const Element &e) {
-  APFloat val = getFloatValue(e);
+Element ceil(const Element &el) {
+  APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
-  return Element(e.getType(), FloatAttr::get(e.getType(), val));
+  return Element(el.getType(), val);
 }
 
-Element floor(const Element &e) {
-  APFloat val = getFloatValue(e);
+Element floor(const Element &el) {
+  APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
-  return Element(e.getType(), FloatAttr::get(e.getType(), val));
+  return Element(el.getType(), val);
 }
 
-Element cosine(const Element &e) {
+Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
-      e, [](double e) { return std::cos(e); },
+      el, [](double e) { return std::cos(e); },
       [](std::complex<double> e) { return std::cos(e); });
 }
 
-Element sine(const Element &e) {
+Element sine(const Element &el) {
   return mapWithUpcastToDouble(
-      e, [](double e) { return std::sin(e); },
+      el, [](double e) { return std::sin(e); },
       [](std::complex<double> e) { return std::sin(e); });
 }
 
-Element tanh(const Element &e) {
+Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
-      e, [](double e) { return std::tanh(e); },
+      el, [](double e) { return std::tanh(e); },
       [](std::complex<double> e) { return std::tanh(e); });
 }
 
-void Element::print(raw_ostream &os) const { value_.print(os); }
+void Element::print(raw_ostream &os) const {
+  if (isSupportedIntegerType(type_)) {
+    IntegerAttr::get(type_, getIntegerValue()).print(os);
+    return;
+  }
 
-void Element::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+  if (isSupportedFloatType(type_)) {
+    FloatAttr::get(type_, getFloatValue()).print(os);
+    return;
+  }
+
+  if (isSupportedComplexType(type_)) {
+    auto complexElemTy = type_.dyn_cast<mlir::ComplexType>().getElementType();
+    auto complexVal = getComplexValue();
+
+    os << "[";
+    FloatAttr::get(complexElemTy, complexVal.real()).print(os);
+    os << ", ";
+    FloatAttr::get(complexElemTy, complexVal.imag()).print(os);
+    os << "]";
+
+    return;
+  }
+}
+
+void Element::dump() const { print(llvm::errs()); }
+
+bool isSupportedUnsignedIntegerType(Type type) {
+  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
+         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
+         type.isUnsignedInteger(64);
+}
+
+bool isSupportedSignedIntegerType(Type type) {
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
+  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
+         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
+         type.isSignlessInteger(64);
+}
+bool isSupportedIntegerType(Type type) {
+  return isSupportedUnsignedIntegerType(type) ||
+         isSupportedSignedIntegerType(type);
+}
+
+bool isSupportedFloatType(Type type) {
+  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
+}
+
+bool isSupportedComplexType(Type type) {
+  auto complexTy = type.dyn_cast<ComplexType>();
+  if (!complexTy) return false;
+
+  auto complexElemTy = complexTy.getElementType();
+  return complexElemTy.isF32() || complexElemTy.isF64();
 }
 
 }  // namespace stablehlo

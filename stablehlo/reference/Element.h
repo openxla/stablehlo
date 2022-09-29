@@ -16,18 +16,28 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_ELEMENT_H
 #define STABLHLO_REFERENCE_ELEMENT_H
 
+#include <complex>
+#include <variant>
+
+#include "llvm/ADT/APFloat.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
 
 namespace mlir {
 namespace stablehlo {
 
+/// Class to represent an element of a tensor. An Element object stores the
+/// element type of the tensor and, depending on that element type, a constant
+/// value of type integer, floating-paint, or complex type.
 class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, Attribute value) : type_(type), value_(value) {}
+  Element(Type type, APInt value) : type_(type), value_(value) {}
+  Element(Type type, APFloat value) : type_(type), value_(value) {}
+  Element(Type type, std::complex<APFloat> value)
+      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
 
   Element(const Element &other) = default;
   /// @}
@@ -38,8 +48,17 @@ class Element {
   /// Returns type of the Element object.
   Type getType() const { return type_; }
 
-  /// Returns the underlying storage of Element object.
-  Attribute getValue() const { return value_; }
+  /// Returns the underlying integer value stored in an Element object with
+  /// integer type.
+  APInt getIntegerValue() const;
+
+  /// Returns the underlying floating-point value stored in an Element object
+  /// with floating-point type.
+  APFloat getFloatValue() const;
+
+  /// Returns the underlying complex value stored in an Element object with
+  /// complex type.
+  std::complex<APFloat> getComplexValue() const;
 
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
@@ -55,7 +74,7 @@ class Element {
 
  private:
   Type type_;
-  Attribute value_;
+  std::variant<APInt, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
 /// Returns element-wise ceil of Element object.
@@ -78,6 +97,14 @@ inline raw_ostream &operator<<(raw_ostream &os, Element element) {
   element.print(os);
   return os;
 }
+
+/// Check if the type 'type' comfirms with what is supported in the StableHLO
+/// spec.
+bool isSupportedUnsignedIntegerType(Type type);
+bool isSupportedSignedIntegerType(Type type);
+bool isSupportedIntegerType(Type type);
+bool isSupportedFloatType(Type type);
+bool isSupportedComplexType(Type type);
 
 }  // namespace stablehlo
 }  // namespace mlir

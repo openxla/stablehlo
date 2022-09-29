@@ -253,6 +253,6 @@ func.func @subtract_op_test_c128() -> tensor<2xcomplex<f64>> {
   %2 = stablehlo.subtract %0, %1 : tensor<2xcomplex<f64>>
   func.return %2 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.000000e+00, 0.000000e+00]
-  // CHECK-NEXT: [0.000000e+00, 0.000000e+00]
+  // CHECK-NEXT: [0.000000e+00 : f64, 0.000000e+00 : f64]
+  // CHECK-NEXT: [0.000000e+00 : f64, 0.000000e+00 : f64]
 }

@@ -254,6 +254,6 @@ func.func @add_op_test_c128() -> tensor<2xcomplex<f64>> {
   %2 = stablehlo.add %0, %1 : tensor<2xcomplex<f64>>
   func.return %2 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [3.000000e+00, 5.000000e+00]
-  // CHECK-NEXT: [1.500000e+01, 1.100000e+01]
+  // CHECK-NEXT: [3.000000e+00 : f64, 5.000000e+00 : f64
+  // CHECK-NEXT: [1.500000e+01 : f64, 1.100000e+01 : f64
 }
