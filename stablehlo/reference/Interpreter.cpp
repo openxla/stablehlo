@@ -83,23 +83,23 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(addOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(ceilOp.operand());
-      Tensor runtimeResult = eval(ceilOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(ceilOp.operand());
+      Tensor runtimeResult = eval(ceilOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       Tensor runtimeResult = eval(constantOp, constantOp.value());
       populateResults({runtimeResult});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(cosineOp.operand());
-      Tensor runtimeResult = eval(cosineOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(cosineOp.operand());
+      Tensor runtimeResult = eval(cosineOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(floorOp.operand());
-      Tensor runtimeResult = eval(floorOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(floorOp.operand());
+      Tensor runtimeResult = eval(floorOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(reshapeOp.operand());
-      Tensor runtimeResult = eval(reshapeOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(reshapeOp.operand());
+      Tensor runtimeResult = eval(reshapeOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
@@ -108,8 +108,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       }
       return runtimeOperands;
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(sineOp.operand());
-      Tensor runtimeResult = eval(sineOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(sineOp.operand());
+      Tensor runtimeResult = eval(sineOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = fetchOperand(subtractOp.lhs());
@@ -117,8 +117,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(subtractOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
-      Tensor runtimeOpr = fetchOperand(tanhOp.operand());
-      Tensor runtimeResult = eval(tanhOp, runtimeOpr);
+      Tensor runtimeOperand = fetchOperand(tanhOp.operand());
+      Tensor runtimeResult = eval(tanhOp, runtimeOperand);
       populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
