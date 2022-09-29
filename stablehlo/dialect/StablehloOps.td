@@ -35,7 +35,7 @@ def StableHLO_Dialect : Dialect {
     a portability layer between ML frameworks and ML compilers.
   }];
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
 }
@@ -1895,7 +1895,7 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [NoSideEffect]> {
 
   code extraClassDeclaration = [{
     bool hasWindowReversal() {
-      auto reversal = window_reversalAttr();
+      auto reversal = getWindowReversalAttr();
       return reversal && llvm::any_of(reversal.getValues<bool>(),
                                       [](bool v) { return v; });
     }
