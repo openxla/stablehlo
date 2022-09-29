@@ -90,8 +90,8 @@ func.func @sine_op_test_c64() -> tensor<2xcomplex<f32>> {
   %1 = stablehlo.sine %0 : tensor<2xcomplex<f32>>
   func.return %1 : tensor<2xcomplex<f32>>
   // CHECK-NEXT: tensor<2xcomplex<f32>>
-  // CHECK-NEXT: #complex.number<:f32 6.1169281, 0.427974522>
-  // CHECK-NEXT: #complex.number<:f32 -15.7901983, -42.1433716>
+  // CHECK-NEXT: [6.1169281 : f32, 0.427974522 : f32]
+  // CHECK-NEXT: [-15.7901983 : f32, -42.1433716 : f32]
 }
 
 // -----
@@ -102,6 +102,6 @@ func.func @sine_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.sine %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: #complex.number<:f64 6.1169280123693124, 0.42797453450615125>
-  // CHECK-NEXT: #complex.number<:f64 -15.790198357309713, -42.143370741504995>
+  // CHECK-NEXT: [6.1169280123693124 : f64, 0.42797453450615125 : f64]
+  // CHECK-NEXT: [-15.790198357309713 : f64, -42.143370741504995 : f64]
 }

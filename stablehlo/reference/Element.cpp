@@ -34,39 +34,6 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
 }
 
-bool isSupportedUnsignedIntegerType(Type type) {
-  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
-         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
-         type.isUnsignedInteger(64);
-}
-
-bool isSupportedSignedIntegerType(Type type) {
-  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
-  // integers which was added in MHLO for legacy reasons. Going forward,
-  // StableHLO will adopt signfull integer semantics with signed and unsigned
-  // integer variants.
-  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
-         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
-         type.isSignlessInteger(64);
-}
-
-bool isSupportedIntegerType(Type type) {
-  return isSupportedUnsignedIntegerType(type) ||
-         isSupportedSignedIntegerType(type);
-}
-
-bool isSupportedFloatType(Type type) {
-  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
-}
-
-bool isSupportedComplexType(Type type) {
-  auto complexTy = type.dyn_cast<ComplexType>();
-  if (!complexTy) return false;
-
-  auto complexElemTy = complexTy.getElementType();
-  return complexElemTy.isF32() || complexElemTy.isF64();
-}
-
 template <typename IntegerFn, typename FloatFn, typename ComplexFn>
 Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
             ComplexFn complexFn) {
@@ -157,6 +124,34 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 
 }  // namespace
 
+APInt Element::getIntegerValue() const {
+  if (!isSupportedIntegerType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  return std::get<APInt>(value_);
+}
+
+APFloat Element::getFloatValue() const {
+  if (!isSupportedFloatType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  return std::get<APFloat>(value_);
+}
+
+std::complex<APFloat> Element::getComplexValue() const {
+  if (!isSupportedComplexType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
+  return std::complex<APFloat>(floatPair.first, floatPair.second);
+}
+
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
@@ -227,17 +222,52 @@ void Element::print(raw_ostream &os) const {
   }
 
   if (isSupportedComplexType(type_)) {
-    auto complexTy = type_.dyn_cast<mlir::ComplexType>();
+    auto complexElemTy = type_.dyn_cast<mlir::ComplexType>().getElementType();
     auto complexVal = getComplexValue();
-    Attribute attr =
-        complex::NumberAttr::get(complexTy, complexVal.real().convertToDouble(),
-                                 complexVal.imag().convertToDouble());
-    attr.print(os, /*elideType*/ false);
+
+    os << "[";
+    FloatAttr::get(complexElemTy, complexVal.real()).print(os);
+    os << ", ";
+    FloatAttr::get(complexElemTy, complexVal.imag()).print(os);
+    os << "]";
+
     return;
   }
 }
 
 void Element::dump() const { print(llvm::errs()); }
+
+bool isSupportedUnsignedIntegerType(Type type) {
+  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
+         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
+         type.isUnsignedInteger(64);
+}
+
+bool isSupportedSignedIntegerType(Type type) {
+  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
+  // integers which was added in MHLO for legacy reasons. Going forward,
+  // StableHLO will adopt signfull integer semantics with signed and unsigned
+  // integer variants.
+  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
+         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
+         type.isSignlessInteger(64);
+}
+bool isSupportedIntegerType(Type type) {
+  return isSupportedUnsignedIntegerType(type) ||
+         isSupportedSignedIntegerType(type);
+}
+
+bool isSupportedFloatType(Type type) {
+  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
+}
+
+bool isSupportedComplexType(Type type) {
+  auto complexTy = type.dyn_cast<ComplexType>();
+  if (!complexTy) return false;
+
+  auto complexElemTy = complexTy.getElementType();
+  return complexElemTy.isF32() || complexElemTy.isF64();
+}
 
 }  // namespace stablehlo
 }  // namespace mlir

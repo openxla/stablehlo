@@ -50,18 +50,15 @@ class Element {
 
   /// Returns the underlying integer value stored in an Element object with
   /// integer type.
-  APFloat getFloatValue() const { return std::get<APFloat>(value_); }
+  APInt getIntegerValue() const;
 
   /// Returns the underlying floating-point value stored in an Element object
   /// with floating-point type.
-  APInt getIntegerValue() const { return std::get<APInt>(value_); }
+  APFloat getFloatValue() const;
 
   /// Returns the underlying complex value stored in an Element object with
   /// complex type.
-  std::complex<APFloat> getComplexValue() const {
-    auto floatPair = std::get<std::pair<APFloat, APFloat>>(value_);
-    return std::complex<APFloat>(floatPair.first, floatPair.second);
-  }
+  std::complex<APFloat> getComplexValue() const;
 
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
@@ -100,6 +97,13 @@ inline raw_ostream &operator<<(raw_ostream &os, Element element) {
   element.print(os);
   return os;
 }
+
+/// Check if the type 'type' comforms with what is supported in StableHLO.
+bool isSupportedUnsignedIntegerType(Type type);
+bool isSupportedSignedIntegerType(Type type);
+bool isSupportedIntegerType(Type type);
+bool isSupportedFloatType(Type type);
+bool isSupportedComplexType(Type type);
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -74,27 +74,6 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
   return idx;
 }
 
-bool isSupportedUnsignedIntegerType(Type type) {
-  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
-         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
-         type.isUnsignedInteger(64);
-}
-
-bool isSupportedSignedIntegerType(Type type) {
-  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
-  // integers which was added in MHLO for legacy reasons. Going forward,
-  // StableHLO will adopt signfull integer semantics with signed and unsigned
-  // integer variants.
-  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
-         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
-         type.isSignlessInteger(64);
-}
-
-bool isSupportedIntegerType(Type type) {
-  return isSupportedUnsignedIntegerType(type) ||
-         isSupportedSignedIntegerType(type);
-}
-
 }  // namespace
 
 namespace detail {
@@ -364,10 +343,7 @@ void Tensor::print(raw_ostream &os) const {
   os << "}";
 }
 
-void Tensor::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
-}
+void Tensor::dump() const { print(llvm::errs()); }
 
 Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
   auto elemType = type.getElementType();
