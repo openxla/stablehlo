@@ -168,8 +168,8 @@ Element Element::operator+(const Element &other) const {
 
 Element Element::operator-() const {
   return map(
-      *this, [&](APInt api) { return -api; }, [&](APFloat apf) { return -apf; },
-      [](std::complex<APFloat> complex) { return -complex; });
+      *this, [&](APInt val) { return -val; }, [&](APFloat val) { return -val; },
+      [](std::complex<APFloat> val) { return -val; });
 }
 
 Element Element::operator-(const Element &other) const {

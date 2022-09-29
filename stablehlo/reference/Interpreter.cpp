@@ -98,7 +98,7 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(floorOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(negOp.operand());
+      Tensor runtimeOperand = fetchOperand(negOp.getOperand());
       Tensor runtimeResult = eval(negOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
