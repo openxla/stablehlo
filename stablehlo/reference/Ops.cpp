@@ -56,6 +56,14 @@ Tensor eval(FloorOp op, const Tensor &operand) {
   return result;
 }
 
+Tensor eval(NegOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
+    result.set(*it, -operand.get(*it));
+  }
+  return result;
+}
+
 Tensor eval(ReshapeOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto operandIt = operand.index_begin(), resultIt = result.index_begin();

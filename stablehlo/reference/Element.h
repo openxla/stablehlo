@@ -63,6 +63,9 @@ class Element {
   /// Overloaded + operator.
   Element operator+(const Element &other) const;
 
+  /// Overloaded negate operator.
+  Element operator-() const;
+
   /// Overloaded - operator.
   Element operator-(const Element &other) const;
 

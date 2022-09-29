@@ -28,6 +28,7 @@ Tensor eval(CeilOp op, const Tensor &operand);
 Tensor eval(ConstantOp op, ElementsAttr value);
 Tensor eval(CosineOp op, const Tensor &operand);
 Tensor eval(FloorOp op, const Tensor &operand);
+Tensor eval(NegOp op, const Tensor &operand);
 Tensor eval(ReshapeOp op, const Tensor &operand);
 Tensor eval(SineOp op, const Tensor &operand);
 Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs);
