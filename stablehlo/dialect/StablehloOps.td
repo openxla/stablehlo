@@ -58,8 +58,6 @@ class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
     ["reifyReturnTypeShapes"]>]> {
   let extraClassDeclaration = [{
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
@@ -159,8 +157,6 @@ class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
                                                 operands.front(),
                                                 &reifiedReturnShapes);
     }
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
@@ -628,8 +624,6 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits> :
                                                  operands.front(),
                                                  &reifiedReturnShapes);
     }
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
@@ -2430,8 +2424,6 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     // Get the operation used for reduction applied to `result_index`th result.
     Operation *getReductionOp(int result_index);
 
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
