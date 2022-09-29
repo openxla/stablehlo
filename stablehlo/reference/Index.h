@@ -37,8 +37,24 @@ class IndexSpaceIterator {
   IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
                      llvm::Optional<llvm::SmallVector<int64_t>> index)
       : shape_(shape), index_(index) {
-    if (llvm::any_of(shape, [](int64_t shapeElm) { return shapeElm < 0; }))
-      llvm::report_fatal_error("Iterator supports static shapes only.");
+    // 'shape' should have non-negative dimension sizes.
+    if (llvm::any_of(shape, [](int64_t dim) { return dim < 0; })) {
+      llvm::report_fatal_error(
+          "Iterator supports shapes with non-negative dimension sizes.");
+    }
+
+    // 'index' should be a valid index in the index space of a tensor with shape
+    // 'shape'.
+    if (index && (shape.size() != (*index).size() ||
+                  any_of(llvm::zip(shape, (*index)),
+                         [](std::tuple<int64_t, int64_t> zip) {
+                           return std::get<1>(zip) < 0 ||
+                                  std::get<1>(zip) >= std::get<0>(zip);
+                         }))) {
+      llvm::report_fatal_error(
+          llvm::StringRef("Incompatible index and shape found in: ") +
+          LLVM_PRETTY_FUNCTION);
+    }
   }
 
   /// Get the current index.

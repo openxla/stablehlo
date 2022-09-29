@@ -48,9 +48,40 @@ int64_t getSizeInBytes(Type type) {
   report_fatal_error(std::move(err));
 }
 
+APFloat getFloatValue(Element element) {
+  return element.getValue().cast<FloatAttr>().getValue();
+}
+
+APInt getIntegerValue(Element element) {
+  return element.getValue().cast<IntegerAttr>().getValue();
+}
+
+std::complex<APFloat> getComplexValue(Element element) {
+  auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
+  return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
+                               arryOfAttr[1].cast<FloatAttr>().getValue());
+}
+
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
 int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
+  // 'shape' should have non-negative dimension sizes.
+  if (llvm::any_of(shape, [](int64_t dim) { return dim < 0; })) {
+    llvm::report_fatal_error(
+        "Cannot index a tensor with shape having dimension sizes < 0.");
+  }
+
+  // 'index' should be a valid index in the index space of a tensor with shape
+  // 'shape'.
+  if (shape.size() != index.size() ||
+      any_of(llvm::zip(shape, index), [](std::tuple<int64_t, int64_t> zip) {
+        return std::get<1>(zip) < 0 || std::get<1>(zip) >= std::get<0>(zip);
+      })) {
+    llvm::report_fatal_error(
+        StringRef("Incompatible index and shape found in: ") +
+        LLVM_PRETTY_FUNCTION);
+  }
+
   int64_t idx = 0;
   if (shape.empty()) return idx;
 
