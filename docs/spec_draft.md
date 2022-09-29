@@ -186,7 +186,7 @@ For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
-  * $-2^n-1$
+  * $-2^{n-1}$
 
 ### Operands
 
@@ -715,7 +715,7 @@ regular negation operation where the negation of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
   * Saturation to $2^{n-1}-1$
-  * $-2^n-1$
+  * $-2^{n-1}$
 
 For unsigned integer types, it bitcasts to the corresponding signed integer type,
 performs the regular negation operation and bitcasts back to the original
