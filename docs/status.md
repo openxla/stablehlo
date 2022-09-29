@@ -141,5 +141,5 @@ one of the following tracking labels.
 | unary_einsum             |         no         |         no         |         no          |          no          |        no        |
 | uniform_dequantize       |         no         |        yes*        |        yes*         |         yes          |        no        |
 | uniform_quantize         |         no         |        yes*        |     infeasible      |         yes          |        no        |
-| while                    |         no         |        yes*        |         no          |  yes(need-revisit)   |        no        |
+| while                    |         no         |        yes*        |        yes*         |  yes(need-revisit)   |        no        |
 | xor                      |        yes         |        yes*        |        yes*         |         yes          |        no        |
