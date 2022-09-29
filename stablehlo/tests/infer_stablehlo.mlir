@@ -347,6 +347,20 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
 
 // -----
 
+func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // CHECK: stablehlo.sort
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  // CHECK: (tensor<16x16xf32>) -> tensor<16x16xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<16x16xf32>) -> tensor<16x16xindex>
+  func.return
+}
+
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//

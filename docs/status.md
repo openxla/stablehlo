@@ -129,7 +129,7 @@ one of the following tracking labels.
 | sign                     |         no         |        yes*        |        yes*         |         yes          |        no        |
 | sine                     |        yes         |        yes*        |        yes*         |         yes          |       yes        |
 | slice                    |         no         |        yes*        |        yes*         |          no          |        no        |
-| sort                     |         no         |        yes*        |         no          |          no          |        no        |
+| sort                     |         no         |        yes*        |        yes*         |          no          |        no        |
 | sqrt                     |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | subtract                 |        yes         |        yes         |         yes         |         yes          |       yes        |
 | tanh                     |        yes         |        yes*        |        yes*         |         yes          |       yes        |
