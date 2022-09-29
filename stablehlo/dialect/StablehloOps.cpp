@@ -1073,7 +1073,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
-  auto dimNumbers = adaptor.dot_dimension_numbers();
+  auto dimNumbers = adaptor.getDotDimensionNumbers();
   auto lhsBatchingDims = dimNumbers.getLhsBatchingDimensions();
   auto rhsBatchingDims = dimNumbers.getRhsBatchingDimensions();
   auto lhsContractingDims = dimNumbers.getLhsContractingDimensions();
@@ -1125,8 +1125,8 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
                                " is out of range: ", "[0, ", rank, ")");
     return success();
   };
-  auto lhsType = adaptor.lhs().getType().dyn_cast<RankedTensorType>();
-  auto rhsType = adaptor.rhs().getType().dyn_cast<RankedTensorType>();
+  auto lhsType = adaptor.getLhs().getType().dyn_cast<RankedTensorType>();
+  auto rhsType = adaptor.getRhs().getType().dyn_cast<RankedTensorType>();
 
   if (lhsType) {
     if (failed(checkDimsInRange(lhsType.getRank(), lhsBatchingDims,
@@ -1159,8 +1159,8 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
                                  "match for lhs/rhs");
   }
 
-  auto lhs = adaptor.lhs().getType().cast<ShapedType>();
-  auto rhs = adaptor.rhs().getType().cast<ShapedType>();
+  auto lhs = adaptor.getLhs().getType().cast<ShapedType>();
+  auto rhs = adaptor.getRhs().getType().cast<ShapedType>();
   auto elementType = lhs.getElementType();
 
   if (!lhs.hasRank() || !rhs.hasRank()) {
@@ -1191,32 +1191,32 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto lhsType = lhs().getType().dyn_cast<ShapedType>();
-  auto rhsType = rhs().getType().dyn_cast<ShapedType>();
+  auto lhsType = getLhs().getType().dyn_cast<ShapedType>();
+  auto rhsType = getRhs().getType().dyn_cast<ShapedType>();
   if (!lhsType || !rhsType) {
     return failure();
   }
 
   Adaptor adaptor(operands);
-  auto dimNumbers = dot_dimension_numbers();
+  auto dimNumbers = getDotDimensionNumbers();
   SmallVector<Value> dimensions;
   for (const int64_t lhsDim : dimNumbers.getLhsBatchingDimensions()) {
     dimensions.push_back(
-        builder.create<tensor::DimOp>(getLoc(), adaptor.lhs(), lhsDim));
+        builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), lhsDim));
   }
 
   for (int64_t i = 0; i < lhsType.getRank(); i++) {
     if (!llvm::is_contained(dimNumbers.getLhsContractingDimensions(), i) &&
         !llvm::is_contained(dimNumbers.getLhsBatchingDimensions(), i)) {
       dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.lhs(), i));
+          builder.create<tensor::DimOp>(getLoc(), adaptor.getLhs(), i));
     }
   }
   for (int64_t i = 0; i < rhsType.getRank(); i++) {
     if (!llvm::is_contained(dimNumbers.getRhsContractingDimensions(), i) &&
         !llvm::is_contained(dimNumbers.getRhsBatchingDimensions(), i)) {
       dimensions.push_back(
-          builder.create<tensor::DimOp>(getLoc(), adaptor.rhs(), i));
+          builder.create<tensor::DimOp>(getLoc(), adaptor.getRhs(), i));
     }
   }
 
