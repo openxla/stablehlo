@@ -991,7 +991,7 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     HLO_Token:$token,
     DefaultValuedStrAttr<StrAttr, "">:$outfeed_config
   );
@@ -1013,7 +1013,7 @@ def StableHLO_SendOp : StableHLO_Op<"send", []> {
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     HLO_Token:$token,
     StableHLO_ChannelHandle:$channel_handle,
     DefaultValuedAttr<BoolAttr, "false">:$is_host_transfer
@@ -1098,12 +1098,12 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
     ```
   }];
 
-  let arguments = (ins Variadic<HLO_Token>:$operands);
+  let arguments = (ins Variadic<HLO_Token>:$inputs);
   let results = (outs HLO_Token:$result);
 
   let assemblyFormat = [{
-    $operands attr-dict
-      `:` custom<VariadicSameOperandsAndResultType>(ref($operands), type($operands), type($result))
+    $inputs attr-dict
+      `:` custom<VariadicSameOperandsAndResultType>(ref($inputs), type($inputs), type($result))
   }];
 }
 
@@ -1319,7 +1319,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     See https://www.tensorflow.org/xla/operation_semantics#reduce.
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     Variadic<HLO_Tensor>:$init_values,
     I64ElementsAttr:$dimensions
   );
@@ -1327,7 +1327,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   let results = (outs Variadic<HLO_Tensor>);
 
   let builders = [
-    OpBuilder<(ins "ValueRange":$operands, "ValueRange":$init_values,
+    OpBuilder<(ins "ValueRange":$inputs, "ValueRange":$init_values,
       "DenseIntElementsAttr":$dimensions)>];
 
   let hasCustomAssemblyFormat = 1;
@@ -1980,7 +1980,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 
   let arguments = (ins
-    Variadic<HLO_TensorOrTokenOrTuple>:$operands,
+    Variadic<HLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
     DefaultValuedAttr<BoolAttr, "false">:$has_side_effect,
     DefaultValuedStrAttr<StrAttr, "">:$backend_config,
@@ -1998,7 +1998,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $call_target_name `(` $operands `)` attr-dict
+    $call_target_name `(` $inputs `)` attr-dict
       `:` functional-type(operands, results)
   }];
 }
@@ -2182,7 +2182,7 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   See https://www.tensorflow.org/xla/operation_semantics#map.
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     I64ElementsAttr:$dimensions
   );
   let regions = (region SizedRegion<1>:$computation);
@@ -2248,7 +2248,7 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
     See https://www.tensorflow.org/xla/operation_semantics#scatter.
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     TensorOf<[AnyInteger, Index]>:$scatter_indices,
     Variadic<HLO_Tensor>:$updates,
     StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers,
@@ -2384,7 +2384,7 @@ def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
     See https://www.tensorflow.org/xla/operation_semantics#sort.
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     DefaultValuedAttr<I64Attr, "-1">:$dimension,
     DefaultValuedAttr<BoolAttr, "false">:$is_stable
   );
@@ -2394,7 +2394,7 @@ def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
   let regions = (region SizedRegion<1>:$comparator);
 
   let builders = [
-    OpBuilder<(ins "ValueRange":$operands, CArg<"int64_t", "-1">:$dimension,
+    OpBuilder<(ins "ValueRange":$inputs, CArg<"int64_t", "-1">:$dimension,
       CArg<"bool", "false">:$is_stable)>];
 
   let hasVerifier = 1;
@@ -2545,7 +2545,7 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$operands,
+    Variadic<HLO_Tensor>:$inputs,
     Variadic<HLO_Tensor>:$init_values,
     I64ElementsAttr:$window_dimensions,
     // If strides or dilations attributes are missing then the default value is
