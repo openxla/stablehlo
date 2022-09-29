@@ -84,7 +84,7 @@ one of the following tracking labels.
 | if                       |      no       |     yes*     |       yes*        |        no         |     no      |
 | imag                     |      no       |     yes*     |       yes*        |        yes        |     no      |
 | infeed                   |      no       |     yes*     |        no         |        no         |     no      |
-| iota                     |      no       |     yes*     |    infeasible     |        yes        |     no      |
+| iota                     |      yes      |     yes*     |    infeasible     |        yes        |     yes     |
 | is_finite                |      no       |     yes*     |       yes*        |        yes        |     no      |
 | log                      |      yes      |     yes*     |       yes*        |        yes        |     no      |
 | log_plus_one             |      no       |     yes*     |       yes*        |        yes        |     no      |

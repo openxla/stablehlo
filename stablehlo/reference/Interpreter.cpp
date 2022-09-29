@@ -96,6 +96,9 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(floorOp.getOperand());
       Tensor runtimeResult = eval(floorOp, runtimeOperand);
       populateResults({runtimeResult});
+    } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
+      Tensor runtimeResult = eval(iotaOp);
+      populateResults({runtimeResult});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
       Tensor runtimeOperand = fetchOperand(negOp.getOperand());
       Tensor runtimeResult = eval(negOp, runtimeOperand);

@@ -28,6 +28,7 @@ Tensor eval(CeilOp op, const Tensor &operand);
 Tensor eval(ConstantOp op);
 Tensor eval(CosineOp op, const Tensor &operand);
 Tensor eval(FloorOp op, const Tensor &operand);
+Tensor eval(IotaOp op);
 Tensor eval(MaxOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(MinOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(NegOp op, const Tensor &operand);
