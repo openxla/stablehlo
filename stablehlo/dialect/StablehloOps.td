@@ -1998,7 +1998,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $call_target_name `(` operands `)` attr-dict
+    $call_target_name `(` $inputs `)` attr-dict
       `:` functional-type(operands, results)
   }];
 }
