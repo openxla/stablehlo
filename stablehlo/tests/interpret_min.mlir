@@ -256,8 +256,8 @@ func.func @min_op_test_c64() -> tensor<4xcomplex<f64>> {
   %2 = stablehlo.minimum %0, %1 : tensor<4xcomplex<f64>>
   func.return %2 : tensor<4xcomplex<f64>>
   // CHECK-NEXT: tensor<4xcomplex<f64>> {
-  // CHECK-NEXT: [1.500000e+00, 2.500000e+00]
-  // CHECK-NEXT: [1.500000e+00, 2.500000e+00]
-  // CHECK-NEXT: [-0.000000e+00, 2.500000e+00]
-  // CHECK-NEXT: [0.000000e+00, 1.500000e+00]
+  // CHECK-NEXT: [1.500000e+00 : f64, 2.500000e+00 : f64]
+  // CHECK-NEXT: [1.500000e+00 : f64, 2.500000e+00 : f64]
+  // CHECK-NEXT: [-0.000000e+00 : f64, 2.500000e+00 : f64]
+  // CHECK-NEXT: [0.000000e+00 : f64, 1.500000e+00 : f64]
 }
