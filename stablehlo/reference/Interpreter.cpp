@@ -18,40 +18,30 @@ limitations under the License.
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Errc.h"
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
-#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"
 
 namespace mlir {
 namespace stablehlo {
 
-namespace {
-
-template <typename... Ts>
-inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
-  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
-}
-
-}  // namespace
-
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
   if (func->getNumRegions() != 1) {
-    return invalidArgument("Expected one region in func %s",
-                           func.getName().str().c_str());
+    return stablehlo::invalidArgument("Expected one region in func %s",
+                                      func.getName().str().c_str());
   }
   if (!func.getBody().hasOneBlock()) {
-    return invalidArgument("Expected one block in func %s",
-                           func.getName().str().c_str());
+    return stablehlo::invalidArgument("Expected one block in func %s",
+                                      func.getName().str().c_str());
   }
 
   Block &block = func.front();
   if (block.getNumArguments() != args.size()) {
-    return invalidArgument(
+    return stablehlo::invalidArgument(
         "Expected same amount of func arguments in %s "
         "and runtime arguments (%d)",
         func.getName().str().c_str(), args.size());
@@ -65,8 +55,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     auto fetchOperand = [&](Value value) -> Tensor {
       auto it = stackFrame.find(value);
       if (it != stackFrame.end()) return it->second;
-      report_fatal_error(
-          invalidArgument("Expected a terminator when evaluating func"));
+      report_fatal_error(stablehlo::invalidArgument(
+          "Expected a terminator when evaluating func"));
     };
     auto populateResults = [&](ArrayRef<Tensor> runtimeValues) {
       assert(op.getNumResults() == runtimeValues.size());
@@ -165,11 +155,13 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(xorOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else {
-      return invalidArgument("Unsupported op: %s", debugString(op).c_str());
+      return stablehlo::invalidArgument("Unsupported op: %s",
+                                        debugString(op).c_str());
     }
   }
 
-  return invalidArgument("Expected a terminator when evaluating func");
+  return stablehlo::invalidArgument(
+      "Expected a terminator when evaluating func");
 }
 
 }  // namespace stablehlo
