@@ -51,6 +51,10 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 // sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 
+LogicalResult inferMostSpecificType(
+    Optional<Location> location, TypeRange inputTypes,
+    SmallVectorImpl<Type> &inferredReturnTypes);
+
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form
 //
@@ -199,92 +203,6 @@ class CompatibleOperandsAndResultType
       return failure();
     auto inferredReturnType = inferredReturnTypes[0].cast<ShapedType>();
     inferredReturnShapes.push_back(inferredReturnType);
-    return success();
-  }
-
- private:
-  // Cases of infer return shape with bounds (lhs and rhs are commutative):
-  //       Dim of lhs     Dim of rhs      Infer
-  //  c0:  3              3               3
-  //  c1:  3              ?               3
-  //  c2:  3              ?, bound=4      3
-  //  c3:  3              ?, bound=2      Error out
-  //  c4:  ?              ?               ?
-  //  c5:  ?              ?, bound=3      ?, bound=3
-  //  c6:  ?, bound=3     ?, bound=3      ?, bound=3
-  //  c7:  ?, bound=3     ?, bound=4      ?, bound=3
-  // This method generalizes it to multiple inputs: 1) get the static input dims
-  // (if any) as infer dim, and 2) get min of input bounds as infer bound
-  static LogicalResult inferMostSpecificType(
-      Optional<Location> location, ValueTypeRange<ValueRange> inputTypes,
-      SmallVectorImpl<Type> &inferredReturnTypes) {
-    SmallVector<RankedTensorType> rankedTypes;
-    for (auto inputType : inputTypes)
-      if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
-        rankedTypes.push_back(rankedType);
-    if (rankedTypes.empty()) {
-      inferredReturnTypes.push_back(inputTypes[0]);
-      return success();
-    }
-
-    auto rank = rankedTypes[0].getRank();
-    BoundedDialectInterface *dialect = nullptr;
-    SmallVector<int64_t> inferredDimSizes(rank, ShapedType::kDynamicSize);
-    SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
-    for (auto rankedType : rankedTypes) {
-      SmallVector<int64_t> bounds;
-      if (auto boundedAttr = rankedType.getEncoding()
-                                 .dyn_cast_or_null<BoundedAttrInterface>()) {
-        dialect = cast<BoundedDialectInterface>(&boundedAttr.getDialect());
-        bounds = llvm::to_vector<4>(boundedAttr.getBounds());
-      } else if (rankedType.getEncoding()) {
-        // TODO(zhouxin) infer sparsity encoding after b/238903065 is fixed.
-        inferredReturnTypes.push_back(inputTypes[0]);
-        return success();
-      }
-
-      for (int dim = 0; dim < rank; ++dim) {
-        // Dimensions
-        auto dimSize = rankedType.getShape()[dim];
-        if (inferredDimSizes[dim] != ShapedType::kDynamicSize &&
-            dimSize != ShapedType::kDynamicSize &&
-            inferredDimSizes[dim] != dimSize)
-          return emitOptionalError(location, "Mismatch dimension size ",
-                                   inferredDimSizes[dim], " and ", dimSize,
-                                   " in dimension ", dim);
-        if (inferredDimSizes[dim] == ShapedType::kDynamicSize)
-          inferredDimSizes[dim] = dimSize;
-
-        // Bounds
-        if (!bounds.empty() && bounds[dim] != ShapedType::kDynamicSize) {
-          if (inferredBounds[dim] == ShapedType::kDynamicSize) {
-            inferredBounds[dim] = bounds[dim];
-          } else {
-            inferredBounds[dim] = std::min(inferredBounds[dim], bounds[dim]);
-          }
-        }
-        // Error out case that the inferred bound is smaller than inferred dim
-        if (inferredBounds[dim] != ShapedType::kDynamicSize &&
-            inferredBounds[dim] < inferredDimSizes[dim])
-          return emitOptionalError(location,
-                                   "bound must not be less than static "
-                                   "dimension size but has bound ",
-                                   inferredBounds[dim], " vs static size ",
-                                   inferredDimSizes[dim], " in dimension ",
-                                   dim);
-        if (inferredDimSizes[dim] != ShapedType::kDynamicSize)
-          inferredBounds[dim] = ShapedType::kDynamicSize;
-      }
-    }
-
-    Attribute encoding = nullptr;
-    if (llvm::any_of(inferredBounds,
-                     [](auto el) { return el != ShapedType::kDynamicSize; })) {
-      encoding = dialect->createBoundedAttr(inferredBounds);
-    }
-    inferredReturnTypes.push_back(RankedTensorType::get(
-        inferredDimSizes, rankedTypes[0].getElementType(), encoding));
-
     return success();
   }
 };

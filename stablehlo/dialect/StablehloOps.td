@@ -1136,17 +1136,6 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
                         SizedRegion<1>:$false_branch);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
-
-  let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
-    }
-  }];
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,
@@ -1176,17 +1165,6 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
-
-  let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
-    }
-  }];
 }
 
 

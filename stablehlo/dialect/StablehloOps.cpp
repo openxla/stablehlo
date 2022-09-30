@@ -4719,9 +4719,8 @@ static LogicalResult inferConditionalReturnTypeComponents(
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
 
-  ValueTypeRange<OperandRange> branch0ResultTypes =
-      branches[0]->front().getTerminator()->getOperandTypes();
-  for (unsigned i = 0; i < branches.size(); ++i) {
+  SmallVector<TypeRange> allBranchesResultTypes;
+  for (size_t i = 0; i < branches.size(); ++i) {
     Twine branchName = "branch " + Twine(i);
     Region* region = branches[i];
     if (region->getNumArguments() != 0)
@@ -4730,13 +4729,32 @@ static LogicalResult inferConditionalReturnTypeComponents(
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
-                                              branchResultTypes))
-      return emitOptionalError(location, "branch 0 and ", branchName,
-                               " have mismatched return types: ",
-                               branch0ResultTypes, " vs ", branchResultTypes);
+    if (i > 0 && !hlo::isCompatibleForHloTypeInference(
+                     allBranchesResultTypes[0], branchResultTypes))
+      return emitOptionalError(
+          location, "branch 0 and ", branchName,
+          " have mismatched return types: ", allBranchesResultTypes[0], " vs ",
+          branchResultTypes);
+
+    allBranchesResultTypes.push_back(branchResultTypes);
   }
-  for (auto resultType : branch0ResultTypes)
+
+  // Infer the most specific types on every index according to the rule defined
+  // in `inferMostSpecificType`, for example:
+  //   Branch_0 returns: tensor<5x?xf32>, ...
+  //   Branch_1 returns: tensor<?x5xf32>, ...
+  //   ...
+  //   Inferred types:   tensor<5x5xf32>, ...
+  SmallVector<Type> resultTypes;
+  for (size_t i = 0; i < allBranchesResultTypes[0].size(); i++) {
+    SmallVector<Type> types;
+    for (auto branchResultTypes : allBranchesResultTypes)
+      types.push_back(branchResultTypes[i]);
+    if (failed(hlo::inferMostSpecificType(location, makeArrayRef(types),
+                                          resultTypes)))
+      return failure();
+  }
+  for (auto resultType : resultTypes)
     inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }

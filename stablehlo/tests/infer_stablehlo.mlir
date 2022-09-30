@@ -303,15 +303,15 @@ func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4x
 // -----
 
 // CHECK-LABEL: func @if 
-func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
+func.func @if(%pred : tensor<i1>, %true_branch_eperand : tensor<5x?xf32>, %false_branch_eperand : tensor<?x5xf32>) -> tensor<*xindex> {
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
+      "stablehlo.return"(%true_branch_eperand) : (tensor<5x?xf32>) -> ()
     }, {
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-    }) : (tensor<i1>) -> tensor<2xf32>
-  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xindex>
-  func.return
+      "stablehlo.return"(%false_branch_eperand) : (tensor<?x5xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<?x?xf32>
+  // CHECK: types0 = tensor<5x5xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex> 
 }
 
 // -----
