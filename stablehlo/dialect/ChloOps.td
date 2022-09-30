@@ -59,6 +59,13 @@ def CHLO_Dialect : Dialect {
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
     Op<CHLO_Dialect, mnemonic, traits> {
+  let extraClassDeclaration = [{
+    // Relax the strict default implementation with one that allows
+    // for StableHLO-specific differences.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
+  }];
 }
 
 include "stablehlo/dialect/ChloEnums.td"
@@ -106,7 +113,7 @@ class CHLO_BroadcastBinaryElementwiseOp<
 
   let extraClassDeclaration = [{
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 }
@@ -466,6 +473,9 @@ class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
         SmallVectorImpl<Value>& reifiedReturnShapes) {
       return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
           operands.front(), &reifiedReturnShapes);
+    }
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 }

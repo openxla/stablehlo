@@ -42,6 +42,13 @@ def StableHLO_Dialect : Dialect {
 
 class StableHLO_Op<string mnemonic, list<Trait> traits> :
     Op<StableHLO_Dialect, mnemonic, traits> {
+  let extraClassDeclaration = [{
+    // Relax the strict default implementation with one that allows
+    // for StableHLO-specific differences.
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
+  }];
 }
 
 include "stablehlo/dialect/StablehloEnums.td"
@@ -50,6 +57,11 @@ include "stablehlo/dialect/StablehloAttrs.td"
 class StableHLO_ShapedInterfaceOp<string mnemonic, list<Trait> traits> :
     StableHLO_Op<mnemonic, traits # [DeclareOpInterfaceMethods<InferShapedTypeOpInterface,
     ["reifyReturnTypeShapes"]>]> {
+  let extraClassDeclaration = [{
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -163,14 +175,8 @@ class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
                                                 operands.front(),
                                                 &reifiedReturnShapes);
     }
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 
@@ -636,14 +642,8 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits> :
                                                  operands.front(),
                                                  &reifiedReturnShapes);
     }
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 
@@ -1335,17 +1335,6 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   // TODO(hinsu): Verify that the attached body arguments and results are
   // compatible with reduce op's operands.
   let regions = (region SizedRegion<1>:$body);
-
-  let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
-    }
-  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1437,12 +1426,6 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [NoSideEffect, SameOperandsElem
       CArg<"::mlir::stablehlo::ComparisonType",
       "::mlir::stablehlo::ComparisonType::NOTYPE">:$compare_type)>,
   ];
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
 
   let assemblyFormat = [{
     $comparison_direction `,` $lhs `,` $rhs (`,` $compare_type^)?
@@ -1800,17 +1783,6 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [NoSideEffect,
 
   let hasVerifier = 1;
 
-  let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
-    }
-  }];
-
   let assemblyFormat = [{
     $min `,` $operand `,` $max attr-dict
       `:` custom<SameOperandsAndResultType>(type($min), type($operand), type($max), type($result))
@@ -2127,12 +2099,6 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, NoSide
   );
 
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
 }
 
 def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [NoSideEffect]> {
@@ -2291,12 +2257,6 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [NoSideEffect, HLO_BroadcastingEl
 
   let hasVerifier = 1;
 
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
-
   let assemblyFormat = [{
     operands attr-dict `:`
       custom<SelectOpType>(type($pred), type($on_true), type($on_false), type($result))
@@ -2354,17 +2314,6 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
     I64Attr:$dimension
   );
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
-    }
-  }];
 
   let hasVerifier = 1;
 
@@ -2488,13 +2437,6 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
     I64ElementsAttr:$permutation
   );
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    // Method from  InferTypeOpInterface interface.
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
 }
 
 def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
@@ -2583,14 +2525,8 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     // Get the operation used for reduction applied to `result_index`th result.
     Operation *getReductionOp(int result_index);
 
-    // Relax the strict default implementation with one that allows
-    // for StableHLO-specific differences.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      if (l.size() != r.size()) return false;
-      for (auto [lt, rt] : llvm::zip(l, r))
-        if (!mlir::hlo::isCompatibleForHloTypeInference(lt, rt))
-          return false;
-      return true;
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
   }];
 }
@@ -2905,12 +2841,6 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
     DefaultValuedAttr<BoolAttr, "false">:$indices_are_sorted
   );
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
 }
 
 def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv", [NoSideEffect]> {
