@@ -101,14 +101,6 @@ inline raw_ostream &operator<<(raw_ostream &os, Element element) {
   return os;
 }
 
-/// Check if the type 'type' comfirms with what is supported in the StableHLO
-/// spec.
-bool isSupportedUnsignedIntegerType(Type type);
-bool isSupportedSignedIntegerType(Type type);
-bool isSupportedIntegerType(Type type);
-bool isSupportedFloatType(Type type);
-bool isSupportedComplexType(Type type);
-
 }  // namespace stablehlo
 }  // namespace mlir
 

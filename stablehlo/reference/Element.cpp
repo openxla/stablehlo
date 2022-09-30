@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -242,39 +243,6 @@ void Element::print(raw_ostream &os) const {
 }
 
 void Element::dump() const { print(llvm::errs()); }
-
-bool isSupportedUnsignedIntegerType(Type type) {
-  return type.isUnsignedInteger(4) || type.isUnsignedInteger(8) ||
-         type.isUnsignedInteger(16) || type.isUnsignedInteger(32) ||
-         type.isUnsignedInteger(64);
-}
-
-bool isSupportedSignedIntegerType(Type type) {
-  // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
-  // integers which was added in MHLO for legacy reasons. Going forward,
-  // StableHLO will adopt signfull integer semantics with signed and unsigned
-  // integer variants.
-  return type.isSignlessInteger(4) || type.isSignlessInteger(8) ||
-         type.isSignlessInteger(16) || type.isSignlessInteger(32) ||
-         type.isSignlessInteger(64);
-}
-
-bool isSupportedIntegerType(Type type) {
-  return isSupportedUnsignedIntegerType(type) ||
-         isSupportedSignedIntegerType(type);
-}
-
-bool isSupportedFloatType(Type type) {
-  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
-}
-
-bool isSupportedComplexType(Type type) {
-  auto complexTy = type.dyn_cast<ComplexType>();
-  if (!complexTy) return false;
-
-  auto complexElemTy = complexTy.getElementType();
-  return complexElemTy.isF32() || complexElemTy.isF64();
-}
 
 }  // namespace stablehlo
 }  // namespace mlir
