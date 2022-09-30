@@ -330,7 +330,7 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
 
-  if(any_of(shape, [](int64_t dimSize) {return dimSize == 0;}))
+  if (any_of(shape, [](int64_t dimSize) { return dimSize == 0; }))
     return IndexSpaceIterator(shape, {});
 
   SmallVector<int64_t> index(shape.size());
