@@ -24,8 +24,7 @@ namespace {
 
 // Appies the permutation `perm` to an array `array` where perm[i] indicates the
 // location where the current array[i] goes.
-std::vector<int64_t> permute(ArrayRef<int64_t> array,
-                             SmallVector<int64_t> perm) {
+std::vector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
   std::vector<int64_t> result(array.size());
   for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
   return result;
