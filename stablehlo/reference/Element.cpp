@@ -166,6 +166,12 @@ Element Element::operator+(const Element &other) const {
       });
 }
 
+Element Element::operator-() const {
+  return map(
+      *this, [&](APInt val) { return -val; }, [&](APFloat val) { return -val; },
+      [](std::complex<APFloat> val) { return -val; });
+}
+
 Element Element::operator-(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },

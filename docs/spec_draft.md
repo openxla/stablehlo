@@ -751,6 +751,8 @@ unsigned integer type.
 // %result: [-2.5, -0.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_negate.mlir)
+
 [Back to Ops](#index-of-documented-ops)
 
 ## stablehlo.not
