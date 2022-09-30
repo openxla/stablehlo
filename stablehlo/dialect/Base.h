@@ -51,9 +51,9 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 // sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 
-LogicalResult inferMostSpecificType(
-    Optional<Location> location, TypeRange inputTypes,
-    SmallVectorImpl<Type> &inferredReturnTypes);
+LogicalResult inferMostSpecificType(Optional<Location> location,
+                                    TypeRange inputTypes,
+                                    SmallVectorImpl<Type> &inferredReturnTypes);
 
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form

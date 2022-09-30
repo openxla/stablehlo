@@ -129,7 +129,7 @@ bool isCompatibleForHloTypeInference(TypeRange l, TypeRange r) {
 // (if any) as infer dim, and 2) get min of input bounds as infer bound
 LogicalResult inferMostSpecificType(
     Optional<Location> location, TypeRange inputTypes,
-    SmallVectorImpl<Type> &inferredReturnTypes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -140,13 +140,13 @@ LogicalResult inferMostSpecificType(
   }
 
   auto rank = rankedTypes[0].getRank();
-  BoundedDialectInterface *dialect = nullptr;
+  BoundedDialectInterface* dialect = nullptr;
   SmallVector<int64_t> inferredDimSizes(rank, ShapedType::kDynamicSize);
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
   for (auto rankedType : rankedTypes) {
     SmallVector<int64_t> bounds;
-    if (auto boundedAttr = rankedType.getEncoding()
-                                .dyn_cast_or_null<BoundedAttrInterface>()) {
+    if (auto boundedAttr =
+            rankedType.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
       dialect = cast<BoundedDialectInterface>(&boundedAttr.getDialect());
       bounds = llvm::to_vector<4>(boundedAttr.getBounds());
     } else if (rankedType.getEncoding()) {
@@ -162,8 +162,8 @@ LogicalResult inferMostSpecificType(
           dimSize != ShapedType::kDynamicSize &&
           inferredDimSizes[dim] != dimSize)
         return emitOptionalError(location, "Mismatch dimension size ",
-                                  inferredDimSizes[dim], " and ", dimSize,
-                                  " in dimension ", dim);
+                                 inferredDimSizes[dim], " and ", dimSize,
+                                 " in dimension ", dim);
       if (inferredDimSizes[dim] == ShapedType::kDynamicSize)
         inferredDimSizes[dim] = dimSize;
 
@@ -179,11 +179,10 @@ LogicalResult inferMostSpecificType(
       if (inferredBounds[dim] != ShapedType::kDynamicSize &&
           inferredBounds[dim] < inferredDimSizes[dim])
         return emitOptionalError(location,
-                                  "bound must not be less than static "
-                                  "dimension size but has bound ",
-                                  inferredBounds[dim], " vs static size ",
-                                  inferredDimSizes[dim], " in dimension ",
-                                  dim);
+                                 "bound must not be less than static "
+                                 "dimension size but has bound ",
+                                 inferredBounds[dim], " vs static size ",
+                                 inferredDimSizes[dim], " in dimension ", dim);
       if (inferredDimSizes[dim] != ShapedType::kDynamicSize)
         inferredBounds[dim] = ShapedType::kDynamicSize;
     }
@@ -191,7 +190,7 @@ LogicalResult inferMostSpecificType(
 
   Attribute encoding = nullptr;
   if (llvm::any_of(inferredBounds,
-                    [](auto el) { return el != ShapedType::kDynamicSize; })) {
+                   [](auto el) { return el != ShapedType::kDynamicSize; })) {
     encoding = dialect->createBoundedAttr(inferredBounds);
   }
   inferredReturnTypes.push_back(RankedTensorType::get(
