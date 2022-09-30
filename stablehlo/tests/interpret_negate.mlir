@@ -242,6 +242,6 @@ func.func @negate_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.negate %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [-1.500000e+00, -2.500000e+00]
-  // CHECK-NEXT: [-3.500000e+00, -4.500000e+00]
+  // CHECK-NEXT: [-1.500000e+00 : f64, -2.500000e+00 : f64]
+  // CHECK-NEXT: [-3.500000e+00 : f64, -4.500000e+00 : f64]
 }
