@@ -51,6 +51,11 @@ int64_t getSizeInBytes(Type type) {
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
 int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
+  if (failed(verifyIndex(shape, index)))
+    llvm::report_fatal_error(
+        llvm::StringRef("Incompatible index and shape found in: ") +
+        LLVM_PRETTY_FUNCTION);
+
   int64_t idx = 0;
   if (shape.empty()) return idx;
 
@@ -324,6 +329,10 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
+
+  if (any_of(shape, [](int64_t dimSize) { return dimSize == 0; }))
+    return IndexSpaceIterator(shape, {});
+
   SmallVector<int64_t> index(shape.size());
   return IndexSpaceIterator(shape, index);
 }

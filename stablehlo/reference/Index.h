@@ -22,9 +22,16 @@ limitations under the License.
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
+#include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
 namespace stablehlo {
+
+/// Check if the 'index' is a valid index in the index space of a tensor with
+/// shape 'shape'. Specifically, for a shape '(d0)x(d1)x...x(dR-1)' and an index
+/// '{i0, i1, ..., iR-1}', we check if 0 <= i[k] <= d[k] for k in
+/// {0, 1, ..., R-1}. Note that the check also implies that 'd[k]' >= 1.
+LogicalResult verifyIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index);
 
 /// Iterates over the index space of a tensor with a given shape, producing
 /// indices in lexicographical order. As an example, for a tensor with shape
@@ -37,8 +44,10 @@ class IndexSpaceIterator {
   IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
                      llvm::Optional<llvm::SmallVector<int64_t>> index)
       : shape_(shape), index_(index) {
-    if (llvm::any_of(shape, [](int64_t shapeElm) { return shapeElm < 0; }))
-      llvm::report_fatal_error("Iterator supports static shapes only.");
+    if (index && failed(verifyIndex(shape, (*index))))
+      llvm::report_fatal_error(
+          llvm::StringRef("Incompatible index and shape found in: ") +
+          LLVM_PRETTY_FUNCTION);
   }
 
   /// Get the current index.

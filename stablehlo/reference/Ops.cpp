@@ -42,8 +42,8 @@ Tensor eval(ConstantOp op, ElementsAttr value) {
 
 Tensor eval(CosineOp op, const Tensor &operand) {
   Tensor result(op.getType());
-  for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, cosine(operand.get(i)));
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
+    result.set(*it, cosine(operand.get(*it)));
   }
   return result;
 }
@@ -91,8 +91,8 @@ Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs) {
 
 Tensor eval(TanhOp op, const Tensor &operand) {
   Tensor result(op.getType());
-  for (auto i = 0; i < operand.getNumElements(); ++i) {
-    result.set(i, tanh(operand.get(i)));
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
+    result.set(*it, tanh(operand.get(*it)));
   }
   return result;
 }
