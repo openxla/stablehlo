@@ -29,8 +29,8 @@ namespace stablehlo {
 ///
 /// Assuming that the function under evaluation has passed verifier,
 /// similarly to what's required by constant folding.
-llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
-                                         ArrayRef<Tensor> args);
+llvm::Expected<llvm::SmallVector<Tensor>> eval(func::FuncOp func,
+                                               llvm::ArrayRef<Tensor> args);
 
 }  // namespace stablehlo
 }  // namespace mlir

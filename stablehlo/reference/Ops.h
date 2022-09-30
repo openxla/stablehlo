@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLHLO_REFERENCE_OPS_H
 #define STABLHLO_REFERENCE_OPS_H
 
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Tensor.h"
 
@@ -23,7 +24,15 @@ namespace mlir {
 namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor eval(CeilOp op, const Tensor &operand);
 Tensor eval(ConstantOp op, ElementsAttr value);
+Tensor eval(CosineOp op, const Tensor &operand);
+Tensor eval(FloorOp op, const Tensor &operand);
+Tensor eval(NegOp op, const Tensor &operand);
+Tensor eval(ReshapeOp op, const Tensor &operand);
+Tensor eval(SineOp op, const Tensor &operand);
+Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor eval(TanhOp op, const Tensor &operand);
 
 }  // namespace stablehlo
 }  // namespace mlir

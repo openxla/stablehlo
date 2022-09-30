@@ -18,11 +18,13 @@ limitations under the License.
 
 #include <vector>
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Index.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -40,8 +42,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   Buffer(Buffer &&other) = default;
   /// @}
 
-  /// Assignment operator.
-  Buffer &operator=(Buffer &&other) = default;
+  /// Move assignment operator deleted in RefCountedBase
+  Buffer &operator=(Buffer &&other) = delete;
 
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
@@ -59,7 +61,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
 
 }  // namespace detail
 
-/// Helper class to access the tensor elements in a linearized layout.
+/// Class to model a tensor, an n-dimensional array. Provide access to
+/// individual elements of the tensor using n-dimensional indices.
 class Tensor {
  public:
   /// \name Constructors
@@ -79,23 +82,23 @@ class Tensor {
   /// Returns the number of elements.
   int64_t getNumElements() const;
 
-  /// Provides read access, via a linearized element index, into the
-  /// underlying storage.
-  Element get(int64_t index) const;
+  /// Provides read access to the tensor element indexed at 'index'.
+  Element get(ArrayRef<int64_t> index) const;
 
-  /// Provides write access, via a linearized element index, into the
-  /// underlying storage.
+  /// Provides write access to the tensor element indexed at 'index'.
   ///
-  /// \param index The index to write to.
+  /// \param index The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
   /// underlying storage pointed to by \a index.
-  void set(int64_t index, Element element);
+  void set(ArrayRef<int64_t> index, const Element &element);
 
-  /// Print utilities for Tensor objects.
+  /// Prints Tensor objects.
   void print(raw_ostream &os) const;
-
-  /// Print utilities for Tensor objects.
   void dump() const;
+
+  /// Iterate over the index space of a Tensor object.
+  IndexSpaceIterator index_begin() const;
+  IndexSpaceIterator index_end() const;
 
  private:
   llvm::IntrusiveRefCntPtr<detail::Buffer> impl_;
@@ -110,7 +113,7 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
 /// Creates a Tensor using `type` as the static type and data provided as an
 /// array of string literal which will be parsed using the corresponding element
 /// type.
-Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData);
+Tensor makeTensor(ShapedType type, llvm::ArrayRef<llvm::StringRef> strData);
 
 }  // namespace stablehlo
 }  // namespace mlir

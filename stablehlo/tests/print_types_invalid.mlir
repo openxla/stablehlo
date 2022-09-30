@@ -128,6 +128,48 @@ func.func @one_result_type(%arg0: tensor<1xf64>) -> tensor<1xf64> {
 
 // -----
 
+func.func @precision_missing_keyword(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.dot' expected 'precision'}}
+  %0 = stablehlo.dot %arg0, %arg1, [HIGH] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_missing_equals(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{expected '='}}
+  %0 = stablehlo.dot %arg0, %arg1, precision [HIGH] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_enum(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+2 {{custom op 'stablehlo.dot' expected valid keyword}}
+  // expected-error @+1 {{custom op 'stablehlo.dot' failed to parse StableHLO_PrecisionAttr parameter 'value' which is to be a `::mlir::stablehlo::Precision`}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = [%arg0] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_enum_value(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+2 {{custom op 'stablehlo.dot' failed to parse StableHLO_PrecisionAttr parameter 'value' which is to be a `::mlir::stablehlo::Precision`}}
+  // expected-error @+1 {{custom op 'stablehlo.dot' expected ::mlir::stablehlo::Precision to be one of: DEFAULT, HIGH, HIGHEST}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = [NOT_AN_ENUM] : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
+func.func @precision_invalid_array(%arg0: tensor<2x2xi32>, %arg1: tensor<2x2xi32>) -> () {
+  // expected-error @+1 {{expected '['}}
+  %0 = stablehlo.dot %arg0, %arg1, precision = {} : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  func.return
+}
+
+// -----
+
 func.func @reduce_precision_not_literal(%arg0: tensor<3x4xf32>) -> (tensor<3x4xf32>) {
   // expected-error @+1 {{custom op 'stablehlo.reduce_precision' expected valid keyword}}
   %0 = stablehlo.reduce_precision %arg0, format = "e2m2" : tensor<3x4xf32>
@@ -173,3 +215,36 @@ func.func @reduce_precision_overflow_int32_m(%arg0: tensor<3x4xf32>) -> (tensor<
   %0 = stablehlo.reduce_precision %arg0, format = e1m2147483648 : tensor<3x4xf32>
   func.return %0 : tensor<?x?xf64>
 }
+
+// -----
+
+func.func @variadic_with_attr_no_comma(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> () {
+  // expected-error @+1 {{expected ','}}
+  %0 = stablehlo.concatenate %arg0, %arg1 dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  func.return
+}
+
+// -----
+
+func.func @variadic_with_attr_no_comma_no_dim(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> () {
+  // expected-error @+1 {{expected ','}}
+  %0 = stablehlo.concatenate %arg0, %arg1: (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  func.return
+}
+
+// -----
+
+func.func @variadic_with_attr_no_dim(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> (tensor<3x4xf32>) {
+  // expected-error @+1 {{custom op 'stablehlo.concatenate' expected 'dim'}}
+  %0 = stablehlo.concatenate %arg0, %arg1, : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  func.return
+}
+
+// -----
+
+func.func @variadic_with_attr_no_operands() -> () {
+  // expected-error @+1 {{'stablehlo.concatenate' op expected 1 or more operands, but found 0}}
+  %0 = stablehlo.concatenate dim = 0 : () -> (tensor<2xf32>)
+  func.return
+}
+

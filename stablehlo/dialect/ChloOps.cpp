@@ -435,7 +435,7 @@ LogicalResult RankSpecializationClusterOp::verify() {
 
   // All operands of nested ops must be defined in the body or declared by the
   // cluster.
-  Block* body = getBody();
+  Block* body = SingleBlock::getBody();
   for (Operation& nested : body->without_terminator()) {
     if (!llvm::all_of(nested.getOpOperands(), [&](OpOperand& operand) {
           Operation* def = operand.get().getDefiningOp();
@@ -546,7 +546,7 @@ Attribute ChloDialect::parseAttribute(DialectAsmParser& parser,
   StringRef attrTag;
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
-  if (parseResult.hasValue()) return attr;
+  if (parseResult.has_value()) return attr;
   parser.emitError(parser.getNameLoc(), "unknown chlo attribute");
   return Attribute();
 }

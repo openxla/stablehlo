@@ -3,28 +3,25 @@
 
 ## Data Model
 
-StableHLO programs are computations over tensors (n-dimensional arrays), which,
-in the current model, are implemented using class `Tensor`. The underlying
-storage class for a `Tensor` object, `detail::Buffer`, stores the
-`mlir::ShapedType` of the tensor along with a contiguous byte array representing
-its data laid out in [major-to-minor order](https://www.tensorflow.org/xla/shapes).
-`detail::Buffer` objects are reference-counted to simplify memory management.
+[StableHLO programs](spec_draft.md#programs) are computations over tensors
+(n-dimensional arrays), which, in the current model, are implemented using class
+`Tensor`. The underlying storage class for a `Tensor` object, `detail::Buffer`,
+stores the `mlir::ShapedType` of the tensor along with a contiguous byte array
+representing its data laid out in
+[major-to-minor order](https://www.tensorflow.org/xla/shapes). `detail::Buffer`
+objects are reference-counted to simplify memory management.
 
 Individual elements of a tensor are represented using `Element` class which uses
-`mlir::Attribute` for storage. Using `mlir::Attribute` simplifies things because
-this means that we don't have to implement our own machinery for storing values
-of different types inside `Element`.
+discriminated union holding one of `APInt`, `APFloat` or `pair<APFloat,APFloat>`
+for storage. The last one is used for storing elements with complex types.
 
 `Tensor` class has the following APIs to interact with its individual elements:
-  - `Element Tensor::get(int64_t index)`: To extract an individual tensor
-  element at index `index` as `Element` object.
-  - `void Tensor::set(int64_t index, Element element);`: To insert an `Element`
-  object `element` into a tensor at index `index`.
-
-For the skeleton of the interpreter, we chose the above linearized APIs for
-accessing tensor elements to simplify the implementation. This is sufficient for
-element-wise ops, and in the future we're planning to expand this to cover more
-complicated op.
+  - `Element Tensor::get(llvm::ArrayRef<int64_t> index)`: To extract an
+     individual tensor element at multi-dimensional index `index` as `Element`
+     object.
+  - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
+  To update an `Element` object `element` into a tensor at multi-dimensional
+  index `index`.
 
 ## Working of the interpreter
 
@@ -51,18 +48,19 @@ an `Element` object, is stored in the final `result` tensor.
 ```C++
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
-  for (auto i = 0; i < lhs.getNumElements(); ++i) {
-    result.set(i, lhs.get(i) + rhs.get(i));
-  }
+
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+    result.set(*it, lhs.get(*it) + rhs.get(*it));
+
   return result;
 }
 ```
 
 Overall, the design of the interpreter is optimized for readability of
-implementations of `eval` functions for individual ops because it's meant to serve
-as a reference implementation for StableHLO. For example, instead of defining
-`eval` as a template function and parameterizing it with element types, we
-encapsulate details about how different element types are handled in
+implementations of `eval` functions for individual ops because it's meant to
+serve as a reference implementation for StableHLO. For example, instead of
+defining `eval` as a template function and parameterizing it with element types,
+we encapsulate details about how different element types are handled in
 `Element::operator+` etc, simplifying the implementation of `eval`.
 
 ## Using interpreter for constant folding
@@ -71,7 +69,7 @@ We can use the interpreter mechanism to fold operations with constant operand
 values. The following code snippet demonstrates an idea of the implementation
 for folding `stablehlo::AddOp` with floating-point typed operands:
 
-```
+```C++
 OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
   DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
   DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
@@ -108,7 +106,7 @@ In the current implementation, we package the inputs (MLIR program + input data
 values) and outputs in a
 [lit-based](https://llvm.org/docs/CommandGuide/lit.html) test as follows:
 
-```c++
+```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
 func.func @add_op_test_ui4() -> tensor<2xui4> {
   %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>

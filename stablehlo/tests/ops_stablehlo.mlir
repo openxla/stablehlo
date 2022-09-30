@@ -488,6 +488,54 @@ func.func @broadcast_in_dim_unranked_operand(%arg0 : tensor<*xf32>) -> tensor<2x
 
 // -----
 
+// CHECK-LABEL: if 
+func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: if_dynamic_op_result
+func.func @if_dynamic_op_result(%pred : tensor<i1>, %branch_operand: tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<?xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: if_dynamic_branch_result
+func.func @if_dynamic_branch_result(%pred : tensor<i1>, %true_branch_eperand: tensor<2xf32>, %false_branch_eperand : tensor<?xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_eperand) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_eperand) : (tensor<?xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: if_unranked
+func.func @if_unranked(%pred : tensor<i1>, %true_branch_eperand: tensor<2xf32>, %false_branch_eperand : tensor<*xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_eperand) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_eperand) : (tensor<*xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<*xf32>
+  func.return
+}
+
+// -----
+
 // CHECK-LABEL: @if_nested_different_return_types(
 func.func @if_nested_different_return_types(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
   %0 = "stablehlo.if"(%pred) ({
@@ -505,10 +553,11 @@ func.func @if_nested_different_return_types(%pred : tensor<i1>, %branch_operand 
 
 // -----
 
-func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<f32>, %wrong_type : tensor<3xf32>) {
-  // @expected-error@+1 {{true_branch returned types ('tensor<3xf32>') do not match op result types ('tensor<f32>')}}
+func.func @if_unexpected_arguments_in_region_of_true_branch(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 0 must have 0 arguments, but found 1}}
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%wrong_type) : (tensor<3xf32>) -> ()
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }, {
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }) : (tensor<i1>) -> tensor<f32>
@@ -517,13 +566,105 @@ func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<
 
 // -----
 
-func.func @if_mismatch_num_return_types(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
-  // @expected-error@+1 {{true_branch returned types ('tensor<f32>', 'tensor<f32>') do not match op result types ('tensor<f32>')}}
+func.func @if_unexpected_arguments_in_region_of_false_branch(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 1 must have 0 arguments, but found 1}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }, {
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @if_mismatch_types_in_branches(%pred : tensor<i1>, %true_branch_operand : tensor<3xf32>, %false_branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 0 and branch 1 have mismatched return types: 'tensor<3xf32>' vs 'tensor<f32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_operand) : (tensor<3xf32>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @if_mismatch_num_types_in_branches(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 0 and branch 1 have mismatched return types: 'tensor<f32>', 'tensor<f32>' vs 'tensor<f32>'}}
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
     }, {
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }) : (tensor<i1>) -> tensor<f32>
+  func.return
+}
+// -----
+
+func.func @if_mismatch_return_type(%pred : tensor<i1>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<i32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case
+func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+func.func @case_zero_branches(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  // @expected-error@+1 {{expect at least one branch}}
+  %0 = "stablehlo.case"(%index) : (tensor<i32>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_op_result
+func.func @case_dynamic_op_result(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<?xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_branch_result
+func.func @case_dynamic_branch_result(%index : tensor<i32>, %branch_operand : tensor<?xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
+  func.return
+}
+
+// -----
+
+// CHECK-LABEL: @case_unranked
+func.func @case_unranked(%index : tensor<i32>, %branch_operand : tensor<*xf32>) {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<*xf32>
   func.return
 }
 
@@ -544,8 +685,21 @@ func.func @case_nested_different_return_types(%index : tensor<i32>, %branch_oper
 
 // -----
 
-func.func @case_mismatch_return_type(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
-  // expected-error@+1 {{branch 1 returned types ('tensor<i32>') do not match op result types ('tensor<f32>')}}
+func.func @case_unexpected_arguments_in_region_of_branch_1(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{branch 1 must have 0 arguments, but found 1}}
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }, {
+      ^bb0(%arg0: tensor<f32>):
+        "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }) : (tensor<i32>) -> tensor<f32>
+  func.return
+}
+
+// -----
+
+func.func @case_mismatch_types_in_branches(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
+  // expected-error@+1 {{branch 0 and branch 1 have mismatched return types: 'tensor<f32>' vs 'tensor<i32>'}}
   %0 = "stablehlo.case"(%index) ({
       %1 = "stablehlo.negate"(%operand_1) : (tensor<f32>) -> tensor<f32>
       "stablehlo.return"(%1) : (tensor<f32>) -> ()
@@ -558,6 +712,18 @@ func.func @case_mismatch_return_type(%index: tensor<i32>, %operand_1: tensor<f32
     }
   ) : (tensor<i32>) -> tensor<f32>
   func.return %0 : tensor<f32>
+}
+
+// -----
+
+func.func @case_mismatch_return_type(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+  // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+  }) : (tensor<i32>) -> tensor<i32>
+  func.return
 }
 
 // -----
@@ -1015,6 +1181,53 @@ func.func @iota_invalid_iota_dimension() -> tensor<4xi32> {
 
 // -----
 
+// CHECK-LABEL: func @map
+func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.constant dense<2.0> : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
+  func.return %0 : tensor<4x5xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_heterogeneous_inputs
+func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) -> tensor<2xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<i32>):
+    "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
+  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_scalar_operands
+func.func @map_scalar_operands(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: func @map_unranked
+func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.map"(%arg0, %arg1) ({
+    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
 func.func @map_mismatched_args(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> tensor<4xf32> {
   // expected-error@+1 {{expects number of operands to match the arity of map computation, but got: 2 and 1}}
   %0 = "stablehlo.map"(%arg0, %arg1) ({
@@ -1076,7 +1289,7 @@ func.func @main_non_scalar_computation_output(%arg0: tensor<4x5xf32>, %arg1: ten
 // -----
 
 func.func @mismatch_computation_output_type(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
-  // expected-error@+1 {{element type of result and computation output must match, but got: 'f32' and 'i32'}}
+  // expected-error@+1 {{inferred type(s) 'tensor<4x5xi32>' are incompatible with return type(s) of operation 'tensor<4x5xf32>'}}
   %0 = "stablehlo.map"(%arg0, %arg1) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.constant dense<2> : tensor<i32>
@@ -1107,30 +1320,6 @@ func.func @map_mismatch_arguments_and_dimensions(%arg0: tensor<4x5xf32>, %arg1: 
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
   }) {dimensions = dense<[0, 1, 2]> : tensor<3xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
   func.return %0 : tensor<4x5xf32>
-}
-
-// -----
-
-// CHECK-LABEL: func @map_heterogeneous_inputs
-func.func @map_heterogeneous_inputs(%arg0: tensor<2xf32>, %arg1: tensor<2xi32>) -> tensor<2xf32> {
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<i32>):
-    "stablehlo.return"(%arg2) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<2xf32>, tensor<2xi32>) -> tensor<2xf32>
-  func.return %0 : tensor<2xf32>
-}
-
-// -----
-
-
-// CHECK-LABEL: func @map_unranked
-func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-    %1 = stablehlo.add %arg2, %arg3 {name = "add"} : tensor<f32>
-    "stablehlo.return"(%1) : (tensor<f32>) -> ()
-  }) {dimensions = dense<0> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return %0 : tensor<*xf32>
 }
 
 // -----
@@ -1203,7 +1392,7 @@ func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<1
   %4 = stablehlo.constant dense<[10, 12]> : tensor<2xui64>
   %0 = stablehlo.constant dense<[10, 12]> : tensor<2xi32>
   %1 = stablehlo.constant dense<3> : tensor<i32>
-  %2, %3 = "stablehlo.rng_bit_generator"(%4) {rng_algorithm = #stablehlo.rng_algorithm<DEFAULT>} : (tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>)
+  %2, %3 = "stablehlo.rng_bit_generator"(%4) {rng_algorithm = #stablehlo<rng_algorithm DEFAULT>} : (tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>)
   func.return %2, %3 : tensor<2xui64>, tensor<10x12xui32>
 }
 
@@ -1214,7 +1403,7 @@ func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<1
   %0 = stablehlo.constant dense<[10, 12]> : tensor<2xi32>
   %1 = stablehlo.constant dense<3> : tensor<i32>
   // expected-error@+1 {{output state shape must match initial state shape. Got: 'tensor<2xui64>' and 'tensor<3xui64>'}}
-  %2, %3 = "stablehlo.rng_bit_generator"(%4) {rng_algorithm = #stablehlo.rng_algorithm<DEFAULT>} : (tensor<2xui64>) -> (tensor<3xui64>, tensor<10x12xui32>)
+  %2, %3 = "stablehlo.rng_bit_generator"(%4) {rng_algorithm = #stablehlo<rng_algorithm DEFAULT>} : (tensor<2xui64>) -> (tensor<3xui64>, tensor<10x12xui32>)
   func.return %2, %3 : tensor<3xui64>, tensor<10x12xui32>
 }
 
@@ -1223,7 +1412,7 @@ func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<1
 // CHECK-LABEL: func @rng_normal
 func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf32> {
   %cst = "stablehlo.constant"() {value = dense<[2, 3, 5]> : tensor<3xi64>} : () -> tensor<3xi64>
-  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1231,7 +1420,7 @@ func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<2x3x5xf3
 
 // CHECK-LABEL: func @rng_normal_no_constant
 func.func @rng_normal_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<3xi64>) -> tensor<?x?x?xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
 }
 
@@ -1239,7 +1428,7 @@ func.func @rng_normal_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tens
 
 // CHECK-LABEL: func @rng_normal_dynamic_dim
 func.func @rng_normal_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<?xi64>) -> tensor<*xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
 
@@ -1248,7 +1437,7 @@ func.func @rng_normal_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tens
 func.func @rng_normal_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>) {
   %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
   // expected-error @+1 {{inferred type(s) 'tensor<7xf32>' are incompatible with return type(s) of operation 'tensor<12xf32>'}}
-  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<12xf32>
+  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<12xf32>
   func.return
 }
 
@@ -1257,7 +1446,7 @@ func.func @rng_normal_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>) {
 func.func @rng_normal_invalid_mu_rank(%mu: tensor<1xf32>, %sigma: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   // expected-error@+1 {{#0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<1xf32>'}}
-  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<1xf32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<1xf32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1266,7 +1455,7 @@ func.func @rng_normal_invalid_mu_rank(%mu: tensor<1xf32>, %sigma: tensor<f32>) -
 func.func @rng_normal_invalid_sigma_rank(%mu: tensor<f32>, %sigma: tensor<1xf32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   // expected-error@+1 {{#1 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<1xf32>'}}
-  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<1xf32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<1xf32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1275,7 +1464,7 @@ func.func @rng_normal_invalid_sigma_rank(%mu: tensor<f32>, %sigma: tensor<1xf32>
 func.func @rng_normal_invalid_shape_rank(%mu: tensor<f32>, %sigma: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[[2, 3, 5]]> : tensor<1x3xi64>
   // expected-error@+1 {{operand #2 must be 1D tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
-  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%mu, %sigma, %shape) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1284,7 +1473,7 @@ func.func @rng_normal_invalid_shape_rank(%mu: tensor<f32>, %sigma: tensor<f32>) 
 func.func @rng_normal_invalid_type(%arg0: tensor<complex<f32>>, %arg1: tensor<f32>) {
   %cst = "stablehlo.constant"() {value = dense<7> : tensor<1xi64>} : () -> tensor<1xi64>
   // expected-error @+1 {{#0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<complex<f32>>'}}
-  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo.rng_distribution<NORMAL>}: (tensor<complex<f32>>, tensor<f32>, tensor<1xi64>) -> tensor<7xf32>
+  %0 = "stablehlo.rng"(%arg0, %arg1, %cst) {rng_distribution = #stablehlo<rng_distribution NORMAL>}: (tensor<complex<f32>>, tensor<f32>, tensor<1xi64>) -> tensor<7xf32>
   func.return
 }
 
@@ -1293,7 +1482,7 @@ func.func @rng_normal_invalid_type(%arg0: tensor<complex<f32>>, %arg1: tensor<f3
 // CHECK-LABEL: func @rng_uniform
 func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1301,7 +1490,7 @@ func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
 
 // CHECK-LABEL: func @rng_uniform_no_constant
 func.func @rng_uniform_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<3xi64>) -> tensor<?x?x?xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
 }
 
@@ -1309,7 +1498,7 @@ func.func @rng_uniform_no_constant(%a: tensor<f32>, %b: tensor<f32>, %shape: ten
 
 // CHECK-LABEL: func @rng_uniform_dynamic_dim
 func.func @rng_uniform_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: tensor<?xi64>) -> tensor<*xf32> {
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<?xi64>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
 
@@ -1317,7 +1506,7 @@ func.func @rng_uniform_dynamic_dim(%a: tensor<f32>, %b: tensor<f32>, %shape: ten
 
 func.func @rng_uniform_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<7xi64>) {
   // expected-error @+1 {{inferred type(s) 'tensor<?x?x?x?x?x?x?xf32>' are incompatible with return type(s) of operation 'tensor<?xf32>'}}
-  %0 = "stablehlo.rng"(%arg0, %arg1, %arg2) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<7xi64>) -> tensor<?xf32>
+  %0 = "stablehlo.rng"(%arg0, %arg1, %arg2) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<7xi64>) -> tensor<?xf32>
   func.return
 }
 
@@ -1326,7 +1515,7 @@ func.func @rng_uniform_invalid_shape(%arg0: tensor<f32>, %arg1: tensor<f32>, %ar
 func.func @rng_uniform_invalid_a_rank(%a: tensor<1xf32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   // expected-error@+1 {{operand #0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<1xf32>'}}
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<1xf32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<1xf32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1336,7 +1525,7 @@ func.func @rng_uniform_invalid_a_rank(%a: tensor<1xf32>, %b: tensor<f32>) -> ten
 func.func @rng_uniform_invalid_b_rank(%a: tensor<f32>, %b: tensor<1xf32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   // expected-error@+1 {{operand #1 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<1xf32>'}}
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<1xf32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<1xf32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1345,7 +1534,7 @@ func.func @rng_uniform_invalid_b_rank(%a: tensor<f32>, %b: tensor<1xf32>) -> ten
 func.func @rng_uniform_invalid_shape_rank(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[[2, 3, 5]]> : tensor<1x3xi64>
   // expected-error@+1 {{operand #2 must be 1D tensor of index or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<1x3xi64>'}}
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<f32>, tensor<f32>, tensor<1x3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1354,7 +1543,7 @@ func.func @rng_uniform_invalid_shape_rank(%a: tensor<f32>, %b: tensor<f32>) -> t
 func.func @rng_uniform_invalid_type(%a: tensor<complex<f32>>, %b: tensor<f32>) -> tensor<2x3x5xf32> {
   %shape = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
   // expected-error@+1 {{operand #0 must be 0D tensor of pred (AKA boolean or 1-bit integer) or 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer or 16-bit float or 32-bit float or 64-bit float or bfloat16 type values, but got 'tensor<complex<f32>>'}}
-  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo.rng_distribution<UNIFORM>}: (tensor<complex<f32>>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+  %0 = "stablehlo.rng"(%a, %b, %shape) {rng_distribution = #stablehlo<rng_distribution UNIFORM>}: (tensor<complex<f32>>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   func.return %0 : tensor<2x3x5xf32>
 }
 
@@ -1753,8 +1942,33 @@ func.func @transpose_operand_result_permutation_mismatch(%arg0: tensor<1x?x3x?xi
 
 // -----
 
+// CHECK-LABEL: func @triangular_solve
+func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>
+  func.return %0 : tensor<10x5x4x4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve_unranked
 func.func @triangular_solve_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve_a_is_unranked
+func.func @triangular_solve_a_is_unranked(%arg0: tensor<*xf32>, %arg1: tensor<4x4xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<*xf32>, tensor<4x4xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve_b_is_unranked
+func.func @triangular_solve_b_is_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<4x4xf32>, tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
 
@@ -1801,9 +2015,17 @@ func.func @triangular_solve_mismatch_leading_dims(%arg0: tensor<10x5x4x4xf32>, %
 // -----
 
 func.func @triangular_solve_mismatch_result_and_b_type(%arg0: tensor<4x4xf32>, %arg1: tensor<4x3xf32>) -> tensor<4x4xf32> {
-  // expected-error@+1 {{result and operand 'b' must have same shape, but got 'tensor<4x4xf32>' and 'tensor<4x3xf32>'}}
+  // expected-error@+1 {{inferred type(s) 'tensor<4x3xf32>' are incompatible with return type(s) of operation 'tensor<4x4xf32>'}}
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<4x4xf32>, tensor<4x3xf32>) -> tensor<4x4xf32>
   func.return %0 : tensor<4x4xf32>
+}
+
+// -----
+
+func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32> {
+  // expected-error@+1 {{Invalid transpose option value for triangular solve}}
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose TRANSPOSE_INVALID>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>
+  func.return %0 : tensor<10x5x4x4xf32>
 }
 
 // -----
