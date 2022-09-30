@@ -257,3 +257,27 @@ func.func @add_op_test_c128() -> tensor<2xcomplex<f64>> {
   // CHECK-NEXT: [3.000000e+00 : f64, 5.000000e+00 : f64
   // CHECK-NEXT: [1.500000e+01 : f64, 1.100000e+01 : f64
 }
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_scalar
+func.func @add_op_scalar() -> tensor<i4> {
+  %0 = stablehlo.constant dense<2> : tensor<i4>
+  %1 = stablehlo.constant dense<3> : tensor<i4>
+  %2 = stablehlo.add %0, %1 : tensor<i4>
+  func.return %2 : tensor<i4>
+  // CHECK-NEXT: tensor<i4>
+  // CHECK-NEXT: 5 : i4
+}
+
+// -----
+
+// CHECK-LABEL: Evaluated results of function: add_op_tensor_shape_with_zero_dim_size
+func.func @add_op_tensor_shape_with_zero_dim_size() -> tensor<2x0x3xi4> {
+  %0 = stablehlo.constant dense<2> : tensor<2x0x3xi4>
+  %1 = stablehlo.constant dense<3> : tensor<2x0x3xi4>
+  %2 = stablehlo.add %0, %1 : tensor<2x0x3xi4>
+  func.return %2 : tensor<2x0x3xi4>
+  // CHECK-NEXT: tensor<2x0x3xi4>
+  // CHECK-NOT: [0-9]+
+}

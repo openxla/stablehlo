@@ -48,20 +48,6 @@ int64_t getSizeInBytes(Type type) {
   report_fatal_error(std::move(err));
 }
 
-APFloat getFloatValue(Element element) {
-  return element.getValue().cast<FloatAttr>().getValue();
-}
-
-APInt getIntegerValue(Element element) {
-  return element.getValue().cast<IntegerAttr>().getValue();
-}
-
-std::complex<APFloat> getComplexValue(Element element) {
-  auto arryOfAttr = element.getValue().cast<ArrayAttr>().getValue();
-  return std::complex<APFloat>(arryOfAttr[0].cast<FloatAttr>().getValue(),
-                               arryOfAttr[1].cast<FloatAttr>().getValue());
-}
-
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
 int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
@@ -343,6 +329,10 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
 
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
+
+  if(any_of(shape, [](int64_t dimSize) {return dimSize == 0;}))
+    return IndexSpaceIterator(shape, {});
+
   SmallVector<int64_t> index(shape.size());
   return IndexSpaceIterator(shape, index);
 }
