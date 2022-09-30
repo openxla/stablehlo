@@ -44,8 +44,8 @@ int64_t getSizeInBytes(Type type) {
   if (auto complexType = type.dyn_cast<mlir::ComplexType>())
     return getSizeInBytes(complexType.getElementType()) * 2;
 
-  auto err = invalidArgument("Unsupported type: %s", debugString(type).c_str());
-  report_fatal_error(std::move(err));
+  report_fatal_error(
+      invalidArgument("Unsupported type: %s", debugString(type).c_str()));
 }
 
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
@@ -206,9 +206,8 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     }
   }
 
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(elementType).c_str());
-  report_fatal_error(std::move(err));
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(elementType).c_str()));
 }
 
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
@@ -322,9 +321,8 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
     }
   }
 
-  auto err = invalidArgument("Unsupported element type: %s",
-                             debugString(elementType).c_str());
-  report_fatal_error(std::move(err));
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(elementType).c_str()));
 }
 
 IndexSpaceIterator Tensor::index_begin() const {
@@ -363,9 +361,9 @@ Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
     auto complexElemTy = complexTy.getElementType();
     auto floatType = complexElemTy.dyn_cast<FloatType>();
     if (!floatType) {
-      auto err = invalidArgument("Unsupported element type %s for complex type",
-                                 debugString(complexElemTy).c_str());
-      report_fatal_error(std::move(err));
+      report_fatal_error(
+          invalidArgument("Unsupported element type %s for complex type",
+                          debugString(complexElemTy).c_str()));
     }
 
     auto floatValues = llvm::to_vector(
@@ -397,9 +395,8 @@ Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
     return Tensor(DenseElementsAttr::get(type, intValues));
   }
 
-  auto err =
-      invalidArgument("Unsupported type: %s", debugString(elemType).c_str());
-  report_fatal_error(std::move(err));
+  report_fatal_error(
+      invalidArgument("Unsupported type: %s", debugString(elemType).c_str()));
 }
 
 }  // namespace stablehlo
