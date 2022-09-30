@@ -638,7 +638,8 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs.
+lexicographic comparison on the (real, imaginary) pairs using LLVM's `fcmp oeq`
+and `fcmp ogt` compare instructions.
 
 ### Operands
 
@@ -677,7 +678,8 @@ lexicographic comparison on the (real, imaginary) pairs.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs.
+lexicographic comparison on the (real, imaginary) pairs using LLVM's `fcmp oeq`
+and `fcmp olt` compare instructions.
 
 ### Operands
 

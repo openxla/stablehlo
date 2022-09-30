@@ -243,7 +243,7 @@ func.func @min_op_test_c64() -> tensor<4xcomplex<f32>> {
   // CHECK-NEXT: tensor<4xcomplex<f32>> {
   // CHECK-NEXT: [1.500000e+00 : f32, 2.500000e+00 : f32]
   // CHECK-NEXT: [1.500000e+00 : f32, 2.500000e+00 : f32]
-  // CHECK-NEXT: [-0.000000e+00 : f32, 2.500000e+00 : f32]
+  // CHECK-NEXT: [0.000000e+00 : f32, 1.500000e+00 : f32]
   // CHECK-NEXT: [0.000000e+00 : f32, 1.500000e+00 : f32]
 }
 
@@ -258,6 +258,6 @@ func.func @min_op_test_c64() -> tensor<4xcomplex<f64>> {
   // CHECK-NEXT: tensor<4xcomplex<f64>> {
   // CHECK-NEXT: [1.500000e+00 : f64, 2.500000e+00 : f64]
   // CHECK-NEXT: [1.500000e+00 : f64, 2.500000e+00 : f64]
-  // CHECK-NEXT: [-0.000000e+00 : f64, 2.500000e+00 : f64]
+  // CHECK-NEXT: [0.000000e+00 : f64, 1.500000e+00 : f64]
   // CHECK-NEXT: [0.000000e+00 : f64, 1.500000e+00 : f64]
 }
