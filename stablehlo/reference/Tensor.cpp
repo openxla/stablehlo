@@ -22,6 +22,7 @@ limitations under the License.
 #include "llvm/Support/Error.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Index.h"
+#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
