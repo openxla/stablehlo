@@ -1141,7 +1141,6 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 `result` tensor. More formally, `result[i0, ..., iR-1]` is equal to
 `operand[j0, ..., jR-1]` where `i[d] = j[permutation[d]]`.
 
-
 ### Operands
 
 | Name | Type |
@@ -1162,7 +1161,6 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
   rank of `operand`.
   * (C3) `result`'s shape is a permutation of `operand`'s shape.
 
-
 ### Examples
 
 ```mlir
@@ -1177,6 +1175,7 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 //           [[2,8], [4,10], [6,12]]
 //          ]
 ```
+
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
 
 [Back to Ops](#index-of-documented-ops)

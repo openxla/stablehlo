@@ -135,7 +135,7 @@ one of the following tracking labels.
 | TanhOp                  |        yes         |        yes*        |        yes*         |         yes          |       yes        |
 | TorchIndexSelectOp      |         no         |         no         |         no          |          no          |        no        |
 | TraceOp                 |         no         |        yes*        |         no          |         yes          |        no        |
-| TransposeOp             |        yes         |        yes         |        yes*         |          no          |       yes        |
+| TransposeOp             |        yes         |        yes         |        yes          |          no          |       yes        |
 | TriangularSolveOp       |         no         |        yes*        |         no          |          no          |        no        |
 | TupleOp                 |         no         |        yes*        |  yes(need-revisit)  |         yes          |        no        |
 | UnaryEinsumOp           |         no         |         no         |         no          |          no          |        no        |

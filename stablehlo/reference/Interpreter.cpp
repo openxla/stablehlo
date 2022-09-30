@@ -125,7 +125,7 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(tanhOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
-      Tensor runtimeOperand = fetchOperand(transposeOp.operand());
+      Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
       Tensor runtimeResult = eval(transposeOp, runtimeOperand);
       populateResults({runtimeResult});
     } else {
