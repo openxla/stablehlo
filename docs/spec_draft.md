@@ -172,6 +172,7 @@ described below)
    * [subtract](#stablehlosubtract)
    * [sqrt](#stablehlosqrt)
    * [tanh](#stablehlotanh)
+   * [transpose](#stablehlotranspose)
    * [xor](#stablehloxor)
 
 ## stablehlo.abs
@@ -1127,6 +1128,55 @@ Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
+
+[Back to Ops](#index-of-documented-ops)
+
+## stablehlo.transpose
+
+`stablehlo.transpose(operand, permutation) -> result`
+
+### Semantics
+
+Permutes the dimensions of `operand` tensor using `permutation` and produces a
+`result` tensor. More formally, `result[i0, ..., iR-1]` is equal to
+`operand[j0, ..., jR-1]` where `i[d] = j[permutation[d]]`.
+
+### Operands
+
+| Name | Type |
+|-|-|
+| `operand` | tensor of any supported types |
+| `permutation` | 1-dimensional array of type `si64` |
+
+### Results
+
+| Name | Type |
+|-|-|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
+  rank of `operand`.
+  * (C3) `result`'s shape is a permutation of `operand`'s shape.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1,2], [3,4], [5,6]],
+//            [[7,8], [9,10], [11,12]]
+//           ]
+%result = "stablehlo.transpose"(%operand) { permutation = [2, 1, 0] }
+                 : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+// %result: [
+//           [[1,7], [3,9], [5,11]],
+//           [[2,8], [4,10], [6,12]]
+//          ]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
 
 [Back to Ops](#index-of-documented-ops)
 

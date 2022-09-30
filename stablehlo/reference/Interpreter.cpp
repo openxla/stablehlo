@@ -87,7 +87,7 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(ceilOp, runtimeOperand);
       populateResults({runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
-      Tensor runtimeResult = eval(constantOp, constantOp.getValue());
+      Tensor runtimeResult = eval(constantOp);
       populateResults({runtimeResult});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       Tensor runtimeOperand = fetchOperand(cosineOp.getOperand());
@@ -123,6 +123,10 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
       Tensor runtimeOperand = fetchOperand(tanhOp.getOperand());
       Tensor runtimeResult = eval(tanhOp, runtimeOperand);
+      populateResults({runtimeResult});
+    } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
+      Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
+      Tensor runtimeResult = eval(transposeOp, runtimeOperand);
       populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());

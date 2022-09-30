@@ -27,7 +27,7 @@ one of the following tracking labels.
 
 ## Status
 
-| StableHLO Op (114)      | Specification (24) | Verification (104) | Type Inference (82) | Pretty Printing (77) | Interpreter (10) |
+| StableHLO Op (114)      | Specification (25) | Verification (104) | Type Inference (82) | Pretty Printing (77) | Interpreter (11) |
 |:------------------------|:------------------:|:------------------:|:-------------------:|:--------------------:|:----------------:|
 | AbsOp                   |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | AddOp                   |        yes         |        yes*        |        yes*         |         yes          |       yes        |
@@ -135,7 +135,7 @@ one of the following tracking labels.
 | TanhOp                  |        yes         |        yes*        |        yes*         |         yes          |       yes        |
 | TorchIndexSelectOp      |         no         |         no         |         no          |          no          |        no        |
 | TraceOp                 |         no         |        yes*        |         no          |         yes          |        no        |
-| TransposeOp             |         no         |        yes*        |        yes*         |          no          |        no        |
+| TransposeOp             |        yes         |        yes         |        yes          |          no          |       yes        |
 | TriangularSolveOp       |         no         |        yes*        |         no          |          no          |        no        |
 | TupleOp                 |         no         |        yes*        |  yes(need-revisit)  |         yes          |        no        |
 | UnaryEinsumOp           |         no         |         no         |         no          |          no          |        no        |

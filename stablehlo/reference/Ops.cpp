@@ -20,6 +20,23 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+namespace {
+
+// Appies the permutation `perm` to an array `array` where perm[i] indicates the
+// location where the current array[i] goes.
+std::vector<int64_t> permute(
+    ArrayRef<int64_t> array,
+    mlir::detail::ElementsAttrRange<
+        mlir::DenseElementsAttr::ElementIterator<int64_t>>
+        perm) {
+  std::vector<int64_t> result(array.size());
+  for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
+
+  return result;
+}
+
+}  // namespace
+
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
   for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
@@ -36,8 +53,8 @@ Tensor eval(CeilOp op, const Tensor &operand) {
   return result;
 }
 
-Tensor eval(ConstantOp op, ElementsAttr value) {
-  return Tensor(value.cast<DenseElementsAttr>());
+Tensor eval(ConstantOp op) {
+  return Tensor(op.getValue().cast<DenseElementsAttr>());
 }
 
 Tensor eval(CosineOp op, const Tensor &operand) {
@@ -93,6 +110,17 @@ Tensor eval(TanhOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
     result.set(*it, tanh(operand.get(*it)));
+  }
+  return result;
+}
+
+Tensor eval(TransposeOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
+       ++operandIt) {
+    auto resultIndex =
+        permute(*operandIt, op.getPermutation().getValues<int64_t>());
+    result.set(resultIndex, operand.get(*operandIt));
   }
   return result;
 }
