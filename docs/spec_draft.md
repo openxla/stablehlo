@@ -620,9 +620,9 @@ IEEE-754 specification.
 Fills a `result` array with values in increasing order starting from zero along
 the `iota_dimension` dimension.
 
-Note: If the dimension size is larger than what the element type's maximum value
-can hold, an overflow occurs and the behavior is implementation-defined and one
-of the following:
+Note: For integers, if the dimension size is larger than what the element type's
+maximum value can hold, an overflow occurs and the behavior is implementation-
+defined and one of the following:
   * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
   the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
