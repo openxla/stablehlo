@@ -31,17 +31,17 @@ namespace stablehlo {
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
   if (func->getNumRegions() != 1) {
-    return stablehlo::invalidArgument("Expected one region in func %s",
-                                      func.getName().str().c_str());
+    return invalidArgument("Expected one region in func %s",
+                           func.getName().str().c_str());
   }
   if (!func.getBody().hasOneBlock()) {
-    return stablehlo::invalidArgument("Expected one block in func %s",
-                                      func.getName().str().c_str());
+    return invalidArgument("Expected one block in func %s",
+                           func.getName().str().c_str());
   }
 
   Block &block = func.front();
   if (block.getNumArguments() != args.size()) {
-    return stablehlo::invalidArgument(
+    return invalidArgument(
         "Expected same amount of func arguments in %s "
         "and runtime arguments (%d)",
         func.getName().str().c_str(), args.size());
@@ -55,8 +55,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     auto fetchOperand = [&](Value value) -> Tensor {
       auto it = stackFrame.find(value);
       if (it != stackFrame.end()) return it->second;
-      report_fatal_error(stablehlo::invalidArgument(
-          "Expected a terminator when evaluating func"));
+      report_fatal_error(
+          invalidArgument("Expected a terminator when evaluating func"));
     };
     auto populateResults = [&](ArrayRef<Tensor> runtimeValues) {
       assert(op.getNumResults() == runtimeValues.size());
@@ -155,13 +155,11 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeResult = eval(xorOp, runtimeLhs, runtimeRhs);
       populateResults({runtimeResult});
     } else {
-      return stablehlo::invalidArgument("Unsupported op: %s",
-                                        debugString(op).c_str());
+      return invalidArgument("Unsupported op: %s", debugString(op).c_str());
     }
   }
 
-  return stablehlo::invalidArgument(
-      "Expected a terminator when evaluating func");
+  return invalidArgument("Expected a terminator when evaluating func");
 }
 
 }  // namespace stablehlo
