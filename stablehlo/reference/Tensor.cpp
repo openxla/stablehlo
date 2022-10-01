@@ -106,30 +106,30 @@ int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
 Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
-  char *elementPtr =
-      impl_->getImmutableData().data() +
+  const char *elementPtr =
+      impl_->getData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::IEEEhalf(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isBF16()) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::BFloat(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isF32()) {
-    auto elementData = reinterpret_cast<float *>(elementPtr);
+    auto elementData = reinterpret_cast<const float *>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
   if (elementType.isF64()) {
-    auto elementData = reinterpret_cast<double *>(elementPtr);
+    auto elementData = reinterpret_cast<const double *>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
@@ -142,36 +142,36 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     IntegerType intTy = elementType.cast<IntegerType>();
 
     if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
-      auto elementData = reinterpret_cast<int8_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(16)) {
-      auto elementData = reinterpret_cast<int16_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int16_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(32)) {
-      auto elementData = reinterpret_cast<int32_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int32_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(64)) {
-      auto elementData = reinterpret_cast<int64_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(4) ||
                elementType.isUnsignedInteger(8)) {
-      auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(16)) {
-      auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(32)) {
-      auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint32_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(64)) {
-      auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     }
@@ -182,14 +182,16 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     auto complexElemTy = elementType.cast<ComplexType>().getElementType();
 
     if (complexElemTy.isF32()) {
-      auto elementData = reinterpret_cast<std::complex<float> *>(elementPtr);
+      auto elementData =
+          reinterpret_cast<const std::complex<float> *>(elementPtr);
       return Element(elementType,
                      std::complex<APFloat>(APFloat(elementData->real()),
                                            APFloat(elementData->imag())));
     }
 
     if (complexElemTy.isF64()) {
-      auto elementData = reinterpret_cast<std::complex<double> *>(elementPtr);
+      auto elementData =
+          reinterpret_cast<const std::complex<double> *>(elementPtr);
       return Element(elementType,
                      std::complex<APFloat>(APFloat(elementData->real()),
                                            APFloat(elementData->imag())));
@@ -203,7 +205,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_.getData().data()
+      impl_->getMutableData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -341,53 +343,6 @@ void Tensor::print(raw_ostream &os) const {
 }
 
 void Tensor::dump() const { print(llvm::errs()); }
-
-Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
-  auto elemType = type.getElementType();
-
-  // We are not using parseAttribute for parsing Float literals mainly because
-  // it does not parse special float values like nan, +/-inf.
-  if (auto complexTy = elemType.dyn_cast<ComplexType>()) {
-    auto complexElemTy = complexTy.getElementType();
-    auto floatType = complexElemTy.dyn_cast<FloatType>();
-    if (!floatType) {
-      report_fatal_error(
-          invalidArgument("Unsupported element type %s for complex type",
-                          debugString(complexElemTy).c_str()));
-    }
-
-    auto floatValues = llvm::to_vector(
-        llvm::map_range(strData, [&](StringRef strNum) -> APFloat {
-          return APFloat(floatType.getFloatSemantics(), strNum);
-        }));
-
-    auto complexData = llvm::makeArrayRef(
-        reinterpret_cast<std::complex<APFloat> *>(floatValues.data()),
-        floatValues.size() / 2);
-    return Tensor(DenseElementsAttr::get(type, complexData));
-  }
-
-  if (auto floatType = elemType.dyn_cast<FloatType>()) {
-    auto floatValues =
-        llvm::to_vector(llvm::map_range(strData, [&](StringRef str) -> APFloat {
-          return APFloat(floatType.getFloatSemantics(), str);
-        }));
-
-    return Tensor(DenseElementsAttr::get(type, floatValues));
-  }
-
-  if (elemType.isa<IntegerType>()) {
-    SmallVector<APInt> intValues;
-    intValues = llvm::to_vector(
-        llvm::map_range(strData, [elemType](StringRef str) -> APInt {
-          return APInt(elemType.getIntOrFloatBitWidth(), str, 10);
-        }));
-    return Tensor(DenseElementsAttr::get(type, intValues));
-  }
-
-  report_fatal_error(
-      invalidArgument("Unsupported type: %s", debugString(elemType).c_str()));
-}
 
 Tensor makeTensor(DenseElementsAttr attr) {
   auto type = attr.getType();
