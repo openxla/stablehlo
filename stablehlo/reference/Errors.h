@@ -23,6 +23,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+/// Wrapper error handing function for StableHLO.
 template <typename... Ts>
 inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
