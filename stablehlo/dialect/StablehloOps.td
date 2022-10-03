@@ -1112,7 +1112,7 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
 // conditional use of kConditional HLO.
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveSideEffects,
-    SingleBlockImplicitTerminator<"ReturnOp">, 
+    SingleBlockImplicitTerminator<"ReturnOp">,
     InferTensorType]> {
   let summary = "If operator";
 
@@ -1347,7 +1347,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [NoSideEffect
     Returns a member of a tuple specified by an index.
 
     See https://www.tensorflow.org/xla/operation_semantics#gettupleelement.
-    
+
     Example:
 
     ```mlir
@@ -1983,7 +1983,7 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
     multiplication.
 
     See https://www.tensorflow.org/xla/operation_semantics#dot.
-    
+
     Example:
 
     ```mlir
@@ -2007,7 +2007,7 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
 
   // Use empty `` to prevent extra whitespace before precision config.
   let assemblyFormat = [{
-    $lhs `,` $rhs `` custom<PrecisionConfig>($precision_config) attr-dict 
+    $lhs `,` $rhs `` custom<PrecisionConfig>($precision_config) attr-dict
       `:` functional-type(operands, results)
   }];
 }
@@ -2324,7 +2324,7 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` $size  `,` `dim` `=` $dimension attr-dict 
+    $operand `,` $size  `,` `dim` `=` $dimension attr-dict
       `:` functional-type(operands, results)
   }];
 }
@@ -2631,7 +2631,7 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
                 to be scalar valued.
 
                 See https://www.tensorflow.org/xla/operation_semantics#rngnormal.
-    
+
     Example:
 
     ```mlir
@@ -2690,7 +2690,7 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [NoSideEffec
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $initial_state `,` `algorithm` `=` $rng_algorithm attr-dict 
+    $initial_state `,` `algorithm` `=` $rng_algorithm attr-dict
       `:` functional-type(operands, results)
   }];
 }

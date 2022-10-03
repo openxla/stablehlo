@@ -135,7 +135,7 @@ one of the following tracking labels.
 | tanh                     |        yes         |        yes*        |        yes*         |         yes          |       yes        |
 | torch_index_select       |         no         |         no         |         no          |          no          |        no        |
 | trace                    |         no         |        yes*        |         no          |         yes          |        no        |
-| transpose                |        yes         |        yes         |        yes          |          no          |       yes        |
+| transpose                |        yes         |        yes         |         yes         |          no          |       yes        |
 | triangular_solve         |         no         |        yes*        |         no          |          no          |        no        |
 | tuple                    |         no         |        yes*        |  yes(need-revisit)  |         yes          |        no        |
 | unary_einsum             |         no         |         no         |         no          |          no          |        no        |
