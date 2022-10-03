@@ -1225,7 +1225,6 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
   
   // TODO: Remove this after https://github.com/openxla/stablehlo/pull/145 landed.
   let extraClassDeclaration = [{
-    // Method from InferTypeOpInterface interface.
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }

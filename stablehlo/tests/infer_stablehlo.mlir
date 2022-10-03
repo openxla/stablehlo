@@ -362,7 +362,11 @@ func.func @while(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %
     "stablehlo.return"(%3, %arg10, %arg11) : (tensor<i32>, tensor<i32>, tensor<i32>) -> ()
   }) : (tensor<i32>, tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>, tensor<i32>)
   // CHECK: (tensor<i32>) -> tensor<index>
-  %4 = "hlo_test_infer.get_return_type_components"(%1) : (tensor<i32>) -> tensor<index>
+  %4 = "hlo_test_infer.get_return_type_components"(%1#0) : (tensor<i32>) -> tensor<index>
+  // CHECK: (tensor<i32>) -> tensor<index>
+  %5 = "hlo_test_infer.get_return_type_components"(%1#1) : (tensor<i32>) -> tensor<index>
+  // CHECK: (tensor<i32>) -> tensor<index>
+  %6 = "hlo_test_infer.get_return_type_components"(%1#2) : (tensor<i32>) -> tensor<index>
   func.return %4 : tensor<index>
 }
 

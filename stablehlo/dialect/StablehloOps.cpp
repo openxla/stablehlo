@@ -5622,17 +5622,20 @@ LogicalResult WhileOp::inferReturnTypeComponents(
   auto bodyArgsTypes = adaptor.body().front().getArgumentTypes();
   auto bodyReturnTypes =
       cast<ReturnOp>(adaptor.body().front().getTerminator())->getOperandTypes();
-  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes)))
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
+    return emitOptionalError(location,
+                             "expect operands are compatible with condition "
+                             "block arguments but got ",
+                             operandTypes, " vs ", condArgsTypes);
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
     return emitOptionalError(
-        location, "expect operand matches condition block argument but got ",
-        operandTypes, " vs ", condArgsTypes);
-  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes)))
-    return emitOptionalError(
-        location, "expect operand matches body block argument but got ",
+        location,
+        "expect operands are compatible with body block arguments but got ",
         operandTypes, " vs ", bodyArgsTypes);
-  if (!(hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes)))
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
     return emitOptionalError(
-        location, "expect operand matches body block return type but got ",
+        location,
+        "expect operands are compatible with body block return types but got ",
         operandTypes, " vs ", bodyReturnTypes);
 
   auto condReturnTypes =
