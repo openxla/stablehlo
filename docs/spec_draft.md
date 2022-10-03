@@ -224,7 +224,7 @@ defined and one of the following:
 
 // complex
 // %operand: [(0.0, 1.0), (4.0, -3.0)]
-%result = "stablehlo.abs"(%operand) : (tensor<2xcomplex<f64>>) -> tensor<2xcomplex<f64>>
+%result = "stablehlo.abs"(%operand) : (tensor<2xcomplex<f64>>) -> tensor<2xf64>
 // %result = [1, 5.0]
 ```
 
@@ -1083,7 +1083,7 @@ the IEEE-754 specification.
 ```mlir
 // %lhs: [[6, 8], [10, 12]]
 // %rhs: [[5, 6], [7, 8]]
-%result = "stablehlo.subtract"(%lhs, %rhs) : (tensor<2x2xf32>) -> (tensor<2x2xf32>)
+%result = "stablehlo.subtract"(%lhs, %rhs) : (tensor<2x2xf32>, tensor<2x2xf32>) -> (tensor<2x2xf32>)
 // %result: [[1, 2], [3, 4]]
 ```
 
@@ -1162,8 +1162,9 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 //            [[1,2], [3,4], [5,6]],
 //            [[7,8], [9,10], [11,12]]
 //           ]
-%result = "stablehlo.transpose"(%operand) { permutation = [2, 1, 0] }
-                 : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+%result = "stablehlo.transpose"(%operand) {
+  permutation = dense<[2, 1, 0]> : tensor<3xi64>
+} : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
 // %result: [
 //           [[1,7], [3,9], [5,11]],
 //           [[2,8], [4,10], [6,12]]
