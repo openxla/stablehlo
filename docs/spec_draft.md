@@ -156,12 +156,12 @@ described below)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
    * [divide](#stablehlodivide)
-   * [exp](#stablehloexp)
+   * [exponential](#stablehloexponential)
    * [floor](#stablehlofloor)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
-   * [max](#stablehlomaximum)
-   * [min](#stablehlominimum)
+   * [maximum](#stablehlomaximum)
+   * [minimum](#stablehlominimum)
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
@@ -169,8 +169,8 @@ described below)
    * [reshape](#stablehloreshape)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
-   * [subtract](#stablehlosubtract)
    * [sqrt](#stablehlosqrt)
+   * [subtract](#stablehlosubtract)
    * [tanh](#stablehlotanh)
    * [transpose](#stablehlotranspose)
    * [xor](#stablehloxor)
@@ -474,7 +474,7 @@ produces an implementation-defined value.
 
 [Back to Ops](#index-of-ops)
 
-## stablehlo.exp
+## stablehlo.exponential
 
 ### Semantics
 
@@ -504,11 +504,11 @@ implementation-defined.
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
-%result = "stablehlo.exp"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+%result = "stablehlo.exponential"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[1.0, 2.71828183], [7.38905610, 20.08553692]]
 
 // %operand: (1.0, 2.0)
-%result = "stablehlo.exp"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
+%result = "stablehlo.exponential"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (-1.13120438, 2.47172667)
 ```
 
@@ -888,8 +888,6 @@ implementation-defined value.
 
 ## stablehlo.reshape
 
-`stablehlo.reshape(operand) -> result`
-
 ### Semantics
 
 Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
@@ -1006,9 +1004,45 @@ Numeric precision is implementation-defined.
 
 [Back to Ops](#index-of-ops)
 
-## stablehlo.subtract
+## stablehlo.sqrt
 
-`stablehlo.subtract(lhs, rhs) -> result`
+### Semantics
+
+Performs element-wise square root operation on `operand` tensor and produces a
+`result` tensor, implementing the `squareRoot` operation from the IEEE-754
+specification.
+
+### Operands
+
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
+| `operand` | tensor of floating-point or complex element types |
+
+### Results
+
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
+| `result` | tensor of floating-point or complex element types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [[0.0, 1.0], [4.0, 9.0]]
+%result = "stablehlo.sqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+// %result: [[0.0, 1.0], [2.0, 3.0]]
+
+// %operand: [(1.0, 2.0)]
+%result = "stablehlo.sqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
+// %result: [(1.27201965, 0.78615138)]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.subtract
 
 ### Semantics
 
@@ -1057,44 +1091,6 @@ the IEEE-754 specification.
 
 [Back to Ops](#index-of-ops)
 
-## stablehlo.sqrt
-
-### Semantics
-
-Performs element-wise square root operation on `operand` tensor and produces a
-`result` tensor, implementing the `squareRoot` operation from the IEEE-754
-specification.
-
-### Operands
-
-| Name      | Type                                              |
-|-----------|---------------------------------------------------|
-| `operand` | tensor of floating-point or complex element types |
-
-### Results
-
-| Name     | Type                                              |
-|----------|---------------------------------------------------|
-| `result` | tensor of floating-point or complex element types |
-
-### Constraints
-
-  * (C1) `operand` and `result` have the same type.
-
-### Examples
-
-```mlir
-// %operand: [[0.0, 1.0], [4.0, 9.0]]
-%result = "stablehlo.sqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
-// %result: [[0.0, 1.0], [2.0, 3.0]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.sqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(1.27201965, 0.78615138)]
-```
-
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.tanh
 
 ### Semantics
@@ -1132,8 +1128,6 @@ Numeric precision is implementation-defined.
 [Back to Ops](#index-of-ops)
 
 ## stablehlo.transpose
-
-`stablehlo.transpose(operand, permutation) -> result`
 
 ### Semantics
 
