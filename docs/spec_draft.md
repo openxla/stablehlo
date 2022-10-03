@@ -153,6 +153,7 @@ described below)
    * [add](#stablehloadd)
    * [and](#stablehloand)
    * [ceil](#stablehloceil)
+   * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
    * [divide](#stablehlodivide)
@@ -355,6 +356,56 @@ IEEE-754 specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.concatenate
+
+### Semantics
+
+Concatenates sequence of tensors in `val` along dimension `dimension` and
+produces a tensor as a result. The tensors are of the same rank as the input
+operands except the specified dimension.
+
+### Operands
+
+| Name        | Type                                                                     |
+|-------------|--------------------------------------------------------------------------|
+| `dimension` | `i64`                                                                    |
+| `val`       | Sequence of tensors of integer, floating-point, or complex element types |
+
+### Results
+
+| Name     | Type                                                        |
+|----------|-------------------------------------------------------------|
+| `result` | tensor of integer, floating-point, or complex element types |
+
+### Constraints
+
+  * (C1) `val` and `result` have the same type.
+  * (C2) All tensors in `val` have the same element type and rank.
+  * (C3) Tensors of `val` all have the same dimension except for `dimension`.
+
+### Examples
+
+```mlir
+// 1-dimensional concatenate
+
+// %val1: [1, 2]
+// %val2: [3, 4]
+// %val3: [5, 6]
+// %dimension: 0
+%result = "stablehlo.concatenate"(%val1, %val2, %val3, %dimension) : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, i64) -> tensor<8xi32>
+// %result: [1, 2, 3, 4, 5, 6]
+
+// 2-dimensional concatenate
+
+// %val1: [[1, 2], [3, 4], [5, 6]]
+// %val2: [[7, 8]]
+// %dimension: 0
+%result = "stablehlo.concatenate"(%val1, %val2, %dimension) : (tensor<3x2xi32>, tensor<1x2xi32>, i64) -> tensor<4x2xi32>
+// %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
+```
 
 [Back to Ops](#index-of-ops)
 
