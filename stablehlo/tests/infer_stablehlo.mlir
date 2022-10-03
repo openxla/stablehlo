@@ -355,7 +355,9 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   // CHECK: (tensor<16x16xf32>) -> tensor<16x16xindex>
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<16x16xf32>) -> tensor<16x16xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0#0) : (tensor<16x16xf32>) -> tensor<16x16xindex>
+  // CHECK: (tensor<16x16xf32>) -> tensor<16x16xindex>
+  %2 = "hlo_test_infer.get_return_type_components"(%0#1) : (tensor<16x16xf32>) -> tensor<16x16xindex>
   func.return
 }
 
