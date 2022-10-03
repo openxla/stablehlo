@@ -1143,15 +1143,15 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 
 ### Operands
 
-| Name | Type |
-|-|-|
-| `operand` | tensor of any supported types |
+| Name          | Type                               |
+|---------------|------------------------------------|
+| `operand`     | tensor of any supported types      |
 | `permutation` | 1-dimensional array of type `si64` |
 
 ### Results
 
-| Name | Type |
-|-|-|
+| Name     | Type                          |
+|----------|-------------------------------|
 | `result` | tensor of any supported types |
 
 ### Constraints
