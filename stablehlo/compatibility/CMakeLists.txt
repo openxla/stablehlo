@@ -12,9 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(compatibility)
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(tools)
+# Add base compatibility library
+add_mlir_library(DialectCompatibility
+  PARTIAL_SOURCES_INTENDED
+  DialectCompatibility.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRBytecodeWriter
+)
+
+# Add stablehlo compatibility library
+add_mlir_library(StablehloCompatibility
+  PARTIAL_SOURCES_INTENDED
+  StablehloCompatibility.cpp
+
+  LINK_LIBS PUBLIC
+  DialectCompatibility
+)
