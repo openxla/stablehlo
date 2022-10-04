@@ -617,10 +617,11 @@ IEEE-754 specification.
 ## stablehlo.iota
 
 ### Semantics
-Fills a `result` array with values in increasing order starting from zero along
-the `iota_dimension` dimension.
+Fills a `result` tensor with values in increasing order starting from zero along
+the `iota_dimension` dimension. More formally,
+`result[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
 
-Note: For integers, if the dimension size is larger than what the element type's
+For integers, if the dimension size is larger than what the element type's
 maximum value can hold, an overflow occurs and the behavior is implementation-
 defined and one of the following:
   * mathematical result modulo $2^n$, where n is the bit width of the result,
@@ -634,7 +635,7 @@ defined and one of the following:
 
 | Name             | Type   |
 |------------------|--------|
-| `iota_dimension` | `ui64` |
+| `iota_dimension` | `si64` |
 
 ### Results
 
@@ -644,14 +645,12 @@ defined and one of the following:
 
 ### Constraints
 
-  * (C1) `iota_dimension` >= 0
-  * (C2) `result` rank >= 1
-  * (C3) `result` rank > `iota_dimension`
+  * (C1) 0 <= `iota_dimension` < `R`, where `R` is the rank of the `result`.
 
 ### Examples
 
 ```mlir
-%result = "stablehlo.iota"() { iota_dimension = 0 } : (tensor<i64>) -> tensor<4x5xi32>
+%result = "stablehlo.iota"() { iota_dimension = 0 } : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],
@@ -659,7 +658,7 @@ defined and one of the following:
 //           [3, 3, 3, 3, 3]
 //          ]
 
-%result = "stablehlo.iota"() { iota_dimension = 1 } : (tensor<i64>) -> tensor<4x5xi32>
+%result = "stablehlo.iota"() { iota_dimension = 1 } : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 1, 2, 3, 4],
 //           [0, 1, 2, 3, 4],

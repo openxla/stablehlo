@@ -83,42 +83,36 @@ Tensor eval(FloorOp op, const Tensor &operand) {
 
 Tensor eval(IotaOp op) {
   Tensor result(op.getType());
-  ArrayRef<int64_t> shape = result.getType().getShape();
-  Type type = result.getType().getElementType();
-  if (!isSupportedIntegerType(type) && !isSupportedFloatType(type) &&
-      !isSupportedComplexType(type))
+  Type elType = result.getType().getElementType();
+  if (!isSupportedIntegerType(elType) && !isSupportedFloatType(elType) &&
+      !isSupportedComplexType(elType))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
-  uint64_t rightOfIota = 1;
+                                       debugString(elType).c_str()));
   uint64_t iotaDimension = op.getIotaDimension();
-  for (uint64_t i = 0; i < static_cast<uint64_t>(shape.size()); i++)
-    rightOfIota *= i > iotaDimension ? shape[i] : 1;
   llvm::RoundingMode rm = APFloat::rmNearestTiesToEven;
   bool roundingErr;
-  for (auto [i, iota, it] = std::tuple{0, 0, result.index_begin()};
-       it != result.index_end(); ++it, ++i) {
-    if (i != 0 && i % (rightOfIota) == 0) iota++;
-    if (iota >= shape[iotaDimension]) iota = 0;
-    if (isSupportedIntegerType(type)) {
-      result.set(
-          *it, Element(type, APInt(type.getIntOrFloatBitWidth(), iota, false)));
-    } else if (isSupportedFloatType(type)) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto iota = (*it)[iotaDimension];
+    if (isSupportedIntegerType(elType)) {
+      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
+                                            iota, false)));
+    } else if (isSupportedFloatType(elType)) {
       APFloat val = APFloat((double)iota);
-      if (type.isBF16()) val.convert(APFloat::BFloat(), rm, &roundingErr);
-      if (type.isF16()) val.convert(APFloat::IEEEhalf(), rm, &roundingErr);
-      if (type.isF32()) val.convert(APFloat::IEEEsingle(), rm, &roundingErr);
-      if (type.isF64()) val.convert(APFloat::IEEEdouble(), rm, &roundingErr);
-      result.set(*it, Element(type, val));
-    } else if (isSupportedComplexType(type)) {
+      if (elType.isBF16()) val.convert(APFloat::BFloat(), rm, &roundingErr);
+      if (elType.isF16()) val.convert(APFloat::IEEEhalf(), rm, &roundingErr);
+      if (elType.isF32()) val.convert(APFloat::IEEEsingle(), rm, &roundingErr);
+      if (elType.isF64()) val.convert(APFloat::IEEEdouble(), rm, &roundingErr);
+      result.set(*it, Element(elType, val));
+    } else if (isSupportedComplexType(elType)) {
       APFloat real((double)iota);
       APFloat imag((double)0.0);
-      Type elType = type.dyn_cast<ComplexType>().getElementType();
-      if (elType.isF32()) {
+      Type flType = elType.dyn_cast<ComplexType>().getElementType();
+      if (flType.isF32()) {
         real.convert(APFloat::IEEEsingle(), rm, &roundingErr);
         imag.convert(APFloat::IEEEsingle(), rm, &roundingErr);
-        result.set(*it, Element(type, std::complex<APFloat>(real, imag)));
-      } else if (elType.isF64()) {
-        result.set(*it, Element(type, std::complex<APFloat>(real, imag)));
+        result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
+      } else if (flType.isF64()) {
+        result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
       }
     }
   }
