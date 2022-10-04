@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Error.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"

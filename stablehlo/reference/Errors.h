@@ -18,12 +18,13 @@ limitations under the License.
 
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "mlir/Support/DebugStringHelper.h"
 
 namespace mlir {
 namespace stablehlo {
 
-/// Wrapper error handing function for StableHLO.
+/// Wrapper error handing function for StableHLO. Creates an invalid argument
+/// error using a format string and a variadic number of arguments to the format
+/// string.
 template <typename... Ts>
 inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);

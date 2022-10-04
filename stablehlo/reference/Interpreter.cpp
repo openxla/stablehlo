@@ -21,6 +21,7 @@ limitations under the License.
 #include "mlir/IR/Block.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"

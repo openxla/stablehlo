@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_mlir_library(StablehloReferenceErrors
-  PARTIAL_SOURCES_INTENDED
-  Errors.cpp
-)
-
 add_mlir_library(StablehloReferenceTypes
   PARTIAL_SOURCES_INTENDED
   Types.cpp
@@ -32,7 +27,6 @@ add_mlir_library(StablehloReferenceElement
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
-  StablehloReferenceErrors
   StablehloReferenceTypes
 )
 
@@ -52,7 +46,6 @@ add_mlir_library(StablehloReferenceTensor
   LINK_LIBS PUBLIC
   MLIRIR
   StablehloReferenceElement
-  StablehloReferenceErrors
   StablehloReferenceIndex
   StablehloReferenceTypes
 )
@@ -76,7 +69,6 @@ add_mlir_library(StablehloReferenceInterpreter
   MLIRIR
   MLIRSupport
   StablehloOps
-  StablehloReferenceErrors
   StablehloReferenceOps
   StablehloReferenceTensor
 )
