@@ -72,7 +72,6 @@ limitations under the License.
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
-#include "stablehlo/compatibility/StablehloCompatibility.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
 
@@ -4504,7 +4503,6 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
   addInterfaces<HLOInlinerInterface>();
   addInterfaces<HLOBoundedDialectInterface>();
   addBytecodeInterface(this);
-  addCompatibilityInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST

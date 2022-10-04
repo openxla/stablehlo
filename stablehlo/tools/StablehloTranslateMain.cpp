@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstdint>
+#include "llvm/Support/CommandLine.h"
 #include "mlir/IR/AsmState.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/compatibility/DialectCompatibility.h"
@@ -26,6 +27,18 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/Translation.h"
 
 namespace mlir {
+
+// FIXME: Use translate options
+llvm::cl::opt<int64_t> targetVersionFlag(
+    "target",
+    llvm::cl::desc("Target verison for output (default to minimum supported)"),
+    llvm::cl::init(-1));
+
+llvm::cl::opt<bool> emitBytecode(
+    "emit-bytecode",
+    llvm::cl::desc("Target verison for output (default to minimum supported)"),
+    llvm::cl::init(false));
+
 namespace stablehlo {
 void performRegistrations(MLIRContext * context) {
   mlir::DialectRegistry registry;
@@ -40,23 +53,21 @@ void performRegistrations(MLIRContext * context) {
 static LogicalResult StablehloCompatibilitySerialization(
     llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output, MLIRContext *context) {
   performRegistrations(context);
-  OwningOpRef<Operation *> module =
-      compatibility::parseWithCompat(sourceMgr, context);
+  OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context);
   if (!module) {
     return failure();
   }
 
-  // int64_t targetVersion = 20;  // FIXME
-  bool emitBytecode = false;   // FIXME
+  int64_t targetVersion = targetVersionFlag;  // FIXME
 
-  return compatibility::writeWithCompat(module.get(), {},
-                                        emitBytecode, output);
+  return writeWithCompat(module.get(), targetVersion, emitBytecode, output);
 }
 
 }  // namespace stablehlo
 
 TranslateRegistration stablehlo_compat(
-    "compat", stablehlo::StablehloCompatibilitySerialization);
+    "compat", "StableHLO compatibility tool.", 
+    stablehlo::StablehloCompatibilitySerialization);
 
 }  //  namespace mlir
 

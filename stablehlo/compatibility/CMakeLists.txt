@@ -21,12 +21,3 @@ add_mlir_library(DialectCompatibility
   MLIRIR
   MLIRBytecodeWriter
 )
-
-# Add stablehlo compatibility library
-add_mlir_library(StablehloCompatibility
-  PARTIAL_SOURCES_INTENDED
-  StablehloCompatibility.cpp
-
-  LINK_LIBS PUBLIC
-  DialectCompatibility
-)

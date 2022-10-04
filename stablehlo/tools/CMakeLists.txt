@@ -43,7 +43,7 @@ target_link_libraries(stablehlo-translate PRIVATE
   MLIRIR
   MLIRSupport
   MLIRTranslateLib
-  StablehloCompatibility
+  DialectCompatibility
   StablehloRegister
 )
 
