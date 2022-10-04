@@ -1192,8 +1192,8 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
 def StableHLO_WhileOp: StableHLO_Op<"while", [
       RecursiveSideEffects,
-      HLO_PairwiseSameOperandAndResultType,
       SingleBlockImplicitTerminator<"ReturnOp">,
+      InferTensorType,
       OpAsmOpInterface
     ]> {
   let summary = "While operator";
@@ -1220,9 +1220,12 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
       for (BlockArgument arg : region.getArguments())
         setNameFn(arg, "iterArg");
     }
+
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
   }];
   let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultElementType]> {
