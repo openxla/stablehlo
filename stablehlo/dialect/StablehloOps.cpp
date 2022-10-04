@@ -5645,9 +5645,9 @@ LogicalResult WhileOp::inferReturnTypeComponents(
     return emitOptionalError(
         location, "expect condition body returns a single value but got ",
         condReturnTypes.size());
-  auto operandType = condReturnTypes[0].dyn_cast<RankedTensorType>();
-  if ((operandType && operandType.getRank() != 0) ||
-      !getElementTypeOrSelf(condReturnTypes[0]).isInteger(1))
+  auto operandType = condReturnTypes[0].dyn_cast<TensorType>();
+  if ((operandType.hasRank() && operandType.getRank() != 0) ||
+      !operandType.getElementType().isInteger(1))
     return emitOptionalError(
         location,
         "expect condition block return a zero-ranked tensor of i1 but got ",
