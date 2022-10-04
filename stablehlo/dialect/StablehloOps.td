@@ -1220,15 +1220,12 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
       for (BlockArgument arg : region.getArguments())
         setNameFn(arg, "iterArg");
     }
-  }];
-  let hasCustomAssemblyFormat = 1;
-  
-  // TODO: Remove this after https://github.com/openxla/stablehlo/pull/145 landed.
-  let extraClassDeclaration = [{
+
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
-  }]; 
+  }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultElementType]> {

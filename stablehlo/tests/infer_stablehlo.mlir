@@ -347,6 +347,7 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
 
 // -----
 
+// CHECK-LABEL: func @while
 func.func @while(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<4xf32>, %arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>, %arg8: tensor<i32>) -> tensor<index> {
   %cst = arith.constant dense<-1> : tensor<i32>
   %cst_0 = arith.constant dense<1> : tensor<i32>

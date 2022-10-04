@@ -5617,11 +5617,12 @@ LogicalResult WhileOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
-  auto operandTypes = adaptor.operand().getTypes();
-  auto condArgsTypes = adaptor.cond().front().getArgumentTypes();
-  auto bodyArgsTypes = adaptor.body().front().getArgumentTypes();
+  auto operandTypes = adaptor.getOperand().getTypes();
+  auto condArgsTypes = adaptor.getCond().front().getArgumentTypes();
+  auto bodyArgsTypes = adaptor.getBody().front().getArgumentTypes();
   auto bodyReturnTypes =
-      cast<ReturnOp>(adaptor.body().front().getTerminator())->getOperandTypes();
+      cast<ReturnOp>(adaptor.getBody().front().getTerminator())
+          ->getOperandTypes();
   if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
     return emitOptionalError(location,
                              "expect operands are compatible with condition "
@@ -5639,20 +5640,20 @@ LogicalResult WhileOp::inferReturnTypeComponents(
         operandTypes, " vs ", bodyReturnTypes);
 
   auto condReturnTypes =
-      cast<ReturnOp>(adaptor.cond().front().back()).getOperandTypes();
+      cast<ReturnOp>(adaptor.getCond().front().back()).getOperandTypes();
   if (condReturnTypes.size() != 1)
     return emitOptionalError(
         location, "expect condition body returns a single value but got ",
         condReturnTypes.size());
   auto operandType = condReturnTypes[0].dyn_cast<RankedTensorType>();
-  if (!operandType || operandType.getRank() != 0 ||
-      !operandType.getElementType().isInteger(1))
+  if ((operandType && operandType.getRank() != 0) ||
+      !getElementTypeOrSelf(condReturnTypes[0]).isInteger(1))
     return emitOptionalError(
         location,
         "expect condition block return a zero-ranked tensor of i1 but got ",
         condReturnTypes[0]);
 
-  for (const auto& resultType : adaptor.operand().getType())
+  for (const auto& resultType : adaptor.getOperand().getType())
     inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
