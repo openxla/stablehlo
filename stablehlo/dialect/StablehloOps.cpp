@@ -4889,80 +4889,61 @@ void SortOp::build(OpBuilder& builder, OperationState& state,
   state.addRegion();
 }
 
-LogicalResult SortOp::verify() {
-  Operation::operand_range operands = this->getInputs();
-  if (operands.empty()) return emitOpError("requires at least one input");
-
-  // TODO(antiagainst): verify partionally dynamic shapes
-  if (llvm::all_of(operands, [](Value operand) {
-        return operand.getType().cast<ShapedType>().hasRank();
-      })) {
-    ArrayRef<int64_t> inputShape =
-        (*operands.begin()).getType().cast<ShapedType>().getShape();
-
-    if (llvm::any_of(llvm::drop_begin(operands, 1), [&](Value operand) {
-          return operand.getType().cast<ShapedType>().getShape() != inputShape;
-        }))
-      return emitOpError("requires all inputs to have the same dimensions");
-
-    int64_t rank = inputShape.size();
-    int64_t cmpDim = getDimension();
-    if (cmpDim < -rank || cmpDim >= rank)
-      return emitOpError("dimension attribute value must be in range [-")
-             << rank << ", " << rank << "), but found " << cmpDim;
+LogicalResult SortOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SortOp::Adaptor adaptor(operands, attributes, regions);
+  auto operandTypes = adaptor.getOperands().getTypes();
+  for (auto operandType : operandTypes) {
+    auto operandShapedType = operandType.cast<ShapedType>();
+    if (operandShapedType.hasRank()) {
+      int64_t cmpDim = adaptor.getDimension();
+      int64_t rank = operandShapedType.getRank();
+      if (cmpDim < -rank || cmpDim >= rank)
+        return emitOptionalError(
+            location, "dimension attribute value must be in range [-", rank,
+            ", ", rank, "), but found ", cmpDim);
+      else
+        break;  // ODS SameOperandsAndResultShape asserts inputs have same shape
+    }
   }
 
-  Block& block = getComparator().front();
-  size_t numOperands = getOperation()->getNumOperands();
+  // Comparator must have 2 * N scalar arguments of same type as the N inputs.
+  Block& block = adaptor.getComparator().front();
+  size_t numOperands = operandTypes.size();
   if (block.getNumArguments() != 2 * numOperands)
-    return emitOpError("comparator block should have ")
-           << 2 * numOperands << " arguments";
-
-  for (const auto& indexedOperand : llvm::enumerate(operands)) {
-    int index = indexedOperand.index();
+    return emitOptionalError(location, "comparator block should have ",
+                             2 * numOperands, " arguments");
+  for (const auto& indexedOperandType : llvm::enumerate(operandTypes)) {
+    int index = indexedOperandType.index();
     Type elementType =
-        indexedOperand.value().getType().cast<ShapedType>().getElementType();
+        indexedOperandType.value().cast<ShapedType>().getElementType();
     Type tensorType = RankedTensorType::get({}, elementType);
     for (int i : {2 * index, 2 * index + 1}) {
       Type argType = block.getArgument(i).getType();
       if (argType != tensorType)
-        return emitOpError("comparator block argument #")
-               << i << " should be of type " << tensorType << " but got "
-               << argType;
+        return emitOptionalError(location, "comparator block argument #", i,
+                                 " should be of type ", tensorType, " but got ",
+                                 argType);
     }
   }
 
-  // Mapped computation must return single output.
+  // Comparator must return single 0-ranked tensor with element-type i1.
   auto comparatorResult = block.getTerminator()->getOperands();
   if (comparatorResult.size() != 1)
-    return emitOpError() << "comparator must return single output, but got: "
-                         << comparatorResult.size();
-
-  // The output of computation must be 0-ranked tensor with element-type i1.
-  auto comparatorResultType =
-      comparatorResult[0].getType().dyn_cast<RankedTensorType>();
-  if (!comparatorResultType || comparatorResultType.getRank() != 0 ||
+    return emitOptionalError(location,
+                             "comparator must return single output but got ",
+                             comparatorResult.size());
+  auto comparatorResultType = comparatorResult[0].getType().cast<TensorType>();
+  if ((comparatorResultType.hasRank() && comparatorResultType.getRank() != 0) ||
       !comparatorResultType.getElementType().isInteger(1))
-    return emitOpError() << "comparator must return tensor<i1>, but got: "
-                         << comparatorResult[0].getType();
+    return emitOptionalError(location,
+                             "comparator must return tensor<i1> but got ",
+                             comparatorResult[0].getType());
 
-  // check number of return-values and their element-types.
-  auto resultTypes = getResultTypes();
-  if (resultTypes.size() != numOperands)
-    return emitOpError() << "expects the number of results to be same as "
-                            "number of operands. Got number of results = "
-                         << resultTypes.size()
-                         << " and number of operands = " << numOperands;
-
-  for (auto it : llvm::zip(operands, getResultTypes()))
-    if (std::get<0>(it).getType().cast<TensorType>().getElementType() !=
-        std::get<1>(it).cast<TensorType>().getElementType())
-      return emitOpError()
-             << "expects the operands and results to have pairwize equal "
-                "element-types, but got "
-             << std::get<0>(it).getType().cast<TensorType>().getElementType()
-             << " vs " << std::get<1>(it).cast<TensorType>().getElementType();
-
+  for (auto resultType : operandTypes)
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
 

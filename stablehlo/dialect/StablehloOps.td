@@ -2332,8 +2332,8 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   }];
 }
 
-def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
-                                 SameOperandsAndResultShape]> {
+def StableHLO_SortOp : StableHLO_Op<"sort", 
+      [RecursiveSideEffects, SameOperandsAndResultShape, InferTensorType]> {
   let summary = "Sort operator";
   let description = [{
     Sorts the given `operands` at the given `dimension` with the given
@@ -2354,8 +2354,6 @@ def StableHLO_SortOp : StableHLO_Op<"sort", [RecursiveSideEffects,
   let builders = [
     OpBuilder<(ins "ValueRange":$inputs, CArg<"int64_t", "-1">:$dimension,
       CArg<"bool", "false">:$is_stable)>];
-
-  let hasVerifier = 1;
 }
 
 def StableHLO_ReverseOp: StableHLO_Op<"reverse",
