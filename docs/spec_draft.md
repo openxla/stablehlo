@@ -894,9 +894,9 @@ Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
 amounts to keeping the same canonical representation but potentially changing
 the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
 
-More formally, `result[i0, ..., iR-1]` is equal to `operand[j0, ..., jR'-1]`
-where `i` and `j` have the same position in the lexicographic ordering of
-the index spaces of `result` and `operand`.
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR'-1]` where
+`i` and `j` have the same position in the lexicographic ordering of the index
+spaces of `result` and `operand`.
 
 ### Operands
 
@@ -1132,8 +1132,8 @@ Numeric precision is implementation-defined.
 ### Semantics
 
 Permutes the dimensions of `operand` tensor using `permutation` and produces a
-`result` tensor. More formally, `result[i0, ..., iR-1]` is equal to
-`operand[j0, ..., jR-1]` where `i[d] = j[permutation[d]]`.
+`result` tensor. More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]`
+where `i[d] = j[permutation[d]]`.
 
 ### Operands
 
