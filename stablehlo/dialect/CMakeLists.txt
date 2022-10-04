@@ -65,7 +65,7 @@ add_mlir_dialect_library(ChloOps
   LINK_LIBS PUBLIC
   StablehloBase
   StablehloBroadcastUtils
-  MLIRArithmeticDialect
+  MLIRArithDialect
   MLIRControlFlowInterfaces
   MLIRInferTypeOpInterface
   MLIRIR
@@ -105,7 +105,7 @@ add_mlir_dialect_library(StablehloOps
 
   LINK_LIBS PUBLIC
   StablehloBase
-  MLIRArithmeticDialect
+  MLIRArithDialect
   MLIRInferTypeOpInterface
   MLIRIR
   MLIRQuantDialect
