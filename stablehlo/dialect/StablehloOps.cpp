@@ -4936,9 +4936,10 @@ LogicalResult SortOp::inferReturnTypeComponents(
                              "comparator must return single output but got ",
                              comparatorResult.size());
   auto comparatorResultType =
-      comparatorResult[0].getType().dyn_cast<RankedTensorType>();
-  if ((comparatorResultType && comparatorResultType.getRank() != 0) ||
-      !getElementTypeOrSelf(comparatorResult[0].getType()).isInteger(1))
+      comparatorResult[0].getType().dyn_cast<TensorType>();
+  if (!comparatorResultType ||
+      (comparatorResultType.hasRank() && comparatorResultType.getRank() != 0) ||
+      !comparatorResultType.getElementType().isInteger(1))
     return emitOptionalError(location,
                              "comparator must return tensor<i1> but got ",
                              comparatorResult[0].getType());

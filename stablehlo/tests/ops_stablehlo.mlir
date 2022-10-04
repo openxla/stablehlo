@@ -2183,6 +2183,7 @@ func.func @sort_no_operands() {
 
 // -----
 
+// CHECK-LABEL: func @sort_unknown_rank
 func.func @sort_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>) {
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
