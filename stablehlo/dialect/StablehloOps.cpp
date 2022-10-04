@@ -4894,11 +4894,11 @@ LogicalResult SortOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  auto operandTypes = adaptor.operands().getTypes();
+  auto operandTypes = adaptor.getOperands().getTypes();
   for (auto operandType : operandTypes) {
     auto operandShapedType = operandType.cast<ShapedType>();
     if (operandShapedType.hasRank()) {
-      int64_t cmpDim = adaptor.dimension();
+      int64_t cmpDim = adaptor.getDimension();
       int64_t rank = operandShapedType.getRank();
       if (cmpDim < -rank || cmpDim >= rank)
         return emitOptionalError(
@@ -4910,7 +4910,7 @@ LogicalResult SortOp::inferReturnTypeComponents(
   }
 
   // Comparator must have 2 * N scalar arguments of same type as the N inputs.
-  Block& block = adaptor.comparator().front();
+  Block& block = adaptor.getComparator().front();
   size_t numOperands = operandTypes.size();
   if (block.getNumArguments() != 2 * numOperands)
     return emitOptionalError(location, "comparator block should have ",
@@ -4937,8 +4937,8 @@ LogicalResult SortOp::inferReturnTypeComponents(
                              comparatorResult.size());
   auto comparatorResultType =
       comparatorResult[0].getType().dyn_cast<RankedTensorType>();
-  if (!comparatorResultType || comparatorResultType.getRank() != 0 ||
-      !comparatorResultType.getElementType().isInteger(1))
+  if ((comparatorResultType && comparatorResultType.getRank() != 0) ||
+      !getElementTypeOrSelf(comparatorResult[0].getType()).isInteger(1))
     return emitOptionalError(location,
                              "comparator must return tensor<i1> but got ",
                              comparatorResult[0].getType());

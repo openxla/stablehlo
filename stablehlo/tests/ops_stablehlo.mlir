@@ -2159,8 +2159,8 @@ func.func @constant_invalid() -> () {
 
 // -----
 
+// CHECK-LABEL: func @sort
 func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // CHECK: stablehlo.sort
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
     %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
@@ -2187,7 +2187,8 @@ func.func @sort_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>)
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
     %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+    %8 = "stablehlo.select"(%7, %7, %7) : (tensor<i1>, tensor<i1>, tensor<i1>) -> tensor<*xi1>
+    "stablehlo.return"(%8) : (tensor<*xi1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<*xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
 }

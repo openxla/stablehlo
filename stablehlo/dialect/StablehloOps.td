@@ -2351,13 +2351,6 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
   let builders = [
     OpBuilder<(ins "ValueRange":$inputs, CArg<"int64_t", "-1">:$dimension,
       CArg<"bool", "false">:$is_stable)>];
-
-  // TODO: Remove this after https://github.com/openxla/stablehlo/pull/145 landed.
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
-  }]; 
 }
 
 def StableHLO_ReverseOp: StableHLO_Op<"reverse",
