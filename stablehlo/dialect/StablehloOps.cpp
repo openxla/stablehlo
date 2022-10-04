@@ -5645,8 +5645,8 @@ LogicalResult WhileOp::inferReturnTypeComponents(
     return emitOptionalError(
         location, "expect condition body returns a single value but got ",
         condReturnTypes.size());
-  auto operandType = condReturnTypes[0].dyn_cast<TensorType>();
-  if (!operandType || (operandType.hasRank() && operandType.getRank() != 0) ||
+  auto operandType = condReturnTypes[0].cast<TensorType>();
+  if ((operandType.hasRank() && operandType.getRank() != 0) ||
       !operandType.getElementType().isInteger(1))
     return emitOptionalError(
         location,
