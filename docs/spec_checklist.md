@@ -5,7 +5,7 @@ specification. At the moment, these changes typically involve checking multiple
 things in multiple sources, so this document summarizes them all to simplify
 reviews:
 
-  1. Check if the section title matches the mnemonic in
+  1. Check if the section title matches the op's mnemonic in
      [the ODS](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td).
   1. Check if the "Semantics" section matches XLA's
      [Operation Semantics](https://www.tensorflow.org/xla/operation_semantics).
@@ -23,6 +23,8 @@ reviews:
          spec, check that the "Verification" and "Type Inference" columns in
          [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md)
          say "yes".
+      1. ...and also update the `description` in op's ODS to link to the
+         corresponding section of the spec.
   1. Check whether the "Examples" section uses valid MLIR syntax by running
      `stablehlo-opt` on code examples.
   1. Check that the "Specification" column in status.md says "yes".
