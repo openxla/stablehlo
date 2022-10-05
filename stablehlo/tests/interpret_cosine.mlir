@@ -71,9 +71,9 @@ func.func @cosine_op_test_f64() -> tensor<11xf64> {
   // CHECK-NEXT: tensor<11xf64>
   // CHECK-NEXT: 1.000000e+00 : f64
   // CHECK-NEXT: 1.000000e+00 : f64
-  // CHECK-NEXT: 0.54030230586813977 : f64
-  // CHECK-NEXT: 0.992197667229329 : f64
-  // CHECK-NEXT: 0.99500416527802582 : f64
+  // CHECK-NEXT: 0.540302305868{{[0-9]+}} : f64
+  // CHECK-NEXT: 0.992197667229{{[0-9]+}} : f64
+  // CHECK-NEXT: 0.995004165278{{[0-9]+}} : f64
   // CHECK-NEXT: -1.000000e+00 : f64
   // CHECK-NEXT: 0xFFF8000000000000 : f64
   // CHECK-NEXT: 0xFFF8000000000000 : f64
@@ -102,6 +102,6 @@ func.func @cosine_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.cosine %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.43378099760770306 : f64, -6.0350486377665726 : f64]
-  // CHECK-NEXT: [-42.153773835602316 : f64, 15.786301507647636 : f64]
+  // CHECK-NEXT: [0.433780997607{{[0-9]+}} : f64, -6.035048637766{{[0-9]+}} : f64]
+  // CHECK-NEXT: [-42.153773835602{{[0-9]+}} : f64, 15.786301507647{{[0-9]+}} : f64]
 }

@@ -71,10 +71,10 @@ func.func @tanh_op_test_f64() -> tensor<11xf64> {
   // CHECK-NEXT: tensor<11xf64>
   // CHECK-NEXT: 0.000000e+00 : f64
   // CHECK-NEXT: -0.000000e+00 : f64
-  // CHECK-NEXT: 0.76159415595576485 : f64
-  // CHECK-NEXT: 0.12435300177159619 : f64
-  // CHECK-NEXT: 0.099667994624955819 : f64
-  // CHECK-NEXT: 0.99627207622074998 : f64
+  // CHECK-NEXT: 0.761594155955{{[0-9]+}} : f64
+  // CHECK-NEXT: 0.124353001771{{[0-9]+}} : f64
+  // CHECK-NEXT: 0.099667994624{{[0-9]+}} : f64
+  // CHECK-NEXT: 0.996272076220{{[0-9]+}} : f64
   // CHECK-NEXT: 1.000000e+00 : f64
   // CHECK-NEXT: -1.000000e+00 : f64
   // CHECK-NEXT: 0x7FFFFFFFFFFFFFFF : f64
@@ -102,6 +102,6 @@ func.func @tanh_op_test_c128() -> tensor<2xcomplex<f64>> {
   %1 = stablehlo.tanh %0 : tensor<2xcomplex<f64>>
   func.return %1 : tensor<2xcomplex<f64>>
   // CHECK-NEXT: tensor<2xcomplex<f64>>
-  // CHECK-NEXT: [0.96778680215277412 : f64, -0.092637836268419898 : f64]
-  // CHECK-NEXT: [1.0016627850956348 : f64, 7.5285721538218659E-4 : f64]
+  // CHECK-NEXT: [0.967786802152{{[0-9]+}} : f64, -0.092637836268{{[0-9]+}} : f64]
+  // CHECK-NEXT: [1.001662785095{{[0-9]+}} : f64, 7.528572153821{{[0-9]+}}E-4 : f64]
 }
