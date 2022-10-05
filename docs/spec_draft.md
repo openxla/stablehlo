@@ -214,7 +214,7 @@ defined and one of the following:
 ```mlir
 // integers
 // %operand: [-2, 0, 2]
-%result = "stablehlo.abs"(%operand) : (tensor<3xsi32>) -> tensor<3xsi32>
+%result = "stablehlo.abs"(%operand) : (tensor<3xi32>) -> tensor<3xi32>
 // %result: [2, 0, 2]
 
 // floats
@@ -310,7 +310,7 @@ logical operation.
 // Bitwise operation with with integer tensors
 // %lhs: [[1, 2], [3, 4]]
 // %rhs: [[5, 6], [7, 8]]
-%result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xsi32>, tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 0]]
 
 // Logical operation with with boolean tensors
@@ -468,7 +468,7 @@ produces an implementation-defined value.
 
 // %lhs: [17, -17, 17, -17]
 // %rhs: [3, 3, -3, -3]
-%result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xsi32>, tensor<4xsi32>) -> tensor<4xsi32>
+%result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [5, -5, -5, 5]
 ```
 
@@ -662,7 +662,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 ```mlir
 // %lhs: [[1, 2], [7, 8]]
 // %rhs: [[5, 6], [3, 4]]
-%result = "stablehlo.maximum"(%lhs, %rhs) : (tensor<2x2xsi32>, tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.maximum"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 6], [7, 8]]
 ```
 
@@ -699,7 +699,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 ```mlir
 // %lhs: [[1, 2], [7, 8]]
 // %rhs: [[5, 6], [3, 4]]
-%result = "stablehlo.minimum"(%lhs, %rhs) : (tensor<2x2xsi32>, tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.minimum"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 4]]
 ```
 
@@ -743,7 +743,7 @@ unsigned integer type.
 ```mlir
 // Negation operation with integer Tensors
 // %operand: [0, -2]
-%result = "stablehlo.negate"(%operand) : (tensor<2xsi32>) -> tensor<2xsi32>
+%result = "stablehlo.negate"(%operand) : (tensor<2xi32>) -> tensor<2xi32>
 // %result: [0, 2]
 
 // Negation operation with with complex tensors
@@ -784,7 +784,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 ```mlir
 // Bitwise operation with with integer tensors
 // %operand: [[1, 2], [3, 4]]
-%result = "stablehlo.not"(%operand) : (tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.not"(%operand) : (tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[-2, -3], [-4, -5]]
 
 // Bitwise operation with with boolean tensors
@@ -826,7 +826,7 @@ operation.
 // Bitwise operation with with integer tensors
 // %lhs: [[1, 2], [3, 4]]
 // %rhs: [[5, 6], [7, 8]]
-%result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xsi32>, tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 6], [7, 12]]
 
 // Logical operation with with boolean tensors
@@ -880,7 +880,7 @@ implementation-defined value.
 
 // %lhs: [17, -17, 17, -17]
 // %rhs: [3, 3, -3, -3]
-%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xsi32>, tensor<4xsi32>) -> tensor<4xsi32>
+%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [2, -2, 2, -2]
 ```
 
@@ -1206,7 +1206,7 @@ logical operation.
 // Bitwise operation with with integer tensors
 // %lhs: [[1, 2], [3, 4]]
 // %rhs: [[5, 6], [7, 8]]
-%result = "stablehlo.xor"(%lhs, %rhs) : (tensor<2x2xsi32>, tensor<2x2xsi32>) -> tensor<2x2xsi32>
+%result = "stablehlo.xor"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[4, 4], [4, 12]]
 
 // Logical operation with with boolean tensors
