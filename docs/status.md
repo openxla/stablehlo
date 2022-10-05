@@ -63,8 +63,8 @@ one of the following tracking labels.
 | cstr_reshapable          |         no         |        yes*        |         no          |         yes          |        no        |
 | custom_call              |         no         |        yes*        |     infeasible      |         yes          |        no        |
 | divide                   |        yes         |        yes*        |        yes*         |         yes          |        no        |
-| dot_general              |         no         |        yes*        |        yes*         |          no          |        no        |
 | dot                      |         no         |        yes*        |  yes(need-revisit)  |         yes          |        no        |
+| dot_general              |         no         |        yes*        |        yes*         |          no          |        no        |
 | dynamic_broadcast_in_dim |         no         |        yes*        |         no          |          no          |        no        |
 | dynamic_conv             |         no         |         no         |         no          |          no          |        no        |
 | dynamic_gather           |         no         |         no         |  yes(need-revisit)  |          no          |        no        |
@@ -74,8 +74,8 @@ one of the following tracking labels.
 | dynamic_slice            |         no         |        yes*        |        yes*         |          no          |        no        |
 | dynamic_update_slice     |         no         |        yes*        |         no          |         yes          |        no        |
 | einsum                   |         no         |         no         |         no          |          no          |        no        |
-| exponential_minus_one    |         no         |        yes*        |        yes*         |         yes          |        no        |
 | exponential              |        yes         |        yes*        |        yes*         |         yes          |        no        |
+| exponential_minus_one    |         no         |        yes*        |        yes*         |         yes          |        no        |
 | fft                      |         no         |        yes*        |        yes*         |          no          |        no        |
 | floor                    |        yes         |        yes*        |        yes*         |         yes          |       yes        |
 | gather                   |         no         |        yes*        |        yes*         |          no          |        no        |
@@ -86,9 +86,9 @@ one of the following tracking labels.
 | infeed                   |         no         |        yes*        |         no          |          no          |        no        |
 | iota                     |         no         |        yes*        |     infeasible      |         yes          |        no        |
 | is_finite                |         no         |        yes*        |        yes*         |         yes          |        no        |
+| log                      |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | log_plus_one             |         no         |        yes*        |        yes*         |         yes          |        no        |
 | logistic                 |        yes         |        yes*        |        yes*         |         yes          |        no        |
-| log                      |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | map                      |         no         |        yes*        |         no          |          no          |        no        |
 | maximum                  |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | minimum                  |        yes         |        yes*        |        yes*         |         yes          |        no        |
@@ -119,8 +119,8 @@ one of the following tracking labels.
 | round_nearest_even       |         no         |        yes*        |        yes*         |         yes          |        no        |
 | rsqrt                    |        yes         |        yes*        |        yes*         |         yes          |        no        |
 | scatter                  |         no         |        yes*        |         no          |          no          |        no        |
-| select_and_scatter       |         no         |        yes*        |         no          |          no          |        no        |
 | select                   |         no         |        yes*        |        yes*         |         yes          |        no        |
+| select_and_scatter       |         no         |        yes*        |         no          |          no          |        no        |
 | send                     |         no         |        yes*        |         no          |          no          |        no        |
 | set_dimension_size       |         no         |        yes*        |  yes(need-revisit)  |         yes          |        no        |
 | shift_left               |         no         |        yes*        |        yes*         |         yes          |        no        |
