@@ -167,6 +167,7 @@ described below)
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
+   * [pad](#stablehlopad)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
@@ -959,6 +960,74 @@ operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.pad
+
+### Semantics
+
+Expands `operand` by padding around the array as well as between the elements of
+the array with the given `padding_value`.
+
+`edge_padding_low` and `edge_padding_high` specifies the amount of padding added
+at the low-end (next to index 0) and the high-end (next to the highest index) of
+each dimension respectively. The amount of padding can be negative, where the
+absolute value of negative padding indicates the number of elements to remove
+from the specified dimension.
+
+`interior_padding` specifies the amount of padding added between any two
+elements in each dimension which may not be negative. Interior padding occurs
+before edge padding such that negative edge padding will remove elements from
+the interior-padded operand.
+
+### Operands
+
+| Name                | Type                               |
+|---------------------|------------------------------------|
+| `operand`           | tensor of any supported types      |
+| `padding_value`     | tensor of any supported types      |
+| `edge_padding_low`  | 1-dimensional array of type `si64` |
+| `edge_padding_high` | 1-dimensional array of type `si64` |
+| `interior_padding`  | 1-dimensional array of type `si64` |
+
+### Results
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `operand` and `padding_value` have the same element type.
+  * (C3) `padding_value` should be rank 0.
+  * (C4) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
+  same rank as `operand`.
+  * (C5) `interior_padding` >= 0.
+  * (C6) Padding should not result in negative size for `result` dimensions.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3],
+//            [4, 5, 6]
+//           ]
+// %padding_value: 0
+%result = "stablehlo.pad"(%operand, %padding_value) {
+  edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
+  edge_padding_high = dense<[2, 1]> : tensor<2xi64>
+  interior_padding = dense<[1, 2]> : tensor<2xi64>
+} : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
+// %result: [
+//           [0, 1, 0, 0, 2, 0, 0, 3, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 4, 0, 0, 5, 0, 0, 6, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0],
+//           [0, 0, 0, 0, 0, 0, 0, 0, 0]
+// ]
 ```
 
 [Back to Ops](#index-of-ops)

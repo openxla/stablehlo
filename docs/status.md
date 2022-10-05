@@ -98,7 +98,7 @@ one of the following tracking labels.
 | optimization_barrier     |      no       |     yes*     |        no         |        yes        |     no      |
 | or                       |      yes      |     yes      |        yes        |        yes        |     no      |
 | outfeed                  |      no       |     yes*     |        no         |        no         |     no      |
-| pad                      |      no       |     yes*     |       yes*        |        no         |     no      |
+| pad                      |      yes      |     yes      |        yes        |        no         |     no      |
 | popcnt                   |      no       |     yes*     |       yes*        |        yes        |     no      |
 | power                    |      no       |     yes*     |       yes*        |        yes        |     no      |
 | real_dynamic_slice       |      no       |     yes*     |        no         |        yes        |     no      |
