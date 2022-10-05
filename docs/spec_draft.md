@@ -363,8 +363,9 @@ IEEE-754 specification.
 
 ### Semantics
 
-Concatenates sequence of tensors in `inputs` along `dimension` dimension in the
-same order as the given arguments and produces a `result` tensor. More formally,
+Concatenates a variadic number of tensors in `inputs` along `dimension`
+dimension in the same order as the given arguments and produces a `result`
+tensor. More formally,
 `result[i0, ..., id, ..., iR-1] = inputs[k][i0, ..., kd, ..., iR-1]`, where:
   1. `id = d0 + ... + dk-1 + kd`.
   2. `d` is equal to `dimension`, and `d0`, ... are `d`'th dimension sizes
@@ -389,12 +390,10 @@ same order as the given arguments and produces a `result` tensor. More formally,
   * (C2) All tensors in `inputs` have the same shape except for the size of the
   `dimension` dimension.
   * (C3) `inputs` have N tensors where N >= 1.
-  * (C4) `inputs` have tensors of rank > 0.
-  * (C5) rank of tensors in `inputs` and `result` are the same.
-  * (C6) `dimension` is non-negative and less than the rank of the tensors in
+  * (C4) `dimension` is non-negative and less than the rank of the tensors in
   `inputs`.
-  * (C7) `result` has the same element type as the tensors in `inputs`.
-  * (C8) `result` has the same shape as the tensors in `inputs` except for the
+  * (C5) `result` has the same element type as the tensors in `inputs`.
+  * (C6) `result` has the same shape as the tensors in `inputs` except for the
   size of the `dimension` dimension, which is calculated as a sum of the sizes
   of this dimension in all tensors in `inputs`.
 
