@@ -3140,7 +3140,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
   ConcatenateOp::Adaptor adaptor(operands);
-  auto inputs = adaptor.getVal();
+  auto inputs = adaptor.getInputs();
 
   auto operandType = inputs[0].getType().dyn_cast<RankedTensorType>();
   // Not support unranked type a.t.m.

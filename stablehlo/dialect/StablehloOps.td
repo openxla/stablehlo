@@ -1801,7 +1801,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
    }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$val,
+    Variadic<HLO_Tensor>:$inputs,
     I64Attr: $dimension
   );
 
@@ -1816,7 +1816,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   }];
 
   let assemblyFormat = [{
-     custom<VariadicOperandWithAttribute>($val) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+     custom<VariadicOperandWithAttribute>($inputs) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 

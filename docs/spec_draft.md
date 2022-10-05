@@ -363,47 +363,60 @@ IEEE-754 specification.
 
 ### Semantics
 
-Concatenates sequence of tensors in `val` along dimension `dimension` and
-produces a tensor as a result. The tensors are of the same rank as the input
-operands except the specified dimension.
+Concatenates sequence of tensors in `inputs` along `dimension` dimension in the
+same order as the given arguments and produces a `result` tensor. More formally,
+`result[i0, ..., id, ..., iR-1] = inputs[k][i0, ..., kd, ..., iR-1]`, where:
+  1. `id = d0 + ... + dk-1 + kd`.
+  2. `d` is equal to `dimension`, and `d0`, ... are `d`'th dimension sizes
+     of `inputs`.
 
 ### Operands
 
-| Name        | Type                                                                     |
-|-------------|--------------------------------------------------------------------------|
-| `dimension` | `i64`                                                                    |
-| `val`       | Sequence of tensors of integer, floating-point, or complex element types |
+| Name        | Type                                              |
+|-------------|---------------------------------------------------|
+| `inputs`    | Variadic number of tensors of any supported types |
+| `dimension` | `si64`                                            |
 
 ### Results
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of any supported types |
 
 ### Constraints
 
-  * (C1) `val` and `result` have the same type.
-  * (C2) All tensors in `val` have the same element type and rank.
-  * (C3) Tensors of `val` all have the same dimension except for `dimension`.
+  * (C1) All tensors in `inputs` have the same element type.
+  * (C2) All tensors in `inputs` have the same shape except for the size of the
+  `dimension` dimension.
+  * (C3) `inputs` have N tensors where N >= 1.
+  * (C4) `inputs` have tensors of rank > 0.
+  * (C5) `dimension` is non-negative and less than the rank of the tensors in
+  `inputs`.
+  * (C6) `result` has the same element type as the tensors in `inputs`.
+  * (C7) `result` has the same shape as the tensors in `inputs` except for the
+  size of the `dimension` dimension, which is calculated as a sum of the sizes
+  of this dimension in all tensors in `inputs`.
 
 ### Examples
 
 ```mlir
 // 1-dimensional concatenate
 
-// %val1: [1, 2]
-// %val2: [3, 4]
-// %val3: [5, 6]
-// %dimension: 0
-%result = "stablehlo.concatenate"(%val1, %val2, %val3, %dimension) : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>, i64) -> tensor<8xi32>
+// %0 = [1, 2]
+// %1 = [3, 4]
+// %2 = [5, 6]
+%result = "stablehlo.concatenate"(%0, %1, %2) {
+  dimension = 0 : i64
+} : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<6xi32>
 // %result: [1, 2, 3, 4, 5, 6]
 
 // 2-dimensional concatenate
 
-// %val1: [[1, 2], [3, 4], [5, 6]]
-// %val2: [[7, 8]]
-// %dimension: 0
-%result = "stablehlo.concatenate"(%val1, %val2, %dimension) : (tensor<3x2xi32>, tensor<1x2xi32>, i64) -> tensor<4x2xi32>
+// %0: [[1, 2], [3, 4], [5, 6]]
+// %1: [[7, 8]]
+%result = "stablehlo.concatenate"(%0, %1) {
+  dimension = 0 : i64
+} : (tensor<3x2xi32>, tensor<1x2xi32>, i64) -> tensor<4x2xi32>
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
