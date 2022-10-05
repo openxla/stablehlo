@@ -102,12 +102,13 @@ Tensor eval(IotaOp op) {
     } else if (isSupportedComplexType(elType)) {
       APFloat real((double)iota);
       APFloat imag((double)0.0);
-      Type flType = elType.dyn_cast<ComplexType>().getElementType();
+      FloatType flType =
+          elType.dyn_cast<ComplexType>().getElementType().dyn_cast<FloatType>();
       bool roundingErr;
-      real.convert(flType.dyn_cast<FloatType>().getFloatSemantics(),
-                   APFloat::rmNearestTiesToEven, &roundingErr);
-      imag.convert(flType.dyn_cast<FloatType>().getFloatSemantics(),
-                   APFloat::rmNearestTiesToEven, &roundingErr);
+      real.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
+      imag.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
       result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
     } else {
       report_fatal_error(invalidArgument("Unsupported element type: %s",
