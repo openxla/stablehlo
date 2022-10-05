@@ -638,8 +638,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs using LLVM's `fcmp oeq`
-and `fcmp ogt` compare instructions.
+lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 
 ### Operands
 
@@ -667,9 +666,9 @@ and `fcmp ogt` compare instructions.
 // %result: [[5, 6], [7, 8]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 &nbsp;[More Examples](../stablehlo/tests/interpret_max.mlir)
+
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.minimum
 
@@ -678,8 +677,7 @@ and `fcmp ogt` compare instructions.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs using LLVM's `fcmp oeq`
-and `fcmp olt` compare instructions.
+lexicographic comparison on the (real, imaginary) pairs  with corner cases TBD.
 
 ### Operands
 
@@ -707,8 +705,9 @@ and `fcmp olt` compare instructions.
 // %result: [[1, 2], [3, 4]]
 ```
 
-[Back to Ops](#index-of-ops)
 &nbsp;[More Examples](../stablehlo/tests/interpret_min.mlir)
+
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.negate
 
