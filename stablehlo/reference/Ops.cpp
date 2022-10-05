@@ -94,8 +94,13 @@ Tensor eval(IotaOp op) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     auto iota = (*it)[iotaDimension];
     if (isSupportedIntegerType(elType)) {
-      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
-                                            iota, false)));
+      if (isSupportedSignedIntegerType(elType)) {
+        result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
+                                              iota, true)));
+      } else if (isSupportedUnsignedIntegerType(elType)) {
+        result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
+                                              iota, false)));
+      }
     } else if (isSupportedFloatType(elType)) {
       APFloat val = APFloat((double)iota);
       if (elType.isBF16()) val.convert(APFloat::BFloat(), rm, &roundingErr);

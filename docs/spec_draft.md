@@ -625,11 +625,10 @@ For integers, if the dimension size is larger than what the element type's
 maximum value can hold, an overflow occurs and the behavior is implementation-
 defined and one of the following:
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-  unsigned underflow).
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
+  for unsigned overflow.
 
 ### Operands
 
@@ -645,7 +644,7 @@ defined and one of the following:
 
 ### Constraints
 
-  * (C1) 0 <= `iota_dimension` < `R`, where `R` is the rank of the `result`.
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the `result`.
 
 ### Examples
 
