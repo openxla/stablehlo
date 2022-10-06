@@ -72,7 +72,7 @@ limitations under the License.
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
-#include "stablehlo/dialect/StablehloTypeInference.cpp"
+#include "stablehlo/dialect/StablehloTypeInference.h"
 
 // Include order matters
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"

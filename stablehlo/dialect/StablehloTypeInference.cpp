@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "stablehlo/dialect/StablehloTypeInference.h"
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -84,11 +86,6 @@ namespace stablehlo {
 // Utils for shape functions.
 //===----------------------------------------------------------------------===//
 
-// Check if the dimension size is dynamic.
-inline static bool isDynamicDimSize(int64_t val) {
-  return val == ShapedType::kDynamicSize;
-}
-
 // Return true if type1 and type2 are tensors and have the same
 // element-type, else return false. With float element-types, ignore comparing
 // floating-point precision if ignoreFpPrecision is True.
@@ -109,7 +106,7 @@ bool tensorsHaveSameElType(Type type1, Type type2, bool ignoreFpPrecision) {
 // type. If 'ignoreFpPrecision' is True, then allow floats with different
 // precisions while checking element-types.
 bool compatibleShapeAndElementType(Type type1, Type type2,
-                                   bool ignoreFpPrecision = false) {
+                                   bool ignoreFpPrecision) {
   if (failed(verifyCompatibleShape(type1, type2))) return false;
   return tensorsHaveSameElType(type1.cast<ShapedType>(),
                                type2.cast<ShapedType>(), ignoreFpPrecision);
@@ -195,22 +192,6 @@ int64_t stridedBound(int64_t bound, int64_t windowSize, int64_t stride) {
   // stride). There are Q + 1 valid values of q, yielding the formula below.
   return (bound - windowSize) / stride + 1;
 }
-
-// WindowDimension described how the kernel window moves across the base area
-// in a particular dimension.
-// Describes the windowing in an operation such as convolution.
-// The window is moved across a base area and for each position of the
-// window a computation is performed. The field below describes the
-// window and the movement of the window across a base area.
-struct WindowDimension {
-  int64_t size = 0;
-  int64_t stride = 1;
-  int64_t paddingLow = 0;
-  int64_t paddingHigh = 0;
-  int64_t windowDilation = 1;
-  int64_t baseDilation = 1;
-  bool windowReversal = false;
-};
 
 // Verifies various properties of window-attributes (viz., stride, padding,
 // lhs_dilation and rhs_dilation) and collects all the window-attributes for
