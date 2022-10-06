@@ -38,7 +38,6 @@ mlir_check_all_link_libraries(stablehlo-opt)
 add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)
 llvm_update_compile_flags(stablehlo-interpreter)
 target_link_libraries(stablehlo-interpreter PRIVATE
-  MLIRDataLayoutInterfaces
   MLIRFuncDialect
   MLIRIR
   MLIRSupport
