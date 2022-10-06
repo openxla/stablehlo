@@ -666,7 +666,7 @@ lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 // %result: [[5, 6], [7, 8]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_max.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
 
 [Back to Ops](#index-of-ops)
 
@@ -677,7 +677,7 @@ lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs  with corner cases TBD.
+lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 
 ### Operands
 
@@ -705,7 +705,7 @@ lexicographic comparison on the (real, imaginary) pairs  with corner cases TBD.
 // %result: [[1, 2], [3, 4]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_min.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
 
 [Back to Ops](#index-of-ops)
 
