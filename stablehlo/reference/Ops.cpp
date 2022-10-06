@@ -96,14 +96,14 @@ Tensor eval(IotaOp op) {
     } else if (isSupportedFloatType(elType)) {
       APFloat val = APFloat((double)iota);
       bool roundingErr;
-      val.convert(elType.dyn_cast<FloatType>().getFloatSemantics(),
+      val.convert(elType.cast<FloatType>().getFloatSemantics(),
                   APFloat::rmNearestTiesToEven, &roundingErr);
       result.set(*it, Element(elType, val));
     } else if (isSupportedComplexType(elType)) {
       APFloat real((double)iota);
       APFloat imag((double)0.0);
       FloatType flType =
-          elType.dyn_cast<ComplexType>().getElementType().dyn_cast<FloatType>();
+          elType.cast<ComplexType>().getElementType().cast<FloatType>();
       bool roundingErr;
       real.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
                    &roundingErr);
