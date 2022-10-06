@@ -99,6 +99,7 @@ add_mlir_dialect_library(StablehloOps
   PARTIAL_SOURCES_INTENDED
   StablehloOps.cpp
   StablehloBytecode.cpp
+  StablehloTypeInference.cpp
 
   DEPENDS
   StablehloOpsIncGen
