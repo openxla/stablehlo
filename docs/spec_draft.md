@@ -390,12 +390,11 @@ tensor. More formally,
   * (C2) All tensors in `inputs` have the same shape except for the size of the
   `dimension` dimension.
   * (C3) `inputs` have N tensors where N >= 1.
-  * (C4) `dimension` is non-negative and less than the rank of the tensors in
-  `inputs`.
+  * (C4) 0 $\le$ `dimension` $\lt$ rank of `inputs[0]`.
   * (C5) `result` has the same element type as the tensors in `inputs`.
   * (C6) `result` has the same shape as the tensors in `inputs` except for the
-  size of the `dimension` dimension, which is calculated as a sum of the sizes
-  of this dimension in all tensors in `inputs`.
+  size of the `dimension` dimension, which is calculated as a sum of the size of
+  `inputs[k][dimension]` for all `k` in `inputs`.
 
 ### Examples
 

@@ -1797,7 +1797,17 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "XLA's concatenate op";
   let description = [{
-     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconcatenate
+    Concatenates a variadic number of tensors in `inputs` along `dimension`
+    dimension in the same order as the given arguments and produces a `result`
+    tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconcatenate
+
+    Example:
+    ```mlir
+     %0 = stablehlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+    ```
    }];
 
   let arguments = (ins
