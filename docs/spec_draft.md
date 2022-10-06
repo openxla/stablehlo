@@ -368,7 +368,7 @@ dimension in the same order as the given arguments and produces a `result`
 tensor. More formally,
 `result[i0, ..., id, ..., iR-1] = inputs[k][i0, ..., kd, ..., iR-1]`, where:
   1. `id = d0 + ... + dk-1 + kd`.
-  2. `d` is equal to `dimension`, and `d0`, ... are `d`'th dimension sizes
+  1. `d` is equal to `dimension`, and `d0`, ... are `d`'th dimension sizes
      of `inputs`.
 
 ### Operands
