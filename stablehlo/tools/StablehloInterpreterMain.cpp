@@ -22,7 +22,7 @@ limitations under the License.
 namespace mlir {
 
 TranslateFromMLIRRegistration stablehlo_interpreter(
-    "interpret",
+    "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
         os << "\nEvaluated results of function: " << funcOp.getSymName()
