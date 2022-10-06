@@ -90,8 +90,8 @@ one of the following tracking labels.
 | log_plus_one             |      no       |     yes*     |       yes*        |        yes        |     no      |
 | logistic                 |      yes      |     yes*     |       yes*        |        yes        |     no      |
 | map                      |      no       |     yes*     |        no         |        no         |     no      |
-| maximum                  |      yes      |     yes*     |       yes*        |        yes        |     no      |
-| minimum                  |      yes      |     yes*     |       yes*        |        yes        |     no      |
+| maximum                  |      yes      |     yes*     |       yes*        |        yes        |     yes     |
+| minimum                  |      yes      |     yes*     |       yes*        |        yes        |     yes     |
 | multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
 | negate                   |      yes      |     yes*     |       yes*        |        yes        |     yes     |
 | not                      |      yes      |     yes*     |       yes*        |        yes        |     no      |

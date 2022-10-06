@@ -205,6 +205,40 @@ Element cosine(const Element &el) {
       [](std::complex<double> e) { return std::cos(e); });
 }
 
+Element max(const Element &e1, const Element &e2) {
+  return map(
+      e1, e2,
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smax(lhs, rhs)
+                   : llvm::APIntOps::umax(lhs, rhs);
+      },
+      [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
+                          ? lhs.imag() > rhs.imag()
+                          : lhs.real() > rhs.real();
+        return cmpRes ? lhs : rhs;
+      });
+}
+
+Element min(const Element &e1, const Element &e2) {
+  return map(
+      e1, e2,
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smin(lhs, rhs)
+                   : llvm::APIntOps::umin(lhs, rhs);
+      },
+      [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
+                          ? lhs.imag() < rhs.imag()
+                          : lhs.real() < rhs.real();
+        return cmpRes ? lhs : rhs;
+      });
+}
+
 Element sine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },

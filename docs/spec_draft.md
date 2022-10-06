@@ -638,7 +638,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs.
+lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 
 ### Operands
 
@@ -666,6 +666,8 @@ lexicographic comparison on the (real, imaginary) pairs.
 // %result: [[5, 6], [7, 8]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
+
 [Back to Ops](#index-of-ops)
 
 ## stablehlo.minimum
@@ -675,7 +677,7 @@ lexicographic comparison on the (real, imaginary) pairs.
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
-lexicographic comparison on the (real, imaginary) pairs.
+lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 
 ### Operands
 
@@ -702,6 +704,8 @@ lexicographic comparison on the (real, imaginary) pairs.
 %result = "stablehlo.minimum"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 4]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
 
 [Back to Ops](#index-of-ops)
 
