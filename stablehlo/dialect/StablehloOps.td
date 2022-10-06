@@ -1242,7 +1242,8 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
     HLO_Tensor:$operand,
     I64Attr:$all_gather_dim,
     I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle,
+    UnitAttr:$use_global_device_ids
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
@@ -1287,7 +1288,8 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
     HLO_Tensor:$operand,
     I64Attr:$scatter_dimension,
     I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle,
+    UnitAttr:$use_global_device_ids
   );
   let regions = (region SizedRegion<1>:$computation);
   let results = (outs HLO_Tensor);
