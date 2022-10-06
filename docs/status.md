@@ -53,7 +53,7 @@ one of the following tracking labels.
 | compare                  |      no       |     yes*     |       yes*        |        yes        |     no      |
 | complex                  |      no       |     yes*     |       yes*        |        yes        |     no      |
 | compute_reshape_shape    |      no       |      no      |        no         |        yes        |     no      |
-| concatenate              |      no       |     yes*     |       yes*        |        yes        |     no      |
+| concatenate              |      yes      |     yes      |        yes        |        yes        |     no      |
 | constant                 |      yes      |     yes*     |       yes*        |        yes        |     yes     |
 | convert                  |      no       |     yes*     |    infeasible     |        yes        |     no      |
 | convolution              |      no       |     yes*     |        no         | yes(need-revisit) |     no      |

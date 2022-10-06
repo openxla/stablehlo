@@ -1797,19 +1797,21 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "XLA's concatenate op";
   let description = [{
-     Concatenates a set of tensors along the specified dimension.
+    Concatenates a variadic number of tensors in `inputs` along `dimension`
+    dimension in the same order as the given arguments and produces a `result`
+    tensor.
 
-     See https://www.tensorflow.org/xla/operation_semantics#concatenate.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconcatenate
 
-     Example:
-
-     ```mlir
+    Example:
+    ```mlir
      %0 = stablehlo.concatenate %arg0, %arg1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
-     ```
+    ```
    }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$val,
+    Variadic<HLO_Tensor>:$inputs,
     I64Attr: $dimension
   );
 
@@ -1824,7 +1826,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
   }];
 
   let assemblyFormat = [{
-     custom<VariadicOperandWithAttribute>($val) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
+     custom<VariadicOperandWithAttribute>($inputs) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];
 }
 
