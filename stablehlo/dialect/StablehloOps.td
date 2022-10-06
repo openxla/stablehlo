@@ -1016,7 +1016,7 @@ def StableHLO_SendOp : StableHLO_Op<"send", []> {
     Variadic<HLO_Tensor>:$inputs,
     HLO_Token:$token,
     StableHLO_ChannelHandle:$channel_handle,
-    DefaultValuedAttr<BoolAttr, "false">:$is_host_transfer
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
   );
 
   let results = (outs HLO_Token);
@@ -1040,7 +1040,7 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
   let arguments = (ins
     HLO_Token:$token,
     StableHLO_ChannelHandle:$channel_handle,
-    DefaultValuedAttr<BoolAttr, "false">:$is_host_transfer
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
   );
 
   let results = (outs Variadic<HLO_TensorOrToken>);
@@ -1746,7 +1746,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   }];
   let arguments = (ins
     HLO_FpOrComplexTensor:$a,
-    DefaultValuedAttr<BoolAttr, "false">:$lower
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$lower
   );
 
   let results = (outs HLO_FpOrComplexTensor:$result);
@@ -1957,15 +1957,15 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let arguments = (ins
     Variadic<HLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
-    DefaultValuedAttr<BoolAttr, "false">:$has_side_effect,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
     DefaultValuedStrAttr<StrAttr, "">:$backend_config,
     // TODO(b/189822916): Remove this field when all clients are migrated to
     // the status-returning API.
-    DefaultValuedAttr<
+    DefaultValuedOptionalAttr<
         StableHLO_CustomCallApiVersionAttr,
         "::mlir::stablehlo::CustomCallApiVersion::API_VERSION_ORIGINAL">:
         $api_version,
-    DefaultValuedAttr<StableHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
+    DefaultValuedOptionalAttr<StableHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$operand_layouts,
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts
   );
@@ -2104,7 +2104,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, NoSide
     HLO_IntTensor:$start_indices,
     StableHLO_GatherDimensionNumbers:$dimension_numbers,
     I64ElementsAttr:$slice_sizes,
-    DefaultValuedAttr<BoolAttr, "false">:$indices_are_sorted
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
   );
 
   let results = (outs HLO_Tensor);
@@ -2227,8 +2227,8 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
     TensorOf<[AnyInteger, Index]>:$scatter_indices,
     Variadic<HLO_Tensor>:$updates,
     StableHLO_ScatterDimensionNumbers:$scatter_dimension_numbers,
-    DefaultValuedAttr<BoolAttr, "false">:$indices_are_sorted,
-    DefaultValuedAttr<BoolAttr, "false">:$unique_indices
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices
   );
 
   let regions = (region SizedRegion<1>:$update_computation);
@@ -2343,8 +2343,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
-    DefaultValuedAttr<I64Attr, "-1">:$dimension,
-    DefaultValuedAttr<BoolAttr, "false">:$is_stable
+    DefaultValuedOptionalAttr<I64Attr, "-1">:$dimension,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_stable
   );
 
   let results = (outs Variadic<HLO_Tensor>);
@@ -2845,7 +2845,7 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
     HLO_IntTensor:$start_indices,
     HLO_IntTensor:$slice_sizes,
     StableHLO_GatherDimensionNumbers:$dimension_numbers,
-    DefaultValuedAttr<BoolAttr, "false">:$indices_are_sorted
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
   );
   let results = (outs HLO_Tensor);
 }
