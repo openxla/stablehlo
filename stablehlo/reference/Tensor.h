@@ -22,6 +22,7 @@ limitations under the License.
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
@@ -37,8 +38,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   /// \name Constructors
   /// @{
   explicit Buffer(ShapedType type);
-  Buffer(ShapedType type, void *data);
-  Buffer(ShapedType type, const void *data);
+  Buffer(ShapedType type, AsmResourceBlob blob);
   Buffer(Buffer &&other) = default;
   /// @}
 
@@ -48,15 +48,15 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   /// Returns type of the Buffer object.
   ShapedType getType() { return type_; }
 
-  /// Returns the raw data as a byte array.
-  char *getData() { return data_.data(); }
+  /// Provides access to the underlying non-mutable storage.
+  ArrayRef<char> getData() const { return blob_.getData(); }
 
-  /// Returns the size in bytes of the raw data.
-  size_t getSize() { return data_.size(); }
+  /// Provides access to the underlying mutable storage.
+  MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
 
  private:
   ShapedType type_;
-  std::vector<char> data_;
+  AsmResourceBlob blob_;
 };
 
 }  // namespace detail
@@ -69,7 +69,7 @@ class Tensor {
   /// @{
   Tensor();
   explicit Tensor(ShapedType type);
-  explicit Tensor(DenseElementsAttr attr);
+  explicit Tensor(ShapedType type, AsmResourceBlob blob);
   Tensor(const Tensor &other) = default;
   /// @}
 
@@ -77,7 +77,7 @@ class Tensor {
   Tensor &operator=(const Tensor &other) = default;
 
   /// Returns type of the Tensor object.
-  ShapedType getType() const;
+  ShapedType getType() const { return impl_->getType(); };
 
   /// Returns the number of elements.
   int64_t getNumElements() const;
@@ -110,10 +110,8 @@ inline raw_ostream &operator<<(raw_ostream &os, Tensor tensor) {
   return os;
 }
 
-/// Creates a Tensor using `type` as the static type and data provided as an
-/// array of string literal which will be parsed using the corresponding element
-/// type.
-Tensor makeTensor(ShapedType type, llvm::ArrayRef<llvm::StringRef> strData);
+/// Creates a Tensor using 'DenseElementsAttr' object 'attr'.
+Tensor makeTensor(DenseElementsAttr attr);
 
 }  // namespace stablehlo
 }  // namespace mlir

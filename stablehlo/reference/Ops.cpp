@@ -49,7 +49,7 @@ Tensor eval(CeilOp op, const Tensor &operand) {
 }
 
 Tensor eval(ConstantOp op) {
-  return Tensor(op.getValue().cast<DenseElementsAttr>());
+  return makeTensor(op.getValue().cast<DenseElementsAttr>());
 }
 
 Tensor eval(CosineOp op, const Tensor &operand) {

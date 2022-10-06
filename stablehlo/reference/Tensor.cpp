@@ -84,15 +84,13 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
 
 namespace detail {
 
-Buffer::Buffer(ShapedType type) : type_(type), data_(getSizeInBytes(type), 0) {}
-
-Buffer::Buffer(ShapedType type, void *data)
-    : Buffer(type, static_cast<const void *>(data)) {}
-
-Buffer::Buffer(ShapedType type, const void *data)
+Buffer::Buffer(ShapedType type)
     : type_(type),
-      data_(static_cast<const char *>(data),
-            static_cast<const char *>(data) + getSizeInBytes(type)) {}
+      blob_(
+          HeapAsmResourceBlob::allocate(getSizeInBytes(type), alignof(char))) {}
+
+Buffer::Buffer(ShapedType type, AsmResourceBlob blob)
+    : type_(type), blob_(std::move(blob)) {}
 
 }  // namespace detail
 
@@ -101,46 +99,37 @@ Tensor::Tensor() {}
 Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
-Tensor::Tensor(DenseElementsAttr attr) {
-  // TODO(sdasgup3): We're using DenseElementsAttr::getRawData() here for
-  // simplicity, because it provides a contiguous representation of underlying
-  // data in most cases. However, this doesn't always work (e.g. for splat or
-  // for i1), so we'll be migrating to something more reliable in the near
-  // future.
-  impl_ = llvm::makeIntrusiveRefCnt<detail::Buffer>(attr.getType(),
-                                                    attr.getRawData().data());
-}
-
-ShapedType Tensor::getType() const { return impl_->getType(); }
+Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
 Element Tensor::get(ArrayRef<int64_t> index) const {
   Type elementType = getType().getElementType();
-  char *elementPtr =
-      impl_->getData() +
+  const char *elementPtr =
+      impl_->getData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
   if (elementType.isF16()) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::IEEEhalf(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isBF16()) {
-    auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+    auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::BFloat(),
                                         APInt(16, *elementData)));
   }
 
   if (elementType.isF32()) {
-    auto elementData = reinterpret_cast<float *>(elementPtr);
+    auto elementData = reinterpret_cast<const float *>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
   if (elementType.isF64()) {
-    auto elementData = reinterpret_cast<double *>(elementPtr);
+    auto elementData = reinterpret_cast<const double *>(elementPtr);
     return Element(elementType, APFloat(*elementData));
   }
 
@@ -153,36 +142,36 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     IntegerType intTy = elementType.cast<IntegerType>();
 
     if (elementType.isSignlessInteger(4) || elementType.isSignlessInteger(8)) {
-      auto elementData = reinterpret_cast<int8_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(16)) {
-      auto elementData = reinterpret_cast<int16_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int16_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(32)) {
-      auto elementData = reinterpret_cast<int32_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int32_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isSignlessInteger(64)) {
-      auto elementData = reinterpret_cast<int64_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const int64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(4) ||
                elementType.isUnsignedInteger(8)) {
-      auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(16)) {
-      auto elementData = reinterpret_cast<uint16_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint16_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(32)) {
-      auto elementData = reinterpret_cast<uint32_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint32_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     } else if (elementType.isUnsignedInteger(64)) {
-      auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
+      auto elementData = reinterpret_cast<const uint64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     }
@@ -193,14 +182,16 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     auto complexElemTy = elementType.cast<ComplexType>().getElementType();
 
     if (complexElemTy.isF32()) {
-      auto elementData = reinterpret_cast<std::complex<float> *>(elementPtr);
+      auto elementData =
+          reinterpret_cast<const std::complex<float> *>(elementPtr);
       return Element(elementType,
                      std::complex<APFloat>(APFloat(elementData->real()),
                                            APFloat(elementData->imag())));
     }
 
     if (complexElemTy.isF64()) {
-      auto elementData = reinterpret_cast<std::complex<double> *>(elementPtr);
+      auto elementData =
+          reinterpret_cast<const std::complex<double> *>(elementPtr);
       return Element(elementType,
                      std::complex<APFloat>(APFloat(elementData->real()),
                                            APFloat(elementData->imag())));
@@ -214,7 +205,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
 void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
-      impl_->getData() +
+      impl_->getMutableData().data() +
       getSizeInBytes(elementType) * flattenIndex(getType().getShape(), index);
 
   // Handle floating-point types.
@@ -353,51 +344,133 @@ void Tensor::print(raw_ostream &os) const {
 
 void Tensor::dump() const { print(llvm::errs()); }
 
-Tensor makeTensor(ShapedType type, ArrayRef<StringRef> strData) {
+Tensor makeTensor(DenseElementsAttr attr) {
+  auto type = attr.getType();
   auto elemType = type.getElementType();
 
-  // We are not using parseAttribute for parsing Float literals mainly because
-  // it does not parse special float values like nan, +/-inf.
-  if (auto complexTy = elemType.dyn_cast<ComplexType>()) {
-    auto complexElemTy = complexTy.getElementType();
-    auto floatType = complexElemTy.dyn_cast<FloatType>();
-    if (!floatType) {
-      report_fatal_error(
-          invalidArgument("Unsupported element type %s for complex type",
-                          debugString(complexElemTy).c_str()));
+  // Handle floating-point types.
+  if (elemType.isF16() || elemType.isBF16()) {
+    auto floatValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APFloat>(), [&](APFloat value) -> uint16_t {
+          return value.bitcastToAPInt().getZExtValue();
+        }));
+
+    // For both f16 and bf16 floating-point types, we use uint16_t as their
+    // storage type because there are no buitin types for those.
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<uint16_t>(floatValues));
+  }
+
+  if (elemType.isF32()) {
+    auto floatValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APFloat>(),
+        [&](APFloat value) -> float { return value.convertToFloat(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<float>(floatValues));
+  }
+
+  if (elemType.isF64()) {
+    auto floatValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APFloat>(),
+        [&](APFloat value) -> double { return value.convertToDouble(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<double>(floatValues));
+  }
+
+  // Handle signed integer types.
+  if (elemType.isSignlessInteger(4) || elemType.isSignlessInteger(8)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> int8_t { return value.getSExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<int8_t>(intValues));
+  }
+
+  if (elemType.isSignlessInteger(16)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> int16_t { return value.getSExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<int16_t>(intValues));
+  }
+
+  if (elemType.isSignlessInteger(32)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> int32_t { return value.getSExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<int32_t>(intValues));
+  }
+
+  if (elemType.isSignlessInteger(64)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> int64_t { return value.getSExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<int64_t>(intValues));
+  }
+
+  // Handle unsigned integer types.
+  if (elemType.isUnsignedInteger(4) || elemType.isUnsignedInteger(8)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> uint8_t { return value.getZExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<uint8_t>(intValues));
+  }
+
+  if (elemType.isUnsignedInteger(16)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> uint16_t { return value.getZExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<uint16_t>(intValues));
+  }
+
+  if (elemType.isUnsignedInteger(32)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> uint32_t { return value.getZExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<uint32_t>(intValues));
+  }
+
+  if (elemType.isUnsignedInteger(64)) {
+    auto intValues = llvm::to_vector(llvm::map_range(
+        attr.getValues<APInt>(),
+        [&](APInt value) -> uint64_t { return value.getZExtValue(); }));
+    return Tensor(type,
+                  HeapAsmResourceBlob::allocateAndCopy<uint64_t>(intValues));
+  }
+
+  // Handle complex types.
+  if (elemType.isa<ComplexType>()) {
+    auto complexElemTy = elemType.cast<ComplexType>().getElementType();
+    if (complexElemTy.isF32()) {
+      auto complexValues = llvm::to_vector(llvm::map_range(
+          attr.getValues<std::complex<APFloat>>(),
+          [&](std::complex<APFloat> value) -> std::complex<float> {
+            return std::complex<float>(value.real().convertToFloat(),
+                                       value.imag().convertToFloat());
+          }));
+      return Tensor(type,
+                    HeapAsmResourceBlob::allocateAndCopy<std::complex<float>>(
+                        complexValues));
     }
-
-    auto floatValues = llvm::to_vector(
-        llvm::map_range(strData, [&](StringRef strNum) -> APFloat {
-          return APFloat(floatType.getFloatSemantics(), strNum);
-        }));
-
-    auto complexData = llvm::makeArrayRef(
-        reinterpret_cast<std::complex<APFloat> *>(floatValues.data()),
-        floatValues.size() / 2);
-    return Tensor(DenseElementsAttr::get(type, complexData));
+    if (complexElemTy.isF64()) {
+      auto complexValues = llvm::to_vector(llvm::map_range(
+          attr.getValues<std::complex<APFloat>>(),
+          [&](std::complex<APFloat> value) -> std::complex<double> {
+            return std::complex<double>(value.real().convertToDouble(),
+                                        value.imag().convertToDouble());
+          }));
+      return Tensor(type,
+                    HeapAsmResourceBlob::allocateAndCopy<std::complex<double>>(
+                        complexValues));
+    }
   }
 
-  if (auto floatType = elemType.dyn_cast<FloatType>()) {
-    auto floatValues =
-        llvm::to_vector(llvm::map_range(strData, [&](StringRef str) -> APFloat {
-          return APFloat(floatType.getFloatSemantics(), str);
-        }));
-
-    return Tensor(DenseElementsAttr::get(type, floatValues));
-  }
-
-  if (elemType.isa<IntegerType>()) {
-    SmallVector<APInt> intValues;
-    intValues = llvm::to_vector(
-        llvm::map_range(strData, [elemType](StringRef str) -> APInt {
-          return APInt(elemType.getIntOrFloatBitWidth(), str, 10);
-        }));
-    return Tensor(DenseElementsAttr::get(type, intValues));
-  }
-
-  report_fatal_error(
-      invalidArgument("Unsupported type: %s", debugString(elemType).c_str()));
+  llvm::report_fatal_error(StringRef("Unsupported type: ") + debugString(type));
 }
 
 }  // namespace stablehlo
