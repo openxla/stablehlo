@@ -968,10 +968,10 @@ operation.
 
 ### Semantics
 
-Expands `operand` by padding around the array as well as between the elements of
-the array with the given `padding_value`.
+Expands `operand` by padding around the tensor as well as between the elements
+of the tensor with the given `padding_value`.
 
-`edge_padding_low` and `edge_padding_high` specifies the amount of padding added
+`edge_padding_low` and `edge_padding_high` specify the amount of padding added
 at the low-end (next to index 0) and the high-end (next to the highest index) of
 each dimension respectively. The amount of padding can be negative, where the
 absolute value of negative padding indicates the number of elements to remove
@@ -984,13 +984,13 @@ the interior-padded operand.
 
 ### Operands
 
-| Name                | Type                               |
-|---------------------|------------------------------------|
-| `operand`           | tensor of any supported types      |
-| `padding_value`     | tensor of any supported types      |
-| `edge_padding_low`  | 1-dimensional array of type `si64` |
-| `edge_padding_high` | 1-dimensional array of type `si64` |
-| `interior_padding`  | 1-dimensional array of type `si64` |
+| Name                | Type                                        |
+|---------------------|---------------------------------------------|
+| `operand`           | tensor of any supported types               |
+| `padding_value`     | 0-dimensional tensor of any supported types |
+| `edge_padding_low`  | 1-dimensional array of type `si64`          |
+| `edge_padding_high` | 1-dimensional array of type `si64`          |
+| `interior_padding`  | 1-dimensional array of type `si64`          |
 
 ### Results
 
@@ -1000,13 +1000,12 @@ the interior-padded operand.
 
 ### Constraints
 
-  * (C1) `operand` and `result` have the same element type.
-  * (C2) `operand` and `padding_value` have the same element type.
-  * (C3) `padding_value` should be rank 0.
-  * (C4) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
-  same rank as `operand`.
-  * (C5) `interior_padding` >= 0.
-  * (C6) Padding should not result in negative size for `result` dimensions.
+  * (C1) `operand`, `padding_value`, `result` have the same element type.
+  * (C2) `padding_value` has rank 0.
+  * (C3) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
+  size equal to `operand`'s rank.
+  * (C4) 0 $\le$ `interior_padding[i]` for all `i` values in `interior_padding`.
+  * (C5) `dim(result, i) = di + max(di - 1, 0) * interior_padding[i] + edge_padding_low[i] + edge_padding_high[i]`, where `di = dim(operand, i)`.
 
 ### Examples
 
@@ -1018,7 +1017,7 @@ the interior-padded operand.
 // %padding_value: 0
 %result = "stablehlo.pad"(%operand, %padding_value) {
   edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-  edge_padding_high = dense<[2, 1]> : tensor<2xi64>
+  edge_padding_high = dense<[2, 1]> : tensor<2xi64>,
   interior_padding = dense<[1, 2]> : tensor<2xi64>
 } : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
 // %result: [
