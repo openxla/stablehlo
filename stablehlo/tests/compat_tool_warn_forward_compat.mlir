@@ -2,6 +2,6 @@
 
 // expected-warning @+1 {{file version 45 is greater than the StableHLO consumer version 40. Compatibility is not guaranteed.}}
 func.func private @test_upgrade() -> ()
-  attributes {compat_version = 45 : i32} {
+  attributes {stablehlo.compat_version = 45 : i32} {
   func.return
 }

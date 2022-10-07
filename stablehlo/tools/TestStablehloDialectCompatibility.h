@@ -18,15 +18,22 @@ limitations under the License.
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/PatternMatch.h"
-#include "stablehlo/compatibility/DialectCompatibilityInterface.h"
+#include "stablehlo/compatibility/DialectCompatibilityBase.h"
 
 namespace mlir {
 namespace stablehlo {
 
-class TestStablehloCompatibilityConverter : public DialectCompatibilityInterface {
+/// Example changelog:
+///   - v35 [04/15/2022]: Base dialect compatibility state.
+///   - ...
+///   - v38 [09/15/2022]: Add attribute version_38_attr.
+///   - v39 [09/27/2022]: Rename version_38_attr -> version_39_attr.
+///   - v40 [10/01/2022]: Rename stablehlo.sub -> stablehlo.subtract.
+///
+class TestStablehloCompatibilityConverter : public DialectCompatibilityBase {
  public:
   TestStablehloCompatibilityConverter(MLIRContext *context)
-      : DialectCompatibilityInterface(context) {
+      : DialectCompatibilityBase(context) {
     // Add upgrades and downgrades here.
     registerAddOpChanges();
     registerSubOpChanges();
@@ -109,8 +116,7 @@ class TestStablehloCompatibilityConverter : public DialectCompatibilityInterface
   //==------
   // Helpers
   //==------
-  // FIXME: Is there a good way to change an op name?
-  // This function currently doesn't handle regions.
+  // FIXME: I know this is not good.. but not sure how this should look.
   void renameOperation(Operation *op, llvm::StringRef newName) {
     class SimpleRewriter : public PatternRewriter {
      public:
@@ -131,4 +137,4 @@ class TestStablehloCompatibilityConverter : public DialectCompatibilityInterface
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif // STABLEHLO_INTEGRATIONS_TESTSTABLEHLODIALECTCOMPATIBILITY_H
+#endif  // STABLEHLO_INTEGRATIONS_TESTSTABLEHLODIALECTCOMPATIBILITY_H

@@ -13,11 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITY_H
-#define STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITY_H
+#ifndef STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITYBASE_H
+#define STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITYBASE_H
 
 #include <cstdint>
 #include <functional>
+
 #include "llvm/ADT/StringMap.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Operation.h"
@@ -32,62 +33,49 @@ namespace stablehlo {
 //===--------------------------------------------------------------------===//
 
 /// Class used for upgrade and downgrade hook management / appliction.
-/// Optionally applied during asm printing using `--mlir-print-with-downgrades`
-/// Always applied during bytecode serialization / deserialization.
+/// Downgrades applied after verification, before serialization.
+/// Upgrades applied after deserialization, before verification.
 ///
 /// This allows for the following types of changes:
-///  - Operation/int64_t renames
+///  - Operation/Attribute renames
 ///  - Move an operation to a different dialect
 ///  - Adding an attribute (assuming default value for upgrade is possible)
 ///  - Removing an attribute from an op (can't delete attribute datatype)
-///  - Changing attribute into an operand / adding an operand (need to think more)
-class DialectCompatibilityInterface {
+///  - Changing attribute into an operand / adding an operand (need to think
+///  more)
+class DialectCompatibilityBase {
  public:
   /// Version converter functions are used for both upgrade and downgrade.
   /// They take an `Operation *` for the operation to be conveted, as well as
-  /// an int64_t that represents the dialect version.
-  ///
-  /// The int64_t argument may not be needed if the infrastructure handles
-  /// these changes. I.e. upgrades will simply know to "upgrade from the
-  /// version right before this one".
-  using OpVersionConverterFn = std::function<LogicalResult(Operation *, int64_t)>;
+  /// an int64_t that represents the current version of the op.
+  using OpVersionConverterFn =
+      std::function<LogicalResult(Operation *, int64_t)>;
 
-  DialectCompatibilityInterface(MLIRContext *context)
+  DialectCompatibilityBase(MLIRContext *context)
       : context(context), upgrades(), downgrades() {}
 
-  virtual ~DialectCompatibilityInterface() = default;
+  virtual ~DialectCompatibilityBase() = default;
 
   /// This is the current dialect bytecode version.
   ///
-  /// This is the number that will be passed to upgrade passes.
-  ///
-  /// An error/warning will be displayed if the bytecode version greater
-  /// than 42. Note: Version 43 should target v42 bytecode for 3 weeks. If the
-  /// producer version is greater than 42, that means the forward compatibility
-  /// window is closed.
+  /// A warning will be displayed if the bytecode version greater than producer
+  /// version. Note: Future producers will target versions less than or equal to
+  /// the current producer version for the duration of the forward compatibility
+  /// window.
   virtual int64_t getProducerVersion() const = 0;
 
-  /// This is the current dialect bytecode version.
+  /// Backward compatibility: Returns the current minimum supported producer
+  /// version.
   ///
-  /// An error/warning will be displayed if the bytecode version is less
-  /// than 35.
+  /// A warning will be displayed if the bytecode version is less than minimum
+  /// supported version.
   virtual int64_t getMinimumProducerDialectVersion() const = 0;
 
-  /// The target version will need to be manually managed.
+  /// Forward compatibility: Returns the downgrade target version.
   /// It should be set to the `getProducerDialectVersion` of a revision
   /// from <forward_compatibility_window> days in the past.
   ///
-  /// This is the number that will be passed to downgrade passes.
-  ///
-  /// The attribute returned from `getMinimumDowngradeDialectVersion` will be
-  /// added to the dialect resources in the bytecoded file. This is taken care
-  /// of by the BytecodeDialectInterface during bytecode writing. If this method
-  /// returns a null attribute, no version is written.
-  ///
-  /// Post-condition: `getMinimumDowngradeDialectVersion() <=
-  /// getProducerDialectVersion()`. If this method is implemented,
-  /// `getProducerDialectVersion` must return a non-null attribute.
-  // FIXME: Revisit all these descriptions.
+  /// This is the default target version for stablehlo-translate.
   virtual int64_t getMinimumDowngradeDialectVersion() const = 0;
 
  protected:
@@ -95,24 +83,8 @@ class DialectCompatibilityInterface {
   /// mnemonic.
   ///
   /// Given that operations being deserialized here may no longer exist, this
-  /// machinery needs to operate on mnemonic and pass an `Operation*` for
+  /// machinery operates on mnemonic strings and passes an `Operation*` for
   /// upgrade.
-  ///
-  /// This machinery allows for handling renames, deletes, and other
-  /// modifications.
-  ///
-  /// An upgrade callback will be invoked if the op matches the mnemonic, and
-  /// the registered version is greater than the ops current version. An op will
-  /// continue calling upgrades until all registered upgrades for a given
-  /// mnemonic are invalid or return failure.
-  ///
-  /// If an upgrade succeeds, the ops "current version" is assigned to the
-  /// registered version of the upgrade callback. This prevents infinite
-  /// recursion, since version attributes are monotonically increasing.
-  ///
-  /// The inverse must be true for downgrades, calling only if version is less
-  /// than the ops current version, with a monotonically decreasing version
-  /// attribute.
   void addUpgrade(llvm::StringRef mnemonic, int64_t version,
                   OpVersionConverterFn const &cb) {
     if (version < getMinimumProducerDialectVersion()) {
@@ -140,14 +112,22 @@ class DialectCompatibilityInterface {
     downgrades[mnemonic].push_back({cb, version});
   }
 
-  MLIRContext * getContext() {
-    return context;
-  }
-  MLIRContext const * getContext() const {
-    return context;
-  }
+  MLIRContext *getContext() { return context; }
+  MLIRContext const *getContext() const { return context; }
 
  public:
+  /// An upgrade callback will be invoked if the op matches the mnemonic, and
+  /// the registered version is greater than the ops current version. An op will
+  /// continue calling upgrades until all registered upgrades for a given
+  /// mnemonic are invalid or return failure.
+  ///
+  /// If an upgrade succeeds, the ops "current version" is assigned to the
+  /// registered version of the upgrade callback. This prevents infinite
+  /// recursion, since version attributes are monotonically increasing.
+  ///
+  /// The inverse must be true for downgrades, calling only if version is less
+  /// than the ops current version, with a monotonically decreasing version
+  /// attribute.
   LogicalResult applyOpUpgrades(Operation *topLevelOp,
                                 int64_t const &fileVersion);
 
@@ -160,16 +140,6 @@ class DialectCompatibilityInterface {
     int64_t version;
   };
 
-  /// Registration for each change in the change log.
-  void registerAddOpChanges();
-  void registerSubOpChanges();
-
-  /// add all the upgrade / downgrade functions above.
-  void registerUpgradesAndDowngrades() {
-    registerAddOpChanges();
-    registerSubOpChanges();
-  }
-
   /// This function attempts to apply a single conversion to @param op.
   ///
   /// Returns `failure` iff a conversion was attempted to be applied and
@@ -181,11 +151,15 @@ class DialectCompatibilityInterface {
       llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> &map,
       std::function<bool(int64_t, int64_t)> const &comparisonFn);
 
-  FailureOr<int64_t> upgrade(Operation *op, int64_t version) {
+  /// Call applyConversion until no changes made, or targetVersion reached.
+  FailureOr<int64_t> applyConversions(
+      Operation *op, int64_t version, int64_t const targetVersion,
+      llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> &map,
+      std::function<bool(int64_t, int64_t)> const &comparisonFn) {
     bool hasChanged = true;
     while (hasChanged) {
-      auto conversionResult = applyConversion(op, version, getProducerVersion(),
-                                              upgrades, std::less<int64_t>());
+      auto conversionResult =
+          applyConversion(op, version, targetVersion, map, comparisonFn);
       if (failed(conversionResult)) {
         return failure();
       }
@@ -195,19 +169,15 @@ class DialectCompatibilityInterface {
     return version;
   }
 
-  FailureOr<int64_t> downgrade(Operation *op, int64_t version, int64_t targetVersion) {
-    bool hasChanged = true;
-    while (hasChanged) {
-      if (version <= targetVersion) return version;
-      auto conversionResult = applyConversion(
-          op, version, targetVersion, downgrades, std::greater<int64_t>());
-      if (failed(conversionResult)) {
-        return failure();
-      }
-      hasChanged = (version != *conversionResult);
-      version = *conversionResult;
-    }
-    return version;
+  FailureOr<int64_t> upgrade(Operation *op, int64_t version) {
+    return applyConversions(op, version, getProducerVersion(), upgrades,
+                            std::less<int64_t>());
+  }
+
+  FailureOr<int64_t> downgrade(Operation *op, int64_t version,
+                               int64_t targetVersion) {
+    return applyConversions(op, version, targetVersion, downgrades,
+                            std::greater<int64_t>());
   }
 
   MLIRContext *context;
@@ -215,16 +185,20 @@ class DialectCompatibilityInterface {
   llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> downgrades;
 };
 
-OwningOpRef<Operation *> parseWithCompat(
-    llvm::SourceMgr &sourceMgr, MLIRContext *context,
-    DialectCompatibilityInterface &interface);
+/// Entrypoint for parsing a file that was serialized with compatibility
+/// guarantees.
+OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
+                                         MLIRContext *context,
+                                         DialectCompatibilityBase &interface);
 
+/// Entrypoint for writing a file that was serialized with compatibility
+/// guarantees.
 LogicalResult writeWithCompat(Operation *topLevelOperation,
                               int64_t const &targetVersion, bool emitBytecode,
                               llvm::raw_ostream &output,
-                              DialectCompatibilityInterface &interface);
+                              DialectCompatibilityBase &interface);
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITY_H
+#endif  // STABLEHLO_INTEGRATIONS_DIALECTCOMPATIBILITYBASE_H

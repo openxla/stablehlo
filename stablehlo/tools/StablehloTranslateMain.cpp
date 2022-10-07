@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include <memory>
+
 #include "llvm/Support/CommandLine.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Diagnostics.h"
@@ -23,8 +24,8 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/compatibility/StablehloDialectCompatibility.h"
-#include "stablehlo/tools/TestStablehloDialectCompatibility.h"
 #include "stablehlo/dialect/Register.h"
+#include "stablehlo/tools/TestStablehloDialectCompatibility.h"
 
 using namespace mlir;
 using namespace mlir::stablehlo;
@@ -48,24 +49,28 @@ static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
                                                     CompatOptions opts) {
   performDialectRegistrations(context);
 
-  std::unique_ptr<DialectCompatibilityInterface> interface;
+  std::unique_ptr<DialectCompatibilityBase> interface;
   if (opts.useTestConverter) {
     interface = std::make_unique<TestStablehloCompatibilityConverter>(context);
   } else {
     interface = std::make_unique<StablehloCompatibilityConverter>(context);
   }
 
-  OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context, *interface);
+  OwningOpRef<Operation *> module =
+      parseWithCompat(sourceMgr, context, *interface);
   if (!module) {
     return failure();
   }
 
   int64_t targetVersion = opts.targetVersion;
   bool emitBytecode = opts.emitBytecode;
-  return writeWithCompat(module.get(), targetVersion, emitBytecode, output, *interface);
+  return writeWithCompat(module.get(), targetVersion, emitBytecode, output,
+                         *interface);
 }
 
 int main(int argc, char **argv) {
+  // FIXME: This is how other tools implement arguments by the look of it, is
+  // this correct? Couldn't find much about "translation registration options".
   static llvm::cl::opt<int64_t> targetVersion(
       "target",
       llvm::cl::desc(
@@ -81,9 +86,10 @@ int main(int argc, char **argv) {
   static llvm::cl::opt<bool> useTestConverter(
       "use-test-converter",
       llvm::cl::desc(
-          "Target verison for output (default to minimum supported)"),
+          "Use the test converter (for unit testing conversion machinery)"),
       llvm::cl::init(false));
 
+  // Allow printer flags like `--mlir-print-op-generic`
   registerAsmPrinterCLOptions();
 
   TranslateRegistration stablehlo_compat(

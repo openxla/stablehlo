@@ -2,8 +2,10 @@
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt | FileCheck %s
 // RUN: stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-translate -compat --emit-bytecode %s | stablehlo-translate --compat --target=999
 
 
+module {
 // CHECK-LABEL: func @chlo_acos(
 // CHECK-SAME:  %[[A:.*]]: tensor<8x8xf64>
 // CHECK:       %[[T:.*]] = chlo.acos %[[A]] : tensor<8x8xf64> -> tensor<8x8xf64>
@@ -432,4 +434,6 @@ func.func @chlo_rank_specialization_cluster(%arg0 : tensor<*xf32>, %arg1 : tenso
     "chlo.rank_specialization_cluster_yield"(%arg0_) : (tensor<*xf32>) -> ()
   }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
+}
+
 }

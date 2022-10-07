@@ -15,20 +15,19 @@ limitations under the License.
 
 #ifndef STABLEHLO_INTEGRATIONS_STABLEHLODIALECTCOMPATIBILITY_H
 #define STABLEHLO_INTEGRATIONS_STABLEHLODIALECTCOMPATIBILITY_H
-// ===-------------------------------------------------------------------------
-// StableHLO Compatibility Code - This should evolve with the dialect.
-// ===-------------------------------------------------------------------------
 
-/// The current version of StableHLO
 #include "mlir/IR/MLIRContext.h"
-#include "stablehlo/compatibility/DialectCompatibilityInterface.h"
+#include "stablehlo/compatibility/DialectCompatibilityBase.h"
 
 namespace mlir {
 namespace stablehlo {
-class StablehloCompatibilityConverter : public DialectCompatibilityInterface {
+/// Changelog:
+///   - v0 [10/07/2022]: Base dialect compatibility state.
+///
+class StablehloCompatibilityConverter : public DialectCompatibilityBase {
  public:
   StablehloCompatibilityConverter(MLIRContext *context)
-      : DialectCompatibilityInterface(context) {
+      : DialectCompatibilityBase(context) {
     // Add upgrades and downgrades here.
   }
 
@@ -45,4 +44,4 @@ class StablehloCompatibilityConverter : public DialectCompatibilityInterface {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif // STABLEHLO_INTEGRATIONS_STABLEHLODIALECTCOMPATIBILITY_H
+#endif  // STABLEHLO_INTEGRATIONS_STABLEHLODIALECTCOMPATIBILITY_H

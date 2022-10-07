@@ -13,13 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/compatibility/DialectCompatibilityInterface.h"
+#include "stablehlo/compatibility/DialectCompatibilityBase.h"
 
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -31,14 +31,13 @@ limitations under the License.
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/ParseUtilties.h"
-#include "mlir/Bytecode/BytecodeWriter.h"
 
 #define DEBUG_TYPE "hlo-compatibility"
 
 namespace mlir {
 namespace stablehlo {
 
-FailureOr<int64_t> DialectCompatibilityInterface::applyConversion(
+FailureOr<int64_t> DialectCompatibilityBase::applyConversion(
     Operation *op, int64_t const version, int64_t const targetVersion,
     llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> &map,
     std::function<bool(int64_t, int64_t)> const &comparisonFn) {
@@ -55,8 +54,6 @@ FailureOr<int64_t> DialectCompatibilityInterface::applyConversion(
   // applied.
   // This will either sort in ascending or descending order depending on
   // comparisonFn.
-  //
-  // Sort on every conversion may be costly, can consider refactoring.
   llvm::SmallVector<OpConversionVersionPair> &conversions = it->second;
   std::sort(
       conversions.begin(), conversions.end(),
@@ -67,8 +64,8 @@ FailureOr<int64_t> DialectCompatibilityInterface::applyConversion(
   // Iterate over conversions, if one is greater than version argument, apply
   // it and modify version.
   for (auto &convPair : conversions) {
-    // Apply if comparison fn returns true, and conversion funciton is
-    // a valid up/downgrade with the given target version.
+    // Apply downgrade if convPair is lt current version and lte targetVersion
+    // Apply upgrade if convPair is gt version and gte targetVersion
     bool shouldApply = comparisonFn(version, convPair.version) &&
                        (comparisonFn(convPair.version, targetVersion) ||
                         convPair.version == targetVersion);
@@ -90,20 +87,20 @@ FailureOr<int64_t> DialectCompatibilityInterface::applyConversion(
 
 namespace {
 LogicalResult walkAndApply(
-    Operation *topLevelOp, int64_t version,
-    std::function<FailureOr<int64_t>(Operation *)> const &cb) {
+    Operation *topLevelOp, int64_t originalVersion,
+    std::function<FailureOr<int64_t>(Operation *)> const &convertFn) {
   // Perform any upgrades
   auto walkRes = topLevelOp->walk([&](Operation *op) {
-    auto newVersion = cb(op);
+    auto newVersion = convertFn(op);
     if (failed(newVersion)) {
       // Upgrade failed, interrupt and error.
       LLVM_DEBUG(llvm::dbgs() << "Op failed to apply conversion.\n");
       return WalkResult::interrupt();
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Converted op v"
-                            << version << " -> v" << *newVersion << " ("
-                            << op->getName().getStringRef() << ")\n");
+    LLVM_DEBUG(llvm::dbgs()
+               << "Converted op v" << originalVersion << " -> v" << *newVersion
+               << " (" << op->getName().getStringRef() << ")\n");
 
     return WalkResult::advance();
   });
@@ -112,14 +109,14 @@ LogicalResult walkAndApply(
 }
 }  // namespace
 
-LogicalResult DialectCompatibilityInterface::applyOpUpgrades(
+LogicalResult DialectCompatibilityBase::applyOpUpgrades(
     Operation *topLevelOp, int64_t const &fileVersion) {
   return walkAndApply(topLevelOp, fileVersion,
                       [&](Operation *op) { return upgrade(op, fileVersion); });
 }
 
-LogicalResult DialectCompatibilityInterface::applyOpDowngrades(
-    Operation *topLevelOp, int64_t const & targetVersion) {
+LogicalResult DialectCompatibilityBase::applyOpDowngrades(
+    Operation *topLevelOp, int64_t const &targetVersion) {
   return walkAndApply(topLevelOp, getProducerVersion(), [&](Operation *op) {
     return downgrade(op, getProducerVersion(), targetVersion);
   });
@@ -130,7 +127,7 @@ namespace {
 /// IR.
 LogicalResult writeProducerVersion(Operation *topLevelOperation,
                                    int64_t const &version) {
-  auto attrName = "compat_version";
+  auto attrName = "stablehlo.compat_version";
   topLevelOperation->setAttr(
       attrName,
       Builder(topLevelOperation->getContext()).getI64IntegerAttr(version));
@@ -141,7 +138,7 @@ LogicalResult writeProducerVersion(Operation *topLevelOperation,
 /// All files produced from `writeWithCompat` must include this attribute
 /// in order to provide valid compatibility guarantees.
 FailureOr<int64_t> extractProducerVersion(Operation *topLevelOperation) {
-  llvm::StringRef attrName = "compat_version";
+  llvm::StringRef attrName = "stablehlo.compat_version";
   if (!topLevelOperation->hasAttr(attrName)) {
     return failure();
   }
@@ -157,7 +154,7 @@ FailureOr<int64_t> extractProducerVersion(Operation *topLevelOperation) {
 
 OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
                                          MLIRContext *context,
-                                         DialectCompatibilityInterface & interface) {
+                                         DialectCompatibilityBase &interface) {
   FallbackAsmResourceMap fallbackResourceMap;
   ParserConfig config(context, /*verifyAfterParse=*/false,
                       &fallbackResourceMap);
@@ -209,14 +206,17 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
 
 LogicalResult writeWithCompat(Operation *topLevelOperation,
                               int64_t const &targetVersion, bool emitBytecode,
-                              llvm::raw_ostream &output, DialectCompatibilityInterface & interface) {
+                              llvm::raw_ostream &output,
+                              DialectCompatibilityBase &interface) {
   if (failed(verify(topLevelOperation))) {
     return topLevelOperation->emitError("must be valid op");
   }
 
   // TODO: Downgrade to target version
-  int64_t producerVersion = std::min(targetVersion, interface.getProducerVersion());
-  producerVersion = std::max(targetVersion, interface.getMinimumDowngradeDialectVersion());
+  int64_t producerVersion =
+      std::min(targetVersion, interface.getProducerVersion());
+  producerVersion =
+      std::max(targetVersion, interface.getMinimumDowngradeDialectVersion());
   if (failed(interface.applyOpDowngrades(topLevelOperation, targetVersion))) {
     return failure();
   }
@@ -236,5 +236,5 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
   return success();
 }
 
-}  // namespace compatibility
+}  // namespace stablehlo
 }  // namespace mlir
