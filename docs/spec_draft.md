@@ -159,6 +159,7 @@ described below)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
    * [floor](#stablehlofloor)
+   * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
    * [maximum](#stablehlomaximum)
@@ -610,6 +611,62 @@ IEEE-754 specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.iota
+
+### Semantics
+Fills a `result` tensor with values in increasing order starting from zero along
+the `iota_dimension` dimension. More formally,
+`result[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
+
+For integers, if the dimension size is larger than what the element type's
+maximum value can hold, an overflow occurs and the behavior is implementation-
+defined and one of the following:
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
+  for unsigned overflow.
+
+### Operands
+
+| Name             | Type   |
+|------------------|--------|
+| `iota_dimension` | `si64` |
+
+### Results
+
+| Name     | Type                                                       |
+|----------|------------------------------------------------------------|
+| `result` | tensor of integer, floating-point or complex element types |
+
+### Constraints
+
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the `result`.
+
+### Examples
+
+```mlir
+%result = "stablehlo.iota"() {iota_dimension = 0} : () -> tensor<4x5xi32>
+// %result: [
+//           [0, 0, 0, 0, 0],
+//           [1, 1, 1, 1, 1],
+//           [2, 2, 2, 2, 2],
+//           [3, 3, 3, 3, 3]
+//          ]
+
+%result = "stablehlo.iota"() {iota_dimension = 1} : () -> tensor<4x5xi32>
+// %result: [
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4]
+//          ]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
 
 [Back to Ops](#index-of-ops)
 

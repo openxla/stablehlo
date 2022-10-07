@@ -15,10 +15,23 @@ limitations under the License.
 
 #include "stablehlo/reference/Ops.h"
 
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
+namespace {
+template <typename... Ts>
+inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
+  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
+}
+}  // namespace
 
 namespace {
 
@@ -64,6 +77,43 @@ Tensor eval(FloorOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
     result.set(*it, floor(operand.get(*it)));
+  }
+  return result;
+}
+
+Tensor eval(IotaOp op) {
+  Tensor result(op.getType());
+  Type elType = result.getType().getElementType();
+  uint64_t iotaDimension = op.getIotaDimension();
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto iota = (*it)[iotaDimension];
+    if (isSupportedSignedIntegerType(elType)) {
+      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
+                                            iota, /*isSigned=*/true)));
+    } else if (isSupportedUnsignedIntegerType(elType)) {
+      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
+                                            iota, /*isSigned=*/false)));
+    } else if (isSupportedFloatType(elType)) {
+      APFloat val = APFloat((double)iota);
+      bool roundingErr;
+      val.convert(elType.cast<FloatType>().getFloatSemantics(),
+                  APFloat::rmNearestTiesToEven, &roundingErr);
+      result.set(*it, Element(elType, val));
+    } else if (isSupportedComplexType(elType)) {
+      APFloat real((double)iota);
+      APFloat imag((double)0.0);
+      FloatType flType =
+          elType.cast<ComplexType>().getElementType().cast<FloatType>();
+      bool roundingErr;
+      real.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
+      imag.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
+      result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
+    } else {
+      report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                         debugString(elType).c_str()));
+    }
   }
   return result;
 }

@@ -96,10 +96,13 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
 def StableHLO_IotaOp : StableHLO_Op<"iota", [NoSideEffect]> {
   let summary = "Iota operator";
   let description = [{
-    Creates a rank 1 array of values starting at zero and incrementing by one.
+    Fills a `result` tensor with values in increasing order starting from zero
+    along the `iota_dimension` dimension.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloiota
 
     Example:
-
     ```mlir
     %0 = stablehlo.iota dim = 1 : tensor<1x10xf32>
     ```
