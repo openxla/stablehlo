@@ -144,7 +144,7 @@ static LogicalResult rngInferReturnTypeComponents(
   DenseIntElementsAttr shape;
   if (!matchPattern(shapeOperand, m_Constant(&shape))) {
     int size = shapeOperandType.getDimSize(0);
-    if (isDynamicDimSize(size)) {
+    if (hlo::isDynamicDimSize(size)) {
       inferredReturnShapes.emplace_back(elementType);
       return success();
     }
@@ -257,7 +257,7 @@ LogicalResult ReduceScatterOp::verify() {
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
   Block& block = getComputation().front();
   SmallVector<TensorType> accumulatorSubshapes;
-  if (failed(verifyReducerShape(
+  if (failed(hlo::verifyReducerShape(
           this->getLoc(), block, {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},
           /*numInputs=*/1, /*allowedDimensions=*/{},
@@ -571,8 +571,8 @@ LogicalResult CholeskyOp::inferReturnTypeComponents(
 
   int64_t lastDim = aShape[aShape.size() - 1];
   int64_t penultimateDim = aShape[aShape.size() - 2];
-  if (!isDynamicDimSize(lastDim) && !isDynamicDimSize(penultimateDim) &&
-      lastDim != penultimateDim) {
+  if (!hlo::isDynamicDimSize(lastDim) &&
+      !hlo::isDynamicDimSize(penultimateDim) && lastDim != penultimateDim) {
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
@@ -587,7 +587,7 @@ LogicalResult CholeskyOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 namespace {
 bool dimCompatible(int64_t a, int64_t b) {
-  return isDynamicDimSize(a) || isDynamicDimSize(b) || a == b;
+  return hlo::isDynamicDimSize(a) || hlo::isDynamicDimSize(b) || a == b;
 }
 
 ShapedType inferDotReturnType(ShapedType lhs, ShapedType rhs) {
@@ -697,7 +697,7 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
-  return inferDotGeneralOp(
+  return hlo::inferDotGeneralOp(
       location, adaptor.getLhs(), adaptor.getRhs(),
       adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
       adaptor.getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
@@ -1551,7 +1551,7 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
       rhsType.getShape()[op.getDimensionNumbers()
                              .getKernelOutputFeatureDimension()];
 
-  if (!isDynamicDimSize(kernelOutputFeatures)) {
+  if (!hlo::isDynamicDimSize(kernelOutputFeatures)) {
     if (kernelOutputFeatures % batchGroupCount != 0)
       return op.emitOpError() << "expects output feature dimension size ("
                               << kernelOutputFeatures
@@ -1568,7 +1568,7 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
              << featureGroupCount << ".";
   }
 
-  if (!isDynamicDimSize(inputFeatures)) {
+  if (!hlo::isDynamicDimSize(inputFeatures)) {
     if (inputFeatures % featureGroupCount != 0)
       return op.emitOpError()
              << "expects input feature dimension (" << inputFeatures
@@ -1576,7 +1576,7 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
                 "feature_group_count. Got feature_group_count = "
              << featureGroupCount << ".";
 
-    if (!isDynamicDimSize(kernelInputFeatures) &&
+    if (!hlo::isDynamicDimSize(kernelInputFeatures) &&
         inputFeatures / featureGroupCount != kernelInputFeatures)
       return op.emitOpError()
              << "expects input feature dimension (" << inputFeatures
@@ -1586,7 +1586,7 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
              << "). Got feature_group_count = " << featureGroupCount << ".";
   }
 
-  if (!isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
+  if (!hlo::isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
     return op.emitOpError() << "expects input batch dimension (" << inputBatch
                             << ") to be divisible by "
                                "batch_group_count. Got batch_group_count = "
@@ -1600,7 +1600,7 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
 //  1. Input args to ConvolutionOp 'op' are RankedTypes.
 //  2. rank-of(input-type) == rank-of(output-type)
 SmallVector<int64_t> inferConvolutionOpReturnShape(
-    ConvolutionOp op, const ArrayRef<WindowDimension> window) {
+    ConvolutionOp op, const ArrayRef<hlo::WindowDimension> window) {
   // We keep the 'unknown' dimensions (cl/415132294) as it is in the
   // output-shape. To do that we initilize the output dimensions with the shape
   // of the return-type and updates only the spatial + non-spatial dimensions.
@@ -1616,7 +1616,8 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
   for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
     inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDims[i]];
 
-  auto windowOutputShape = inferWindowOutputShape(inputSpatialDimVals, window);
+  auto windowOutputShape =
+      hlo::inferWindowOutputShape(inputSpatialDimVals, window);
 
   for (int64_t i = 0; i < static_cast<int64_t>(window.size()); ++i)
     outputDimensions[op.getDimensionNumbers().getOutputSpatialDimensions()[i]] =
@@ -1631,8 +1632,8 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
                              .getKernelOutputFeatureDimension()];
 
   outputDimensions[op.getDimensionNumbers().getOutputBatchDimension()] =
-      isDynamicDimSize(inputBatch) ? ShapedType::kDynamicSize
-                                   : inputBatch / op.getBatchGroupCount();
+      hlo::isDynamicDimSize(inputBatch) ? ShapedType::kDynamicSize
+                                        : inputBatch / op.getBatchGroupCount();
   outputDimensions[op.getDimensionNumbers().getOutputFeatureDimension()] =
       kernelOutputFeatures;
 
@@ -1679,20 +1680,20 @@ LogicalResult ConvolutionOp::verify() {
   for (size_t i = 0; i < windowDimensions.size(); i++)
     windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
 
-  auto paddingOrErr = convertPaddingAttribute(this->getPadding(), getLoc());
+  auto paddingOrErr = hlo::convertPaddingAttribute(this->getPadding(), getLoc());
   if (failed(paddingOrErr)) return failure();
 
   // TODO: add missing tests for ConvolutionOp.
   auto windowStridesOrErr =
-      convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
+      hlo::convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
   if (failed(windowStridesOrErr)) return failure();
   auto lhsDilationOrErr =
-      convert1DAttribute(getLhsDilation(), getLoc(), "lhs_dilation");
+      hlo::convert1DAttribute(getLhsDilation(), getLoc(), "lhs_dilation");
   if (failed(lhsDilationOrErr)) return failure();
   auto rhsDilationOrErr =
-      convert1DAttribute(getRhsDilation(), getLoc(), "rhs_dilation");
+      hlo::convert1DAttribute(getRhsDilation(), getLoc(), "rhs_dilation");
   if (failed(rhsDilationOrErr)) return failure();
-  auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
+  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
       *rhsDilationOrErr, getLoc());
   if (failed(windowOrErr)) return failure();
@@ -1906,8 +1907,8 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
-  return inferBatchNormGradOp(adaptor.getOperand(), adaptor.getFeatureIndex(),
-                              inferredReturnShapes);
+  return hlo::inferBatchNormGradOp(
+      adaptor.getOperand(), adaptor.getFeatureIndex(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1928,7 +1929,7 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
-  return inferBatchNormTrainingOp(
+  return hlo::inferBatchNormTrainingOp(
       adaptor.getOperand(), adaptor.getFeatureIndex(), inferredReturnShapes);
 }
 
@@ -1950,7 +1951,8 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
-  return inferBatchNormInferenceOp(adaptor.getOperand(), inferredReturnShapes);
+  return hlo::inferBatchNormInferenceOp(adaptor.getOperand(),
+                                        inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2001,8 +2003,8 @@ LogicalResult BitcastConvertOp::verify() {
            << operandTensorType << " and " << targetTensorType;
   }
 
-  auto targetEltBitwidth = potentiallyComplexBitwidth(targetElt);
-  auto operandEltBitwidth = potentiallyComplexBitwidth(operandElt);
+  auto targetEltBitwidth = hlo::potentiallyComplexBitwidth(targetElt);
+  auto operandEltBitwidth = hlo::potentiallyComplexBitwidth(operandElt);
 
   // P2.
   auto operandType = operandTensorType.dyn_cast<RankedTensorType>();
@@ -2035,7 +2037,7 @@ LogicalResult BitcastConvertOp::verify() {
                            << operandType << " and " << targetType << ".";
     }
     smallerEltPrefix = smallerEltShape.drop_back();
-    if (!isDynamicDimSize(smallerEltShape.back()) &&
+    if (!hlo::isDynamicDimSize(smallerEltShape.back()) &&
         smallerEltShape.back() * smallerEltBitwidth != biggerEltBitwidth) {
       return emitOpError() << "requires compatible bitwidths. "
                            << "Got: " << operandType << " and " << targetType
@@ -2050,7 +2052,8 @@ LogicalResult BitcastConvertOp::verify() {
   for (auto it : llvm::zip(smallerEltPrefix, biggerEltShape)) {
     auto targetDim = std::get<0>(it);
     auto operandDim = std::get<1>(it);
-    if (!isDynamicDimSize(targetDim) && !isDynamicDimSize(operandDim)) {
+    if (!hlo::isDynamicDimSize(targetDim) &&
+        !hlo::isDynamicDimSize(operandDim)) {
       if (targetDim != operandDim) {
         return emitOpError() << "operand and result shapes must match except "
                                 "for the innermost dimension of the shape with "
@@ -2917,8 +2920,8 @@ LogicalResult MapOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   MapOp::Adaptor adaptor(operands, attributes, regions);
-  return inferMapOp(location, adaptor.getInputs(), adaptor.getDimensions(),
-                    adaptor.getComputation(), inferredReturnShapes);
+  return hlo::inferMapOp(location, adaptor.getInputs(), adaptor.getDimensions(),
+                         adaptor.getComputation(), inferredReturnShapes);
 }
 
 LogicalResult MapOp::reifyReturnTypeShapes(
@@ -2956,7 +2959,7 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceWindowOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReduceWindowOp(
+  return hlo::inferReduceWindowOp(
       location, adaptor.getInputs(), adaptor.getInitValues(),
       adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
       adaptor.getBaseDilations(), adaptor.getWindowDilations(),
@@ -3408,9 +3411,9 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReduceOp(location, adaptor.getInputs(), adaptor.getInitValues(),
-                       adaptor.getDimensions(), adaptor.getBody(),
-                       inferredReturnShapes);
+  return hlo::inferReduceOp(location, adaptor.getInputs(),
+                            adaptor.getInitValues(), adaptor.getDimensions(),
+                            adaptor.getBody(), inferredReturnShapes);
 }
 
 LogicalResult ReduceOp::reifyReturnTypeShapes(
@@ -3559,8 +3562,8 @@ LogicalResult SelectOp::verify() {
   //   (a) have the same element type, and
   //   (b) have compatible shapes (i.e. the same shape and/or at least one
   //       dynamic shape)
-  if (!compatibleShapeAndElementType(getOnTrue().getType(),
-                                     getOnFalse().getType()))
+  if (!hlo::compatibleShapeAndElementType(getOnTrue().getType(),
+                                          getOnFalse().getType()))
     return emitOpError()
            << "requires compatible types for non-predicate operands";
 
@@ -3718,7 +3721,7 @@ LogicalResult PadOp::inferReturnTypeComponents(
   auto inputShape = inputType.getShape();
   SmallVector<int64_t> resultShape;
   for (int i = 0, e = inputShape.size(); i < e; i++) {
-    if (isDynamicDimSize(inputShape[i])) {
+    if (hlo::isDynamicDimSize(inputShape[i])) {
       resultShape.push_back(ShapedType::kDynamicSize);
       continue;
     }
@@ -3969,7 +3972,7 @@ LogicalResult IfOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  return inferIfOp(location, adaptor.getRegions(), inferredReturnShapes);
+  return hlo::inferIfOp(location, adaptor.getRegions(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -3981,7 +3984,7 @@ LogicalResult CaseOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  return inferCaseOp(location, adaptor.getRegions(), inferredReturnShapes);
+  return hlo::inferCaseOp(location, adaptor.getRegions(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4046,7 +4049,7 @@ LogicalResult SliceOp::inferReturnTypes(
   SmallVector<int64_t, 4> shape;
   shape.reserve(rank);
   for (int64_t i = 0, e = rank; i != e; i++) {
-    if (isDynamicDimSize(rankedTy.getDimSize(i))) {
+    if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
       shape.push_back(ShapedType::kDynamicSize);
       continue;
     }
@@ -4097,8 +4100,8 @@ LogicalResult SortOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  return inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
-                     adaptor.getComparator(), inferredReturnShapes);
+  return hlo::inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
+                          adaptor.getComparator(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4197,9 +4200,9 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
   bool is_transpose_a_invalid =
       (adaptor.getTransposeA() == Transpose::TRANSPOSE_INVALID);
-  return inferTriangularSolveOp(location, adaptor.getA(), adaptor.getB(),
-                                adaptor.getLeftSide(), is_transpose_a_invalid,
-                                inferredReturnShapes);
+  return hlo::inferTriangularSolveOp(
+      location, adaptor.getA(), adaptor.getB(), adaptor.getLeftSide(),
+      is_transpose_a_invalid, inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4274,12 +4277,12 @@ LogicalResult CompareOp::reifyReturnTypeShapes(
 namespace {
 // Infer the return-type of SelectAndScatterOp.
 TensorType inferSelectAndScatterOpReturnType(
-    TensorType operandType, const ArrayRef<WindowDimension> window) {
+    TensorType operandType, const ArrayRef<hlo::WindowDimension> window) {
   if (!operandType.hasRank())
     return UnrankedTensorType::get(operandType.getElementType());
 
   return RankedTensorType::get(
-      inferWindowOutputShape(operandType.getShape(), window),
+      hlo::inferWindowOutputShape(operandType.getShape(), window),
       operandType.getElementType());
 }
 }  // namespace
@@ -4310,9 +4313,9 @@ LogicalResult SelectAndScatterOp::verify() {
   Type expectedSelectArgType =
       RankedTensorType::get({}, operandType.getElementType());
   for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
-    if (!compatibleShapeAndElementType(expectedSelectArgType,
-                                       selectArgIt.value().getType(),
-                                       /*ignoreFpPrecision=*/true))
+    if (!hlo::compatibleShapeAndElementType(expectedSelectArgType,
+                                            selectArgIt.value().getType(),
+                                            /*ignoreFpPrecision=*/true))
       return emitOpError()
              << "expects the type of select-region's parameter at index "
              << selectArgIt.index() << " to be " << expectedSelectArgType
@@ -4335,7 +4338,7 @@ LogicalResult SelectAndScatterOp::verify() {
   // P2.
   Block& scatterBlock = getScatter().front();
   SmallVector<TensorType> accumulatorSubshapes;
-  if (failed(verifyReducerShape(
+  if (failed(hlo::verifyReducerShape(
           this->getLoc(), scatterBlock,
           {RankedTensorType::get({}, sourceType.getElementType())},
           {initValueType},
@@ -4344,9 +4347,9 @@ LogicalResult SelectAndScatterOp::verify() {
     return failure();
 
   // P3.
-  // TODO: add missing tests of convert1DAttribute for SelectAndScatterOp.
+  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
   auto windowDimsOrErr =
-      convert1DAttribute(getWindowDimensions(), getLoc(), "window_dimensions");
+      hlo::convert1DAttribute(getWindowDimensions(), getLoc(), "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   if (operandType.hasRank()) {
     if (operandType.getRank() !=
@@ -4360,20 +4363,20 @@ LogicalResult SelectAndScatterOp::verify() {
   }
 
   // P4.
-  auto paddingOrErr = convertPaddingAttribute(getPadding(), getLoc());
+  auto paddingOrErr = hlo::convertPaddingAttribute(getPadding(), getLoc());
   if (failed(paddingOrErr)) return failure();
 
-  // TODO: add missing tests of convert1DAttribute for SelectAndScatterOp.
+  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
   auto windowStridesOrErr =
-      convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
+      hlo::convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
   if (failed(windowStridesOrErr)) return failure();
-  auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
+  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhs_dilation=*/{}, /*rhs_dilation=*/{}, getLoc());
   if (failed(windowOrErr)) return failure();
 
   // P5.
-  if (!compatibleShapeAndElementType(operandType, resultType))
+  if (!hlo::compatibleShapeAndElementType(operandType, resultType))
     return emitOpError()
            << "expects the return-type to match the operand-type, but got "
            << resultType << " and " << operandType << " resp.";
@@ -4382,8 +4385,8 @@ LogicalResult SelectAndScatterOp::verify() {
   auto windowResultType =
       inferSelectAndScatterOpReturnType(operandType, *windowOrErr);
 
-  if (!compatibleShapeAndElementType(windowResultType, sourceType,
-                                     /*ignoreFpPrecision=*/true))
+  if (!hlo::compatibleShapeAndElementType(windowResultType, sourceType,
+                                          /*ignoreFpPrecision=*/true))
     return emitOpError() << "expects source-type to be " << windowResultType
                          << ", but got" << sourceType;
 
@@ -4472,7 +4475,7 @@ LogicalResult validateScatterDimensionNumbers(
       to_vector(dimNumbers.getScatterDimsToOperandDims());
   auto indexVectorDim = dimNumbers.getIndexVectorDim();
   if (scatterIndicesTypeRanked) {
-    if (!isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
+    if (!hlo::isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
         static_cast<int64_t>(scatterDimsToOperandDims.size()) !=
             scatterIndicesShape[dimNumbers.getIndexVectorDim()])
       return mlir::emitError(loc)
@@ -4562,7 +4565,7 @@ LogicalResult ScatterOp::verify() {
     initValueTypes.push_back(
         RankedTensorType::get({}, updatesTypes[i].getElementType()));
   }
-  if (failed(verifyReducerShape(
+  if (failed(hlo::verifyReducerShape(
           this->getLoc(), block, inputTypes, initValueTypes, numOperands,
           /*allowedDimensions=*/{},
           /*allInputsUnranked=*/!allOperandTypesRanked, accumulatorSubshapes)))
@@ -4632,8 +4635,8 @@ LogicalResult ScatterOp::verify() {
              ++i) {
           auto updateWindowDim = updateWindowDims[i];
 
-          if (isDynamicDimSize(updatesShape[updateWindowDim]) ||
-              isDynamicDimSize(maxUpdateSliceSizes[i]))
+          if (hlo::isDynamicDimSize(updatesShape[updateWindowDim]) ||
+              hlo::isDynamicDimSize(maxUpdateSliceSizes[i]))
             continue;
 
           if (updatesShape[updateWindowDim] > maxUpdateSliceSizes[i]) {
@@ -4660,8 +4663,9 @@ LogicalResult ScatterOp::verify() {
           if (isUpdateWindowDim) continue;
           if (scatterDimsSeen == indexVectorDim) ++scatterDimsSeen;
 
-          if (!isDynamicDimSize(updatesShape[i]) &&
-              !isDynamicDimSize(expandedScatterIndicesShape[scatterDimsSeen]) &&
+          if (!hlo::isDynamicDimSize(updatesShape[i]) &&
+              !hlo::isDynamicDimSize(
+                  expandedScatterIndicesShape[scatterDimsSeen]) &&
               (updatesShape[i] !=
                expandedScatterIndicesShape[scatterDimsSeen])) {
             return emitOpError()
@@ -4683,7 +4687,8 @@ LogicalResult ScatterOp::verify() {
 
   // P7.
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
-    if (!compatibleShapeAndElementType(operandTypes[i], getResult(i).getType()))
+    if (!hlo::compatibleShapeAndElementType(operandTypes[i],
+                                            getResult(i).getType()))
       return emitOpError()
              << "expects the return type to be same as the operand type: "
              << operandTypes[i] << ", but got " << getResult(i).getType()
@@ -4707,9 +4712,9 @@ LogicalResult WhileOp::inferReturnTypeComponents(
   auto bodyReturnTypes =
       cast<ReturnOp>(adaptor.getBody().front().getTerminator())
           ->getOperandTypes();
-  return inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
-                      adaptor.getBody(), condReturnTypes, bodyReturnTypes,
-                      inferredReturnShapes);
+  return hlo::inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
+                           adaptor.getBody(), condReturnTypes, bodyReturnTypes,
+                           inferredReturnShapes);
 }
 
 /// Print a `while` op.

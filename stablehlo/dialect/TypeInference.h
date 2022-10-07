@@ -17,30 +17,15 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_STABLEHLO_TYPE_INFERENCE_H
 #define STABLEHLO_DIALECT_STABLEHLO_TYPE_INFERENCE_H
 
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/StringRef.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
-#include "mlir/IR/Attributes.h"
-#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/Location.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/OpDefinition.h"
-#include "mlir/IR/Operation.h"
-#include "mlir/IR/TensorEncoding.h"
-#include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
-#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
-namespace stablehlo {
+namespace hlo {
 
 // Check if the dimension size is dynamic.
 inline static bool isDynamicDimSize(int64_t val) {
@@ -103,10 +88,6 @@ LogicalResult inferBatchNormTrainingOp(
     Value operand, uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferIfOp(
-    Optional<Location> location, RegionRange branches,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
-
 LogicalResult inferCaseOp(
     Optional<Location> location, RegionRange branches,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
@@ -117,11 +98,17 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> lhsContractingDims, ArrayRef<int64_t> rhsContractingDims,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferIfOp(
+    Optional<Location> location, RegionRange branches,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferMapOp(
     Optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+// TODO(https://github.com/openxla/stablehlo/issues/270)
+// Remove the util functions below when all the shape functions are moved here. 
 LogicalResult verifyReducerShape(
     Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
     ArrayRef<TensorType> initValueTypes, int64_t numInputs,
@@ -157,7 +144,7 @@ LogicalResult inferWhileOp(
     TypeRange condReturnTypes, TypeRange bodyReturnTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-}  // end namespace stablehlo
+}  // end namespace hlo 
 }  // end namespace mlir
 
 #endif  // STABLEHLO_DIALECT_STABLEHLO_TYPE_INFERENCE_H

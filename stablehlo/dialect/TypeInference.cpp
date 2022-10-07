@@ -29,57 +29,34 @@ limitations under the License.
 #include <unordered_map>
 #include <utility>
 
-#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/Twine.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
-#include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
-#include "llvm/Support/Regex.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
-#include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Attributes.h"
-#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/IR/Location.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Matchers.h"
-#include "mlir/IR/OpDefinition.h"
-#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/IR/TensorEncoding.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
-#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
-namespace stablehlo {
+namespace hlo {
 
 //===----------------------------------------------------------------------===//
 // Utils for shape functions.
@@ -359,11 +336,6 @@ LogicalResult inferConditionalOp(
   return success();
 }
 
-LogicalResult inferIfOp(
-    Optional<Location> location, RegionRange branches,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  return inferConditionalOp(location, branches, inferredReturnShapes);
-}
 
 LogicalResult inferCaseOp(
     Optional<Location> location, RegionRange branches,
@@ -483,6 +455,12 @@ LogicalResult inferDotGeneralOp(
 
   inferredReturnShapes.emplace_back(dimensions, elementType);
   return success();
+}
+
+LogicalResult inferIfOp(
+    Optional<Location> location, RegionRange branches,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  return inferConditionalOp(location, branches, inferredReturnShapes);
 }
 
 LogicalResult inferMapOp(
@@ -741,7 +719,7 @@ LogicalResult inferReduceOp(
 
   // Check for unranked tensors in input operands.
   int64_t rankedInputIdx = -1;
-  for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+  for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
     if (inputArgTypes[inputIdx].hasRank()) {
       rankedInputIdx = inputIdx;
       break;
@@ -752,7 +730,7 @@ LogicalResult inferReduceOp(
 
   // P1.
   if (!allInputsUnranked) {
-    for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+    for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
                                              inputArgTypes[inputIdx]))) {
         return emitOptionalError(
@@ -834,7 +812,7 @@ LogicalResult inferReduceWindowOp(
 
   // Check for unranked tensors in input operands.
   int64_t rankedInputIdx = -1;
-  for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+  for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
     if (inputArgTypes[inputIdx].hasRank()) {
       rankedInputIdx = inputIdx;
       break;
@@ -845,7 +823,7 @@ LogicalResult inferReduceWindowOp(
 
   // P2.
   if (!allInputsUnranked) {
-    for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+    for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
                                              inputArgTypes[inputIdx]))) {
         return emitOptionalError(
@@ -1065,5 +1043,5 @@ LogicalResult inferWhileOp(
   return success();
 }
 
-}  // end namespace stablehlo
+}  // end namespace hlo
 }  // end namespace mlir
