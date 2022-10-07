@@ -153,6 +153,7 @@ described below)
    * [add](#stablehloadd)
    * [and](#stablehloand)
    * [ceil](#stablehloceil)
+   * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
@@ -360,6 +361,159 @@ IEEE-754 specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.broadcast_in_dim
+
+### Semantics
+
+Expands the dimensions and/or rank of an input tensor by duplicating the data
+in the `operand` tensor and produces a `result` tensor.
+
+Formally, we define the operation as
+  * If `broadcast_dimensions` is sorted in increasing order of dimensions
+    * If rank(`operand`) $=$ rank(`result`):
+      * `result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
+     `jk` $= 0$ if `dk` $= 1$, where `dk` is the dimension size of `k`$^{th}$
+     dimension in `operand`.
+    * If rank(`operand`) $\ne$ rank(`result`):
+      * [reshape](#stablehloreshape) `operand` to the shape vector $S$,
+      defined below, to get `reshaped_operand`.
+        * $S$[`broadcast_dimensions`[`k`]] $=$ `dk`, where `dk`
+      is the dimension size of `k`$^{th}$ dimension in `operand`, if `k` $\in$
+      `broadcast_dimensions`
+        * $S$[k] $= 1$, Otherwise.
+      * `result[i0, i1, ..., iR-1]` $=$ `reshaped_operand[j0, j1, ..., jR-1]`
+      such that `jk` $= 0$ if `dk` $= 1$, where `dk` is the dimension size of
+      `k`$^{th}$ dimension in `reshaped_operand`.
+
+ * If `broadcast_dimensions` is **not** sorted in increasing order of dimensions
+   * Let $P$ = [0, 1, ..., `R`-1], where `R` is the rank of `operand`.
+   * Sort $P$ in the ascending order of `broadcast_dimensions` to get $P'$.
+   * Apply [transpose](#stablehlotranspose) on `operand` using $P'$ as
+  `permutation` to get `transposed_operand`
+   * Sort `broadcast_dimensions` in increasing order of its elements to get
+   `sorted_broadcast_dimension`.
+   * Apply [broadcast_in_dim](#stablehlobroadcast_in_dim) with
+  `transposed_operand` and `sorted_broadcast_dimension`.
+ * For a scalar `operand`, the scalar value will be broadcast to every element
+   in the `result` shape.
+
+### Operands
+
+| Name                   | Type                                  |
+|------------------------|---------------------------------------|
+| `operand`              | tensor of any supported element types |
+| `broadcast_dimensions` | 1-D tensor of element type `si64`     |
+
+### Results
+
+| Name     | Type                                  |
+|----------|---------------------------------------|
+| `result` | tensor of any supported element types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the element type.
+  * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
+  * (C3) $0 \le$ `broadcast_dimensions`[i] $\lt$ rank(`result`) $\forall
+  i \in$ [0, size(`broadcast_in_dim`)).
+  * (C4) No duplicates in `broadcast_dimensions`.
+  * (C5) For k $\in$ [0, rank(`operand`))
+    * `d`$^{op}$`k` $= 1$ or
+    * `dk` $=$ `d`$^{r}$`j`, where `j` $=$ `broadcast_dimension`[`k`]
+    where `d`$^{r}$`j` is the dimension size of `j`$^{th}$ dimension in `result`
+    and `dk` is the dimension size of `k`$^{th}$ dimension in `operand`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [
+//             [1, 2],
+//             [3, 4],
+//             [5, 6]
+//            ],
+//            [
+//             [7, 8],
+//             [9, 10],
+//             [11, 12]
+//            ],
+//           ]
+%result = "stablehlo.broadcast_in_dim"(%operand) {
+  broadcast_dimensions = dense<[2, 3, 0]>: tensor<2xi64>
+ } : (tensor<2x1xi32>) -> tensor<2x3x2xi32>
+// %result: [
+//           [
+//            [
+//             [1, 3, 5],
+//             [7, 9, 11]
+//            ],
+//            [
+//             [1, 3, 5],
+//             [7, 9, 11]
+//            ],
+//           ],
+//           [
+//            [
+//             [2, 4, 6],
+//             [8, 10, 12]
+//            ],
+//            [
+//             [2, 4, 6],
+//             [8, 10, 12]
+//            ],
+//           ]
+//          ]
+```
+
+<details>
+  <summary> &nbsp;explanation </summary>
+
+/* `broadcast_dimensions`= [2,3,0] is not sorted in increasing order of dimensions */
+  * $P$: [0, 1, 2]
+  * Sort $P$ in the ascending order of `broadcast_dimensions` to get $P'$: [2, 0, 1].
+  * Transpose `operand` with `permutation` $P'$ to get `transposed_operand`
+  ```
+    transpose_operand:  
+      [
+        [
+          [1, 3, 5],
+          [7, 9, 11]
+        ],
+        [
+          [2, 4, 6],
+          [8, 10, 12]
+        ]
+      ]
+  ```
+  * Sort `broadcast_dimensions` in the increasing order of its elements to get `sorted_broadcast_dimension`: [0, 2, 3]
+  
+/* Apply `stablehlo.broadcast_in_dim` with `transposed_operand` and `sorted_broadcast_dimension` */
+  * As rank(`result`) != rank(`transposed_operand`), so reshape
+  `transposed_operand`, of shape [2, 2, 3], to new shape $S$ = [2, 1, 2, 3],
+  to get `reshaped_operand`.
+  ```
+    reshaped_operand:
+      [
+        [
+          [
+            [1, 3, 5],
+            [7, 9, 11]
+          ],
+        ],
+        [
+          [
+            [2, 4, 6],
+            [8, 10, 12]
+          ],
+        ]
+      ]
+  ```
+  * Finally, the `result` is computed using the `reshaped_operand`. E.g.,
+  `result`[1, 1, 1, 2] $=$ `reshaped_operand`[1, 0, 1, 2] $=$ 12 
+</details>
 
 [Back to Ops](#index-of-ops)
 
@@ -1465,7 +1619,11 @@ where `i[d] = j[permutation[d]]`.
   * (C1) `operand` and `result` have the same element type.
   * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
   rank of `operand`.
-  * (C3) `result`'s shape is a permutation of `operand`'s shape.
+  * (C3) `result`'s shape is a permutation of `operand`'s shape w.r.t
+  `permutation`. Formally,
+  `d`$^{r}$`j` $=$ `dk`, where `j` $=$ `permutation`[`k`]
+    where `d`$^{r}$`j` is the dimension size of `j`$^{th}$ dimension in `result`
+    and `dk` is the dimension size of  `k`$^{th}$ dimension in `operand`.
 
 ### Examples
 

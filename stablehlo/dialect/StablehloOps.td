@@ -1674,20 +1674,17 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
       [NoSideEffect, SameOperandsAndResultElementType]> {
   let summary = "Broadcast a tensor into the given shape by adding dimensions.";
   let description = [{
-    Broadcasts the `operand` tensor to a higher rank. This is not the limited
-    form of broadcasting exposed as the XLA client broadcast op, but rather the
-    more powerful "InDim" broadcasting, which is closer to the HLO broadcast op
-    and exposed in the XLA client BroadcastInDim method.
+    Broadcasts the `operand` tensor to a higher rank.
 
-    `broadcast_dimensions` maps the operand dimension number to the target shape
-    dimension number. It must have the same size as the rank of the operand. The
-    mapped dimensions must either be the same size or the dimension being
-    broadcast from must be size 1 (degenerate broadcasting).
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobroadcastindim
 
-    For a scalar (0D tensor) operand, `broadcast_dimensions` must be empty. The
-    The scalar value will be broadcast to every element in the target shape.
-
-    See https://www.tensorflow.org/xla/broadcasting.
+    Example:
+    ```mlir
+    "mhlo.broadcast_in_dim"(%operand) {
+      broadcast_dimensions = dense<[0, 1]>: tensor<2xi64>
+    } : (tensor<2x1xi32>) -> tensor<2x3x2xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
