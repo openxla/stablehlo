@@ -41,12 +41,10 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
-#ifndef ENUMS_AND_ATTRS
-#define ENUMS_AND_ATTRS
+// Include order matters.
 #include "stablehlo/dialect/StablehloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/StablehloAttrs.h.inc"
-#endif  // ENUMS_AND_ATTRS
 
 namespace mlir {
 namespace stablehlo {

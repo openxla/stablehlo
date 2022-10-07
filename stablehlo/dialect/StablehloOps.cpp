@@ -71,8 +71,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
-#include "stablehlo/dialect/StablehloOps.h.inc"
-#include "stablehlo/dialect/StablehloTypeInference.h"
+#include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
@@ -698,9 +697,13 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfDotGeneralOp(
-      adaptor.getLhs(), adaptor.getRhs(), adaptor.getDotDimensionNumbersAttr(),
-      location, inferredReturnShapes);
+  return inferDotGeneralOp(
+      location, adaptor.getLhs(), adaptor.getRhs(),
+      adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
+      adaptor.getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
+      adaptor.getDotDimensionNumbersAttr().getLhsContractingDimensions(),
+      adaptor.getDotDimensionNumbersAttr().getRhsContractingDimensions(),
+      inferredReturnShapes);
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
@@ -1903,8 +1906,8 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfBatchNormGradOp(
-      adaptor.getOperand(), adaptor.getFeatureIndex(), inferredReturnShapes);
+  return inferBatchNormGradOp(adaptor.getOperand(), adaptor.getFeatureIndex(),
+                              inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1925,7 +1928,7 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfBatchNormTrainingOp(
+  return inferBatchNormTrainingOp(
       adaptor.getOperand(), adaptor.getFeatureIndex(), inferredReturnShapes);
 }
 
@@ -1947,8 +1950,7 @@ LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfBatchNormInferenceOp(adaptor.getOperand(),
-                                                         inferredReturnShapes);
+  return inferBatchNormInferenceOp(adaptor.getOperand(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2915,9 +2917,8 @@ LogicalResult MapOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   MapOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfMapOp(
-      adaptor.getInputs(), adaptor.getComputation(), adaptor.getDimensions(),
-      location, inferredReturnShapes);
+  return inferMapOp(location, adaptor.getInputs(), adaptor.getDimensions(),
+                    adaptor.getComputation(), inferredReturnShapes);
 }
 
 LogicalResult MapOp::reifyReturnTypeShapes(
@@ -2955,11 +2956,11 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceWindowOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfReduceWindowOp(
-      operands, adaptor.getWindowDimensions(), adaptor.getPadding(),
-      adaptor.getWindowStrides(), adaptor.getBaseDilations(),
-      adaptor.getWindowDilations(), adaptor.getBody(), location,
-      inferredReturnShapes);
+  return inferReduceWindowOp(
+      location, adaptor.getInputs(), adaptor.getInitValues(),
+      adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
+      adaptor.getBaseDilations(), adaptor.getWindowDilations(),
+      adaptor.getPadding(), adaptor.getBody(), inferredReturnShapes);
 }
 
 // Get the operation used for reduction applied to `result_index`th result. Its
@@ -3407,9 +3408,9 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfReduceOp(operands, adaptor.getDimensions(),
-                                             adaptor.getBody(), location,
-                                             inferredReturnShapes);
+  return inferReduceOp(location, adaptor.getInputs(), adaptor.getInitValues(),
+                       adaptor.getDimensions(), adaptor.getBody(),
+                       inferredReturnShapes);
 }
 
 LogicalResult ReduceOp::reifyReturnTypeShapes(
@@ -3968,8 +3969,7 @@ LogicalResult IfOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfConditionalOp(
-      adaptor.getRegions(), location, inferredReturnShapes);
+  return inferIfOp(location, adaptor.getRegions(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -3981,8 +3981,7 @@ LogicalResult CaseOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfConditionalOp(
-      adaptor.getRegions(), location, inferredReturnShapes);
+  return inferCaseOp(location, adaptor.getRegions(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4098,9 +4097,8 @@ LogicalResult SortOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfSortOp(
-      adaptor.getOperands(), adaptor.getDimension(), adaptor.getComparator(),
-      location, inferredReturnShapes);
+  return inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
+                     adaptor.getComparator(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4197,9 +4195,11 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfTriangularSolveOp(
-      adaptor.getA(), adaptor.getB(), adaptor.getLeftSide(),
-      adaptor.getTransposeA(), location, inferredReturnShapes);
+  bool is_transpose_a_invalid =
+      (adaptor.getTransposeA() == Transpose::TRANSPOSE_INVALID);
+  return inferTriangularSolveOp(location, adaptor.getA(), adaptor.getB(),
+                                adaptor.getLeftSide(), is_transpose_a_invalid,
+                                inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4702,9 +4702,14 @@ LogicalResult WhileOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
-  return inferReturnTypeComponentsOfWhileOp(
-      adaptor.getOperand(), adaptor.getCond(), adaptor.getBody(), location,
-      inferredReturnShapes);
+  auto condReturnTypes =
+      cast<ReturnOp>(adaptor.getCond().front().back()).getOperandTypes();
+  auto bodyReturnTypes =
+      cast<ReturnOp>(adaptor.getBody().front().getTerminator())
+          ->getOperandTypes();
+  return inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
+                      adaptor.getBody(), condReturnTypes, bodyReturnTypes,
+                      inferredReturnShapes);
 }
 
 /// Print a `while` op.

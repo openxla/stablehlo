@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/dialect/StablehloTypeInference.h"
+#include "stablehlo/dialect/TypeInference.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -77,7 +77,6 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/Base.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -298,7 +297,7 @@ unsigned potentiallyComplexBitwidth(Type type) {
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult inferReturnTypeComponentsOfBatchNormGradOp(
+LogicalResult inferBatchNormGradOp(
     Value operand, uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<RankedTensorType>();
@@ -311,20 +310,7 @@ LogicalResult inferReturnTypeComponentsOfBatchNormGradOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfBatchNormTrainingOp(
-    Value operand, uint64_t featureIndex,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-
-  const int64_t featureCount = operandType.getDimSize(featureIndex);
-  SmallVector<int64_t> featureShape{featureCount};
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  return success();
-}
-
-LogicalResult inferReturnTypeComponentsOfBatchNormInferenceOp(
+LogicalResult inferBatchNormInferenceOp(
     Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<RankedTensorType>();
@@ -332,8 +318,21 @@ LogicalResult inferReturnTypeComponentsOfBatchNormInferenceOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfConditionalOp(
-    RegionRange branches, Optional<Location> location,
+LogicalResult inferBatchNormTrainingOp(
+    Value operand, uint64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
+
+  const int64_t featureCount = operandType.getDimSize(featureIndex);
+  SmallVector<int64_t> featureShape{featureCount};
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
+  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
+  return success();
+}
+
+LogicalResult inferConditionalOp(
+    Optional<Location> location, RegionRange branches,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
@@ -360,15 +359,23 @@ LogicalResult inferReturnTypeComponentsOfConditionalOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfDotGeneralOp(
-    Value lhs, Value rhs, DotDimensionNumbersAttr dimNumbers,
-    Optional<Location> location,
+LogicalResult inferIfOp(
+    Optional<Location> location, RegionRange branches,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto lhsBatchingDims = dimNumbers.getLhsBatchingDimensions();
-  auto rhsBatchingDims = dimNumbers.getRhsBatchingDimensions();
-  auto lhsContractingDims = dimNumbers.getLhsContractingDimensions();
-  auto rhsContractingDims = dimNumbers.getRhsContractingDimensions();
+  return inferConditionalOp(location, branches, inferredReturnShapes);
+}
 
+LogicalResult inferCaseOp(
+    Optional<Location> location, RegionRange branches,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  return inferConditionalOp(location, branches, inferredReturnShapes);
+}
+
+LogicalResult inferDotGeneralOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    ArrayRef<int64_t> lhsBatchingDims, ArrayRef<int64_t> rhsBatchingDims,
+    ArrayRef<int64_t> lhsContractingDims, ArrayRef<int64_t> rhsContractingDims,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (lhsBatchingDims.size() != rhsBatchingDims.size())
     return emitOptionalError(location,
                              "lhs and rhs should have the same "
@@ -478,9 +485,9 @@ LogicalResult inferReturnTypeComponentsOfDotGeneralOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfMapOp(
-    ValueRange inputs, Region& computation, DenseIntElementsAttr dimensions,
-    Optional<Location> location,
+LogicalResult inferMapOp(
+    Optional<Location> location, ValueRange inputs,
+    DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Checks if the number of `operands` match the arity of the map `computation`
   // region.
@@ -715,30 +722,22 @@ LogicalResult verifyReducerShape(
 }
 
 // We intend to verify the following properties
-//  P1. Verify the sizes of 'inputs' and 'init_values' must be at least 1.
-//  P2. Verify all `inputs` need to have compatible shapes.
-//  P3. Verify that
+//  P1. Verify all `inputs` need to have compatible shapes.
+//  P2. Verify that
 //      1. the dimensions of reduce-op are in-bounds for the given shape.
 //      2. the dimension-attribute have no duplicate entries.
-//  P4. Verify the inner block defining the reducer function.
-LogicalResult inferReturnTypeComponentsOfReduceOp(
-    ValueShapeRange operands, DenseIntElementsAttr dimensions, Region& body,
-    Optional<Location> location,
+//  P3. Verify the inner block defining the reducer function.
+LogicalResult inferReduceOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // P1.
-  // Collect the input and init-value operands. Note that the operand-type is
-  // enforced as "TensorType" by ODS.
-  if (operands.size() % 2 != 0 || operands.size() == 0)
-    return emitOptionalError(
-        location, "expects the size of operands to be even and >= 2");
-  int64_t numInputs = operands.size() / 2;
-  auto operandTensorTypes = llvm::to_vector<4>(llvm::map_range(
-      operands.getTypes(),
-      [](Type t) -> TensorType { return t.cast<TensorType>(); }));
-  ArrayRef<TensorType> inputArgTypes(operandTensorTypes.begin(),
-                                     operandTensorTypes.begin() + numInputs);
-  ArrayRef<TensorType> initValueTypes(operandTensorTypes.begin() + numInputs,
-                                      operandTensorTypes.end());
+  SmallVector<TensorType> inputArgTypes{llvm::map_range(
+      inputs.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  SmallVector<TensorType> initValueTypes{llvm::map_range(
+      initValues.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  uint64_t numInputs = inputs.size();
 
   // Check for unranked tensors in input operands.
   int64_t rankedInputIdx = -1;
@@ -751,7 +750,7 @@ LogicalResult inferReturnTypeComponentsOfReduceOp(
 
   bool allInputsUnranked = (rankedInputIdx == -1);
 
-  // P2.
+  // P1.
   if (!allInputsUnranked) {
     for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
@@ -764,7 +763,7 @@ LogicalResult inferReturnTypeComponentsOfReduceOp(
     }
   }
 
-  // P3.
+  // P2.
   DenseSet<int64_t> dimensionsToReduceSet;
   for (int64_t dimension : dimensions.getValues<int64_t>()) {
     if ((!allInputsUnranked &&
@@ -781,7 +780,7 @@ LogicalResult inferReturnTypeComponentsOfReduceOp(
     }
   }
 
-  // P4.
+  // P3.
   SmallVector<int64_t> newDimensions;
   if (!allInputsUnranked) {
     for (int inputIdx = 0; inputIdx < inputArgTypes[rankedInputIdx].getRank();
@@ -812,34 +811,26 @@ LogicalResult inferReturnTypeComponentsOfReduceOp(
 }
 
 // We intend to verify the following properties
-//  P1. The sizes of 'inputs' and 'init_values' must be at least 1.
 //  P2. All `inputs` need to have compatible shapes.
 //  P3. size-of(window_dimension) == rank-of(input),
 //        where input is an element of 'inputs'.
 //  P4. Verify and collect the window atributes.
 //  P5. Verify the inner block defining the reducer function.
-LogicalResult inferReturnTypeComponentsOfReduceWindowOp(
-    ValueShapeRange operands, DenseIntElementsAttr windowDimensions,
-    Optional<DenseIntElementsAttr> padding,
+LogicalResult inferReduceWindowOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr windowDimensions,
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
-    Optional<DenseIntElementsAttr> windowDilations, Region& body,
-    Optional<Location> location,
+    Optional<DenseIntElementsAttr> windowDilations,
+    Optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // P1.
-  // Collect the input and init-value operands. Note that the operand-type is
-  // enforced as "TensorType" by ODS.
-  if (operands.size() % 2 != 0 || operands.size() == 0)
-    return emitOptionalError(
-        location, "expects the size of operands to be even and >= 2");
-  int64_t numInputs = operands.size() / 2;
-  auto operandTensorTypes = llvm::to_vector<4>(llvm::map_range(
-      operands.getTypes(),
-      [](Type t) -> TensorType { return t.cast<TensorType>(); }));
-  ArrayRef<TensorType> inputArgTypes(operandTensorTypes.begin(),
-                                     operandTensorTypes.begin() + numInputs);
-  ArrayRef<TensorType> initValueTypes(operandTensorTypes.begin() + numInputs,
-                                      operandTensorTypes.end());
+  SmallVector<TensorType> inputArgTypes{llvm::map_range(
+      inputs.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  SmallVector<TensorType> initValueTypes{llvm::map_range(
+      initValues.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  uint64_t numInputs = inputs.size();
 
   // Check for unranked tensors in input operands.
   int64_t rankedInputIdx = -1;
@@ -917,11 +908,11 @@ LogicalResult inferReturnTypeComponentsOfReduceWindowOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfSortOp(
-    ValueRange operands, uint64_t dimension, Region& comparator,
-    Optional<Location> location,
+LogicalResult inferSortOp(
+    Optional<Location> location, ValueRange inputs, uint64_t dimension,
+    Region& comparator,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandTypes = operands.getTypes();
+  auto operandTypes = inputs.getTypes();
   for (auto operandType : operandTypes) {
     auto operandShapedType = operandType.cast<ShapedType>();
     if (operandShapedType.hasRank()) {
@@ -974,9 +965,9 @@ LogicalResult inferReturnTypeComponentsOfSortOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfTriangularSolveOp(
-    Value a, Value b, bool leftSide, Transpose transposeA,
-    Optional<Location> location,
+LogicalResult inferTriangularSolveOp(
+    Optional<Location> location, Value a, Value b, bool leftSide,
+    bool is_transpose_a_invalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // ODS enforces that a and b are of same element type: float or complex.
   auto elementType = a.getType().cast<ShapedType>().getElementType();
@@ -1026,7 +1017,7 @@ LogicalResult inferReturnTypeComponentsOfTriangularSolveOp(
         "leading batch dimensions of the operands must be same, but got ",
         aType, " and ", bType);
 
-  if (transposeA == Transpose::TRANSPOSE_INVALID)
+  if (is_transpose_a_invalid)
     return emitOptionalError(
         location, "Invalid transpose option value for triangular solve");
 
@@ -1034,14 +1025,13 @@ LogicalResult inferReturnTypeComponentsOfTriangularSolveOp(
   return success();
 }
 
-LogicalResult inferReturnTypeComponentsOfWhileOp(
-    ValueRange operand, Region& cond, Region& body, Optional<Location> location,
+LogicalResult inferWhileOp(
+    Optional<Location> location, ValueRange operand, Region& cond, Region& body,
+    TypeRange condReturnTypes, TypeRange bodyReturnTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandTypes = operand.getTypes();
   auto condArgsTypes = cond.front().getArgumentTypes();
   auto bodyArgsTypes = body.front().getArgumentTypes();
-  auto bodyReturnTypes =
-      cast<ReturnOp>(body.front().getTerminator())->getOperandTypes();
   if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
     return emitOptionalError(location,
                              "expect operands are compatible with condition "
@@ -1058,7 +1048,6 @@ LogicalResult inferReturnTypeComponentsOfWhileOp(
         "expect operands are compatible with body block return types but got ",
         operandTypes, " vs ", bodyReturnTypes);
 
-  auto condReturnTypes = cast<ReturnOp>(cond.front().back()).getOperandTypes();
   if (condReturnTypes.size() != 1)
     return emitOptionalError(
         location, "expect condition body returns a single value but got ",

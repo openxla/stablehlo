@@ -1,4 +1,6 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+   Copyright 2022 The StableHLO Authors.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -36,13 +38,6 @@ limitations under the License.
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
-
-#ifndef ENUMS_AND_ATTRS
-#define ENUMS_AND_ATTRS
-#include "stablehlo/dialect/StablehloEnums.h.inc"
-#define GET_ATTRDEF_CLASSES
-#include "stablehlo/dialect/StablehloAttrs.h.inc"
-#endif  // ENUMS_AND_ATTRS
 
 namespace mlir {
 namespace stablehlo {
@@ -97,29 +92,34 @@ unsigned potentiallyComplexBitwidth(Type type);
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult inferReturnTypeComponentsOfBatchNormGradOp(
+LogicalResult inferBatchNormGradOp(
     Value operand, uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfBatchNormTrainingOp(
-    Value operand, uint64_t featureIndex,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
-
-LogicalResult inferReturnTypeComponentsOfBatchNormInferenceOp(
+LogicalResult inferBatchNormInferenceOp(
     Value operand, SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfConditionalOp(
-    RegionRange branches, Optional<Location> location,
+LogicalResult inferBatchNormTrainingOp(
+    Value operand, uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfDotGeneralOp(
-    Value lhs, Value rhs, DotDimensionNumbersAttr dimNumbers,
-    Optional<Location> location,
+LogicalResult inferIfOp(
+    Optional<Location> location, RegionRange branches,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfMapOp(
-    ValueRange inputs, Region& computation, DenseIntElementsAttr dimensions,
-    Optional<Location> location,
+LogicalResult inferCaseOp(
+    Optional<Location> location, RegionRange branches,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferDotGeneralOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    ArrayRef<int64_t> lhsBatchingDims, ArrayRef<int64_t> rhsBatchingDims,
+    ArrayRef<int64_t> lhsContractingDims, ArrayRef<int64_t> rhsContractingDims,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferMapOp(
+    Optional<Location> location, ValueRange inputs,
+    DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult verifyReducerShape(
@@ -128,32 +128,33 @@ LogicalResult verifyReducerShape(
     ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
     SmallVectorImpl<TensorType>& accumulatorSubShapes);
 
-LogicalResult inferReturnTypeComponentsOfReduceOp(
-    ValueShapeRange operands, DenseIntElementsAttr dimensions, Region& body,
-    Optional<Location> location,
+LogicalResult inferReduceOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr dimensions, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfReduceWindowOp(
-    ValueShapeRange operands, DenseIntElementsAttr windowDimensions,
-    Optional<DenseIntElementsAttr> padding,
+LogicalResult inferReduceWindowOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr windowDimensions,
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
-    Optional<DenseIntElementsAttr> windowDilations, Region& body,
-    Optional<Location> location,
+    Optional<DenseIntElementsAttr> windowDilations,
+    Optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfSortOp(
-    ValueRange operands, uint64_t dimension, Region& comparator,
-    Optional<Location> location,
+LogicalResult inferSortOp(
+    Optional<Location> location, ValueRange inputs, uint64_t dimension,
+    Region& comparator,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfTriangularSolveOp(
-    Value a, Value b, bool leftSide, Transpose transposeA,
-    Optional<Location> location,
+LogicalResult inferTriangularSolveOp(
+    Optional<Location> location, Value a, Value b, bool leftSide,
+    bool is_transpose_a_invalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferReturnTypeComponentsOfWhileOp(
-    ValueRange operand, Region& cond, Region& body, Optional<Location> location,
+LogicalResult inferWhileOp(
+    Optional<Location> location, ValueRange operand, Region& cond, Region& body,
+    TypeRange condReturnTypes, TypeRange bodyReturnTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 }  // end namespace stablehlo
