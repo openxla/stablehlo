@@ -71,6 +71,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
+#include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
