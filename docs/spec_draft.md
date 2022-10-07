@@ -1001,11 +1001,12 @@ the interior-padded operand.
 ### Constraints
 
   * (C1) `operand`, `padding_value`, `result` have the same element type.
-  * (C2) `padding_value` has rank 0.
-  * (C3) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
+  * (C2) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
   size equal to `operand`'s rank.
-  * (C4) 0 $\le$ `interior_padding[i]` for all `i` values in `interior_padding`.
-  * (C5) `dim(result, i) = di + max(di - 1, 0) * interior_padding[i] + edge_padding_low[i] + edge_padding_high[i]`, where `di = dim(operand, i)`.
+  * (C3) 0 $\le$ `interior_padding[i]` for all `i` values in `interior_padding`.
+  * (C4) 0 $\le$ `dim(result, i)` for all `i`th dimension of `operand`, where
+  `dim(result, i) = di + max(di - 1, 0) * interior_padding[i] + edge_padding_low[i] + edge_padding_high[i]`
+  and `di = dim(operand, i)`.
 
 ### Examples
 
