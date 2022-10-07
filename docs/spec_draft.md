@@ -649,7 +649,7 @@ defined and one of the following:
 ### Examples
 
 ```mlir
-%result = "stablehlo.iota"() { iota_dimension = 0 } : () -> tensor<4x5xi32>
+%result = "stablehlo.iota"() {iota_dimension = 0} : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],
@@ -657,7 +657,7 @@ defined and one of the following:
 //           [3, 3, 3, 3, 3]
 //          ]
 
-%result = "stablehlo.iota"() { iota_dimension = 1 } : () -> tensor<4x5xi32>
+%result = "stablehlo.iota"() {iota_dimension = 1} : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 1, 2, 3, 4],
 //           [0, 1, 2, 3, 4],
@@ -668,7 +668,7 @@ defined and one of the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
 
-[Back to Ops](#index-of-documented-ops)
+[Back to Ops](#index-of-ops)
 
 ## stablehlo.log
 
