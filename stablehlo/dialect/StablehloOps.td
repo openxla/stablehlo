@@ -2388,10 +2388,14 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
       [NoSideEffect, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Reverse operator";
   let description = [{
-    Reverses the specified dimensions of `operand` according to the given
-    `dimensions`.
+    Reverses the order of elements in the `operand` along the specified
+    `dimensions` and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#rev_reverse.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreverse
+
+    Example:
+    %0 = "stablehlo.reverse"(%arg0) {dimensions = dense<1> : tensor<i64>} : (tensor<3x2xi32>) -> tensor<3x2xi32>
   }];
   let arguments = (ins
     HLO_Tensor:$operand,

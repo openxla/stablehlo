@@ -169,6 +169,7 @@ described below)
    * [or](#stablehloor)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
+   * [reverse](#stablehloreverse)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
    * [sqrt](#stablehlosqrt)
@@ -1051,6 +1052,51 @@ spaces of `result` and `operand`.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.reverse
+
+### Semantics
+Reverses the order of elements in the `operand` along the specified `dimensions`
+and produces a `result` tensor. More formally
+`result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
+`ik + ik' = dk - 1` for all dimensions `k` in `dimensions`.
+
+### Operands
+
+| Name         | Type                               |
+|--------------|------------------------------------|
+| `operand`    | tensor of any supported types      |
+| `dimensions` | 1-dimensional array of type `si64` |
+
+### Results
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+  * (C2) All dimensions in `dimensions` are unique.
+  * (C3) For all dimensions in `dimensions`, 0 $\le$ `dimension` $\lt$ `R`,
+         where `R` is the rank of the `result`.
+
+### Examples
+
+```mlir
+// Reverse along dimension 0
+
+// %operand = [[1, 2], [3, 4], [5, 6]]
+%result = "stablehlo.reverse"(%operand) {dimensions = dense<0> : tensor<i64>} : (tensor<3x2xi32>) -> tensor<3x2xi32>
+// %result: [[5, 6], [3, 4], [1, 2]]
+
+// Reverse along dimension 1
+
+// %operand = [[1, 2], [3, 4], [5, 6]]
+%result = "stablehlo.reverse"(%operand) {dimensions = dense<1> : tensor<i64>} : (tensor<3x2xi32>) -> tensor<3x2xi32>
+// %result: [[2, 1], [4, 3], [6, 5]]
+```
+
+[Back to Ops](#index-of-ops)
 ## stablehlo.rsqrt
 
 ### Semantics
