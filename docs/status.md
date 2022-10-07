@@ -112,7 +112,7 @@ one of the following tracking labels.
 | replica_id               |      no       |     yes*     | yes(need-revisit) |        yes        |     no      |
 | reshape                  |      yes      |     yes      |    infeasible     |        yes        |     yes     |
 | return                   |      no       |     yes*     |        no         |        yes        |     no      |
-| reverse                  |      yes      |     yes*     |       yes         |        no         |     no      |
+| reverse                  |      yes      |     yes*     |        yes        |        no         |     no      |
 | rng_bit_generator        |      no       |     yes*     |    infeasible     |        yes        |     no      |
 | rng                      |      no       |     yes*     |       yes*        |        yes        |     no      |
 | round_nearest_afz        |      no       |     yes*     |       yes*        |        yes        |     no      |
