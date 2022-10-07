@@ -29,8 +29,8 @@ one of the following tracking labels.
 
 | StableHLO Op             | Specification | Verification |  Type Inference   |  Pretty Printing  | Interpreter |
 |:-------------------------|:-------------:|:------------:|:-----------------:|:-----------------:|:-----------:|
-| abs                      |      yes      |     yes*     |       yes*        |        yes        |     no      |
-| add                      |      yes      |     yes*     |       yes*        |        yes        |     yes     |
+| abs                      |      no       |     yes*     |        yes        |        yes        |     no      |
+| add                      |      no       |     yes*     |        yes        |        yes        |     yes     |
 | after_all                |      no       |      no      |        no         |        yes        |     no      |
 | all_gather               |      no       |     yes*     |        no         |        no         |     no      |
 | all_reduce               |      no       |      no      |        no         |        no         |     no      |
@@ -62,7 +62,7 @@ one of the following tracking labels.
 | cross-replica-sum        |      no       |      no      |       yes*        |        no         |     no      |
 | cstr_reshapable          |      no       |     yes*     |        no         |        yes        |     no      |
 | custom_call              |      no       |     yes*     |    infeasible     |        yes        |     no      |
-| divide                   |      yes      |     yes*     |       yes*        |        yes        |     no      |
+| divide                   |      yes      |      no      |        yes        |        yes        |     no      |
 | dot                      |      no       |     yes*     | yes(need-revisit) |        yes        |     no      |
 | dot_general              |      no       |     yes*     |       yes*        |        no         |     no      |
 | dynamic_broadcast_in_dim |      no       |     yes*     |        no         |        no         |     no      |
@@ -90,8 +90,8 @@ one of the following tracking labels.
 | log_plus_one             |      no       |     yes*     |       yes*        |        yes        |     no      |
 | logistic                 |      yes      |     yes      |        yes        |        yes        |     no      |
 | map                      |      no       |     yes*     |        no         |        no         |     no      |
-| maximum                  |      yes      |     yes*     |       yes*        |        yes        |     yes     |
-| minimum                  |      yes      |     yes*     |       yes*        |        yes        |     yes     |
+| maximum                  |      no       |     yes*     |        yes        |        yes        |     yes     |
+| minimum                  |      no       |     yes*     |        yes        |        yes        |     yes     |
 | multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
 | negate                   |      yes      |     yes      |        yes        |        yes        |     yes     |
 | not                      |      yes      |     yes      |        yes        |        yes        |     no      |
@@ -108,7 +108,7 @@ one of the following tracking labels.
 | reduce_precision         |      no       |     yes*     |       yes*        |        yes        |     no      |
 | reduce_scatter           |      no       |     yes*     |        no         |        no         |     no      |
 | reduce_window            |      no       |     yes*     |       yes*        |        no         |     no      |
-| remainder                |      yes      |     yes*     |       yes*        |        yes        |     no      |
+| remainder                |      yes      |      no      |        yes        |        yes        |     no      |
 | replica_id               |      no       |     yes*     | yes(need-revisit) |        yes        |     no      |
 | reshape                  |      yes      |     yes      |    infeasible     |        yes        |     yes     |
 | return                   |      no       |     yes*     |        no         |        yes        |     no      |
@@ -131,7 +131,7 @@ one of the following tracking labels.
 | slice                    |      no       |     yes*     |       yes*        |        no         |     no      |
 | sort                     |      no       |     yes*     |       yes*        |        no         |     no      |
 | sqrt                     |      yes      |     yes      |        yes        |        yes        |     no      |
-| subtract                 |      yes      |     yes*     |       yes*        |        yes        |     yes     |
+| subtract                 |      yes      |      no      |        yes        |        yes        |     yes     |
 | tanh                     |      yes      |     yes      |        yes        |        yes        |     yes     |
 | torch_index_select       |      no       |      no      |        no         |        no         |     no      |
 | trace                    |      no       |     yes*     |        no         |        yes        |     no      |
