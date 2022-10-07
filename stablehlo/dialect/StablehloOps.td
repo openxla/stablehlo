@@ -2360,7 +2360,7 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [NoSideEffe
   }];
 }
 
-def StableHLO_SortOp : StableHLO_Op<"sort", 
+def StableHLO_SortOp : StableHLO_Op<"sort",
       [RecursiveSideEffects, SameOperandsAndResultShape, InferTensorType]> {
   let summary = "Sort operator";
   let description = [{
@@ -2409,27 +2409,18 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
       [NoSideEffect, SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "Pad operator";
   let description = [{
-    Pads edges and between the elements of `operand` with the `padding_value`
-    according to the configuration parameters described below.
+    Expands `operand` by padding around the tensor as well as between the
+    elements of the tensor with the given `padding_value`.
 
-    `edge_padding_low` and `edge_padding_high` specify the amount of padding
-    added at the low-end (next to index 0) and the high-end (next to the
-    highest index) of each dimension respectively. The amount of edge
-    padding can be negative -- the absolute value of negative padding indicates
-    the number of elements to remove from the specified dimension.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopad
 
-    `interior_padding` specifies the amount of padding (non-negative) added
-    between any two elements in each dimension. Interior padding occurs
-    logically before edge padding, so in the case of negative edge padding,
-    elements are removed from the interior-padded operand.
-
-    This operation is a no-op if, for all dimensions, the edge padding pairs are
-    all (0, 0) and the interior padding values are all 0. The figure below shows
-    examples of different `edge_padding` and `interior_padding` values for a
-    two-dimensional array.
-
-    ![Examples](https://www.tensorflow.org/xla/images/ops_pad.png)
-
+    Example:
+    %0 = "stablehlo.pad"(%arg0, %arg1) {
+      edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
+      edge_padding_high = dense<[2, 1]> : tensor<2xi64>,
+      interior_padding = dense<[1, 2]> : tensor<2xi64>
+    } : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
