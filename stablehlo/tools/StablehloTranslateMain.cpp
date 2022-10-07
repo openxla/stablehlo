@@ -13,65 +13,87 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <cstdint>
+#include <memory>
 #include "llvm/Support/CommandLine.h"
 #include "mlir/IR/AsmState.h"
-#include "stablehlo/dialect/Register.h"
-#include "stablehlo/compatibility/DialectCompatibility.h"
-
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include "stablehlo/compatibility/StablehloDialectCompatibility.h"
+#include "stablehlo/tools/TestStablehloDialectCompatibility.h"
+#include "stablehlo/dialect/Register.h"
 
-namespace mlir {
+using namespace mlir;
+using namespace mlir::stablehlo;
 
-// FIXME: Use translate options
-llvm::cl::opt<int64_t> targetVersionFlag(
-    "target",
-    llvm::cl::desc("Target verison for output (default to minimum supported)"),
-    llvm::cl::init(-1));
+struct CompatOptions {
+  int64_t targetVersion;
+  bool emitBytecode;
+  bool useTestConverter;
+};
 
-llvm::cl::opt<bool> emitBytecode(
-    "emit-bytecode",
-    llvm::cl::desc("Target verison for output (default to minimum supported)"),
-    llvm::cl::init(false));
-
-namespace stablehlo {
-void performRegistrations(MLIRContext * context) {
+void performDialectRegistrations(MLIRContext *context) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
   context->appendDialectRegistry(registry);
-
-  // For `-emit-bytecode`
-  registerAsmPrinterCLOptions();
 }
 
-static LogicalResult StablehloCompatibilitySerialization(
-    llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output, MLIRContext *context) {
-  performRegistrations(context);
-  OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context);
+static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
+                                                    llvm::raw_ostream &output,
+                                                    MLIRContext *context,
+                                                    CompatOptions opts) {
+  performDialectRegistrations(context);
+
+  std::unique_ptr<DialectCompatibilityInterface> interface;
+  if (opts.useTestConverter) {
+    interface = std::make_unique<TestStablehloCompatibilityConverter>(context);
+  } else {
+    interface = std::make_unique<StablehloCompatibilityConverter>(context);
+  }
+
+  OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context, *interface);
   if (!module) {
     return failure();
   }
 
-  int64_t targetVersion = targetVersionFlag;  // FIXME
-
-  return writeWithCompat(module.get(), targetVersion, emitBytecode, output);
+  int64_t targetVersion = opts.targetVersion;
+  bool emitBytecode = opts.emitBytecode;
+  return writeWithCompat(module.get(), targetVersion, emitBytecode, output, *interface);
 }
 
-}  // namespace stablehlo
-
-TranslateRegistration stablehlo_compat(
-    "compat", "StableHLO compatibility tool.", 
-    stablehlo::StablehloCompatibilitySerialization);
-
-}  //  namespace mlir
-
 int main(int argc, char **argv) {
-  return failed(
-      mlir::mlirTranslateMain(argc, argv, "StableHLO compatibility serializer\n"));
+  static llvm::cl::opt<int64_t> targetVersion(
+      "target",
+      llvm::cl::desc(
+          "Target verison for output (default to minimum supported)"),
+      llvm::cl::init(-1));
+
+  static llvm::cl::opt<bool> emitBytecode(
+      "emit-bytecode",
+      llvm::cl::desc(
+          "Target verison for output (default to minimum supported)"),
+      llvm::cl::init(false));
+
+  static llvm::cl::opt<bool> useTestConverter(
+      "use-test-converter",
+      llvm::cl::desc(
+          "Target verison for output (default to minimum supported)"),
+      llvm::cl::init(false));
+
+  registerAsmPrinterCLOptions();
+
+  TranslateRegistration stablehlo_compat(
+      "compat", "StableHLO compatibility tool.",
+      [&](llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output,
+          MLIRContext *context) {
+        CompatOptions opts{targetVersion, emitBytecode, useTestConverter};
+        return serializeWithCompatibilityMain(sourceMgr, output, context, opts);
+      });
+
+  return failed(mlir::mlirTranslateMain(
+      argc, argv, "StableHLO compatibility serializer\n"));
 }

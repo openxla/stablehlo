@@ -15,7 +15,7 @@
 # Add base compatibility library
 add_mlir_library(DialectCompatibility
   PARTIAL_SOURCES_INTENDED
-  DialectCompatibility.cpp
+  DialectCompatibilityInterface.cpp
 
   LINK_LIBS PUBLIC
   MLIRIR

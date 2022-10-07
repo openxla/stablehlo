@@ -19,8 +19,6 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include "llvm/ADT/StringMap.h"
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/DialectInterface.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OwningOpRef.h"
@@ -43,10 +41,7 @@ namespace stablehlo {
 ///  - Adding an attribute (assuming default value for upgrade is possible)
 ///  - Removing an attribute from an op (can't delete attribute datatype)
 ///  - Changing attribute into an operand / adding an operand (need to think more)
-///    + TODO: Need to think more if current infrastructure allows for the above
-///      Not sure if the "walk and edit" mechanism allows for replacing with multiple
-///      ops.
-class StablehloCompatibilityConverter {
+class DialectCompatibilityInterface {
  public:
   /// Version converter functions are used for both upgrade and downgrade.
   /// They take an `Operation *` for the operation to be conveted, as well as
@@ -57,12 +52,10 @@ class StablehloCompatibilityConverter {
   /// version right before this one".
   using OpVersionConverterFn = std::function<LogicalResult(Operation *, int64_t)>;
 
-  StablehloCompatibilityConverter(MLIRContext *context)
-      : context(context), upgrades(), downgrades() {
-    registerUpgradesAndDowngrades();
-  }
+  DialectCompatibilityInterface(MLIRContext *context)
+      : context(context), upgrades(), downgrades() {}
 
-  ~StablehloCompatibilityConverter() = default;
+  virtual ~DialectCompatibilityInterface() = default;
 
   /// This is the current dialect bytecode version.
   ///
@@ -72,13 +65,13 @@ class StablehloCompatibilityConverter {
   /// than 42. Note: Version 43 should target v42 bytecode for 3 weeks. If the
   /// producer version is greater than 42, that means the forward compatibility
   /// window is closed.
-  int64_t getProducerVersion() const;
+  virtual int64_t getProducerVersion() const = 0;
 
   /// This is the current dialect bytecode version.
   ///
   /// An error/warning will be displayed if the bytecode version is less
   /// than 35.
-  int64_t getMinimumProducerDialectVersion() const;
+  virtual int64_t getMinimumProducerDialectVersion() const = 0;
 
   /// The target version will need to be manually managed.
   /// It should be set to the `getProducerDialectVersion` of a revision
@@ -94,7 +87,8 @@ class StablehloCompatibilityConverter {
   /// Post-condition: `getMinimumDowngradeDialectVersion() <=
   /// getProducerDialectVersion()`. If this method is implemented,
   /// `getProducerDialectVersion` must return a non-null attribute.
-  int64_t getMinimumDowngradeDialectVersion() const;
+  // FIXME: Revisit all these descriptions.
+  virtual int64_t getMinimumDowngradeDialectVersion() const = 0;
 
  protected:
   /// Add an upgrade/downgrade pass for an Operation that matches @param
@@ -221,12 +215,14 @@ class StablehloCompatibilityConverter {
   llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> downgrades;
 };
 
-OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
-                                         MLIRContext *context);
+OwningOpRef<Operation *> parseWithCompat(
+    llvm::SourceMgr &sourceMgr, MLIRContext *context,
+    DialectCompatibilityInterface &interface);
 
 LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              int64_t const &targetVersion,
-                              bool emitBytecode, llvm::raw_ostream &output);
+                              int64_t const &targetVersion, bool emitBytecode,
+                              llvm::raw_ostream &output,
+                              DialectCompatibilityInterface &interface);
 
 }  // namespace stablehlo
 }  // namespace mlir

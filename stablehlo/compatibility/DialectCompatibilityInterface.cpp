@@ -13,10 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/compatibility/DialectCompatibility.h"
-#include <algorithm>
-#include <cstdint>
-#include <memory>
+#include "stablehlo/compatibility/DialectCompatibilityInterface.h"
 
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -41,7 +38,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-FailureOr<int64_t> StablehloCompatibilityConverter::applyConversion(
+FailureOr<int64_t> DialectCompatibilityInterface::applyConversion(
     Operation *op, int64_t const version, int64_t const targetVersion,
     llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> &map,
     std::function<bool(int64_t, int64_t)> const &comparisonFn) {
@@ -115,13 +112,13 @@ LogicalResult walkAndApply(
 }
 }  // namespace
 
-LogicalResult StablehloCompatibilityConverter::applyOpUpgrades(
+LogicalResult DialectCompatibilityInterface::applyOpUpgrades(
     Operation *topLevelOp, int64_t const &fileVersion) {
   return walkAndApply(topLevelOp, fileVersion,
                       [&](Operation *op) { return upgrade(op, fileVersion); });
 }
 
-LogicalResult StablehloCompatibilityConverter::applyOpDowngrades(
+LogicalResult DialectCompatibilityInterface::applyOpDowngrades(
     Operation *topLevelOp, int64_t const & targetVersion) {
   return walkAndApply(topLevelOp, getProducerVersion(), [&](Operation *op) {
     return downgrade(op, getProducerVersion(), targetVersion);
@@ -159,7 +156,8 @@ FailureOr<int64_t> extractProducerVersion(Operation *topLevelOperation) {
 }  // namespace
 
 OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
-                                         MLIRContext *context) {
+                                         MLIRContext *context,
+                                         DialectCompatibilityInterface & interface) {
   FallbackAsmResourceMap fallbackResourceMap;
   ParserConfig config(context, /*verifyAfterParse=*/false,
                       &fallbackResourceMap);
@@ -172,31 +170,30 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
   }
 
   // Check that top level op has a valid version number.
-  StablehloCompatibilityConverter converter(context);
   Operation *topLevelOperation = module.get();
   auto version = extractProducerVersion(topLevelOperation);
   if (failed(version)) {
-    version = converter.getProducerVersion();
+    version = interface.getProducerVersion();
   }
 
   // Check that file is supported by current libStablehlo
-  if (version > converter.getProducerVersion()) {
+  if (version > interface.getProducerVersion()) {
     topLevelOperation->emitWarning()
         << "file version " << *version
         << " is greater than the StableHLO consumer version "
-        << converter.getProducerVersion()
+        << interface.getProducerVersion()
         << ". Compatibility is not guaranteed.";
   }
-  if (version < converter.getMinimumProducerDialectVersion()) {
+  if (version < interface.getMinimumProducerDialectVersion()) {
     topLevelOperation->emitWarning()
         << "file version " << *version
         << " is less than the minimum suported StableHLO file version "
-        << converter.getMinimumProducerDialectVersion()
+        << interface.getMinimumProducerDialectVersion()
         << ". Compatibility is not guaranteed.";
   }
 
   //  Apply upgrades
-  if (failed(converter.applyOpUpgrades(topLevelOperation, *version))) {
+  if (failed(interface.applyOpUpgrades(topLevelOperation, *version))) {
     topLevelOperation->emitError("failed to apply upgrade");
     return nullptr;
   }
@@ -212,16 +209,15 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
 
 LogicalResult writeWithCompat(Operation *topLevelOperation,
                               int64_t const &targetVersion, bool emitBytecode,
-                              llvm::raw_ostream &output) {
+                              llvm::raw_ostream &output, DialectCompatibilityInterface & interface) {
   if (failed(verify(topLevelOperation))) {
     return topLevelOperation->emitError("must be valid op");
   }
 
   // TODO: Downgrade to target version
-  StablehloCompatibilityConverter converter(topLevelOperation->getContext());
-  int64_t producerVersion = std::min(targetVersion, converter.getProducerVersion());
-  producerVersion = std::max(targetVersion, converter.getMinimumDowngradeDialectVersion());
-  if (failed(converter.applyOpDowngrades(topLevelOperation, targetVersion))) {
+  int64_t producerVersion = std::min(targetVersion, interface.getProducerVersion());
+  producerVersion = std::max(targetVersion, interface.getMinimumDowngradeDialectVersion());
+  if (failed(interface.applyOpDowngrades(topLevelOperation, targetVersion))) {
     return failure();
   }
 
@@ -238,110 +234,6 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
     topLevelOperation->print(output /*, printerFlags = */);
   }
   return success();
-}
-
-namespace {
-
-// FIXME: I'm sure there is a better way to do this.
-// Rename input op to new name.
-void renameOperation(Operation *op, llvm::StringRef newName) {
-  class SimpleRewriter : public PatternRewriter {
-   public:
-    SimpleRewriter(MLIRContext *context) : PatternRewriter(context) {}
-  };
-  OperationState state(op->getLoc(), newName);
-  state.addAttributes(op->getAttrs());
-  state.addOperands(op->getOperands());
-  state.addTypes(op->getResultTypes());
-  OpBuilder builder(op->getContext());
-  builder.setInsertionPoint(op);
-  Operation &newOp = *builder.create(state);
-  SimpleRewriter rewriter(op->getContext());
-  rewriter.replaceOp(op, {newOp.getResult(0)});
-};
-
-}
-
-// FIXME: ANCHOR comment for compiler brown bag.
-
-// ===-------------------------------------------------------------------------
-// StableHLO Compatibility Code - This should evolve with the dialect.
-// ===-------------------------------------------------------------------------
-
-/// The current version of StableHLO
-int64_t StablehloCompatibilityConverter::getProducerVersion() const {
-  return 40;
-}
-
-/// Backwards compatibility: The minimum supported version of StableHLO
-int64_t StablehloCompatibilityConverter::getMinimumProducerDialectVersion() const {
-  return 35;
-}
-
-/// Forwards compatibility: The minimum supported version of StableHLO
-int64_t StablehloCompatibilityConverter::getMinimumDowngradeDialectVersion() const {
-  return 38;
-}
-
-void StablehloCompatibilityConverter::registerSubOpChanges() {
-  // Change log:
-  //   Version 39: SubOp<"stablehlo.sub"> exists
-  //   Version 40: SubOp<"stablehlo.sub"> -> SubtractOp<"stablehlo.subtract">
-  // Backward compatibility: Support v39 and after.
-  // Forward compatibility: Target v39 for printing.
-
-  // Upgrade <v40 -> 40: [sub --> subtract]
-  addUpgrade("stablehlo.sub", 40,
-             [&](Operation *op, int64_t fromVer) -> LogicalResult {
-               renameOperation(op, "stablehlo.subtract");
-               return success();
-             });
-
-  // Downgrade v39 -> 38: [subtract --> sub]
-  addDowngrade("stablehlo.subtract", 39,
-               [&](Operation *op, int64_t fromVer) -> LogicalResult {
-                 renameOperation(op, "stablehlo.sub");
-                 return success();
-               });
-}
-
-void StablehloCompatibilityConverter::registerAddOpChanges() {
-  // Change log:
-  //   Version 37: Add has no attributes
-  //   Version 38: Added attr version_38_attr
-  //   Version 39: Rename attr version_38_attr --> version_39_attr
-  // Backward compatibility: Support v38 and after.
-  // Forward compatibility: Target v39 for printing.
-
-  // Upgrade v38 -> v39: [version_38_attr --> version_39_attr]
-  addUpgrade("stablehlo.add", 39,
-             [&](Operation *op, int64_t fromVer) -> LogicalResult {
-               if (!op->hasAttr("version_38_attr")) {
-                 return op->emitError("expected version_38_attr for upgrade.");
-               }
-               op->setAttr("version_39_attr", op->getAttr("version_38_attr"));
-               op->removeAttr("version_38_attr");
-               return success();
-             });
-
-  // Upgrade <v38 -> 38: [() --> version_38_attr]
-  addUpgrade("stablehlo.add", 38, [&](Operation *op, int64_t) {
-    op->setAttr("version_38_attr",
-                Builder(op->getContext()).getI64IntegerAttr(1));
-    return success();
-  });
-
-  // Downgrade v39 -> v38
-  addDowngrade(
-      "stablehlo.add", 38,
-      [&](Operation *op, int64_t fromVer) -> LogicalResult {
-        if (!op->hasAttr("version_39_attr")) {
-          return op->emitError("expected version_39_attr for downrade.");
-        }
-        op->setAttr("version_38_attr", op->getAttr("version_39_attr"));
-        op->removeAttr("version_39_attr");
-        return success();
-      });
 }
 
 }  // namespace compatibility
