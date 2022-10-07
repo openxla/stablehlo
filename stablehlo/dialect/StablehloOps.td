@@ -2175,7 +2175,21 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
     Stitches together several slices of `operand` from offsets specified in
     `start_indices` (each slice at a potentially different runtime offset).
 
-    See https://www.tensorflow.org/xla/operation_semantics#gather.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlogather
+
+    ```mlir
+    %result = "mhlo.gather"(%operand, %start_indices) {
+      dimension_numbers = #mhlo.gather<
+        collapsed_slice_dims = [0],
+        index_vector_dim = 2,
+        offset_dims = [2, 3],
+        start_index_map = [0, 2]
+      >,
+      indices_are_sorted = false,
+      slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>
+    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
+    ```
   }];
 
   let arguments = (ins

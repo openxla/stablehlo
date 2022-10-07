@@ -852,8 +852,9 @@ defined and one of the following:
 
 ### Semantics
 
-Gathers slices from `operand` tensor and produces a `result` tensor.
-
+Gathers slices from `operand` tensor from offsets specified in `start_indices`
+and produces a `result` tensor.
+  
 Informally, every index `out` in `result` corresponds to an element in `operand`
 which is computed as the following steps:
 
