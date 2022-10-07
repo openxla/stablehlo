@@ -77,7 +77,7 @@ func.func @reduce_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<4x4xf32>,
   func.return %0#0, %0#1 : tensor<*xf32>, tensor<*xf32>
 }
 
-// ----
+// -----
 
 // CHECK-LABEL:    func @reduce_mix_rank_and_unranked
 func.func @reduce_mix_rank_and_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<*xf32>,
@@ -101,7 +101,9 @@ func.func @reduce_mix_rank_and_unranked(%arg0: tensor<4x4xf32>, %arg1: tensor<*x
 func.func @reduce_odd_num_args(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>,
     %arg2: tensor<f32>, %arg3: tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>) {
 
-  // expected-error@+1 {{expects the size of operands to be even and >= 2}}
+  // As there are only 3 parameters of op, ODS takes in 1 for inputs and 1 for init_values
+  // by SameVariadicOperandSize, so the Reduction-region expect 1*2=2 parameters.
+  // expected-error@+1 {{Reduction-region must take 2 parameters, but takes 4 parameter(s)}}
   %0:2 = "stablehlo.reduce"(%arg0, %arg1, %arg2) ({
 
   ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>):
@@ -116,27 +118,10 @@ func.func @reduce_odd_num_args(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>,
 
 // -----
 
-func.func @reduce_zero_args(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
-    -> (tensor<?xf32>) {
-
-  // expected-error@+1 {{expects the size of operands to be even and >= 2}}
-  %0 = "stablehlo.reduce"() ({
-
-  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
-    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-    "stablehlo.return"(%1) : (tensor<f32>) -> ()
-
-  }) {dimensions = dense<[1]> : tensor<1xi64>} : () -> tensor<?xf32>
-
-  func.return %0: tensor<?xf32>
-}
-
-// -----
-
 func.func @reduce_diferent_input_shapes(%arg0: tensor<?x?xf32>, %arg1: tensor<?xf32>,
     %arg2: tensor<f32>, %arg3: tensor<f32>) -> (tensor<?xf32>, tensor<?xf32>) {
 
-  // expected-error@+1 {{'stablehlo.reduce' op expects all inputs to have compatible shapes. Shape at input-index 1 is not compatible with shape at input-index 0}}
+  // expected-error@+1 {{expects all inputs to have compatible shapes. Shape at input-index 1 is not compatible with shape at input-index 0}}
   %0:2 = "stablehlo.reduce"(%arg0, %arg1, %arg2, %arg3) ({
 
   ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>):
@@ -154,7 +139,7 @@ func.func @reduce_diferent_input_shapes(%arg0: tensor<?x?xf32>, %arg1: tensor<?x
 func.func @reduce_diferent_input_shapes(%arg0: tensor<2x3xf32>, %arg1: tensor<3x2xf32>,
     %arg2: tensor<f32>, %arg3: tensor<f32>) -> (tensor<2xf32>, tensor<2xf32>) {
 
-  // expected-error@+1 {{'stablehlo.reduce' op expects all inputs to have compatible shapes. Shape at input-index 1 is not compatible with shape at input-index 0}}
+  // expected-error@+1 {{expects all inputs to have compatible shapes. Shape at input-index 1 is not compatible with shape at input-index 0}}
   %0:2 = "stablehlo.reduce"(%arg0, %arg1, %arg2, %arg3) ({
 
   ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>):

@@ -90,6 +90,15 @@ add_mlir_dialect_library(StablehloRegister
   StablehloOps
 )
 
+add_mlir_dialect_library(StablehloTypeInference
+  PARTIAL_SOURCES_INTENDED
+  TypeInference.cpp 
+
+  LINK_LIBS PUBLIC
+  MLIRInferTypeOpInterface
+  MLIRIR
+)
+
 set(LLVM_TARGET_DEFINITIONS StablehloOps.td)
 mlir_tablegen(StablehloOps.h.inc -gen-op-decls)
 mlir_tablegen(StablehloOps.cpp.inc -gen-op-defs)
@@ -110,6 +119,7 @@ add_mlir_dialect_library(StablehloOps
 
   LINK_LIBS PUBLIC
   StablehloBase
+  StablehloTypeInference
   MLIRArithDialect
   MLIRDataLayoutInterfaces
   MLIRInferTypeOpInterface
