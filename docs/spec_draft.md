@@ -391,13 +391,13 @@ tensor. More formally,
 
   * (C1) All tensors in `inputs` have the same element type.
   * (C2) All tensors in `inputs` have the same shape except for the size of the
-  `dimension` dimension.
+  `dimension`th dimension.
   * (C3) `inputs` have N tensors where N >= 1.
   * (C4) 0 $\le$ `dimension` $\lt$ rank of `inputs[0]`.
   * (C5) `result` has the same element type as the tensors in `inputs`.
   * (C6) `result` has the same shape as the tensors in `inputs` except for the
-  size of the `dimension` dimension, which is calculated as a sum of the size of
-  `inputs[k][dimension]` for all `k` in `inputs`.
+  size of the `dimension`th dimension, which is calculated as a sum of the size
+  of `inputs[k][dimension]` for all `k` in `inputs`.
 
 ### Examples
 
@@ -449,7 +449,9 @@ Produces a `result` tensor from a constant `value`.
 ### Examples
 
 ```mlir
-%result = "stablehlo.constant"() {value = dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>} : () -> tensor<2x2xf32>
+%result = "stablehlo.constant"() {
+  value = dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+} : () -> tensor<2x2xf32>
 // %result: [[0.0, 1.0], [2.0, 3.0]]
 ```
 
@@ -626,6 +628,7 @@ the `iota_dimension` dimension. More formally,
 For integers, if the dimension size is larger than what the element type's
 maximum value can hold, an overflow occurs and the behavior is implementation-
 defined and one of the following:
+
   * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
@@ -646,12 +649,15 @@ defined and one of the following:
 
 ### Constraints
 
-  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the `result`.
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the
+  `result`.
 
 ### Examples
 
 ```mlir
-%result = "stablehlo.iota"() {iota_dimension = 0} : () -> tensor<4x5xi32>
+%result = "stablehlo.iota"() {
+  iota_dimension = 0 : i64
+} : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],
@@ -659,7 +665,9 @@ defined and one of the following:
 //           [3, 3, 3, 3, 3]
 //          ]
 
-%result = "stablehlo.iota"() {iota_dimension = 1} : () -> tensor<4x5xi32>
+%result = "stablehlo.iota"() {
+  iota_dimension = 1 : i64
+} : () -> tensor<4x5xi32>
 // %result: [
 //           [0, 1, 2, 3, 4],
 //           [0, 1, 2, 3, 4],
@@ -796,7 +804,7 @@ lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 
 ### Semantics
 
-Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
@@ -1125,7 +1133,7 @@ spaces of `result` and `operand`.
 
 ### Semantics
 Reverses the order of elements in the `operand` along the specified `dimensions`
-and produces a `result` tensor. More formally
+and produces a `result` tensor. More formally,
 `result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
 `ik + ik' = dk - 1` for all dimensions `k` in `dimensions`.
 
@@ -1146,8 +1154,8 @@ and produces a `result` tensor. More formally
 
   * (C1) `operand` and `result` have the same type.
   * (C2) All dimensions in `dimensions` are unique.
-  * (C3) For all dimensions in `dimensions`, 0 $\le$ `dimension` $\lt$ `R`,
-         where `R` is the rank of the `result`.
+  * (C3) For all dimensions `k` in `dimensions`, 0 $\le$ `dimensions[k]` $\lt$
+  `R`, where `R` is the rank of the `result`.
 
 ### Examples
 
@@ -1155,13 +1163,17 @@ and produces a `result` tensor. More formally
 // Reverse along dimension 0
 
 // %operand = [[1, 2], [3, 4], [5, 6]]
-%result = "stablehlo.reverse"(%operand) {dimensions = dense<0> : tensor<i64>} : (tensor<3x2xi32>) -> tensor<3x2xi32>
+%result = "stablehlo.reverse"(%operand) {
+  dimensions = dense<0> : tensor<i64>
+} : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[5, 6], [3, 4], [1, 2]]
 
 // Reverse along dimension 1
 
 // %operand = [[1, 2], [3, 4], [5, 6]]
-%result = "stablehlo.reverse"(%operand) {dimensions = dense<1> : tensor<i64>} : (tensor<3x2xi32>) -> tensor<3x2xi32>
+%result = "stablehlo.reverse"(%operand) {
+  dimensions = dense<1> : tensor<i64>
+} : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
 
