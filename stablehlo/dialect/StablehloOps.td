@@ -892,7 +892,16 @@ def StableHLO_SubtractOp : StableHLO_BinaryElementwiseOp<"subtract",
       [NoSideEffect, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Subtraction operator";
   let description = [{
+    Performs element-wise subtraction of two tensors `lhs` and `rhs` and
+    produces a `result` tensor.
+
+    See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosubtract
+
+    Example:
+    ```mlir
+    %0 = stablehlo.subtract %arg0, %arg0 : tensor<2xi32>
+    ```
   }];
 }
 
@@ -2185,7 +2194,15 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
       [NoSideEffect, SameOperandsAndResultElementType]> {
   let summary = "Reshape operator";
   let description = [{
+    Performs reshape of `operand` tensor to a `result` tensor.
+
+    See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreshape
+
+    Example:
+    ```mlir
+    %0 = stablehlo.reshape %arg0 : (tensor<2xf32>) -> tensor<1x2xf32>
+    ```
   }];
 
   let arguments = (ins HLO_Tensor:$operand);
@@ -2442,7 +2459,16 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Transpose operator";
   let description = [{
+    Permutes the dimensions of `operand` tensor using `permutation` and produces
+    a `result` tensor.
+
+    See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlotranspose
+
+    Example:
+    ```mlir
+    %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[2, 1, 0]> : tensor<3xi64>} : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
