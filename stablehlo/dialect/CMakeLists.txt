@@ -85,7 +85,7 @@ add_mlir_dialect_library(StablehloRegister
   StablehloOps
 )
 
-add_mlir_dialect_library(StablehloShared
+add_mlir_dialect_library(StablehloTypeInference
   PARTIAL_SOURCES_INTENDED
   TypeInference.cpp 
 
@@ -114,7 +114,7 @@ add_mlir_dialect_library(StablehloOps
 
   LINK_LIBS PUBLIC
   StablehloBase
-  StablehloShared
+  StablehloTypeInference
   MLIRArithDialect
   MLIRInferTypeOpInterface
   MLIRIR

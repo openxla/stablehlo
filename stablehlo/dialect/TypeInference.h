@@ -27,13 +27,15 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 
+//===----------------------------------------------------------------------===//
+// Utilities for shape functions
+//===----------------------------------------------------------------------===//
+// TODO(#270): Remove them when all shape functions are moved to this file.
+
 // Check if the dimension size is dynamic.
 inline static bool isDynamicDimSize(int64_t val) {
   return val == ShapedType::kDynamicSize;
 }
-
-// TODO(https://github.com/openxla/stablehlo/issues/270)
-// Remove the util functions below when all the shape functions are moved here.
 
 bool compatibleShapeAndElementType(Type type1, Type type2,
                                    bool ignoreFpPrecision = false);
@@ -73,9 +75,23 @@ SmallVector<int64_t> inferWindowOutputShape(
 
 unsigned potentiallyComplexBitwidth(Type type);
 
+LogicalResult verifyReducerShape(
+    Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
+    ArrayRef<TensorType> initValueTypes, int64_t numInputs,
+    ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
+    SmallVectorImpl<TensorType>& accumulatorSubShapes);
+
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
+// These functions have been moved out of StablehloOps.cpp in order to be
+// shared with the MHLO dialect.
+// Because of that, they cannot use any definitions in the StableHLO dialect
+// (definitions in Base are fine, because they are shared with MHLO).
+// As a result, these definitions (e.g. StableHLO ops and attributes) are
+// decomposed into smaller pieces which are passed as individual parameters.
+// These parameters have the same names as in the ODS and come in the same
+// order in which they are declared in the ODS.
 
 LogicalResult inferBatchNormGradOp(
     Value operand, uint64_t featureIndex,
@@ -94,8 +110,10 @@ LogicalResult inferCaseOp(
 
 LogicalResult inferDotGeneralOp(
     Optional<Location> location, Value lhs, Value rhs,
-    ArrayRef<int64_t> lhsBatchingDims, ArrayRef<int64_t> rhsBatchingDims,
-    ArrayRef<int64_t> lhsContractingDims, ArrayRef<int64_t> rhsContractingDims,
+    ArrayRef<int64_t> lhsBatchingDimensions,
+    ArrayRef<int64_t> rhsBatchingDimensions,
+    ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferIfOp(
@@ -106,14 +124,6 @@ LogicalResult inferMapOp(
     Optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
-
-// TODO(https://github.com/openxla/stablehlo/issues/270)
-// Remove the util functions below when all the shape functions are moved here. 
-LogicalResult verifyReducerShape(
-    Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
-    ArrayRef<TensorType> initValueTypes, int64_t numInputs,
-    ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
-    SmallVectorImpl<TensorType>& accumulatorSubShapes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
@@ -136,15 +146,14 @@ LogicalResult inferSortOp(
 
 LogicalResult inferTriangularSolveOp(
     Optional<Location> location, Value a, Value b, bool leftSide,
-    bool is_transpose_a_invalid,
+    bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferWhileOp(
     Optional<Location> location, ValueRange operand, Region& cond, Region& body,
-    TypeRange condReturnTypes, TypeRange bodyReturnTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-}  // end namespace hlo 
+}  // end namespace hlo
 }  // end namespace mlir
 
 #endif  // STABLEHLO_DIALECT_STABLEHLO_TYPE_INFERENCE_H

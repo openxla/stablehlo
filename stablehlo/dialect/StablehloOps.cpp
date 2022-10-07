@@ -1681,7 +1681,8 @@ LogicalResult ConvolutionOp::verify() {
   for (size_t i = 0; i < windowDimensions.size(); i++)
     windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
 
-  auto paddingOrErr = hlo::convertPaddingAttribute(this->getPadding(), getLoc());
+  auto paddingOrErr =
+      hlo::convertPaddingAttribute(this->getPadding(), getLoc());
   if (failed(paddingOrErr)) return failure();
 
   // TODO: add missing tests for ConvolutionOp.
@@ -4199,11 +4200,11 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
-  bool is_transpose_a_invalid =
+  bool isTransposeAInvalid =
       (adaptor.getTransposeA() == Transpose::TRANSPOSE_INVALID);
-  return hlo::inferTriangularSolveOp(
-      location, adaptor.getA(), adaptor.getB(), adaptor.getLeftSide(),
-      is_transpose_a_invalid, inferredReturnShapes);
+  return hlo::inferTriangularSolveOp(location, adaptor.getA(), adaptor.getB(),
+                                     adaptor.getLeftSide(), isTransposeAInvalid,
+                                     inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4349,8 +4350,8 @@ LogicalResult SelectAndScatterOp::verify() {
 
   // P3.
   // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
-  auto windowDimsOrErr =
-      hlo::convert1DAttribute(getWindowDimensions(), getLoc(), "window_dimensions");
+  auto windowDimsOrErr = hlo::convert1DAttribute(getWindowDimensions(),
+                                                 getLoc(), "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   if (operandType.hasRank()) {
     if (operandType.getRank() !=
@@ -4708,14 +4709,8 @@ LogicalResult WhileOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
-  auto condReturnTypes =
-      cast<ReturnOp>(adaptor.getCond().front().back()).getOperandTypes();
-  auto bodyReturnTypes =
-      cast<ReturnOp>(adaptor.getBody().front().getTerminator())
-          ->getOperandTypes();
   return hlo::inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
-                           adaptor.getBody(), condReturnTypes, bodyReturnTypes,
-                           inferredReturnShapes);
+                           adaptor.getBody(), inferredReturnShapes);
 }
 
 /// Print a `while` op.
