@@ -320,7 +320,7 @@ BROADCAST_BINARY_OP_DEFS(BroadcastZetaOp);
 #undef BROADCAST_BINARY_OP_DEFS
 
 LogicalResult ConstantLikeOp::verify() {
-  if (value().getType() != getType().cast<ShapedType>().getElementType())
+  if (getValue().getType() != getType().cast<ShapedType>().getElementType())
     return emitOpError() << "value's type doesn't match element return type";
   return success();
 }
@@ -330,8 +330,8 @@ LogicalResult ConstantLikeOp::verify() {
 //===----------------------------------------------------------------------===//
 LogicalResult MinimumBroadcastShapesOp::verify() {
   // Check that the number of operands matches the number of outputs.
-  unsigned resultShapesCount = results().size();
-  unsigned operandShapesCount = shapes().size();
+  unsigned resultShapesCount = getResults().size();
+  unsigned operandShapesCount = getShapes().size();
   if (operandShapesCount != resultShapesCount) {
     return emitOpError() << "number of operand shapes (" << operandShapesCount
                          << ") does not match number of result shapes ("
@@ -351,8 +351,8 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   ConstantLikeOp::Adaptor op(operands, attributes);
   if (failed(op.verify(location.value()))) return failure();
-  Type elementType = op.value().getType();
-  Type operandType = op.operand().getType();
+  Type elementType = op.getValue().getType();
+  Type operandType = op.getOperand().getType();
   if (operandType.isa<UnrankedTensorType>()) {
     inferedReturnShapes.emplace_back(elementType);
   } else {
@@ -370,12 +370,12 @@ LogicalResult ConstantLikeOp::reifyReturnTypeShapes(
 }
 
 OpFoldResult ConstantLikeOp::fold(ArrayRef<Attribute> /*operands*/) {
-  auto opType = operand().getType().cast<ShapedType>();
+  auto opType = getOperand().getType().cast<ShapedType>();
   if (!opType.hasStaticShape()) return {};
-  auto type = RankedTensorType::get(opType.getShape(), value().getType());
-  if (auto complexAttr = value().dyn_cast<complex::NumberAttr>())
+  auto type = RankedTensorType::get(opType.getShape(), getValue().getType());
+  if (auto complexAttr = getValue().dyn_cast<complex::NumberAttr>())
     return DenseElementsAttr::get(type, complexAttr.getValue());
-  return DenseElementsAttr::get(type, value());
+  return DenseElementsAttr::get(type, getValue());
 }
 
 LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
@@ -383,9 +383,9 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
     DictionaryAttr, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
-  auto predType = op.pred().getType().dyn_cast<ShapedType>();
-  auto onTrueType = op.on_true().getType().dyn_cast<ShapedType>();
-  auto onFalseType = op.on_false().getType().dyn_cast<ShapedType>();
+  auto predType = op.getPred().getType().dyn_cast<ShapedType>();
+  auto onTrueType = op.getOnTrue().getType().dyn_cast<ShapedType>();
+  auto onFalseType = op.getOnFalse().getType().dyn_cast<ShapedType>();
 
   if (!predType || !onTrueType || !onFalseType ||
       onTrueType.getElementType() != onFalseType.getElementType()) {
@@ -426,16 +426,16 @@ void RankSpecializationClusterOp::getSuccessorRegions(
     regions.push_back(RegionSuccessor(getResults()));
     return;
   }
-  regions.push_back(RegionSuccessor(&body()));
+  regions.push_back(RegionSuccessor(&getBody()));
 }
 
 LogicalResult RankSpecializationClusterOp::verify() {
-  if (body().getArgumentTypes() != getOperandTypes())
+  Block* body = SingleBlock::getBody();
+  if (body->getArgumentTypes() != getOperandTypes())
     return emitOpError() << "block argument types must match operand types";
 
   // All operands of nested ops must be defined in the body or declared by the
   // cluster.
-  Block* body = SingleBlock::getBody();
   for (Operation& nested : body->without_terminator()) {
     if (!llvm::all_of(nested.getOpOperands(), [&](OpOperand& operand) {
           Operation* def = operand.get().getDefiningOp();
@@ -459,8 +459,8 @@ LogicalResult TopKOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Builder builder(context);
   TopKOp::Adaptor adaptor(operands, attributes, regions);
-  Value operand = adaptor.operand();
-  uint64_t k = adaptor.k();
+  Value operand = adaptor.getOperand();
+  uint64_t k = adaptor.getK();
 
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandTy) {
@@ -493,7 +493,7 @@ LogicalResult TopKOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 OpFoldResult ConstantOp::fold(ArrayRef<Attribute> /*operands*/) {
-  return value();
+  return getValue();
 }
 
 LogicalResult ConstantOp::inferReturnTypes(
