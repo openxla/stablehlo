@@ -27,25 +27,25 @@ extern "C" {
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute
-chloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef direction);
+chloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool chloAttributeIsAComparisonDirectionAttr(
     MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-chloComparisonDirectionAttrGetDirection(MlirAttribute attr);
+chloComparisonDirectionAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // ComparisonTypeAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx,
-                                                           MlirStringRef type);
+                                                           MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool chloAttributeIsAComparisonTypeAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-chloComparisonTypeAttrGetType(MlirAttribute attr);
+chloComparisonTypeAttrGetValue(MlirAttribute attr);
 
 #ifdef __cplusplus
 }

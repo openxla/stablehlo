@@ -311,109 +311,98 @@ PYBIND11_MODULE(_stablehlo, m) {
       stablehloAttributeIsAComparisonDirectionAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &direction, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloComparisonDirectionAttrGet(
-                ctx, mlirStringRefCreate(direction.c_str(), direction.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("comparison_direction"),
-          py::arg("context") = py::none(),
-          "Creates a ComparisonDirection attribute with the given direction.")
-      .def_property_readonly("comparison_direction", [](MlirAttribute self) {
-        return toPyString(stablehloComparisonDirectionAttrGetDirection(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a ComparisonDirection attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloComparisonDirectionAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "ComparisonTypeAttr", stablehloAttributeIsAComparisonTypeAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &type, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloComparisonTypeAttrGet(
-                ctx, mlirStringRefCreate(type.c_str(), type.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("comparison_type"),
-          py::arg("context") = py::none(),
-          "Creates a ComparisonType attribute with the given type.")
-      .def_property_readonly("comparison_type", [](MlirAttribute self) {
-        return toPyString(stablehloComparisonTypeAttrGetType(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a ComparisonType attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloComparisonTypeAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "PrecisionAttr", stablehloAttributeIsAPrecisionAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &type, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloPrecisionAttrGet(
-                ctx, mlirStringRefCreate(type.c_str(), type.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("precision_type"),
-          py::arg("context") = py::none(),
-          "Creates a Precision attribute with the given type.")
-      .def_property_readonly("precision_type", [](MlirAttribute self) {
-        return toPyString(stablehloPrecisionAttrGetPrecision(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a Precision attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloPrecisionAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "FftTypeAttr", stablehloAttributeIsAFftTypeAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &type, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloFftTypeAttrGet(
-                ctx, mlirStringRefCreate(type.c_str(), type.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("fft_type"), py::arg("context") = py::none(),
-          "Creates a FftType attribute with the given type.")
-      .def_property_readonly("fft_type", [](MlirAttribute self) {
-        return toPyString(stablehloFftTypeAttrGetFftType(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a FftType attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloFftTypeAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "TransposeAttr", stablehloAttributeIsATransposeAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &type, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloTransposeAttrGet(
-                ctx, mlirStringRefCreate(type.c_str(), type.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("transpose_type"),
-          py::arg("context") = py::none(),
-          "Creates a Transpose attribute with the given type.")
-      .def_property_readonly("transpose_type", [](MlirAttribute self) {
-        return toPyString(stablehloTransposeAttrGetTranspose(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a Transpose attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloTransposeAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "RngDistributionAttr", stablehloAttributeIsARngDistributionAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &distribution, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloRngDistributionAttrGet(
-                ctx, mlirStringRefCreate(distribution.c_str(),
-                                         distribution.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("rng_distribution"),
-          py::arg("context") = py::none(),
-          "Creates a RngDistribution attribute with the given rng "
-          "distribution.")
-      .def_property_readonly("rng_distribution", [](MlirAttribute self) {
-        auto distribution =
-            stablehloRngDistributionAttrGetRngDistribution(self);
-        return py::str(distribution.data, distribution.length);
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a RngDistribution attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloRngDistributionAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "RngAlgorithmAttr", stablehloAttributeIsARngAlgorithmAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &algorithm, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(stablehloRngAlgorithmAttrGet(
-                ctx, mlirStringRefCreate(algorithm.c_str(), algorithm.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("rng_algorithm"),
-          py::arg("context") = py::none(),
-          "Creates a RngAlgorithm attribute with the given rng algorithm.")
-      .def_property_readonly("rng_algorithm", [](MlirAttribute self) {
-        auto algorithm = stablehloRngAlgorithmAttrGetRngAlgorithm(self);
-        return py::str(algorithm.data, algorithm.length);
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a RngAlgorithm attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(stablehloRngAlgorithmAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
@@ -429,6 +418,8 @@ PYBIND11_MODULE(_stablehlo, m) {
                              [](MlirAttribute self) {
                                return stablehloChannelHandleGetHandle(self);
                              })
+      // We cannot call this "type" to match how this is called on the C++ side,
+      // because `type` is already defined in the superclass.
       .def_property_readonly("channel_type", [](MlirAttribute self) {
         return stablehloChannelHandleGetType(self);
       });

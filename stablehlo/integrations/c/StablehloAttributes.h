@@ -174,88 +174,88 @@ stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(MlirAttribute attr,
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute
-stablehloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef direction);
+stablehloComparisonDirectionAttrGet(MlirContext ctx, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsAComparisonDirectionAttr(
     MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloComparisonDirectionAttrGetDirection(MlirAttribute attr);
+stablehloComparisonDirectionAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // ComparisonTypeAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute
-stablehloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef type);
+stablehloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsAComparisonTypeAttr(
     MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloComparisonTypeAttrGetType(MlirAttribute attr);
+stablehloComparisonTypeAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // PrecisionAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx,
-                                                           MlirStringRef type);
+                                                           MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsAPrecisionAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloPrecisionAttrGetPrecision(MlirAttribute attr);
+stablehloPrecisionAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // FftTypeAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx,
-                                                         MlirStringRef type);
+                                                         MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsAFftTypeAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloFftTypeAttrGetFftType(MlirAttribute attr);
+stablehloFftTypeAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // TransposeAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloTransposeAttrGet(MlirContext ctx,
-                                                           MlirStringRef type);
+                                                           MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsATransposeAttr(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloTransposeAttrGetTranspose(MlirAttribute attr);
+stablehloTransposeAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // RngDistributionAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute
-stablehloRngDistributionAttrGet(MlirContext ctx, MlirStringRef distribution);
+stablehloRngDistributionAttrGet(MlirContext ctx, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsARngDistributionAttr(
     MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloRngDistributionAttrGetRngDistribution(MlirAttribute attr);
+stablehloRngDistributionAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // RngAlgorithmAttr
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute
-stablehloRngAlgorithmAttrGet(MlirContext ctx, MlirStringRef algorithm);
+stablehloRngAlgorithmAttrGet(MlirContext ctx, MlirStringRef value);
 
 MLIR_CAPI_EXPORTED bool stablehloAttributeIsARngAlgorithmAttr(
     MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED MlirStringRef
-stablehloRngAlgorithmAttrGetRngAlgorithm(MlirAttribute attr);
+stablehloRngAlgorithmAttrGetValue(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // ChannelHandle
