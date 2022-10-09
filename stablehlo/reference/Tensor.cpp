@@ -132,7 +132,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     return Element(elementType, APFloat(*elementData));
   }
 
-  // Handle integer types.
+  // Handle integer and boolean types.
   // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
@@ -156,7 +156,8 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
       auto elementData = reinterpret_cast<const int64_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
-    } else if (elementType.isUnsignedInteger(4) ||
+    } else if (elementType.isSignlessInteger(1) ||
+               elementType.isUnsignedInteger(4) ||
                elementType.isUnsignedInteger(8)) {
       auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
@@ -271,8 +272,9 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
     return;
   }
 
-  // Handle unsigned integer types.
-  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
+  // Handle boolean & unsigned integer types.
+  if (elementType.isSignlessInteger(1) || elementType.isUnsignedInteger(4) ||
+      elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
@@ -426,8 +428,9 @@ Tensor makeTensor(DenseElementsAttr attr) {
                   HeapAsmResourceBlob::allocateAndCopy<int64_t>(intValues));
   }
 
-  // Handle unsigned integer types.
-  if (elemType.isUnsignedInteger(4) || elemType.isUnsignedInteger(8)) {
+  // Handle boolean & unsigned integer types.
+  if (elemType.isSignlessInteger(1) || elemType.isUnsignedInteger(4) ||
+      elemType.isUnsignedInteger(8)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint8_t { return value.getZExtValue(); }));
