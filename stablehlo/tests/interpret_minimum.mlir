@@ -145,6 +145,21 @@ func.func @min_op_test_ui64() -> tensor<2xui64> {
 
 // -----
 
+// CHECK-LABEL: Evaluated results of function: min_op_test_i1
+func.func @min_op_test_i1() -> tensor<4xi1> {
+  %0 = stablehlo.constant dense<[false, false, true, true]> : tensor<4xi1>
+  %1 = stablehlo.constant dense<[false, true, false, true]> : tensor<4xi1>
+  %2 = stablehlo.minimum %0, %1 : tensor<4xi1>
+  func.return %2 : tensor<4xi1>
+  // CHECK-NEXT: tensor<4xi1>
+  // CHECK-NEXT: false
+  // CHECK-NEXT: false
+  // CHECK-NEXT: false
+  // CHECK-NEXT: true
+}
+
+// -----
+
 
 // CHECK-LABEL: Evaluated results of function: min_op_test_bf16
 func.func @min_op_test_bf16() -> tensor<11xbf16> {
