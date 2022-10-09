@@ -50,7 +50,7 @@ an `Element` object, is stored in the final `result` tensor.
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
 
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) + rhs.get(*it));
 
   return result;
