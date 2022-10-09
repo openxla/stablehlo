@@ -29,7 +29,7 @@ one of the following tracking labels.
 
 | StableHLO Op             | Specification | Verification |  Type Inference   |  Pretty Printing  | Interpreter |
 |:-------------------------|:-------------:|:------------:|:-----------------:|:-----------------:|:-----------:|
-| abs                      |      no       |     yes*     |       yes*        |        yes        |     no      |
+| abs                      |      yes      |     yes      |       yes         |        yes        |     no      |
 | add                      |      no       |     yes*     |       yes*        |        yes        |     yes     |
 | after_all                |      no       |      no      |        no         |        yes        |     no      |
 | all_gather               |      no       |     yes*     |        no         |        no         |     no      |
