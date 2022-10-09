@@ -990,6 +990,10 @@ elements in each dimension which may not be negative. Interior padding occurs
 before edge padding such that negative edge padding will remove elements from
 the interior-padded operand.
 
+More formally, `result[i0, ..., iR-1]` is equal to:
+  * `operand[j0, ..., jR-1]` if `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
+  * `padding_value[]` otherwise.
+
 ### Operands
 
 | Name                | Type                                        |
