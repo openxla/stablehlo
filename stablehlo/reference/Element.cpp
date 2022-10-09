@@ -187,6 +187,28 @@ Element Element::operator-(const Element &other) const {
       });
 }
 
+Element Element::operator&(const Element &other) const {
+  auto left = this->getIntegerValue();
+  auto right = other.getIntegerValue();
+  return Element(getType(), left & right);
+}
+
+Element Element::operator|(const Element &other) const {
+  auto left = this->getIntegerValue();
+  auto right = other.getIntegerValue();
+  return Element(getType(), left | right);
+}
+
+Element Element::operator^(const Element &other) const {
+  auto left = this->getIntegerValue();
+  auto right = other.getIntegerValue();
+  return Element(getType(), left ^ right);
+}
+
+Element Element::operator~() const {
+  return Element(getType(), ~this->getIntegerValue());
+}
+
 Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);

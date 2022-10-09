@@ -60,14 +60,26 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
-  /// Overloaded + operator.
+  /// Overloaded add operator.
   Element operator+(const Element &other) const;
 
   /// Overloaded negate operator.
   Element operator-() const;
 
-  /// Overloaded - operator.
+  /// Overloaded subtract operator.
   Element operator-(const Element &other) const;
+
+  /// Overloaded and (bitwise) operator.
+  Element operator&(const Element &other) const;
+
+  /// Overloaded or (bitwise) operator.
+  Element operator|(const Element &other) const;
+
+  /// Overloaded xor (bitwise) operator.
+  Element operator^(const Element &other) const;
+
+  /// Overloaded not (bitwise) operator.
+  Element operator~() const;
 
   /// Print utilities for Element objects.
   void print(raw_ostream &os) const;
