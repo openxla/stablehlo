@@ -133,7 +133,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
     return Element(elementType, APFloat(*elementData));
   }
 
-  // Handle integer and boolean types.
+  // Handle integer types.
   // TODO(#22): StableHLO, as bootstrapped from MHLO, inherits signless
   // integers which was added in MHLO for legacy reasons. Going forward,
   // StableHLO will adopt signfull integer semantics with signed and unsigned
@@ -176,6 +176,12 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
       return Element(elementType, APInt(intTy.getWidth(), *elementData,
                                         intTy.isSignedInteger()));
     }
+  }
+
+  // Handle boolean type.
+  if (isSupportedBooleanType(elementType)) {
+    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
+    return Element(elementType, *elementData == 0 ? false : true);
   }
 
   // Handle complex types.
@@ -264,9 +270,8 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
     return;
   }
 
-  // Handle boolean & unsigned integer types.
-  if (elementType.isSignlessInteger(1) || elementType.isUnsignedInteger(4) ||
-      elementType.isUnsignedInteger(8)) {
+  // Handle unsigned integer types.
+  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
@@ -291,6 +296,14 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
     auto elementData = reinterpret_cast<uint64_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint64_t)value.getZExtValue();
+    return;
+  }
+
+  // Handle boolean type.
+  if (isSupportedBooleanType(elementType)) {
+    auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
+    auto value = element.getBooleanValue();
+    *elementData = value ? 1 : 0;
     return;
   }
 

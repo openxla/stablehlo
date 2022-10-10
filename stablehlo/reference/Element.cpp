@@ -35,14 +35,20 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
   return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
 }
 
-template <typename IntegerFn, typename FloatFn, typename ComplexFn>
-Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
-            ComplexFn complexFn) {
+template <typename IntegerFn, typename BooleanFn, typename FloatFn,
+          typename ComplexFn>
+Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
+            FloatFn floatFn, ComplexFn complexFn) {
   Type type = el.getType();
 
   if (isSupportedIntegerType(type)) {
     auto intEl = el.getIntegerValue();
     return Element(type, integerFn(intEl));
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolEl = el.getBooleanValue();
+    return Element(type, boolFn(boolEl));
   }
 
   if (isSupportedFloatType(type)) {
@@ -60,9 +66,10 @@ Element map(const Element &el, IntegerFn integerFn, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
-template <typename IntegerFn, typename FloatFn, typename ComplexFn>
+template <typename IntegerFn, typename BooleanFn, typename FloatFn,
+          typename ComplexFn>
 Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
-            FloatFn floatFn, ComplexFn complexFn) {
+            BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
   Type type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -73,6 +80,12 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
     return Element(type, integerFn(intLhs, intRhs));
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = lhs.getBooleanValue();
+    auto boolRhs = rhs.getBooleanValue();
+    return Element(type, boolFn(boolLhs, boolRhs));
   }
 
   if (isSupportedFloatType(type)) {
@@ -134,6 +147,15 @@ APInt Element::getIntegerValue() const {
   return std::get<APInt>(value_);
 }
 
+bool Element::getBooleanValue() const {
+  if (!isSupportedBooleanType(type_))
+    report_fatal_error(StringRef("Accessing value of a type different than "
+                                 "what is stored in Element object") +
+                       LLVM_PRETTY_FUNCTION);
+
+  return std::get<bool>(value_);
+}
+
 APFloat Element::getFloatValue() const {
   if (!isSupportedFloatType(type_))
     report_fatal_error(StringRef("Accessing value of a type different than "
@@ -153,9 +175,28 @@ std::complex<APFloat> Element::getComplexValue() const {
   return std::complex<APFloat>(floatPair.first, floatPair.second);
 }
 
+Element Element::operator&(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs & rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
+      [](APFloat lhs, APFloat rhs) -> APFloat {
+        report_fatal_error(StringRef("Unsupported floating-point type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        report_fatal_error(StringRef("Unsupported complex type") +
+                           LLVM_PRETTY_FUNCTION);
+      });
+}
+
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
+      [](bool lhs, bool rhs) -> bool {
+        report_fatal_error(StringRef("Unsupported boolean type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
       [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         // NOTE: lhs + rhs doesn't work for std::complex<APFloat>
@@ -169,13 +210,22 @@ Element Element::operator+(const Element &other) const {
 
 Element Element::operator-() const {
   return map(
-      *this, [&](APInt val) { return -val; }, [&](APFloat val) { return -val; },
+      *this, [&](APInt val) { return -val; },
+      [](bool val) -> bool {
+        report_fatal_error(StringRef("Unsupported boolean type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
+      [&](APFloat val) { return -val; },
       [](std::complex<APFloat> val) { return -val; });
 }
 
 Element Element::operator-(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
+      [](bool lhs, bool rhs) -> bool {
+        report_fatal_error(StringRef("Unsupported boolean type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
       [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
@@ -187,26 +237,48 @@ Element Element::operator-(const Element &other) const {
       });
 }
 
-Element Element::operator&(const Element &other) const {
-  auto left = this->getIntegerValue();
-  auto right = other.getIntegerValue();
-  return Element(getType(), left & right);
+Element Element::operator^(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs ^ rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs ^ rhs; },
+      [](APFloat lhs, APFloat rhs) -> APFloat {
+        report_fatal_error(StringRef("Unsupported floating-point type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        report_fatal_error(StringRef("Unsupported complex type") +
+                           LLVM_PRETTY_FUNCTION);
+      });
 }
 
 Element Element::operator|(const Element &other) const {
-  auto left = this->getIntegerValue();
-  auto right = other.getIntegerValue();
-  return Element(getType(), left | right);
-}
-
-Element Element::operator^(const Element &other) const {
-  auto left = this->getIntegerValue();
-  auto right = other.getIntegerValue();
-  return Element(getType(), left ^ right);
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs | rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
+      [](APFloat lhs, APFloat rhs) -> APFloat {
+        report_fatal_error(StringRef("Unsupported floating-point type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        report_fatal_error(StringRef("Unsupported complex type") +
+                           LLVM_PRETTY_FUNCTION);
+      });
 }
 
 Element Element::operator~() const {
-  return Element(getType(), ~this->getIntegerValue());
+  return map(
+      *this, [](APInt val) { return ~val; },
+      [](bool val) -> bool { return !val; },
+      [](APFloat val) -> APFloat {
+        report_fatal_error(StringRef("Unsupported floating-point type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
+      [](std::complex<APFloat> val) -> std::complex<APFloat> {
+        report_fatal_error(StringRef("Unsupported complex type") +
+                           LLVM_PRETTY_FUNCTION);
+      });
 }
 
 Element ceil(const Element &el) {
@@ -235,6 +307,10 @@ Element max(const Element &e1, const Element &e2) {
                    ? llvm::APIntOps::smax(lhs, rhs)
                    : llvm::APIntOps::umax(lhs, rhs);
       },
+      [](bool lhs, bool rhs) -> bool {
+        report_fatal_error(StringRef("Unsupported boolean type") +
+                           LLVM_PRETTY_FUNCTION);
+      },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
@@ -251,6 +327,10 @@ Element min(const Element &e1, const Element &e2) {
         return isSupportedSignedIntegerType(e1.getType())
                    ? llvm::APIntOps::smin(lhs, rhs)
                    : llvm::APIntOps::umin(lhs, rhs);
+      },
+      [](bool lhs, bool rhs) -> bool {
+        report_fatal_error(StringRef("Unsupported boolean type") +
+                           LLVM_PRETTY_FUNCTION);
       },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
@@ -276,6 +356,11 @@ Element tanh(const Element &el) {
 void Element::print(raw_ostream &os) const {
   if (isSupportedIntegerType(type_)) {
     IntegerAttr::get(type_, getIntegerValue()).print(os);
+    return;
+  }
+
+  if (isSupportedBooleanType(type_)) {
+    IntegerAttr::get(type_, getBooleanValue()).print(os);
     return;
   }
 
