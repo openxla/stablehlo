@@ -1674,10 +1674,11 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
       [NoSideEffect, SameOperandsAndResultElementType]> {
   let summary = "Broadcast a tensor into the given shape by adding dimensions.";
   let description = [{
-    Broadcasts the `operand` tensor to a higher rank.
+    Expands the dimensions and/or rank of an input tensor by duplicating the
+    data in the `operand` tensor and produces a `result` tensor.
 
     See:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobroadcastindim
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobroadcast_in_dim
 
     Example:
     ```mlir

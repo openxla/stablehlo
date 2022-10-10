@@ -450,6 +450,14 @@ func.func @broadcast_in_dim_bad_rank_decrease(%arg0: tensor<1x2x3xi32>) -> tenso
 
 // -----
 
+func.func @broadcast_in_dim_duplicate_bcast_dimensions(%arg0: tensor<1x1x3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+1 {{broadcast_dimensions should not have duplicates}}
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[0,0,2]> : tensor<3xi64>} : (tensor<1x1x3xi32>) -> tensor<1x2x3xi32>
+  func.return %0 : tensor<1x2x3xi32>
+}
+
+// -----
+
 func.func @broadcast_in_dim_dimension_values_too_large(%arg0: tensor<1x2xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+1 {{broadcast_dimensions contains invalid value 9 for result with rank 3}}
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[9, 2]> : tensor<2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x3xi32>

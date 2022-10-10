@@ -41,7 +41,7 @@ one of the following tracking labels.
 | batch_norm_inference     |      no       |     yes*     |       yes*        |        no         |     no      |
 | batch_norm_training      |      no       |     yes*     |       yes*        |        no         |     no      |
 | bitcast_convert          |      no       |     yes*     |    infeasible     |        yes        |     no      |
-| broadcast\_in\_dim       |      yes      |     yes      |    infeasible     |        no         |     no      |
+| broadcast_in_dim         |      yes      |     yes      |    infeasible     |        no         |     no      |
 | broadcast                |      no       |     yes*     |       yes*        |        no         |     no      |
 | case                     |      no       |     yes*     |       yes*        |        no         |     no      |
 | cbrt                     |      no       |     yes*     |       yes*        |        yes        |     no      |
