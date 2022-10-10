@@ -108,9 +108,9 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   return etp1 == etp2;
 }
 
-bool isCompatibleForHloTypeInference(TypeRange l, TypeRange r) {
-  if (l.size() != r.size()) return false;
-  for (auto [lt, rt] : llvm::zip(l, r))
+bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
+  if (tp1.size() != tp2.size()) return false;
+  for (auto [lt, rt] : llvm::zip(tp1, tp2))
     if (!isCompatibleForHloTypeInference(lt, rt)) return false;
   return true;
 }
