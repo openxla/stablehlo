@@ -622,3 +622,25 @@ func.func @add_bounds_unranked(
   %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: func @transpose
+func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<*xindex> {
+  %0 = "mhlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<*xi32>
+
+  // CHECK: types0 = tensor<2x1x4x3xi32>
+  %1 = "mhlo_test.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @transpose_with_bounds
+func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #mhlo.type_extensions<bounds = [1, -1, 3, -1]>>) -> tensor<*xindex> {
+  %0 = "mhlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x2x?x4xi32, #mhlo.type_extensions<bounds = [1, -1, 3, -1]>>) -> tensor<*xi32>
+
+  // CHECK: types0 = tensor<2x?x4x?xi32, #mhlo.type_extensions<bounds = [-1, 1, -1, 3]>>
+  %1 = "mhlo_test.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}

@@ -4138,7 +4138,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
 // Method for InferTypeOpInterface: infer the return type from the operand type
 // and the permutation.
 LogicalResult TransposeOp::inferReturnTypes(
-    MLIRContext* /*context*/, Optional<Location> loc, ValueRange operands,
+    MLIRContext* context, Optional<Location> loc, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operands[0].getType();
@@ -4168,13 +4168,31 @@ LogicalResult TransposeOp::inferReturnTypes(
                              " of [",
                              range, "] but got ", permutation);
 
+  llvm::SmallVector<int64_t, 4> inputBounds(rank, ShapedType::kDynamicSize);
+  bool hasBounds = false;
+  if (auto encoding =
+          rankedTy.getEncoding().dyn_cast_or_null<TypeExtensionsAttr>()) {
+    inputBounds = llvm::to_vector<4>(encoding.getBounds());
+    hasBounds = true;
+  }
+
   SmallVector<int64_t> resultShape;
+  SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
   for (int64_t dim : permutation.getValues<int64_t>()) {
     resultShape.push_back(inputShape[dim]);
+    if (hasBounds) {
+      resultBounds.push_back(inputBounds[dim]);
+    }
   }
-  inferredReturnTypes.emplace_back(RankedTensorType::get(
-      resultShape, rankedTy.getElementType(), rankedTy.getEncoding()));
+
+  // If the input type doesn't have bounds, propagate the input type's encoding
+  // to handle sparse tensor encoding.
+  Attribute encoding = hasBounds
+                           ? TypeExtensionsAttr::get(context, resultBounds)
+                           : rankedTy.getEncoding();
+  inferredReturnTypes.emplace_back(
+      RankedTensorType::get(resultShape, rankedTy.getElementType(), encoding));
   return success();
 }
 
