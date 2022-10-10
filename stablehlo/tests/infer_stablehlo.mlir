@@ -471,16 +471,16 @@ func.func @complex_sparsity(%arg0: tensor<10x10xf32, #CSR>, %arg1: tensor<10x10x
 // CHECK-LABEL: func @reduce
 func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
     -> (tensor<4xindex>) {
-  %0 = "mhlo.reduce"(%arg0, %arg1) ({
+  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
-    %1 = "mhlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
-    "mhlo.return"(%1) : (tensor<4xf32>) -> ()
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+    "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
 
   }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
-  %2 = "mhlo_test.get_return_type_components"(%0)
+  %2 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<4xf32>) -> tensor<4xindex>
-// CHECK: %1 = "mhlo_test.get_return_type_components"(%0) : (tensor<4xf32>) -> tensor<4xindex>
+// CHECK: %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<4xf32>) -> tensor<4xindex>
   func.return %2: tensor<4xindex>
 }
 
@@ -502,11 +502,11 @@ func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
            window_strides = dense<[3, 1]> : tensor<2xi64> }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x2xi32>)
-  // CHECK: %1 = "mhlo_test.get_return_type_components"(%0#0) : (tensor<2x2xf32>) -> tensor<2x2xindex>
-  %1 = "mhlo_test.get_return_type_components"(%0#0)
+  // CHECK: %1 = "hlo_test_infer.get_return_type_components"(%0#0) : (tensor<2x2xf32>) -> tensor<2x2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0#0)
       : (tensor<2x2xf32>) -> tensor<2x2xindex>
-  // CHECK: %2 = "mhlo_test.get_return_type_components"(%0#1) : (tensor<2x2xi32>) -> tensor<2x2xindex>
-  %2 = "mhlo_test.get_return_type_components"(%0#1)
+  // CHECK: %2 = "hlo_test_infer.get_return_type_components"(%0#1) : (tensor<2x2xi32>) -> tensor<2x2xindex>
+  %2 = "hlo_test_infer.get_return_type_components"(%0#1)
       : (tensor<2x2xi32>) -> tensor<2x2xindex>
   func.return %1, %2 : tensor<2x2xindex>, tensor<2x2xindex>
 }
