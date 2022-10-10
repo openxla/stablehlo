@@ -183,9 +183,7 @@ Element Element::operator&(const Element &other) const {
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("bool + bool is unsupported");
-      },
+      [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         // NOTE: lhs + rhs doesn't work for std::complex<APFloat>
@@ -288,9 +286,7 @@ Element max(const Element &e1, const Element &e2) {
                    ? llvm::APIntOps::smax(lhs, rhs)
                    : llvm::APIntOps::umax(lhs, rhs);
       },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("max(bool, bool) is unsupported");
-      },
+      [](bool lhs, bool rhs) -> bool { return lhs ^ rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
@@ -308,9 +304,7 @@ Element min(const Element &e1, const Element &e2) {
                    ? llvm::APIntOps::smin(lhs, rhs)
                    : llvm::APIntOps::umin(lhs, rhs);
       },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("min(bool, bool) is unsupported");
-      },
+      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
