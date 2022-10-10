@@ -1472,10 +1472,9 @@ def StableHLO_SliceOp: StableHLO_Op<
       [NoSideEffect, SameOperandsAndResultElementType,
        AllTypesMatch<["start_indices", "limit_indices", "strides"]>,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Iota operator";
+  let summary = "Slice operator";
   let description = [{
-    Extracts a sub-tensor from the `operand` using the dimension indices from
-    the operands.
+    Extracts a sub-tensor from the `operand` and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloslice
@@ -1483,9 +1482,9 @@ def StableHLO_SliceOp: StableHLO_Op<
     Example:
     ```mlir
     %0 = "stablehlo.slice" (%arg0) {
-      start_indices = dense<2> : tensor<i64>,
-      limit_indices = dense<4> : tensor<i64>,
-      strides = dense<1> : tensor<i64>
+      start_indices = dense<2> : tensor<1xi64>,
+      limit_indices = dense<4> : tensor<1xi64>,
+      strides = dense<1> : tensor<1xi64>
     } : (tensor<5xi64>) -> tensor<2xi64>
     ```
   }];

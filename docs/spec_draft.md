@@ -1322,24 +1322,22 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Extracts a sub-tensor from the `operand` using the dimension indices from the
-operands.
+Extracts a sub-tensor from the `operand` and produces a `result` tensor.
+`start_indices` contain the starting indices of the slice for each dimension,
+`limit_indices` contain the ending indices (exclusive) for the slice for each
+dimension, and `strides` contain the strides for each dimension.
 
-More formally, `result[i0, ..., ik, ..., iR-1] = operand[j0+s0, ..., jk+sk, ..., jR-1+sR-1]`
-for all `sk` in `strides` for all `jk` in `start_indices[k]` $\leq$ `jk` $\lt$
-`limit_indices[k]` where 0 $\leq$ `k` $\lt$ rank(`operand`).
-
-Shape is calculated by `dim(result, i)` = $\lceil$`(limit_indices[i]-start_indices[i])/stride[i]`$\rceil$
-for `i`th dimension size of `operand`.
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
+`jd = start_indices[d] + id * strides[d]`.
 
 ### Operands
 
-| Name            | Type                                                                                                                                    |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| `operand`       | tensor of any supported types                                                                                                           |
-| `start_indices` | 1-dimensional array of integers containing the starting indices of the slice for each dimension                                         |
-| `limit_indices` | 1-dimensional array of integers containing the ending indices (exclusive) for the slice for each dimension                              |
-| `strides`       | 1-dimensional array of integers that decides the input stride of the slice. The slice picks every `strides[d]` element in `d` dimension |
+| Name            | Type                          |
+|-----------------|-------------------------------|
+| `operand`       | tensor of any supported types |
+| `start_indices` | 1-dimensional array of `si64` |
+| `limit_indices` | 1-dimensional array of `si64` |
+| `strides`       | 1-dimensional array of `si64` |
 
 ### Results
 
@@ -1350,12 +1348,15 @@ for `i`th dimension size of `operand`.
 ### Constraints
 
   * (C1) `operand` and `result` have the same element type.
-  * (C2) `start_indices`, `limit_indices`, and `strides` have the same type.
+  * (C2) `operand` and `result` have the same rank.
   * (C3) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
   rank(`operand`).
   * (C4) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
-  size(`operand[d]`) for all dimension `d`.
+  `dim(operand, d)` for all dimension `d`.
   * (C5) 0 $\lt$ `strides[d]` for all dimension `d`.
+  * (C6) Shape is formulated as `dim(result, i)` =
+  $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
+  dimension `d`.
 
 ### Examples
 
@@ -1363,10 +1364,10 @@ for `i`th dimension size of `operand`.
 // 1-dimensional slice
 
 // %operand: [0, 1, 2, 3, 4]
-%result = "stablehlo.slice" (%operand) {
-  start_indices = dense<2> : tensor<i64>,
-  limit_indices = dense<4> : tensor<i64>,
-  strides = dense<1> : tensor<i64>
+%result = "stablehlo.slice"(%operand) {
+  start_indices = dense<2> : tensor<1xi64>,
+  limit_indices = dense<4> : tensor<1xi64>,
+  strides = dense<1> : tensor<1xi64>
 } : (tensor<5xi64>) -> tensor<2xi64>
 // %result: [2, 3]
 
@@ -1377,7 +1378,7 @@ for `i`th dimension size of `operand`.
 //            [0, 0, 1, 1],
 //            [0, 0, 1, 1]
 //           ]
-%result = "stablehlo.slice" (%operand) {
+%result = "stablehlo.slice"(%operand) {
   start_indices = dense<[1, 2]> : tensor<2xi64>,
   limit_indices = dense<[3, 4]> : tensor<2xi64>,
   strides = dense<1> : tensor<2xi64>
