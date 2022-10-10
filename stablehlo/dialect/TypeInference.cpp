@@ -867,8 +867,8 @@ LogicalResult inferReduceWindowOp(
   if (failed(windowDilationsOrErr)) return failure();
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhs_dilation=*/*baseDilationsOrErr,
-      /*rhs_dilation=*/*windowDilationsOrErr, location);
+      /*lhsDilation=*/*baseDilationsOrErr,
+      /*rhsDilation=*/*windowDilationsOrErr, location);
   if (failed(windowOrErr)) return failure();
 
   // P5.
