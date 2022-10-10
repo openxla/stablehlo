@@ -54,7 +54,7 @@ def CHLO_Dialect : Dialect {
     dialects.
   }];
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
