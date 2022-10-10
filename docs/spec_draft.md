@@ -195,15 +195,15 @@ defined and one of the following:
 
 ### Operands
 
-| Name      | Type                                                        |
-|-----------|-------------------------------------------------------------|
-| `operand` | tensor of integer, floating-point, or complex element types |
+| Name      | Type                                                               |
+|-----------|--------------------------------------------------------------------|
+| `operand` | tensor of signed integer, floating-point, or complex element types |
 
 ### Results
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| Name     | Type                                                               |
+|----------|--------------------------------------------------------------------|
+| `result` | tensor of signed integer, floating-point, or complex element types |
 
 ### Constraints
 
