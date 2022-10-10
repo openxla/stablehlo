@@ -195,15 +195,15 @@ defined and one of the following:
 
 ### Operands
 
-| Name      | Type                                                        |
-|-----------|-------------------------------------------------------------|
-| `operand` | tensor of integer, floating-point, or complex element types |
+| Name      | Type                                                               |
+|-----------|--------------------------------------------------------------------|
+| `operand` | tensor of signed integer, floating-point, or complex element types |
 
 ### Results
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| Name     | Type                                                               |
+|----------|--------------------------------------------------------------------|
+| `result` | tensor of signed integer, floating-point, or complex element types |
 
 ### Constraints
 
@@ -989,6 +989,10 @@ from the specified dimension.
 elements in each dimension which may not be negative. Interior padding occurs
 before edge padding such that negative edge padding will remove elements from
 the interior-padded operand.
+
+More formally, `result[i0, ..., iR-1]` is equal to:
+  * `operand[j0, ..., jR-1]` if `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
+  * `padding_value[]` otherwise.
 
 ### Operands
 

@@ -253,9 +253,9 @@ LogicalResult ReduceScatterOp::verify() {
     return failure();
 
   return verifyReduceScatter(*this,
-                             /*operand_types=*/{getOperand().getType()},
-                             /*result_types=*/{getType()},
-                             /*scatter_dimension=*/getScatterDimension());
+                             /*operandTypes=*/{getOperand().getType()},
+                             /*resultTypes=*/{getType()},
+                             /*scatterDimension=*/getScatterDimension());
 }
 
 //===----------------------------------------------------------------------===//
@@ -4379,7 +4379,7 @@ LogicalResult SelectAndScatterOp::verify() {
   if (failed(windowStridesOrErr)) return failure();
   auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhs_dilation=*/{}, /*rhs_dilation=*/{}, getLoc());
+      /*lhsDilation=*/{}, /*rhsDilation=*/{}, getLoc());
   if (failed(windowOrErr)) return failure();
 
   // P5.
