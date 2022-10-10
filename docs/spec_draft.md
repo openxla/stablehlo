@@ -252,7 +252,7 @@ of the following:
 
 For floating-point element types, it implements the `addition` operation from
 the IEEE-754 specification. For boolean element types, the behavior is same as
-[stablehlo.xor](#stablehloor).
+[stablehlo.or](#stablehloor).
 
 ### Operands
 
@@ -770,7 +770,7 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element types, it follows the order `true` > `false`.
+For boolean element types, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Operands
 
@@ -810,7 +810,8 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element types, it follows the order `true` > `false`.
+For boolean element types, the behavior is same as
+[stablehlo.and](#stablehloand).
 
 ### Operands
 
