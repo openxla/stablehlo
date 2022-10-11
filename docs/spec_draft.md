@@ -338,14 +338,14 @@ in the `operand` tensor and produces a `result` tensor. Formally,
 `jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]`, for all
 dimensions `k` in `operand`.
 
-### Operands
+### Inputs
 
-| Name                   | Type                                  |
-|------------------------|---------------------------------------|
-| `operand`              | tensor of any supported element types |
-| `broadcast_dimensions` | 1-dimensional array of type `si64`    |
+| Name                   | Type                                         |
+|------------------------|----------------------------------------------|
+| `operand`              | tensor of any supported element types        |
+| `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                                  |
 |----------|---------------------------------------|
@@ -356,7 +356,7 @@ dimensions `k` in `operand`.
   * (C1) `operand` and `result` have the same element type.
   * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
   * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
-  dimensions i in `operand`.
+         dimensions i in `operand`.
   * (C4) All dimensions in `broadcast_dimensions` are unique.
   * (C5) For all dimensions `j` in `operand`:
     * `dim(operand, j) = 1` or
