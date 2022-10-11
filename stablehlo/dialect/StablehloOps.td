@@ -2232,9 +2232,24 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   let summary = "General Dot operator";
   let description = [{
     Performs general dot products between vectors, vector/matrix and
-    matrix/matrix multiplication.
+    matrix/matrix multiplication over dimensions specified in
+    `dot_dimension_numbers`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#dotgeneral.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlodot_general
+
+    Example:
+    ```mlir
+    %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+      precision_config = [#stablehlo<precision DEFAULT>],
+      dot_dimension_numbers = #stablehlo.dot<
+        lhs_batching_dimensions = [],
+        rhs_batching_dimensions = [],
+        lhs_contracting_dimensions = [1],
+        rhs_contracting_dimensions = [1]
+      >
+    } : (tensor<2x3xi32>, tensor<2x3xi32>) -> tensor<2x2xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$lhs,
