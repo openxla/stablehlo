@@ -143,8 +143,8 @@ described below)
 
   * **Semantics** Semantics of the operation.
   * **Inputs** Meaning of input(s) and their type(s).
-  * **Outputs** Meaning of the outputs(s) and the type(s).
-  * **Constraints** Constraints on the input(s) and the outputs(s).
+  * **Outputs** Meaning of the output(s) and the type(s).
+  * **Constraints** Constraints on the input(s) and the output(s).
   * **Examples** Examples demonstrating the working of the op using
     [MLIR generic syntax](https://mlir.llvm.org/docs/LangRef/#operations).
 
