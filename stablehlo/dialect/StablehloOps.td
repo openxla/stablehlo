@@ -1682,7 +1682,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
 
     Example:
     ```mlir
-    "mhlo.broadcast_in_dim"(%operand) {
+    "stablehlo.broadcast_in_dim"(%operand) {
       broadcast_dimensions = dense<[0, 1]>: tensor<2xi64>
     } : (tensor<2x1xi32>) -> tensor<2x3x2xi32>
     ```

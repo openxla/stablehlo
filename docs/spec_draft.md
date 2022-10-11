@@ -353,14 +353,14 @@ dimensions `k` in `operand`.
 
 ### Constraints
 
-  * (C1) `operand` and `result` have the element type.
+  * (C1) `operand` and `result` have the same element type.
   * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
-  * (C3) $0 \le$ `broadcast_dimensions`[i] $\lt$ rank(`result`) for all
+  * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
   dimensions i in `operand`.
   * (C4) All dimensions in `broadcast_dimensions` are unique.
-  * (C5) For all dimensions `i` in `operand`:
-    * `dim(operand, i) = 1` or
-    * `dim(operand, i) = dim(result, j)` where `j = broadcast_dimensions[i]`.
+  * (C5) For all dimensions `j` in `operand`:
+    * `dim(operand, j) = 1` or
+    * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
 
 ### Examples
 
