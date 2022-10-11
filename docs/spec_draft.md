@@ -333,11 +333,11 @@ logical operation.
 ### Semantics
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
-in the `operand` tensor and produces a `result` tensor. Formally, 
+in the `operand` tensor and produces a `result` tensor. Formally,
 `result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
-`jk` $=$ `dim(operand, k) == 1 ? 0 : i[boradcast_dimensions[k]]`, for all
+`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]`, for all
 dimensions `k` in `operand`.
-  
+
 ### Operands
 
 | Name                   | Type                                  |
@@ -354,53 +354,34 @@ dimensions `k` in `operand`.
 ### Constraints
 
   * (C1) `operand` and `result` have the element type.
-  * (C2) dim(`broadcast_dimensions`, 0) $=$ rank(`operand`).
+  * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
   * (C3) $0 \le$ `broadcast_dimensions`[i] $\lt$ rank(`result`) for all
   dimensions i in `operand`.
   * (C4) All dimensions in `broadcast_dimensions` are unique.
   * (C5) For all dimensions `i` in `operand`:
     * `dim(operand, i) = 1` or
-    * `dim(operand, i) = dim(result, j)` where `j = broadcast_dimensions[i]`.  
+    * `dim(operand, i) = dim(result, j)` where `j = broadcast_dimensions[i]`.
 
 ### Examples
 
 ```mlir
 // %operand: [
-//            [
-//             [1, 2],
-//             [3, 4],
-//             [5, 6]
-//            ],
-//            [
-//             [7, 8],
-//             [9, 10],
-//             [11, 12]
-//            ],
+//            [1, 2, 3],
 //           ]
 %result = "stablehlo.broadcast_in_dim"(%operand) {
-  broadcast_dimensions = dense<[2, 3, 0]>: tensor<2xi64>
- } : (tensor<2x3x2xi32>) -> tensor<2x2x2x3xi32>
+  broadcast_dimensions = dense<[2, 1]>: tensor<2xi64>
+} : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
 // %result: [
-//           [
 //            [
-//             [1, 3, 5],
-//             [7, 9, 11]
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
 //            ],
 //            [
-//             [1, 3, 5],
-//             [7, 9, 11]
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
 //            ],
-//           ],
-//           [
-//            [
-//             [2, 4, 6],
-//             [8, 10, 12]
-//            ],
-//            [
-//             [2, 4, 6],
-//             [8, 10, 12]
-//            ],
-//           ]
 //          ]
 ```
 
@@ -1544,9 +1525,8 @@ where `i[d] = j[permutation[d]]`.
   * (C1) `operand` and `result` have the same element type.
   * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
   rank of `operand`.
-  * (C3) `result`'s shape is a permutation of `operand`'s shape w.r.t
-  `permutation`. Formally, for all dimensions `i` in `operand`,
-  `dim(operand, i) = dim(result, j)` where `j = permutation[i]`.
+  * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
+  where `j = permutation[i]`.
 
 ### Examples
 
