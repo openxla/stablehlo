@@ -31,12 +31,11 @@ one of the following tracking labels.
 |:-------------------------|:-------------:|:------------:|:-----------------:|:-----------------:|:-----------:|
 | abs                      |      yes      |     yes      |       yes         |        yes        |     no      |
 | add                      |      yes      |     yes      |       yes         |        yes        |     no      |
-| add                      |      yes      |     yes      |       yes         |        yes        |     no      |
 | after_all                |      no       |      no      |        no         |        yes        |     no      |
 | all_gather               |      no       |     yes*     |        no         |        no         |     no      |
 | all_reduce               |      no       |      no      |        no         |        no         |     no      |
 | all_to_all               |      no       |     yes*     |       yes*        |        no         |     no      |
-| and                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| and                      |      yes      |     yes      |        yes        |        yes        |     yes     |
 | atan2                    |      no       |     yes*     |       yes*        |        yes        |     no      |
 | batch_norm_grad          |      no       |     yes*     |       yes*        |        no         |     no      |
 | batch_norm_inference     |      no       |     yes*     |       yes*        |        no         |     no      |
@@ -95,9 +94,9 @@ one of the following tracking labels.
 | minimum                  |      yes      |     yes      |       yes         |        yes        |     no      |
 | multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
 | negate                   |      yes      |     yes      |        yes        |        yes        |     yes     |
-| not                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| not                      |      yes      |     yes      |        yes        |        yes        |     yes     |
 | optimization_barrier     |      no       |     yes*     |        no         |        yes        |     no      |
-| or                       |      yes      |     yes      |        yes        |        yes        |     no      |
+| or                       |      yes      |     yes      |        yes        |        yes        |     yes     |
 | outfeed                  |      no       |     yes*     |        no         |        no         |     no      |
 | pad                      |      yes      |     yes      |        yes        |        no         |     no      |
 | popcnt                   |      no       |     yes*     |       yes*        |        yes        |     no      |
@@ -143,4 +142,4 @@ one of the following tracking labels.
 | uniform_dequantize       |      no       |     yes*     |       yes*        |        yes        |     no      |
 | uniform_quantize         |      no       |     yes*     |    infeasible     |        yes        |     no      |
 | while                    |      no       |     yes*     |       yes*        | yes(need-revisit) |     no      |
-| xor                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| xor                      |      yes      |     yes      |        yes        |        yes        |     yes     |

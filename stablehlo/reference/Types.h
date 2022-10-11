@@ -29,6 +29,10 @@ bool isSupportedUnsignedIntegerType(Type type);
 /// StableHLO specification. Such types are: i4, i8, i16, i32 and i64.
 bool isSupportedSignedIntegerType(Type type);
 
+/// Check if the type 'type' is a supported boolean type per the StableHLO
+/// specification. Supported type is: i1.
+bool isSupportedBooleanType(Type type);
+
 /// Check if the type 'type' is a supported integer type per the
 /// StableHLO specification. See `isSupportedUnsignedIntegerType` and
 /// `isSupportedSignedIntegerType` for a comprehensive list of supported types.
