@@ -920,20 +920,20 @@ If `indices_are_sorted` is `true` then the implementation can assume that the
 `start_indices` are sorted (in ascending `start_index_map` order) by the user.
 If they are not then the semantics is implementation defined.
 
-### Operands
+### Inputs
 
-| Name                   | Description                                                                                        | Type                                  | Constraints         |
-|------------------------|----------------------------------------------------------------------------------------------------|---------------------------------------|---------------------|
-| `operand`              | The input `tensor` to gather slices from                                                           | tensor of any supported element types |       (C1)          |
-| `start_indices`        | A tensor containing the starting indices of the slices to be gathered                              | tensor of element type `si64`         |                     |
-| `offset_dims`          | The set of dimensions in the `result` shape that offset into an array sliced from `operand`        | 1-D tensor of element type `si64`     | (C8),(C9)           |
-| `collapsed_slice_dims` | The set of dimensions in each slice that are collapsed away.                                       | 1-D tensor of element type `si64`     | (C10), (C11), (C12) |
-| `start_index_map`      | A map that describes how to scatter indices in `start_indices` to the iteration space of `operand` | 1-D tensor of element type `si64`     | (C3),(C4),(C5)      |
-| `index_vector_dim`     | The dimension in `start_indices` containing the starting indices                                   | `si64`                                | (C2)                |
-| `slice_sizes`          | `slice_sizes`[i] is the size of the slice gathered from `operand` in dimension i                   | 1-D tensor of element type `si64`     | (C6), (C7), (C12)   |
-| `indices_are_sorted`   | Whether the indices are guaranteed to be sorted by the caller.                                     | boolean                               |                     |
+| Name                   | Description                                                                                        | Type                                         | Constraints         |
+|------------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------|---------------------|
+| `operand`              | The input `tensor` to gather slices from                                                           | tensor of any supported  types               | (C1)                |
+| `start_indices`        | A tensor containing the starting indices of the slices to be gathered                              | tensor of type `si64`                        |                     |
+| `offset_dims`          | The set of dimensions in the `result` shape that offset into an array sliced from `operand`        | 1-dimensional tensor constant of type `si64` | (C8),(C9)           |
+| `collapsed_slice_dims` | The set of dimensions in each slice that are collapsed away.                                       | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C12) |
+| `start_index_map`      | A map that describes how to scatter indices in `start_indices` to the iteration space of `operand` | 1-dimensional tensor constant of type `si64` | (C3),(C4),(C5)      |
+| `index_vector_dim`     | The dimension in `start_indices` containing the starting indices                                   | `si64`                                       | (C2)                |
+| `slice_sizes`          | `slice_sizes`[i] is the size of the slice gathered from `operand` in dimension i                   | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C12)   |
+| `indices_are_sorted`   | Whether the indices are guaranteed to be sorted by the caller.                                     | boolean                                      |                     |
 
-### Results
+### Outputs
 
 | Name     | Type                                  |
 |----------|---------------------------------------|

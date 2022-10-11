@@ -2179,7 +2179,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlogather
 
     ```mlir
-    %result = "mhlo.gather"(%operand, %start_indices) {
+    %result = "stablehlo.gather"(%operand, %start_indices) {
       dimension_numbers = #mhlo.gather<
         collapsed_slice_dims = [0],
         index_vector_dim = 2,
