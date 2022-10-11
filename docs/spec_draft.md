@@ -1390,7 +1390,7 @@ dimension, and `strides` contain the strides for each dimension.
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 `jd = start_indices[d] + id * strides[d]`.
 
-### Operands
+### Inputs
 
 | Name            | Type                          |
 |-----------------|-------------------------------|
@@ -1399,7 +1399,7 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 | `limit_indices` | 1-dimensional array of `si64` |
 | `strides`       | 1-dimensional array of `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
