@@ -1348,13 +1348,12 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 ### Constraints
 
   * (C1) `operand` and `result` have the same element type.
-  * (C2) `operand` and `result` have the same rank.
-  * (C3) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
+  * (C2) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
   rank(`operand`).
-  * (C4) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
+  * (C3) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
   `dim(operand, d)` for all dimension `d`.
-  * (C5) 0 $\lt$ `strides[d]` for all dimension `d`.
-  * (C6) `dim(result, d)` =
+  * (C4) 0 $\lt$ `strides[d]` for all dimension `d`.
+  * (C5) `dim(result, d)` =
   $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
   dimension `d` in `operand`.
 
