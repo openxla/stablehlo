@@ -164,6 +164,7 @@ described below)
    * [logistic](#stablehlologistic)
    * [maximum](#stablehlomaximum)
    * [minimum](#stablehlominimum)
+   * [multiply](#stablehlomultiply)
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
@@ -240,15 +241,14 @@ defined and one of the following:
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise sum has an
-unsigned/signed overflow/underflow, the result is implementation-defined and one
+unsigned/signed overflow, the result is implementation-defined and one
 of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-  unsigned underflow).
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `addition` operation from
 the IEEE-754 specification. For boolean element types, the behavior is same as
@@ -843,6 +843,60 @@ For boolean element types, the behavior is same as
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.multiply
+
+### Semantics
+
+Performs element-wise product of two tensors `lhs` and `rhs` and produces a
+`result` tensor. For integer element types, if the element-wise product has an
+unsigned/signed overflow, the result is implementation-defined and one
+of the following:
+
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
+
+For floating-point element types, it implements the `multiplication` operation
+from the IEEE-754 specification.
+
+For complex element types, it computes a complex multiplication, with corner
+cases TBD.
+
+For boolean element types, the behavior is same as
+[stablehlo.and](#stablehloand).
+
+### Operands
+
+| Name  | Type                                  |
+|-------|---------------------------------------|
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
+
+### Results
+
+| Name     | Type                                  |
+|----------|---------------------------------------|
+| `result` | tensor of all supported element types |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [[1, 2], [3, 4]]
+// %rhs: [[5, 6], [7, 8]]
+%result = "stablehlo.multiply"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+// %result: [[5, 12], [21, 32]]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_multiply.mlir)
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.negate
 
 ### Semantics
@@ -1307,15 +1361,14 @@ specification.
 
 Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise difference has
-an unsigned/signed overflow/underflow, the result is implementation-defined and
-one of the following:
+an unsigned/signed overflow, the result is implementation-defined and one of the
+following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-  unsigned underflow).
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `subtraction` operation from
 the IEEE-754 specification.

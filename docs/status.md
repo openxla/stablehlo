@@ -92,7 +92,7 @@ one of the following tracking labels.
 | map                      |      no       |     yes*     |        no         |        no         |     no      |
 | maximum                  |      yes      |     yes      |       yes         |        yes        |     yes     |
 | minimum                  |      yes      |     yes      |       yes         |        yes        |     yes     |
-| multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
+| multiply                 |      yes      |     yes      |        yes        |        yes        |     no      |
 | negate                   |      yes      |     yes      |        yes        |        yes        |     yes     |
 | not                      |      yes      |     yes      |        yes        |        yes        |     yes     |
 | optimization_barrier     |      no       |     yes*     |        no         |        yes        |     no      |

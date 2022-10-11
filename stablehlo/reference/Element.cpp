@@ -195,6 +195,19 @@ Element Element::operator+(const Element &other) const {
       });
 }
 
+Element Element::operator*(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
+      [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // TODO(#226): Use std::complex::operator*
+        auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
+        auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
 Element Element::operator-() const {
   return map(
       *this, [&](APInt val) { return -val; },
