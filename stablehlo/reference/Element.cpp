@@ -286,7 +286,7 @@ Element max(const Element &e1, const Element &e2) {
                    ? llvm::APIntOps::smax(lhs, rhs)
                    : llvm::APIntOps::umax(lhs, rhs);
       },
-      [](bool lhs, bool rhs) -> bool { return lhs ^ rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
         auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual

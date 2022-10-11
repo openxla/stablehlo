@@ -155,7 +155,7 @@ func.func @add_op_test_i1() -> tensor<4xi1> {
   // CHECK-NEXT: false
   // CHECK-NEXT: true
   // CHECK-NEXT: true
-  // CHECK-NEXT: false
+  // CHECK-NEXT: true
 }
 
 // -----

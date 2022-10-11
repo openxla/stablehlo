@@ -272,9 +272,8 @@ void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
     return;
   }
 
-  // Handle boolean & unsigned integer types.
-  if (elementType.isSignlessInteger(1) || elementType.isUnsignedInteger(4) ||
-      elementType.isUnsignedInteger(8)) {
+  // Handle unsigned integer types.
+  if (elementType.isUnsignedInteger(4) || elementType.isUnsignedInteger(8)) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getIntegerValue();
     *elementData = (uint8_t)value.getZExtValue();
@@ -428,9 +427,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
                   HeapAsmResourceBlob::allocateAndCopy<int64_t>(intValues));
   }
 
-  // Handle boolean & unsigned integer types.
-  if (elemType.isSignlessInteger(1) || elemType.isUnsignedInteger(4) ||
-      elemType.isUnsignedInteger(8)) {
+  // Handle unsigned integer types.
+  if (elemType.isUnsignedInteger(4) || elemType.isUnsignedInteger(8)) {
     auto intValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APInt>(),
         [&](APInt value) -> uint8_t { return value.getZExtValue(); }));
