@@ -46,8 +46,8 @@ class IndexSpaceIterator {
       : shape_(shape), index_(index) {
     if (index && failed(verifyIndex(shape, (*index))))
       llvm::report_fatal_error(
-          llvm::StringRef("Incompatible index and shape found in: ") +
-          LLVM_PRETTY_FUNCTION);
+          "Incompatible index and shape found while creating "
+          "an IndexSpaceIterator");
   }
 
   /// Get the current index.
