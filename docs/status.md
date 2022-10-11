@@ -30,7 +30,8 @@ one of the following tracking labels.
 | StableHLO Op             | Specification | Verification |  Type Inference   |  Pretty Printing  | Interpreter |
 |:-------------------------|:-------------:|:------------:|:-----------------:|:-----------------:|:-----------:|
 | abs                      |      yes      |     yes      |       yes         |        yes        |     no      |
-| add                      |      no       |     yes*     |       yes*        |        yes        |     yes     |
+| add                      |      yes      |     yes      |       yes         |        yes        |     no      |
+| add                      |      yes      |     yes      |       yes         |        yes        |     no      |
 | after_all                |      no       |      no      |        no         |        yes        |     no      |
 | all_gather               |      no       |     yes*     |        no         |        no         |     no      |
 | all_reduce               |      no       |      no      |        no         |        no         |     no      |
@@ -90,8 +91,8 @@ one of the following tracking labels.
 | log_plus_one             |      no       |     yes*     |       yes*        |        yes        |     no      |
 | logistic                 |      yes      |     yes      |        yes        |        yes        |     no      |
 | map                      |      no       |     yes*     |        no         |        no         |     no      |
-| maximum                  |      no       |     yes*     |       yes*        |        yes        |     yes     |
-| minimum                  |      no       |     yes*     |       yes*        |        yes        |     yes     |
+| maximum                  |      yes      |     yes      |       yes         |        yes        |     no      |
+| minimum                  |      yes      |     yes      |       yes         |        yes        |     no      |
 | multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
 | negate                   |      yes      |     yes      |        yes        |        yes        |     yes     |
 | not                      |      yes      |     yes      |        yes        |        yes        |     no      |

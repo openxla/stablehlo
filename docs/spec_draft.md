@@ -251,20 +251,21 @@ of the following:
   unsigned underflow).
 
 For floating-point element types, it implements the `addition` operation from
-the IEEE-754 specification.
+the IEEE-754 specification. For boolean element types, the behavior is same as
+[stablehlo.or](#stablehloor).
 
 ### Operands
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
 ### Results
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
@@ -769,19 +770,20 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
+For boolean element types, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Operands
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
 ### Results
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
@@ -808,19 +810,21 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
+For boolean element types, the behavior is same as
+[stablehlo.and](#stablehloand).
 
 ### Operands
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
 ### Results
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
