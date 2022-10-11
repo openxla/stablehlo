@@ -944,7 +944,9 @@ If they are not then the semantics is implementation defined.
   * On Operands
     * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
     size(`collapsed_slice_dims`)
-    * (C2) &nbsp; $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
+    * (C2) &nbsp; $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`) Or
+    `index_vector_dim` $=$ rank(`start_indices`) in which case assume a trailing
+    $1$ on the shape of `start_indices`.
     * (C3) shape(`start_indices`)[`index_vector_dim`] $=$
     size(`start_index_map`)
     * (C4) No duplicates in `start_index_map`
