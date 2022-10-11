@@ -175,6 +175,7 @@ described below)
    * [reverse](#stablehloreverse)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
+   * [slice](#stablehloslice)
    * [sqrt](#stablehlosqrt)
    * [subtract](#stablehlosubtract)
    * [tanh](#stablehlotanh)
@@ -1374,6 +1375,78 @@ Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.slice
+
+### Semantics
+
+Extracts a sub-tensor from the `operand` and produces a `result` tensor.
+`start_indices` contain the starting indices of the slice for each dimension,
+`limit_indices` contain the ending indices (exclusive) for the slice for each
+dimension, and `strides` contain the strides for each dimension.
+
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
+`jd = start_indices[d] + id * strides[d]`.
+
+### Operands
+
+| Name            | Type                          |
+|-----------------|-------------------------------|
+| `operand`       | tensor of any supported types |
+| `start_indices` | 1-dimensional array of `si64` |
+| `limit_indices` | 1-dimensional array of `si64` |
+| `strides`       | 1-dimensional array of `si64` |
+
+### Results
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of any supported types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
+  rank(`operand`).
+  * (C3) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
+  `dim(operand, d)` for all dimension `d`.
+  * (C4) 0 $\lt$ `strides[d]` for all dimension `d`.
+  * (C5) `dim(result, d)` =
+  $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
+  dimension `d` in `operand`.
+
+### Examples
+
+```mlir
+// 1-dimensional slice
+
+// %operand: [0, 1, 2, 3, 4]
+%result = "stablehlo.slice"(%operand) {
+  start_indices = dense<2> : tensor<1xi64>,
+  limit_indices = dense<4> : tensor<1xi64>,
+  strides = dense<1> : tensor<1xi64>
+} : (tensor<5xi64>) -> tensor<2xi64>
+// %result: [2, 3]
+
+// 2-dimensional slice
+
+// %operand: [
+//            [0, 0, 0, 0],
+//            [0, 0, 1, 1],
+//            [0, 0, 1, 1]
+//           ]
+%result = "stablehlo.slice"(%operand) {
+  start_indices = dense<[1, 2]> : tensor<2xi64>,
+  limit_indices = dense<[3, 4]> : tensor<2xi64>,
+  strides = dense<1> : tensor<2xi64>
+} : (tensor<3x4xi64>) -> tensor<2x2xi64>
+// % result: [
+//            [1, 1],
+//            [1, 1]
+//           ]
+```
 
 [Back to Ops](#index-of-ops)
 
