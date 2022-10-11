@@ -1054,13 +1054,13 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 ### Operands
 
-| Name                | Type                                        |
-|---------------------|---------------------------------------------|
-| `operand`           | tensor of any supported types               |
-| `padding_value`     | 0-dimensional tensor of any supported types |
-| `edge_padding_low`  | 1-dimensional array of type `si64`          |
-| `edge_padding_high` | 1-dimensional array of type `si64`          |
-| `interior_padding`  | 1-dimensional array of type `si64`          |
+| Name                | Type                                         |
+|---------------------|----------------------------------------------|
+| `operand`           | tensor of any supported types                |
+| `padding_value`     | 0-dimensional tensor of any supported types  |
+| `edge_padding_low`  | 1-dimensional tensor constant of type `si64` |
+| `edge_padding_high` | 1-dimensional tensor constant of type `si64` |
+| `interior_padding`  | 1-dimensional tensor constant of type `si64` |
 
 ### Results
 
@@ -1201,10 +1201,10 @@ and produces a `result` tensor. More formally,
 
 ### Operands
 
-| Name         | Type                               |
-|--------------|------------------------------------|
-| `operand`    | tensor of any supported types      |
-| `dimensions` | 1-dimensional array of type `si64` |
+| Name         | Type                                         |
+|--------------|----------------------------------------------|
+| `operand`    | tensor of any supported types                |
+| `dimensions` | 1-dimensional tensor constant of type `si64` |
 
 ### Results
 
@@ -1449,10 +1449,10 @@ where `i[d] = j[permutation[d]]`.
 
 ### Operands
 
-| Name          | Type                               |
-|---------------|------------------------------------|
-| `operand`     | tensor of any supported types      |
-| `permutation` | 1-dimensional array of type `si64` |
+| Name          | Type                                         |
+|---------------|----------------------------------------------|
+| `operand`     | tensor of any supported types                |
+| `permutation` | 1-dimensional tensor constant of type `si64` |
 
 ### Results
 
