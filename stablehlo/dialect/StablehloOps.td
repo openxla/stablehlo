@@ -790,10 +790,11 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
       [Commutative, NoSideEffect, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Multiplication operator";
   let description = [{
-    Returns `lhs * rhs` element-wise.
+    Performs element-wise product of two tensors `lhs` and `rhs` and produces a
+    `result` tensor.
 
     See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlomultiply
 
     Example:
 
