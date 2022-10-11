@@ -30,18 +30,18 @@ one of the following tracking labels.
 | StableHLO Op             | Specification | Verification |  Type Inference   |  Pretty Printing  | Interpreter |
 |:-------------------------|:-------------:|:------------:|:-----------------:|:-----------------:|:-----------:|
 | abs                      |      yes      |     yes      |       yes         |        yes        |     no      |
-| add                      |      no       |     yes*     |       yes*        |        yes        |     yes     |
+| add                      |      yes      |     yes      |       yes         |        yes        |     yes     |
 | after_all                |      no       |      no      |        no         |        yes        |     no      |
 | all_gather               |      no       |     yes*     |        no         |        no         |     no      |
 | all_reduce               |      no       |      no      |        no         |        no         |     no      |
 | all_to_all               |      no       |     yes*     |       yes*        |        no         |     no      |
-| and                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| and                      |      yes      |     yes      |        yes        |        yes        |     yes     |
 | atan2                    |      no       |     yes*     |       yes*        |        yes        |     no      |
 | batch_norm_grad          |      no       |     yes*     |       yes*        |        no         |     no      |
 | batch_norm_inference     |      no       |     yes*     |       yes*        |        no         |     no      |
 | batch_norm_training      |      no       |     yes*     |       yes*        |        no         |     no      |
 | bitcast_convert          |      no       |     yes*     |    infeasible     |        yes        |     no      |
-| broadcast_in_dim         |      no       |     yes*     |    infeasible     |        no         |     no      |
+| broadcast_in_dim         |      yes      |     yes      |    infeasible     |        no         |     no      |
 | broadcast                |      no       |     yes*     |       yes*        |        no         |     no      |
 | case                     |      no       |     yes*     |       yes*        |        no         |     no      |
 | cbrt                     |      no       |     yes*     |       yes*        |        yes        |     no      |
@@ -90,13 +90,13 @@ one of the following tracking labels.
 | log_plus_one             |      no       |     yes*     |       yes*        |        yes        |     no      |
 | logistic                 |      yes      |     yes      |        yes        |        yes        |     no      |
 | map                      |      no       |     yes*     |        no         |        no         |     no      |
-| maximum                  |      no       |     yes*     |       yes*        |        yes        |     yes     |
-| minimum                  |      no       |     yes*     |       yes*        |        yes        |     yes     |
-| multiply                 |      no       |     yes*     |       yes*        |        yes        |     no      |
+| maximum                  |      yes      |     yes      |       yes         |        yes        |     yes     |
+| minimum                  |      yes      |     yes      |       yes         |        yes        |     yes     |
+| multiply                 |      yes      |     yes      |        yes        |        yes        |     no      |
 | negate                   |      yes      |     yes      |        yes        |        yes        |     yes     |
-| not                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| not                      |      yes      |     yes      |        yes        |        yes        |     yes     |
 | optimization_barrier     |      no       |     yes*     |        no         |        yes        |     no      |
-| or                       |      yes      |     yes      |        yes        |        yes        |     no      |
+| or                       |      yes      |     yes      |        yes        |        yes        |     yes     |
 | outfeed                  |      no       |     yes*     |        no         |        no         |     no      |
 | pad                      |      yes      |     yes      |        yes        |        no         |     no      |
 | popcnt                   |      no       |     yes*     |       yes*        |        yes        |     no      |
@@ -142,4 +142,4 @@ one of the following tracking labels.
 | uniform_dequantize       |      no       |     yes*     |       yes*        |        yes        |     no      |
 | uniform_quantize         |      no       |     yes*     |    infeasible     |        yes        |     no      |
 | while                    |      no       |     yes*     |       yes*        | yes(need-revisit) |     no      |
-| xor                      |      yes      |     yes      |        yes        |        yes        |     no      |
+| xor                      |      yes      |     yes      |        yes        |        yes        |     yes     |

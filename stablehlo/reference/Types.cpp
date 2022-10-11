@@ -36,6 +36,8 @@ bool isSupportedSignedIntegerType(Type type) {
          type.isSignlessInteger(64);
 }
 
+bool isSupportedBooleanType(Type type) { return type.isSignlessInteger(1); }
+
 bool isSupportedIntegerType(Type type) {
   return isSupportedUnsignedIntegerType(type) ||
          isSupportedSignedIntegerType(type);

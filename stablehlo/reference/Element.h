@@ -35,6 +35,7 @@ class Element {
   /// \name Constructors
   /// @{
   Element(Type type, APInt value) : type_(type), value_(value) {}
+  Element(Type type, bool value) : type_(type), value_(value) {}
   Element(Type type, APFloat value) : type_(type), value_(value) {}
   Element(Type type, std::complex<APFloat> value)
       : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
@@ -52,6 +53,10 @@ class Element {
   /// integer type.
   APInt getIntegerValue() const;
 
+  /// Returns the underlying boolean value stored in an Element object with
+  /// bool type.
+  bool getBooleanValue() const;
+
   /// Returns the underlying floating-point value stored in an Element object
   /// with floating-point type.
   APFloat getFloatValue() const;
@@ -60,14 +65,29 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
-  /// Overloaded + operator.
+  /// Overloaded and (bitwise) operator.
+  Element operator&(const Element &other) const;
+
+  /// Overloaded add operator.
   Element operator+(const Element &other) const;
+
+  /// Overloaded multiply operator.
+  Element operator*(const Element &other) const;
 
   /// Overloaded negate operator.
   Element operator-() const;
 
-  /// Overloaded - operator.
+  /// Overloaded subtract operator.
   Element operator-(const Element &other) const;
+
+  /// Overloaded xor (bitwise) operator.
+  Element operator^(const Element &other) const;
+
+  /// Overloaded or (bitwise) operator.
+  Element operator|(const Element &other) const;
+
+  /// Overloaded not (bitwise) operator.
+  Element operator~() const;
 
   /// Print utilities for Element objects.
   void print(raw_ostream &os) const;
@@ -77,7 +97,7 @@ class Element {
 
  private:
   Type type_;
-  std::variant<APInt, APFloat, std::pair<APFloat, APFloat>> value_;
+  std::variant<APInt, bool, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
 /// Returns element-wise ceil of Element object.

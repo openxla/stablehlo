@@ -76,10 +76,10 @@ are aligned, whether they are stored contiguously, etc).
 
 ## Programs
 
-StableHLO programs consist of functions. Each function has operands and results
+StableHLO programs consist of functions. Each function has inputs and outputs
 of supported types and a list of ops in static single-assignment (SSA) form
-which is terminated by a return op which produces the results of the function.
-StableHLO ops take operands and produce results.
+which is terminated by a return op which produces the outputs of the function.
+StableHLO ops take inputs and produce outputs.
 
 ```mlir
 ml_program.func @example_func(%arg: tensor<2x3xf32>) -> tensor<2x3xf32> {
@@ -91,7 +91,7 @@ ml_program.func @example_func(%arg: tensor<2x3xf32>) -> tensor<2x3xf32> {
 ```
 
 A program is executed by passing argument values to a given function and
-computing result values. Result values of a function are computed by evaluating
+computing output values. Output values of a function are computed by evaluating
 the graph of ops rooted in the corresponding return op. The evaluation order is
 implementation-defined, as long as ops are evaluated before their uses. Possible
 execution orders of the above example program are `%0` → `%1` → `%2` → `return`
@@ -142,9 +142,9 @@ The specification of an op comprises of the following components (in the order
 described below)
 
   * **Semantics** Semantics of the operation.
-  * **Operands** Meaning of operand(s) and their type(s).
-  * **Results** Meaning of the result(s) and the type(s).
-  * **Constraints** Constraints on the operand(s) and the result(s).
+  * **Inputs** Meaning of input(s) and their type(s).
+  * **Outputs** Meaning of the output(s) and the type(s).
+  * **Constraints** Constraints on the input(s) and the output(s).
   * **Examples** Examples demonstrating the working of the op using
     [MLIR generic syntax](https://mlir.llvm.org/docs/LangRef/#operations).
 
@@ -152,6 +152,7 @@ described below)
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [ceil](#stablehloceil)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -164,6 +165,7 @@ described below)
    * [logistic](#stablehlologistic)
    * [maximum](#stablehlomaximum)
    * [minimum](#stablehlominimum)
+   * [multiply](#stablehlomultiply)
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
    * [or](#stablehloor)
@@ -193,13 +195,13 @@ defined and one of the following:
   * Saturation to $2^{n-1}-1$
   * $-2^{n-1}$
 
-### Operands
+### Inputs
 
 | Name      | Type                                                               |
 |-----------|--------------------------------------------------------------------|
 | `operand` | tensor of signed integer, floating-point, or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                               |
 |----------|--------------------------------------------------------------------|
@@ -240,31 +242,31 @@ defined and one of the following:
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise sum has an
-unsigned/signed overflow/underflow, the result is implementation-defined and one
+unsigned/signed overflow, the result is implementation-defined and one
 of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-  unsigned underflow).
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `addition` operation from
-the IEEE-754 specification.
+the IEEE-754 specification. For boolean element types, the behavior is same as
+[stablehlo.or](#stablehloor).
 
-### Operands
+### Inputs
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
@@ -291,14 +293,14 @@ Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
 types and produces a `result` tensor. For boolean tensors, it computes the
 logical operation.
 
-### Operands
+### Inputs
 
 | Name  | Type                                       |
 |-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                       |
 |----------|--------------------------------------------|
@@ -326,6 +328,65 @@ logical operation.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.broadcast_in_dim
+
+### Semantics
+
+Expands the dimensions and/or rank of an input tensor by duplicating the data
+in the `operand` tensor and produces a `result` tensor. Formally,
+`result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
+`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
+dimensions `k` in `operand`.
+
+### Inputs
+
+| Name                   | Type                                         |
+|------------------------|----------------------------------------------|
+| `operand`              | tensor of any supported element types        |
+| `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                                  |
+|----------|---------------------------------------|
+| `result` | tensor of any supported element types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
+  * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
+         dimensions i in `operand`.
+  * (C4) All dimensions in `broadcast_dimensions` are unique.
+  * (C5) For all dimensions `j` in `operand`:
+    * `dim(operand, j) = 1` or
+    * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3]
+//           ]
+%result = "stablehlo.broadcast_in_dim"(%operand) {
+  broadcast_dimensions = dense<[2, 1]>: tensor<2xi64>
+} : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
+// %result: [
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.ceil
 
 ### Semantics
@@ -334,13 +395,13 @@ Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
 Implements the rounding to integral towards positive infinity operation from the
 IEEE-754 specification.
 
-### Operands
+### Inputs
 
 | Name      | Type                                   |
 |-----------|----------------------------------------|
 | `operand` | tensor of floating-point element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                   |
 |----------|----------------------------------------|
@@ -374,14 +435,14 @@ tensor. More formally,
   1. `d` is equal to `dimension`, and `d0`, ... are `d`th dimension sizes
      of `inputs`.
 
-### Operands
+### Inputs
 
 | Name        | Type                                              |
 |-------------|---------------------------------------------------|
 | `inputs`    | variadic number of tensors of any supported types |
 | `dimension` | `si64`                                            |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -430,13 +491,13 @@ tensor. More formally,
 
 Produces a `result` tensor from a constant `value`.
 
-### Operands
+### Inputs
 
 | Name    | Type                            |
 |---------|---------------------------------|
 | `value` | constant of any supported types |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -467,13 +528,13 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 `result` tensor, implementing the `cos` operation from the IEEE-754
 specification. Numeric precision is implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -509,14 +570,14 @@ implements integer division truncating any fractional part. For n-bit integer
 types, division overflow (division by zero or division of $-2^{n-1}$ with $-1$)
 produces an implementation-defined value.
 
-### Operands
+### Inputs
 
 | Name  | Type                                                       |
 |-------|------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex element types |
 | `rhs` | tensor of integer, floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                       |
 |----------|------------------------------------------------------------|
@@ -552,13 +613,13 @@ operation from the IEEE-754 specification. For complex element types, it
 computes a complex exponential, with corner cases TBD. Numeric precision is
 implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -590,13 +651,13 @@ Performs element-wise floor of `operand` tensor and produces a `result` tensor.
 Implements the rounding to integral towards negative infinity operation from the
 IEEE-754 specification.
 
-### Operands
+### Inputs
 
 | Name      | Type                                   |
 |-----------|----------------------------------------|
 | `operand` | tensor of floating-point element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                   |
 |----------|----------------------------------------|
@@ -635,13 +696,13 @@ defined and one of the following:
   * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
   for unsigned overflow.
 
-### Operands
+### Inputs
 
 | Name             | Type   |
 |------------------|--------|
 | `iota_dimension` | `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                                                       |
 |----------|------------------------------------------------------------|
@@ -690,13 +751,13 @@ operation from the IEEE-754 specification. For complex element types, it
 computes a complex logarithm, with corner cases TBD. Numeric precision is
 implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -731,13 +792,13 @@ where `addition`, `division`, and `exp` are operations from IEEE-754
 specification. For complex element types, it computes a complex logistic
 function, with corner cases TBD. Numeric precision is implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -769,19 +830,20 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
+For boolean element types, the behavior is same as [stablehlo.or](#stablehloor).
 
-### Operands
+### Inputs
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
@@ -808,19 +870,21 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
 operation from the IEEE-754 specification. For complex element type, it performs
 lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
+For boolean element types, the behavior is same as
+[stablehlo.and](#stablehloand).
 
-### Operands
+### Inputs
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
-| `lhs` | tensor of integer, floating-point, or complex element types |
-| `rhs` | tensor of integer, floating-point, or complex element types |
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
-| `result` | tensor of integer, floating-point, or complex element types |
+| `result` | tensor of all supported element types |
 
 ### Constraints
 
@@ -836,6 +900,60 @@ lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.multiply
+
+### Semantics
+
+Performs element-wise product of two tensors `lhs` and `rhs` and produces a
+`result` tensor. For integer element types, if the element-wise product has an
+unsigned/signed overflow, the result is implementation-defined and one
+of the following:
+
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
+
+For floating-point element types, it implements the `multiplication` operation
+from the IEEE-754 specification.
+
+For complex element types, it computes a complex multiplication, with corner
+cases TBD.
+
+For boolean element types, the behavior is same as
+[stablehlo.and](#stablehloand).
+
+### Inputs
+
+| Name  | Type                                  |
+|-------|---------------------------------------|
+| `lhs` | tensor of all supported element types |
+| `rhs` | tensor of all supported element types |
+
+### Outputs
+
+| Name     | Type                                  |
+|----------|---------------------------------------|
+| `result` | tensor of all supported element types |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [[1, 2], [3, 4]]
+// %rhs: [[5, 6], [7, 8]]
+%result = "stablehlo.multiply"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+// %result: [[5, 12], [21, 32]]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_multiply.mlir)
 
 [Back to Ops](#index-of-ops)
 
@@ -856,13 +974,13 @@ For unsigned integer types, it bitcasts to the corresponding signed integer type
 performs the regular negation operation and bitcasts back to the original
 unsigned integer type.
 
-### Operands
+### Inputs
 
 | Name      | Type                                                        |
 |-----------|-------------------------------------------------------------|
 | `operand` | tensor of integer, floating-point, or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
@@ -903,7 +1021,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 |-----------|--------------------------------------------|
 | `operand` | tensor of integer or boolean element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                       |
 |----------|--------------------------------------------|
@@ -937,14 +1055,14 @@ Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
 and produces a `result` tensor. For boolean tensors, it computes the logical
 operation.
 
-### Operands
+### Inputs
 
 | Name  | Type                                       |
 |-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                       |
 |----------|--------------------------------------------|
@@ -994,17 +1112,17 @@ More formally, `result[i0, ..., iR-1]` is equal to:
   * `operand[j0, ..., jR-1]` if `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
   * `padding_value[]` otherwise.
 
-### Operands
+### Inputs
 
-| Name                | Type                                        |
-|---------------------|---------------------------------------------|
-| `operand`           | tensor of any supported types               |
-| `padding_value`     | 0-dimensional tensor of any supported types |
-| `edge_padding_low`  | 1-dimensional array of type `si64`          |
-| `edge_padding_high` | 1-dimensional array of type `si64`          |
-| `interior_padding`  | 1-dimensional array of type `si64`          |
+| Name                | Type                                         |
+|---------------------|----------------------------------------------|
+| `operand`           | tensor of any supported types                |
+| `padding_value`     | 0-dimensional tensor of any supported types  |
+| `edge_padding_low`  | 1-dimensional tensor constant of type `si64` |
+| `edge_padding_high` | 1-dimensional tensor constant of type `si64` |
+| `interior_padding`  | 1-dimensional tensor constant of type `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -1059,14 +1177,14 @@ floating-point types, the corner cases are TBD. For n-bit integer, division
 overflow (remainder by zero or remainder of $-2^{n-1}$ with $-1$) produces an
 implementation-defined value.
 
-### Operands
+### Inputs
 
 | Name  | Type                                                       |
 |-------|------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex element types |
 | `rhs` | tensor of integer, floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                       |
 |----------|------------------------------------------------------------|
@@ -1104,13 +1222,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR'-1]` where
 `i` and `j` have the same position in the lexicographic ordering of the index
 spaces of `result` and `operand`.
 
-### Operands
+### Inputs
 
 | Name      | Type                          |
 |-----------|-------------------------------|
 | `operand` | tensor of any supported types |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -1141,14 +1259,14 @@ and produces a `result` tensor. More formally,
 `result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
 `ik + ik' = dk - 1` for all dimensions `k` in `dimensions`.
 
-### Operands
+### Inputs
 
-| Name         | Type                               |
-|--------------|------------------------------------|
-| `operand`    | tensor of any supported types      |
-| `dimensions` | 1-dimensional array of type `si64` |
+| Name         | Type                                         |
+|--------------|----------------------------------------------|
+| `operand`    | tensor of any supported types                |
+| `dimensions` | 1-dimensional tensor constant of type `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -1190,13 +1308,13 @@ Performs element-wise reciprocal square root operation on `operand` tensor and
 produces a `result` tensor, implementing the `rSqrt` operation from the IEEE-754
 specification. Numeric precision is implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -1228,13 +1346,13 @@ Performs element-wise sine operation on `operand` tensor and produces a `result`
 tensor, implementing the `sin` operation from the IEEE-754 specification.
 Numeric precision is implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -1267,13 +1385,13 @@ Performs element-wise square root operation on `operand` tensor and produces a
 `result` tensor, implementing the `squareRoot` operation from the IEEE-754
 specification.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -1303,27 +1421,26 @@ specification.
 
 Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 `result` tensor. For integer element types, if the element-wise difference has
-an unsigned/signed overflow/underflow, the result is implementation-defined and
-one of the following:
+an unsigned/signed overflow, the result is implementation-defined and one of the
+following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow/underflow. For signed integer overflow/underflow, wraps
-  the result around the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow (or signed
-  underflow) and saturation to $2^n - 1$ (or $0$) for unsigned overflow (or
-  unsigned underflow).
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `subtraction` operation from
 the IEEE-754 specification.
 
-### Operands
+### Inputs
 
 | Name  | Type                                                        |
 |-------|-------------------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex element types |
 | `rhs` | tensor of integer, floating-point, or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                                        |
 |----------|-------------------------------------------------------------|
@@ -1354,13 +1471,13 @@ Performs element-wise tanh operation on `operand` tensor and produces a `result`
 tensor, implementing the `tanh` operation from the IEEE-754 specification.
 Numeric precision is implementation-defined.
 
-### Operands
+### Inputs
 
 | Name      | Type                                              |
 |-----------|---------------------------------------------------|
 | `operand` | tensor of floating-point or complex element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
@@ -1390,14 +1507,14 @@ Permutes the dimensions of `operand` tensor using `permutation` and produces a
 `result` tensor. More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]`
 where `i[d] = j[permutation[d]]`.
 
-### Operands
+### Inputs
 
-| Name          | Type                               |
-|---------------|------------------------------------|
-| `operand`     | tensor of any supported types      |
-| `permutation` | 1-dimensional array of type `si64` |
+| Name          | Type                                         |
+|---------------|----------------------------------------------|
+| `operand`     | tensor of any supported types                |
+| `permutation` | 1-dimensional tensor constant of type `si64` |
 
-### Results
+### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
@@ -1408,7 +1525,8 @@ where `i[d] = j[permutation[d]]`.
   * (C1) `operand` and `result` have the same element type.
   * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
   rank of `operand`.
-  * (C3) `result`'s shape is a permutation of `operand`'s shape.
+  * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
+  where `j = permutation[i]`.
 
 ### Examples
 
@@ -1438,14 +1556,14 @@ Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
 types and produces a `result` tensor. For boolean tensors, it computes the
 logical operation.
 
-### Operands
+### Inputs
 
 | Name  | Type                                       |
 |-------|--------------------------------------------|
 | `lhs` | tensor of integer or boolean element types |
 | `rhs` | tensor of integer or boolean element types |
 
-### Results
+### Outputs
 
 | Name     | Type                                       |
 |----------|--------------------------------------------|

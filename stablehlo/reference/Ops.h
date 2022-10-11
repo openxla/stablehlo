@@ -24,6 +24,7 @@ namespace mlir {
 namespace stablehlo {
 
 Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor eval(AndOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(CeilOp op, const Tensor &operand);
 Tensor eval(ConstantOp op);
 Tensor eval(CosineOp op, const Tensor &operand);
@@ -31,12 +32,16 @@ Tensor eval(FloorOp op, const Tensor &operand);
 Tensor eval(IotaOp op);
 Tensor eval(MaxOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(MinOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor eval(MulOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(NegOp op, const Tensor &operand);
+Tensor eval(NotOp op, const Tensor &operand);
+Tensor eval(OrOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(ReshapeOp op, const Tensor &operand);
 Tensor eval(SineOp op, const Tensor &operand);
 Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs);
 Tensor eval(TanhOp op, const Tensor &operand);
 Tensor eval(TransposeOp op, const Tensor &operand);
+Tensor eval(XorOp op, const Tensor &lhs, const Tensor &rhs);
 
 }  // namespace stablehlo
 }  // namespace mlir

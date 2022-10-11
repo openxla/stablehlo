@@ -53,6 +53,14 @@ Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs) {
   return result;
 }
 
+Tensor eval(AndOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+    result.set(*it, lhs.get(*it) & rhs.get(*it));
+  }
+  return result;
+}
+
 Tensor eval(CeilOp op, const Tensor &operand) {
   Tensor result(op.getType());
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
@@ -118,23 +126,6 @@ Tensor eval(IotaOp op) {
   return result;
 }
 
-Tensor eval(NegOp op, const Tensor &operand) {
-  Tensor result(op.getType());
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    result.set(*it, -operand.get(*it));
-  }
-  return result;
-}
-
-Tensor eval(ReshapeOp op, const Tensor &operand) {
-  Tensor result(op.getType());
-  for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
-       resultIt != result.index_end(); ++resultIt, ++operandIt) {
-    result.set(*resultIt, operand.get(*operandIt));
-  }
-  return result;
-}
-
 Tensor eval(MaxOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
@@ -147,6 +138,47 @@ Tensor eval(MinOp op, const Tensor &lhs, const Tensor &rhs) {
   Tensor result(op.getType());
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     result.set(*it, min(lhs.get(*it), rhs.get(*it)));
+  }
+  return result;
+}
+
+Tensor eval(MulOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    result.set(*it, lhs.get(*it) * rhs.get(*it));
+  }
+  return result;
+}
+
+Tensor eval(NegOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    result.set(*it, -operand.get(*it));
+  }
+  return result;
+}
+
+Tensor eval(NotOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
+    result.set(*it, ~operand.get(*it));
+  }
+  return result;
+}
+
+Tensor eval(OrOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+    result.set(*it, lhs.get(*it) | rhs.get(*it));
+  }
+  return result;
+}
+
+Tensor eval(ReshapeOp op, const Tensor &operand) {
+  Tensor result(op.getType());
+  for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
+       resultIt != result.index_end(); ++resultIt, ++operandIt) {
+    result.set(*resultIt, operand.get(*operandIt));
   }
   return result;
 }
@@ -182,6 +214,14 @@ Tensor eval(TransposeOp op, const Tensor &operand) {
     auto resultIndex = permute(
         *operandIt, llvm::to_vector(op.getPermutation().getValues<int64_t>()));
     result.set(resultIndex, operand.get(*operandIt));
+  }
+  return result;
+}
+
+Tensor eval(XorOp op, const Tensor &lhs, const Tensor &rhs) {
+  Tensor result(op.getType());
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+    result.set(*it, lhs.get(*it) ^ rhs.get(*it));
   }
   return result;
 }
