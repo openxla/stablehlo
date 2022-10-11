@@ -335,7 +335,7 @@ logical operation.
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. Formally,
 `result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
-`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]`, for all
+`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
 dimensions `k` in `operand`.
 
 ### Inputs
@@ -366,7 +366,7 @@ dimensions `k` in `operand`.
 
 ```mlir
 // %operand: [
-//            [1, 2, 3],
+//            [1, 2, 3]
 //           ]
 %result = "stablehlo.broadcast_in_dim"(%operand) {
   broadcast_dimensions = dense<[2, 1]>: tensor<2xi64>
