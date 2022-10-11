@@ -152,6 +152,7 @@ described below)
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [ceil](#stablehloceil)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -323,6 +324,65 @@ logical operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, false], [false, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.broadcast_in_dim
+
+### Semantics
+
+Expands the dimensions and/or rank of an input tensor by duplicating the data
+in the `operand` tensor and produces a `result` tensor. Formally,
+`result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
+`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
+dimensions `k` in `operand`.
+
+### Inputs
+
+| Name                   | Type                                         |
+|------------------------|----------------------------------------------|
+| `operand`              | tensor of any supported element types        |
+| `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                                  |
+|----------|---------------------------------------|
+| `result` | tensor of any supported element types |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
+  * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
+         dimensions i in `operand`.
+  * (C4) All dimensions in `broadcast_dimensions` are unique.
+  * (C5) For all dimensions `j` in `operand`:
+    * `dim(operand, j) = 1` or
+    * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [1, 2, 3]
+//           ]
+%result = "stablehlo.broadcast_in_dim"(%operand) {
+  broadcast_dimensions = dense<[2, 1]>: tensor<2xi64>
+} : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
+// %result: [
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//            [
+//             [1, 1],
+//             [2, 2],
+//             [3, 3]
+//            ],
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -1465,7 +1525,8 @@ where `i[d] = j[permutation[d]]`.
   * (C1) `operand` and `result` have the same element type.
   * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
   rank of `operand`.
-  * (C3) `result`'s shape is a permutation of `operand`'s shape.
+  * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
+  where `j = permutation[i]`.
 
 ### Examples
 
