@@ -1354,9 +1354,9 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
   * (C4) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
   `dim(operand, d)` for all dimension `d`.
   * (C5) 0 $\lt$ `strides[d]` for all dimension `d`.
-  * (C6) Shape is formulated as `dim(result, i)` =
+  * (C6) `dim(result, d)` =
   $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
-  dimension `d`.
+  dimension `d` in `operand`.
 
 ### Examples
 
