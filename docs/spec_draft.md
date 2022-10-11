@@ -205,6 +205,7 @@ described below)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
    * [rsqrt](#stablehlorsqrt)
+   * [scatter](#stablehloscatter)
    * [select](#stablehloselect)
    * [sine](#stablehlosine)
    * [slice](#stablehloslice)
@@ -594,7 +595,7 @@ dimensions `k` in `operand`.
 //             [1, 1],
 //             [2, 2],
 //             [3, 3]
-//            ],
+//            ]
 //          ]
 ```
 
@@ -2363,6 +2364,189 @@ where `predicate = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %on_false: [[5, 6], [7, 8]]
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
+```
+
+[Back to Ops](#index-of-ops)  
+
+## stablehlo.scatter
+
+### Semantics
+
+Generate `results` which is the values of the `inputs` operand, with several
+slices at indices specified by `scatter_indices`, updated with the values in
+`updates` using `update_computation`.
+
+Informally, for any `k`, every index `out` in `update[k]` corresponds to an
+element in `inputs[k]` at index `in` such that `result[k][in] =
+update_computation(inputs[k][in], updates[k][out])`. The element `inputs[k][in]`
+ is computed using the following steps:
+
+  1. Given the `update_scatter_dims` dimensions, `update_scatter_dims` = {`k`:
+     `k` is a dimension of `updates` and `k` $\notin$ `update_window_dims`},
+     extract the scatter indices $G$ from `out`. That is, $G =$ { `out`[`k`] :
+     `k` $\in$ `update_scatter_dims`}.
+
+  2. Use $G$ to look up a starting index slice from `scatter_indices` of size
+     dim(`scatter_indices`, `index_vector_dim`) along `index_vector_dim`
+     dimension.
+
+  3. Use `scatter_dims_to_operand_dims` to scatter the starting index slice
+     (whose size may be less than rank(`inputs[k]`)) into the iteration space
+     of `inputs[k]` creating a "full" starting index.
+
+  4. Extract a slice out of `inputs[k]` with size `shape(inputs[k])` using the
+     full starting index.
+
+  5. Reshape the slice by collapsing the `inserted_window_dims` dimensions.
+
+  6. Use the indices of `out` at `update_window_dims` to index into the above
+     slice to get the input element corresponding to update index `out`.
+
+The following diagram depicts the behavior of the op, based on the above
+mentioned steps, using a concrete example. It uses a few instances of `out`
+indices to demonstrate how they are mapped to input elements.
+
+<p align="center">
+  <img src="spec_images/scatter.png" />
+</p>
+
+More formally, for a given index `out` in each `updates[k]`, the corresponding
+index `in` in `inputs[k]` into which the update has to be applied is computed as
+follows:
+
+1. If `index_vector_dim` $=$ rank(`scatter_indices`), add a trailing $1$ on the
+   shape of `scatter_indices`.
+
+2. Let $G =$ { `out`[`k`] for `k` in `update_scatter_dims`}. Use $G$ to slice
+   out a vector $S$ such that $S$[`i`] = `scatter_indices`[`Combine`($G$, `i`)]
+   where `Combine`(`A`, `b`) inserts b at position `index_vector_dim` into `A`.
+
+3. Create a starting index, $S_{in}$, into `inputs[k]` using $S$ by scattering
+   $S$ using `scatter_dims_to_operand_dims`. More precisely:
+     * $S_{in}$[`start_index_map`[`k`]] = $S$[`k`] if `k` $\lt$
+     size(`scatter_dims_to_operand_dims`).
+     * $S_{in}$[ _ ] $= 0$, Otherwise.
+
+4. Create an index $O_{in}$ into `inputs[k]` by scattering the indices at
+   `update_window_dims` in `out` according to the `inserted_window_dims` set.
+   More precisely:
+    * $O_{in}$[`window_dims_to_operand_dims`(`k`)] $=$
+    `out`[`update_window_dims`[`k`]] if `k` $\lt$ size(`update_window_dims`),
+    where `window_dims_to_operand_dims` is a monotonic
+    function with domain [0, size(`update_window_dims`)) and range
+    [0, rank(`operand`)) $-$ `inserted_window_dims`. So if, e.g.,
+    size(`update_window_dims`) is `4`, rank(`operand`) is `6` and
+    `inserted_window_dims` is `{0, 2}` then `window_dims_to_operand_dims` is
+    `{0 -> 1, 1 -> 3, 2 -> 4, 3 -> 5}`.
+    * $O_{in}$[ \_ ] $= 0$, Otherwise.
+
+5. `in` $= O_{in} + S_{in}$ where $+$ is element-wise addition. If
+   `in`[i] $\ge$ `di`, where `di` is the `i`$^{th}$ dimension size of
+   `inputs[k]`, then the behavior is implementation defined.
+
+
+For every index `out` in `updates[k]` and the corresponding index `in` in
+the `inputs[k]`, we have
+
+`(results[0][in], ..., results[N-1][in]) = update_computation(inputs[0][in], ..., , inputs[N-1][in],updates[0][out], ...,updates[N-1][out])`
+
+
+If `indices_are_sorted` is set to true then the implementation can assume that
+`scatter_indices` are sorted (in ascending `scatter_dims_to_operand_dims` order)
+by the user. If they are not then the semantics is implementation defined.
+
+### Inputs
+
+| Name                           | Description                                                                      | Type                                              | Constraints      |
+|--------------------------------|----------------------------------------------------------------------------------|---------------------------------------------------|------------------|
+| `inputs`                       | Input tensors to be scattered into                                               | variadic number of tensors of any supported types | (C1), (C2), (C3) |
+| `scatter_indices`              | A tensor containing the starting indices of the slices that must be scattered to | tensor of type `si64`                             |                  |
+| `updates`                      | `updates`[`i`] contains the values that must be used for scattering `inputs`[i]  | variadic number of tensors of any supported types | (C2), (C4)       |
+| `update_window_dims`           | The set of dimensions in updates shape that are window dimensions                | 1-dimensional tensor constant of type `si64`      | (C9), (C10)      |
+| `inserted_window_dims`         | The set of window dimensions that must be inserted into updates shape            | 1-dimensional tensor constant of type `si64`      | (C11),(C12)      |
+| `scatter_dims_to_operand_dims` | A dimensions map from the scatter indices to the operand index space.            | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)  |
+| `index_vector_dim`             | The dimension in `start_indices` containing the starting indices                 | constant of type `si64`                           | (C5)             |
+| `indices_are_sorted`           | Whether the indices are guaranteed to be sorted by the caller                    | constant of type `boolean`                        |                  |
+| `unique_indices`               | Whether the indices are guaranteed to be sorted by the caller                    | constant of type `boolean`                        |                  |
+| `update_computation`           | function                                                                         |                                                   |                  |
+
+### Outputs
+
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
+| `results` | variadic number of tensors of any supported types|
+
+### Constraints
+
+
+  * (C1) For any k $\in$ [0, N), rank(`inputs`[k]) = size(`update_window_dims`) +
+         size(`inserted_window_dims`).
+
+  * (C2) N $=$ size(`inputs`) == size(`updates`) and N $\ge$ 1.
+
+  * (C3) All `inputs` have the same shape.
+
+  * (C4) All `updates` have the same shape.
+
+  * (C5) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`) Or
+        `index_vector_dim` $=$ rank(`scatter_indices`), in which case assume a
+         trailing $1$ on the shape of `scatter_indices`.
+
+  * (C6) dim(`scatter_indices`, `index_vector_dim`) $=$
+         size(`scatter_dims_to_operand_dims`)
+
+  * (C7) All dimensions in `scatter_dims_to_operand_dims` unique.
+
+  * (C8) For all i $\in$ [0, size(`scatter_dims_to_operand_dims`)), $0 \le$
+        `scatter_dims_to_operand_dims`[i] $\lt$ rank(`operand`[k]), for any k
+        $\in$ [0, N).
+
+  * (C9) All dimensions in `update_window_dims` are unique and sorted.
+
+  * (C10) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
+    `update_window_dims`[i] $\lt$ rank(`updates`[k]), for any k $\in$ [0, N).
+
+
+  * (C11) All dimensions in `inserted_window_dims` are unique and sorted.
+
+  * (C12)For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
+    `inserted_window_dims`[i] $\lt$ rank(`inputs`[k]), for any k $\in$ [0, N).
+
+  * (C13) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
+
+  * (C14) `update_computation` is of type `(I0, ..., IN-1, U0, ..., UN-1) -> (R0, ..., RN-1)`
+          where `I0, ..., IN-1` are types of `inputs`,  `U0, ..., UN-1` are
+          types of `updates`, and `R0, ..., RN-1` are types of `results`.
+
+
+  * On shape of `update`
+    * For all i $\in$ [0, N), rank(`updates[i]`) $=$ size(`update_window_dims`) +
+  rank(`scatter_indices`) - 1
+
+    * The dimension size of `i`$^{th}$ dimension, `di`, of `update` is computed
+      as:
+
+      * If `i` is present in `update_window_dims`, i.e., `i` $=$
+      `update_window_dims`[`k`] for some `k`, then `di` $=$
+      `adjusted_window_bounds`[`k`] where `adjusted_window_bounds` $=$
+      shape(`input`) - {dim(`input`, i) : i $\in$ `inserted_window_dims`} for
+      any `input` in `inputs`.
+
+      * If `i` is present in the `update_scatter_dims`, i.e., `i` $=$
+      `update_scatter_dims`[`k`] for some `k`, then
+        * `di` $=$ dim(`scatter_indices`, `k`) if `k` $\lt$ `index_vector_dim`
+        * `di` $=$ dim(`scatter_indices`, `k+1`), otherwise.
+
+### Examples
+
+```mlir
+// %operand: [[1.0, 4.0], [9.0, 25.0]]
+%result = "stablehlo.rsqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+// %result: [[1.0, 0.5], [0.33333343, 0.2]]
+
+// %operand: [(1.0, 2.0)]
+%result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
+// %result: [(0.56886448, -0.35157758)]
 ```
 
 [Back to Ops](#index-of-ops)

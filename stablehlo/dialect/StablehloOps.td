@@ -2349,7 +2349,9 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
     with several slices (at indices specified by `scatter_indices`)
     updated with the values in `updates` using `update_computation`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#scatter.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloscatter
+
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
