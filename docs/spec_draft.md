@@ -188,6 +188,7 @@ described below)
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
+   * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
@@ -368,7 +369,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
   epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
 
-  # Perform normalization using the provided `mean` and `variance` instead of 
+  # Perform normalization using the provided `mean` and `variance` instead of
   # computing them like `batch_norm_training` does.
   centered_operand = subtract(operand, mean_bcast)
   stddev = sqrt(add(variance_bcast, epsilon_bcast))
@@ -399,7 +400,7 @@ Numeric precision is implementation-defined.
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the 
+  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
     same element type.
   * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
   * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
@@ -1692,6 +1693,56 @@ and produces a `result` tensor.
 // %operand: [0, 1, 2, 127]
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce
+
+### Semantics
+
+Applies a `computation` function to `inputs` and `init_values` along the
+`dimensions` and produces a `result` tensor.
+
+### Inputs
+
+| Name          | Type                                             |
+|---------------|--------------------------------------------------|
+| `inputs`      | variadic number of tensors of any supported type |
+| `init_values` | variadic number of tensors of any supported type |
+| `dimensions`  | 1-dimensional tensor constant of type `si64`     |
+| `computation` | `function`                                       |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `inputs`, `init_values` and `result` have the same element type.
+  * (C2) `inputs` and `init_values` have the same type.
+  * (C3) `inputs` have N tensors where N >= 1.
+  * (C4) 0 $\lt$ `dimensions[d]` $\lt$ rank(`inputs[d]`) for all dimension `d`.
+  * (C5) `computation` inputs have the same type as `inputs`, and output has the
+  same type as `result`.
+  * (C6) `init_values` have to form an identity under the `computation`.
+  * (C7) `dim(result, i) = dim(inputs[0], j)` for all `j` $\notin$ `dimensions`.
+
+### Examples
+
+```mlir
+// %inputs0 = [[0, 1, 2, 3, 4, 5]]
+// %init_values = 0
+%result = "stablehlo.reduce"(%inputs0, %init_values) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+}) {
+  dimensions = dense<[1]> : tensor<1xi64>
+} : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+// %result = [15]
 ```
 
 [Back to Ops](#index-of-ops)

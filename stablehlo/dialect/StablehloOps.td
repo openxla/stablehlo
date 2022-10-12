@@ -1357,9 +1357,9 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 
   let hasCustomAssemblyFormat = 1;
 
-  // TODO(hinsu): Verify that the attached body arguments and results are
+  // TODO(hinsu): Verify that the attached computation arguments and results are
   // compatible with reduce op's operands.
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region SizedRegion<1>:$computation);
 }
 
 //===----------------------------------------------------------------------===//
