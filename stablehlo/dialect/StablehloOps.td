@@ -2172,22 +2172,24 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
 def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]> {
   let summary = "Gather operator";
   let description = [{
-    Stitches together several slices of `operand` from offsets specified in
-    `start_indices` (each slice at a potentially different runtime offset).
+    Gathers slices from `operand` tensor from offsets specified in
+    `start_indices` and produces a `result` tensor.
+
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlogather
 
+    Example:
     ```mlir
     %result = "stablehlo.gather"(%operand, %start_indices) {
-      dimension_numbers = #mhlo.gather<
-        collapsed_slice_dims = [0],
-        index_vector_dim = 2,
+      dimension_numbers = #stablehlo.gather<
         offset_dims = [2, 3],
-        start_index_map = [0, 2]
+        collapsed_slice_dims = [0],
+        start_index_map = [0, 2],
+        index_vector_dim = 2,
       >,
-      indices_are_sorted = false,
-      slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>
+      slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>,
+      indices_are_sorted = false
     } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
     ```
   }];

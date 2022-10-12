@@ -172,9 +172,10 @@ described below)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
    * [floor](#stablehlofloor)
+   * [gather](#stablehlogather)
    * [if](#stablehloif)
    * [iota](#stablehloiota)
-   * [gather](#stablehlogather)
+   * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
    * [maximum](#stablehlomaximum)
@@ -854,7 +855,7 @@ defined and one of the following:
 
 Gathers slices from `operand` tensor from offsets specified in `start_indices`
 and produces a `result` tensor.
-  
+
 Informally, every index `out` in `result` corresponds to an element in `operand`
 which is computed as the following steps:
 
@@ -862,7 +863,7 @@ which is computed as the following steps:
     `result` and `k` $\notin$ `offset_dims`}, extract the batching indices $G$
     from `out`. That is, $G =$ { `out`[`k`] : `k` $\in$ `batch_dims`}.
   2. Use $G$ to look up a starting index slice from `start_indices` of size
-     `start_indices`[`index_vector_dim`] along `index_vector_dim` dimension.
+     dim(`start_indices`, `index_vector_dim`) along `index_vector_dim` dimension.
   3. Use `start_index_map` to scatter the starting index slice (whose size may
      be less than rank(`operand`)) into the iteration space of `operand`
      creating a "full" starting index into the operand.
@@ -897,7 +898,7 @@ More formally, the operand index `in` corresponding to a given output index
    using `start_index_map`. More precisely:
      * $S_{in}$[`start_index_map`[`k`]] = $S$[`k`] if `k` $\lt$
      size(`start_index_map`).
-     * $S_{in}$[ \_ ] $= 0$, Otherwise.
+     * $S_{in}$[ _ ] $= 0$, Otherwise.
 
 4. Create an index $O_{in}$ into `operand` by scattering the indices at the
    offset dimensions `offset_dims` in `out` according to the
@@ -944,23 +945,34 @@ If they are not then the semantics is implementation defined.
   * On Operands
     * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
     size(`collapsed_slice_dims`)
+
     * (C2) &nbsp; $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`) Or
     `index_vector_dim` $=$ rank(`start_indices`) in which case assume a trailing
     $1$ on the shape of `start_indices`.
-    * (C3) shape(`start_indices`)[`index_vector_dim`] $=$
+
+    * (C3) dim(`start_indices`, `index_vector_dim`) $=$
     size(`start_index_map`)
+
     * (C4) No duplicates in `start_index_map`
+
     * (C5) &nbsp; $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
-    such that $0 \le$ i $\lt$ rank(`start_index_map`)
+    such that $0 \le$ i $\lt$ size(`start_index_map`)
+
     * (C6) size(`slice_sizes`) $=$ rank(`operand`).
+
     * (C7) &nbsp; $0 \le$ `slice_sizes`[i] $\lt$ shape(`operand`)[i] $\forall
-    i$ such that $0 \le$ i $\lt$ rank(`slice_sizes`)
+    i$ such that $0 \le$ i $\lt$ size(`slice_sizes`)
+
     * (C8) `offset_dims` is sorted without duplicates.
+
     * (C9) &nbsp; $0 \le$ `offset_dims`[i] $\lt$ shape(`result`) $\forall i$
-    such that $0 \le$ i $\lt$ rank(`offset_dims`)
+    such that $0 \le$ i $\lt$ size(`offset_dims`)
+
     * (C10) `collapsed_slice_dims` is sorted without duplicates.
+
     * (C11) &nbsp; $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
-    $\forall i$ such that $0 \le$ i $\lt$ rank(`collapsed_slice_dims`)
+    $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`)
+
     * (C12) `slize_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`
 
   * On shape of `result`
@@ -988,26 +1000,26 @@ If they are not then the semantics is implementation defined.
   //                  [[0, 0], [1, 0], [2, 1]],
   //                  [[0, 1], [1, 1], [0, 2]]]
   //                 ]
-  %result = "mhlo.gather"(%operand, %start_indices) {
-    dimension_numbers = #mhlo.gather<
-      collapsed_slice_dims = [0],
-      index_vector_dim = 2,
+  %result = "stablehlo.gather"(%operand, %start_indices) {
+    dimension_numbers = #stablehlo.gather<
       offset_dims = [2, 3],
-      start_index_map = [0, 2]
+      collapsed_slice_dims = [0],
+      start_index_map = [0, 2],
+      index_vector_dim = 2,
     >,
-    indices_are_sorted = false,
-    slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>
+    slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>,
+    indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
   // %result: [
   //            [
   //              [[1, 2], [3, 4]],
   //              [[3, 4], [5, 6]],
-  //              [[13, 14], [15, 16]],
+  //              [[13, 14], [15, 16]]
   //            ],
   //            [
   //              [[9, 10], [11, 12]],
   //              [[11, 12], [13, 14]],
-  //              [[17, 18], [19, 20]],
+  //              [[17, 18], [19, 20]]
   //            ]
   //          ]
 ```
