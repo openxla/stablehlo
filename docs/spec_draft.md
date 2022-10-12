@@ -441,7 +441,7 @@ tensor. More formally,
 | Name        | Type                                              |
 |-------------|---------------------------------------------------|
 | `inputs`    | variadic number of tensors of any supported types |
-| `dimension` | `si64`                                            |
+| `dimension` | constant of type `si64`                           |
 
 ### Outputs
 
