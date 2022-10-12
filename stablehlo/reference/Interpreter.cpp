@@ -135,6 +135,12 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
       populateResults({runtimeResult});
+    } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
+      Tensor runtimeOperand = fetchOperand(sliceOp.getOperand());
+      Tensor runtimeResult = evalSliceOp(runtimeOperand,
+          sliceOp.getStartIndices(), sliceOp.getLimitIndices(),
+          sliceOp.getStrides(), sliceOp.getType());
+      populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = fetchOperand(subtractOp.getLhs());
       Tensor runtimeRhs = fetchOperand(subtractOp.getRhs());
