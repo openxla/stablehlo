@@ -269,16 +269,16 @@ the IEEE-754 specification. For boolean element types, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                                  |
-|-------|---------------------------------------|
-| `lhs` | tensor of all supported element types |
-| `rhs` | tensor of all supported element types |
+| Name  | Type                                 |
+|-------|--------------------------------------|
+| `lhs` | tensor of any supported element type |
+| `rhs` | tensor of any supported element type |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of all supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -354,14 +354,14 @@ dimensions `k` in `operand`.
 
 | Name                   | Type                                         |
 |------------------------|----------------------------------------------|
-| `operand`              | tensor of any supported element types        |
+| `operand`              | tensor of any supported type                 |
 | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of any supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -456,9 +456,9 @@ tensor. More formally,
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -505,15 +505,15 @@ Produces a `result` tensor from a constant `value`.
 
 ### Inputs
 
-| Name    | Type                            |
-|---------|---------------------------------|
-| `value` | constant of any supported types |
+| Name    | Type                                    |
+|---------|-----------------------------------------|
+| `value` | constant of any supported element types |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -846,16 +846,16 @@ For boolean element types, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Inputs
 
-| Name  | Type                                  |
-|-------|---------------------------------------|
-| `lhs` | tensor of all supported element types |
-| `rhs` | tensor of all supported element types |
+| Name  | Type                         |
+|-------|------------------------------|
+| `lhs` | tensor of any supported type |
+| `rhs` | tensor of any supported type |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of all supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -887,16 +887,16 @@ For boolean element types, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                                  |
-|-------|---------------------------------------|
-| `lhs` | tensor of all supported element types |
-| `rhs` | tensor of all supported element types |
+| Name  | Type                         |
+|-------|------------------------------|
+| `lhs` | tensor of any supported type |
+| `rhs` | tensor of any supported type |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of all supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -941,16 +941,16 @@ For boolean element types, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                                  |
-|-------|---------------------------------------|
-| `lhs` | tensor of all supported element types |
-| `rhs` | tensor of all supported element types |
+| Name  | Type                         |
+|-------|------------------------------|
+| `lhs` | tensor of any supported type |
+| `rhs` | tensor of any supported type |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of all supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1128,17 +1128,17 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 | Name                | Type                                         |
 |---------------------|----------------------------------------------|
-| `operand`           | tensor of any supported types                |
-| `padding_value`     | 0-dimensional tensor of any supported types  |
+| `operand`           | tensor of any supported type                 |
+| `padding_value`     | 0-dimensional tensor of any supported type   |
 | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` |
 | `edge_padding_high` | 1-dimensional tensor constant of type `si64` |
 | `interior_padding`  | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1236,15 +1236,15 @@ spaces of `result` and `operand`.
 
 ### Inputs
 
-| Name      | Type                          |
-|-----------|-------------------------------|
-| `operand` | tensor of any supported types |
+| Name      | Type                         |
+|-----------|------------------------------|
+| `operand` | tensor of any supported type |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1275,14 +1275,14 @@ and produces a `result` tensor. More formally,
 
 | Name         | Type                                         |
 |--------------|----------------------------------------------|
-| `operand`    | tensor of any supported types                |
+| `operand`    | tensor of any supported type                 |
 | `dimensions` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1405,16 +1405,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Name            | Type                          |
 |-----------------|-------------------------------|
-| `operand`       | tensor of any supported types |
+| `operand`       | tensor of any supported type  |
 | `start_indices` | 1-dimensional array of `si64` |
 | `limit_indices` | 1-dimensional array of `si64` |
 | `strides`       | 1-dimensional array of `si64` |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1595,14 +1595,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Name          | Type                                         |
 |---------------|----------------------------------------------|
-| `operand`     | tensor of any supported types                |
+| `operand`     | tensor of any supported type                 |
 | `permutation` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
