@@ -1832,7 +1832,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
-    I64Attr: $dimension
+    I64Attr:$dimension
   );
 
   let results = (outs HLO_Tensor);
@@ -2099,7 +2099,7 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, NoSideEffect]> {
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    StableHLO_FftTypeAttr: $fft_type,
+    StableHLO_FftTypeAttr:$fft_type,
     I64ElementsAttr:$fft_length
   );
 
@@ -2413,9 +2413,9 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   let arguments = (ins
     HLO_Tensor:$operand,
     HLO_Tensor:$padding_value,
-    I64ElementsAttr: $edge_padding_low,
-    I64ElementsAttr: $edge_padding_high,
-    I64ElementsAttr: $interior_padding
+    I64ElementsAttr:$edge_padding_low,
+    I64ElementsAttr:$edge_padding_high,
+    I64ElementsAttr:$interior_padding
   );
 
   let results = (outs HLO_Tensor);
