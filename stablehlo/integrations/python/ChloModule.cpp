@@ -52,29 +52,27 @@ PYBIND11_MODULE(_chlo, m) {
       m, "ComparisonDirectionAttr", chloAttributeIsAComparisonDirectionAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &direction, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(chloComparisonDirectionAttrGet(
-                ctx, mlirStringRefCreate(direction.c_str(), direction.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("comparison_direction"),
-          py::arg("context") = py::none(),
-          "Creates a ComparisonDirection attribute with the given direction.")
-      .def_property_readonly("comparison_direction", [](MlirAttribute self) {
-        return toPyString(chloComparisonDirectionAttrGetDirection(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a ComparisonDirection attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(chloComparisonDirectionAttrGetValue(self));
       });
 
   mlir::python::adaptors::mlir_attribute_subclass(
       m, "ComparisonTypeAttr", chloAttributeIsAComparisonTypeAttr)
       .def_classmethod(
           "get",
-          [](py::object cls, const std::string &type, MlirContext ctx) {
+          [](py::object cls, const std::string &value, MlirContext ctx) {
             return cls(chloComparisonTypeAttrGet(
-                ctx, mlirStringRefCreate(type.c_str(), type.size())));
+                ctx, mlirStringRefCreate(value.c_str(), value.size())));
           },
-          py::arg("cls"), py::arg("comparison_type"),
-          py::arg("context") = py::none(),
-          "Creates a ComparisonType attribute with the given type.")
-      .def_property_readonly("comparison_type", [](MlirAttribute self) {
-        return toPyString(chloComparisonTypeAttrGetType(self));
+          py::arg("cls"), py::arg("value"), py::arg("context") = py::none(),
+          "Creates a ComparisonType attribute with the given value.")
+      .def_property_readonly("value", [](MlirAttribute self) {
+        return toPyString(chloComparisonTypeAttrGetValue(self));
       });
 }

@@ -13,12 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""Tests for CHLO Python APIs."""
 
-# pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
-from ._chlo_ops_gen import *
-from .._mlir_libs._chlo import *
+# pylint: disable=wildcard-import,undefined-variable
+
+from mlir import ir
+from mlir.dialects import chlo
 
 
-# Backward compatibility with the old way of registering CHLO dialect
-def register_chlo_dialect(context, load=True):
-  register_dialect(context, load)
+def run(f):
+  with ir.Context() as context:
+    chlo.register_dialect(context)
+    f()
+  return f
+
+
+@run
+def test_comparison_direction_attr():
+  attr = chlo.ComparisonDirectionAttr.get("EQ")
+  assert attr is not None
+  assert str(attr) == ("#chlo<comparison_direction EQ>")
+  assert attr.value == "EQ"
+
+
+@run
+def test_comparison_type_attr():
+  attr = chlo.ComparisonTypeAttr.get("FLOAT")
+  assert attr is not None
+  assert str(attr) == ("#chlo<comparison_type FLOAT>")
+  assert attr.value == "FLOAT"

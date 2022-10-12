@@ -22,20 +22,19 @@ limitations under the License.
 //===----------------------------------------------------------------------===//
 
 MlirAttribute chloComparisonDirectionAttrGet(MlirContext ctx,
-                                             MlirStringRef direction) {
-  llvm::Optional<mlir::chlo::ComparisonDirection> compareDirection =
-      mlir::chlo::symbolizeComparisonDirection(unwrap(direction));
-  if (!compareDirection)
-    llvm_unreachable("Invalid comparison-direction specified.");
+                                             MlirStringRef value) {
+  llvm::Optional<mlir::chlo::ComparisonDirection> comparisonDirection =
+      mlir::chlo::symbolizeComparisonDirection(unwrap(value));
+  if (!comparisonDirection) llvm_unreachable("Invalid value.");
   return wrap(mlir::chlo::ComparisonDirectionAttr::get(
-      unwrap(ctx), compareDirection.value()));
+      unwrap(ctx), comparisonDirection.value()));
 }
 
 bool chloAttributeIsAComparisonDirectionAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::chlo::ComparisonDirectionAttr>();
 }
 
-MlirStringRef chloComparisonDirectionAttrGetDirection(MlirAttribute attr) {
+MlirStringRef chloComparisonDirectionAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::chlo::stringifyComparisonDirection(
       unwrap(attr).cast<mlir::chlo::ComparisonDirectionAttr>().getValue()));
 }
@@ -44,19 +43,19 @@ MlirStringRef chloComparisonDirectionAttrGetDirection(MlirAttribute attr) {
 // ComparisonTypeAttr
 //===----------------------------------------------------------------------===//
 
-MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef type) {
-  llvm::Optional<mlir::chlo::ComparisonType> compareType =
-      mlir::chlo::symbolizeComparisonType(unwrap(type));
-  if (!compareType) llvm_unreachable("Invalid comparison-type specified.");
+MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef value) {
+  llvm::Optional<mlir::chlo::ComparisonType> comparisonType =
+      mlir::chlo::symbolizeComparisonType(unwrap(value));
+  if (!comparisonType) llvm_unreachable("Invalid value.");
   return wrap(
-      mlir::chlo::ComparisonTypeAttr::get(unwrap(ctx), compareType.value()));
+      mlir::chlo::ComparisonTypeAttr::get(unwrap(ctx), comparisonType.value()));
 }
 
 bool chloAttributeIsAComparisonTypeAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::chlo::ComparisonTypeAttr>();
 }
 
-MlirStringRef chloComparisonTypeAttrGetType(MlirAttribute attr) {
+MlirStringRef chloComparisonTypeAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::chlo::stringifyComparisonType(
       unwrap(attr).cast<mlir::chlo::ComparisonTypeAttr>().getValue()));
 }

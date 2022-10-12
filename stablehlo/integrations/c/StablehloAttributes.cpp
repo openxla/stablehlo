@@ -356,20 +356,19 @@ int64_t stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloComparisonDirectionAttrGet(MlirContext ctx,
-                                                  MlirStringRef direction) {
-  llvm::Optional<mlir::stablehlo::ComparisonDirection> compareDirection =
-      mlir::stablehlo::symbolizeComparisonDirection(unwrap(direction));
-  if (!compareDirection)
-    llvm_unreachable("Invalid comparison-direction specified.");
+                                                  MlirStringRef value) {
+  llvm::Optional<mlir::stablehlo::ComparisonDirection> comparisonDirection =
+      mlir::stablehlo::symbolizeComparisonDirection(unwrap(value));
+  if (!comparisonDirection) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonDirectionAttr::get(
-      unwrap(ctx), compareDirection.value()));
+      unwrap(ctx), comparisonDirection.value()));
 }
 
 bool stablehloAttributeIsAComparisonDirectionAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::ComparisonDirectionAttr>();
 }
 
-MlirStringRef stablehloComparisonDirectionAttrGetDirection(MlirAttribute attr) {
+MlirStringRef stablehloComparisonDirectionAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyComparisonDirection(
       unwrap(attr)
           .cast<mlir::stablehlo::ComparisonDirectionAttr>()
@@ -381,19 +380,19 @@ MlirStringRef stablehloComparisonDirectionAttrGetDirection(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloComparisonTypeAttrGet(MlirContext ctx,
-                                             MlirStringRef type) {
-  llvm::Optional<mlir::stablehlo::ComparisonType> compareType =
-      mlir::stablehlo::symbolizeComparisonType(unwrap(type));
-  if (!compareType) llvm_unreachable("Invalid comparison-type specified.");
+                                             MlirStringRef value) {
+  llvm::Optional<mlir::stablehlo::ComparisonType> comparisonType =
+      mlir::stablehlo::symbolizeComparisonType(unwrap(value));
+  if (!comparisonType) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonTypeAttr::get(unwrap(ctx),
-                                                       compareType.value()));
+                                                       comparisonType.value()));
 }
 
 bool stablehloAttributeIsAComparisonTypeAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::ComparisonTypeAttr>();
 }
 
-MlirStringRef stablehloComparisonTypeAttrGetType(MlirAttribute attr) {
+MlirStringRef stablehloComparisonTypeAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyComparisonType(
       unwrap(attr).cast<mlir::stablehlo::ComparisonTypeAttr>().getValue()));
 }
@@ -402,19 +401,19 @@ MlirStringRef stablehloComparisonTypeAttrGetType(MlirAttribute attr) {
 // PrecisionAttr
 //===----------------------------------------------------------------------===//
 
-MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx, MlirStringRef type) {
-  llvm::Optional<mlir::stablehlo::Precision> precisionType =
-      mlir::stablehlo::symbolizePrecision(unwrap(type));
-  if (!precisionType) llvm_unreachable("Invalid precision-type specified.");
+MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx, MlirStringRef value) {
+  llvm::Optional<mlir::stablehlo::Precision> precision =
+      mlir::stablehlo::symbolizePrecision(unwrap(value));
+  if (!precision) llvm_unreachable("Invalid value.");
   return wrap(
-      mlir::stablehlo::PrecisionAttr::get(unwrap(ctx), precisionType.value()));
+      mlir::stablehlo::PrecisionAttr::get(unwrap(ctx), precision.value()));
 }
 
 bool stablehloAttributeIsAPrecisionAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::PrecisionAttr>();
 }
 
-MlirStringRef stablehloPrecisionAttrGetPrecision(MlirAttribute attr) {
+MlirStringRef stablehloPrecisionAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyPrecision(
       unwrap(attr).cast<mlir::stablehlo::PrecisionAttr>().getValue()));
 }
@@ -423,10 +422,10 @@ MlirStringRef stablehloPrecisionAttrGetPrecision(MlirAttribute attr) {
 // FftTypeAttr
 //===----------------------------------------------------------------------===//
 
-MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx, MlirStringRef type) {
+MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx, MlirStringRef value) {
   llvm::Optional<mlir::stablehlo::FftType> fftType =
-      mlir::stablehlo::symbolizeFftType(unwrap(type));
-  if (!fftType) llvm_unreachable("Invalid fft-type specified.");
+      mlir::stablehlo::symbolizeFftType(unwrap(value));
+  if (!fftType) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::FftTypeAttr::get(unwrap(ctx), fftType.value()));
 }
 
@@ -434,7 +433,7 @@ bool stablehloAttributeIsAFftTypeAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::FftTypeAttr>();
 }
 
-MlirStringRef stablehloFftTypeAttrGetFftType(MlirAttribute attr) {
+MlirStringRef stablehloFftTypeAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyFftType(
       unwrap(attr).cast<mlir::stablehlo::FftTypeAttr>().getValue()));
 }
@@ -443,19 +442,19 @@ MlirStringRef stablehloFftTypeAttrGetFftType(MlirAttribute attr) {
 // TransposeAttr
 //===----------------------------------------------------------------------===//
 
-MlirAttribute stablehloTransposeAttrGet(MlirContext ctx, MlirStringRef type) {
-  llvm::Optional<mlir::stablehlo::Transpose> transposeType =
-      mlir::stablehlo::symbolizeTranspose(unwrap(type));
-  if (!transposeType) llvm_unreachable("Invalid transpose-type specified.");
+MlirAttribute stablehloTransposeAttrGet(MlirContext ctx, MlirStringRef value) {
+  llvm::Optional<mlir::stablehlo::Transpose> transpose =
+      mlir::stablehlo::symbolizeTranspose(unwrap(value));
+  if (!transpose) llvm_unreachable("Invalid value.");
   return wrap(
-      mlir::stablehlo::TransposeAttr::get(unwrap(ctx), transposeType.value()));
+      mlir::stablehlo::TransposeAttr::get(unwrap(ctx), transpose.value()));
 }
 
 bool stablehloAttributeIsATransposeAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::TransposeAttr>();
 }
 
-MlirStringRef stablehloTransposeAttrGetTranspose(MlirAttribute attr) {
+MlirStringRef stablehloTransposeAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyTranspose(
       unwrap(attr).cast<mlir::stablehlo::TransposeAttr>().getValue()));
 }
@@ -465,10 +464,10 @@ MlirStringRef stablehloTransposeAttrGetTranspose(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloRngDistributionAttrGet(MlirContext ctx,
-                                              MlirStringRef distribution) {
+                                              MlirStringRef value) {
   llvm::Optional<mlir::stablehlo::RngDistribution> rngDistribution =
-      mlir::stablehlo::symbolizeRngDistribution(unwrap(distribution));
-  if (!rngDistribution) llvm_unreachable("Invalid rng-distribution specified.");
+      mlir::stablehlo::symbolizeRngDistribution(unwrap(value));
+  if (!rngDistribution) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::RngDistributionAttr::get(
       unwrap(ctx), rngDistribution.value()));
 }
@@ -477,8 +476,7 @@ bool stablehloAttributeIsARngDistributionAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::RngDistributionAttr>();
 }
 
-MlirStringRef stablehloRngDistributionAttrGetRngDistribution(
-    MlirAttribute attr) {
+MlirStringRef stablehloRngDistributionAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyRngDistribution(
       unwrap(attr).cast<mlir::stablehlo::RngDistributionAttr>().getValue()));
 }
@@ -488,10 +486,10 @@ MlirStringRef stablehloRngDistributionAttrGetRngDistribution(
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloRngAlgorithmAttrGet(MlirContext ctx,
-                                           MlirStringRef algorithm) {
+                                           MlirStringRef value) {
   llvm::Optional<mlir::stablehlo::RngAlgorithm> rngAlgorithm =
-      mlir::stablehlo::symbolizeRngAlgorithm(unwrap(algorithm));
-  if (!rngAlgorithm) llvm_unreachable("Invalid rng-algorithm specified.");
+      mlir::stablehlo::symbolizeRngAlgorithm(unwrap(value));
+  if (!rngAlgorithm) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::RngAlgorithmAttr::get(unwrap(ctx),
                                                      rngAlgorithm.value()));
 }
@@ -500,7 +498,7 @@ bool stablehloAttributeIsARngAlgorithmAttr(MlirAttribute attr) {
   return unwrap(attr).isa<mlir::stablehlo::RngAlgorithmAttr>();
 }
 
-MlirStringRef stablehloRngAlgorithmAttrGetRngAlgorithm(MlirAttribute attr) {
+MlirStringRef stablehloRngAlgorithmAttrGetValue(MlirAttribute attr) {
   return wrap(mlir::stablehlo::stringifyRngAlgorithm(
       unwrap(attr).cast<mlir::stablehlo::RngAlgorithmAttr>().getValue()));
 }
