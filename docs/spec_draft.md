@@ -258,15 +258,15 @@ the IEEE-754 specification. For boolean element types, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                                                        |
-|-------|-------------------------------------------------------------|
+| Name  | Type                                  |
+|-------|---------------------------------------|
 | `lhs` | tensor of all supported element types |
 | `rhs` | tensor of all supported element types |
 
 ### Outputs
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
+| Name     | Type                                  |
+|----------|---------------------------------------|
 | `result` | tensor of all supported element types |
 
 ### Constraints
@@ -835,15 +835,15 @@ For boolean element types, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Inputs
 
-| Name  | Type                                                        |
-|-------|-------------------------------------------------------------|
+| Name  | Type                                  |
+|-------|---------------------------------------|
 | `lhs` | tensor of all supported element types |
 | `rhs` | tensor of all supported element types |
 
 ### Outputs
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
+| Name     | Type                                  |
+|----------|---------------------------------------|
 | `result` | tensor of all supported element types |
 
 ### Constraints
@@ -876,15 +876,15 @@ For boolean element types, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                                                        |
-|-------|-------------------------------------------------------------|
+| Name  | Type                                  |
+|-------|---------------------------------------|
 | `lhs` | tensor of all supported element types |
 | `rhs` | tensor of all supported element types |
 
 ### Outputs
 
-| Name     | Type                                                        |
-|----------|-------------------------------------------------------------|
+| Name     | Type                                  |
+|----------|---------------------------------------|
 | `result` | tensor of all supported element types |
 
 ### Constraints
