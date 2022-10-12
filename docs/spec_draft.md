@@ -1468,104 +1468,77 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 Sorts a variadic number of tensors in `inputs` together, according to a custom 
 `comparator`, along the given `dimension` and produces a variadic number of
-tensors as `result`. If `is_stable` is set to true, the sort is guaranteed to be
-stable, that is, if there are elements which are considered to be equal by the
-comparator, the relative order of the equal values is preserved.
+tensors as `results`. If `is_stable` is true, then the sorting is stable, that
+is, relative order of elements considered to be equal by the comparator is
+preserved.
 
-If only one operand is provided:
+More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
+`compare_i_j = compare_j_i = false` or `compare_i_j = true`, where:
+  1. `compare_i_j` $=$ `comparator(inputs[0][i], inputs[0][j], inputs[1][i], inputs[1][j], ...)`.
+  1. For all indices `i = [i0, ..., iR-1]` and `j = [j0, ..., jR-1]`.
+  1. Where `i` $=$ `j` everywhere except for the `d`th dimension.
+  1. Where `d` $=$ `dimension >= 0 ? dimension : rank(inputs[0]) + dimension`.
 
-* If the operand is a rank-1 tensor (an array), the result is a sorted array.
-  If you want to sort the array into ascending order, the comparator should
-  perform a less-than comparison. Formally, after the array is sorted, it holds
-  for all index positions `i, j` with `i < j` that either
-  `comparator(value[i], value[j]) = comparator(value[j], value[i]) = false` or
-  `comparator(value[i], value[j]) = true`.
+### Inputs
 
-* If the operand has higher rank, the operand is sorted along the provided
-  dimension. For example, for a rank-2 tensor (a matrix), a dimension value of
-  `0` will independently sort every column, and a dimension value of `1` will
-  independently sort each row. If no dimension number is provided, then the last
-  dimension is chosen by default. For the dimension which is sorted, the same
-  sorting order applies as in the rank-1 case.
-
-If `n > 1` operands are provided:
-
-* All `n` operands must be tensors with the same dimensions. The element types
-  of the tensors may be different.
-
-* All operands are sorted together, not individually. Conceptually the operands
-  are treated as a tuple. When checking whether the elements of each operand at
-  index positions `i` and `j` need to be swapped, the comparator is called with
-  `2 * n` scalar parameters, where parameter `2 * k` corresponds to the value at
-  position `i` from the `k-th` operand, and parameter `2 * k + 1` corresponds to
-  the value at position `j` from the `k-th` operand. Usually, the comparator
-  would thus compare parameters `2 * k` and `2 * k + 1` with each other and
-  possibly use other parameter pairs as tie breakers.
-
-* The result is a tuple that consists of the operands in sorted order (along
-  the provided dimension, as above). The `i-th` operand of the tuple corresponds
-  to the `i-th` operand of Sort.
-
-### Operands
-
-| Name        | Type                                              |
-|-------------|---------------------------------------------------|
-| `inputs`    | variadic number of tensors of any supported types |
-| `dimension` | `si64` (defaults to `-1` or `R-1`)                |
-| `is_stable` | `i1`   (defaults to `false`)                      |
-
-### Regions
-
-| Name         | Type               |
-|--------------|--------------------|
-| `comparator` | a region of size 1 |
+| Name         | Type                                              |
+|--------------|---------------------------------------------------|
+| `inputs`     | variadic number of tensors of any supported types |
+| `dimension`  | constant of type `si64`                           |
+| `is_stable`  | constant of type `i1`                             |
+| `comparator` | sorting function of type `function`               |
 
 ### Results
 
-| Name     | Type                                              |
-|----------|---------------------------------------------------|
-| `result` | variadic number of tensors of any supported types |
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
+| `results` | variadic number of tensors of any supported types |
 
 ### Constraints
 
-  * (C1) `inputs` should have alteast 1 tensor.
-  * (C2) All tensors in `input` have same shape, they might have different
-         element types.
-  * (C3) 0 $\le$ `dimension` $\lt$ rank of `inputs[0]`.
-  * (C4) `comparator` takes arguments equal to twice the number of tensors in
-         `inputs`.
-  * (C5) Type of `2*i`th and `2*i+1`th parameter of `comparator` funcion is
-         same/compatible with element type of `i`th tensor in `input`.
-  * (C6) Result of `comparator` is a single 0-ranked tensor with element-type
-         i1.
-  * (C7) `result` has the same number of tensors as `inputs`.
-  * (C8) `i`th tensor in `result` has the same shape as `i`th tensors in
-         `inputs`.
+  * (C1) `inputs` have alteast 1 tensor.
+  * (C2) For all `i`, `type(inputs[i])` = `type(results[i])`.
+  * (C3) All tensors in `inputs` and `results` have the same shape.
+  * (C4) `-R` $\le$ `dimension` $\lt$ `R`, where `R` is rank of `inputs[0]`.
+  * (C5) `comparator` has type
+         `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> i1`,
+         where `Ei` is element type of `inputs[i]`.
 
 ### Examples
 
 ```mlir
 // Sort along dimension 0
 
-// %0 = [[1,2,3],[3,2,1]]
-// %1 = [[3,2,1],[1,2,3]]
-%result0, %result1 = "mhlo.sort"(%0, %1) ({
+// %input0 = [[1,2,3],[3,2,1]]
+// %input1 = [[3,2,1],[1,2,3]]
+%result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-  %predicate = "mhlo.compare"(%arg0, %arg1) {comparison_direction = #mhlo<comparison_direction GT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  "mhlo.return"(%predicate) : (tensor<i1>) -> ()
-}) {dimension = 0 : i64, is_stable = true} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
+    %predicate = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+}) {
+  dimension = 0 : i64,
+  is_stable = true
+} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
 // %result0 = [[3,2,3],[1,2,1]]
 // %result1 = [[1,2,1],[3,2,3]]
 
+
 // Sort along dimension 1
 
-// %0 = [[1,2,3],[3,2,1]]
-// %1 = [[3,2,1],[1,2,3]]
-%result0, %result1 = "mhlo.sort"(%0, %1) ({
+// %input0 = [[1,2,3],[3,2,1]]
+// %input1 = [[3,2,1],[1,2,3]]
+%result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-  %predicate = "mhlo.compare"(%arg0, %arg1) {comparison_direction = #mhlo<comparison_direction GT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  "mhlo.return"(%predicate) : (tensor<i1>) -> ()
-}) {dimension = 1 : i64, is_stable = true} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
+    %predicate = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction GT>
+      } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+}) {
+  dimension = 1 : i64,
+  is_stable = true
+} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
 // %result0 = [[3,2,1],[3,2,1]]
 // %result1 = [[1,2,3],[1,2,3]]
 ```

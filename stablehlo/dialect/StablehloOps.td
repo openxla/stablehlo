@@ -2354,20 +2354,22 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
   let description = [{
     Sorts a variadic number of tensors in `inputs` together, according to a
     custom `comparator`, along the given `dimension` and produces a variadic
-    number of tensors as `result`. If `is_stable` is set to true, the sort is
-    guaranteed to be stable, that is, if there are elements which are considered
-    to be equal by the comparator, the relative order of the equal values is
-    preserved.
+    number of tensors as `results`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreverse
 
     Example:
-    %result0, %result1 = "mhlo.sort"(%0, %1) ({
+    %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
       ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-      %predicate = "mhlo.compare"(%arg0, %arg1) {comparison_direction = #mhlo<comparison_direction GT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
-      "mhlo.return"(%predicate) : (tensor<i1>) -> ()
-    }) {dimension = 0 : i64, is_stable = true} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
+        %predicate = "stablehlo.compare"(%arg0, %arg1) {
+          comparison_direction = #stablehlo<comparison_direction GT>
+          } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+        "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+    }) {
+      dimension = 0 : i64,
+      is_stable = true
+    } : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
