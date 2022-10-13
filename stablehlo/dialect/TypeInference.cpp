@@ -1037,8 +1037,6 @@ LogicalResult inferSortOp(
   return success();
 }
 
-
-
 LogicalResult inferTriangularSolveOp(
     Optional<Location> location, Value a, Value b, bool leftSide,
     bool isTransposeAInvalid,
