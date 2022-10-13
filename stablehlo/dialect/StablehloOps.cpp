@@ -4156,13 +4156,12 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
 }
 
 LogicalResult TransposeOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> loc, ValueRange operands,
+    MLIRContext*, Optional<Location> loc, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TransposeOp::Adaptor adaptor(operands, attributes, regions);
-  LogicalResult result =
-      hlo::inferTransposeOp(context, loc, adaptor.getOperand(),
-                            adaptor.getPermutation(), inferredReturnTypes);
+  LogicalResult result = hlo::inferTransposeOp(
+      loc, adaptor.getOperand(), adaptor.getPermutation(), inferredReturnTypes);
   return result;
 }
 

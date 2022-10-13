@@ -948,8 +948,8 @@ LogicalResult inferSortOp(
   return success();
 }
 
-LogicalResult inferTransposeOp(MLIRContext* context, Optional<Location> loc,
-                               Value operand, DenseIntElementsAttr permutation,
+LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
+                               DenseIntElementsAttr permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operand.getType();
   auto rankedTy = type.dyn_cast<RankedTensorType>();
