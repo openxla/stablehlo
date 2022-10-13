@@ -79,8 +79,7 @@ int main(int argc, char **argv) {
 
   static llvm::cl::opt<bool> emitAssembly(
       "emit-assembly",
-      llvm::cl::desc(
-          "Emit textual assembly format (default emits bytecode)"),
+      llvm::cl::desc("Emit textual assembly format (default emits bytecode)"),
       llvm::cl::init(false));
 
   static llvm::cl::opt<bool> useTestConverter(
