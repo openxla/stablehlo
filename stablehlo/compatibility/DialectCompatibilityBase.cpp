@@ -212,17 +212,16 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
     return topLevelOperation->emitError("must be valid op");
   }
 
-  // TODO: Downgrade to target version
+  // Downgrade to target version
   int64_t producerVersion =
       std::min(targetVersion, interface.getProducerVersion());
   producerVersion =
-      std::max(targetVersion, interface.getMinimumDowngradeDialectVersion());
+      std::max(producerVersion, interface.getMinimumDowngradeDialectVersion());
   if (failed(interface.applyOpDowngrades(topLevelOperation, targetVersion))) {
     return failure();
   }
 
   // Modify top level version attribute.
-  // TODO: Add validation to the target version number.
   if (failed(writeProducerVersion(topLevelOperation, producerVersion))) {
     return failure();
   }
@@ -231,7 +230,7 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
   if (emitBytecode) {
     writeBytecodeToFile(topLevelOperation, output);
   } else {
-    topLevelOperation->print(output /*, printerFlags = */);
+    topLevelOperation->print(output);
   }
   return success();
 }
