@@ -1173,14 +1173,18 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
     ]> {
   let summary = "Switch-Case operator";
   let description = [{
-    Returns the result of executing `branches[index]`. If `index` is < 0 or >=
-    N, then `branches[N-1]` is executed as the default branch.
+    Returns the result of exactly 1 function from `branches` depending on the
+    value of `index`.
 
-    The type of the returned values of each branch must be the same and equal
-    to the types of the values returned by the operation.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocase
 
-    Note that only one of the branches will be executed depending on the value
-    of index.
+    Example:
+    %result = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+    }, {
+      "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
+    }) : (tensor<i32>) -> tensor<i32>
   }];
 
   let arguments = (ins

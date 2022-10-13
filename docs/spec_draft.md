@@ -164,6 +164,7 @@ described below)
    * [add](#stablehloadd)
    * [and](#stablehloand)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
+   * [case](#stablehlocase)
    * [ceil](#stablehloceil)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -395,6 +396,50 @@ dimensions `k` in `operand`.
 //             [3, 3]
 //            ],
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.case
+
+### Semantics
+
+Returns the result of exactly 1 function from `branches` depending on the value
+of `index`. Formally, if $0 \le$ `index` $\lt$ `N-1`, result of executing
+`branches[index]` is returned, else, result of executing `branches[N-1]` is
+returned.
+
+### Inputs
+
+| Name       | Type                                         |
+|------------|----------------------------------------------|
+| `index`    | 1-dimensional tensor constant of type `si32` |
+| `branches` | a variable sized array of type `function`    |
+
+### Outputs
+
+| Name     | Type               |
+|----------|--------------------|
+| `result` | any supported type |
+
+### Constraints
+
+  * (C1) `branches` have atleast one function.
+  * (C2) All functions in `branches` take 0 arguments.
+  * (C3) Return type of all functions in `branches` are same.
+
+### Examples
+
+```mlir
+// %result_branch0: 10
+// %result_branch1: 11
+// %index: 1
+%result = "stablehlo.case"(%index) ({
+  "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+}, {
+  "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
+}) : (tensor<i32>) -> tensor<i32>
+// %result: 11
 ```
 
 [Back to Ops](#index-of-ops)
