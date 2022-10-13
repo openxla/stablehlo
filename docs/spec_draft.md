@@ -74,9 +74,9 @@ whether/when they follow the canonical order) and how individual tensor elements
 in a particular order are packed together into a tensor (e.g. how these elements
 are aligned, whether they are stored contiguously, etc).
 
-**Function types** model functions and are referred to in the document as
-`(I1, ..., IN) -> (O1, ..., OM)` or simply `function` in the contexts where the
-constituent types don't matter, where:
+**Function types** model functions and are referred to in the document using: 1)
+the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
+`function`, where:
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
   * Neither input nor output types can be function types themselves.
