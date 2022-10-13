@@ -981,8 +981,8 @@ If they are not then the semantics is implementation defined.
       as:
       * If `i` is present in the `batch_dims`, i.e., `i` $=$ `batch_dims`[`k`]
       for some `k`, then
-        * `di` $=$ shape(`start_indices`)[`k`] if `k` $\lt$ `index_vector_dim`
-        * `di` $=$ shape(`start_indices`)[`k+1`], otherwise.
+        * `di` $=$ dim(`start_indices`, `k`) if `k` $\lt$ `index_vector_dim`
+        * `di` $=$ dim(`start_indices`, `k+1`) otherwise.
       * If `i` is present in `offset_dims`, i.e., `i` $=$ `offset_dims`[`k`] for
       some `k`, then `di` $=$ `adjusted_slice_sizes`[`k`] where
       `adjusted_slice_sizes`= `slize_sizes` - {`size_sizes[i]` : i $\in$
