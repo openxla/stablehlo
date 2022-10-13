@@ -194,7 +194,7 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
 /// Entrypoint for writing a file that was serialized with compatibility
 /// guarantees.
 LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              int64_t const &targetVersion, bool emitBytecode,
+                              int64_t targetVersion, bool emitBytecode,
                               llvm::raw_ostream &output,
                               DialectCompatibilityBase &interface);
 

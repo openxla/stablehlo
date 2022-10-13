@@ -2,7 +2,7 @@
 // RUN: diff <(stablehlo-opt %s) <(stablehlo-opt -emit-bytecode %s | stablehlo-opt)
 // RUN: stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
-// RUN: stablehlo-translate -compat --emit-bytecode %s | stablehlo-translate --compat --target=999
+// RUN: stablehlo-translate -compat %s | stablehlo-translate --compat --emit-assembly --target=999
 
 // This test compares the output from `stablehlo-opt` of this file, to a round
 // trip of the a bytecoded version of this file. If the outputs do not match,

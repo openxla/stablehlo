@@ -205,7 +205,7 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
 }
 
 LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              int64_t const &targetVersion, bool emitBytecode,
+                              int64_t targetVersion, bool emitBytecode,
                               llvm::raw_ostream &output,
                               DialectCompatibilityBase &interface) {
   if (failed(verify(topLevelOperation))) {

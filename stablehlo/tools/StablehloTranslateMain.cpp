@@ -25,14 +25,14 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/compatibility/StablehloDialectCompatibility.h"
 #include "stablehlo/dialect/Register.h"
-#include "stablehlo/tools/TestStablehloDialectCompatibility.h"
+#include "stablehlo/tests/TestStablehloDialectCompatibility.h"
 
 using namespace mlir;
 using namespace mlir::stablehlo;
 
 struct CompatOptions {
   int64_t targetVersion;
-  bool emitBytecode;
+  bool emitAssembly;
   bool useTestConverter;
 };
 
@@ -63,7 +63,7 @@ static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
   }
 
   int64_t targetVersion = opts.targetVersion;
-  bool emitBytecode = opts.emitBytecode;
+  bool emitBytecode = !opts.emitAssembly;
   return writeWithCompat(module.get(), targetVersion, emitBytecode, output,
                          *interface);
 }
@@ -77,10 +77,10 @@ int main(int argc, char **argv) {
           "Target verison for output (default to minimum supported)"),
       llvm::cl::init(-1));
 
-  static llvm::cl::opt<bool> emitBytecode(
-      "emit-bytecode",
+  static llvm::cl::opt<bool> emitAssembly(
+      "emit-assembly",
       llvm::cl::desc(
-          "Target verison for output (default to minimum supported)"),
+          "Emit textual assembly format (default emits bytecode)"),
       llvm::cl::init(false));
 
   static llvm::cl::opt<bool> useTestConverter(
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
       "compat", "StableHLO compatibility tool.",
       [&](llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output,
           MLIRContext *context) {
-        CompatOptions opts{targetVersion, emitBytecode, useTestConverter};
+        CompatOptions opts{targetVersion, emitAssembly, useTestConverter};
         return serializeWithCompatibilityMain(sourceMgr, output, context, opts);
       });
 
