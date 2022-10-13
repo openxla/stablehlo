@@ -74,6 +74,16 @@ whether/when they follow the canonical order) and how individual tensor elements
 in a particular order are packed together into a tensor (e.g. how these elements
 are aligned, whether they are stored contiguously, etc).
 
+**Function types** model functions and are referred to in the document as
+`(I1, ..., IN) -> (O1, ..., OM)` where:
+  * `Ii` are types of inputs of the corresponding function.
+  * `Oj` are types of outputs of the corresponding function.
+  * Neither input nor output types can be function types themselves.
+
+Function types are not first class, i.e. StableHLO doesn't support values of
+function types. Some StableHLO ops can take functions as inputs, but they are
+never produced as outputs.
+
 ## Programs
 
 StableHLO programs consist of functions. Each function has inputs and outputs
