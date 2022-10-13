@@ -930,9 +930,9 @@ If they are not then the semantics is implementation defined.
 | `offset_dims`          | The set of dimensions in the `result` shape that offset into an array sliced from `operand`        | 1-dimensional tensor constant of type `si64` | (C8),(C9)           |
 | `collapsed_slice_dims` | The set of dimensions in each slice that are collapsed away.                                       | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C12) |
 | `start_index_map`      | A map that describes how to scatter indices in `start_indices` to the iteration space of `operand` | 1-dimensional tensor constant of type `si64` | (C3),(C4),(C5)      |
-| `index_vector_dim`     | The dimension in `start_indices` containing the starting indices                                   | `si64`                                       | (C2)                |
+| `index_vector_dim`     | The dimension in `start_indices` containing the starting indices                                   | constant of type `si64`                      | (C2)                |
 | `slice_sizes`          | `slice_sizes`[i] is the size of the slice gathered from `operand` in dimension i                   | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C12)   |
-| `indices_are_sorted`   | Whether the indices are guaranteed to be sorted by the caller.                                     | boolean                                      |                     |
+| `indices_are_sorted`   | Whether the indices are guaranteed to be sorted by the caller.                                     | constant of type `boolean`                   |                     |
 
 ### Outputs
 
@@ -942,7 +942,7 @@ If they are not then the semantics is implementation defined.
 
 ### Constraints
 
-  * On Operands
+  * On Inputs
     * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
     size(`collapsed_slice_dims`)
 
@@ -953,7 +953,7 @@ If they are not then the semantics is implementation defined.
     * (C3) dim(`start_indices`, `index_vector_dim`) $=$
     size(`start_index_map`)
 
-    * (C4) No duplicates in `start_index_map`
+    * (C4) All dimensions in `start_index_map` are unique.
 
     * (C5) &nbsp; $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
     such that $0 \le$ i $\lt$ size(`start_index_map`)
@@ -963,12 +963,12 @@ If they are not then the semantics is implementation defined.
     * (C7) &nbsp; $0 \le$ `slice_sizes`[i] $\lt$ shape(`operand`)[i] $\forall
     i$ such that $0 \le$ i $\lt$ size(`slice_sizes`)
 
-    * (C8) `offset_dims` is sorted without duplicates.
+    * (C8) All dimensions in `offset_dims` are unique and sorted.
 
-    * (C9) &nbsp; $0 \le$ `offset_dims`[i] $\lt$ shape(`result`) $\forall i$
+    * (C9) &nbsp; $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
     such that $0 \le$ i $\lt$ size(`offset_dims`)
 
-    * (C10) `collapsed_slice_dims` is sorted without duplicates.
+    * (C10) All dimensions in `collapsed_slice_dims` are unique and sorted.
 
     * (C11) &nbsp; $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
     $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`)
