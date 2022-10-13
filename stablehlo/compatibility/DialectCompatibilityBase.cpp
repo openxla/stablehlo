@@ -122,6 +122,8 @@ LogicalResult DialectCompatibilityBase::applyOpDowngrades(
   });
 }
 
+namespace detail {
+
 namespace {
 /// Writes the target version as an attribute on the top level operation of the
 /// IR.
@@ -152,7 +154,6 @@ FailureOr<int64_t> extractProducerVersion(Operation *topLevelOperation) {
 
 }  // namespace
 
-namespace detail {
 OwningOpRef<Operation *> parseWithCompatImpl(
     llvm::SourceMgr &sourceMgr, MLIRContext *context,
     DialectCompatibilityBase &interface) {
@@ -192,7 +193,7 @@ OwningOpRef<Operation *> parseWithCompatImpl(
 
   //  Apply upgrades
   if (failed(interface.applyOpUpgrades(topLevelOperation, *version))) {
-    topLevelOperation->emitError("failed to apply upgrade");
+    topLevelOperation->emitError("failed to apply upgrades");
     return nullptr;
   }
 
@@ -219,6 +220,7 @@ LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
   producerVersion =
       std::max(producerVersion, interface.getMinimumDowngradeDialectVersion());
   if (failed(interface.applyOpDowngrades(topLevelOperation, targetVersion))) {
+    topLevelOperation->emitError("failed to apply downgrades");
     return failure();
   }
 

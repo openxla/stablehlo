@@ -105,7 +105,7 @@ class TestStablehloCompatibilityConverter : public DialectCompatibilityBase {
         "stablehlo.add", 38,
         [&](Operation *op, int64_t fromVer) -> LogicalResult {
           if (!op->hasAttr("version_39_attr")) {
-            return op->emitError("expected version_39_attr for downrade.");
+            return op->emitError("expected version_39_attr for downgrade.");
           }
           op->setAttr("version_38_attr", op->getAttr("version_39_attr"));
           op->removeAttr("version_39_attr");
