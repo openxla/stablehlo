@@ -171,6 +171,7 @@ described below)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
    * [floor](#stablehlofloor)
+   * [if](#stablehloif)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
@@ -688,6 +689,48 @@ IEEE-754 specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.if
+
+### Semantics
+
+Returns the result of `true_branch` if `pred` is `true`, `false_branch` if
+`pred` is `false`.
+
+### Inputs
+
+| Name           | Type                                       |
+|----------------|--------------------------------------------|
+| `pred`         | 1-dimensional tensor constant of type `i1` |
+| `true_branch`  | function of type `function`                |
+| `false_branch` | function of type `function`                |
+
+### Outputs
+
+| Name     | Type               |
+|----------|--------------------|
+| `result` | any supported type |
+
+### Constraints
+
+  * (C1) `true_branch` and `false_branch` take 0 arguments.
+  * (C2) Return types of `true_branch` and `false_branch` are same.
+
+### Examples
+
+```mlir
+// %result_true_branch: 10
+// %result_false_branch: 11
+// %pred: true
+%result = "stablehlo.if"(%pred) ({
+  "stablehlo.return"(%result_true_branch) : (tensor<i32>) -> ()
+}, {
+  "stablehlo.return"(%result_false_branch) : (tensor<i32>) -> ()
+}) : (tensor<i1>) -> tensor<i32>
+// %result: 10
+```
 
 [Back to Ops](#index-of-ops)
 

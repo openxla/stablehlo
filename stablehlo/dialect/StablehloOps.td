@@ -1142,15 +1142,18 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
   let summary = "If operator";
 
   let description = [{
-    Executes the function `true_branch` if `pred` is true or `false_branch` if
-    pred is false, and returns the result.
+    Returns the result of `true_branch` if `pred` is `true`, `false_branch` if
+    `pred` is `false`.
 
-    The type of the returned values of `true_branch` and `false_branch`
-    functions must be the same and equal to the types of the values returned by
-    the operation.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloif
 
-    Note that only one of two functions will be executed depending on the value
-    of `pred`.
+    Example:
+    %result = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%result_true_branch) : (tensor<i32>) -> ()
+    }, {
+      "stablehlo.return"(%result_false_branch) : (tensor<i32>) -> ()
+    }) : (tensor<i1>) -> tensor<i32>
   }];
 
   let arguments = (ins
