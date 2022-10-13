@@ -183,26 +183,6 @@ LogicalResult TypeExtensionsAttr::verifyEncoding(
       getBounds(), RankedTensorType::get(bounds, elementType), emitError);
 }
 
-llvm::SmallVector<int64_t> getBounds(Type type) {
-  llvm::SmallVector<int64_t> bounds;
-  auto rankedTy = type.dyn_cast<RankedTensorType>();
-  if (rankedTy)
-    if (auto encoding =
-            rankedTy.getEncoding().dyn_cast_or_null<TypeExtensionsAttr>())
-      bounds = llvm::to_vector<4>(encoding.getBounds());
-  return bounds;
-}
-
-void addBounds(MLIRContext* context, SmallVectorImpl<Type>& types,
-               llvm::SmallVector<int64_t> bounds) {
-  if (!bounds.empty()) {
-    auto type = types.pop_back_val().cast<RankedTensorType>();
-    Attribute encoding = TypeExtensionsAttr::get(context, bounds);
-    types.emplace_back(RankedTensorType::get(type.getShape(),
-                                             type.getElementType(), encoding));
-  }
-}
-
 //===----------------------------------------------------------------------===//
 // ReduceScatterOp
 //===----------------------------------------------------------------------===//
