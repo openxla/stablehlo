@@ -55,7 +55,8 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
                               MLIRContext *context, int64_t targetVersion,
                               bool emitBytecode, llvm::raw_ostream &output) {
   StablehloCompatibilityConverter interface(context);
-  return detail::writeWithCompatImpl(topLevelOperation, targetVersion, emitBytecode, output, interface);
+  return detail::writeWithCompatImpl(topLevelOperation, targetVersion,
+                                     emitBytecode, output, interface);
 }
 
 }  // namespace stablehlo
