@@ -185,18 +185,18 @@ class DialectCompatibilityBase {
   llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> downgrades;
 };
 
-/// Entrypoint for parsing a file that was serialized with compatibility
-/// guarantees.
-OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
-                                         MLIRContext *context,
-                                         DialectCompatibilityBase &interface);
+namespace detail {
+/// Separate impl funciton for testing.
+OwningOpRef<Operation *> parseWithCompatImpl(
+    llvm::SourceMgr &sourceMgr, MLIRContext *context,
+    DialectCompatibilityBase &interface);
 
-/// Entrypoint for writing a file that was serialized with compatibility
-/// guarantees.
-LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              int64_t targetVersion, bool emitBytecode,
-                              llvm::raw_ostream &output,
-                              DialectCompatibilityBase &interface);
+/// Separate impl funciton for testing.
+LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
+                                  int64_t targetVersion, bool emitBytecode,
+                                  llvm::raw_ostream &output,
+                                  DialectCompatibilityBase &interface);
+}  // namespace detail
 
 }  // namespace stablehlo
 }  // namespace mlir

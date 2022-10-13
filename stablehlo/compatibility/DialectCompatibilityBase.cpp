@@ -152,9 +152,10 @@ FailureOr<int64_t> extractProducerVersion(Operation *topLevelOperation) {
 
 }  // namespace
 
-OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
-                                         MLIRContext *context,
-                                         DialectCompatibilityBase &interface) {
+namespace detail {
+OwningOpRef<Operation *> parseWithCompatImpl(
+    llvm::SourceMgr &sourceMgr, MLIRContext *context,
+    DialectCompatibilityBase &interface) {
   FallbackAsmResourceMap fallbackResourceMap;
   ParserConfig config(context, /*verifyAfterParse=*/false,
                       &fallbackResourceMap);
@@ -204,10 +205,10 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
   return module.release();
 }
 
-LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              int64_t targetVersion, bool emitBytecode,
-                              llvm::raw_ostream &output,
-                              DialectCompatibilityBase &interface) {
+LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
+                                  int64_t targetVersion, bool emitBytecode,
+                                  llvm::raw_ostream &output,
+                                  DialectCompatibilityBase &interface) {
   if (failed(verify(topLevelOperation))) {
     return topLevelOperation->emitError("must be valid op");
   }
@@ -234,6 +235,7 @@ LogicalResult writeWithCompat(Operation *topLevelOperation,
   }
   return success();
 }
+}  // namespace detail
 
 }  // namespace stablehlo
 }  // namespace mlir

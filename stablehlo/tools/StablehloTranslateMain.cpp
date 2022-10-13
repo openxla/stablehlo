@@ -57,15 +57,15 @@ static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
   }
 
   OwningOpRef<Operation *> module =
-      parseWithCompat(sourceMgr, context, *interface);
+      stablehlo::detail::parseWithCompatImpl(sourceMgr, context, *interface);
   if (!module) {
     return failure();
   }
 
   int64_t targetVersion = opts.targetVersion;
   bool emitBytecode = !opts.emitAssembly;
-  return writeWithCompat(module.get(), targetVersion, emitBytecode, output,
-                         *interface);
+  return stablehlo::detail::writeWithCompatImpl(
+      module.get(), targetVersion, emitBytecode, output, *interface);
 }
 
 int main(int argc, char **argv) {

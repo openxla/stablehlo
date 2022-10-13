@@ -41,6 +41,23 @@ class StablehloCompatibilityConverter : public DialectCompatibilityBase {
   int64_t getMinimumDowngradeDialectVersion() const final { return 0; }
 };
 
+/// Entrypoint for parsing a file that was serialized with compatibility
+/// guarantees.
+OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
+                                         MLIRContext *context) {
+  StablehloCompatibilityConverter interface(context);
+  return detail::parseWithCompatImpl(sourceMgr, context, interface);
+}
+
+/// Entrypoint for writing a file that was serialized with compatibility
+/// guarantees.
+LogicalResult writeWithCompat(Operation *topLevelOperation,
+                              MLIRContext *context, int64_t targetVersion,
+                              bool emitBytecode, llvm::raw_ostream &output) {
+  StablehloCompatibilityConverter interface(context);
+  return detail::writeWithCompatImpl(topLevelOperation, targetVersion, emitBytecode, output, interface);
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
 
