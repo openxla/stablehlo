@@ -139,6 +139,12 @@ LogicalResult inferReduceWindowOp(
     Optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferSliceOp(Optional<Location> location, Value operand,
+                           DenseIntElementsAttr startIndices,
+                           DenseIntElementsAttr limitIndices,
+                           DenseIntElementsAttr strides,
+                           SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferSortOp(
     Optional<Location> location, ValueRange inputs, uint64_t dimension,
     Region& comparator,
