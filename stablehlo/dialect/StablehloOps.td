@@ -2225,10 +2225,10 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
-    StableHLO_DotDimensionNumbers:$dot_dimension_numbers,
-    StableHLO_PrecisionConfigAttr:$precision_config
+    HLO_Tensor:$lhs /*dot_general_i1*/,
+    HLO_Tensor:$rhs /*dot_general_i2*/,
+    StableHLO_DotDimensionNumbers:$dot_dimension_numbers /*dot_general_i3, dot_general_i4, dot_general_i5, dot_general_i6*/,
+    StableHLO_PrecisionConfigAttr:$precision_config /*dot_general_i7*/
   );
 
   let results = (outs HLO_Tensor);

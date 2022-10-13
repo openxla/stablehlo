@@ -249,6 +249,22 @@ SmallVector<Tensor> eval(
       scope.add(op.getResults(), {result});
     } else if (isa<DotOp>(op)) {
       failOnDecomposableOp(op);
+    } else if (auto dotGeneralOp = dyn_cast<DotGeneralOp>(op)) {
+      auto lhs = scope.find(dotGeneralOp.getLhs());
+      auto rhs = scope.find(dotGeneralOp.getRhs());
+      auto lhsBatchingDimensions = Axes(
+          dotGeneralOp.getDotDimensionNumbers().getLhsBatchingDimensions());
+      auto rhsBatchingDimensions = Axes(
+          dotGeneralOp.getDotDimensionNumbers().getRhsBatchingDimensions());
+      auto lhsContractingDimensions = Axes(
+          dotGeneralOp.getDotDimensionNumbers().getLhsContractingDimensions());
+      auto rhsContractingDimensions = Axes(
+          dotGeneralOp.getDotDimensionNumbers().getRhsContractingDimensions());
+      auto result =
+          evalDotGeneralOp(lhs, rhs, lhsBatchingDimensions,
+                           rhsBatchingDimensions, lhsContractingDimensions,
+                           rhsContractingDimensions, dotGeneralOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       auto operand = scope.find(dynamicSliceOp.getOperand());
       auto startIndices = scope.find(dynamicSliceOp.getStartIndices());
@@ -748,6 +764,73 @@ Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) / rhs.get(*it));
+  return result;
+}
+
+Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
+                        const Axes &lhsBatchingDimensions,
+                        const Axes &rhsBatchingDimensions,
+                        const Axes &lhsContractingDimensions,
+                        const Axes &rhsContractingDimensions,
+                        ShapedType resultType) {
+  Tensor result(resultType);
+  Axes lhsNonBatchingNonContractingDims;
+  for (auto i = 0; i < lhs.getType().getRank(); ++i)
+    if (!llvm::is_contained(lhsBatchingDimensions, i) &&
+        !llvm::is_contained(lhsContractingDimensions, i))
+      lhsNonBatchingNonContractingDims.push_back(i);
+
+  Axes rhsNonBatchingNonContractingDims;
+  for (auto i = 0; i < rhs.getType().getRank(); ++i)
+    if (!llvm::is_contained(rhsBatchingDimensions, i) &&
+        !llvm::is_contained(rhsContractingDimensions, i))
+      rhsNonBatchingNonContractingDims.push_back(i);
+
+  Sizes contractingDimSizes;
+  int64_t totalContractingSize = 1;
+  for (uint64_t i = 0; i < lhsContractingDimensions.size(); ++i) {
+    contractingDimSizes.push_back(
+        lhs.getType().getShape()[lhsContractingDimensions[i]]);
+    totalContractingSize *=
+        lhs.getType().getShape()[lhsContractingDimensions[i]];
+  }
+
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    Index lhsIdx(lhs.getType().getRank());
+    Index rhsIdx(rhs.getType().getRank());
+    int64_t resultDim = 0;
+
+    // Indices do not change for batching dimensions.
+    for (uint64_t i = 0; i < lhsBatchingDimensions.size(); ++i, ++resultDim) {
+      lhsIdx[lhsBatchingDimensions[i]] = (*resultIt)[resultDim];
+      rhsIdx[rhsBatchingDimensions[i]] = (*resultIt)[resultDim];
+    }
+
+    // The non-batching, non-contracting dimensions of the operands are copied
+    // over to the result dimensions following the batching dimensions.
+    for (uint64_t i = 0; i < lhsNonBatchingNonContractingDims.size(); i++)
+      lhsIdx[lhsNonBatchingNonContractingDims[i]] = (*resultIt)[resultDim++];
+
+    for (uint64_t i = 0; i < rhsNonBatchingNonContractingDims.size(); i++)
+      rhsIdx[rhsNonBatchingNonContractingDims[i]] = (*resultIt)[resultDim++];
+
+    auto sum = convert(resultType.getElementType(), 0.0);
+    // All pair-wise combination of contracting dimensions needs to be summed.
+    for (int64_t i = 0; i < totalContractingSize; ++i) {
+      sum = sum + lhs.get(lhsIdx) * rhs.get(rhsIdx);
+      if (contractingDimSizes.empty()) continue;
+      for (int64_t j = contractingDimSizes.size() - 1; j >= 0; --j) {
+        lhsIdx[lhsContractingDimensions[j]]++;
+        rhsIdx[rhsContractingDimensions[j]]++;
+        if (lhsIdx[lhsContractingDimensions[j]] != contractingDimSizes[j])
+          break;
+        lhsIdx[lhsContractingDimensions[j]] = 0;
+        rhsIdx[rhsContractingDimensions[j]] = 0;
+      }
+    }
+    result.set(*resultIt, sum);
+  }
   return result;
 }
 

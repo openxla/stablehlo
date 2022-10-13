@@ -2396,7 +2396,7 @@ planning to address this in
     rhs_contracting_dimensions = [1]
   >,
   precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-} : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
+} : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>
 // %result: [
 //           [[1, 2],
 //            [3, 4]],
