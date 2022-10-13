@@ -41,6 +41,7 @@ class Element {
       : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
 
   Element(const Element &other) = default;
+  Element() = default;
   /// @}
 
   /// Assignment operator.
