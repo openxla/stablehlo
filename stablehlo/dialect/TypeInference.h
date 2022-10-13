@@ -150,6 +150,10 @@ LogicalResult inferSortOp(
     Region& comparator,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
+                               DenseIntElementsAttr permutation,
+                               SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferTriangularSolveOp(
     Optional<Location> location, Value a, Value b, bool leftSide,
     bool isTransposeAInvalid,

@@ -1037,6 +1037,63 @@ LogicalResult inferSortOp(
   return success();
 }
 
+LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
+                               DenseIntElementsAttr permutation,
+                               SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto type = operand.getType();
+  auto rankedTy = type.dyn_cast<RankedTensorType>();
+  if (!rankedTy) {
+    inferredReturnTypes.emplace_back(type);
+    return success();
+  }
+  int64_t rank = rankedTy.getRank();
+  if (permutation.getType().getRank() != 1)
+    return emitOptionalError(loc, "TransposeOp permutation has rank ",
+                             permutation.getType().getRank(),
+                             " instead of rank 1");
+
+  if (permutation.size() != rank)
+    return emitOptionalError(loc, "TransposeOp operand rank ", rank,
+                             " does not match permutation size ",
+                             permutation.size());
+
+  std::vector<int64_t> range(rank);
+  std::iota(range.begin(), range.end(), 0);
+  if (!std::is_permutation(range.begin(), range.end(), permutation.begin()))
+    return emitOptionalError(loc,
+                             "attribute permutation must be a permutation"
+                             " of [",
+                             range, "] but got ", permutation);
+
+  llvm::SmallVector<int64_t, 4> inputBounds(rank, ShapedType::kDynamicSize);
+  bool hasBounds = false;
+  BoundedDialectInterface* dialect = nullptr;
+  if (auto encoding =
+          rankedTy.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
+    dialect = cast<BoundedDialectInterface>(&encoding.getDialect());
+    inputBounds = llvm::to_vector<4>(encoding.getBounds());
+    hasBounds = true;
+  }
+
+  SmallVector<int64_t> resultShape;
+  SmallVector<int64_t> resultBounds;
+  ArrayRef<int64_t> inputShape = rankedTy.getShape();
+  for (int64_t dim : permutation.getValues<int64_t>()) {
+    resultShape.push_back(inputShape[dim]);
+    if (hasBounds) {
+      resultBounds.push_back(inputBounds[dim]);
+    }
+  }
+
+  // If the input type doesn't have bounds, propagate the input type's encoding
+  // to handle sparse tensor encoding.
+  Attribute encoding = hasBounds ? dialect->createBoundedAttr(resultBounds)
+                                 : rankedTy.getEncoding();
+  inferredReturnTypes.emplace_back(
+      RankedTensorType::get(resultShape, rankedTy.getElementType(), encoding));
+  return success();
+}
+
 LogicalResult inferTriangularSolveOp(
     Optional<Location> location, Value a, Value b, bool leftSide,
     bool isTransposeAInvalid,
