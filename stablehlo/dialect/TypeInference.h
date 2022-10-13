@@ -145,11 +145,8 @@ LogicalResult inferSortOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferTransposeOp(MLIRContext* context, Optional<Location> loc,
-                               Value operand,
-                               llvm::SmallVector<int64_t>& inputBounds,
-                               DenseIntElementsAttr permutation,
-                               SmallVectorImpl<Type>& inferredReturnTypes,
-                               llvm::SmallVector<int64_t>& resultBounds);
+                               Value operand, DenseIntElementsAttr permutation,
+                               SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferTriangularSolveOp(
     Optional<Location> location, Value a, Value b, bool leftSide,

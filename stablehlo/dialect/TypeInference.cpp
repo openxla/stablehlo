@@ -949,16 +949,12 @@ LogicalResult inferSortOp(
 }
 
 LogicalResult inferTransposeOp(MLIRContext* context, Optional<Location> loc,
-                               Value operand,
-                               llvm::SmallVector<int64_t>& operandBounds,
-                               DenseIntElementsAttr permutation,
-                               SmallVectorImpl<Type>& inferredReturnTypes,
-                               llvm::SmallVector<int64_t>& resultBounds) {
+                               Value operand, DenseIntElementsAttr permutation,
+                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operand.getType();
   auto rankedTy = type.dyn_cast<RankedTensorType>();
   if (!rankedTy) {
-    auto shapedTy = type.dyn_cast<ShapedType>();
-    inferredReturnTypes.emplace_back(shapedTy);
+    inferredReturnTypes.emplace_back(type);
     return success();
   }
   int64_t rank = rankedTy.getRank();
@@ -980,17 +976,32 @@ LogicalResult inferTransposeOp(MLIRContext* context, Optional<Location> loc,
                              " of [",
                              range, "] but got ", permutation);
 
+  llvm::SmallVector<int64_t, 4> inputBounds(rank, ShapedType::kDynamicSize);
+  bool hasBounds = false;
+  BoundedDialectInterface* dialect = nullptr;
+  if (auto encoding =
+          rankedTy.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
+    dialect = cast<BoundedDialectInterface>(&encoding.getDialect());
+    inputBounds = llvm::to_vector<4>(encoding.getBounds());
+    hasBounds = true;
+  }
+
   SmallVector<int64_t> resultShape;
+  SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
   for (int64_t dim : permutation.getValues<int64_t>()) {
     resultShape.push_back(inputShape[dim]);
-    if (!operandBounds.empty()) {
-      resultBounds.push_back(operandBounds[dim]);
+    if (hasBounds) {
+      resultBounds.push_back(inputBounds[dim]);
     }
   }
 
-  inferredReturnTypes.emplace_back(RankedTensorType::get(
-      resultShape, rankedTy.getElementType(), rankedTy.getEncoding()));
+  // If the input type doesn't have bounds, propagate the input type's encoding
+  // to handle sparse tensor encoding.
+  Attribute encoding = hasBounds ? dialect->createBoundedAttr(resultBounds)
+                                 : rankedTy.getEncoding();
+  inferredReturnTypes.emplace_back(
+      RankedTensorType::get(resultShape, rankedTy.getElementType(), encoding));
   return success();
 }
 

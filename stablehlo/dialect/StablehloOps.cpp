@@ -4160,14 +4160,9 @@ LogicalResult TransposeOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TransposeOp::Adaptor adaptor(operands, attributes, regions);
-  auto inputBounds = getBounds(adaptor.getOperand().getType());
-  llvm::SmallVector<int64_t> resultBounds;
-
-  LogicalResult result = hlo::inferTransposeOp(
-      context, loc, adaptor.getOperand(), inputBounds, adaptor.getPermutation(),
-      inferredReturnTypes, resultBounds);
-
-  addBounds(context, inferredReturnTypes, resultBounds);
+  LogicalResult result =
+      hlo::inferTransposeOp(context, loc, adaptor.getOperand(),
+                            adaptor.getPermutation(), inferredReturnTypes);
   return result;
 }
 
