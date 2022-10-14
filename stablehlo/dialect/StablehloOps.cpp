@@ -2950,14 +2950,14 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
       location, adaptor.getInputs(), adaptor.getInitValues(),
       adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
       adaptor.getBaseDilations(), adaptor.getWindowDilations(),
-      adaptor.getPadding(), adaptor.getBody(), inferredReturnShapes);
+      adaptor.getPadding(), adaptor.getComputation(), inferredReturnShapes);
 }
 
 // Get the operation used for reduction applied to `result_index`th result. Its
 // expected to be a binary operation that consumes `result_index`th and
 // `result_index + getInputs().size`th arguments of the body.
 Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
-  auto returnOp = cast<ReturnOp>(getBody().front().getTerminator());
+  auto returnOp = cast<ReturnOp>(getComputation().front().getTerminator());
   Operation* computeOp = returnOp.getResults()[resultIndex].getDefiningOp();
   if (computeOp->getNumOperands() != 2) return nullptr;
   auto arg0 = computeOp->getOperand(0).dyn_cast<BlockArgument>();
@@ -3110,7 +3110,7 @@ bool hasSameOperandAndResultTypes(Operation& op) {
 //     return.
 static bool isEligibleForCompactPrint(ReduceOp op) {
   // Check E1.
-  auto& block = op.getBody().front();
+  auto& block = op.getComputation().front();
   if (!hasSingleElement(block.without_terminator())) return false;
 
   Operation& innerOp = *block.begin();
@@ -3170,7 +3170,7 @@ void ReduceOp::print(OpAsmPrinter& p) {
   // have some simplifying assumptions (refer to IsEligibleForCompactPrint::E3)
   // to derive the type from that of reduce-op.
   if (isEligibleForCompactPrint(*this)) {
-    Operation& innerOp = getBody().front().front();
+    Operation& innerOp = getComputation().front().front();
     p << " applies ";
     printEscapedString(innerOp.getName().getStringRef(), p.getStream());
 
@@ -3191,7 +3191,7 @@ void ReduceOp::print(OpAsmPrinter& p) {
     {
       // Print the pairs of block operands under the form:
       //   (%arg0_elt, %arg0_acc) (%arg1_elt, %arg1_acc):
-      Block& reducer = getBody().front();
+      Block& reducer = getComputation().front();
       int numOperandPairs = getNumOperands() / 2;
       for (int opId : llvm::seq<int>(0, numOperandPairs)) {
         p << "(";
@@ -3202,7 +3202,7 @@ void ReduceOp::print(OpAsmPrinter& p) {
       }
     }
     p << ' ';
-    p.printRegion(getBody(), /*printEntryBlockArgs=*/false);
+    p.printRegion(getComputation(), /*printEntryBlockArgs=*/false);
   }
 }
 
@@ -3400,7 +3400,7 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferReduceOp(location, adaptor.getInputs(),
                             adaptor.getInitValues(), adaptor.getDimensions(),
-                            adaptor.getBody(), inferredReturnShapes);
+                            adaptor.getComputation(), inferredReturnShapes);
 }
 
 LogicalResult ReduceOp::reifyReturnTypeShapes(

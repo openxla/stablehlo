@@ -1342,7 +1342,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 
   // TODO(hinsu): Verify that the attached body arguments and results are
   // compatible with reduce op's operands.
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region SizedRegion<1>:$computation);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2524,7 +2524,7 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region SizedRegion<1>:$computation);
 
   // Builder for non-variadic version of the operation.
   let builders = [
