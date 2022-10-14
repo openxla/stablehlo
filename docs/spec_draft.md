@@ -2540,13 +2540,31 @@ by the user. If they are not then the semantics is implementation defined.
 ### Examples
 
 ```mlir
-// %operand: [[1.0, 4.0], [9.0, 25.0]]
-%result = "stablehlo.rsqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
-// %result: [[1.0, 0.5], [0.33333343, 0.2]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(0.56886448, -0.35157758)]
+// %input: [
+//          [[1, 2], [3, 4], [5, 6], [7, 8]],
+//          [[9, 10], [11, 12], [13, 14], [15, 16]],
+//          [[17, 18], [19, 20], [21, 22], [23, 24]]
+//         ]
+// %scatter_indices: [[[0, 2], [1, 0], [2, 1]], [[0, 1], [1, 0], [2, 0]]]
+// %update: dense<1>
+%result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
+          ^bb0(%arg3: tensor<i8>, %arg4: tensor<i8>):
+             %add = mhlo.add %arg3, %arg4 : tensor<i8>
+             "mhlo.return"(%add) : (tensor<i8>) -> ()
+          }) {
+           scatter_dimension_numbers = #mhlo.scatter<
+             update_window_dims = [2,3],
+             inserted_window_dims = [0],
+             scatter_dims_to_operand_dims = [1,0],
+             index_vector_dim = 2 >,
+           indices_are_sorted = false,
+           unique_indices = false}
+          : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
+// %result: [
+//           [[1, 2], [5, 6], [8, 9], [8, 9]],
+//           [[10, 11], [12, 13], [14, 15], [16, 17]],
+//           [[18, 19], [20, 21], [21, 22], [23, 24]]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
