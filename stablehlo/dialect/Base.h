@@ -69,6 +69,11 @@ LogicalResult deriveShapeFromOperand(
 // Type derivation function that returns a tensor type with a new element type.
 TensorType getSameShapeTensorType(TensorType tensorType, Type elementType);
 
+// Takes a tensor type that may have complex elements and returns a type that
+// maintains the shape, but with real numeric data types.
+//   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
+Type createRealType(TensorType type);
+
 // Verify bounds expressed by HLO_BoundedInterface against the provided type.
 // See documentation for HLO_BoundedInterface for the list of checks.
 LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,

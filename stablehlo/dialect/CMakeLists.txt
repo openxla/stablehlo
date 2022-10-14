@@ -90,6 +90,15 @@ add_mlir_dialect_library(StablehloRegister
   StablehloOps
 )
 
+add_mlir_dialect_library(StablehloAssemblyFormat
+  PARTIAL_SOURCES_INTENDED
+  AssemblyFormat.cpp 
+
+  LINK_LIBS PUBLIC
+  StablehloBase
+  MLIRIR
+)
+
 add_mlir_dialect_library(StablehloTypeInference
   PARTIAL_SOURCES_INTENDED
   TypeInference.cpp 
@@ -118,6 +127,7 @@ add_mlir_dialect_library(StablehloOps
   StablehloOpsIncGen
 
   LINK_LIBS PUBLIC
+  StablehloAssemblyFormat
   StablehloBase
   StablehloTypeInference
   MLIRArithDialect
