@@ -490,7 +490,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
     }
   }
 
-  llvm::report_fatal_error(StringRef("Unsupported type: ") + debugString(type));
+  report_fatal_error(
+      invalidArgument("Unsupported type: ", debugString(type).c_str()));
 }
 
 }  // namespace stablehlo

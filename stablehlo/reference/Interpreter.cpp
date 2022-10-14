@@ -56,8 +56,7 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     auto fetchOperand = [&](Value value) -> Tensor {
       auto it = stackFrame.find(value);
       if (it != stackFrame.end()) return it->second;
-      report_fatal_error(
-          invalidArgument("Expected a terminator when evaluating func"));
+      llvm::report_fatal_error("Expected a terminator when evaluating func");
     };
     auto populateResults = [&](ArrayRef<Tensor> runtimeValues) {
       assert(op.getNumResults() == runtimeValues.size());
