@@ -70,10 +70,10 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/StablehloBytecode.h"
 #include "stablehlo/dialect/StablehloOps.h.inc"
 #include "stablehlo/dialect/TypeInference.h"
-#include "stablehlo/dialect/AssemblyFormat.h"
 
 // Include order matters
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
@@ -2365,7 +2365,6 @@ LogicalResult ClampOp::reifyReturnTypeShapes(
 // ComplexOp
 //===----------------------------------------------------------------------===//
 
-
 LogicalResult ComplexOp::inferReturnTypes(
     MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
     RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
@@ -4478,7 +4477,6 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
   inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
   return success();
 }
-
 
 }  // namespace stablehlo
 }  // namespace mlir

@@ -16,8 +16,8 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 #define STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 
-#include "mlir/IR/Operation.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/Operation.h"
 
 namespace mlir {
 namespace hlo {
@@ -138,7 +138,6 @@ void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
 
 ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
                               Type& onFalse, Type& result);
-
 
 //===----------------------------------------------------------------------===//
 // Attribute Printers and Parsers

@@ -14,8 +14,9 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/dialect/AssemblyFormat.h"
-#include "stablehlo/dialect/Base.h"
+
 #include "llvm/Support/Regex.h"
+#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
