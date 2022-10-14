@@ -1501,7 +1501,7 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
   * (C3) All tensors in `inputs` and `results` have the same shape.
   * (C4) `-R` $\le$ `dimension` $\lt$ `R`, where `R` is rank of `inputs[0]`.
   * (C5) `comparator` has type
-         `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> i1`,
+         `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
          where `Ei` is element type of `inputs[i]`.
 
 ### Examples
