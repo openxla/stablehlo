@@ -1933,56 +1933,64 @@ produces an implementation-defined value.
 
 ### Semantics
 
-Performs general dot products between vectors, vector/matrix and matrix/matrix
-multiplication over dimensions specified in `dot_dimension_numbers`.
+Performs general dot product between `lhs` and `rhs` over dimensions specified
+in lhs/rhs batching and contracting dimensions and produces a `result` tensor.
 
-More formally,
-`result[i0, ..., iR-1] = lhs[i0, ..., ik, ..., iR-1] * rhs[]`
+This general form allows dot product between multi-dimensional tensors, and to
+contract multiple dimensions at a time. It also allows to specify the batching
+dimensions, which determines the dimensions to avoid summing during contraciton.
 
-$$result[d0,...,dR-1] = \sum_{a=0}^{size(lb\_dim)} \sum_{b=0}^{size(rb\_dim)} \sum_{i=0}^{size(lc\_dim)}\sum_{j=0}^{size(rc\_dim)}lhs[d0,...,di,...,dR-1]\ *\ rhs[d0,...,dj,...,dR-1]$$
+`precision_config` controls the tradeoff between speed and accuracy for
+computations on accelerator backends. This can be one of the following:
 
-$$result[d0,...,dR-1] = \sum_{i=0}^{size(lc\_dim)}\sum_{j=0}^{size(rc\_dim)}lhs[d0,...,di,...,dR-1]\ *\ rhs[d0,...,dj,...,dR-1]$$
-$$\sum_{i=0}^{size(c\_dim)}lhs[i_{0},\ ...,\ :,\ ...,\ i_{R-1}]\ *\ rhs[i_{0},\ ...,\ :,\ ...,\ i_{R-1}]$$
-<!-- $$result[i_{0},\ ...,\ i_{R-1}] = $$ -->
+  * `DEFAULT`: Fastest mode, but least accurate.
+  * `HIGH`: Slower, but more accurate.
+  * `HIGHEST`: Slowest, but most accurate.
 
-### Operands
+### Inputs
 
-| Name                    | Type                                                                                                                                                                                                 |
-|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lhs`                   | tensor of integer, floating-point or complex element types                                                                                                                                           |
-| `rhs`                   | tensor of integer, floating-point or complex element types                                                                                                                                           |
-| `dot_dimension_numbers` | attribute containing the following 1-dimensional array of `si64`:<br>* `lhs_batching_dimensions`<br>* `rhs_batching_dimensions`<br>*  `lhs_contracting_dimensions`<br>* `rhs_contracting_dimensions` |
-| `precision_config`      | attribute containing the following precision(s):<br>* `STABLEHLO_PRECISION_DEFAULT`<br>* `STABLEHLO_PRECISION_HIGH`<br>* `STABLEHLO_PRECISION_HIGHEST`                                               |
+| Name                         | Type                                         |
+|------------------------------|----------------------------------------------|
+| `lhs`                        | tensor of any supported types                |
+| `rhs`                        | tensor of any supported types                |
+| `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64` |
+| `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64` |
+| `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64` |
+| `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64` |
+| `precision_config`           | constant of type `si64`                      |
 
-### Results
+### Outputs
 
-| Name     | Type                                                       |
-|----------|------------------------------------------------------------|
-| `result` | tensor of integer, floating-point or complex element types |
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of any supported types |
 
 ### Constraints
 
-  * (C1) `lhs`, `rhs` and `result` have the same element type.
-  * (C2) `lhs` and `rhs` have the same number of `batching_dimensions`,
-  `contracting_dimensions`.
-  * (C3) `lhs_batching_dimensions` and `lhs_contracting_dimensions` values are
+  * (C1) `lhs` and `rhs` have the same element type.
+  * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`)
+  and size(`lhs_contracting_dimensions`) $=$ size(`rhs_contracting_dimensions`).
+  * (C3) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
   unique.
-  * (C4) `rhs_batching_dimensions` and `rhs_contracting_dimensions` values are
+  * (C4) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
   unique.
-  * (C5) `dim(lhs_batching_dimensions, i)`, `dim(rhs_batching_dimensions, i)`
-  $\lt$ `dim(lhs_contracting_dimensions, j)`,
-  `dim(rhs_contracting_dimensions, j)` for all `i` and for all `j`.
-  * (C6) 0 $\le$ `lhs_batching_dimensions[d]`, `lhs_contracting_dimensions[d]`
-  $\lt$ rank(`lhs`).
-  * (C7) 0 $\le$ `rhs_batching_dimensions[d]`, `rhs_contracting_dimensions[d]`
-  $\lt$ rank(`rhs`) for all dimensions `d`.
-  * (C8) `dim(lhs, lhs_batching_dimensions[i])` =
-  `dim(rhs, rhs_batching_dimensions[i])` for all dimensions `i`.
-  * (C9) `dim(lhs, lhs_contracting_dimensions[i])` =
-  `dim(rhs, rhs_contracting_dimensions[i])` for all dimensions `i`.
-  * (C10) `dim(result, i)` is equal to (in order):
+  * (C5) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+  $\in$ [0, size(`lhs_batching_dimensions`)).
+  * (C6) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+  $\in$ [0, size(`lhs_contracting_dimensions`)).
+  * (C7) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+  $\in$ [0, size(`rhs_batching_dimensions`)).
+  * (C8) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+  $\in$ [0, size(`rhs_contracting_dimensions`)).
+  * (C9) `dim(lhs, lhs_batching_dimensions[i])` =
+  `dim(rhs, rhs_batching_dimensions[i])` for all `i` $\in$ [0,
+  size(`lhs_batching_dimensions`)).
+  * (C10) `dim(lhs, lhs_contracting_dimensions[i])` =
+  `dim(rhs, rhs_contracting_dimensions[i])` for all `i` $\in$ [0,
+  size(`lhs_contracting_dimensions`)).
+  * (C11) `dim(result, i)` is equal to (in order):
     * `lhs_batching_dimensions[i]` for all 0 $\le$ `i` $\lt$
-    rank(`lhs_batching_dimensions`).
+    size(`lhs_batching_dimensions`).
     * `dim(lhs, i)` for all 0 $\le$ `i` $\lt$ rank(`lhs`) where `i` $\notin$
     `lhs_batching_dimensions` and `i` $\notin$ `lhs_contracting_dimensions`.
     * `dim(rhs, i)` for all 0 $\le$ `i` $\lt$ rank(`rhs`) where `i` $\notin$

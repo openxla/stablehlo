@@ -2231,16 +2231,16 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
     [Pure, InferTensorTypeWithReify]> {
   let summary = "General Dot operator";
   let description = [{
-    Performs general dot products between vectors, vector/matrix and
-    matrix/matrix multiplication over dimensions specified in
-    `dot_dimension_numbers`.
+    Performs general dot product between `lhs` and `rhs` over dimensions
+    specified in lhs/rhs batching and contracting dimensions and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlodot_general
 
     Example:
     ```mlir
-    %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    %result = "stablehlo.dot_general"(%lhs, %rhs) {
       precision_config = [#stablehlo<precision DEFAULT>],
       dot_dimension_numbers = #stablehlo.dot<
         lhs_batching_dimensions = [],
