@@ -2022,24 +2022,16 @@ computations on accelerator backends. This can be one of the following:
 //          ]
 
 // %lhs: [
-//        [
-//         [1, 2],
-//         [3, 4]
-//        ],
-//        [
-//         [5, 6],
-//         [7, 8]
-//        ]
+//        [[1, 2],
+//         [3, 4]],
+//        [[5, 6],
+//         [7, 8]]
 //       ]
 // %rhs: [
-//        [
-//         [1, 0],
-//         [0, 1]
-//        ],
-//        [
-//         [1, 0],
-//         [0, 1]
-//        ]
+//        [[1, 0],
+//         [0, 1]],
+//        [[1, 0],
+//         [0, 1]]
 //       ]
 %result = "stablehlo.dot_general"(%lhs, %rhs) {
   dot_dimension_numbers = #stablehlo.dot<
@@ -2051,14 +2043,10 @@ computations on accelerator backends. This can be one of the following:
   precision_config = [#stablehlo<precision DEFAULT>]
 } : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
 // %result: [
-//           [
-//            [1, 2],
-//            [3, 4]
-//           ],
-//           [
-//            [5, 6],
-//            [7, 8]
-//           ]
+//           [[1, 2],
+//            [3, 4]],
+//           [[5, 6],
+//            [7, 8]]
 //          ]
 ```
 
