@@ -18,22 +18,17 @@ limitations under the License.
 #include <complex>
 
 #include "llvm/ADT/APFloat.h"
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
 
 namespace {
-
-template <typename... Ts>
-inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
-  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
-}
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>

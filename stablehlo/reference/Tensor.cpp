@@ -18,9 +18,9 @@ limitations under the License.
 #include <complex>
 
 #include "llvm/ADT/APFloat.h"
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
 
@@ -28,11 +28,6 @@ namespace mlir {
 namespace stablehlo {
 
 namespace {
-
-template <typename... Ts>
-inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
-  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
-}
 
 int64_t getSizeInBytes(Type type) {
   if (auto shapedType = type.dyn_cast<ShapedType>())
@@ -495,7 +490,8 @@ Tensor makeTensor(DenseElementsAttr attr) {
     }
   }
 
-  llvm::report_fatal_error(StringRef("Unsupported type: ") + debugString(type));
+  report_fatal_error(
+      invalidArgument("Unsupported type: ", debugString(type).c_str()));
 }
 
 }  // namespace stablehlo
