@@ -101,7 +101,7 @@ one of the following tracking labels.
 | optimization_barrier     | no            | revisit      | no             | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | no            | revisit      | no             | no              | no          |
-| pad                      | yes           | no           | yes            | no              | no          |
+| pad                      | yes           | revisit      | yes            | no              | no          |
 | popcnt                   | no            | yes*         | yes*           | yes             | no          |
 | power                    | no            | yes*         | yes*           | yes             | no          |
 | real                     | no            | yes*         | yes*           | yes             | no          |
@@ -115,7 +115,7 @@ one of the following tracking labels.
 | replica_id               | no            | revisit      | revisit        | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
 | return                   | no            | revisit      | no             | yes             | no          |
-| reverse                  | yes           | no           | yes            | no              | no          |
+| reverse                  | yes           | revisit      | yes            | no              | no          |
 | rng                      | no            | yes*         | yes*           | yes             | no          |
 | rng_bit_generator        | no            | yes*         | infeasible     | yes             | no          |
 | round_nearest_afz        | no            | yes*         | yes*           | yes             | no          |
@@ -132,7 +132,7 @@ one of the following tracking labels.
 | sign                     | no            | yes*         | yes*           | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | no          |
-| sort                     | no            | no           | yes*           | no              | no          |
+| sort                     | no            | revisit      | yes*           | no              | no          |
 | sqrt                     | yes           | yes          | yes            | yes             | no          |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
