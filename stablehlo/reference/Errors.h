@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLHLO_REFERENCE_ERRORS_H
-#define STABLHLO_REFERENCE_ERRORS_H
+#ifndef STABLEHLO_REFERENCE_ERRORS_H
+#define STABLEHLO_REFERENCE_ERRORS_H
 
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
@@ -33,4 +33,4 @@ inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLHLO_REFERENCE_ERRORS_H
+#endif  // STABLEHLO_REFERENCE_ERRORS_H
