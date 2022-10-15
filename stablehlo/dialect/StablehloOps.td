@@ -1163,18 +1163,15 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
   let results = (outs Variadic<HLO_TensorOrToken>);
 }
 
-// Xla Client API has two separate calls for indexed and predicated conditional,
-// although both eventually map to kConditional HLO. CaseOp maps to indexed
-// conditional use of kConditional HLO.
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveSideEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
       DeclareOpInterfaceMethods<InferTypeOpInterface>
     ]> {
-  let summary = "Switch-Case operator";
+  let summary = "Case operator";
   let description = [{
-    Returns the result of exactly 1 function from `branches` depending on the
-    value of `index`.
+    Produces the output from executing exactly one `function` from `branches`
+    depending on the value of `index`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocase

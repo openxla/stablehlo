@@ -404,9 +404,9 @@ dimensions `k` in `operand`.
 
 ### Semantics
 
-Returns the result of exactly 1 function from `branches` depending on the value
-of `index`. Formally, if $0 \le$ `index` $\lt$ `N-1`, result of executing
-`branches[index]` is returned, else, result of executing `branches[N-1]` is
+Produces the output from executing exactly one `function` from `branches`
+depending on the value of `index`. Formally, if $0 \le$ `index` $\lt$ `N-1`,
+output of `branches[index]` is returned, else, output of `branches[N-1]` is
 returned.
 
 ### Inputs
@@ -414,19 +414,20 @@ returned.
 | Name       | Type                                         |
 |------------|----------------------------------------------|
 | `index`    | 1-dimensional tensor constant of type `si32` |
-| `branches` | a variable sized array of type `function`    |
+| `branches` | variadic number of `function`                |
 
 ### Outputs
 
-| Name     | Type               |
-|----------|--------------------|
-| `result` | any supported type |
+| Name     | Type                                             |
+|----------|--------------------------------------------------|
+| `result` | variadic number of tensors of any supported type |
 
 ### Constraints
 
-  * (C1) `branches` have atleast one function.
-  * (C2) All functions in `branches` take 0 arguments.
-  * (C3) Return type of all functions in `branches` are same.
+  * (C1) `branches` have at least one function.
+  * (C2) All functions in `branches` have 0 inputs.
+  * (C3) All functions in `branches` have the same output type.
+  * (C4) For all `i`, `type(result[i]) = type(branches[0]).outputs[i]`.
 
 ### Examples
 
