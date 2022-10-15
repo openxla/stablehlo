@@ -463,9 +463,9 @@ LogicalResult inferBatchNormTrainingOp(
   return success();
 }
 
-LogicalResult inferConditionalOp(
-    Optional<Location> location, RegionRange branches,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferConditionalOp(Optional<Location> location,
+                                 RegionRange branches,
+                                 SmallVectorImpl<Type>& inferredReturnTypes) {
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
 
@@ -487,14 +487,13 @@ LogicalResult inferConditionalOp(
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
   for (auto resultType : branch0ResultTypes)
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+    inferredReturnTypes.push_back(resultType);
   return success();
 }
 
-LogicalResult inferCaseOp(
-    Optional<Location> location, RegionRange branches,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  return inferConditionalOp(location, branches, inferredReturnShapes);
+LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
+                          SmallVectorImpl<Type>& inferredReturnTypes) {
+  return inferConditionalOp(location, branches, inferredReturnTypes);
 }
 
 LogicalResult inferDotGeneralOp(
@@ -617,10 +616,9 @@ LogicalResult inferDotGeneralOp(
   return success();
 }
 
-LogicalResult inferIfOp(
-    Optional<Location> location, RegionRange branches,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  return inferConditionalOp(location, branches, inferredReturnShapes);
+LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
+                        SmallVectorImpl<Type>& inferredReturnTypes) {
+  return inferConditionalOp(location, branches, inferredReturnTypes);
 }
 
 LogicalResult inferMapOp(
@@ -1154,9 +1152,9 @@ LogicalResult inferTriangularSolveOp(
   return success();
 }
 
-LogicalResult inferWhileOp(
-    Optional<Location> location, ValueRange operand, Region& cond, Region& body,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
+                           Region& cond, Region& body,
+                           SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandTypes = operand.getTypes();
   auto condArgsTypes = cond.front().getArgumentTypes();
   auto bodyArgsTypes = body.front().getArgumentTypes();
@@ -1192,7 +1190,7 @@ LogicalResult inferWhileOp(
         condReturnTypes[0]);
 
   for (const auto& resultType : operand.getType())
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+    inferredReturnTypes.push_back(resultType);
   return success();
 }
 
