@@ -22,16 +22,11 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
-namespace {
-template <typename... Ts>
-inline llvm::Error invalidArgument(char const *Fmt, const Ts &...Vals) {
-  return createStringError(llvm::errc::invalid_argument, Fmt, Vals...);
-}
-}  // namespace
 
 namespace {
 
