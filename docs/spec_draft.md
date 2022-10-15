@@ -696,27 +696,30 @@ IEEE-754 specification.
 
 ### Semantics
 
-Returns the result of `true_branch` if `pred` is `true`, `false_branch` if
-`pred` is `false`.
+Produces the output from executing exactly one branch from `true_branch` or
+`false_branch` depending on the value of `pred`. Formally, if `pred` is `true`,
+output of `true_branch` is returned, else if pred is `false`, output of
+`false_branch` is returned.
 
 ### Inputs
 
 | Name           | Type                                       |
 |----------------|--------------------------------------------|
 | `pred`         | 1-dimensional tensor constant of type `i1` |
-| `true_branch`  | function of type `function`                |
-| `false_branch` | function of type `function`                |
+| `true_branch`  | `function`                                 |
+| `false_branch` | `function`                                 |
 
 ### Outputs
 
-| Name     | Type               |
-|----------|--------------------|
-| `result` | any supported type |
+| Name     | Type                                             |
+|----------|--------------------------------------------------|
+| `result` | variadic number of tensors of any supported type |
 
 ### Constraints
 
-  * (C1) `true_branch` and `false_branch` take 0 arguments.
-  * (C2) Return types of `true_branch` and `false_branch` are same.
+  * (C1) `true_branch` and `false_branch` have 0 inputs.
+  * (C2) `true_branch` and `false_branch` have the same output types.
+  * (C3) For all `i`, `type(result[i]) = type(branches[0]).outputs[i]`.
 
 ### Examples
 

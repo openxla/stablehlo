@@ -1132,9 +1132,6 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
   }];
 }
 
-// Xla Client API has two separate calls for indexed and predicated conditional,
-// although both eventually map to kConditional HLO. IfOp maps to predicated
-// conditional use of kConditional HLO.
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveSideEffects,
     SingleBlockImplicitTerminator<"ReturnOp">,
@@ -1142,8 +1139,8 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
   let summary = "If operator";
 
   let description = [{
-    Returns the result of `true_branch` if `pred` is `true`, `false_branch` if
-    `pred` is `false`.
+    Produces the output from executing exactly one branch from `true_branch` or
+    `false_branch` depending on the value of `pred`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloif
