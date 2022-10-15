@@ -425,6 +425,7 @@ syntax.
    * [real](#stablehloreal)
    * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
+   * [reduce_window](#stablehloreduce_window)
    * [remainder](#stablehloremainder)
    * [replica_id](#stablehloreplica_id)
    * [reshape](#stablehloreshape)
@@ -3402,6 +3403,145 @@ More formally, `results[:][result_index] = reduce(input_slices)` where:
   dimensions = dense<1> : tensor<1xi64>
 } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
 // %result = [15]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce_window
+
+### Semantics
+
+Performs a reduction function `body` over all elements in each window of a
+sequence of N `inputs` tensors and produces a sequence of N `results` tensor.
+
+The following diagram shows how elements in `results[k]` are computed from
+`operand[k]` using a concrete example.
+
+<p align="center">
+  <img src="spec_draft/reduce_window.svg" />
+</p>
+
+Conceptually, the kth dimension of `inputs[k]` is dilated by placing
+`base_dilations[k] - 1` holes between each of the entries in that dimension.
+`padding[k][0]` and `padding[k][1]` specify the amount of
+padding added at the low-end (next to index 0) and the high-end (next to the
+highest index) of dimension `k` respectively. The amount of padding can be
+negative, where the absolute value of negative padding indicates the number
+of elements to remove from the specified dimension. Dilation of `inputs[k]`
+occurs logically before padding, so in the case of negative padding, elements
+are removed from the dilated `inputs[k]`.
+
+The order of reductions is implementation-defined, which means that `body` and
+`init_values` must form a monoid to guarantee that the operation produces the
+same results for all inputs on all implementations.
+
+More formally, `results[:][j0, j1, ..., jR-1] = reduce(input_slices)` where:
+
+  * `input_slices` = `inputs[:][i0, i1,..., iR-1]`, such that
+    * `id = base_dilations[d] > 1 ? id' / base_dilations[d] : id'` where
+     `id' = jd * window_strides[d] - padding[d][0] + k * window_dilations[d] foreach k $\in$ {0, 1, ..., window_dimensions[d]-1}` such that
+      * `id' % base_dilations[d] == 0`, and
+      * `id` $\in$ `[0, dims(inputs[:],d))`.
+
+  * `reduce(input_slices)` = `eval(schedule)` for some binary tree `schedule`
+    where:
+    * `eval(node)` = `body(eval(node.left), eval(node.right))`.
+    * `eval(leaf)` = `leaf.value`.
+
+  * `schedule` is an implementation-defined full binary tree whose in-order
+    traversal consists of:
+    * `input_slices[:][index]` values, for all `index` in the index space
+      of `input_slices`, in the ascending lexicographic order of `index`.
+    * Interspersed with an implementation-defined amount of `init_values`
+      at implementation-defined positions.
+
+### Inputs
+
+| Name                | Type                                                           | Constraints |
+|---------------------|----------------------------------------------------------------|-------------|
+| `inputs`            | variadic number of tensors of any supported type               | (C1-9)      |
+| `init_values`       | variadic number of 0-dimensional tensors of any supported type | (C1)        |
+| `window_dimensions` | 1-dimensional tensor constant of type `si64`                   | (C3), (C9)  |
+| `window_strides`    | 1-dimensional tensor constant of type `si64`                   | (C4), (C9)  |
+| `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C5), (C9)  |
+| `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C6), (C9)  |
+| `padding`           | 2-dimensional tensor constant of type `si64`                   | (C7), (C9)  |
+| `body`              | `function`                                                     | (C8)        |
+
+### Outputs
+
+| Name      | Type                                             | Constraints      |
+|-----------|--------------------------------------------------|------------------|
+| `results` | variadic number of tensors of any supported type | (C1), (C7), (C8) |
+
+### Constraints
+
+  * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
+         N $\ge$ 1.
+
+  * (C2) All `inputs` have the same shape.
+
+  * (C3) On `window_dimensions`
+    * size(`window_dimensions`) $=$ rank(`inputs[k]`) for any k $\in$ [0, N).
+    * `window_dimensions[i]` $\gt 0$ for all i $\in$
+      [0, size(`window_dimensions`)).
+
+  * (C4) On `window_strides` (optional)
+    * Default value of 1 for each dimension of `inputs[k]` for any k $\in$
+      [0, N).
+    * size(`window_strides`) $=$ rank(`inputs[k]`) for any k $\in$ [0, N).
+    * `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(`window_strides`)).
+
+  * (C5) On `base_dilations` (optional)
+    * Default value of 1 for each dimension of `inputs[k]` for any k $\in$
+      [0, N).
+    * size(`base_dilations`) $=$ rank(`inputs[k]`) for any k $\in$ [0, N).
+    * `base_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`base_dilations`)).
+
+  * (C6) On `window_dilations` (optional)
+    * Default value of 1 for each dimension of `inputs[k]` for any k $\in$
+      [0, N).
+    * size(`window_dilations`) $=$ rank(`inputs[k]`) for any k $\in$ [0, N).
+    * `window_dilations[i]` $\gt 0$ for all i $\in$
+      [0, size(`window_dilations`)).
+
+  * (C7) On `padding`(optional)
+    * Default value of (0,0) for each dimension of `inputs[k]` for any k $\in$
+      [0, N).
+    * dim(`padding`, 0) $=$ rank(`inputs[k]`) and dim(`padding`, 1) = 2 for
+      any k $\in$ [0, N).
+
+  * (C8) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+          where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
+
+  * (C9) On `results`
+    * All `results` have the same shape.
+    * rank(`results[k]`) $=$ size(`window_dimensions`) for any k $\in$ [0, N).
+    * For any k $\in$ [0, N), `dim(results[k], i) = strided_bound[i]`, for any i $\in$ [0, rank(`results[k]`)), where
+        * `strided_bound[i] = (padded_dilated_input[i] == 0 || dilated_window[i] > padded_dilated_input[i]) ? 0 : floor((padded_dilated_input[i] - dilated_window[i]) / window_strides[i]) + 1`.
+        * `padded_dilated_input[i] = padding[i][0] + dilated_input[i] + padding[i][1]`.
+        * `dilated_input[i] = dim(inputs[k], i) = 0 ? 0 : (dim(inputs[k], i) - 1) * base_dilations[i] + 1`.
+        * `dilated_window[i] = window_dimensions[i] = 0 ? 0 : (window_dimensions[i] - 1) * window_dilations[i] + 1`.
+    * `results[k]` and `init_values[k]` have the same element type for any k
+      $\in$ [0, N).
+
+### Examples
+
+```mlir
+// %input = [[1, 2], [3, 4], [5, 6]]
+// %init_value = 1
+%result = "stablehlo.reduce_window"(%input, %init_value) ({
+  ^bb0(%arg0: tensor<ui8>, %arg1: tensor<ui8>):
+    %0 = stablehlo.add %arg0, %arg1 : tensor<ui8>
+    "stablehlo.return"(%0) : (tensor<ui8>) -> ()
+}) {
+  window_dimensions = dense<[2, 1]> : tensor<2xi64>,
+  window_strides = dense<[4, 1]> : tensor<2xi64>,
+  base_dilations = dense<[2, 1]> : tensor<2xi64>,
+  window_dilations = dense<[3, 1]> : tensor<2xi64>,
+  padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
+} : (tensor<3x2xui8>, tensor<ui8>) -> tensor<2x2xui8>
+// %result = [[0, 0], [3, 4]]
 ```
 
 [Back to Ops](#index-of-ops)

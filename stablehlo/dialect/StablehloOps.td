@@ -2727,7 +2727,25 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     Returns the result of executing a reduction function over all elements in
     each window of one or more arrays in parallel.
 
-    See https://www.tensorflow.org/xla/operation_semantics#reducewindow.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce_window
+
+    Example:
+    ```mlir
+     %result = "mhlo.reduce_window"( %arg,  %init) ({
+            ^bb0(%a1: tensor<ui8>, %b1: tensor<ui8>):
+                 %1 = mhlo.add %a1, %b1 : tensor<ui8>
+                 "mhlo.return"(%1) : (tensor<ui8>) -> ()
+               })
+            {
+              window_dimensions = dense<[2, 1]> : tensor<2xi64>,
+              window_strides = dense<[4, 1]> : tensor<2xi64>,
+              base_dilations = dense<[2, 1]> : tensor<2xi64>,
+              window_dilations = dense<[3, 1]> : tensor<2xi64>,
+              padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
+            }
+            : (tensor<3x2xui8>, tensor<ui8>) -> (tensor<2x2xui8>)
+    ```
   }];
 
   let arguments = (ins
