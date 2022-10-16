@@ -139,6 +139,17 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
   llvm_unreachable("unhandled type");
 }
 
+// createRealType takes a tensor type that may have complex elements and
+// returns a type that maintains the shape, but with real numeric data types.
+//   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
+Type createRealType(TensorType type) {
+  auto elementTy = type.getElementType();
+  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
+    elementTy = complexTy.getElementType();
+  }
+  return hlo::getSameShapeTensorType(type, elementTy);
+}
+
 // TODO(hinsu): Add verification for bounds that it has the same size as rank
 // of the tensor and static dimensions don't have bounds.
 LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
