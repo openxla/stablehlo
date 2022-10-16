@@ -346,7 +346,7 @@ logical operation.
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. Formally,
-`result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR-1]` such that
+`result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR'-1]` such that
 `jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
 dimensions `k` in `operand`.
 
