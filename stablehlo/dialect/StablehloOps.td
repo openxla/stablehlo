@@ -1138,7 +1138,7 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [NoSideEffect]> {
 def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveSideEffects,
     SingleBlockImplicitTerminator<"ReturnOp">,
-    InferTensorType]> {
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "If operator";
 
   let description = [{
@@ -1169,7 +1169,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveSideEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      InferTensorType
+      DeclareOpInterfaceMethods<InferTypeOpInterface>
     ]> {
   let summary = "Switch-Case operator";
   let description = [{
@@ -1196,7 +1196,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 def StableHLO_WhileOp: StableHLO_Op<"while", [
       RecursiveSideEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      InferTensorType,
+      DeclareOpInterfaceMethods<InferTypeOpInterface>,
       OpAsmOpInterface
     ]> {
   let summary = "While operator";

@@ -3954,24 +3954,24 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 // If Op
 //===----------------------------------------------------------------------===//
 
-LogicalResult IfOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult IfOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferIfOp(location, adaptor.getRegions(), inferredReturnShapes);
+  return hlo::inferIfOp(location, adaptor.getRegions(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
 // Case Op
 //===----------------------------------------------------------------------===//
 
-LogicalResult CaseOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult CaseOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferCaseOp(location, adaptor.getRegions(), inferredReturnShapes);
+  return hlo::inferCaseOp(location, adaptor.getRegions(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4577,13 +4577,13 @@ LogicalResult ScatterOp::verify() {
 // WhileOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult WhileOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult WhileOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
-                           adaptor.getBody(), inferredReturnShapes);
+                           adaptor.getBody(), inferredReturnTypes);
 }
 
 /// Print a `while` op.
