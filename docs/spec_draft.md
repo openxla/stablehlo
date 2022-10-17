@@ -1940,6 +1940,17 @@ This general form allows dot product between multi-dimensional tensors, and to
 contract multiple dimensions at a time. It also allows to specify the batching
 dimensions, which determines the dimensions to avoid summing during contraciton.
 
+More formally, `result[id, ik] = sum(lhs[md, mk] * rhs[nd, nk])` where:
+
+1. `id == md == nd` where `md == lhs_batching_dimensions[j]` and `nd == rhs_batching_dimensions[j]` for `j` in [0, size(`lhs_batching_dimensions`))
+2. `id = md` where `d` $\notin$ `lhs_contracting_dimensions` $\cup$ `lhs_batching_dimensions`
+3. `id = nd` where `d` $\notin$ `rhs_contracting_dimensions` $\cup$ `rhs_batching_dimensions`
+
+The summation is from `0` to prod(dim(`lhs_contracting_dimensions`, `i`)) for all `i` in [0, size(`lhs_contracting_dimensions`))
+for all `mk`, `nk` combinations defined as:
+* `mk` in [0, dim(`lhs`, `k`)) for all `k` $\in$ `lhs_contracting_dimensions`
+* `nk` in [0, dim(`rhs`, `k`)) for all `k` $\in$ `rhs_contracting_dimensions`
+
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
 
