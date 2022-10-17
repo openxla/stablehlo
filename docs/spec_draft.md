@@ -194,6 +194,7 @@ described below)
    * [subtract](#stablehlosubtract)
    * [tanh](#stablehlotanh)
    * [transpose](#stablehlotranspose)
+   * [while](#stablehlowhile)
    * [xor](#stablehloxor)
 
 ## stablehlo.abs
@@ -1806,6 +1807,60 @@ where `i[d] = j[permutation[d]]`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.while
+
+### Semantics
+Produces the output from executing `body` function zero or more times till the
+`cond` function outputs `true`. More formally, `body` function is executed once
+every time the `cond` function returns `true` and all execution stops once
+`cond` function returns `false`.
+
+### Inputs
+
+| Name       | Type                                             |
+|------------|--------------------------------------------------|
+| `operands` | variadic number of tensors of any supported type |
+| `cond`     | `function`                                       |
+| `body`     | `function`                                       |
+
+### Outputs
+
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
+
+### Constraints
+
+  * (C1) For all `i`, `type(operands[i])` = `type(results[i])` = `type(cond).arguments[i]` = `type(body).arguments[i]` = `type(body).outputs[i]`
+  * (C2) `cond` outputs a `tensor<i1>`
+
+### Examples
+
+```mlir
+// %constant0: 1
+// %constant1: 2
+// %input0: 0
+// %input1: 10
+// %input2: 0
+%results:3 = "stablehlo.while"(%input0, %input1, %input2) ({
+^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>, %argument2: tensor<i32>):
+  %predicate = "stablehlo.compare"(%argument0, %argument1) {
+    comparison_direction = #stablehlo<comparison_direction LT>
+  } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+  "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+},  {
+^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>, %argument2: tensor<i32>):
+  %output0 = "stablehlo.add"(%argument0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+  %output2 = "stablehlo.add"(%argument2, %constant1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+  "stablehlo.return"(%output0, %argument1, %output2) : (tensor<i32>, tensor<i32>, tensor<i32>) -> ()
+}) : (tensor<i32>, tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>, tensor<i32>)
+// %results#0: 10
+// %results#1: 10
+// %results#2: 20
+```
 
 [Back to Ops](#index-of-ops)
 
