@@ -101,7 +101,7 @@ one of the following tracking labels.
 | optimization_barrier     | no            | revisit      | no             | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | no            | revisit      | no             | no              | no          |
-| pad                      | yes           | revisit      | yes            | no              | no          |
+| pad                      | yes           | yes          | yes            | no              | no          |
 | popcnt                   | no            | yes*         | yes*           | yes             | no          |
 | power                    | no            | yes*         | yes*           | yes             | no          |
 | real                     | no            | yes*         | yes*           | yes             | no          |
