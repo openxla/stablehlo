@@ -39,8 +39,8 @@ class Element {
   Element(Type type, APFloat value) : type_(type), value_(value) {}
   Element(Type type, std::complex<APFloat> value)
       : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
-
   Element(const Element &other) = default;
+  Element() = default;
   /// @}
 
   /// Assignment operator.
