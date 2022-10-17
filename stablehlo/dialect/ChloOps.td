@@ -119,7 +119,7 @@ class CHLO_BroadcastBinaryElementwiseOp<
 }
 
 def CHLO_BroadcastAddOp : CHLO_BroadcastBinaryElementwiseOp<"broadcast_add",
-    [Commutative, NoSideEffect, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, SameOperandsAndResultElementType]> {
   string summary = "Addition operator (with optional broadcasting)";
 
   string description = [{
@@ -132,7 +132,7 @@ def CHLO_BroadcastAddOp : CHLO_BroadcastBinaryElementwiseOp<"broadcast_add",
 
 def CHLO_BroadcastAtan2Op : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_atan2",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Atan2 operator (with optional broadcasting)";
 
   string description = [{
@@ -145,7 +145,7 @@ def CHLO_BroadcastAtan2Op : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastDivOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_divide",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Division operator (with optional broadcasting)";
 
   string description = [{
@@ -158,7 +158,7 @@ def CHLO_BroadcastDivOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastMaxOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_maximum",
-    [Commutative, NoSideEffect, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, SameOperandsAndResultElementType]> {
   string summary = "Maximum operator (with optional broadcasting)";
 
   string description = [{
@@ -171,7 +171,7 @@ def CHLO_BroadcastMaxOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastMinOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_minimum",
-    [Commutative, NoSideEffect, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, SameOperandsAndResultElementType]> {
   string summary = "Minimum operator (with optional broadcasting)";
 
   string description = [{
@@ -184,7 +184,7 @@ def CHLO_BroadcastMinOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastMulOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_multiply",
-    [Commutative, NoSideEffect, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, SameOperandsAndResultElementType]> {
   string summary = "Multiplication operator (with optional broadcasting)";
 
   string description = [{
@@ -197,7 +197,7 @@ def CHLO_BroadcastMulOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastNextAfterOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_next_after",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "std::nextafter operator (with optional broadcasting)";
 
   string description = [{
@@ -209,7 +209,7 @@ def CHLO_BroadcastNextAfterOp : CHLO_BroadcastBinaryElementwiseOp<
 }
 
 def CHLO_BroadcastPolygammaOp : CHLO_BroadcastBinaryElementwiseOp<
-    "broadcast_polygamma", [NoSideEffect, SameOperandsAndResultElementType]> {
+    "broadcast_polygamma", [Pure, SameOperandsAndResultElementType]> {
   let summary = "Polygamma function (with optional broadcasting)";
 
   let description = [{
@@ -219,7 +219,7 @@ def CHLO_BroadcastPolygammaOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastPowOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_power",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Power operator (with optional broadcasting)";
 
   string description = [{
@@ -232,7 +232,7 @@ def CHLO_BroadcastPowOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastRemOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_remainder",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Remainder operator (with optional broadcasting)";
 
   string description = [{
@@ -245,7 +245,7 @@ def CHLO_BroadcastRemOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastShiftLeftOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_shift_left",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Shift left operator (with optional broadcasting)";
 
   string description = [{
@@ -258,7 +258,7 @@ def CHLO_BroadcastShiftLeftOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastShiftRightArithmeticOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_shift_right_arithmetic",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Shift right arithmetic operator (with optional broadcasting)";
 
   string description = [{
@@ -271,7 +271,7 @@ def CHLO_BroadcastShiftRightArithmeticOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastShiftRightLogicalOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_shift_right_logical",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Shift right logical operator (with optional broadcasting)";
 
   string description = [{
@@ -284,7 +284,7 @@ def CHLO_BroadcastShiftRightLogicalOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastSubOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_subtract",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   string summary = "Subtraction operator (with optional broadcasting)";
 
   string description = [{
@@ -297,7 +297,7 @@ def CHLO_BroadcastSubOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastZetaOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_zeta",
-    [NoSideEffect, SameOperandsAndResultElementType]> {
+    [Pure, SameOperandsAndResultElementType]> {
   let summary = "Hurwitz zeta function";
 
   let description = [{
@@ -325,7 +325,7 @@ def CHLO_BroadcastZetaOp : CHLO_BroadcastBinaryElementwiseOp<
 
 class CHLO_BroadcastBinaryLogicalElementwiseOp<string mnemonic> :
     CHLO_BroadcastBinaryElementwiseOp<
-      mnemonic, [Commutative, NoSideEffect]> {
+      mnemonic, [Commutative, Pure]> {
   let arguments = (ins
     HLO_PredOrIntTensor:$lhs,
     HLO_PredOrIntTensor:$rhs,
@@ -378,7 +378,7 @@ def CHLO_BroadcastXorOp : CHLO_BroadcastBinaryLogicalElementwiseOp<
 // not part of the HLO compiler instructions as modelled by the StableHLO dialect.
 //===----------------------------------------------------------------------===//
 
-def CHLO_NextAfterOp : CHLO_Op<"next_after", [NoSideEffect,
+def CHLO_NextAfterOp : CHLO_Op<"next_after", [Pure,
     HLO_CompatibleOperandsAndResultType]> {
   let summary = "std::nextafter operator";
   let description = [{
@@ -396,7 +396,7 @@ def CHLO_NextAfterOp : CHLO_Op<"next_after", [NoSideEffect,
   }];
 }
 
-def CHLO_PolygammaOp : CHLO_Op<"polygamma", [NoSideEffect,
+def CHLO_PolygammaOp : CHLO_Op<"polygamma", [Pure,
     HLO_CompatibleOperandsAndResultType]> {
   let summary = "Polygamma function";
   let description = [{
@@ -411,7 +411,7 @@ def CHLO_PolygammaOp : CHLO_Op<"polygamma", [NoSideEffect,
   }];
 }
 
-def CHLO_ZetaOp : CHLO_Op<"zeta", [NoSideEffect,
+def CHLO_ZetaOp : CHLO_Op<"zeta", [Pure,
     HLO_CompatibleOperandsAndResultType]> {
   let summary = "Hurwitz zeta function";
   let description = [{
@@ -435,7 +435,7 @@ def CHLO_ZetaOp : CHLO_Op<"zeta", [NoSideEffect,
 //===----------------------------------------------------------------------===//
 
 def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
-    "broadcast_complex", [NoSideEffect]> {
+    "broadcast_complex", [Pure]> {
   string summary = "Complex operator (with optional broadcasting)";
 
   string description = [{
@@ -459,7 +459,7 @@ def CHLO_BroadcastComplexOp : CHLO_BroadcastBinaryElementwiseOp<
 
 class CHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
     Type ArgTensorType, Type ResultTensorType> : CHLO_Op<mnemonic,
-    traits # [NoSideEffect, Elementwise, SameOperandsAndResultShape,
+    traits # [Pure, Elementwise, SameOperandsAndResultShape,
     InferShapedTypeOpInterface]> {
   let arguments = (ins ArgTensorType:$operand);
   let results = (outs ResultTensorType:$result);
@@ -624,7 +624,7 @@ def CHLO_TanOp : CHLO_UnaryElementwiseOp<"tan",
 }
 
 def CHLO_ConstantOp : CHLO_Op<"constant",
-    [ConstantLike, NoSideEffect, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+    [ConstantLike, Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Constant operator";
   let description = [{
     Represents a constant value.
@@ -637,7 +637,7 @@ def CHLO_ConstantOp : CHLO_Op<"constant",
   let hasFolder = 1;
 }
 
-def CHLO_ConstantLikeOp : CHLO_Op<"constant_like", [NoSideEffect,
+def CHLO_ConstantLikeOp : CHLO_Op<"constant_like", [Pure,
     CHLO_Broadcasting, HLO_BroadcastingElementwise,
     SameOperandsAndResultShape, InferTensorTypeWithReify]> {
   let summary = "Constant like operator";
@@ -731,7 +731,7 @@ def CHLO_LgammaOp : CHLO_UnaryElementwiseOp<"lgamma",
 //===----------------------------------------------------------------------===//
 
 def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
-    "broadcast_compare", [NoSideEffect]> {
+    "broadcast_compare", [Pure]> {
   string summary = "Compare operator (with optional broadcasting)";
 
   string description = [{
@@ -767,7 +767,7 @@ def CHLO_BroadcastCompareOp : CHLO_BroadcastBinaryElementwiseOp<
 //===----------------------------------------------------------------------===//
 
 def CHLO_BroadcastSelectOp : CHLO_Op<"broadcast_select",
-    [NoSideEffect, CHLO_Broadcasting, HLO_BroadcastingElementwise,
+    [Pure, CHLO_Broadcasting, HLO_BroadcastingElementwise,
      InferTensorTypeWithReify]> {
   string summary = "Select operator (with optional numpy-style broadcasting)";
 
@@ -803,7 +803,7 @@ def CHLO_BroadcastSelectOp : CHLO_Op<"broadcast_select",
 //===----------------------------------------------------------------------===//
 
 def CHLO_TopKOp : CHLO_Op<"top_k",
-    [NoSideEffect, InferTensorType]> {
+    [Pure, InferTensorType]> {
   string summary = "Finds values and indices of the `k` largest elements for the last dimension";
 
   string description = [{
@@ -840,7 +840,7 @@ row for matrices).}]>:$k
 //===----------------------------------------------------------------------===//
 
 def CHLO_MinimumBroadcastShapesOp :
-    CHLO_Op<"minimum_broadcast_shapes", [NoSideEffect]> {
+    CHLO_Op<"minimum_broadcast_shapes", [Pure]> {
   string summary = "Minimizes the rank of two or more shapes to be broadcasted";
 
   string description = [{
@@ -885,7 +885,7 @@ def CHLO_RankSpecializationClusterOp
     : CHLO_Op<"rank_specialization_cluster", [
     DeclareOpInterfaceMethods<RegionBranchOpInterface>,
     SingleBlockImplicitTerminator<"RankSpecializationClusterYieldOp">,
-    RecursiveSideEffects]> {
+    RecursiveMemoryEffects]> {
 
   let summary = "Cluster of operations that will be rank-specialized together.";
 
@@ -919,7 +919,7 @@ def CHLO_RankSpecializationClusterOp
 }
 
 def CHLO_RankSpecializationClusterYieldOp
-    : CHLO_Op<"rank_specialization_cluster_yield", [NoSideEffect,
+    : CHLO_Op<"rank_specialization_cluster_yield", [Pure,
     ReturnLike, Terminator, HasParent<"RankSpecializationClusterOp">]> {
 
   let summary = "Yield operation for `rank_specialization_cluster`";
@@ -934,7 +934,7 @@ def CHLO_RankSpecializationClusterYieldOp
   let arguments = (ins Variadic<HLO_Tensor>:$results);
 }
 
-def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [NoSideEffect,
+def CHLO_DynamicReshapeOp: CHLO_Op<"dynamic_reshape", [Pure,
     DeclareOpInterfaceMethods<InferShapedTypeOpInterface>]> {
   let summary = "Reshape a tensor to a given, possibly dynamic, shape.";
   let description = [{
