@@ -84,7 +84,7 @@ one of the following tracking labels.
 | gather                   | no            | yes*         | yes*           | no              | no          |
 | get_dimension_size       | no            | revisit      | no             | yes             | no          |
 | get_tuple_element        | no            | revisit      | revisit        | yes             | no          |
-| if                       | no            | yes*         | yes*           | no              | no          |
+| if                       | yes           | yes          | yes            | no              | no          |
 | imag                     | no            | yes*         | yes*           | yes             | no          |
 | infeed                   | no            | revisit      | no             | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
