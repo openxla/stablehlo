@@ -965,7 +965,9 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   shape.reserve(rank);
   SmallVector<int64_t> resultBounds;
   for (int64_t i = 0, e = rank; i != e; i++) {
-    if (!inputBounds.empty()) resultBounds.push_back(inputBounds[i]);
+    if (!inputBounds.empty())
+      resultBounds.push_back(
+          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
     if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
       shape.push_back(ShapedType::kDynamicSize);
       continue;
