@@ -404,7 +404,7 @@ dimensions `k` in `operand`.
 
 ### Semantics
 
-Produces the output from executing exactly one `function` from `branches`
+Produces the output from executing exactly one function from `branches`
 depending on the value of `index`. Formally, if $0 \le$ `index` $\lt$ `N-1`,
 output of `branches[index]` is returned, else, output of `branches[N-1]` is
 returned.
@@ -418,16 +418,16 @@ returned.
 
 ### Outputs
 
-| Name     | Type                                             |
-|----------|--------------------------------------------------|
-| `result` | variadic number of tensors of any supported type |
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
 
 ### Constraints
 
   * (C1) `branches` have at least one function.
   * (C2) All functions in `branches` have 0 inputs.
-  * (C3) All functions in `branches` have the same output type.
-  * (C4) For all `i`, `type(result[i]) = type(branches[0]).outputs[i]`.
+  * (C3) All functions in `branches` have the same output types.
+  * (C4) For all `i`, `type(results[i]) = type(branches[0]).outputs[i]`.
 
 ### Examples
 
