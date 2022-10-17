@@ -1813,10 +1813,13 @@ where `i[d] = j[permutation[d]]`.
 ## stablehlo.while
 
 ### Semantics
-Produces the output from executing `body` function zero or more times till the
+Produces the output from executing `body` function 0 or more times till the
 `cond` function outputs `true`. More formally, `body` function is executed once
 every time the `cond` function returns `true` and all execution stops once
-`cond` function returns `false`.
+`cond` function returns `false`. For the first iteration both `cond` and `body`
+arguments are initialzed with the vaules of arguments of the `while` operation,
+for subsequent iterations they are fed with the output of `body` from the
+previous itertaion.
 
 ### Inputs
 
