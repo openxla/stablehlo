@@ -1837,8 +1837,9 @@ previous itertaion.
 
 ### Constraints
 
-  * (C1) For all `i`, `type(operands[i])` = `type(results[i])` = `type(cond).arguments[i]` = `type(body).arguments[i]` = `type(body).outputs[i]`
-  * (C2) `cond` outputs a `tensor<i1>`
+  * (C1) Size of `operands` is at least 1.
+  * (C2) For all `i`, `type(operands[i])` = `type(results[i])` = `type(cond).arguments[i]` = `type(body).arguments[i]` = `type(body).outputs[i]`
+  * (C3) `cond` outputs a `tensor<i1>`
 
 ### Examples
 
