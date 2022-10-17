@@ -2353,10 +2353,24 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
       [RecursiveSideEffects, SameOperandsAndResultShape, InferTensorType]> {
   let summary = "Sort operator";
   let description = [{
-    Sorts the given `operands` at the given `dimension` with the given
-    `comparator`.
+    Sorts a variadic number of tensors in `inputs` together, according to a
+    custom `comparator`, along the given `dimension` and produces a variadic
+    number of tensors as `results`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#sort.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreverse
+
+    Example:
+    %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+        %predicate = "stablehlo.compare"(%arg0, %arg1) {
+          comparison_direction = #stablehlo<comparison_direction GT>
+          } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+        "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+    }) {
+      dimension = 0 : i64,
+      is_stable = true
+    } : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
