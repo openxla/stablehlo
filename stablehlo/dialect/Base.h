@@ -237,11 +237,11 @@ class CompatibleOperandsAndResultType
     SmallVector<int64_t> inferredDimSizes(rank, ShapedType::kDynamicSize);
     SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
     for (auto rankedType : rankedTypes) {
-      SmallVector<int64_t> bounds;
+      ArrayRef<int64_t> bounds;
       if (auto boundedAttr = rankedType.getEncoding()
                                  .dyn_cast_or_null<BoundedAttrInterface>()) {
         dialect = cast<BoundedDialectInterface>(&boundedAttr.getDialect());
-        bounds = llvm::to_vector<4>(boundedAttr.getBounds());
+        bounds = boundedAttr.getBounds();
       } else if (rankedType.getEncoding()) {
         // TODO(zhouxin) infer sparsity encoding after b/238903065 is fixed.
         inferredReturnTypes.push_back(inputTypes[0]);
