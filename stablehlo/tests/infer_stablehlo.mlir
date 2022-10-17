@@ -647,3 +647,13 @@ func.func @transpose_with_bounds(%arg0: tensor<?x2x?x4xi32, #stablehlo.type_exte
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: func @slice_with_bounds
+func.func @slice_with_bounds(%arg0: tensor<3x?xi32, #stablehlo.type_extensions<bounds = [-1, 3]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x?xi32, #stablehlo.type_extensions<bounds = [-1, 3]>>) -> tensor<*xi32>
+  // CHECK: types0 = tensor<1x?xi32, #stablehlo.type_extensions<bounds = [-1, 3]>> 
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}

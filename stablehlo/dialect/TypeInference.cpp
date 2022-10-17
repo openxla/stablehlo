@@ -902,6 +902,18 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
+BoundedDialectInterface* getBounds(RankedTensorType rankedTy,
+                                   llvm::SmallVector<int64_t>& bounds) {
+  if (auto encoding =
+          rankedTy.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
+    bounds.append(llvm::to_vector<4>(encoding.getBounds()));
+    BoundedDialectInterface* dialect =
+        cast<BoundedDialectInterface>(&encoding.getDialect());
+    return dialect;
+  }
+  return nullptr;
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:
@@ -946,9 +958,14 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> limit(limitIndices.getValues<int64_t>());
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
+  llvm::SmallVector<int64_t> inputBounds;
+  BoundedDialectInterface* dialect = getBounds(rankedTy, inputBounds);
+
   SmallVector<int64_t, 4> shape;
   shape.reserve(rank);
+  SmallVector<int64_t> resultBounds;
   for (int64_t i = 0, e = rank; i != e; i++) {
+    if (!inputBounds.empty()) resultBounds.push_back(inputBounds[i]);
     if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
       shape.push_back(ShapedType::kDynamicSize);
       continue;
@@ -975,8 +992,11 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
     shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
                                   strideVals[i]));
   }
-  inferredReturnTypes.assign(
-      {RankedTensorType::get(shape, rankedTy.getElementType())});
+  Attribute encoding = inputBounds.empty()
+                           ? rankedTy.getEncoding()
+                           : dialect->createBoundedAttr(resultBounds);
+  inferredReturnTypes.emplace_back(
+      RankedTensorType::get(shape, rankedTy.getElementType(), encoding));
   return success();
 }
 
@@ -1065,30 +1085,21 @@ LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
                              " of [",
                              range, "] but got ", permutation);
 
-  llvm::SmallVector<int64_t, 4> inputBounds(rank, ShapedType::kDynamicSize);
-  bool hasBounds = false;
-  BoundedDialectInterface* dialect = nullptr;
-  if (auto encoding =
-          rankedTy.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
-    dialect = cast<BoundedDialectInterface>(&encoding.getDialect());
-    inputBounds = llvm::to_vector<4>(encoding.getBounds());
-    hasBounds = true;
-  }
+  llvm::SmallVector<int64_t> inputBounds;
+  BoundedDialectInterface* dialect = getBounds(rankedTy, inputBounds);
 
   SmallVector<int64_t> resultShape;
   SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
   for (int64_t dim : permutation.getValues<int64_t>()) {
     resultShape.push_back(inputShape[dim]);
-    if (hasBounds) {
+    if (!inputBounds.empty()) {
       resultBounds.push_back(inputBounds[dim]);
     }
   }
-
-  // If the input type doesn't have bounds, propagate the input type's encoding
-  // to handle sparse tensor encoding.
-  Attribute encoding = hasBounds ? dialect->createBoundedAttr(resultBounds)
-                                 : rankedTy.getEncoding();
+  Attribute encoding = inputBounds.empty()
+                           ? rankedTy.getEncoding()
+                           : dialect->createBoundedAttr(resultBounds);
   inferredReturnTypes.emplace_back(
       RankedTensorType::get(resultShape, rankedTy.getElementType(), encoding));
   return success();
