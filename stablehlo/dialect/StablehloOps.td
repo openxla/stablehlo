@@ -1875,7 +1875,7 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
   let hasVerifier = 1;
 }
 
-def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
+def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType]> {
   let summary = "Convolution operator";
   let description = [{
     Computes a convolution of the kind used in neural networks.
@@ -1889,17 +1889,19 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
     StableHLO_ConvolutionAttributes.attributes);
 
   let results = (outs HLO_Tensor);
-  let hasVerifier = 1;
 
-  code extraClassDeclaration = [{
+  let extraClassDeclaration = [{
     bool hasWindowReversal() {
       auto reversal = getWindowReversalAttr();
       return reversal && llvm::any_of(reversal.getValues<bool>(),
                                       [](bool v) { return v; });
     }
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return succeeded(mlir::verifyCompatibleShapes(l, r));
+    }
   }];
 
- let assemblyFormat = [{
+  let assemblyFormat = [{
     `(`operands`)`
        `dim_numbers` `=` custom<ConvolutionDimensions>($dimension_numbers) `,`
        `window` `=` `{` custom<WindowAttributes>($window_strides, $padding,

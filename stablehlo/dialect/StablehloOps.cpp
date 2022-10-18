@@ -1419,67 +1419,76 @@ namespace {
 //
 //  Note that the spatial + non-spatial dimensions may not cover all the
 //  dimensions in the range [0,num) because of the presence of 'unknown'
-//  dimensions (ref. cl/415132294).
-LogicalResult isSpatialDimensionsValid(ConvolutionOp op) {
-  auto inputSpatialDimensions =
-      op.getDimensionNumbers().getInputSpatialDimensions();
-  auto kernelSpatialDimensions =
-      op.getDimensionNumbers().getKernelSpatialDimensions();
-  auto outputSpatialDimensions =
-      op.getDimensionNumbers().getOutputSpatialDimensions();
-
+//  dimensions (ref. `printConvolutionDimensions()`)
+LogicalResult isSpatialDimensionsValid(
+    Value lhs,
+    // clang-format off
+    int64_t inputBatchDimension, 
+    int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, 
+    int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, 
+    int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, 
+    ArrayRef<int64_t> outputSpatialDimensions,
+    // clang-format on
+    Optional<Location> location) {
+  uint64_t spatialDimNum = inputSpatialDimensions.size();
   // P1.
-  if ((inputSpatialDimensions.size() != kernelSpatialDimensions.size()) ||
-      (inputSpatialDimensions.size() != outputSpatialDimensions.size()))
-    return op.emitOpError() << "expects the same size for input, kernel and "
-                               "output spatial-dimensions, but got "
-                            << inputSpatialDimensions.size() << ", "
-                            << kernelSpatialDimensions.size() << ", and "
-                            << outputSpatialDimensions.size() << " resp.";
+  if ((spatialDimNum != kernelSpatialDimensions.size()) ||
+      (spatialDimNum != outputSpatialDimensions.size()))
+    return emitOptionalError(location,
+                             "expects the same size for input, kernel "
+                             "and output spatial-dimensions, but got ",
+                             spatialDimNum, ", ",
+                             kernelSpatialDimensions.size(), ", and ",
+                             outputSpatialDimensions.size(), " resp.");
 
   // P2.
-  SmallVector<int64_t> inputDnums(inputSpatialDimensions.size() + 2);
-  inputDnums[0] = op.getDimensionNumbers().getInputBatchDimension();
-  inputDnums[1] = op.getDimensionNumbers().getInputFeatureDimension();
+  SmallVector<int64_t> inputDnums(spatialDimNum + 2);
+  inputDnums[0] = inputBatchDimension;
+  inputDnums[1] = inputFeatureDimension;
   std::copy(inputSpatialDimensions.begin(), inputSpatialDimensions.end(),
             inputDnums.begin() + 2);
 
-  SmallVector<int64_t> windowDnums(kernelSpatialDimensions.size() + 2);
-  windowDnums[0] = op.getDimensionNumbers().getKernelInputFeatureDimension();
-  windowDnums[1] = op.getDimensionNumbers().getKernelOutputFeatureDimension();
+  SmallVector<int64_t> windowDnums(spatialDimNum + 2);
+  windowDnums[0] = kernelInputFeatureDimension;
+  windowDnums[1] = kernelOutputFeatureDimension;
   std::copy(kernelSpatialDimensions.begin(), kernelSpatialDimensions.end(),
             windowDnums.begin() + 2);
 
-  SmallVector<int64_t> outputDnums(outputSpatialDimensions.size() + 2);
-  outputDnums[0] = op.getDimensionNumbers().getOutputBatchDimension();
-  outputDnums[1] = op.getDimensionNumbers().getOutputFeatureDimension();
+  SmallVector<int64_t> outputDnums(spatialDimNum + 2);
+  outputDnums[0] = outputBatchDimension;
+  outputDnums[1] = outputFeatureDimension;
   std::copy(outputSpatialDimensions.begin(), outputSpatialDimensions.end(),
             outputDnums.begin() + 2);
 
-  auto numDims = op.getLhs().getType().cast<RankedTensorType>().getRank();
+  auto numDims = lhs.getType().cast<RankedTensorType>().getRank();
   const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
 
   if (!llvm::all_of(inputDnums, inRange) ||
       !llvm::all_of(windowDnums, inRange) ||
       !llvm::all_of(outputDnums, inRange))
-    return op.emitOpError() << "expects input, kernel, and output "
-                               "dimension-numbers to be in-range [0, "
-                            << numDims << ").";
+    return emitOptionalError(location,
+                             "expects input, kernel, and output "
+                             "dimension-numbers to be in-range [0, ",
+                             numDims, ").");
 
   if (hasDuplicates(inputDnums))
-    return op.emitOpError()
-           << "expects input dimension-numbers to be unique, got {"
-           << inputDnums << "}.";
+    return emitOptionalError(
+        location, "expects input dimension-numbers to be unique, got {",
+        inputDnums, "}.");
 
   if (hasDuplicates(windowDnums))
-    return op.emitOpError()
-           << "expects kernel dimension-numbers to be unique, got {"
-           << windowDnums << "}.";
+    return emitOptionalError(
+        location, "expects kernel dimension-numbers to be unique, got {",
+        windowDnums, "}.");
 
   if (hasDuplicates(outputDnums))
-    return op.emitOpError()
-           << "expects output dimension-numbers to be unique, got {"
-           << outputDnums << "}.";
+    return emitOptionalError(
+        location, "expects output dimension-numbers to be unique, got {",
+        outputDnums, "}.");
 
   return success();
 }
@@ -1502,84 +1511,109 @@ LogicalResult isSpatialDimensionsValid(ConvolutionOp op) {
 //        b % bgc == 0
 //        f % fgc == 0 and i = f / fgc
 //        o (or f') % bgc == 0 and o (or f') % fgc == 0
-LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
+LogicalResult verifyConvolutionAttributes(
+    // clang-format off
+    Value lhs, Value rhs,
+    int64_t inputBatchDimension, 
+    int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, 
+    int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, 
+    int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, 
+    ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, 
+    int64_t batchGroupCount,
+    // clang-format on
+    Optional<Location> location) {
   // P1.
-  if (failed(isSpatialDimensionsValid(op))) return failure();
+  if (failed(isSpatialDimensionsValid(
+          lhs,
+          // clang-format off
+          inputBatchDimension, 
+          inputFeatureDimension, 
+          inputSpatialDimensions,
+          kernelInputFeatureDimension, 
+          kernelOutputFeatureDimension,
+          kernelSpatialDimensions,
+          outputBatchDimension,
+          outputFeatureDimension,
+          outputSpatialDimensions,
+          location
+          // clang-format on
+          )))
+    return failure();
 
   // P2.
-  const int64_t featureGroupCount = op.getFeatureGroupCount();
-  const int64_t batchGroupCount = op.getBatchGroupCount();
-
   if (featureGroupCount <= 0)
-    return op.emitOpError()
-           << "expects feature_group_count to be a positive number, got "
-           << featureGroupCount << ".";
+    return emitOptionalError(
+        location, "expects feature_group_count to be a positive number, got ",
+        featureGroupCount, ".");
 
   if (batchGroupCount <= 0)
-    return op.emitOpError()
-           << "expects batch_group_count to be a positive number, got "
-           << batchGroupCount << ".";
+    return emitOptionalError(
+        location, "expects batch_group_count to be a positive number, got ",
+        batchGroupCount, ".");
 
   if (batchGroupCount > 1 && featureGroupCount > 1)
-    return op.emitOpError()
-           << "expects batch_group_count and feature_group_count not to be "
-              "both greater than 1. Got "
-           << batchGroupCount << " and " << featureGroupCount << " resp.";
+    return emitOptionalError(
+        location,
+        "expects batch_group_count and feature_group_count not to be both "
+        "greater than 1. Got ",
+        batchGroupCount, " and ", featureGroupCount, " resp.");
 
-  auto lhsType = op.getLhs().getType().cast<RankedTensorType>();
-  const int64_t inputFeatures =
-      lhsType.getShape()[op.getDimensionNumbers().getInputFeatureDimension()];
-  const int64_t inputBatch =
-      lhsType.getShape()[op.getDimensionNumbers().getInputBatchDimension()];
+  auto lhsType = lhs.getType().cast<RankedTensorType>();
+  const int64_t inputFeatures = lhsType.getShape()[inputFeatureDimension];
+  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
 
-  auto rhsType = op.getRhs().getType().cast<RankedTensorType>();
+  auto rhsType = rhs.getType().cast<RankedTensorType>();
   const int64_t kernelInputFeatures =
-      rhsType.getShape()[op.getDimensionNumbers()
-                             .getKernelInputFeatureDimension()];
+      rhsType.getShape()[kernelInputFeatureDimension];
   const int64_t kernelOutputFeatures =
-      rhsType.getShape()[op.getDimensionNumbers()
-                             .getKernelOutputFeatureDimension()];
+      rhsType.getShape()[kernelOutputFeatureDimension];
 
   if (!hlo::isDynamicDimSize(kernelOutputFeatures)) {
     if (kernelOutputFeatures % batchGroupCount != 0)
-      return op.emitOpError() << "expects output feature dimension size ("
-                              << kernelOutputFeatures
-                              << ") to be a multiple of "
-                                 "batch_group_count. Got batch_group_count = "
-                              << batchGroupCount << ".";
+      return emitOptionalError(
+          location, "expects output feature dimension size (",
+          kernelOutputFeatures,
+          ") to be a multiple of batch_group_count. Got batch_group_count = ",
+          batchGroupCount, ".");
 
     if (kernelOutputFeatures % featureGroupCount != 0)
-      return op.emitOpError()
-             << "expects kernel output feature dimension ("
-             << kernelOutputFeatures
-             << ") to be divisible by "
-                "feature_group_count. For feature_group_count = "
-             << featureGroupCount << ".";
+      return emitOptionalError(location,
+                               "expects kernel output feature dimension (",
+                               kernelOutputFeatures,
+                               ") to be divisible by feature_group_count. For "
+                               "feature_group_count = ",
+                               featureGroupCount, ".");
   }
 
   if (!hlo::isDynamicDimSize(inputFeatures)) {
     if (inputFeatures % featureGroupCount != 0)
-      return op.emitOpError()
-             << "expects input feature dimension (" << inputFeatures
-             << ") to be a multiple of "
-                "feature_group_count. Got feature_group_count = "
-             << featureGroupCount << ".";
+      return emitOptionalError(location, "expects input feature dimension (",
+                               inputFeatures,
+                               ") to be a multiple of feature_group_count. Got "
+                               "feature_group_count = ",
+                               featureGroupCount, ".");
 
     if (!hlo::isDynamicDimSize(kernelInputFeatures) &&
         inputFeatures / featureGroupCount != kernelInputFeatures)
-      return op.emitOpError()
-             << "expects input feature dimension (" << inputFeatures
-             << ") / "
-                "feature_group_count = kernel input feature dimension ("
-             << kernelInputFeatures
-             << "). Got feature_group_count = " << featureGroupCount << ".";
+      return emitOptionalError(
+          location, "expects input feature dimension (", inputFeatures,
+          ") / "
+          "feature_group_count = kernel input feature dimension (",
+          kernelInputFeatures,
+          "). Got feature_group_count = ", featureGroupCount, ".");
   }
 
   if (!hlo::isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
-    return op.emitOpError() << "expects input batch dimension (" << inputBatch
-                            << ") to be divisible by "
-                               "batch_group_count. Got batch_group_count = "
-                            << batchGroupCount << ".";
+    return emitOptionalError(location, "expects input batch dimension (",
+                             inputBatch,
+                             ") to be divisible by "
+                             "batch_group_count. Got batch_group_count = ",
+                             batchGroupCount, ".");
 
   return success();
 }
@@ -1589,42 +1623,41 @@ LogicalResult verifyConvolutionAttributes(ConvolutionOp op) {
 //  1. Input args to ConvolutionOp 'op' are RankedTypes.
 //  2. rank-of(input-type) == rank-of(output-type)
 SmallVector<int64_t> inferConvolutionOpReturnShape(
-    ConvolutionOp op, const ArrayRef<hlo::WindowDimension> window) {
-  // We keep the 'unknown' dimensions (cl/415132294) as it is in the
+    Value lhs, Value rhs, int64_t inputBatchDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelOutputFeatureDimension, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t batchGroupCount, const ArrayRef<hlo::WindowDimension> window) {
+  // We keep the 'unknown' dimensions as it is in the
   // output-shape. To do that we initilize the output dimensions with the shape
   // of the return-type and updates only the spatial + non-spatial dimensions.
   // Precondition 2 ensures that size of output-shape == size of input-shape.
-  SmallVector<int64_t> outputDimensions =
-      to_vector(op.getResult().getType().cast<ShapedType>().getShape());
+  auto lhsType = lhs.getType().cast<RankedTensorType>();
+  SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
+                                        ShapedType::kDynamicSize);
 
   // Infer the output spatial dimensions.
-  auto lhsType = op.getLhs().getType().cast<RankedTensorType>();
-  auto inputSpatialDims = op.getDimensionNumbers().getInputSpatialDimensions();
-  auto numSpatialDims = inputSpatialDims.size();
+  auto numSpatialDims = inputSpatialDimensions.size();
   SmallVector<int64_t> inputSpatialDimVals(numSpatialDims);
   for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
-    inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDims[i]];
+    inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDimensions[i]];
 
   auto windowOutputShape =
       hlo::inferWindowOutputShape(inputSpatialDimVals, window);
 
   for (int64_t i = 0; i < static_cast<int64_t>(window.size()); ++i)
-    outputDimensions[op.getDimensionNumbers().getOutputSpatialDimensions()[i]] =
-        windowOutputShape[i];
+    outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
 
   // Infer the output-batch-dimension and output-feature-dimension.
-  auto rhsType = op.getRhs().getType().cast<RankedTensorType>();
-  const int64_t inputBatch =
-      lhsType.getShape()[op.getDimensionNumbers().getInputBatchDimension()];
+  auto rhsType = rhs.getType().cast<RankedTensorType>();
+  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
   const int64_t kernelOutputFeatures =
-      rhsType.getShape()[op.getDimensionNumbers()
-                             .getKernelOutputFeatureDimension()];
+      rhsType.getShape()[kernelOutputFeatureDimension];
 
-  outputDimensions[op.getDimensionNumbers().getOutputBatchDimension()] =
-      hlo::isDynamicDimSize(inputBatch) ? ShapedType::kDynamicSize
-                                        : inputBatch / op.getBatchGroupCount();
-  outputDimensions[op.getDimensionNumbers().getOutputFeatureDimension()] =
-      kernelOutputFeatures;
+  outputDimensions[outputBatchDimension] = hlo::isDynamicDimSize(inputBatch)
+                                               ? ShapedType::kDynamicSize
+                                               : inputBatch / batchGroupCount;
+  outputDimensions[outputFeatureDimension] = kernelOutputFeatures;
 
   return outputDimensions;
 }
@@ -1639,75 +1672,114 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
  *  P4. Verify the return shape.
  *      TODO(b/232574102): Verify the element-type of return-value.
  */
-LogicalResult ConvolutionOp::verify() {
-  auto lhsType = getLhs().getType().dyn_cast<RankedTensorType>();
-  auto rhsType = getRhs().getType().dyn_cast<RankedTensorType>();
+LogicalResult ConvolutionOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  ConvolutionOp::Adaptor adaptor(operands, attributes, regions);
 
-  if (!lhsType || !rhsType) return success();
+  Value lhs = adaptor.getLhs();
+  Value rhs = adaptor.getRhs();
+  Optional<DenseIntElementsAttr> windowStrides = adaptor.getWindowStrides();
+  Optional<DenseIntElementsAttr> padding = adaptor.getPadding();
+  Optional<DenseIntElementsAttr> lhsDilation = adaptor.getLhsDilation();
+  Optional<DenseIntElementsAttr> rhsDilation = adaptor.getRhsDilation();
+
+  int64_t inputBatchDimension =
+      adaptor.getDimensionNumbers().getInputBatchDimension();
+  int64_t inputFeatureDimension =
+      adaptor.getDimensionNumbers().getInputFeatureDimension();
+  ArrayRef<int64_t> inputSpatialDimensions =
+      adaptor.getDimensionNumbers().getInputSpatialDimensions();
+  int64_t kernelInputFeatureDimension =
+      adaptor.getDimensionNumbers().getKernelInputFeatureDimension();
+  int64_t kernelOutputFeatureDimension =
+      adaptor.getDimensionNumbers().getKernelOutputFeatureDimension();
+  ArrayRef<int64_t> kernelSpatialDimensions =
+      adaptor.getDimensionNumbers().getKernelSpatialDimensions();
+  int64_t outputBatchDimension =
+      adaptor.getDimensionNumbers().getOutputBatchDimension();
+  int64_t outputFeatureDimension =
+      adaptor.getDimensionNumbers().getOutputFeatureDimension();
+  ArrayRef<int64_t> outputSpatialDimensions =
+      adaptor.getDimensionNumbers().getOutputSpatialDimensions();
+
+  int64_t featureGroupCount = adaptor.getFeatureGroupCount();
+  int64_t batchGroupCount = adaptor.getBatchGroupCount();
+
+  auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
+  auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
+
+  if (!lhsType || !rhsType) {
+    inferredReturnShapes.emplace_back(lhsType.getElementType());
+    return success();
+  }
 
   // P1.
   int numDims = lhsType.getRank();
   if (numDims != rhsType.getRank())
-    return emitOpError()
-           << "expects convolution arguments to have same number of "
-              "dimensions. Got: "
-           << lhsType << " and " << rhsType << ".";
+    return emitOptionalError(location,
+                             "expects convolution arguments to have same "
+                             "number of dimensions. Got: ",
+                             lhsType, " and ", rhsType, ".");
 
   if (numDims < 2)
-    return emitOpError()
-           << "expects convolution arguments to have >= 2 dimensions. "
-              "Got: "
-           << lhsType << " and " << rhsType << ".";
+    return emitOptionalError(
+        location,
+        "expects convolution arguments to have >= 2 dimensions. Got: ", lhsType,
+        " and ", rhsType, ".");
 
   // P2.
-  if (failed(verifyConvolutionAttributes(*this))) return failure();
+  if (failed(verifyConvolutionAttributes(
+          lhs, rhs,
+          // clang-format off
+          inputBatchDimension, 
+          inputFeatureDimension, 
+          inputSpatialDimensions,
+          kernelInputFeatureDimension, 
+          kernelOutputFeatureDimension,
+          kernelSpatialDimensions,
+          outputBatchDimension,
+          outputFeatureDimension,
+          outputSpatialDimensions,
+          featureGroupCount,
+          batchGroupCount,
+          // clang-format on
+          location)))
+    return failure();
 
   // P3.
-  auto kernelSpatialDimensions =
-      getDimensionNumbers().getKernelSpatialDimensions();
   SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
   for (size_t i = 0; i < windowDimensions.size(); i++)
     windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
 
-  auto paddingOrErr =
-      hlo::convertPaddingAttribute(this->getPadding(), getLoc());
+  auto paddingOrErr = hlo::convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
 
   // TODO: add missing tests for ConvolutionOp.
   auto windowStridesOrErr =
-      hlo::convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
+      hlo::convert1DAttribute(windowStrides, location, "window_strides");
   if (failed(windowStridesOrErr)) return failure();
   auto lhsDilationOrErr =
-      hlo::convert1DAttribute(getLhsDilation(), getLoc(), "lhs_dilation");
+      hlo::convert1DAttribute(lhsDilation, location, "lhs_dilation");
   if (failed(lhsDilationOrErr)) return failure();
   auto rhsDilationOrErr =
-      hlo::convert1DAttribute(getRhsDilation(), getLoc(), "rhs_dilation");
+      hlo::convert1DAttribute(rhsDilation, location, "rhs_dilation");
   if (failed(rhsDilationOrErr)) return failure();
   auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
-      *rhsDilationOrErr, getLoc());
+      *rhsDilationOrErr, location);
   if (failed(windowOrErr)) return failure();
 
   // P4.
-  auto actualReturnType = getResult().getType().cast<TensorType>();
-  auto actualReturnElementType = actualReturnType.getElementType();
-  if (!actualReturnType.hasRank()) return success();
+  auto expectedReturnShape = inferConvolutionOpReturnShape(
+      lhs, rhs, inputBatchDimension, inputSpatialDimensions,
+      kernelOutputFeatureDimension, outputBatchDimension,
+      outputFeatureDimension, outputSpatialDimensions, batchGroupCount,
+      *windowOrErr);
 
-  auto actualReturnRankedType = actualReturnType.cast<RankedTensorType>();
-  if (numDims != actualReturnRankedType.getRank())
-    return emitOpError() << "expects rank of convolution return-type to be "
-                            "equal to input-ranks ("
-                         << numDims << "), but got "
-                         << actualReturnRankedType.getRank() << ".";
-
-  auto expectedReturnShape = inferConvolutionOpReturnShape(*this, *windowOrErr);
-  auto expectedReturnType =
-      RankedTensorType::get(expectedReturnShape, actualReturnElementType);
-  if (failed(verifyCompatibleShape(expectedReturnType, actualReturnRankedType)))
-    return emitOpError()
-           << "has shape mismatch between the expected return-type ("
-           << expectedReturnType << ") and actual return-type ("
-           << actualReturnRankedType << ").";
+  inferredReturnShapes.emplace_back(expectedReturnShape,
+                                    lhsType.getElementType());
 
   return success();
 }
