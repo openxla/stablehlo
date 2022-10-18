@@ -2724,18 +2724,19 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     ]> {
   let summary = "ReduceWindow operator";
   let description = [{
-    Returns the result of executing a reduction function over all elements in
-    each window of one or more arrays in parallel.
+    Performs a reduction function `body` over all elements in each window of a
+    sequence of N `inputs` tensors and produces a sequence of N `results`
+    tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce_window
 
     Example:
     ```mlir
-     %result = "mhlo.reduce_window"( %arg,  %init) ({
+     %result = "stablehlo.reduce_window"( %arg,  %init) ({
             ^bb0(%a1: tensor<ui8>, %b1: tensor<ui8>):
-                 %1 = mhlo.add %a1, %b1 : tensor<ui8>
-                 "mhlo.return"(%1) : (tensor<ui8>) -> ()
+                 %1 = stablehlo.add %a1, %b1 : tensor<ui8>
+                 "stablehlo.return"(%1) : (tensor<ui8>) -> ()
                })
             {
               window_dimensions = dense<[2, 1]> : tensor<2xi64>,
