@@ -856,137 +856,103 @@ defined and one of the following:
 Gathers slices from `operand` tensor from offsets specified in `start_indices`
 and produces a `result` tensor.
 
-Informally, every index `out` in `result` corresponds to an element in `operand`
-which is computed as the following steps:
+The following diagram shows how elements in `result` map on elements in
+`operand` using a concrete example. The diagram picks a few example `result`
+indexes and explains in detail which `operand` indexes they correspond to.
 
-  1. Given the batch dimensions, `batch_dims` = {`k`: `k` is a dimension of
-    `result` and `k` $\notin$ `offset_dims`}, extract the batching indices $G$
-    from `out`. That is, $G =$ { `out`[`k`] : `k` $\in$ `batch_dims`}.
-  2. Use $G$ to look up a starting index slice from `start_indices` of size
-     dim(`start_indices`, `index_vector_dim`) along `index_vector_dim` dimension.
-  3. Use `start_index_map` to scatter the starting index slice (whose size may
-     be less than rank(`operand`)) into the iteration space of `operand`
-     creating a "full" starting index into the operand.
-  4. Extract a slice out of `operand` with size `slice_sizes` using the full
-     starting index.
-  5. Reshape the slice by collapsing the `collapsed_slice_dims` dimensions.
-     Since all collapsed slice dimensions must have a bound of 1, this reshape
-     is always legal.
-  6. Use the indices of `out` at `offset_dims` to index into the above slice to
-     get the input element corresponding to output index `out`.
-
-The following diagram depicts the behavior of the op, based on the above
-mentioned steps, using a concrete example. It uses a few instances of `out`
-indices to demonstrate how they are mapped to input elements.
-
-<p align="center">
-  <img src="spec_images/gather.png" />
-</p>
-
-More formally, the operand index `in` corresponding to a given output index
-`out` is calculated as follows:
-
-1. If `index_vector_dim` $=$ rank(`start_indices`), add a trailing $1$ on the
-   shape of `start_indices`.
-2. Let $G =$ { `out`[`k`] for `k` in `batch_dims`}. Use $G$ to slice out a
-   vector $S$ such that $S$[`i`] = `start_indices`[`Combine`($G$, `i`)] where
-   `Combine`(`A`, `b`) inserts b at position `index_vector_dim` into `A`.
-   Note that this is well defined even if $G$ is empty -- if $G$ is empty then
-   $S =$ `start_indices`.
-
-3. Create a starting index, $S_{in}$, into operand using $S$ by scattering $S$
-   using `start_index_map`. More precisely:
-     * $S_{in}$[`start_index_map`[`k`]] = $S$[`k`] if `k` $\lt$
-     size(`start_index_map`).
-     * $S_{in}$[ _ ] $= 0$, Otherwise.
-
-4. Create an index $O_{in}$ into `operand` by scattering the indices at the
-   offset dimensions `offset_dims` in `out` according to the
-   `collapsed_slice_dims` set. More precisely:
-    * $O_{in}$[`remapped_offset_dims`(`k`)] = `out`[`offset_dims`[`k`]] if `k`
-    $\lt$ size(`offset_dims`), where `remapped_offset_dims` is a monotonic
-    function with domain [0, size(`offset_dims`)) and range
-    [0, rank(`operand`)) $-$ `collapsed_slice_dims`. So if, e.g.,
-    size(`offset_dims`) is `4`, rank(`operand`) is `6` and
-    `collapsed_slice_dims` is `{0, 2}` then `remapped_offset_dims` is
-    `{0 -> 1, 1 -> 3, 2 -> 4, 3 -> 5}`.
-    * $O_{in}$[ \_ ] $= 0$, Otherwise.
-
-5. `in` $= O_{in} + S_{in}$ where $+$ is element-wise addition. If
-   `in`[i] $\ge$ `di`, where `di` is the `i`$^{th}$ dimension size of `operand`,
-   then the behavior is implementation defined.
-
+<img align="center" src="spec_images/gather.png" />
+ 
+More formally, `result[result_index] = operand[operand_index]` where:
+  * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
+  * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
+  * `start_index` =
+      * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+        elements in `batch_index` and `:` is inserted at the `index_vector_dim`
+        index, if `index_vector_dim` < `rank(start_indices)`.
+      * `[start_indices[batch_index]]` otherwise.
+  * For `do` in `axes(operand)`,
+      * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
+      * `full_start_index[do]` = `0` otherwise.
+  * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
+  * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+    elements in `offset_index`, and `0` is inserted at indices from
+    `collapsed_slice_dims`.
+  * `operand_index` = `add(full_start_index, full_offset_index)`.
+    If `operand_index` is out of bounds for `operand`, then the behavior is
+    implementation-defined.
 
 If `indices_are_sorted` is `true` then the implementation can assume that the
 `start_indices` are sorted (in ascending `start_index_map` order) by the user.
-If they are not then the semantics is implementation defined.
+If they are not, then the behavior is implementation-defined.
 
 ### Inputs
 
-| Name                   | Description                                                                                        | Type                                         | Constraints         |
-|------------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------|---------------------|
-| `operand`              | The input `tensor` to gather slices from                                                           | tensor of any supported  types               | (C1)                |
-| `start_indices`        | A tensor containing the starting indices of the slices to be gathered                              | tensor of type `si64`                        |                     |
-| `offset_dims`          | The set of dimensions in the `result` shape that offset into an array sliced from `operand`        | 1-dimensional tensor constant of type `si64` | (C8),(C9)           |
-| `collapsed_slice_dims` | The set of dimensions in each slice that are collapsed away.                                       | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C12) |
-| `start_index_map`      | A map that describes how to scatter indices in `start_indices` to the iteration space of `operand` | 1-dimensional tensor constant of type `si64` | (C3),(C4),(C5)      |
-| `index_vector_dim`     | The dimension in `start_indices` containing the starting indices                                   | constant of type `si64`                      | (C2)                |
-| `slice_sizes`          | `slice_sizes`[i] is the size of the slice gathered from `operand` in dimension i                   | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C12)   |
-| `indices_are_sorted`   | Whether the indices are guaranteed to be sorted by the caller.                                     | constant of type `boolean`                   |                     |
+| Name                   | Type                                         | Constraints               |
+|------------------------|----------------------------------------------|---------------------------|
+| `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12) |
+| `start_indices`        | tensor of any supported integer type         | (C2), (C3)                |
+| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5)          |
+| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8)    |
+| `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)         |
+| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3)                |
+| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12)  |
+| `indices_are_sorted`   | constant of type `i1`                        |                           |
 
 ### Outputs
 
-| Name     | Type                                  |
-|----------|---------------------------------------|
-| `result` | tensor of any supported element types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
   * On Inputs
     * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
-    size(`collapsed_slice_dims`)
+           size(`collapsed_slice_dims`)
 
-    * (C2) &nbsp; $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`) Or
-    `index_vector_dim` $=$ rank(`start_indices`) in which case assume a trailing
-    $1$ on the shape of `start_indices`.
+    * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`)
 
-    * (C3) dim(`start_indices`, `index_vector_dim`) $=$
-    size(`start_index_map`)
+    * (C3) size(`start_index_map`) $=$
+           `index_vector_dim` $\lt$ rank(`start_indices`) ?
+           dim(`start_indices`, `index_vector_dim`) : 1.
 
-    * (C4) All dimensions in `start_index_map` are unique.
+    * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
+           order.
 
-    * (C5) &nbsp; $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
-    such that $0 \le$ i $\lt$ size(`start_index_map`)
+    * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
+           such that $0 \le$ i $\lt$ size(`offset_dims`)
 
-    * (C6) size(`slice_sizes`) $=$ rank(`operand`).
+    * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
+           ascending order.
 
-    * (C7) &nbsp; $0 \le$ `slice_sizes`[i] $\lt$ shape(`operand`)[i] $\forall
-    i$ such that $0 \le$ i $\lt$ size(`slice_sizes`)
+    * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
+            $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`)
 
-    * (C8) All dimensions in `offset_dims` are unique and sorted.
+    * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`
 
-    * (C9) &nbsp; $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
-    such that $0 \le$ i $\lt$ size(`offset_dims`)
+    * (C9) All dimensions in `start_index_map` are unique.
 
-    * (C10) All dimensions in `collapsed_slice_dims` are unique and sorted.
+    * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
+           such that $0 \le$ i $\lt$ size(`start_index_map`)
 
-    * (C11) &nbsp; $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
-    $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`)
+    * (C11) size(`slice_sizes`) $=$ rank(`operand`).
 
-    * (C12) `slize_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`
+    * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
+            such that $0 \le$ i $\lt$ size(`slice_sizes`)
 
-  * On shape of `result`
-    * rank(`result`) $=$ size(`offset_dims`) $+$ rank(`start_indices`) - 1
-    * The dimension size of `i`$^{th}$ dimension, `di`, of `result` is computed
-      as:
-      * If `i` is present in the `batch_dims`, i.e., `i` $=$ `batch_dims`[`k`]
-      for some `k`, then
-        * `di` $=$ dim(`start_indices`, `k`) if `k` $\lt$ `index_vector_dim`
-        * `di` $=$ dim(`start_indices`, `k+1`) otherwise.
-      * If `i` is present in `offset_dims`, i.e., `i` $=$ `offset_dims`[`k`] for
-      some `k`, then `di` $=$ `adjusted_slice_sizes`[`k`] where
-      `adjusted_slice_sizes`= `slize_sizes` - {`size_sizes[i]` : i $\in$
-      `collapsed_slice_dims`}.
+  * On `result`
+    * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
+            size(`offset_dims`), where
+            `effective_start_indices_rank` $=$
+            `index_vector_dim` $\lt$ rank(`start_indices`) ?
+            rank(`start_indices`) : rank(`start_indices`) + 1.
+    * (C14) `shape(result)` $=$ `concatenate(shape(start_indices), slice_sizes)`
+            except that:
+      * The dimension size of `start_indices` corresponding to
+        `index_vector_dim` is not included.
+      * The dimension sizes in `slice_sizes` corresponding to
+        `collapsed_slice_dims` are not included.
+    * (C15) `operand` and `result` have the same element type.
 
 ### Examples
 
@@ -998,16 +964,16 @@ If they are not then the semantics is implementation defined.
   //           ]
   // %start_indices: [
   //                  [[0, 0], [1, 0], [2, 1]],
-  //                  [[0, 1], [1, 1], [0, 2]]]
+  //                  [[0, 1], [1, 1], [0, 2]]
   //                 ]
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2, 3],
       collapsed_slice_dims = [0],
-      start_index_map = [0, 2],
+      start_index_map = [1, 0],
       index_vector_dim = 2,
     >,
-    slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>,
+    slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
     indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
   // %result: [
