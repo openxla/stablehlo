@@ -614,7 +614,7 @@ func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
            batch_group_count = 1 : i64,
            feature_group_count = 1 : i64,
            precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-        //  } :
+         } :
        (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x8x16xf32>
   func.return %0 : tensor<1x8x16xf32>
 }
