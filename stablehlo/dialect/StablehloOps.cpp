@@ -2421,70 +2421,9 @@ LogicalResult ConcatenateOp::inferReturnTypes(
     MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  if (operands.empty()) {
-    return failure();
-  }
-
-  auto dimensionAttr = attributes.get("dimension").cast<IntegerAttr>();
-  auto dimension = dimensionAttr.getInt();
-
-  auto firstType = (*operands.begin()).getType().cast<ShapedType>();
-  auto outElement = firstType.getElementType();
-
-  // Find the first ranked input to determine the output rank.
-  for (auto type : operands.getTypes()) {
-    auto shapedType = type.cast<ShapedType>();
-    if (shapedType.hasRank()) {
-      firstType = shapedType;
-      break;
-    }
-  }
-
-  // If all inputs are unranked, the result must be unranked.
-  if (!firstType.hasRank()) {
-    inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
-    return success();
-  }
-
-  auto outShape = llvm::to_vector<6>(firstType.getShape());
-
-  // Determine what the non-concatenate dimensions should be.
-  for (auto type : operands.getTypes()) {
-    auto shapedTy = type.cast<ShapedType>();
-    if (!shapedTy.hasRank()) {
-      continue;
-    }
-
-    for (const auto& it : llvm::enumerate(shapedTy.getShape())) {
-      // If a dimension is not dynamic, the output shape should match.
-      if (ShapedType::isDynamic(outShape[it.index()])) {
-        outShape[it.index()] = it.value();
-      }
-    }
-  }
-
-  outShape[dimension] = 0;
-
-  for (auto operand : operands.getTypes()) {
-    auto type = operand.cast<ShapedType>();
-    if (!type.hasRank()) {
-      inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
-      return success();
-    }
-
-    // If the dimension is dynamic we know the output dimension is dynamic.
-    auto dim = type.getShape()[dimension];
-    if (ShapedType::isDynamic(dim)) {
-      outShape[dimension] = ShapedType::kDynamicSize;
-      break;
-    }
-
-    outShape[dimension] += dim;
-  }
-
-  inferredReturnTypes.push_back(RankedTensorType::get(outShape, outElement));
-
-  return success();
+  ConcatenateOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferConcatenateOp(location, adaptor.getInputs(),
+                                 adaptor.getDimension(), inferredReturnTypes);
 }
 
 LogicalResult ConcatenateOp::verify() {

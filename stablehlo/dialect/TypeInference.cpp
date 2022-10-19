@@ -463,6 +463,7 @@ LogicalResult inferBatchNormTrainingOp(
   return success();
 }
 
+// Used by IfOp and CaseOp
 LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
@@ -494,6 +495,72 @@ LogicalResult inferConditionalOp(Optional<Location> location,
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
+}
+
+LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
+                                 uint64_t dimension,
+                                 SmallVectorImpl<Type>& inferredReturnTypes) {
+  if (inputs.empty()) {
+    return failure();
+  }
+
+  auto firstType = inputs[0].getType().cast<ShapedType>();
+  auto outElement = firstType.getElementType();
+
+  // Find the first ranked input to determine the output rank.
+  for (auto type : inputs.getTypes()) {
+    auto shapedType = type.cast<ShapedType>();
+    if (shapedType.hasRank()) {
+      firstType = shapedType;
+      break;
+    }
+  }
+
+  // If all inputs are unranked, the result must be unranked.
+  if (!firstType.hasRank()) {
+    inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
+    return success();
+  }
+
+  auto outShape = llvm::to_vector<6>(firstType.getShape());
+
+  // Determine what the non-concatenate dimensions should be.
+  for (auto type : inputs.getTypes()) {
+    auto shapedTy = type.cast<ShapedType>();
+    if (!shapedTy.hasRank()) {
+      continue;
+    }
+
+    for (const auto& it : llvm::enumerate(shapedTy.getShape())) {
+      // If a dimension is not dynamic, the output shape should match.
+      if (ShapedType::isDynamic(outShape[it.index()])) {
+        outShape[it.index()] = it.value();
+      }
+    }
+  }
+
+  outShape[dimension] = 0;
+
+  for (auto operand : inputs.getTypes()) {
+    auto type = operand.cast<ShapedType>();
+    if (!type.hasRank()) {
+      inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
+      return success();
+    }
+
+    // If the dimension is dynamic we know the output dimension is dynamic.
+    auto dim = type.getShape()[dimension];
+    if (ShapedType::isDynamic(dim)) {
+      outShape[dimension] = ShapedType::kDynamicSize;
+      break;
+    }
+
+    outShape[dimension] += dim;
+  }
+
+  inferredReturnTypes.push_back(RankedTensorType::get(outShape, outElement));
+
+  return success();
 }
 
 LogicalResult inferDotGeneralOp(
