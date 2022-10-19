@@ -1814,7 +1814,7 @@ where `i[d] = j[permutation[d]]`.
 
 ### Semantics
 
-Produces the output from executing `body` function 0 or more times till the
+Produces the output from executing `body` function 0 or more times while the
 `cond` function outputs `true`. More formally, the semantics can be expressed
 using Python-like syntax as follows:
 
@@ -1825,7 +1825,7 @@ while cond(internal_state) == True:
 results = internal_state
 ```
 
-The behaviour of an infinite loop is undefined.
+The behaviour of an infinite loop is implementation-defined.
 
 ### Inputs
 
@@ -1856,15 +1856,15 @@ The behaviour of an infinite loop is undefined.
 // %input0: 0
 // %input1: 10
 %results:2 = "stablehlo.while"(%input0, %input1) ({
-^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>):
-  %predicate = "stablehlo.compare"(%argument0, %argument1) {
-    comparison_direction = #stablehlo<comparison_direction LT>
-  } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-  "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
-},  {
-^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>):
-  %output0 = "stablehlo.add"(%argument0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-  "stablehlo.return"(%output0, %argument1) : (tensor<i32>, tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction LT>
+    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%0) : (tensor<i1>) -> ()
+}, {
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
 }) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
 // %results#0: 10
 // %results#1: 10
