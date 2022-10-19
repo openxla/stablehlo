@@ -981,11 +981,9 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                                   strideVals[i]));
   }
 
-  auto encodingOrErr =
-      boundsToEncoding(rankedTy.getEncoding(), resultBounds, location);
-  if (failed(encodingOrErr)) return failure();
-  inferredReturnTypes.push_back(
-      RankedTensorType::get(shape, rankedTy.getElementType(), *encodingOrErr));
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      shape, rankedTy.getElementType(),
+      boundsToEncoding(rankedTy.getEncoding(), resultBounds)));
   return success();
 }
 
@@ -1085,11 +1083,9 @@ LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
     }
   }
 
-  auto encodingOrErr =
-      boundsToEncoding(rankedTy.getEncoding(), resultBounds, loc);
-  if (failed(encodingOrErr)) return failure();
   inferredReturnTypes.push_back(RankedTensorType::get(
-      resultShape, rankedTy.getElementType(), *encodingOrErr));
+      resultShape, rankedTy.getElementType(),
+      boundsToEncoding(rankedTy.getEncoding(), resultBounds)));
   return success();
 }
 

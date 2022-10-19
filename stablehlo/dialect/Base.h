@@ -81,9 +81,7 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding);
 // Create an HLO_BoundedAttrInterface encoding attribute that carries the given
 // bounds. Requires a prototype - an existing encoding attribute - to obtain
 // the underlying dialect that knows how to create these attributes.
-FailureOr<Attribute> boundsToEncoding(Attribute prototype,
-                                      ArrayRef<int64_t> bounds,
-                                      Optional<Location> loc);
+Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 
 // This interface is used for HLO dialects that have accompanying
 // BoundedAttrInterface attributes which can carry bounds for dimension sizes
