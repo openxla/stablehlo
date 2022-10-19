@@ -1558,11 +1558,12 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 ### Semantics
 
-Sorts a variadic number of tensors in `inputs` together, according to a custom 
+Sorts a variadic number of tensors in `inputs` together, according to a custom
 `comparator`, along the given `dimension` and produces a variadic number of
 tensors as `results`. If `is_stable` is true, then the sorting is stable, that
 is, relative order of elements considered to be equal by the comparator is
-preserved.
+preserved. Two elements `e1` and `e2` are considered to be equal by the
+comparator if and only if `comparator(e1, e2) = comparator(e2, e1) = false`.
 
 More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 `compare_i_j = compare_j_i = false` or `compare_i_j = true`, where:
