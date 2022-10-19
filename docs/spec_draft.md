@@ -2378,7 +2378,7 @@ slices at indices specified by `scatter_indices`, updated with the values in
 
 The following diagram shows how elements in `updates[k]` map on elements in
 `inputs[k]` using a concrete example. The diagram picks a few example
-`updated[k[` indexes and explains in detail which `inputs[k]` indexes they
+`updated[k[` indices and explains in detail which `inputs[k]` indices they
 correspond to.
 
 <img align="center" src="spec_images/scatter.png" />
@@ -2424,18 +2424,18 @@ defined.
 
 ### Inputs
 
-| Name                           | Type                                              | Constraints                            |
-|--------------------------------|---------------------------------------------------|----------------------------------------|
-| `inputs`                       | variadic number of tensors of any supported types | (C1), (C2), (C3), (C12), (C13), (C15)  |
-| `scatter_indices`              | tensor of type `si64`                             | (C5), (C6), (C14, (C15)                |
-| `updates`                      | variadic number of tensors of any supported types | (C2), (C4), (C10), (C13), (C14), (C15) |
-| `update_window_dims`           | 1-dimensional tensor constant of type `si64`      | (C1), (C9), (C10), (C14)               |
-| `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`      | (C1), (C11), (C12), (C15)              |
-| `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)                        |
-| `index_vector_dim`             | constant of type `si64`                           | (C5), (C6), (C14), (C15)               |
-| `indices_are_sorted`           | constant of type `boolean`                        |                                        |
-| `unique_indices`               | constant of type `boolean`                        |                                        |
-| `update_computation`           | function                                          | (C13)                                  |
+| Name                           | Type                                              | Constraints                                  |
+|--------------------------------|---------------------------------------------------|----------------------------------------------|
+| `inputs`                       | variadic number of tensors of any supported types | (C1), (C2), (C3), (C12), (C13), (C15), (C16) |
+| `scatter_indices`              | tensor of type `si64`                             | (C5), (C6), (C14, (C15)                      |
+| `updates`                      | variadic number of tensors of any supported types | (C2), (C4), (C10), (C13), (C14), (C15)       |
+| `update_window_dims`           | 1-dimensional tensor constant of type `si64`      | (C1), (C9), (C10), (C14)                     |
+| `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`      | (C1), (C11), (C12), (C15)                    |
+| `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)                              |
+| `index_vector_dim`             | constant of type `si64`                           | (C5), (C6), (C14), (C15)                     |
+| `indices_are_sorted`           | constant of type `boolean`                        |                                              |
+| `unique_indices`               | constant of type `boolean`                        |                                              |
+| `update_computation`           | function                                          | (C13)                                        |
 
 ### Outputs
 
@@ -2455,7 +2455,7 @@ defined.
 
   * (C4) All `updates` have the same shape.
 
-  * (C5) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`)
+  * (C5) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
 
   * (C6) size(`scatter_dims_to_operand_dims`) $=$
          `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
