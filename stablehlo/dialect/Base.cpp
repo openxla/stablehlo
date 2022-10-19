@@ -146,5 +146,24 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
   return success();
 }
 
+ArrayRef<int64_t> encodingToBounds(Attribute encoding) {
+  if (!encoding) return {};
+  if (auto boundedAttr = encoding.dyn_cast_or_null<BoundedAttrInterface>())
+    return boundedAttr.getBounds();
+  return {};
+}
+
+FailureOr<Attribute> boundsToEncoding(Attribute prototype,
+                                      ArrayRef<int64_t> bounds,
+                                      Optional<Location> loc) {
+  if (bounds.empty()) return prototype;
+  if (!prototype)
+    return emitOptionalError(loc,
+                             "Expect an prototype attribute to obtain the "
+                             "underlying dialect but got none");
+  auto dialect = cast<BoundedDialectInterface>(&prototype.getDialect());
+  return dialect->createBoundedAttr(bounds);
+}
+
 }  // namespace hlo
 }  // namespace mlir

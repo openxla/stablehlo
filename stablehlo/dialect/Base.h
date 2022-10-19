@@ -74,6 +74,17 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType);
 LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
                            function_ref<InFlightDiagnostic()> emitError);
 
+// If an encoding attribute conforms to HLO_BoundedAttrInterface, return the
+// bounds that it carries. Otherwise, return an empty ArrayRef.
+ArrayRef<int64_t> encodingToBounds(Attribute encoding);
+
+// Create an HLO_BoundedAttrInterface encoding attribute that carries the given
+// bounds. Requires a prototype - an existing encoding attribute - to obtain
+// the underlying dialect that knows how to create these attributes.
+FailureOr<Attribute> boundsToEncoding(Attribute prototype,
+                                      ArrayRef<int64_t> bounds,
+                                      Optional<Location> loc);
+
 // This interface is used for HLO dialects that have accompanying
 // BoundedAttrInterface attributes which can carry bounds for dimension sizes
 // of accompanying shaped types.
