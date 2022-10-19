@@ -1844,8 +1844,6 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
   let results = (outs HLO_Tensor);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
      custom<VariadicOperandWithAttribute>($inputs) `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
   }];

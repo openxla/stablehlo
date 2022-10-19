@@ -498,10 +498,47 @@ LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
 }
 
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
-                                 uint64_t dimension,
+                                 int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  if (inputs.empty()) {
-    return failure();
+  RankedTensorType firstRankedType;
+  int firstRankedIndex = -1;
+  if (dimension < 0)
+    return emitOptionalError(location, "dimension ", dimension, " is negative");
+  for (uint64_t i = 0; i < inputs.size(); i++) {
+    auto secondType = inputs[i].getType().dyn_cast<ShapedType>();
+    if (!secondType.hasRank()) continue;
+
+    if (!firstRankedType) {
+      firstRankedType = secondType.cast<RankedTensorType>();
+      firstRankedIndex = i;
+      if (firstRankedType.getRank() == 0)
+        return emitOptionalError(location,
+                                 "rank-0 values cannot be concatenated");
+      if (dimension >= firstRankedType.getRank())
+        return emitOptionalError(location, "dimension ", dimension,
+                                 " is out-of-bounds for input rank ",
+                                 firstRankedType.getRank());
+      continue;
+    }
+    if (firstRankedType.getRank() != secondType.getRank())
+      return emitOptionalError(location, "operands (", firstRankedIndex,
+                               ") and (", i, ") do not match rank");
+
+    auto firstShape = firstRankedType.getShape();
+    auto secondShape = secondType.getShape();
+    for (int d = 0; d < firstRankedType.getRank(); ++d) {
+      if (!ShapedType::isDynamic(firstShape[d]) &&
+          !ShapedType::isDynamic(secondShape[d]) &&
+          firstShape[d] != secondShape[d] && d != dimension) {
+        return emitOptionalError(
+            location, "shapes of operand (", firstRankedIndex, ") and (", i,
+            ") do not match at non-concat "
+            "index: (",
+            llvm::make_range(firstShape.begin(), firstShape.end()), ") != (",
+            llvm::make_range(secondShape.begin(), secondShape.end()),
+            ") at non-concat index ", d);
+      }
+    }
   }
 
   auto firstType = inputs[0].getType().cast<ShapedType>();

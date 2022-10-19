@@ -2426,58 +2426,6 @@ LogicalResult ConcatenateOp::inferReturnTypes(
                                  adaptor.getDimension(), inferredReturnTypes);
 }
 
-LogicalResult ConcatenateOp::verify() {
-  RankedTensorType firstRankedType;
-  int firstRankedIndex;
-  int numOperands = getNumOperands();
-  int64_t concatDimension = static_cast<int64_t>(getDimension());
-  if (concatDimension < 0) {
-    return emitOpError(
-        llvm::formatv("dimension {0} is negative", concatDimension));
-  }
-  for (int i = 0; i < numOperands; i++) {
-    auto secondType = getOperand(i).getType().dyn_cast<ShapedType>();
-    if (!secondType.hasRank()) {
-      continue;
-    }
-
-    if (!firstRankedType) {
-      firstRankedType = secondType.cast<RankedTensorType>();
-      firstRankedIndex = i;
-      if (firstRankedType.getRank() == 0)
-        return emitOpError(
-            llvm::formatv("rank-0 values cannot be concatenated"));
-      if (concatDimension >= firstRankedType.getRank()) {
-        return emitOpError(
-            llvm::formatv("dimension {0} is out-of-bounds for input rank {1}",
-                          concatDimension, firstRankedType.getRank()));
-      }
-      continue;
-    }
-
-    if (firstRankedType.getRank() != secondType.getRank()) {
-      return emitOpError(llvm::formatv(
-          "operands ({0}) and ({1}) do not match rank", firstRankedIndex, i));
-    }
-
-    auto firstShape = firstRankedType.getShape();
-    auto secondShape = secondType.getShape();
-    for (int d = 0; d < firstRankedType.getRank(); ++d) {
-      if (!ShapedType::isDynamic(firstShape[d]) &&
-          !ShapedType::isDynamic(secondShape[d]) &&
-          firstShape[d] != secondShape[d] && d != concatDimension) {
-        return emitOpError(llvm::formatv(
-            "shapes of operand ({0}) and ({1}) do not match at non-concat "
-            "index: ({2}) != ({3}) at non-concat index {4}",
-            firstRankedIndex, i,
-            llvm::make_range(firstShape.begin(), firstShape.end()),
-            llvm::make_range(secondShape.begin(), secondShape.end()), d));
-      }
-    }
-  }
-  return success();
-}
-
 LogicalResult ConcatenateOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
