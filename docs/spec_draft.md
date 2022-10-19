@@ -2061,6 +2061,8 @@ computations on accelerator backends. This can be one of the following:
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_dot_general.mlir)
+
 [Back to Ops](#index-of-ops)
 
 ## stablehlo.dynamic_slice
