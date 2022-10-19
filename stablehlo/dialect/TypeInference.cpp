@@ -415,12 +415,12 @@ LogicalResult verifyReducerShape(
 }
 
 // Returns output dimension size for slice result for the given arguments.
-// Returns -1 if arguments are illegal.
+// Returns ShapedType::kDynamicSize if arguments are illegal.
 static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
                              int64_t stride) {
-  if (inputDim == -1 || start < 0 || start > end || end > inputDim ||
-      stride == 0)
-    return -1;
+  if (inputDim == ShapedType::kDynamicSize || start < 0 || start > end ||
+      end > inputDim || stride == 0)
+    return ShapedType::kDynamicSize;
 
   return llvm::divideCeil(end - start, stride);
 }
@@ -984,7 +984,7 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   auto encodingOrErr =
       boundsToEncoding(rankedTy.getEncoding(), resultBounds, location);
   if (failed(encodingOrErr)) return failure();
-  inferredReturnTypes.emplace_back(
+  inferredReturnTypes.push_back(
       RankedTensorType::get(shape, rankedTy.getElementType(), *encodingOrErr));
   return success();
 }
@@ -1088,7 +1088,7 @@ LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
   auto encodingOrErr =
       boundsToEncoding(rankedTy.getEncoding(), resultBounds, loc);
   if (failed(encodingOrErr)) return failure();
-  inferredReturnTypes.emplace_back(RankedTensorType::get(
+  inferredReturnTypes.push_back(RankedTensorType::get(
       resultShape, rankedTy.getElementType(), *encodingOrErr));
   return success();
 }
