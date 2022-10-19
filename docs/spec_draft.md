@@ -2376,105 +2376,72 @@ Generate `results` which is the values of the `inputs` operand, with several
 slices at indices specified by `scatter_indices`, updated with the values in
 `updates` using `update_computation`.
 
-Informally, for any `k`, every index `out` in `update[k]` corresponds to an
-element in `inputs[k]` at index `in` such that `result[k][in] =
-update_computation(inputs[k][in], updates[k][out])`. The element `inputs[k][in]`
- is computed using the following steps:
+The following diagram shows how elements in `updates[k]` map on elements in
+`inputs[k]` using a concrete example. The diagram picks a few example
+`updated[k[` indexes and explains in detail which `inputs[k]` indexes they
+correspond to.
 
-  1. Given the `update_scatter_dims` dimensions, `update_scatter_dims` = {`k`:
-     `k` is a dimension of `updates` and `k` $\notin$ `update_window_dims`},
-     extract the scatter indices $G$ from `out`. That is, $G =$ { `out`[`k`] :
-     `k` $\in$ `update_scatter_dims`}.
+<img align="center" src="spec_images/scatter.png" />
 
-  2. Use $G$ to look up a starting index slice from `scatter_indices` of size
-     dim(`scatter_indices`, `index_vector_dim`) along `index_vector_dim`
-     dimension.
+More formally, for any `k`, `updates[k][update_index] =
+inputs[k][input_index]` where:
+  * `update_scatter_dims` = [`d` for `d` in `axes(updates[k])` and `d` not in
+    `update_window_dims`].
+  * `update_scatter_index` = [`update_index[d]` for `d` in
+    `update_scatter_dims`].
+  * `start_index` =
+      * `scatter_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+        elements in `update_scatter_index` and `:` is inserted at the
+        `index_vector_dim` index, if `index_vector_dim` <
+        `rank(scatter_indices)`.
+      * `[scatter_indices[update_scatter_index]]` otherwise.
+  * For `do` in `axes(inputs[k])`,
+      * `full_start_index[do]` = `start_index[ds]` if
+        `do = scatter_dims_to_operand_dims[ds]`.
+      * `full_start_index[do]` = `0` otherwise.
+  * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
+  * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+    elements in `update_window_index`, and `0` is inserted at indices from
+    `inserted_window_dims`.
+  * `input_index` = `add(full_start_index, full_offset_index)`.
+    If `input_index` is out of bounds for `inputs[k]`, then the behavior is
+    implementation-defined.
 
-  3. Use `scatter_dims_to_operand_dims` to scatter the starting index slice
-     (whose size may be less than rank(`inputs[k]`)) into the iteration space
-     of `inputs[k]` creating a "full" starting index.
+For every index `update_index` in `updates[k]` and the corresponding index
+`input_index` in the `inputs[k]`, we have
 
-  4. Extract a slice out of `inputs[k]` with size `shape(inputs[k])` using the
-     full starting index.
-
-  5. Reshape the slice by collapsing the `inserted_window_dims` dimensions.
-
-  6. Use the indices of `out` at `update_window_dims` to index into the above
-     slice to get the input element corresponding to update index `out`.
-
-The following diagram depicts the behavior of the op, based on the above
-mentioned steps, using a concrete example. It uses a few instances of `out`
-indices to demonstrate how they are mapped to input elements.
-
-<p align="center">
-  <img src="spec_images/scatter.png" />
-</p>
-
-More formally, for a given index `out` in each `updates[k]`, the corresponding
-index `in` in `inputs[k]` into which the update has to be applied is computed as
-follows:
-
-1. If `index_vector_dim` $=$ rank(`scatter_indices`), add a trailing $1$ on the
-   shape of `scatter_indices`.
-
-2. Let $G =$ { `out`[`k`] for `k` in `update_scatter_dims`}. Use $G$ to slice
-   out a vector $S$ such that $S$[`i`] = `scatter_indices`[`Combine`($G$, `i`)]
-   where `Combine`(`A`, `b`) inserts b at position `index_vector_dim` into `A`.
-
-3. Create a starting index, $S_{in}$, into `inputs[k]` using $S$ by scattering
-   $S$ using `scatter_dims_to_operand_dims`. More precisely:
-     * $S_{in}$[`start_index_map`[`k`]] = $S$[`k`] if `k` $\lt$
-     size(`scatter_dims_to_operand_dims`).
-     * $S_{in}$[ _ ] $= 0$, Otherwise.
-
-4. Create an index $O_{in}$ into `inputs[k]` by scattering the indices at
-   `update_window_dims` in `out` according to the `inserted_window_dims` set.
-   More precisely:
-    * $O_{in}$[`window_dims_to_operand_dims`(`k`)] $=$
-    `out`[`update_window_dims`[`k`]] if `k` $\lt$ size(`update_window_dims`),
-    where `window_dims_to_operand_dims` is a monotonic
-    function with domain [0, size(`update_window_dims`)) and range
-    [0, rank(`operand`)) $-$ `inserted_window_dims`. So if, e.g.,
-    size(`update_window_dims`) is `4`, rank(`operand`) is `6` and
-    `inserted_window_dims` is `{0, 2}` then `window_dims_to_operand_dims` is
-    `{0 -> 1, 1 -> 3, 2 -> 4, 3 -> 5}`.
-    * $O_{in}$[ \_ ] $= 0$, Otherwise.
-
-5. `in` $= O_{in} + S_{in}$ where $+$ is element-wise addition. If
-   `in`[i] $\ge$ `di`, where `di` is the `i`$^{th}$ dimension size of
-   `inputs[k]`, then the behavior is implementation defined.
-
-
-For every index `out` in `updates[k]` and the corresponding index `in` in
-the `inputs[k]`, we have
-
-`(results[0][in], ..., results[N-1][in]) = update_computation(inputs[0][in], ..., , inputs[N-1][in],updates[0][out], ...,updates[N-1][out])`
-
+`results[k][input_index] = update_computation(inputs[k][input_index], updates[k][update_index])
 
 If `indices_are_sorted` is set to true then the implementation can assume that
 `scatter_indices` are sorted (in ascending `scatter_dims_to_operand_dims` order)
 by the user. If they are not then the semantics is implementation defined.
 
+If unique_indices is set to true then the implementation can assume that all
+`input_index` indices  being scattered to are unique. So the implementation
+could use non-atomic operations. If unique_indices is set to true and the
+indices being scattered to are not unique then the semantics is implementation
+defined.
+
 ### Inputs
 
-| Name                           | Description                                                                      | Type                                              | Constraints      |
-|--------------------------------|----------------------------------------------------------------------------------|---------------------------------------------------|------------------|
-| `inputs`                       | Input tensors to be scattered into                                               | variadic number of tensors of any supported types | (C1), (C2), (C3) |
-| `scatter_indices`              | A tensor containing the starting indices of the slices that must be scattered to | tensor of type `si64`                             |                  |
-| `updates`                      | `updates`[`i`] contains the values that must be used for scattering `inputs`[i]  | variadic number of tensors of any supported types | (C2), (C4)       |
-| `update_window_dims`           | The set of dimensions in updates shape that are window dimensions                | 1-dimensional tensor constant of type `si64`      | (C9), (C10)      |
-| `inserted_window_dims`         | The set of window dimensions that must be inserted into updates shape            | 1-dimensional tensor constant of type `si64`      | (C11),(C12)      |
-| `scatter_dims_to_operand_dims` | A dimensions map from the scatter indices to the operand index space.            | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)  |
-| `index_vector_dim`             | The dimension in `start_indices` containing the starting indices                 | constant of type `si64`                           | (C5)             |
-| `indices_are_sorted`           | Whether the indices are guaranteed to be sorted by the caller                    | constant of type `boolean`                        |                  |
-| `unique_indices`               | Whether the indices are guaranteed to be sorted by the caller                    | constant of type `boolean`                        |                  |
-| `update_computation`           | function                                                                         |                                                   |                  |
+| Name                           | Type                                              | Constraints                            |
+|--------------------------------|---------------------------------------------------|----------------------------------------|
+| `inputs`                       | variadic number of tensors of any supported types | (C1), (C2), (C3), (C12), (C13), (C15)  |
+| `scatter_indices`              | tensor of type `si64`                             | (C5), (C6), (C14, (C15)                |
+| `updates`                      | variadic number of tensors of any supported types | (C2), (C4), (C10), (C13), (C14), (C15) |
+| `update_window_dims`           | 1-dimensional tensor constant of type `si64`      | (C1), (C9), (C10), (C14)               |
+| `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`      | (C1), (C11), (C12), (C15)              |
+| `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)                        |
+| `index_vector_dim`             | constant of type `si64`                           | (C5), (C6), (C14), (C15)               |
+| `indices_are_sorted`           | constant of type `boolean`                        |                                        |
+| `unique_indices`               | constant of type `boolean`                        |                                        |
+| `update_computation`           | function                                          | (C13)                                  |
 
 ### Outputs
 
-| Name     | Type                                              |
-|----------|---------------------------------------------------|
-| `results` | variadic number of tensors of any supported types|
+| Name      | Type                                              |
+|-----------|---------------------------------------------------|
+| `results` | variadic number of tensors of any supported types |
 
 ### Constraints
 
@@ -2488,12 +2455,11 @@ by the user. If they are not then the semantics is implementation defined.
 
   * (C4) All `updates` have the same shape.
 
-  * (C5) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`) Or
-        `index_vector_dim` $=$ rank(`scatter_indices`), in which case assume a
-         trailing $1$ on the shape of `scatter_indices`.
+  * (C5) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`)
 
-  * (C6) dim(`scatter_indices`, `index_vector_dim`) $=$
-         size(`scatter_dims_to_operand_dims`)
+  * (C6) size(`scatter_dims_to_operand_dims`) $=$
+         `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
+         dim(`scatter_indices`, `index_vector_dim`) : 1.
 
   * (C7) All dimensions in `scatter_dims_to_operand_dims` unique.
 
@@ -2506,36 +2472,32 @@ by the user. If they are not then the semantics is implementation defined.
   * (C10) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
     `update_window_dims`[i] $\lt$ rank(`updates`[k]), for any k $\in$ [0, N).
 
-
   * (C11) All dimensions in `inserted_window_dims` are unique and sorted.
 
-  * (C12)For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
+  * (C12) For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
     `inserted_window_dims`[i] $\lt$ rank(`inputs`[k]), for any k $\in$ [0, N).
 
-  * (C13) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
-
-  * (C14) `update_computation` is of type `(I0, ..., IN-1, U0, ..., UN-1) -> (R0, ..., RN-1)`
+  * (C13) `update_computation` is of type `(I0, ..., IN-1, U0, ..., UN-1) -> (R0, ..., RN-1)`
           where `I0, ..., IN-1` are types of `inputs`,  `U0, ..., UN-1` are
-          types of `updates`, and `R0, ..., RN-1` are types of `results`.
+          types of `updates`, and `R0, ..., RN-1` are types of `results` and
+          Id = Ud = Rd.
 
+  * On shape of `updates[k]` for any k $\in$ [0, N)
+    * (C14) rank(`updates[k]`) $=$ `effective_scatter_indices_rank` - 1 $+$
+            size(`update_window_dims`), where
+            `effective_scatter_indices_rank` $=$
+            `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
+            rank(`scatter_indices`) : rank(`scatter_indices`) + 1.
 
-  * On shape of `update`
-    * For all i $\in$ [0, N), rank(`updates[i]`) $=$ size(`update_window_dims`) +
-  rank(`scatter_indices`) - 1
+    * (C15) `shape(updates[k])` $=$ `concatenate(shape(scatter_indices), shape(inputs[k]))`
+            except that:
+      * The dimension size of `scatter_indices` corresponding to
+        `index_vector_dim` is not included.
+      * The dimension sizes in `inputs[k]` corresponding to
+        `inserted_window_dims` are not included.
 
-    * The dimension size of `i`$^{th}$ dimension, `di`, of `update` is computed
-      as:
-
-      * If `i` is present in `update_window_dims`, i.e., `i` $=$
-      `update_window_dims`[`k`] for some `k`, then `di` $=$
-      `adjusted_window_bounds`[`k`] where `adjusted_window_bounds` $=$
-      shape(`input`) - {dim(`input`, i) : i $\in$ `inserted_window_dims`} for
-      any `input` in `inputs`.
-
-      * If `i` is present in the `update_scatter_dims`, i.e., `i` $=$
-      `update_scatter_dims`[`k`] for some `k`, then
-        * `di` $=$ dim(`scatter_indices`, `k`) if `k` $\lt$ `index_vector_dim`
-        * `di` $=$ dim(`scatter_indices`, `k+1`), otherwise.
+  * On shape of `results[k]` for any k $\in$ [0, N)
+    * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
 
 ### Examples
 
@@ -2555,7 +2517,7 @@ by the user. If they are not then the semantics is implementation defined.
            scatter_dimension_numbers = #mhlo.scatter<
              update_window_dims = [2,3],
              inserted_window_dims = [0],
-             scatter_dims_to_operand_dims = [1,0],
+             scatter_dims_to_operand_dims = [1, 0],
              index_vector_dim = 2 >,
            indices_are_sorted = false,
            unique_indices = false}
