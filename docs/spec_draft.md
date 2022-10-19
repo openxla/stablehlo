@@ -1813,13 +1813,19 @@ where `i[d] = j[permutation[d]]`.
 ## stablehlo.while
 
 ### Semantics
+
 Produces the output from executing `body` function 0 or more times till the
-`cond` function outputs `true`. More formally, `body` function is executed once
-every time the `cond` function returns `true` and all execution stops once
-`cond` function returns `false`. For the first iteration both `cond` and `body`
-arguments are initialzed with the vaules of arguments of the `while` operation,
-for subsequent iterations they are fed with the output of `body` from the
-previous itertaion.
+`cond` function outputs `true`. More formally, the semantics can be expressed
+using Python-like syntax as follows:
+
+```python
+internal_state = operands
+while cond(internal_state) == True:
+  internal_state = body(internal_state)
+results = internal_state
+```
+
+The behaviour of an infinite loop is undefined.
 
 ### Inputs
 
@@ -1837,33 +1843,31 @@ previous itertaion.
 
 ### Constraints
 
-  * (C1) Size of `operands` is at least 1.
-  * (C2) For all `i`, `type(operands[i])` = `type(results[i])` = `type(cond).arguments[i]` = `type(body).arguments[i]` = `type(body).outputs[i]`
-  * (C3) `cond` outputs a `tensor<i1>`
+  * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
+         `Ti` = `type(operands[i])`.
+  * (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
+         `Ti` = `type(operands[i])`.
+  * (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
 
 ### Examples
 
 ```mlir
 // %constant0: 1
-// %constant1: 2
 // %input0: 0
 // %input1: 10
-// %input2: 0
-%results:3 = "stablehlo.while"(%input0, %input1, %input2) ({
-^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>, %argument2: tensor<i32>):
+%results:2 = "stablehlo.while"(%input0, %input1) ({
+^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>):
   %predicate = "stablehlo.compare"(%argument0, %argument1) {
     comparison_direction = #stablehlo<comparison_direction LT>
   } : (tensor<i32>, tensor<i32>) -> tensor<i1>
   "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
 },  {
-^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>, %argument2: tensor<i32>):
+^bb0(%argument0: tensor<i32>, %argument1: tensor<i32>):
   %output0 = "stablehlo.add"(%argument0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-  %output2 = "stablehlo.add"(%argument2, %constant1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-  "stablehlo.return"(%output0, %argument1, %output2) : (tensor<i32>, tensor<i32>, tensor<i32>) -> ()
-}) : (tensor<i32>, tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>, tensor<i32>)
+  "stablehlo.return"(%output0, %argument1) : (tensor<i32>, tensor<i32>) -> ()
+}) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
 // %results#0: 10
 // %results#1: 10
-// %results#2: 20
 ```
 
 [Back to Ops](#index-of-ops)
