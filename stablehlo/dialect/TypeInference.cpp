@@ -415,12 +415,12 @@ LogicalResult verifyReducerShape(
 }
 
 // Returns output dimension size for slice result for the given arguments.
-// Returns -1 if arguments are illegal.
+// Returns ShapedType::kDynamicSize if arguments are illegal.
 static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
                              int64_t stride) {
-  if (inputDim == -1 || start < 0 || start > end || end > inputDim ||
-      stride == 0)
-    return -1;
+  if (inputDim == ShapedType::kDynamicSize || start < 0 || start > end ||
+      end > inputDim || stride == 0)
+    return ShapedType::kDynamicSize;
 
   return llvm::divideCeil(end - start, stride);
 }
@@ -944,9 +944,14 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> limit(limitIndices.getValues<int64_t>());
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
+  ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
   SmallVector<int64_t, 4> shape;
   shape.reserve(rank);
+  SmallVector<int64_t> resultBounds;
   for (int64_t i = 0, e = rank; i != e; i++) {
+    if (!inputBounds.empty())
+      resultBounds.push_back(
+          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
     if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
       shape.push_back(ShapedType::kDynamicSize);
       continue;
@@ -973,8 +978,10 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
     shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
                                   strideVals[i]));
   }
-  inferredReturnTypes.assign(
-      {RankedTensorType::get(shape, rankedTy.getElementType())});
+
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      shape, rankedTy.getElementType(),
+      boundsToEncoding(rankedTy.getEncoding(), resultBounds)));
   return success();
 }
 
@@ -1063,32 +1070,20 @@ LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
                              " of [",
                              range, "] but got ", permutation);
 
-  llvm::SmallVector<int64_t, 4> inputBounds(rank, ShapedType::kDynamicSize);
-  bool hasBounds = false;
-  BoundedDialectInterface* dialect = nullptr;
-  if (auto encoding =
-          rankedTy.getEncoding().dyn_cast_or_null<BoundedAttrInterface>()) {
-    dialect = cast<BoundedDialectInterface>(&encoding.getDialect());
-    inputBounds = llvm::to_vector<4>(encoding.getBounds());
-    hasBounds = true;
-  }
-
+  ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
   SmallVector<int64_t> resultShape;
   SmallVector<int64_t> resultBounds;
   ArrayRef<int64_t> inputShape = rankedTy.getShape();
   for (int64_t dim : permutation.getValues<int64_t>()) {
     resultShape.push_back(inputShape[dim]);
-    if (hasBounds) {
+    if (!inputBounds.empty()) {
       resultBounds.push_back(inputBounds[dim]);
     }
   }
 
-  // If the input type doesn't have bounds, propagate the input type's encoding
-  // to handle sparse tensor encoding.
-  Attribute encoding = hasBounds ? dialect->createBoundedAttr(resultBounds)
-                                 : rankedTy.getEncoding();
-  inferredReturnTypes.emplace_back(
-      RankedTensorType::get(resultShape, rankedTy.getElementType(), encoding));
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      resultShape, rankedTy.getElementType(),
+      boundsToEncoding(rankedTy.getEncoding(), resultBounds)));
   return success();
 }
 
