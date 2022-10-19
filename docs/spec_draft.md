@@ -175,7 +175,6 @@ described below)
    * [gather](#stablehlogather)
    * [if](#stablehloif)
    * [iota](#stablehloiota)
-   * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
    * [maximum](#stablehlomaximum)
@@ -858,10 +857,10 @@ and produces a `result` tensor.
 
 The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
-indexes and explains in detail which `operand` indexes they correspond to.
+indices and explains in detail which `operand` indices they correspond to.
 
-<img align="center" src="spec_images/gather.png" />
- 
+<img align="center" src="spec_draft/gather.png" />
+
 More formally, `result[result_index] = operand[operand_index]` where:
   * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
   * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
@@ -887,16 +886,16 @@ If they are not, then the behavior is implementation-defined.
 
 ### Inputs
 
-| Name                   | Type                                         | Constraints               |
-|------------------------|----------------------------------------------|---------------------------|
-| `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12) |
-| `start_indices`        | tensor of any supported integer type         | (C2), (C3)                |
-| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5)          |
-| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8)    |
-| `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)         |
-| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3)                |
-| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12)  |
-| `indices_are_sorted`   | constant of type `i1`                        |                           |
+| Name                   | Type                                         | Constraints                      |
+|------------------------|----------------------------------------------|----------------------------------|
+| `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12), (C15) |
+| `start_indices`        | tensor of any supported integer type         | (C2), (C3), (C13), (C14)         |
+| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)          |
+| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C14)    |
+| `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)                |
+| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13), (C14)         |
+| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12), (C14)  |
+| `indices_are_sorted`   | constant of type `i1`                        |                                  |
 
 ### Outputs
 
@@ -908,9 +907,9 @@ If they are not, then the behavior is implementation-defined.
 
   * On Inputs
     * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
-           size(`collapsed_slice_dims`)
+           size(`collapsed_slice_dims`).
 
-    * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`)
+    * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
 
     * (C3) size(`start_index_map`) $=$
            `index_vector_dim` $\lt$ rank(`start_indices`) ?
@@ -920,27 +919,27 @@ If they are not, then the behavior is implementation-defined.
            order.
 
     * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
-           such that $0 \le$ i $\lt$ size(`offset_dims`)
+           such that $0 \le$ i $\lt$ size(`offset_dims`).
 
     * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
            ascending order.
 
     * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
-            $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`)
+            $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
 
-    * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`
+    * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
 
     * (C9) All dimensions in `start_index_map` are unique.
 
     * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
-           such that $0 \le$ i $\lt$ size(`start_index_map`)
+           such that $0 \le$ i $\lt$ size(`start_index_map`).
 
     * (C11) size(`slice_sizes`) $=$ rank(`operand`).
 
     * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
-            such that $0 \le$ i $\lt$ size(`slice_sizes`)
+            such that $0 \le$ i $\lt$ size(`slice_sizes`).
 
-  * On `result`
+  * On Outputs
     * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
             size(`offset_dims`), where
             `effective_start_indices_rank` $=$
@@ -952,6 +951,7 @@ If they are not, then the behavior is implementation-defined.
         `index_vector_dim` is not included.
       * The dimension sizes in `slice_sizes` corresponding to
         `collapsed_slice_dims` are not included.
+
     * (C15) `operand` and `result` have the same element type.
 
 ### Examples
