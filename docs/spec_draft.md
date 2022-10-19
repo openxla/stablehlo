@@ -1701,34 +1701,48 @@ and produces a `result` tensor.
 
 ### Semantics
 
-Applies a `computation` function to `inputs` and `init_values` along the
-`dimensions` and produces a `result` tensor.
+Applies a `body` function to `inputs` and `init_values` along the `dimensions`
+and produces a `result` tensor.
+
+The `body` function has to be associative, and it produces an
+implementation-defined behavior otherwise. Similarly, if `init_values` do not
+form identity under the `body` function, it produces an implementation-defined
+behavior.
 
 ### Inputs
 
 | Name          | Type                                             |
 |---------------|--------------------------------------------------|
 | `inputs`      | variadic number of tensors of any supported type |
-| `init_values` | variadic number of tensors of any supported type |
+| `init_values` | variadic number of scalars of any supported type |
 | `dimensions`  | 1-dimensional tensor constant of type `si64`     |
-| `computation` | `function`                                       |
+| `body`        | `function`                                       |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
 
 ### Constraints
 
-  * (C1) `inputs`, `init_values` and `result` have the same element type.
-  * (C2) `inputs` and `init_values` have the same type.
-  * (C3) `inputs` have N tensors where N >= 1.
-  * (C4) 0 $\lt$ `dimensions[d]` $\lt$ rank(`inputs[d]`) for all dimension `d`.
-  * (C5) `computation` inputs have the same type as `inputs`, and output has the
-  same type as `result`.
-  * (C6) `init_values` have to form an identity under the `computation`.
-  * (C7) `dim(result, i) = dim(inputs[0], j)` for all `j` $\notin$ `dimensions`.
+  * (C1) `inputs`, `init_values` have the same element type.
+  * (C2) All `inputs` have the same shape.
+  * (C3) type(`inputs[k]`) $=$ type(`init_values[k]`) for all `k` $\in$ [0, N).
+  * (C4) size(`inputs`) $=$ size(`init_values`) $=$ size(`result`) $=$ N where
+  N >= 1.
+  * (C5) `init_values` have to form an identity under the `body`.
+  * (C6) 0 $\lt$ `dimensions[d]` $\lt$ rank(`inputs[d]`) for all dimension `d`.
+  * (C7) All dimensions in `dimensions` are unique.
+  * (C8) The full function type of `body` is
+  `(T0,..., TN-1, T0, ..., TN-1) -> (T0, ..., TN-1)`, where the first and second
+  set of input types `T0,..., TN-1` corresponds to the element types of `inputs`
+  and `init_values` respectively. The output types `(T0,..., TN-1)` corresponds
+  to the element types of `results`.
+  * (C9) rank(`results[k]`) = rank(`inputs[k]`) - size(`dimensions`) for all `k`
+  $\in$ [0, N).
+  * (C10) dim(`results[k], d`) $=$ dim(`inputs[k], d`) if `d` $\notin$
+  `dimensions`.
 
 ### Examples
 

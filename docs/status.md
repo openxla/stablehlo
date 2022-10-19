@@ -107,7 +107,7 @@ one of the following tracking labels.
 | real                     | no            | yes*         | yes*           | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | no            | revisit      | no             | no              | no          |
-| reduce                   | no            | yes*         | yes*           | revisit         | no          |
+| reduce                   | yes           | revisit      | yes            | revisit         | no          |
 | reduce_precision         | no            | yes*         | yes*           | yes             | no          |
 | reduce_scatter           | no            | revisit      | no             | no              | no          |
 | reduce_window            | no            | yes*         | yes*           | no              | no          |
