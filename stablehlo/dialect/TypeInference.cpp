@@ -713,6 +713,68 @@ LogicalResult inferMapOp(
   return success();
 }
 
+LogicalResult inferPadOp(
+    Optional<Location> location, Value operand, Value paddingValue,
+    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
+    DenseIntElementsAttr interiorPadding,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto inputType = operand.getType().cast<RankedTensorType>();
+  auto padType = paddingValue.getType().cast<RankedTensorType>();
+
+  if (padType.getRank() != 0)
+    return emitOptionalError(location,
+                             "padding value type should be a rank-0 "
+                             "tensor, is rank ",
+                             padType.getRank());
+
+  if (edgePaddingLow.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "edge_padding_low length (",
+                             edgePaddingLow.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  if (edgePaddingHigh.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "edge_padding_high length (",
+                             edgePaddingHigh.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  if (interiorPadding.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "interior_padding length (",
+                             interiorPadding.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  auto inputShape = inputType.getShape();
+  SmallVector<int64_t> resultShape;
+  for (int i = 0, e = inputShape.size(); i < e; i++) {
+    if (hlo::isDynamicDimSize(inputShape[i])) {
+      resultShape.push_back(ShapedType::kDynamicSize);
+      continue;
+    }
+
+    int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingHighVal =
+        edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingInteriorVal =
+        interiorPadding.getValues<APInt>()[i].getSExtValue();
+    if (paddingInteriorVal < 0)
+      return emitOptionalError(
+          location,
+          "Interior padding cannot be negative: ", paddingInteriorVal);
+    int64_t expectedOutput =
+        inputShape[i] + paddingLowVal + paddingHighVal +
+        std::max<int64_t>(inputShape[i] - 1, 0LL) * paddingInteriorVal;
+    if (expectedOutput < 0)
+      return emitOptionalError(
+          location, "Padding result in negative size for dimension ", i);
+    resultShape.push_back(expectedOutput);
+  }
+  inferredReturnShapes.emplace_back(resultShape, inputType.getElementType());
+
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that
