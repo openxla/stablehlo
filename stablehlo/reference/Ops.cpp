@@ -87,28 +87,27 @@ Tensor eval(DotGeneralOp op, const Tensor &lhs, const Tensor &rhs) {
       op.getDotDimensionNumbers().getLhsContractingDimensions();
   ArrayRef<int64_t> rhsContractingDims =
       op.getDotDimensionNumbers().getRhsContractingDimensions();
-  std::vector<int64_t> lhsNonContractingDims;
+  std::vector<int64_t> lhsNonBatchingNonContractingDims;
   for (int64_t i = 0; i < lhs.getType().getRank(); ++i)
     if (std::find(lhsBatchingDims.begin(), lhsBatchingDims.end(), i) ==
             lhsBatchingDims.end() &&
         std::find(lhsContractingDims.begin(), lhsContractingDims.end(), i) ==
             lhsContractingDims.end())
-      lhsNonContractingDims.push_back(i);
-  std::vector<int64_t> rhsNonContractingDims;
+      lhsNonBatchingNonContractingDims.push_back(i);
+  std::vector<int64_t> rhsNonBatchingNonContractingDims;
   for (int64_t i = 0; i < rhs.getType().getRank(); ++i)
     if (std::find(rhsBatchingDims.begin(), rhsBatchingDims.end(), i) ==
             rhsBatchingDims.end() &&
         std::find(rhsContractingDims.begin(), rhsContractingDims.end(), i) ==
             rhsContractingDims.end())
-      rhsNonContractingDims.push_back(i);
+      rhsNonBatchingNonContractingDims.push_back(i);
   std::vector<int64_t> contractingDimSizes;
-  for (uint64_t i = 0; i < lhsContractingDims.size(); ++i)
+  uint64_t totalContractingSize = 1;
+  for (uint64_t i = 0; i < lhsContractingDims.size(); ++i) {
     contractingDimSizes.push_back(lhsShape[lhsContractingDims[i]]);
-  auto totalContractingSize = 1;
-  for (uint64_t i = 0; i < contractingDimSizes.size(); ++i)
-    totalContractingSize *= contractingDimSizes[i];
-  for (auto resIt = result.index_begin(); resIt != result.index_end();
-       ++resIt) {
+    totalContractingSize *= lhsShape[lhsContractingDims[i]];
+  }
+  auto initializeAccumulator = [&]() {
     Type resElTy =
         op->getResultTypes().front().dyn_cast<ShapedType>().getElementType();
     Element sum;
@@ -138,19 +137,28 @@ Tensor eval(DotGeneralOp op, const Tensor &lhs, const Tensor &rhs) {
                    &roundingErr);
       sum = Element(resElTy, std::complex<APFloat>(real, imag));
     }
+    return sum;
+  };
+  for (auto resIt = result.index_begin(); resIt != result.index_end();
+       ++resIt) {
     std::vector<int64_t> lhsIdx(lhs.getType().getRank());
     std::vector<int64_t> rhsIdx(rhs.getType().getRank());
     std::vector<int64_t> resIdx = (*resIt).vec();
     int64_t idx = 0;
+    // Indices do not change for batching dimensions.
     for (uint64_t i = 0; i < lhsBatchingDims.size(); ++i, ++idx) {
       lhsIdx[lhsBatchingDims[i]] = resIdx[idx];
       rhsIdx[rhsBatchingDims[i]] = resIdx[idx];
     }
-    for (uint64_t i = 0; i < lhsNonContractingDims.size(); i++)
-      lhsIdx[lhsNonContractingDims[i]] = resIdx[idx++];
-    for (uint64_t i = 0; i < rhsNonContractingDims.size(); i++)
-      rhsIdx[rhsNonContractingDims[i]] = resIdx[idx++];
-    for (int64_t k = 0; k < totalContractingSize; ++k) {
+    // The non-batching, non-contracting dimensions of the operands are copied
+    // over to the result dimensions following the batching dimensions.
+    for (uint64_t i = 0; i < lhsNonBatchingNonContractingDims.size(); i++)
+      lhsIdx[lhsNonBatchingNonContractingDims[i]] = resIdx[idx++];
+    for (uint64_t i = 0; i < rhsNonBatchingNonContractingDims.size(); i++)
+      rhsIdx[rhsNonBatchingNonContractingDims[i]] = resIdx[idx++];
+    Element sum = initializeAccumulator();
+    // All pair-wise combination of contracting dimensions needs to be summed.
+    for (uint64_t k = 0; k < totalContractingSize; ++k) {
       sum = sum + lhs.get(lhsIdx) * rhs.get(rhsIdx);
       if (!contractingDimSizes.empty()) {
         for (int64_t i = contractingDimSizes.size() - 1; i >= 0; --i) {
