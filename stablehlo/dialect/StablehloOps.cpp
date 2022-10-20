@@ -4797,7 +4797,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
     }
 
     llvm::SmallDenseMap<int64_t, int64_t> spatialDimsMap;
-    constexpr int64_t kInvalidDimension = -1;
+    constexpr int64_t kInvalidDimension = ShapedType::kDynamicSize;
     // Keep track of the maximum spatial dimension parsed as we expect to see
     // all the dimensions from 0 to maximum dimension parsed.
     int64_t maxParsedSpatialDim = kInvalidDimension;

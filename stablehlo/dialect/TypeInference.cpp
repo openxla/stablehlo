@@ -898,7 +898,7 @@ LogicalResult inferReduceOp(
   uint64_t numInputs = inputs.size();
 
   // Check for unranked tensors in input operands.
-  int64_t rankedInputIdx = -1;
+  int64_t rankedInputIdx = ShapedType::kDynamicSize;
   for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
     if (inputArgTypes[inputIdx].hasRank()) {
       rankedInputIdx = inputIdx;
@@ -906,7 +906,7 @@ LogicalResult inferReduceOp(
     }
   }
 
-  bool allInputsUnranked = (rankedInputIdx == -1);
+  bool allInputsUnranked = (rankedInputIdx == ShapedType::kDynamicSize);
 
   // P1.
   if (!allInputsUnranked) {
@@ -991,7 +991,7 @@ LogicalResult inferReduceWindowOp(
   uint64_t numInputs = inputs.size();
 
   // Check for unranked tensors in input operands.
-  int64_t rankedInputIdx = -1;
+  int64_t rankedInputIdx = ShapedType::kDynamicSize;
   for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
     if (inputArgTypes[inputIdx].hasRank()) {
       rankedInputIdx = inputIdx;
@@ -999,7 +999,7 @@ LogicalResult inferReduceWindowOp(
     }
   }
 
-  bool allInputsUnranked = (rankedInputIdx == -1);
+  bool allInputsUnranked = (rankedInputIdx == ShapedType::kDynamicSize);
 
   // P2.
   if (!allInputsUnranked) {
