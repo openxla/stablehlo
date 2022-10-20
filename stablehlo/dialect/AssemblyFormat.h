@@ -150,7 +150,8 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 //     { dense<[1, 2]> : tensor<2xi64> }
 //   Custom:
 //     [1, 2]
-void printDenseI64Array(OpAsmPrinter &p, Operation *op, DenseIntElementsAttr attr);
+void printDenseI64Array(OpAsmPrinter& p, Operation* op,
+                        DenseIntElementsAttr attr);
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
