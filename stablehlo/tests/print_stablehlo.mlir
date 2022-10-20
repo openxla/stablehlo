@@ -258,6 +258,13 @@ func.func @dimension_attr(%arg0 : tensor<1x2xf32>, %arg1 : tensor<3xi32>, %arg2 
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @fft_op
+func.func @fft_op(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
+  // CHECK: %0 = stablehlo.fft %arg0, type = FFT, length = [16] : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) {fft_type = #stablehlo<fft_type FFT>, fft_length = dense<16> : tensor<1xi64>} : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
+  func.return %0 : tensor<16xcomplex<f32>>
+}
+
 // CHECK-LABEL: func @extensions
 func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>,
                 %arg1 : tensor<i32>) -> () {
