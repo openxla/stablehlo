@@ -2227,6 +2227,8 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   );
   let regions = (region SizedRegion<1>:$computation);
   let results = (outs HLO_Tensor);
+
+  
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
@@ -2446,7 +2448,9 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreverse
 
     Example:
+    ```mlir
     %0 = stablehlo.reverse %arg0, dims = [1] : tensor<3x2xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2472,11 +2476,10 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopad
 
     Example:
-    %0 = "stablehlo.pad"(%arg0, %arg1) {
-      edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-      edge_padding_high = dense<[2, 1]> : tensor<2xi64>,
-      interior_padding = dense<[1, 2]> : tensor<2xi64>
-    } : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
+    ```mlir
+    %0 = stablehlo.pad %arg0, %arg1, low = [0, 1], high = [2, 1], interior = [1, 2]
+      : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2487,6 +2490,14 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   );
 
   let results = (outs HLO_Tensor);
+
+  let assemblyFormat = [{
+    $operand `,` $padding_value `,` 
+      `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
+      `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
+      `interior` `=` custom<DenseI64Array>($interior_padding)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
