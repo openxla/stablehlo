@@ -2486,7 +2486,27 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     Multiple scattered elements which land in the same output location are
     combined using the `scatter` function.
 
-    See https://www.tensorflow.org/xla/operation_semantics#selectandscatter.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect_and_scatter
+
+    Example:
+    ```mlir
+    %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
+      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
+        %1 = "stablehlo.compare"(%arg3, %arg4) {
+          comparison_direction = #stablehlo<comparison_direction GE>
+        } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+        "stablehlo.return"(%1) : (tensor<i1>) -> ()
+    }, {
+      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
+        %1 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
+        "stablehlo.return"(%1) : (tensor<ui32>) -> ()
+    }) {
+      window_dimensions = dense<[3, 1]> : tensor<2xi64>,
+      window_strides = dense<[2, 1]> : tensor<2xi64>,
+      padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
+    } : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
