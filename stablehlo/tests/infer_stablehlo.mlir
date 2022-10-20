@@ -479,7 +479,7 @@ func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
 
   }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
 
-  // CHECK: dims0 = [4], element_type0 = f32
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [4], element_type0 = f32} : (tensor<4xf32>) -> tensor<4xindex>
   %2 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<4xf32>) -> tensor<4xindex>
 
@@ -505,9 +505,10 @@ func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x2xi32>)
 
-  // CHECK: dims0 = [2, 2], dims1 = [2, 2], element_type0 = f32, element_type1 = i32
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0#0) {dims0 = [2, 2], dims1 = [2, 2], element_type0 = f32, element_type1 = i32} : (tensor<2x2xf32>) -> tensor<2x2xindex>
   %1 = "hlo_test_infer.get_return_type_components"(%0#0)
       : (tensor<2x2xf32>) -> tensor<2x2xindex>
+  // CHECK: %2 = "hlo_test_infer.return_type_components"(%0#1) {dims0 = [2, 2], dims1 = [2, 2], element_type0 = f32, element_type1 = i32} : (tensor<2x2xi32>) -> tensor<2x2xindex>
   %2 = "hlo_test_infer.get_return_type_components"(%0#1)
       : (tensor<2x2xi32>) -> tensor<2x2xindex>
 
