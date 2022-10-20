@@ -1786,27 +1786,12 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
     Computes the Cholesky decomposition of a batch of symmetric (Hermitian)
     positive definite matrices.
 
-    If lower is true, computes lower-triangular matrices l such that
-    `a=l.Transpose(l)`. If lower is false, computes upper-triangular matrices u such
-    that `a=Transpose(u).u`.
-
-    Input data is read only from the lower/upper triangle of a, depending on the
-    value of lower. Values from the other triangle are ignored. Output data is
-    returned in the same triangle; the values in the other triangle are
-    implementation-defined and may be anything.
-
-    If the rank of a is greater than 2, a is treated as a batch of matrices, where
-    all except the minor 2 dimensions are batch dimensions.
-
-    If a is not symmetric (Hermitian) positive definite, the result is
-    implementation-defined.
-
-    See https://www.tensorflow.org/xla/operation_semantics#cholesky.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocholesky
 
     Example:
-
     ```mlir
-    %0 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
+    %result = stablehlo.cholesky %a, lower = true : tensor<3x3xf32>
     ```
   }];
   let arguments = (ins

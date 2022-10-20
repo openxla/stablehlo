@@ -524,16 +524,15 @@ implementation-defined.
 
 ```mlir
 // %a: [
-//      [1, 2, 3],
-//      [2, 20, 26],
-//      [3, 26, 70]
+//      [1.0, 2.0, 3.0],
+//      [2.0, 20.0, 26.0],
+//      [3.0, 26.0, 70.0]
 //     ]
-// %lower: true
-%result = "stablehlo.cholesky"(%a, %lower) : (tensor<3x3xi32>) -> tensor<3x3xi32>
+%result = "stablehlo.cholesky"(%a) {lower=true} : (tensor<3x3xf32>) -> tensor<3x3xf32>
 // %result: [
-//           [1, 0, 0],
-//           [2, 4, 0],
-//           [3, 5, 6]
+//           [1.0, 0.0, 0.0],
+//           [2.0, 4.0, 0.0],
+//           [3.0, 5.0, 6.0]
 //          ]
 ```
 
