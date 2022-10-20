@@ -1492,6 +1492,13 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
     Extracts a sub-array from the input array at dynamic start_indices.
 
     See https://www.tensorflow.org/xla/operation_semantics#dynamicslice.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] 
+      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32> 
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2513,7 +2520,7 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
 
     Example:
     ```mlir
-    %0 = stablehlo.transpose %arg0, perm = [2, 1, 0] : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+    %0 = stablehlo.transpose %arg0, perm = [2, 1, 0] : (tensor<1x2x3xi32>) -> tensor<3x2x1xi32>
     ```
   }];
   let arguments = (ins
