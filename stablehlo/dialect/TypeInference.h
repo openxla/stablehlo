@@ -107,6 +107,10 @@ LogicalResult inferBatchNormTrainingOp(
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
+                                 int64_t dimension,
+                                 SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferDotGeneralOp(
     Optional<Location> location, Value lhs, Value rhs,
     ArrayRef<int64_t> lhsBatchingDimensions,
@@ -121,6 +125,12 @@ LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
 LogicalResult inferMapOp(
     Optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferPadOp(
+    Optional<Location> location, Value operand, Value paddingValue,
+    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
+    DenseIntElementsAttr interiorPadding,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceOp(

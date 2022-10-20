@@ -463,6 +463,7 @@ LogicalResult inferBatchNormTrainingOp(
   return success();
 }
 
+// Used by IfOp and CaseOp
 LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
@@ -494,6 +495,109 @@ LogicalResult inferConditionalOp(Optional<Location> location,
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
+}
+
+LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
+                                 int64_t dimension,
+                                 SmallVectorImpl<Type>& inferredReturnTypes) {
+  RankedTensorType firstRankedType;
+  int firstRankedIndex = -1;
+  if (dimension < 0)
+    return emitOptionalError(location, "dimension ", dimension, " is negative");
+  for (uint64_t i = 0; i < inputs.size(); i++) {
+    auto secondType = inputs[i].getType().dyn_cast<ShapedType>();
+    if (!secondType.hasRank()) continue;
+
+    if (!firstRankedType) {
+      firstRankedType = secondType.cast<RankedTensorType>();
+      firstRankedIndex = i;
+      if (firstRankedType.getRank() == 0)
+        return emitOptionalError(location,
+                                 "rank-0 values cannot be concatenated");
+      if (dimension >= firstRankedType.getRank())
+        return emitOptionalError(location, "dimension ", dimension,
+                                 " is out-of-bounds for input rank ",
+                                 firstRankedType.getRank());
+      continue;
+    }
+    if (firstRankedType.getRank() != secondType.getRank())
+      return emitOptionalError(location, "operands (", firstRankedIndex,
+                               ") and (", i, ") do not match rank");
+
+    auto firstShape = firstRankedType.getShape();
+    auto secondShape = secondType.getShape();
+    for (int d = 0; d < firstRankedType.getRank(); ++d) {
+      if (!ShapedType::isDynamic(firstShape[d]) &&
+          !ShapedType::isDynamic(secondShape[d]) &&
+          firstShape[d] != secondShape[d] && d != dimension) {
+        return emitOptionalError(
+            location, "shapes of operand (", firstRankedIndex, ") and (", i,
+            ") do not match at non-concat "
+            "index: (",
+            llvm::make_range(firstShape.begin(), firstShape.end()), ") != (",
+            llvm::make_range(secondShape.begin(), secondShape.end()),
+            ") at non-concat index ", d);
+      }
+    }
+  }
+
+  auto firstType = inputs[0].getType().cast<ShapedType>();
+  auto outElement = firstType.getElementType();
+
+  // Find the first ranked input to determine the output rank.
+  for (auto type : inputs.getTypes()) {
+    auto shapedType = type.cast<ShapedType>();
+    if (shapedType.hasRank()) {
+      firstType = shapedType;
+      break;
+    }
+  }
+
+  // If all inputs are unranked, the result must be unranked.
+  if (!firstType.hasRank()) {
+    inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
+    return success();
+  }
+
+  auto outShape = llvm::to_vector<6>(firstType.getShape());
+
+  // Determine what the non-concatenate dimensions should be.
+  for (auto type : inputs.getTypes()) {
+    auto shapedTy = type.cast<ShapedType>();
+    if (!shapedTy.hasRank()) {
+      continue;
+    }
+
+    for (const auto& it : llvm::enumerate(shapedTy.getShape())) {
+      // If a dimension is not dynamic, the output shape should match.
+      if (ShapedType::isDynamic(outShape[it.index()])) {
+        outShape[it.index()] = it.value();
+      }
+    }
+  }
+
+  outShape[dimension] = 0;
+
+  for (auto operand : inputs.getTypes()) {
+    auto type = operand.cast<ShapedType>();
+    if (!type.hasRank()) {
+      inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
+      return success();
+    }
+
+    // If the dimension is dynamic we know the output dimension is dynamic.
+    auto dim = type.getShape()[dimension];
+    if (ShapedType::isDynamic(dim)) {
+      outShape[dimension] = ShapedType::kDynamicSize;
+      break;
+    }
+
+    outShape[dimension] += dim;
+  }
+
+  inferredReturnTypes.push_back(RankedTensorType::get(outShape, outElement));
+
+  return success();
 }
 
 LogicalResult inferDotGeneralOp(
@@ -710,6 +814,68 @@ LogicalResult inferMapOp(
   else
     inferredReturnShapes.emplace_back(resultShape,
                                       computationOutputType.getElementType());
+  return success();
+}
+
+LogicalResult inferPadOp(
+    Optional<Location> location, Value operand, Value paddingValue,
+    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
+    DenseIntElementsAttr interiorPadding,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto inputType = operand.getType().cast<RankedTensorType>();
+  auto padType = paddingValue.getType().cast<RankedTensorType>();
+
+  if (padType.getRank() != 0)
+    return emitOptionalError(location,
+                             "padding value type should be a rank-0 "
+                             "tensor, is rank ",
+                             padType.getRank());
+
+  if (edgePaddingLow.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "edge_padding_low length (",
+                             edgePaddingLow.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  if (edgePaddingHigh.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "edge_padding_high length (",
+                             edgePaddingHigh.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  if (interiorPadding.getType().getNumElements() != inputType.getRank())
+    return emitOptionalError(location, "interior_padding length (",
+                             interiorPadding.getType().getNumElements(),
+                             ") must match operand rank (", inputType.getRank(),
+                             ")");
+
+  auto inputShape = inputType.getShape();
+  SmallVector<int64_t> resultShape;
+  for (int i = 0, e = inputShape.size(); i < e; i++) {
+    if (hlo::isDynamicDimSize(inputShape[i])) {
+      resultShape.push_back(ShapedType::kDynamicSize);
+      continue;
+    }
+
+    int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingHighVal =
+        edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
+    int64_t paddingInteriorVal =
+        interiorPadding.getValues<APInt>()[i].getSExtValue();
+    if (paddingInteriorVal < 0)
+      return emitOptionalError(
+          location,
+          "Interior padding cannot be negative: ", paddingInteriorVal);
+    int64_t expectedOutput =
+        inputShape[i] + paddingLowVal + paddingHighVal +
+        std::max<int64_t>(inputShape[i] - 1, 0LL) * paddingInteriorVal;
+    if (expectedOutput < 0)
+      return emitOptionalError(
+          location, "Padding result in negative size for dimension ", i);
+    resultShape.push_back(expectedOutput);
+  }
+  inferredReturnShapes.emplace_back(resultShape, inputType.getElementType());
+
   return success();
 }
 
