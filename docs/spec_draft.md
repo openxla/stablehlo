@@ -881,7 +881,8 @@ More formally, `result[result_index] = operand[operand_index]` where:
     implementation-defined.
 
 If `indices_are_sorted` is `true` then the implementation can assume that the
-`start_indices` are sorted (in ascending `start_index_map` order) by the user.
+user sorts the `operand_index`s in the same order the corresponding tensor
+elements are laid out in memory. The latter is decided by the `start_index_map`.
 If they are not, then the behavior is implementation-defined.
 
 ### Inputs
