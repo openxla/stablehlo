@@ -95,12 +95,8 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 
 // Checks if the vector `nums` has duplicates.
 const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
-  llvm::SmallDenseSet<int64_t> uniqElements;
-  for (auto num : nums) {
-    if (uniqElements.count(num)) return true;
-    uniqElements.insert(num);
-  }
-  return false;
+  llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
+  return set.size() != nums.size();
 };
 
 //===----------------------------------------------------------------------===//
