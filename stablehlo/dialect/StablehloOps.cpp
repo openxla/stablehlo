@@ -93,10 +93,10 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
   }
 }
 
-const auto hasDuplicates = [](SmallVector<int64_t>& nums) {
-  if (!llvm::is_sorted(nums)) std::sort(nums.begin(), nums.end());
-  auto* last = std::unique(nums.begin(), nums.end());
-  return last != nums.end();
+// Checks if the vector `nums` has duplicates.
+const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
+  llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
+  return set.size() != nums.size();
 };
 
 //===----------------------------------------------------------------------===//
