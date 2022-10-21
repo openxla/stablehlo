@@ -493,11 +493,11 @@ Computes the Cholesky decomposition of a batch of symmetric (Hermitian) positive
 definite matrices.
 
 If `lower` is `true`, it computes the lower-triangular matrices `l` such that
-$a = l \cdot l^{T}$. If `lower` is `false`, it computdr the upper-triangular
+$a = l \cdot l^{T}$. If `lower` is `false`, it computes the upper-triangular
 matrices `u` such that $a = u^{T} \cdot u$.
 
-If the rank of `a` is greater than 2, `a` is treated as a batch of matrices,
-where all except the minor 2 dimensions are batch dimensions.
+If the rank of `a` is greater than 2, all except the minor 2 dimensions of `a`
+are treated as batch dimensions.
 
 If `a` is not symmetric (Hermitian) positive definite, the result is
 implementation-defined.
