@@ -131,7 +131,7 @@ LogicalResult inferPadOp(
     Optional<Location> location, Value operand, Value paddingValue,
     DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
     DenseIntElementsAttr interiorPadding,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+    SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,

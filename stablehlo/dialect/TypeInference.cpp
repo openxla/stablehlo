@@ -414,17 +414,6 @@ LogicalResult verifyReducerShape(
   return success();
 }
 
-// Returns output dimension size for slice result for the given arguments.
-// Returns ShapedType::kDynamicSize if arguments are illegal.
-static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
-                             int64_t stride) {
-  if (inputDim == ShapedType::kDynamicSize || start < 0 || start > end ||
-      end > inputDim || stride == 0)
-    return ShapedType::kDynamicSize;
-
-  return llvm::divideCeil(end - start, stride);
-}
-
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
@@ -817,11 +806,12 @@ LogicalResult inferMapOp(
   return success();
 }
 
-LogicalResult inferPadOp(
-    Optional<Location> location, Value operand, Value paddingValue,
-    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
-    DenseIntElementsAttr interiorPadding,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferPadOp(Optional<Location> location, Value operand,
+                         Value paddingValue,
+                         DenseIntElementsAttr edgePaddingLow,
+                         DenseIntElementsAttr edgePaddingHigh,
+                         DenseIntElementsAttr interiorPadding,
+                         SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = operand.getType().cast<RankedTensorType>();
   auto padType = paddingValue.getType().cast<RankedTensorType>();
 
@@ -851,10 +841,21 @@ LogicalResult inferPadOp(
 
   auto inputShape = inputType.getShape();
   SmallVector<int64_t> resultShape;
+  ArrayRef<int64_t> inputBounds = encodingToBounds(inputType.getEncoding());
+  SmallVector<int64_t> resultBounds;
+
+  auto inferPadDim = [&](int64_t inputDim, int64_t paddingLowVal,
+                         int64_t paddingHighVal, int64_t paddingInteriorVal) {
+    return inputDim == ShapedType::kDynamicSize
+               ? ShapedType::kDynamicSize
+               : inputDim + paddingLowVal + paddingHighVal +
+                     std::max<int64_t>(inputDim - 1, 0LL) * paddingInteriorVal;
+  };
+
   for (int i = 0, e = inputShape.size(); i < e; i++) {
     if (hlo::isDynamicDimSize(inputShape[i])) {
       resultShape.push_back(ShapedType::kDynamicSize);
-      continue;
+      if (inputBounds.empty()) continue;  // dynamic dim without bounds
     }
 
     int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
@@ -866,15 +867,24 @@ LogicalResult inferPadOp(
       return emitOptionalError(
           location,
           "Interior padding cannot be negative: ", paddingInteriorVal);
-    int64_t expectedOutput =
-        inputShape[i] + paddingLowVal + paddingHighVal +
-        std::max<int64_t>(inputShape[i] - 1, 0LL) * paddingInteriorVal;
-    if (expectedOutput < 0)
-      return emitOptionalError(
-          location, "Padding result in negative size for dimension ", i);
-    resultShape.push_back(expectedOutput);
+
+    if (!hlo::isDynamicDimSize(inputShape[i])) {  // static dim
+      int64_t expectedOutput = inferPadDim(inputShape[i], paddingLowVal,
+                                           paddingHighVal, paddingInteriorVal);
+      if (expectedOutput < 0)
+        return emitOptionalError(
+            location, "Padding result in negative size for dimension ", i);
+      resultShape.push_back(expectedOutput);
+
+      if (!inputBounds.empty())
+        resultBounds.push_back(ShapedType::kDynamicSize);
+    } else  // dynamic dim with bounds
+      resultBounds.push_back(inferPadDim(inputBounds[i], paddingLowVal,
+                                         paddingHighVal, paddingInteriorVal));
   }
-  inferredReturnShapes.emplace_back(resultShape, inputType.getElementType());
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      resultShape, inputType.getElementType(),
+      boundsToEncoding(inputType.getEncoding(), resultBounds)));
 
   return success();
 }
@@ -1114,20 +1124,26 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> shape;
   shape.reserve(rank);
   SmallVector<int64_t> resultBounds;
+
+  auto inferSliceDim = [&](int64_t inputDim, int64_t start, int64_t end,
+                           int64_t stride) {
+    return inputDim == ShapedType::kDynamicSize
+               ? ShapedType::kDynamicSize
+               : static_cast<int64_t>(llvm::divideCeil(end - start, stride));
+  };
+
   for (int64_t i = 0, e = rank; i != e; i++) {
-    if (!inputBounds.empty())
-      resultBounds.push_back(
-          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
     if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
       shape.push_back(ShapedType::kDynamicSize);
-      continue;
+      if (inputBounds.empty()) continue;  // dynamic dim without bounds
     }
     // P3.
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
     // P4.
-    if (limit[i] > rankedTy.getDimSize(i))
+    if (!hlo::isDynamicDimSize(rankedTy.getDimSize(i)) &&
+        limit[i] > rankedTy.getDimSize(i))
       return emitOptionalError(location, "limit index ", limit[i],
                                " is larger than dimension size ",
                                rankedTy.getDimSize(i), " in dimension ", i);
@@ -1141,8 +1157,14 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
-    shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
-                                  strideVals[i]));
+    if (!hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {  // static dim
+      shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
+                                    strideVals[i]));
+      if (!inputBounds.empty())
+        resultBounds.push_back(ShapedType::kDynamicSize);
+    } else  // dynamic dim with bounds
+      resultBounds.push_back(
+          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
   }
 
   inferredReturnTypes.push_back(RankedTensorType::get(
