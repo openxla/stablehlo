@@ -163,6 +163,7 @@ described below)
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
@@ -344,6 +345,102 @@ logical operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, false], [false, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.batch_norm_inference
+
+### Semantics
+
+Normalizes the `operand` tensor across batch and spatial dimensions, using
+`mean` and `variance` provided in input, for each feature in the `feature_index`
+dimension and produces a `result` tensor. More formally, the semantics can be
+expressed using MLIR syntax as follows:
+
+```mlir
+func.func @upsize(%0: tensor<2xf32>) -> tensor<2x2x2xf32> {
+  %1 = mhlo.reshape %0 : (tensor<2xf32>) -> tensor<1x2x1xf32>
+  %2 = "mhlo.broadcast_in_dim"(%1){
+    broadcast_dimensions = dense<[0,1,2]> : tensor<3xi64>
+  } : (tensor<1x2x1xf32>) -> tensor<2x2x2xf32>
+  func.return %2 : tensor<2x2x2xf32>
+}
+
+func.func @batch_norm_inference(
+    %operand: tensor<2x2x2xf32>,
+    %scale: tensor<2xf32>,
+    %offset: tensor<2xf32>,
+    %mean: tensor<2xf32>,
+    %variance: tensor<2xf32>,
+    %epsilon: tensor<f32>,
+    %feature_index: tensor<i64>
+    ) -> tensor<2x2x2xf32> {
+  // Assuming %feature_index = 1
+  %upsized_scale = func.call @upsize(%scale) : (tensor<2xf32>) -> tensor<2x2x2xf32>
+  %upsized_offset = func.call @upsize(%offset) : (tensor<2xf32>) -> tensor<2x2x2xf32>
+  %upsized_mean = func.call @upsize(%mean) : (tensor<2xf32>) -> tensor<2x2x2xf32>
+  %upsized_variance = func.call @upsize(%variance) : (tensor<2xf32>) -> tensor<2x2x2xf32>
+  %upsized_epsilon = "mhlo.broadcast_in_dim"(%epsilon){
+    broadcast_dimensions = dense<[0,1,2]> : tensor<3xi64>
+  } : (tensor<f32>) -> tensor<2x2x2xf32>
+
+  %mean_removed = "mhlo.subtract"(%operand, %upsized_mean) : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+  %pre_sqrt = "mhlo.add"(%variance, %upsized_epsilon) : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+  %inv_sqrt = "mhlo.rsqrt"(%pre_sqrt) : (tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+  %pre_scale = "mhlo.multiply"(%mean_removed, %inv_sqrt) : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+  %scaled = "mhlo.multiply"(%pre_scale, %upsized_scale) : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+  %result = "mhlo.add"(%scaled, %upsized_offset) : (tensor<2x2x2xf32>, tensor<2x2x2xf32>) -> tensor<2x2x2xf32>
+
+  func.return %result : tensor<2x2x2xf32>
+}
+```
+
+### Inputs
+
+| Name            | Type                                        |
+|-----------------|---------------------------------------------|
+| `operand`       | tensor of floating-point type               |
+| `scale`         | 1-dimensional tensor of floating-point type |
+| `offset`        | 1-dimensional tensor of floating-point type |
+| `mean`          | 1-dimensional tensor of floating-point type |
+| `variance`      | 1-dimensional tensor of floating-point type |
+| `epsilon`       | constant of type `f32`                      |
+| `feature_index` | constant of type `si64`                     |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `feature_index` $\lt$ rank(`operand`).
+  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`variance`) $=$ `dim(operand, feature_index)`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1.0, 2.0],[3.0, 4.0]],
+//            [[5.0, 6.0],[7.0, 8.0]],
+//           ]
+// %scale: [2.0, 2.0]
+// %offset: [2.0 2.0]
+// %mean: [1.0, 1.0]
+// %variance: [4.0, 4.0]
+%result = "mhlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
+  epsilon = 0.0 : f32,
+  feature_index = 1 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+// %result: [
+//            [[2.0, 3.0],[4.0, 5.0]],
+//            [[6.0, 7.0],[8.0, 9.0]],
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)

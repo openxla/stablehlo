@@ -1595,9 +1595,20 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     InferTensorType]> {
   let summary = "Batch Normalization for Inference";
   let description = [{
-    Normalizes an array across batch and spatial dimensions.
+    Normalizes the `operand` tensor across batch and spatial dimensions, using
+    `mean` and `variance` provided in input, for each feature in the
+    `feature_index` dimension and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#batchnorminference
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_inference
+
+    Example:
+    ```mlir
+    %result = "mhlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
+      epsilon = 0.0 : f32,
+      feature_index = 1 : i64
+    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+    ```
   }];
 
   let arguments = (ins
