@@ -667,6 +667,19 @@ func.func @pad_with_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.type_extensions<b
     interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
   } : (tensor<3x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 3, -1]>>, tensor<f16>) -> tensor<*xf16>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
-  // types0 = tensor<7x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 7, -1]>>
+  // CHECK: types0 = tensor<7x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 7, -1]>>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 3, -1]>>, %arg1: tensor<f16>) -> tensor<*xindex> {
+  // expected-error@+1 {{Padding result in negative size for bound of dimension 1}}
+  %0 = "stablehlo.pad"(%arg0, %arg1) {
+    edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
+    edge_padding_low = dense<[2, -10, 0]> : tensor<3xi64>,
+    interior_padding = dense<[1, 1, 1]> : tensor<3xi64>
+  } : (tensor<3x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 3, -1]>>, tensor<f16>) -> tensor<*xf16>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
