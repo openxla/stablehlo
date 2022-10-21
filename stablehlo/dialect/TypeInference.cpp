@@ -1103,7 +1103,7 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> shape;
   shape.reserve(rank);
   SmallVector<int64_t> resultBounds;
-  
+
   auto inferSliceDim = [&](int64_t inputDim, int64_t start, int64_t end,
                            int64_t stride) {
     return inputDim == ShapedType::kDynamicSize
