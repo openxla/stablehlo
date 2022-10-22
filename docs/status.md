@@ -79,7 +79,7 @@ one of the following tracking labels.
 | einsum                   | no            | revisit      | no             | no              | no          |
 | exponential              | yes           | yes          | yes            | yes             | no          |
 | exponential_minus_one    | no            | yes*         | yes*           | yes             | no          |
-| fft                      | no            | yes*         | yes*           | yes             | no          |
+| fft                      | yes           | revisit      | yes            | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
 | gather                   | no            | yes*         | yes*           | no              | no          |
 | get_dimension_size       | no            | revisit      | no             | yes             | no          |

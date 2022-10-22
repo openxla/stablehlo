@@ -1507,8 +1507,8 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
     Example:
 
     ```mlir
-    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] 
-      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32> 
+    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4]
+      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
     ```
   }];
   let arguments = (ins
@@ -1521,7 +1521,7 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` custom<VariadicOperandWithAttribute>($start_indices) 
+    $operand `,` custom<VariadicOperandWithAttribute>($start_indices)
       `sizes` `=` custom<DenseI64Array>($slice_sizes)
       attr-dict `:` functional-type(operands, results)
   }];
@@ -1727,7 +1727,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions) 
+    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2142,19 +2142,19 @@ def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp
 def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let summary = "Fast fourier transform operator";
   let description = [{
-    Returns the fast-fourier-transform of the input array.
+    Performs the forward and inverse Fourier Transforms for real and complex
+    inputs/outputs.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#fft.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlofft
 
     Example:
-
     ```mlir
-    %0 = stablehlo.fft %arg0, type = RFFT, length = [9] : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+    %result = stablehlo.fft %operand, type = FFT, length = [4] : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
+    HLO_FpOrComplexTensor:$operand,
     StableHLO_FftTypeAttr:$fft_type,
     I64ElementsAttr:$fft_length
   );
@@ -2503,7 +2503,7 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` $padding_value `,` 
+    $operand `,` $padding_value `,`
       `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
       `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
       `interior` `=` custom<DenseI64Array>($interior_padding)

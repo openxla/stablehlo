@@ -171,6 +171,7 @@ described below)
    * [cosine](#stablehlocosine)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
+   * [fft](#stablehlofft)
    * [floor](#stablehlofloor)
    * [if](#stablehloif)
    * [iota](#stablehloiota)
@@ -700,6 +701,82 @@ implementation-defined.
 // %operand: (1.0, 2.0)
 %result = "stablehlo.exponential"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (-1.13120438, 2.47172667)
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.fft
+
+### Semantics
+
+Performs the forward and inverse Fourier Transforms for real and complex
+inputs/outputs. Multidimensional FFTs up to rank 3 are supported.
+
+`fft_type` is one of the following:
+
+* `FFT`: Forward complex-to-complex FFT. Shape is unchanged.
+* `IFFT`: Inverse complex-to-complex FFT. Shape is unchanged.
+* `RFFT`: Forward real-to-complex FFT. Shape of the innermost axis is reduced to
+`fft_length[-1] // 2 + 1` if `fft_length[-1]` is a non-zero value, omitting the
+reversed conjugate part of the transformed signal beyond the Nyquist frequency.
+* `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real). Shape
+of the innermost axis is expanded to `fft_length[-1]` if `fft_length[-1]` is a
+non-zero value, inferring the part of the transformed signal beyond the Nyquist
+frequency from the reverse conjugate of the 1 to `fft_length[-1] // 2 + 1`
+entries.
+
+`fft_length` is the time-domain lengths of the axes being transformed. This is
+needed in particular for IRFFT to right-size the innermost axis, since `RFFT` of
+with even `fft_length` has the same output shape as odd `fft_length`.
+
+For multidimensional FFT, when more than one `fft_length` is provided, this is
+equivalent to applying a cascade of FFT operations to each of the innermost
+axes. Note that for the real->complex and complex->real cases, the innermost
+axis transform is (effectively) performed first (`RFFT`; last for `IRFFT` to
+have compatible element type), which is why the innermost axis is the one which
+changes size. Other axis transforms will then be complex->complex.
+
+### Inputs
+
+| Name         | Type                                         |
+|--------------|----------------------------------------------|
+| `operand`    | tensor of floating-point or complex type     |
+| `fft_type`   | constant of type `si64`                      |
+| `fft_length` | 1-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) rank(`operand`) is in range [1, 3].
+  * (C2) Depending on `fft_type`, `operand` and `result` type vary:
+    * For `FFT`, `operand` and `result` have the same complex type.
+    * For `IFFT`, `operand` and `result` have the same complex type.
+    * For `RFFT`, `operand` has float and `result` has complex type of the same
+    float precision.
+    * For `IRFFT`, `operand` has complex and `result` has float type of the same
+    float precision.
+  * (C3) size(`fft_length`) is in range [0, rank(`operand`)).
+  * (C4) `fft_length` values are positive.
+  * (C5) If `fft_type = RFFT`, dim(`result`, `d`) = dim(`operand`, `d`) for all
+  `d` dimensions where `d` $\neq$ rank(`operand`)-1 and
+  dim(`result`, rank(`operand`)-1) = `fft_length[-1]/2 + 1`.
+  If `fft_type = IRFFT`, dim(`result`, `d`) = `fft_length[-1]/2 + 1` for all `d` dimensions where `d` $\neq$ rank(`operand`)-1 and dim(`result`, rank(`operand`)-1) =
+  dim(`operand`, rank(`operand`)-1).
+
+### Examples
+
+```mlir
+// %operand: [(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+%result = "stablehlo.fft"(%operand) {
+  fft_length = dense<4> : tensor<1xi64>,
+  fft_type = #stablehlo<fft_type FFT>
+} : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
+// %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```
 
 [Back to Ops](#index-of-ops)
