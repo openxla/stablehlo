@@ -426,7 +426,7 @@ func.func @batch_norm_inference(
 
 ### Constraints
 
-  * (C1) `feature_index` $\lt$ rank(`operand`).
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
   * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
   * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
   * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
@@ -436,11 +436,11 @@ func.func @batch_norm_inference(
 
 ```mlir
 // %operand: [
-//            [[1.0, 2.0],[3.0, 4.0]],
-//            [[5.0, 6.0],[7.0, 8.0]],
+//            [[1.0, 2.0], [3.0, 4.0]],
+//            [[5.0, 6.0], [7.0, 8.0]],
 //           ]
 // %scale: [2.0, 2.0]
-// %offset: [2.0 2.0]
+// %offset: [2.0, 2.0]
 // %mean: [1.0, 1.0]
 // %variance: [4.0, 4.0]
 %result = "mhlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
@@ -448,8 +448,8 @@ func.func @batch_norm_inference(
   feature_index = 1 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
 // %result: [
-//            [[2.0, 3.0],[4.0, 5.0]],
-//            [[6.0, 7.0],[8.0, 9.0]],
+//            [[2.0, 3.0], [4.0, 5.0]],
+//            [[6.0, 7.0], [8.0, 9.0]],
 //          ]
 ```
 
