@@ -2227,8 +2227,6 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
   );
   let regions = (region SizedRegion<1>:$computation);
   let results = (outs HLO_Tensor);
-
-  
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
@@ -2531,7 +2529,7 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
 
     Example:
     ```mlir
-    %0 = stablehlo.transpose %arg0, perm = [2, 1, 0] : (tensor<1x2x3xi32>) -> tensor<3x2x1xi32>
+    %0 = stablehlo.transpose %arg0, dims = [2, 1, 0] : (tensor<1x2x3xi32>) -> tensor<3x2x1xi32>
     ```
   }];
   let arguments = (ins
@@ -2541,7 +2539,7 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `perm` `=` custom<DenseI64Array>($permutation)
+    $operand `,` `dims` `=` custom<DenseI64Array>($permutation)
       attr-dict `:` functional-type(operands, results)
   }];
 }

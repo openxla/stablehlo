@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/AssemblyFormat.h"
 
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "stablehlo/dialect/Base.h"
 
@@ -282,7 +283,9 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 
 void printDenseI64Array(OpAsmPrinter& p, Operation* op,
                         DenseIntElementsAttr attr) {
-  assert(attr.getType().getRank() == 1);  // Only works for 1D array attrs.
+  if (attr.getType().getRank() != 1) {
+    llvm::report_fatal_error("printDenseI64Array only supports rank-1 arrays");
+  }
   auto values = llvm::to_vector(attr.getValues<int64_t>());
   DenseI64ArrayAttr arrayAttr =
       DenseI64ArrayAttr::get(op->getContext(), values);
