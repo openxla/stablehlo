@@ -169,6 +169,38 @@ int64_t stridedBound(int64_t bound, int64_t windowSize, int64_t stride) {
   return (bound - windowSize) / stride + 1;
 }
 
+LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
+                              Value scale, int64_t feature_index) {
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  if (feature_index >= operandType.getRank())
+    return emitOptionalError(
+        location,
+        "expects feature_index to be smaller than the rank of "
+        "operand type; got feature_index ",
+        feature_index, ", and rank ", operandType.getRank(), ".");
+
+  if (feature_index < 0)
+    return emitOptionalError(location, "expects feature_index to be a ",
+                             "non-negative number, got ", feature_index, ".");
+
+  // Note: the above checks '0 <= feature-index < operandType.getRank()'
+  // imply 'operand_type.getRank() >= 1'.
+
+  const int64_t featureCount = operandType.getDimSize(feature_index);
+  const int64_t scaleShape =
+      scale.getType().cast<RankedTensorType>().getDimSize(0);
+  // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
+  // this also infers that featureCount is aligned with them.
+  if (scaleShape != featureCount)
+    return emitOptionalError(
+        location,
+        "expects the size of scale factor to be same as the "
+        "feature count, but the size of scale factor is ",
+        scaleShape, " and the feature count is ", featureCount, ".");
+
+  return success();
+}
+
 // Verifies various properties of window-attributes (viz., stride, padding,
 // lhs_dilation and rhs_dilation) and collects all the window-attributes for
 // each kernel spatial dimensions.
@@ -430,8 +462,11 @@ static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
 //===----------------------------------------------------------------------===//
 
 LogicalResult inferBatchNormGradOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
@@ -443,16 +478,22 @@ LogicalResult inferBatchNormGradOp(
 }
 
 LogicalResult inferBatchNormInferenceOp(
-    Value operand,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
 
 LogicalResult inferBatchNormTrainingOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
