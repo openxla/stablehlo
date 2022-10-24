@@ -1620,9 +1620,20 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
     InferTensorType]> {
   let summary = "Batch Normalization for Training";
   let description = [{
-    Normalizes an array across batch and spatial dimensions.
+    Computes mean and variance across batch and spatial dimensions and
+    normalizes the `operand` tensor, for each feature in the `feature_index`
+    dimension and produces `output`, `batch_mean` and `batch_var` tensors.
 
-    See https://www.tensorflow.org/xla/operation_semantics#batchnormtraining
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_training
+
+    Example:
+    ```mlir
+    %results:3 = "mhlo.batch_norm_training"(%operand, %scale, %offset) {
+      epsilon = 0.0 : f32,
+      feature_index = 1 : i64
+    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+    ```
   }];
 
   let arguments = (ins

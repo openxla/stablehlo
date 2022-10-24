@@ -163,6 +163,7 @@ described below)
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [batch_norm_training](#stablehlobatch_norm_training)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
@@ -344,6 +345,67 @@ logical operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, false], [false, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.batch_norm_training
+
+### Semantics
+
+Computes mean and variance across batch and spatial dimensions and normalizes
+the `operand` tensor, for each feature in the `feature_index` dimension and
+produces `output`, `batch_mean` and `batch_var` tensors. Refer
+[Batch Normalization Paper](https://arxiv.org/abs/1502.03167) for the detailed
+algorithm.
+
+### Inputs
+
+| Name            | Type                                        |
+|-----------------|---------------------------------------------|
+| `operand`       | tensor of floating-point type               |
+| `scale`         | 1-dimensional tensor of floating-point type |
+| `offset`        | 1-dimensional tensor of floating-point type |
+| `epsilon`       | constant of type `f32`                      |
+| `feature_index` | constant of type `si64`                     |
+
+### Outputs
+
+| Name         | Type                                        |
+|--------------|---------------------------------------------|
+| `output`     | tensor of floating-point type               |
+| `batch_mean` | 1-dimensional tensor of floating-point type |
+| `batch_var`  | 1-dimensional tensor of floating-point type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) 0 $\lt$ rank(`operand`).
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `output` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1.0, 2.0], [3.0, 4.0]],
+//            [[3.0, 4.0], [1.0, 2.0]]
+//           ]
+// %scale: [1.0, 1.0]
+// %offset: [1.0, 1.0]
+%results:3 = "mhlo.batch_norm_training"(%operand, %scale, %offset) {
+  epsilon = 0.0 : f32,
+  feature_index = 1 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+// %result#0: [
+//             [[0.0, 0.0], [2.0, 2.0]],
+//             [[2.0, 2.0], [0.0, 0.0]]
+//            ]
+// %result#1: [2.0, 3.0]
+// %result#2: [1.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
