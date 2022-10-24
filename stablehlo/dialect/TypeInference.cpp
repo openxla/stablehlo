@@ -414,17 +414,6 @@ LogicalResult verifyReducerShape(
   return success();
 }
 
-// Returns output dimension size for slice result for the given arguments.
-// Returns ShapedType::kDynamicSize if arguments are illegal.
-static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
-                             int64_t stride) {
-  if (inputDim == ShapedType::kDynamicSize || start < 0 || start > end ||
-      end > inputDim || stride == 0)
-    return ShapedType::kDynamicSize;
-
-  return llvm::divideCeil(end - start, stride);
-}
-
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
@@ -1073,6 +1062,7 @@ LogicalResult inferReduceWindowOp(
 //  P2. Verify size(start_indices) == rank(operand).
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
+// Note: for P4, use the bound size than dim size for bounded dynamism case.
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
@@ -1111,26 +1101,30 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
   ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
-  SmallVector<int64_t, 4> shape;
-  shape.reserve(rank);
-  SmallVector<int64_t> resultBounds;
+  SmallVector<int64_t> shape(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> resultBounds(inputBounds.size(),
+                                    ShapedType::kDynamicSize);
+
   for (int64_t i = 0, e = rank; i != e; i++) {
-    if (!inputBounds.empty())
-      resultBounds.push_back(
-          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
-    if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
-      shape.push_back(ShapedType::kDynamicSize);
-      continue;
-    }
     // P3.
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
+
     // P4.
-    if (limit[i] > rankedTy.getDimSize(i))
-      return emitOptionalError(location, "limit index ", limit[i],
-                               " is larger than dimension size ",
-                               rankedTy.getDimSize(i), " in dimension ", i);
+    bool isStaticDim = !hlo::isDynamicDimSize(rankedTy.getDimSize(i));
+    bool isStaticBound =
+        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+    if (isStaticDim || isStaticBound) {
+      int64_t operandSizeOrBound =
+          isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
+      StringRef sizeOrBound = isStaticDim ? "size" : "bound";
+      if (limit[i] > operandSizeOrBound)
+        return emitOptionalError(location, "limit index ", limit[i],
+                                 " is larger than dimension ", sizeOrBound, " ",
+                                 operandSizeOrBound, " in dimension ", i);
+    }
+
     // P5.
     if (start[i] > limit[i])
       return emitOptionalError(location, "start index ", start[i],
@@ -1141,8 +1135,8 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
-    shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
-                                  strideVals[i]));
+    shape[i] = static_cast<int64_t>(
+        llvm::divideCeil(limit[i] - start[i], strideVals[i]));
   }
 
   inferredReturnTypes.push_back(RankedTensorType::get(
