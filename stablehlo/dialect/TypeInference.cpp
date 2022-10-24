@@ -879,7 +879,7 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
         return emitOptionalError(location, "Padding result in negative ",
                                  sizeOrBound, " for dimension ", i);
       }
-      (isStaticDim ? resultShape : resultBounds)[i] = resultSizeOrBound);
+      (isStaticDim ? resultShape : resultBounds)[i] = resultSizeOrBound;
     }
   }
   inferredReturnTypes.push_back(RankedTensorType::get(
