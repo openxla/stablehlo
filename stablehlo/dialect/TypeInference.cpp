@@ -1062,6 +1062,7 @@ LogicalResult inferReduceWindowOp(
 //  P2. Verify size(start_indices) == rank(operand).
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
+// Note: for P4, use the bound size than dim size for bounded dynamism case.
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
@@ -1100,34 +1101,15 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
   ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
-  SmallVector<int64_t, 4> shape;
+  SmallVector<int64_t> shape;
   shape.reserve(rank);
   SmallVector<int64_t> resultBounds;
-
-  auto inferSliceDim = [&](int64_t inputDim, int64_t start, int64_t end,
-                           int64_t stride) {
-    return inputDim == ShapedType::kDynamicSize
-               ? ShapedType::kDynamicSize
-               : static_cast<int64_t>(llvm::divideCeil(end - start, stride));
-  };
 
   for (int64_t i = 0, e = rank; i != e; i++) {
     // P3.
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
-    // P4.
-    if (!hlo::isDynamicDimSize(rankedTy.getDimSize(i)) &&
-        limit[i] > rankedTy.getDimSize(i))
-      return emitOptionalError(location, "limit index ", limit[i],
-                               " is larger than dimension size ",
-                               rankedTy.getDimSize(i), " in dimension ", i);
-    if (!inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]) &&
-        limit[i] > inputBounds[i])
-      return emitOptionalError(location, "limit index ", limit[i],
-                               " is larger than bound size ", inputBounds[i],
-                               " in dimension ", i);
-
     // P5.
     if (start[i] > limit[i])
       return emitOptionalError(location, "start index ", start[i],
@@ -1138,16 +1120,29 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
+    bool isDynamicDim = hlo::isDynamicDimSize(rankedTy.getDimSize(i));
+    if (isDynamicDim) {
+      shape.push_back(ShapedType::kDynamicSize);
+      if (inputBounds.empty()) continue;
+    }
+
+    int64_t operandSizeOrBound =
+        isDynamicDim ? inputBounds[i] : rankedTy.getDimSize(i);
+    StringRef sizeOrBound = isDynamicDim ? "bound" : "size";
+
+    // P4.
+    if (operandSizeOrBound != ShapedType::kDynamicSize &&
+        limit[i] > operandSizeOrBound)
+      return emitOptionalError(location, "limit index ", limit[i],
+                               " is larger than dimension ", sizeOrBound, " ",
+                               operandSizeOrBound, " in dimension ", i);
+
     int64_t resultSizeOrBound = static_cast<int64_t>(
         llvm::divideCeil(limit[i] - start[i], strideVals[i]));
-    if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
-      shape.push_back(ShapedType::kDynamicSize);
-      if (!inputBounds.empty()) resultBounds.push_back(resultSizeOrBound);
-    } else {
-      shape.push_back(resultSizeOrBound);
-      if (!inputBounds.empty())
-        resultBounds.push_back(ShapedType::kDynamicSize);
-    }
+    (isDynamicDim ? resultBounds : shape).push_back(resultSizeOrBound);
+
+    if (!isDynamicDim && !inputBounds.empty())  // use bound=-1 for static dim
+      resultBounds.push_back(ShapedType::kDynamicSize);
   }
 
   inferredReturnTypes.push_back(RankedTensorType::get(

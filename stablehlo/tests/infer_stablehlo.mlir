@@ -661,7 +661,7 @@ func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.type_extensions
 // -----
 
 func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stablehlo.type_extensions<bounds = [-1, 4, -1]>>) -> tensor<*xindex> {
-  // expected-error@+1 {{limit index 5 is larger than bound size 4 in dimension 1}}
+  // expected-error@+1 {{limit index 5 is larger than dimension bound 4 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 5, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.type_extensions<bounds = [-1, 4, -1]>>) -> tensor<*xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
