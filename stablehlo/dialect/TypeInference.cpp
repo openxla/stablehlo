@@ -832,43 +832,29 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
                              "tensor, is rank ",
                              padType.getRank());
 
-  if (edgePaddingLow.getType().getNumElements() != inputType.getRank())
+  int64_t rank = inputType.getRank();
+  if (edgePaddingLow.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_low length (",
                              edgePaddingLow.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
-  if (edgePaddingHigh.getType().getNumElements() != inputType.getRank())
+  if (edgePaddingHigh.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_high length (",
                              edgePaddingHigh.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
-  if (interiorPadding.getType().getNumElements() != inputType.getRank())
+  if (interiorPadding.getType().getNumElements() != rank)
     return emitOptionalError(location, "interior_padding length (",
                              interiorPadding.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
-  SmallVector<int64_t> resultShape;
+  SmallVector<int64_t> resultShape(rank, ShapedType::kDynamicSize);
   ArrayRef<int64_t> inputBounds = encodingToBounds(inputType.getEncoding());
-  SmallVector<int64_t> resultBounds;
-
-  auto inferPadDim = [&](int64_t inputDim, int64_t paddingLowVal,
-                         int64_t paddingHighVal, int64_t paddingInteriorVal) {
-    return inputDim == ShapedType::kDynamicSize
-               ? ShapedType::kDynamicSize
-               : inputDim + paddingLowVal + paddingHighVal +
-                     std::max<int64_t>(inputDim - 1, 0LL) * paddingInteriorVal;
-  };
+  SmallVector<int64_t> resultBounds(inputBounds.size(),
+                                    ShapedType::kDynamicSize);
 
   for (int i = 0, e = inputShape.size(); i < e; i++) {
-    if (hlo::isDynamicDimSize(inputShape[i])) {
-      resultShape.push_back(ShapedType::kDynamicSize);
-      if (inputBounds.empty()) continue;  // dynamic dim without bounds
-    }
-
     int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
     int64_t paddingHighVal =
         edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
@@ -879,24 +865,21 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
           location,
           "Interior padding cannot be negative: ", paddingInteriorVal);
 
-    if (!hlo::isDynamicDimSize(inputShape[i])) {  // static dim
-      int64_t expectedOutput = inferPadDim(inputShape[i], paddingLowVal,
-                                           paddingHighVal, paddingInteriorVal);
-      if (expectedOutput < 0)
-        return emitOptionalError(
-            location, "Padding result in negative size for dimension ", i);
-      resultShape.push_back(expectedOutput);
+    bool isStaticDim = !hlo::isDynamicDimSize(inputShape[i]);
+    bool isStaticBound =
+        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+    if (isStaticDim || isStaticBound) {
+      int64_t operandSizeOrBound = isStaticDim ? inputShape[i] : inputBounds[i];
+      int64_t resultSizeOrBound =
+          operandSizeOrBound + paddingLowVal + paddingHighVal +
+          std::max<int64_t>(operandSizeOrBound - 1, 0LL) * paddingInteriorVal;
 
-      if (!inputBounds.empty())
-        resultBounds.push_back(ShapedType::kDynamicSize);
-    } else {  // dynamic dim with bounds
-      int64_t resultBound = inferPadDim(inputBounds[i], paddingLowVal,
-                                        paddingHighVal, paddingInteriorVal);
-      if (resultBound < 0 && resultBound != ShapedType::kDynamicSize)
-        return emitOptionalError(
-            location, "Padding result in negative size for bound of dimension ",
-            i);
-      resultBounds.push_back(resultBound);
+      if (resultSizeOrBound < 0) {
+        auto sizeOrBound = isStaticDim ? "size" : "bound";
+        return emitOptionalError(location, "Padding result in negative ",
+                                 sizeOrBound, " for dimension ", i);
+      }
+      (isStaticDim ? resultShape : resultBounds)[i] = resultSizeOrBound);
     }
   }
   inferredReturnTypes.push_back(RankedTensorType::get(

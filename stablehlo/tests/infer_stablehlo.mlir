@@ -674,7 +674,7 @@ func.func @pad_with_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.type_extensions<b
 // -----
 
 func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.type_extensions<bounds = [-1, 3, -1]>>, %arg1: tensor<f16>) -> tensor<*xindex> {
-  // expected-error@+1 {{Padding result in negative size for bound of dimension 1}}
+  // expected-error@+1 {{Padding result in negative bound for dimension 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
     edge_padding_high = dense<[0, 0, 0]> : tensor<3xi64>,
     edge_padding_low = dense<[2, -10, 0]> : tensor<3xi64>,
