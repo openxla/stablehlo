@@ -185,6 +185,11 @@ class DialectCompatibilityBase {
   llvm::StringMap<llvm::SmallVector<OpConversionVersionPair>> downgrades;
 };
 
+struct CompatOptions {
+  int64_t targetVersion = -1;
+  bool emitAssembly = false;
+};
+
 namespace detail {
 /// Separate impl funciton for testing.
 OwningOpRef<Operation *> parseWithCompatImpl(
@@ -193,8 +198,7 @@ OwningOpRef<Operation *> parseWithCompatImpl(
 
 /// Separate impl funciton for testing.
 LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
-                                  int64_t targetVersion, bool emitBytecode,
-                                  llvm::raw_ostream &output,
+                                  CompatOptions opts, llvm::raw_ostream &output,
                                   DialectCompatibilityBase &interface);
 }  // namespace detail
 

@@ -52,11 +52,10 @@ OwningOpRef<Operation *> parseWithCompat(llvm::SourceMgr &sourceMgr,
 /// Entrypoint for writing a file that was serialized with compatibility
 /// guarantees.
 LogicalResult writeWithCompat(Operation *topLevelOperation,
-                              MLIRContext *context, int64_t targetVersion,
-                              bool emitBytecode, llvm::raw_ostream &output) {
+                              MLIRContext *context, CompatOptions opts,
+                              llvm::raw_ostream &output) {
   StablehloCompatibilityConverter interface(context);
-  return detail::writeWithCompatImpl(topLevelOperation, targetVersion,
-                                     emitBytecode, output, interface);
+  return detail::writeWithCompatImpl(topLevelOperation, opts, output, interface);
 }
 
 }  // namespace stablehlo

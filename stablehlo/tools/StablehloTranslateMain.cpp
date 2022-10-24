@@ -30,12 +30,6 @@ limitations under the License.
 using namespace mlir;
 using namespace mlir::stablehlo;
 
-struct CompatOptions {
-  int64_t targetVersion;
-  bool emitAssembly;
-  bool useTestConverter;
-};
-
 void performDialectRegistrations(MLIRContext *context) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
@@ -47,34 +41,23 @@ static LogicalResult serializeWithCompatibilityTest(llvm::SourceMgr &sourceMgr,
                                                     llvm::raw_ostream &output,
                                                     MLIRContext *context,
                                                     CompatOptions opts) {
-  int64_t targetVersion = opts.targetVersion;
-  bool emitBytecode = !opts.emitAssembly;
+  // Uses internal APIs to use test interface
   TestStablehloCompatibilityConverter interface(context);
   OwningOpRef<Operation *> module =
       stablehlo::detail::parseWithCompatImpl(sourceMgr, context, interface);
   if (!module) return failure();
-  return stablehlo::detail::writeWithCompatImpl(
-      module.get(), targetVersion, emitBytecode, output, interface);
+  return stablehlo::detail::writeWithCompatImpl(module.get(), opts, output,
+                                                interface);
 }
 
 static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
                                                     llvm::raw_ostream &output,
                                                     MLIRContext *context,
                                                     CompatOptions opts) {
-  performDialectRegistrations(context);
-
-  int64_t targetVersion = opts.targetVersion;
-  bool emitBytecode = !opts.emitAssembly;
-
-  if (opts.useTestConverter) {
-    // Use internal APIs
-    return serializeWithCompatibilityTest(sourceMgr, output, context, opts);
-  }
-
   // Use StablehloDialectCompatibility APIs
   OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context);
   if (!module) return failure();
-  return writeWithCompat(module.get(), context, targetVersion, emitBytecode, output);
+  return writeWithCompat(module.get(), context, opts, output);
 }
 
 int main(int argc, char **argv) {
@@ -104,7 +87,12 @@ int main(int argc, char **argv) {
       "compat", "StableHLO compatibility tool.",
       [&](llvm::SourceMgr &sourceMgr, llvm::raw_ostream &output,
           MLIRContext *context) {
-        CompatOptions opts{targetVersion, emitAssembly, useTestConverter};
+        CompatOptions opts{targetVersion, emitAssembly};
+        performDialectRegistrations(context);
+        if (useTestConverter) {
+          return serializeWithCompatibilityTest(sourceMgr, output, context,
+                                                opts);
+        }
         return serializeWithCompatibilityMain(sourceMgr, output, context, opts);
       });
 

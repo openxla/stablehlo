@@ -26,7 +26,6 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
-#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LogicalResult.h"
@@ -207,14 +206,14 @@ OwningOpRef<Operation *> parseWithCompatImpl(
 }
 
 LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
-                                  int64_t targetVersion, bool emitBytecode,
-                                  llvm::raw_ostream &output,
+                                  CompatOptions opts, llvm::raw_ostream &output,
                                   DialectCompatibilityBase &interface) {
   if (failed(verify(topLevelOperation))) {
     return topLevelOperation->emitError("must be valid op");
   }
 
   // Downgrade to target version
+  int64_t targetVersion = opts.targetVersion;
   int64_t producerVersion =
       std::min(targetVersion, interface.getProducerVersion());
   producerVersion =
@@ -230,10 +229,10 @@ LogicalResult writeWithCompatImpl(Operation *topLevelOperation,
   }
 
   // Emit IR or bytecode
-  if (emitBytecode) {
-    writeBytecodeToFile(topLevelOperation, output);
-  } else {
+  if (opts.emitAssembly) {
     topLevelOperation->print(output);
+  } else {
+    writeBytecodeToFile(topLevelOperation, output);
   }
   return success();
 }
