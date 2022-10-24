@@ -43,29 +43,38 @@ void performDialectRegistrations(MLIRContext *context) {
   context->appendDialectRegistry(registry);
 }
 
+static LogicalResult serializeWithCompatibilityTest(llvm::SourceMgr &sourceMgr,
+                                                    llvm::raw_ostream &output,
+                                                    MLIRContext *context,
+                                                    CompatOptions opts) {
+  int64_t targetVersion = opts.targetVersion;
+  bool emitBytecode = !opts.emitAssembly;
+  TestStablehloCompatibilityConverter interface(context);
+  OwningOpRef<Operation *> module =
+      stablehlo::detail::parseWithCompatImpl(sourceMgr, context, interface);
+  if (!module) return failure();
+  return stablehlo::detail::writeWithCompatImpl(
+      module.get(), targetVersion, emitBytecode, output, interface);
+}
+
 static LogicalResult serializeWithCompatibilityMain(llvm::SourceMgr &sourceMgr,
                                                     llvm::raw_ostream &output,
                                                     MLIRContext *context,
                                                     CompatOptions opts) {
   performDialectRegistrations(context);
 
-  std::unique_ptr<DialectCompatibilityBase> interface;
-  if (opts.useTestConverter) {
-    interface = std::make_unique<TestStablehloCompatibilityConverter>(context);
-  } else {
-    interface = std::make_unique<StablehloCompatibilityConverter>(context);
-  }
-
-  OwningOpRef<Operation *> module =
-      stablehlo::detail::parseWithCompatImpl(sourceMgr, context, *interface);
-  if (!module) {
-    return failure();
-  }
-
   int64_t targetVersion = opts.targetVersion;
   bool emitBytecode = !opts.emitAssembly;
-  return stablehlo::detail::writeWithCompatImpl(
-      module.get(), targetVersion, emitBytecode, output, *interface);
+
+  if (opts.useTestConverter) {
+    // Use internal APIs
+    return serializeWithCompatibilityTest(sourceMgr, output, context, opts);
+  }
+
+  // Use StablehloDialectCompatibility APIs
+  OwningOpRef<Operation *> module = parseWithCompat(sourceMgr, context);
+  if (!module) return failure();
+  return writeWithCompat(module.get(), context, targetVersion, emitBytecode, output);
 }
 
 int main(int argc, char **argv) {
