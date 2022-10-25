@@ -2377,65 +2377,65 @@ slices at indices specified by `scatter_indices`, updated with the values in
 `updates` using `update_computation`.
 
 The following diagram shows how elements in `updates[k]` map on elements in
-`inputs[k]` using a concrete example. The diagram picks a few example
-`updated[k[` indices and explains in detail which `inputs[k]` indices they
+`results[k]` using a concrete example. The diagram picks a few example
+`updates[k]` indices and explains in detail which `results[k]` indices they
 correspond to.
 
-<img align="center" src="spec_images/scatter.png" />
+<img align="center" src="spec_draft/scatter.png" />
 
-More formally, for any `k`, `updates[k][update_index] =
-inputs[k][input_index]` where:
-  * `update_scatter_dims` = [`d` for `d` in `axes(updates[k])` and `d` not in
+More formally, for all `update_index` from the index space of `updates[0]`,
+`result_index` in `result[0]` is computed as follows:
+  * `update_scatter_dims` = [`d` for `d` in `axes(updates[0])` and `d` not in
     `update_window_dims`].
   * `update_scatter_index` = [`update_index[d]` for `d` in
     `update_scatter_dims`].
   * `start_index` =
-      * `scatter_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+      * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
         elements in `update_scatter_index` and `:` is inserted at the
         `index_vector_dim` index, if `index_vector_dim` <
         `rank(scatter_indices)`.
       * `[scatter_indices[update_scatter_index]]` otherwise.
-  * For `do` in `axes(inputs[k])`,
+  * For `do` in `axes(inputs[0])`,
       * `full_start_index[do]` = `start_index[ds]` if
         `do = scatter_dims_to_operand_dims[ds]`.
       * `full_start_index[do]` = `0` otherwise.
   * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
-  * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+  * `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `update_window_index`, and `0` is inserted at indices from
     `inserted_window_dims`.
-  * `input_index` = `add(full_start_index, full_offset_index)`.
-    If `input_index` is out of bounds for `inputs[k]`, then the behavior is
-    implementation-defined.
+  * `result_index` = `add(full_start_index, full_window_index)`.
 
-For every index `update_index` in `updates[k]` and the corresponding index
-`input_index` in the `inputs[k]`, we have
+Using this mapping between `update_index` and `result_index`, we define
+`results = eval(schedule, inputs)`, where:
+  * `schedule` is an implementation-defined permutation of the index space
+    of `updates[0]`.
+  * `eval([update_index, ...], results) = eval([...], updated_results)` where
+    `updated_results = update_computation(results[:][result_index], updates[:][update_index])`.
+  * `eval([], results) = results`.
 
-`results[k][input_index] = update_computation(inputs[k][input_index], updates[k][update_index])
-
-If `indices_are_sorted` is set to true then the implementation can assume that
+If `indices_are_sorted` is true then the implementation can assume that
 `scatter_indices` are sorted (in ascending `scatter_dims_to_operand_dims` order)
 by the user. If they are not then the semantics is implementation defined.
 
-If unique_indices is set to true then the implementation can assume that all
-`input_index` indices  being scattered to are unique. So the implementation
-could use non-atomic operations. If unique_indices is set to true and the
-indices being scattered to are not unique then the semantics is implementation
-defined.
+If `unique_indices` is true then the implementation can assume that all
+`result_index` indices  being scattered to are unique.  If `unique_indices` is
+true and the indices being scattered to are not unique then the semantics is
+implementation defined.
 
 ### Inputs
 
 | Name                           | Type                                              | Constraints                                  |
 |--------------------------------|---------------------------------------------------|----------------------------------------------|
 | `inputs`                       | variadic number of tensors of any supported types | (C1), (C2), (C3), (C12), (C13), (C15), (C16) |
-| `scatter_indices`              | tensor of type `si64`                             | (C5), (C6), (C14, (C15)                      |
+| `scatter_indices`              | tensor of any supported integer type              | (C5), (C6), (C14, (C15)                      |
 | `updates`                      | variadic number of tensors of any supported types | (C2), (C4), (C10), (C13), (C14), (C15)       |
 | `update_window_dims`           | 1-dimensional tensor constant of type `si64`      | (C1), (C9), (C10), (C14)                     |
 | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`      | (C1), (C11), (C12), (C15)                    |
 | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`      | (C6),(C7), (C8)                              |
 | `index_vector_dim`             | constant of type `si64`                           | (C5), (C6), (C14), (C15)                     |
-| `indices_are_sorted`           | constant of type `boolean`                        |                                              |
-| `unique_indices`               | constant of type `boolean`                        |                                              |
-| `update_computation`           | function                                          | (C13)                                        |
+| `indices_are_sorted`           | constant of type `i1`                             |                                              |
+| `unique_indices`               | constant of type `i1`                             |                                              |
+| `update_computation`           | `function`                                        | (C13)                                        |
 
 ### Outputs
 
@@ -2480,7 +2480,7 @@ defined.
   * (C13) `update_computation` is of type `(I0, ..., IN-1, U0, ..., UN-1) -> (R0, ..., RN-1)`
           where `I0, ..., IN-1` are types of `inputs`,  `U0, ..., UN-1` are
           types of `updates`, and `R0, ..., RN-1` are types of `results` and
-          Id = Ud = Rd.
+          `Id = Ud = Rd`.
 
   * On shape of `updates[k]` for any k $\in$ [0, N)
     * (C14) rank(`updates[k]`) $=$ `effective_scatter_indices_rank` - 1 $+$
@@ -2508,20 +2508,24 @@ defined.
 //          [[17, 18], [19, 20], [21, 22], [23, 24]]
 //         ]
 // %scatter_indices: [[[0, 2], [1, 0], [2, 1]], [[0, 1], [1, 0], [2, 0]]]
-// %update: dense<1>
+// %update: [[[[1, 1],[1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]], [][], [], []]
+// %update: [
+//           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, ]]],
+//           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, ]]]
+//          ]
 %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
-          ^bb0(%arg3: tensor<i8>, %arg4: tensor<i8>):
-             %add = mhlo.add %arg3, %arg4 : tensor<i8>
-             "mhlo.return"(%add) : (tensor<i8>) -> ()
-          }) {
-           scatter_dimension_numbers = #mhlo.scatter<
-             update_window_dims = [2,3],
-             inserted_window_dims = [0],
-             scatter_dims_to_operand_dims = [1, 0],
-             index_vector_dim = 2 >,
-           indices_are_sorted = false,
-           unique_indices = false}
-          : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
+   ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
+      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i8>, tensor<i8>) -> tensor<i8>
+      "stablehlo.return"(%0) : (tensor<i8>) -> ()
+}) {
+   scatter_dimension_numbers = #stablehlo.scatter<
+     update_window_dims = [2,3],
+     inserted_window_dims = [0],
+     scatter_dims_to_operand_dims = [1, 0],
+     index_vector_dim = 2>,
+   indices_are_sorted = false,
+   unique_indices = false
+} : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
 // %result: [
 //           [[1, 2], [5, 6], [8, 9], [8, 9]],
 //           [[10, 11], [12, 13], [14, 15], [16, 17]],

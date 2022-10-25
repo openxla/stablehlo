@@ -2352,6 +2352,24 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloscatter
 
+   Example:
+
+   ```mlir
+   %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
+      ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
+         %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i8>, tensor<i8>) -> tensor<i8>
+         "stablehlo.return"(%0) : (tensor<i8>) -> ()
+   }) {
+      scatter_dimension_numbers = #stablehlo.scatter<
+        update_window_dims = [2,3],
+        inserted_window_dims = [0],
+        scatter_dims_to_operand_dims = [1, 0],
+        index_vector_dim = 2>,
+      indices_are_sorted = false,
+      unique_indices = false
+   } : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
+   ```
+
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
