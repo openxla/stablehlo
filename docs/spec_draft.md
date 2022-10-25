@@ -525,19 +525,19 @@ tensor. More formally,
 ```mlir
 // 1-dimensional concatenate
 
-// %0 = [1, 2]
-// %1 = [3, 4]
-// %2 = [5, 6]
-%result = "stablehlo.concatenate"(%0, %1, %2) {
+// %input0 = [1, 2]
+// %input1 = [3, 4]
+// %input2 = [5, 6]
+%result = "stablehlo.concatenate"(%input0, %input1, %input2) {
   dimension = 0 : i64
 } : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<6xi32>
 // %result: [1, 2, 3, 4, 5, 6]
 
 // 2-dimensional concatenate
 
-// %0: [[1, 2], [3, 4], [5, 6]]
-// %1: [[7, 8]]
-%result = "stablehlo.concatenate"(%0, %1) {
+// %input0: [[1, 2], [3, 4], [5, 6]]
+// %input1: [[7, 8]]
+%result = "stablehlo.concatenate"(%input0, %input1) {
   dimension = 0 : i64
 } : (tensor<3x2xi32>, tensor<1x2xi32>, i64) -> tensor<4x2xi32>
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
@@ -1262,7 +1262,7 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 //           [0, 4, 0, 0, 5, 0, 0, 6, 0],
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0],
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0]
-// ]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -1581,7 +1581,7 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 | `is_stable`  | constant of type `i1`                            |
 | `comparator` | `function`                                       |
 
-### Results
+### Outputs
 
 | Name      | Type                                             |
 |-----------|--------------------------------------------------|
