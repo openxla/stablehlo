@@ -1564,8 +1564,6 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
       RankedTensorOf<[HLO_Float]>:$grad_operand,
       1DTensorOf<[HLO_Float]>:$grad_scale,
       1DTensorOf<[HLO_Float]>:$grad_offset);
-
-  let hasVerifier = 1;
 }
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
@@ -1590,8 +1588,6 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
   );
 
   let results = (outs RankedTensorOf<[HLO_Float]>:$result);
-
-  let hasVerifier = 1;
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
@@ -1618,8 +1614,6 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
       RankedTensorOf<[HLO_Float]>:$output,
       1DTensorOf<[HLO_Float]>:$batch_mean,
       1DTensorOf<[HLO_Float]>:$batch_var);
-
-  let hasVerifier = 1;
 }
 
 def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
