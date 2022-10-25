@@ -1701,20 +1701,38 @@ and produces a `result` tensor.
 
 ### Semantics
 
-Applies a `body` function to `inputs` and `init_values` along the `dimensions`
-and produces a `result` tensor.
+Performs a reduction function `body` over the `inputs` and `init_values` along
+the `dimensions` and produces a `result` tensor.
 
-The `body` function has to be associative, and it produces an
-implementation-defined behavior otherwise. Similarly, if `init_values` do not
-form identity under the `body` function, it produces an implementation-defined
-behavior.
+The order of reductions is implementation-defined, which means that `body` and
+`init_values` must form a monoid to guarantee that the operation produces the
+same results for all inputs on all implementations.
+
+However, this condition doesn't hold for many popular reductions. E.g.
+floating-point addition for `body` and zero for `init_values` don't actually
+form a monoid because floating-point addition is not associative. What this
+means for numeric precision is implementation-defined.
+
+More formally, `results[:][result_index] = reduce(input_slices)` where:
+  * `input_slices` = `inputs[:][ri0, ..., :, ..., riR-1]`, where `ri` are
+    individual elements in `result_index` and `:` are inserted at `dimensions`.
+  * `reduce(input_slices)` = `eval(schedule)` for some binary tree `schedule`
+    where:
+    * `eval(node)` = `body(eval(node.left), eval(node.right))`.
+    * `eval(leaf)` = `leaf.value`.
+  * `schedule` is an implementation-defined full binary tree whose in-order
+    traversal consists of:
+    * `input_slices[:][index]` values, for all `index` in the index space
+      of `input_slices`, in the ascending lexicographic order of `index`.
+    * Interspersed with an implementation-defined amount of `init_values`
+      at implementation-defined positions.
 
 ### Inputs
 
 | Name          | Type                                             |
 |---------------|--------------------------------------------------|
 | `inputs`      | variadic number of tensors of any supported type |
-| `init_values` | variadic number of scalars of any supported type |
+| `init_values` | 0-dimensional tensor of any supported type       |
 | `dimensions`  | 1-dimensional tensor constant of type `si64`     |
 | `body`        | `function`                                       |
 
@@ -1726,35 +1744,31 @@ behavior.
 
 ### Constraints
 
-  * (C1) `inputs`, `init_values` have the same element type.
-  * (C2) All `inputs` have the same shape.
-  * (C3) type(`inputs[k]`) $=$ type(`init_values[k]`) for all `k` $\in$ [0, N).
-  * (C4) size(`inputs`) $=$ size(`init_values`) $=$ size(`result`) $=$ N where
+  * (C1) All `inputs` have the same shape.
+  * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
+  element_type(`results[k]`) for all `k` $\in$ [0, N).
+  * (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
   N >= 1.
-  * (C5) `init_values` have to form an identity under the `body`.
-  * (C6) 0 $\lt$ `dimensions[d]` $\lt$ rank(`inputs[d]`) for all dimension `d`.
-  * (C7) All dimensions in `dimensions` are unique.
-  * (C8) The full function type of `body` is
-  `(T0,..., TN-1, T0, ..., TN-1) -> (T0, ..., TN-1)`, where the first and second
-  set of input types `T0,..., TN-1` corresponds to the element types of `inputs`
-  and `init_values` respectively. The output types `(T0,..., TN-1)` corresponds
-  to the element types of `results`.
-  * (C9) rank(`results[k]`) = rank(`inputs[k]`) - size(`dimensions`) for all `k`
-  $\in$ [0, N).
-  * (C10) dim(`results[k], d`) $=$ dim(`inputs[k], d`) if `d` $\notin$
-  `dimensions`.
+  * (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
+  `d`.
+  * (C5) All dimensions in `dimensions` are unique.
+  * (C6) The full function type of `body` is
+  `(T0, ..., TN-1, T0, ..., TN-1) -> (T0, ..., TN-1)`, where the first and
+  second set of input types `T0,..., TN-1` corresponds to the element types of `inputs` and `init_values` respectively. The output types `(T0, ..., TN-1)` corresponds to the element types of `results`.
+  * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
+  sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 ### Examples
 
 ```mlir
-// %inputs0 = [[0, 1, 2, 3, 4, 5]]
-// %init_values = 0
-%result = "stablehlo.reduce"(%inputs0, %init_values) ({
+// %input = [[0, 1, 2, 3, 4, 5]]
+// %init_value = 0
+%result = "stablehlo.reduce"(%input, %init_value) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%0) : (tensor<i32>) -> ()
 }) {
-  dimensions = dense<[1]> : tensor<1xi64>
+  dimensions = dense<1> : tensor<1xi64>
 } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
 // %result = [15]
 ```
