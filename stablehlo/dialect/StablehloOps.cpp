@@ -3307,15 +3307,15 @@ LogicalResult SetDimensionSizeOp::inferReturnTypes(
 // PadOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult PadOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult PadOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   PadOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferPadOp(location, adaptor.getOperand(),
                          adaptor.getPaddingValue(), adaptor.getEdgePaddingLow(),
                          adaptor.getEdgePaddingHigh(),
-                         adaptor.getInteriorPadding(), inferredReturnShapes);
+                         adaptor.getInteriorPadding(), inferredReturnTypes);
 }
 
 LogicalResult PadOp::reifyReturnTypeShapes(
