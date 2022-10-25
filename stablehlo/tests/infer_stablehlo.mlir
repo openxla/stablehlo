@@ -693,3 +693,108 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf16>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c0
+func.func @concat_bounds_c0(
+  %arg0: tensor<5x1xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+  %arg1: tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x1xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x3xi32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c1
+func.func @concat_bounds_c1(
+  %arg0: tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  %result_swap = "stablehlo.concatenate"(%arg1, %arg0) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %2 = "hlo_test_infer.get_return_types"(%result_swap) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c2
+func.func @concat_bounds_c2(
+  %arg0: tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 6]>>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  %result_swap = "stablehlo.concatenate"(%arg1, %arg0) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>, 
+    tensor<5x2xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 6]>>
+  %2 = "hlo_test_infer.get_return_types"(%result_swap) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c3
+func.func @concat_bounds_c3(
+  %arg0: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c4
+func.func @concat_bounds_c4(
+  %arg0: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  %result_swap = "stablehlo.concatenate"(%arg1, %arg0) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %2 = "hlo_test_infer.get_return_types"(%result_swap) : (tensor<?x?xi32>) -> tensor<*xindex> 
+
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_c5
+func.func @concat_bounds_c5(
+  %arg0: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 3]>>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 3]>>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>) -> tensor<?x?xi32>
+  // CHECK: types0 = tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 7]>>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
+  func.return %1 : tensor<*xindex>
+}
