@@ -2482,22 +2482,20 @@ implementation defined.
           types of `updates`, and `R0, ..., RN-1` are types of `results` and
           `Id = Ud = Rd`.
 
-  * On shape of `updates[k]` for any k $\in$ [0, N)
-    * (C14) rank(`updates[k]`) $=$ `effective_scatter_indices_rank` - 1 $+$
-            size(`update_window_dims`), where
-            `effective_scatter_indices_rank` $=$
-            `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
-            rank(`scatter_indices`) : rank(`scatter_indices`) + 1.
+ * (C14) rank(`updates[k]`) $=$ `effective_scatter_indices_rank` - 1 $+$
+         size(`update_window_dims`), where
+         `effective_scatter_indices_rank` $=$
+         `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
+         rank(`scatter_indices`) : rank(`scatter_indices`) + 1.
 
-    * (C15) `shape(updates[k])` $=$ `concatenate(shape(scatter_indices), shape(inputs[k]))`
-            except that:
-      * The dimension size of `scatter_indices` corresponding to
-        `index_vector_dim` is not included.
-      * The dimension sizes in `inputs[k]` corresponding to
-        `inserted_window_dims` are not included.
+ * (C15) `shape(updates[k])` $=$ `concatenate(shape(scatter_indices), shape(inputs[k]))`
+         except that:
+   * The dimension size of `scatter_indices` corresponding to
+     `index_vector_dim` is not included.
+   * The dimension sizes in `inputs[k]` corresponding to
+     `inserted_window_dims` are not included.
 
-  * On shape of `results[k]` for any k $\in$ [0, N)
-    * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
+ * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
 
 ### Examples
 
@@ -2514,17 +2512,17 @@ implementation defined.
 //           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, ]]]
 //          ]
 %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
-   ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
-      %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i8>, tensor<i8>) -> tensor<i8>
-      "stablehlo.return"(%0) : (tensor<i8>) -> ()
+  ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i8>, tensor<i8>) -> tensor<i8>
+    "stablehlo.return"(%0) : (tensor<i8>) -> ()
 }) {
-   scatter_dimension_numbers = #stablehlo.scatter<
-     update_window_dims = [2,3],
-     inserted_window_dims = [0],
-     scatter_dims_to_operand_dims = [1, 0],
-     index_vector_dim = 2>,
-   indices_are_sorted = false,
-   unique_indices = false
+  scatter_dimension_numbers = #stablehlo.scatter<
+    update_window_dims = [2,3],
+    inserted_window_dims = [0],
+    scatter_dims_to_operand_dims = [1, 0],
+    index_vector_dim = 2>,
+  indices_are_sorted = false,
+  unique_indices = false
 } : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
 // %result: [
 //           [[1, 2], [5, 6], [8, 9], [8, 9]],
