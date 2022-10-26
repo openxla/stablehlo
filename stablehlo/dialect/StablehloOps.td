@@ -1341,10 +1341,6 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  let builders = [
-    OpBuilder<(ins "ValueRange":$inputs, "ValueRange":$init_values,
-      "DenseIntElementsAttr":$dimensions)>];
-
   let hasCustomAssemblyFormat = 1;
 
   // TODO(hinsu): Verify that the attached body arguments and results are
