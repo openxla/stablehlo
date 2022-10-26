@@ -2175,7 +2175,6 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
     Gathers slices from `operand` tensor from offsets specified in
     `start_indices` and produces a `result` tensor.
 
-
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlogather
 
@@ -2186,8 +2185,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
         offset_dims = [2, 3],
         collapsed_slice_dims = [0],
         start_index_map = [0, 2],
-        index_vector_dim = 2,
-      >,
+        index_vector_dim = 2>,
       slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>,
       indices_are_sorted = false
     } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
