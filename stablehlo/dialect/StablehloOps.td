@@ -2733,19 +2733,17 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 
     Example:
     ```mlir
-     %result = "stablehlo.reduce_window"( %arg,  %init) ({
-            ^bb0(%a1: tensor<ui8>, %b1: tensor<ui8>):
-                 %1 = stablehlo.add %a1, %b1 : tensor<ui8>
-                 "stablehlo.return"(%1) : (tensor<ui8>) -> ()
-               })
-            {
-              window_dimensions = dense<[2, 1]> : tensor<2xi64>,
-              window_strides = dense<[4, 1]> : tensor<2xi64>,
-              base_dilations = dense<[2, 1]> : tensor<2xi64>,
-              window_dilations = dense<[3, 1]> : tensor<2xi64>,
-              padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
-            }
-            : (tensor<3x2xui8>, tensor<ui8>) -> (tensor<2x2xui8>)
+    %result = "stablehlo.reduce_window"(%input, %init_value) ({
+      ^bb0(%arg0: tensor<ui8>, %arg1: tensor<ui8>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<ui8>
+        "stablehlo.return"(%0) : (tensor<ui8>) -> ()
+    }) {
+      window_dimensions = dense<[2, 1]> : tensor<2xi64>,
+      window_strides = dense<[4, 1]> : tensor<2xi64>,
+      base_dilations = dense<[2, 1]> : tensor<2xi64>,
+      window_dilations = dense<[3, 1]> : tensor<2xi64>,
+      padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
+    } : (tensor<3x2xui8>, tensor<ui8>) -> tensor<2x2xui8>
     ```
   }];
 
