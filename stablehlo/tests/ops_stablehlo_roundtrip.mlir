@@ -151,6 +151,14 @@ func.func @test_collective_permute(%arg0: tensor<128x32xf32>) -> tensor<128x32xf
   func.return %0 : tensor<128x32xf32>
 }
 
+func.func @test_collective_permute_channel_handle(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
+  %0 = "stablehlo.collective_permute"(%arg0) {
+    source_target_pairs = dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<128x32xf32>) -> tensor<128x32xf32>
+  func.return %0 : tensor<128x32xf32>
+}
+
 func.func @test_concatenate(%arg0 : tensor<5x2xf32>,
            %arg1 : tensor<5x5xf32>,
            %arg2 : tensor<5x7xf32>) -> tensor<5x14xf32> {

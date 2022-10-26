@@ -786,6 +786,17 @@ func.func @comp_mismatch_return_shape(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>
 
 // -----
 
+// CHECK-LABEL: func @collective_permute
+func.func @collective_permute(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
+  %0 = "stablehlo.collective_permute"(%arg0) {
+    source_target_pairs = dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<128x32xf32>) -> tensor<128x32xf32>
+  func.return %0 : tensor<128x32xf32>
+}
+
+// -----
+
 func.func @collective_permute_duplicate_sources(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
   // expected-error@+1 {{duplicate sources not allowed}}
   %0 = "stablehlo.collective_permute"(%arg0) {
