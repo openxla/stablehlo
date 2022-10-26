@@ -859,7 +859,7 @@ The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
 indices and explains in detail which `operand` indices they correspond to.
 
-<img align="center" src="spec_draft/gather.png" />
+<img align="center" src="spec_draft/gather.svg" />
 
 More formally, `result[result_index] = operand[operand_index]` where:
   * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
