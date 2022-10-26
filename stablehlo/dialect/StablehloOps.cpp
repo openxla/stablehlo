@@ -2759,19 +2759,6 @@ static TensorType getReduceResultType(Type operandTy,
   return RankedTensorType::get(shape, elementTy);
 }
 
-void ReduceOp::build(OpBuilder& builder, OperationState& state,
-                     ValueRange operands, ValueRange initValues,
-                     DenseIntElementsAttr dimensions) {
-  SmallVector<Type, 1> resultTy;
-  resultTy.reserve(operands.size());
-
-  for (Value operand : operands) {
-    resultTy.push_back(
-        getReduceResultType(operand.getType(), dimensions, &builder));
-  }
-  build(builder, state, resultTy, operands, initValues, dimensions);
-}
-
 bool hasSameOperandAndResultTypes(Operation& op) {
   Type expected;
   if (op.getNumResults() != 0) expected = op.getResult(0).getType();
