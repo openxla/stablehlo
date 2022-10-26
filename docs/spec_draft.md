@@ -2477,10 +2477,8 @@ implementation defined.
   * (C12) For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
     `inserted_window_dims`[i] $\lt$ rank(`inputs`[k]), for any k $\in$ [0, N).
 
-  * (C13) `update_computation` is of type `(I0, ..., IN-1, U0, ..., UN-1) -> (R0, ..., RN-1)`
-          where `I0, ..., IN-1` are types of `inputs`,  `U0, ..., UN-1` are
-          types of `updates`, and `R0, ..., RN-1` are types of `results` and
-          `Id = Ud = Rd`.
+  * (C13) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+          where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
 
  * (C14) rank(`updates[k]`) $=$ `effective_scatter_indices_rank` - 1 $+$
          size(`update_window_dims`), where
