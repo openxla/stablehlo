@@ -1754,7 +1754,9 @@ More formally, `results[:][result_index] = reduce(input_slices)` where:
   * (C5) All dimensions in `dimensions` are unique.
   * (C6) The full function type of `body` is
   `(T0, ..., TN-1, T0, ..., TN-1) -> (T0, ..., TN-1)`, where the first and
-  second set of input types `T0,..., TN-1` corresponds to the element types of `inputs` and `init_values` respectively. The output types `(T0, ..., TN-1)` corresponds to the element types of `results`.
+  second set of input types `T0,..., TN-1` corresponds to the element types of
+  `inputs` and `init_values` respectively. The output types `(T0, ..., TN-1)`
+  corresponds to the element types of `results`.
   * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
   sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
