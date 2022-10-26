@@ -881,9 +881,14 @@ More formally, `result[result_index] = operand[operand_index]` where:
     implementation-defined.
 
 If `indices_are_sorted` is `true` then the implementation can assume that the
-user sorts the `operand_index`s in the same order the corresponding tensor
-elements are laid out in memory. The latter is decided by the `start_index_map`.
-If they are not, then the behavior is implementation-defined.
+generated `operand_index`-es are ordered: Given two operand indices
+`[..., id, ...]` and `[..., jd, ...]`, we say `[..., id, ...]` is ordered
+before `[..., jd, ...]` if `[..., i'd, ...]'` is lexicographically less that
+`[..., j'd, ...]'`
+where
+  * `i'd = i[start_index_map[d]]` and  `j'd = j[start_index_map[d]]`
+     if d $\in$ `start_index_map`.
+  *  `i'd = id` and  `j'd = jd`, otherwise.
 
 ### Inputs
 
@@ -906,54 +911,51 @@ If they are not, then the behavior is implementation-defined.
 
 ### Constraints
 
-  * On Inputs
-    * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
-           size(`collapsed_slice_dims`).
+  * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
+         size(`collapsed_slice_dims`).
 
-    * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
+  * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
 
-    * (C3) size(`start_index_map`) $=$
-           `index_vector_dim` $\lt$ rank(`start_indices`) ?
-           dim(`start_indices`, `index_vector_dim`) : 1.
+  * (C3) size(`start_index_map`) $=$
+         `index_vector_dim` $\lt$ rank(`start_indices`) ?
+         dim(`start_indices`, `index_vector_dim`) : 1.
 
-    * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
-           order.
+  * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
+         order.
 
-    * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
-           such that $0 \le$ i $\lt$ size(`offset_dims`).
+  * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
+         such that $0 \le$ i $\lt$ size(`offset_dims`).
 
-    * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
-           ascending order.
+  * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
+         ascending order.
 
-    * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
-            $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
+  * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
+          $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
 
-    * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
+  * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
 
-    * (C9) All dimensions in `start_index_map` are unique.
+  * (C9) All dimensions in `start_index_map` are unique.
 
-    * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
-           such that $0 \le$ i $\lt$ size(`start_index_map`).
+  * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
+         such that $0 \le$ i $\lt$ size(`start_index_map`).
 
-    * (C11) size(`slice_sizes`) $=$ rank(`operand`).
+  * (C11) size(`slice_sizes`) $=$ rank(`operand`).
 
-    * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
-            such that $0 \le$ i $\lt$ size(`slice_sizes`).
+  * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
+          such that $0 \le$ i $\lt$ size(`slice_sizes`).
+  * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
+          size(`offset_dims`), where
+          `effective_start_indices_rank` $=$
+          `index_vector_dim` $\lt$ rank(`start_indices`) ?
+          rank(`start_indices`) : rank(`start_indices`) + 1.
+  * (C14) `shape(result)` $=$ `concatenate(shape(start_indices), slice_sizes)`
+          except that:
+    * The dimension size of `start_indices` corresponding to
+      `index_vector_dim` is not included.
+    * The dimension sizes in `slice_sizes` corresponding to
+      `collapsed_slice_dims` are not included.
 
-  * On Outputs
-    * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
-            size(`offset_dims`), where
-            `effective_start_indices_rank` $=$
-            `index_vector_dim` $\lt$ rank(`start_indices`) ?
-            rank(`start_indices`) : rank(`start_indices`) + 1.
-    * (C14) `shape(result)` $=$ `concatenate(shape(start_indices), slice_sizes)`
-            except that:
-      * The dimension size of `start_indices` corresponding to
-        `index_vector_dim` is not included.
-      * The dimension sizes in `slice_sizes` corresponding to
-        `collapsed_slice_dims` are not included.
-
-    * (C15) `operand` and `result` have the same element type.
+  * (C15) `operand` and `result` have the same element type.
 
 ### Examples
 
