@@ -169,6 +169,38 @@ int64_t stridedBound(int64_t bound, int64_t windowSize, int64_t stride) {
   return (bound - windowSize) / stride + 1;
 }
 
+LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
+                              Value scale, int64_t feature_index) {
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  if (feature_index >= operandType.getRank())
+    return emitOptionalError(
+        location,
+        "expects feature_index to be smaller than the rank of "
+        "operand type; got feature_index ",
+        feature_index, ", and rank ", operandType.getRank(), ".");
+
+  if (feature_index < 0)
+    return emitOptionalError(location, "expects feature_index to be a ",
+                             "non-negative number, got ", feature_index, ".");
+
+  // Note: the above checks '0 <= feature-index < operandType.getRank()'
+  // imply 'operand_type.getRank() >= 1'.
+
+  const int64_t featureCount = operandType.getDimSize(feature_index);
+  const int64_t scaleShape =
+      scale.getType().cast<RankedTensorType>().getDimSize(0);
+  // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
+  // this also infers that featureCount is aligned with them.
+  if (scaleShape != featureCount)
+    return emitOptionalError(
+        location,
+        "expects the size of scale factor to be same as the "
+        "feature count, but the size of scale factor is ",
+        scaleShape, " and the feature count is ", featureCount, ".");
+
+  return success();
+}
+
 // Verifies various properties of window-attributes (viz., stride, padding,
 // lhs_dilation and rhs_dilation) and collects all the window-attributes for
 // each kernel spatial dimensions.
@@ -414,24 +446,16 @@ LogicalResult verifyReducerShape(
   return success();
 }
 
-// Returns output dimension size for slice result for the given arguments.
-// Returns ShapedType::kDynamicSize if arguments are illegal.
-static int64_t inferSliceDim(int64_t inputDim, int64_t start, int64_t end,
-                             int64_t stride) {
-  if (inputDim == ShapedType::kDynamicSize || start < 0 || start > end ||
-      end > inputDim || stride == 0)
-    return ShapedType::kDynamicSize;
-
-  return llvm::divideCeil(end - start, stride);
-}
-
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
 LogicalResult inferBatchNormGradOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
@@ -443,16 +467,22 @@ LogicalResult inferBatchNormGradOp(
 }
 
 LogicalResult inferBatchNormInferenceOp(
-    Value operand,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
 
 LogicalResult inferBatchNormTrainingOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
+    return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
 
@@ -817,11 +847,12 @@ LogicalResult inferMapOp(
   return success();
 }
 
-LogicalResult inferPadOp(
-    Optional<Location> location, Value operand, Value paddingValue,
-    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
-    DenseIntElementsAttr interiorPadding,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferPadOp(Optional<Location> location, Value operand,
+                         Value paddingValue,
+                         DenseIntElementsAttr edgePaddingLow,
+                         DenseIntElementsAttr edgePaddingHigh,
+                         DenseIntElementsAttr interiorPadding,
+                         SmallVectorImpl<Type>& inferredReturnTypes) {
   auto inputType = operand.getType().cast<RankedTensorType>();
   auto padType = paddingValue.getType().cast<RankedTensorType>();
 
@@ -831,32 +862,29 @@ LogicalResult inferPadOp(
                              "tensor, is rank ",
                              padType.getRank());
 
-  if (edgePaddingLow.getType().getNumElements() != inputType.getRank())
+  int64_t rank = inputType.getRank();
+  if (edgePaddingLow.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_low length (",
                              edgePaddingLow.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
-  if (edgePaddingHigh.getType().getNumElements() != inputType.getRank())
+  if (edgePaddingHigh.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_high length (",
                              edgePaddingHigh.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
-  if (interiorPadding.getType().getNumElements() != inputType.getRank())
+  if (interiorPadding.getType().getNumElements() != rank)
     return emitOptionalError(location, "interior_padding length (",
                              interiorPadding.getType().getNumElements(),
-                             ") must match operand rank (", inputType.getRank(),
-                             ")");
+                             ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
-  SmallVector<int64_t> resultShape;
-  for (int i = 0, e = inputShape.size(); i < e; i++) {
-    if (hlo::isDynamicDimSize(inputShape[i])) {
-      resultShape.push_back(ShapedType::kDynamicSize);
-      continue;
-    }
+  SmallVector<int64_t> resultShape(rank, ShapedType::kDynamicSize);
+  ArrayRef<int64_t> inputBounds = encodingToBounds(inputType.getEncoding());
+  SmallVector<int64_t> resultBounds(inputBounds.size(),
+                                    ShapedType::kDynamicSize);
 
+  for (int i = 0, e = inputShape.size(); i < e; i++) {
     int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
     int64_t paddingHighVal =
         edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
@@ -866,15 +894,27 @@ LogicalResult inferPadOp(
       return emitOptionalError(
           location,
           "Interior padding cannot be negative: ", paddingInteriorVal);
-    int64_t expectedOutput =
-        inputShape[i] + paddingLowVal + paddingHighVal +
-        std::max<int64_t>(inputShape[i] - 1, 0LL) * paddingInteriorVal;
-    if (expectedOutput < 0)
-      return emitOptionalError(
-          location, "Padding result in negative size for dimension ", i);
-    resultShape.push_back(expectedOutput);
+
+    bool isStaticDim = !hlo::isDynamicDimSize(inputShape[i]);
+    bool isStaticBound =
+        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+    if (isStaticDim || isStaticBound) {
+      int64_t operandSizeOrBound = isStaticDim ? inputShape[i] : inputBounds[i];
+      int64_t resultSizeOrBound =
+          operandSizeOrBound + paddingLowVal + paddingHighVal +
+          std::max<int64_t>(operandSizeOrBound - 1, 0LL) * paddingInteriorVal;
+
+      if (resultSizeOrBound < 0) {
+        auto sizeOrBound = isStaticDim ? "size" : "bound";
+        return emitOptionalError(location, "Padding result in negative ",
+                                 sizeOrBound, " for dimension ", i);
+      }
+      (isStaticDim ? resultShape : resultBounds)[i] = resultSizeOrBound;
+    }
   }
-  inferredReturnShapes.emplace_back(resultShape, inputType.getElementType());
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      resultShape, inputType.getElementType(),
+      boundsToEncoding(inputType.getEncoding(), resultBounds)));
 
   return success();
 }
@@ -1073,6 +1113,7 @@ LogicalResult inferReduceWindowOp(
 //  P2. Verify size(start_indices) == rank(operand).
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
+// Note: for P4, use the bound size than dim size for bounded dynamism case.
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
@@ -1111,26 +1152,30 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
   ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
-  SmallVector<int64_t, 4> shape;
-  shape.reserve(rank);
-  SmallVector<int64_t> resultBounds;
+  SmallVector<int64_t> shape(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> resultBounds(inputBounds.size(),
+                                    ShapedType::kDynamicSize);
+
   for (int64_t i = 0, e = rank; i != e; i++) {
-    if (!inputBounds.empty())
-      resultBounds.push_back(
-          inferSliceDim(inputBounds[i], start[i], limit[i], strideVals[i]));
-    if (hlo::isDynamicDimSize(rankedTy.getDimSize(i))) {
-      shape.push_back(ShapedType::kDynamicSize);
-      continue;
-    }
     // P3.
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
+
     // P4.
-    if (limit[i] > rankedTy.getDimSize(i))
-      return emitOptionalError(location, "limit index ", limit[i],
-                               " is larger than dimension size ",
-                               rankedTy.getDimSize(i), " in dimension ", i);
+    bool isStaticDim = !hlo::isDynamicDimSize(rankedTy.getDimSize(i));
+    bool isStaticBound =
+        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+    if (isStaticDim || isStaticBound) {
+      int64_t operandSizeOrBound =
+          isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
+      StringRef sizeOrBound = isStaticDim ? "size" : "bound";
+      if (limit[i] > operandSizeOrBound)
+        return emitOptionalError(location, "limit index ", limit[i],
+                                 " is larger than dimension ", sizeOrBound, " ",
+                                 operandSizeOrBound, " in dimension ", i);
+    }
+
     // P5.
     if (start[i] > limit[i])
       return emitOptionalError(location, "start index ", start[i],
@@ -1141,8 +1186,8 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
-    shape.push_back(inferSliceDim(rankedTy.getDimSize(i), start[i], limit[i],
-                                  strideVals[i]));
+    shape[i] = static_cast<int64_t>(
+        llvm::divideCeil(limit[i] - start[i], strideVals[i]));
   }
 
   inferredReturnTypes.push_back(RankedTensorType::get(

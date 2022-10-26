@@ -94,14 +94,18 @@ LogicalResult verifyReducerShape(
 // order in which they are declared in the ODS.
 
 LogicalResult inferBatchNormGradOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormInferenceOp(
-    Value operand, SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormTrainingOp(
-    Value operand, uint64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale,
+    uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
@@ -127,11 +131,12 @@ LogicalResult inferMapOp(
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferPadOp(
-    Optional<Location> location, Value operand, Value paddingValue,
-    DenseIntElementsAttr edgePaddingLow, DenseIntElementsAttr edgePaddingHigh,
-    DenseIntElementsAttr interiorPadding,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+LogicalResult inferPadOp(Optional<Location> location, Value operand,
+                         Value paddingValue,
+                         DenseIntElementsAttr edgePaddingLow,
+                         DenseIntElementsAttr edgePaddingHigh,
+                         DenseIntElementsAttr interiorPadding,
+                         SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,

@@ -165,6 +165,9 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding) {
 
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
   if (bounds.empty()) return prototype;
+  if (llvm::all_of(bounds,
+                   [&](auto b) { return b == ShapedType::kDynamicSize; }))
+    return {};
   if (!prototype)
     llvm::report_fatal_error(
         "Expect an prototype attribute to obtain the underlying dialect but "
