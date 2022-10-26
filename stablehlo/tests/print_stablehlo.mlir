@@ -241,6 +241,30 @@ func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @dimension_attr
+func.func @dimension_attr(%arg0 : tensor<1x2xf32>, %arg1 : tensor<3xi32>, %arg2 : tensor<3x4xi32>, %arg3 : tensor<i64>, %arg4 : tensor<8xf32>, %arg5 : tensor<f32>) -> () {
+  // CHECK:      %0 = stablehlo.broadcast_in_dim %arg0, dims = [0, 1] : (tensor<1x2xf32>) -> tensor<1x2x3xf32>
+  // CHECK-NEXT: %1 = stablehlo.broadcast %arg1, sizes = [1, 2] : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  // CHECK-NEXT: %2 = stablehlo.reverse %arg0, dims = [0, 1] : tensor<1x2xf32>
+  // CHECK-NEXT: %3 = stablehlo.transpose %arg0, dims = [1, 0] : (tensor<1x2xf32>) -> tensor<2x1xf32>
+  // CHECK-NEXT: %4 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  // CHECK-NEXT: %5 = stablehlo.pad %arg4, %arg5, low = [4], high = [4], interior = [0] : (tensor<8xf32>, tensor<f32>) -> tensor<16xf32>
+  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<1x2x3xf32>
+  %1 = "stablehlo.broadcast"(%arg1) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %2 = "stablehlo.reverse"(%arg0) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<1x2xf32>
+  %3 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0]> : tensor<2xi64>} : (tensor<1x2xf32>) -> tensor<2x1xf32>
+  %4 = "stablehlo.dynamic_slice"(%arg2, %arg3, %arg3) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %5 = "stablehlo.pad"(%arg4, %arg5) { edge_padding_high = dense<4> : tensor<1xi64>, edge_padding_low = dense<4> : tensor<1xi64>, interior_padding = dense<0> : tensor<1xi64>} : (tensor<8xf32>, tensor<f32>) -> tensor<16xf32>
+  "stablehlo.return"() : () -> ()
+}
+
+// CHECK-LABEL: func @fft_op
+func.func @fft_op(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
+  // CHECK: %0 = stablehlo.fft %arg0, type = FFT, length = [16] : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) {fft_type = #stablehlo<fft_type FFT>, fft_length = dense<16> : tensor<1xi64>} : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
+  func.return %0 : tensor<16xcomplex<f32>>
+}
+
 // CHECK-LABEL: func @extensions
 func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, -1]>>,
                 %arg1 : tensor<i32>) -> () {

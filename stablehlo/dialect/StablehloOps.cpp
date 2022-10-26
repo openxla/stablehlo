@@ -4263,6 +4263,8 @@ using mlir::hlo::printSelectOpType;
 using mlir::hlo::parseSelectOpType;
 using mlir::hlo::printTupleOpType;
 using mlir::hlo::parseTupleOpType;
+using mlir::hlo::printDenseI64Array;
+using mlir::hlo::parseDenseI64Array;
 using mlir::hlo::printExponentMantissa;
 using mlir::hlo::parseExponentMantissa;
 // clang-format on
@@ -4350,13 +4352,9 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
   dims.clear();
-  if (parser.parseLSquare()) return failure();
-  while (failed(parser.parseOptionalRSquare())) {
-    dims.emplace_back();
-    if (parser.parseInteger(dims.back())) return failure();
-    (void)parser.parseOptionalComma();
-  }
-  return success();
+  return parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+    return parser.parseInteger(dims.emplace_back());
+  });
 }
 
 static ParseResult parseDimsWithMinimumElements(AsmParser& parser,

@@ -277,12 +277,11 @@ func.func @sparse_reduce(%arg0: tensor<10xi64, #SV>) -> tensor<i64> {
 
 // CHECK-LABEL: func @sparse_transpose(
 //  CHECK-SAME: %[[A:.*]]: tensor<100x100xf64, #{{.*}}>) -> tensor<100x100xf64, #{{.*}}> {
-//       CHECK: %[[T:.*]] = "stablehlo.transpose"(%[[A]]) {{{.*}}} : (tensor<100x100xf64, #{{.*}}>) -> tensor<100x100xf64, #{{.*}}>
+//       CHECK: %[[T:.*]] = stablehlo.transpose %[[A]], dims = [1, 0] : (tensor<100x100xf64, #{{.*}}>) -> tensor<100x100xf64, #{{.*}}>
 //       CHECK: return %[[T]] : tensor<100x100xf64, #{{.*}}>
 func.func @sparse_transpose(%arg0: tensor<100x100xf64, #CSR>)
                                 -> tensor<100x100xf64, #DCSR> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0]> : tensor<2xi64>}
-     : (tensor<100x100xf64, #CSR>) -> tensor<100x100xf64, #DCSR>
+  %0 = stablehlo.transpose %arg0, dims = [1, 0] : (tensor<100x100xf64, #CSR>) -> tensor<100x100xf64, #DCSR>
   func.return %0 : tensor<100x100xf64, #DCSR>
 }
 

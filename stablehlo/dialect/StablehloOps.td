@@ -1493,6 +1493,13 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
     Extracts a sub-array from the input array at dynamic start_indices.
 
     See https://www.tensorflow.org/xla/operation_semantics#dynamicslice.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] 
+      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32> 
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -1502,6 +1509,12 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
 
   let results = (outs HLO_Tensor:$result);
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` custom<VariadicOperandWithAttribute>($start_indices) 
+      `sizes` `=` custom<DenseI64Array>($slice_sizes)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
@@ -1656,6 +1669,12 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
     BroadcastInDimOp.
 
     See https://www.tensorflow.org/xla/operation_semantics#broadcast.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.broadcast %arg1, sizes = [1, 2] : (tensor<3xi32>) -> tensor<1x2x3xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -1665,6 +1684,11 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
   let results = (outs HLO_Tensor);
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` `sizes` `=` custom<DenseI64Array>($broadcast_sizes)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
@@ -1678,10 +1702,9 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobroadcast_in_dim
 
     Example:
+
     ```mlir
-    %result = "stablehlo.broadcast_in_dim"(%operand) {
-      broadcast_dimensions = dense<[0, 1]>: tensor<2xi64>
-    } : (tensor<2x1xi32>) -> tensor<2x3x2xi32>
+    %0 = stablehlo.broadcast_in_dim %arg0, dims = [1, 2] : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
     ```
   }];
   let arguments = (ins
@@ -1692,6 +1715,11 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   let results = (outs HLO_StaticShapeTensor);
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions) 
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
@@ -1730,6 +1758,11 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
   ];
 
   let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $operand `,` $output_dimensions `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 // Note: There is no HLO_CallOp because the standard call operation mlir::func::CallOp
@@ -2096,6 +2129,12 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
 
     See
     https://www.tensorflow.org/xla/operation_semantics#fft.
+
+    Example:
+
+    ```mlir
+    %0 = stablehlo.fft %arg0, type = RFFT, length = [9] : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2104,6 +2143,11 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   );
 
   let results = (outs HLO_Tensor);
+
+  let assemblyFormat = [{
+    $operand `,` `type` `=` $fft_type `,` `length` `=` custom<DenseI64Array>($fft_length)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]> {
@@ -2398,9 +2442,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
 
     Example:
     ```mlir
-    %result = "stablehlo.reverse"(%operand) {
-      dimensions = dense<1> : tensor<i64>
-    } : (tensor<3x2xi32>) -> tensor<3x2xi32>
+    %0 = stablehlo.reverse %arg0, dims = [1] : tensor<3x2xi32>
     ```
   }];
   let arguments = (ins
@@ -2408,7 +2450,12 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
     I64ElementsAttr:$dimensions
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_Tensor:$result);
+
+  let assemblyFormat = [{
+    $operand `,` `dims` `=` custom<DenseI64Array>($dimensions)
+      attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
+  }];
 }
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
@@ -2424,11 +2471,8 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
 
     Example:
     ```mlir
-    %result = "stablehlo.pad"(%operand, %padding_value) {
-      edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-      edge_padding_high = dense<[2, 1]> : tensor<2xi64>,
-      interior_padding = dense<[1, 2]> : tensor<2xi64>
-    } : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
+    %0 = stablehlo.pad %arg0, %arg1, low = [0, 1], high = [2, 1], interior = [1, 2]
+      : (tensor<2x3xi32>, tensor<i32>) -> tensor<5x9xi32>
     ```
   }];
   let arguments = (ins
@@ -2440,6 +2484,14 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   );
 
   let results = (outs HLO_Tensor);
+
+  let assemblyFormat = [{
+    $operand `,` $padding_value `,` 
+      `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
+      `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
+      `interior` `=` custom<DenseI64Array>($interior_padding)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
@@ -2473,9 +2525,7 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
 
     Example:
     ```mlir
-    %result = "stablehlo.transpose"(%operand) {
-      permutation = dense<[2, 1, 0]> : tensor<3xi64>
-    } : (tensor<2x3x2xi32>) -> tensor<2x3x2xi32>
+    %0 = stablehlo.transpose %arg0, dims = [2, 1, 0] : (tensor<1x2x3xi32>) -> tensor<3x2x1xi32>
     ```
   }];
   let arguments = (ins
@@ -2483,6 +2533,11 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
     I64ElementsAttr:$permutation
   );
   let results = (outs HLO_Tensor);
+
+  let assemblyFormat = [{
+    $operand `,` `dims` `=` custom<DenseI64Array>($permutation)
+      attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",

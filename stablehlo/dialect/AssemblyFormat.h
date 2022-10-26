@@ -143,6 +143,24 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 // Attribute Printers and Parsers
 //===----------------------------------------------------------------------===//
 
+// DenseI64Array - Used to print DenseIntElementsAttrs that are verified to have
+// rank 1 as an i64 array without needing the dense specifier or type specifier.
+//
+//   Generic:
+//     { dense<[1, 2]> : tensor<2xi64> }
+//   Custom:
+//     [1, 2]
+void printDenseI64Array(OpAsmPrinter& p, Operation* op,
+                        DenseIntElementsAttr attr);
+
+ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
+
+// ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
+//
+//   Generic:
+//     {exponent = 5 : i32, mantissa = 10 : i32}
+//   Custom:
+//     e5m10
 void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
                            IntegerAttr mantissa);
 
