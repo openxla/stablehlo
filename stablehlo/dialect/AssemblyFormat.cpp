@@ -188,14 +188,6 @@ ParseResult parseVariadicOperandWithAttribute(
 // Operation Printers and Parsers
 //===----------------------------------------------------------------------===//
 
-// ComplexOpType - only print result type if the inferred complex type
-// matches all operand types.
-//
-// Inferring operand types for complex ops:
-//  %0 = stablehlo.complex %1, %2 : tensor<4xcomplex<f32>>
-//    %0 : tensor<4xcomplex<f32>>
-//    %1 : tensor<4xf32>
-//    %2 : tensor<4xf32>
 void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
                         Type result) {
   Type realType = createRealType(result.cast<TensorType>());
