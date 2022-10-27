@@ -354,8 +354,8 @@ logical operation.
 ### Semantics
 
 Normalizes the `operand` tensor across batch and spatial dimensions, using
-`mean` and `variance` provided in input, for each feature in the `feature_index`
-dimension and produces a `result` tensor. Refer the
+`mean` and `variance`, for each feature in the `feature_index` dimension and
+produces a `result` tensor. Refer the
 [Batch Normalization Paper](https://arxiv.org/abs/1502.03167) for the detailed
 algorithm.
 
@@ -392,7 +392,7 @@ algorithm.
 ```mlir
 // %operand: [
 //            [[1.0, 2.0], [3.0, 4.0]],
-//            [[5.0, 6.0], [7.0, 8.0]],
+//            [[5.0, 6.0], [7.0, 8.0]]
 //           ]
 // %scale: [2.0, 2.0]
 // %offset: [2.0, 2.0]
@@ -404,7 +404,7 @@ algorithm.
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
 // %result: [
 //            [[2.0, 3.0], [4.0, 5.0]],
-//            [[6.0, 7.0], [8.0, 9.0]],
+//            [[6.0, 7.0], [8.0, 9.0]]
 //          ]
 ```
 

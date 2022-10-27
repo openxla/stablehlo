@@ -1596,8 +1596,8 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
   let summary = "Batch Normalization for Inference";
   let description = [{
     Normalizes the `operand` tensor across batch and spatial dimensions, using
-    `mean` and `variance` provided in input, for each feature in the
-    `feature_index` dimension and produces a `result` tensor.
+    `mean` and `variance`, for each feature in the `feature_index` dimension and
+    produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_inference
