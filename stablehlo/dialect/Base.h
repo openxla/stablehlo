@@ -54,12 +54,12 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 // Infer single most specific return type from inputTypes with support for
 // bounds. (Size, bound) of each dimension of the return type will be inferred
 // from corresponding dimensions of every inputType by merging them. If
-// `concatenateDims` is set, then the dimensions in `concatenateDims` will be
+// `concatenateDim` is set other than default -1, then that dimensions will be
 // concatenated into return type instead.
-LogicalResult inferMostSpecificType(
-    Optional<Location> location, ValueTypeRange<ValueRange> inputTypes,
-    SmallVectorImpl<Type> &inferredReturnTypes,
-    const SmallVector<int64_t> &concatenateDims = {});
+LogicalResult inferMostSpecificType(Optional<Location> location,
+                                    ValueTypeRange<ValueRange> inputTypes,
+                                    SmallVectorImpl<Type> &inferredReturnTypes,
+                                    int64_t concatenateDim = -1);
 
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form

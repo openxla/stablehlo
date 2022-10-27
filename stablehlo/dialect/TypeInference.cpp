@@ -583,7 +583,7 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
   }
 
   return inferMostSpecificType(location, inputs.getTypes(), inferredReturnTypes,
-                               {dimension});
+                               dimension);
 }
 
 LogicalResult inferDotGeneralOp(
