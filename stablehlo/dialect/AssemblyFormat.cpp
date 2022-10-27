@@ -286,12 +286,12 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser,
                                DenseIntElementsAttr& attr) {
-  DenseI64ArrayAttr arrayAttr =
-      DenseI64ArrayAttr::parse(parser, Type{}).dyn_cast<DenseI64ArrayAttr>();
-  if (!arrayAttr) {
+  Attribute parsedAttr = DenseI64ArrayAttr::parse(parser, Type{});
+  if (!parsedAttr) {
     return failure();
   }
 
+  auto arrayAttr = parsedAttr.dyn_cast<DenseI64ArrayAttr>();
   ArrayRef<int64_t> data = arrayAttr.asArrayRef();
   RankedTensorType type =
       RankedTensorType::get(data.size(), parser.getBuilder().getI64Type());
