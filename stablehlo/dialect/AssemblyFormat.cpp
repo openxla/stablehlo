@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
@@ -286,8 +287,8 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser,
                                DenseIntElementsAttr& attr) {
-  DenseI64ArrayAttr arrayAttr =
-      DenseI64ArrayAttr::parse(parser, Type{}).dyn_cast<DenseI64ArrayAttr>();
+  DenseI64ArrayAttr arrayAttr = DenseI64ArrayAttr::parse(parser, Type{})
+                                    .dyn_cast_or_null<DenseI64ArrayAttr>();
   if (!arrayAttr) {
     return failure();
   }
