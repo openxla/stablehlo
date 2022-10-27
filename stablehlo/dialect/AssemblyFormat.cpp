@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
@@ -286,12 +287,12 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser,
                                DenseIntElementsAttr& attr) {
-  Attribute parsedAttr = DenseI64ArrayAttr::parse(parser, Type{});
-  if (!parsedAttr) {
+  DenseI64ArrayAttr arrayAttr = DenseI64ArrayAttr::parse(parser, Type{})
+                                    .dyn_cast_or_null<DenseI64ArrayAttr>();
+  if (!arrayAttr) {
     return failure();
   }
 
-  auto arrayAttr = parsedAttr.dyn_cast<DenseI64ArrayAttr>();
   ArrayRef<int64_t> data = arrayAttr.asArrayRef();
   RankedTensorType type =
       RankedTensorType::get(data.size(), parser.getBuilder().getI64Type());
