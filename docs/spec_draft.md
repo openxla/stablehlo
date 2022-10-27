@@ -4407,23 +4407,25 @@ def sign(x):
 // %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 =======
 // %operand: [[1, 5], [2, 6], [3, 5], [4, 4]]
+=======
+>>>>>>> 49c5cf5 (Iteration 1 : Addressed review comments)
 // %source: [[5, 6], [7, 8]]
 // %init_value: 0
 %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %1 = "stablehlo.compare"(%arg3, %arg4) {
-          comparison_direction = #stablehlo<comparison_direction GE>
-        } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
-        "stablehlo.return"(%1) : (tensor<i1>) -> ()
-    }, {
-      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %1 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
-        "stablehlo.return"(%1) : (tensor<ui32>) -> ()
-    }) {
-      window_dimensions = dense<[3, 1]> : tensor<2xi64>,
-      window_strides = dense<[2, 1]> : tensor<2xi64>,
-      padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-    } : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
+  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
+    %0 = "stablehlo.compare"(%arg3, %arg4) {
+      comparison_direction = #stablehlo<comparison_direction GE>
+    } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+    "stablehlo.return"(%0) : (tensor<i1>) -> ()
+}, {
+  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
+    %0 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
+    "stablehlo.return"(%0) : (tensor<ui32>) -> ()
+}) {
+  window_dimensions = dense<[3, 1]> : tensor<2xi64>,
+  window_strides = dense<[2, 1]> : tensor<2xi64>,
+  padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
+} : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 >>>>>>> d5d8398 (spec for select_and_scatter)
 ```
