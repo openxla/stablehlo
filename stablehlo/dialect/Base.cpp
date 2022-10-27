@@ -44,7 +44,7 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
     if (shape.empty() || !boundedAttr) return true;
     auto bounds = boundedAttr.getBounds();
     for (auto [dim_size, bound] : llvm::zip(shape, bounds))  // NOLINT
-      if (bound != ShapedType::kDynamicSize && bound < dim_size) return false;
+      if (!isDynamicDimSize(bound) && bound < dim_size) return false;
     return true;
   };
 
@@ -165,8 +165,7 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding) {
 
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
   if (bounds.empty()) return prototype;
-  if (llvm::all_of(bounds,
-                   [&](auto b) { return b == ShapedType::kDynamicSize; }))
+  if (llvm::all_of(bounds, [&](auto b) { return isDynamicDimSize(b); }))
     return {};
   if (!prototype)
     llvm::report_fatal_error(
@@ -187,8 +186,8 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
 static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
     int64_t leftSize, int64_t rightSize, int64_t leftBound,
     int64_t rightBound) {
-  bool isLeftStaticDim = leftSize != ShapedType::kDynamicSize;
-  bool isRightStaticDim = rightSize != ShapedType::kDynamicSize;
+  bool isLeftStaticDim = !isDynamicDimSize(leftSize);
+  bool isRightStaticDim = !isDynamicDimSize(rightSize);
   int64_t size = ShapedType::kDynamicSize;
   int64_t bound = ShapedType::kDynamicSize;
 
@@ -197,8 +196,8 @@ static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
   } else {
     int64_t leftSizeOrBound = isLeftStaticDim ? leftSize : leftBound;
     int64_t rightSizeOrBound = isRightStaticDim ? rightSize : rightBound;
-    if (leftSizeOrBound != ShapedType::kDynamicSize &&
-        rightSizeOrBound != ShapedType::kDynamicSize)
+    if (!isDynamicDimSize(leftSizeOrBound) &&
+        !isDynamicDimSize(rightSizeOrBound))
       bound = leftSizeOrBound + rightSizeOrBound;
   }
   return std::make_pair(size, bound);
@@ -217,8 +216,8 @@ static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
 FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
-  bool isLeftStaticDim = leftSize != ShapedType::kDynamicSize;
-  bool isRightStaticDim = rightSize != ShapedType::kDynamicSize;
+  bool isLeftStaticDim = !isDynamicDimSize(leftSize);
+  bool isRightStaticDim = !isDynamicDimSize(rightSize);
   if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
     return emitOptionalError(location, "Mismatch dimension size ", leftSize,
                              " and ", rightSize, " in dimension ", dim);
@@ -227,8 +226,8 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
                ? std::make_pair(leftSize, ShapedType::kDynamicSize)
                : std::make_pair(rightSize, ShapedType::kDynamicSize);
 
-  bool isLeftStaticBound = leftBound != ShapedType::kDynamicSize;
-  bool isRightStaticBound = rightBound != ShapedType::kDynamicSize;
+  bool isLeftStaticBound = !isDynamicDimSize(leftBound);
+  bool isRightStaticBound = !isDynamicDimSize(rightBound);
   if (isLeftStaticBound && isRightStaticBound)
     return std::make_pair(ShapedType::kDynamicSize,
                           std::min(leftBound, rightBound));

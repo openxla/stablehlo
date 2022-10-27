@@ -42,6 +42,12 @@ limitations under the License.
 namespace mlir {
 namespace hlo {
 
+// TODO(zhouxin) change to a better name as it's used by both of size and bound
+// Check if the dimension size is dynamic.
+inline static bool isDynamicDimSize(int64_t val) {
+  return val == ShapedType::kDynamicSize;
+}
+
 // Returns true if the given types are the same for the purposes of HLO type
 // inference, accounting for special properties of quantization and sparsity.
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);

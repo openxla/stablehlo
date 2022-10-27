@@ -32,11 +32,6 @@ namespace hlo {
 //===----------------------------------------------------------------------===//
 // TODO(#270): Remove them when all shape functions are moved to this file.
 
-// Check if the dimension size is dynamic.
-inline static bool isDynamicDimSize(int64_t val) {
-  return val == ShapedType::kDynamicSize;
-}
-
 bool compatibleShapeAndElementType(Type type1, Type type2,
                                    bool ignoreFpPrecision = false);
 
