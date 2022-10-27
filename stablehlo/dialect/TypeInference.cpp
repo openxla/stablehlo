@@ -131,6 +131,22 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
   return out;
 }
 
+// Convert a 1D dense bool attribute to a list of values.
+FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
+    Optional<DenseElementsAttr> optionalAttr, Optional<Location> loc,
+    StringRef attrName) {
+  if (!optionalAttr.has_value()) return SmallVector<bool>{};
+
+  DenseElementsAttr attr = *optionalAttr;
+  auto attrType = attr.getType().cast<RankedTensorType>();
+  if (attrType.getRank() != 1)
+    return emitOptionalError(loc, "expects the shape of ", attrName,
+                             " attribute to be 1-D, but got {",
+                             attrType.getShape(), "}.");
+  auto values = attr.getValues<bool>();
+  return SmallVector<bool>{values.begin(), values.end()};
+}
+
 // If a window with the given bound in some dimension is dilated with the given
 // dilation factor in that dimension, then the value returned is the bound for
 // the array in that dimension after dilation.
@@ -212,7 +228,7 @@ verifyWindowAttributesAndInferWindowDimensions(
     ArrayRef<int64_t> windowDimensions, ArrayRef<int64_t> windowStrides,
     ArrayRef<std::pair<int64_t, int64_t>> padding,
     ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
-    Optional<Location> loc) {
+    ArrayRef<bool> windowReversal, Optional<Location> loc) {
   const auto verifySize = [&](const size_t attrSize,
                               StringRef attrName) -> LogicalResult {
     if (attrSize == 0 || attrSize == windowDimensions.size()) return success();
@@ -229,6 +245,8 @@ verifyWindowAttributesAndInferWindowDimensions(
   if (failed(verifySize(rhsDilation.size(), "window-dilation factors")))
     return failure();
   if (failed(verifySize(padding.size(), "padding-entries"))) return failure();
+  if (failed(verifySize(windowReversal.size(), "window-reversal")))
+    return failure();
 
   SmallVector<WindowDimension> window(windowDimensions.size());
   for (size_t i = 0; i < windowDimensions.size(); i++) {
@@ -564,7 +582,9 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
     Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding, SmallVector<int64_t>& windowDims,
+    Optional<DenseIntElementsAttr> padding,
+    Optional<DenseElementsAttr> windowReversal,
+    SmallVector<int64_t>& windowDims,
     SmallVector<WindowDimension>& inferredWindow) {
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputArgTypes.size();
@@ -616,10 +636,14 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   auto windowDilationsOrErr =
       convert1DAttribute(windowDilations, location, "window_dilations");
   if (failed(windowDilationsOrErr)) return failure();
+  auto windowReversalOrErr = convertWindowReversalAttribute(
+      windowReversal, location, "window_reversal");
+  if (failed(windowReversalOrErr)) return failure();
+
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/*baseDilationsOrErr,
-      /*rhsDilation=*/*windowDilationsOrErr, location);
+      /*rhsDilation=*/*windowDilationsOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
 
   windowDims.append(*windowDimsOrErr);
@@ -1595,8 +1619,8 @@ LogicalResult verifyReduceWindowOp(
   SmallVector<WindowDimension> inferredWindow;
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
-          windowStrides, baseDilations, windowDilations, padding, windowDims,
-          inferredWindow)))
+          windowStrides, baseDilations, windowDilations, padding,
+          /*windowReversal=*/llvm::None, windowDims, inferredWindow)))
     return failure();
 
   // P4.

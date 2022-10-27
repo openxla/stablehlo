@@ -396,6 +396,7 @@ syntax.
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
+   * [convolution](#stablehloconvolution)
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
@@ -1811,6 +1812,252 @@ Produces an `output` tensor from a constant `value`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.convolution
+
+### Semantics
+
+Computes a convolution of input `lhs` tensor using kernel `rhs` tensor and
+produces `result` tensor. Informally, the operation "slides" the kernel `rhs`
+over input `lhs`, performing an elementwise multiplication with the part of the
+input it is currently on, and then summing up the results into a single output
+`result`.
+
+<img align="center" src="spec_draft/convolution1.svg" />
+
+The following diagram exemplifies a case when
+dim(`lhs`, `input_batch_dimension`), dim(`rhs`, `input_feature_dimension`), and
+dim(`rhs`, `kernel_output_feature_dimension`) are all greater than one.
+
+<img align="center" src="spec_draft/convolution2.svg" />
+
+Given a `result` index `result_index`, the following pseudo-code finds all the
+`lhs` and `rhs` index pairs, `lhs_full_index` and `rhs_full_index` resp.,
+responsible in computing the value at `result_index` using dot product.
+
+```python
+value = 0;
+foreach rhs spatial index [k0, k1, ...]
+  ##
+  ## Compute the components in lhs_full_index at spatial indices.
+  ##
+  i0' = result_index[output_spatial_dimension[0]] * window_strides[0] - padding[0][0] + k0 * rhs_dilation[0]
+  i0 = base_dilations[0] > 1 ? i0' / base_dilations[0]
+
+  i1' = result_index[output_spatial_dimension[1]] * window_strides[1] - padding[1][0] + k1 * rhs_dilation[1]
+  i1 = base_dilations[1] > 1 ? i1' / base_dilations[1]
+
+  ... omiting similar logic for other spatial dimensions ...
+
+  if i0' % lhs_dilation[0] != 0 or i0 not in bounds of dim(lhs, 0), then skip [k0, k1]
+  if i1' % lhs_dilation[1] != 0 or i1 not in bounds of dim(lhs, 1), then skip [k0, k1]
+  ... omiting similar logic for other spatial dimensions ...
+
+  lhs_full_index[input_spatial_dimension] = [i0, i1, ...]
+
+  ##
+  ## Compute the components in rhs_full_index at spatial indices.
+  ##
+  rhs_full_index[kernel_spatial_dimension] = [
+    window_reversal[0] ? dim(rhs, kernel_spatial_dimension[0]) - 1 - k0 : k0,
+    window_reversal[1] ? dim(rhs, kernel_spatial_dimension[1]) - 1 - k1 : k1
+    ... omiting similar logic for other spatial dimensions ...
+  ]
+
+  input_feature_group_size = dim(lhs, input_feature_dimension) / feature_group_count.
+  foreach rhs_iz in [0, input_feature_group_size)
+    ##
+    ## Compute the components in lhs_full_index at input_batch_dimension  and input_feature_dimension.
+    ##
+    lhs_full_index[input_batch_dimension] = result_index[output_batch_dimension] + ((batch_group_index * batch_group_size) % input_batch_size)
+      where
+        batch_group_size = input_batch_size / batch_group_count
+        input_batch_size = dim(lhs, input_batch_dimension)
+        batch_group_index = result_index[output_feature_dimension] / depthwise_multiplier
+        depthwise_multiplier = batch_group_count > 1 ? dim(rhs, kernel_output_feature_dimension) / input_batch_size : 1
+
+    lhs_full_index[input_feature_dimension] = rhs_iz + feature_group_index * input_feature_group_size
+      where
+        feature_group_index = result_index[output_feature_dimension] / output_feature_group_size
+        output_feature_group_size = dim(rhs, kernel_output_feature_dimension) / feature_group_count
+
+    ##
+    ## Compute the components in rhs_full_index at kernel_input_feature_dimension and kernel_output_feature_dimension.
+    ##
+    rhs_full_index[kernel_input_feature_dimension] = rhs_iz
+
+    rhs_full_index[kernel_output_feature_dimension] = result_index[output_feature_dimension]
+
+    ##
+    ## Accumulate value to be stored in result at 'result_index'.
+    ##
+    value += rhs[rhs_full_index] * lhs[lhs_full_index]
+
+  result[result_index] = value
+```
+
+The `precision_config` values have the following semantics.
+  * `DEFAULT`: Fastest mode, but least accurate. Performs computations in
+             bfloat16.
+  * `HIGH`: Slower but more accurate. Performs float32 computations in 3 bfloat16
+          passes, or using tensorfloat32 where available.
+  * `HIGHEST`: Slowest but most accurate. Performs computations in float32 or
+             float64 as applicable.
+
+### Inputs
+
+| Name                              | Type                                              | Constraints                                        |
+|-----------------------------------|---------------------------------------------------|----------------------------------------------------|
+| `lhs`                             | tensor of any supported type                      | (C1), (C6), (C7), (C11), (C14), (C15)              |
+| `rhs`                             | tensor of any supported type                      | (C1), (C7), (C8), (C9), (C10), (C12), (C13), (C14) |
+| `window_strides`                  | 1-dimensional tensor constant of type `si64`      | (C9), (C14)                                        |
+| `padding`                         | 2-dimensional tensor constant of type `si64`      | (C10), (C14)                                       |
+| `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`      | (C11), (C14)                                       |
+| `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`      | (C12), (C14)                                       |
+| `window_reversal`                 | 1-dimensional tensor constant of type `boolean`   | (C13)                                              |
+| `input_batch_dimension`           | constant of type `si64`                           | (C2), (C6), (C14)                                  |
+| `input_feature_dimension`         | constant of type `si64`                           | (C2), (C7)                                         |
+| `input_spatial_dimension`         | 1-dimensional tensor constant of type `si64`      | (C1), (C2), (C14)                                  |
+| `kernel_input_feature_dimension`  | constant of type `si64`                           | (C3)                                               |
+| `kernel_output_feature_dimension` | constant of type `si64`                           | (C3), (C8), (C14)                                  |
+| `kernel_spatial_dimension`        | 1-dimensional tensor constant of type `si64`      | (C1), (C3), (C14)                                  |
+| `output_batch_dimension`          | constant of type `si64`                           | (C4), (C6), (C14)                                  |
+| `output_feature_dimension`        | constant of type `si64`                           | (C4),  (C14)                                       |
+| `output_spatial_dimension`        | 1-dimensional tensor constant of type `si64`      | (C1), (C4), (C14)                                  |
+| `feature_group_count`             | constant of type `si64`                           | (C5), (C6), (C8)                                   |
+| `batch_group_count`               | constant of type `si64`                           | (C5), (C6), (C8), (C14)                            |
+| `precision_config`                | array of enum of `DEFAULT`, `HIGH`, and `HIGHEST` |                                                    |
+
+
+### Outputs
+
+| Name     | Type                         |      Constraints         |
+|----------|------------------------------|--------------------------|
+| `result` | tensor of any supported type | (C1), (C6), (C14), (C15) |
+
+### Constraints
+
+  * (C1) N $=$ rank(`lhs`) $=$ rank(`rhs`) $=$ rank(`result` ) and N $=$ S + 2,
+    where S $=$ size(`input_spatial_dimension`) $=$
+    size(`kernel_spatial_dimension`) $=$ size(`output_spatial_dimension`).
+
+  * (C2) Given `input_dimensions = {input_batch_dimension} +
+    input_spatial_dimension + {input_feature_dimension}`, where `+` is list
+    concatenation.
+    * All dimensions in `input_dimensions` are unique.
+    * For any i $\in$ `input_dimensions`, 0 $\le$ i $\lt$ N.
+
+  * (C3) Given `kernel_dimensions = {kernel_input_feature_dimension} +
+    kernel_spatial_dimension + {kernel_output_feature_dimension}`, where `+`
+    is list concatenation.
+    * All dimensions in `kernel_dimensions` are unique.
+    * For any i $\in$ `kernel_dimensions`, 0 $\le$ i $\lt$ N.
+
+  * (C4) Given `output_dimensions = {output_batch_dimension} +
+    output_spatial_dimension + {output_feature_dimension}`, where `+`
+    is list concatenation.
+    * All dimensions in `output_dimensions` are unique.
+    * For any i $\in$ `output_dimensions`, 0 $\le$ i $\lt$ N.
+
+  * (C5) `feature_group_count > 0 and batch_group_count > 0 and
+    not(feature_group_count > 1 && batch_group_count > 1)`.
+
+  * (C6) `dim(lhs, input_batch_dimension) % batch_group_count = 0` and
+    `dim(lhs, input_batch_dimension) / batch_group_count = dim(result, output_batch_dimension)`.
+
+  * (C7) `dim(lhs, input_feature_dimension) % feature_group_count = 0 and
+    dim(lhs, input_feature_dimension) / feature_group_count = dim(rhs, kernel_input_feature_dimension)`.
+
+  * (C8) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0
+    and dim(rhs, kernel_output_feature_dimension) % feature_group_count
+    = 0`.
+
+  * (C9) On `window_strides` (optional)
+    * Default value of 1 for each dimension of `rhs`.
+    * size(`window_strides`) $=$ S.
+    * `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
+
+  * (C10) On `padding`(optional)
+    * Default value of (0,0) for each dimension of `rhs`.
+    * dim(`padding`, 0) $=$ S and dim(`padding`, 1) = 2.
+
+  * (C11) On `lhs_dilation` (optional)
+    * Default value of 1 for each spatial dimension of `lhs`.
+    * size(`lhs_dilation`) $=$ S.
+    * `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
+
+  * (C12) On `rhs_dilation` (optional)
+    * Default value of 1 for each spatial dimension of `rhs`.
+      [0, N).
+    * size(`rhs_dilation`) $=$ S.
+    * `rhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`rhs_dilation`)).
+
+  * (C13) On `window_reversal` (optional)
+    * Default value of false for each dimension of `rhs`.
+    * size(`window_reversal`) $=$ S.
+
+  * (C14) Shape of `result`
+    * For k $\in$ [0, N), `dim(result, k)` is given by
+      * `dim(lhs, input_batch_dimension) / batch_group_count`, if `k =  output_batch_dimension`.
+      * `dim(rhs, kernel_output_feature_dimension)`, if `k =  output_feature_dimension`.
+      * `strided_bound[i]`, otherwise,
+          * `output_spatial_dimension[i] = k`.
+          * `strided_bound[i] = (padded_dilated_base[i] == 0 || dilated_window[i] > padded_dilated_base[i]) ? 0 : floor((padded_dilated_base[i] - dilated_window[i]) / window_strides[i]) + 1`.
+          * `padded_dilated_base[i] = padding[i][0] + dilated_base[i] + padding[i][1]`.
+          * `dilated_base[i] = base[i] = 0 ? 0 : (base[i] - 1) * lhs_dilation[i] + 1`.
+          * `base[i] = dim(lhs, input_spatial_dimension[i])`.
+          * `dilated_window[i] = window[i] = 0 ? 0 : (window[i] - 1) * rhs_dilation[i] + 1`.
+          * `window[i] = dim(rhs, kernel_spatial_dimension[i])`.
+
+  * (C15) element-type(`lhs`) $=$ element-type(`result`).
+
+  * C(TBD) dim(`rhs`, `kernel_output_feature_dimension`) % dim(`lhs`, `input_batch_dimension`) $=$ 0.
+
+  * C(TBD) The size of `precision_config` array.
+
+
+
+### Examples
+
+```mlir
+// %lhs: [[
+//        [
+//          [1], [2], [5], [6]
+//        ],
+//        [
+//          [3], [4], [7], [8]
+//        ],
+//        [
+//          [10], [11], [14], [15]
+//        ],
+//        [
+//          [12], [13], [16], [17]
+//        ]
+//      ]]
+//
+// %rhs : [
+//         [[[1]], [[1]], [[1]]],
+//         [[[1]], [[1]], [[1]]],
+//         [[[1]], [[1]], [[1]]]
+//        ]
+%result = "stablehlo.convolution"(%lhs, %rhs) {
+  window_strides = dense<4> : tensor<2xi64>,
+  padding = dense<0> : tensor<2x2xi64>,
+  lhs_dilation = dense<2> : tensor<2xi64>,
+  rhs_dilation = dense<1> : tensor<2xi64>,
+  window_reversal = dense<false> : tensor<2xi1>,
+  dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+  feature_group_count = 1 : i64,
+  batch_group_count = 1 : i64,
+  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+} : (tensor<1x4x4x1xui8>, tensor<3x3x1x1xui8>) -> tensor<1x2x2x1xui8>
+// %result: [[
+//            [[[10]], [26]],
+//            [[46], [62]]
+//          ]]
+```
 
 [Back to Ops](#index-of-ops)
 
