@@ -355,56 +355,9 @@ logical operation.
 
 Normalizes the `operand` tensor across batch and spatial dimensions, using
 `mean` and `variance` provided in input, for each feature in the `feature_index`
-dimension and produces a `result` tensor. More formally, the semantics can be
-expressed using MLIR syntax as follows:
-
-```mlir
-func.func @upsize(%0: tensor<3xf32>) -> tensor<2x2x3x2xf32> {
-  %1 = "stablehlo.broadcast_in_dim"(%0){
-    broadcast_dimensions = dense<[2]> : tensor<1xi64>
-  } : (tensor<3xf32>) -> tensor<2x2x3x2xf32>
-  func.return %1 : tensor<2x2x3x2xf32>
-}
-
-func.func @batch_norm_inference_core(
-    %operand: tensor<2x2x3x2xf32>,
-    %scale: tensor<2x2x3x2xf32>,
-    %offset: tensor<2x2x3x2xf32>,
-    %mean: tensor<2x2x3x2xf32>,
-    %variance: tensor<2x2x3x2xf32>,
-    %epsilon: tensor<2x2x3x2xf32>
-  ) -> tensor<2x2x3x2xf32> {
-  %0 = "stablehlo.subtract"(%operand, %mean) : (tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  %1 = "stablehlo.add"(%variance, %epsilon) : (tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  %2 = "stablehlo.rsqrt"(%1) : (tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  %3 = "stablehlo.multiply"(%0, %2) : (tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  %4 = "stablehlo.multiply"(%3, %scale) : (tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  %5 = "stablehlo.add"(%4, %offset) : (tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  func.return %5 : tensor<2x2x3x2xf32>
-}
-
-func.func @batch_norm_inference(
-    %operand: tensor<2x2x3x2xf32>,
-    %scale: tensor<3xf32>,
-    %offset: tensor<3xf32>,
-    %mean: tensor<3xf32>,
-    %variance: tensor<3xf32>,
-    %epsilon: tensor<f32>,
-    %feature_dimension: tensor<i64>
-  ) -> tensor<2x2x3x2xf32> {
-  // Assuming %feature_index = 2
-  %0 = func.call @upsize(%scale) : (tensor<3xf32>) -> tensor<2x2x3x2xf32>
-  %1 = func.call @upsize(%offset) : (tensor<3xf32>) -> tensor<2x2x3x2xf32>
-  %2 = func.call @upsize(%mean) : (tensor<3xf32>) -> tensor<2x2x3x2xf32>
-  %3 = func.call @upsize(%variance) : (tensor<3xf32>) -> tensor<2x2x3x2xf32>
-  %4 = "stablehlo.broadcast_in_dim"(%epsilon){
-    broadcast_dimensions = dense<[]> : tensor<0xi64>
-  } : (tensor<f32>) -> tensor<2x2x3x2xf32>
-  %5 = func.call @batch_norm_inference_core(%operand, %0, %1, %2, %3, %4) : (
-    tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>, tensor<2x2x3x2xf32>) -> tensor<2x2x3x2xf32>
-  func.return %5 : tensor<2x2x3x2xf32>
-}
-```
+dimension and produces a `result` tensor. Refer the
+[Batch Normalization Paper](https://arxiv.org/abs/1502.03167) for the detailed
+algorithm.
 
 ### Inputs
 
@@ -427,10 +380,12 @@ func.func @batch_norm_inference(
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
-  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
-  * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
-  * (C5) size(`variance`) $=$ `dim(operand, feature_index)`.
+  * (C2) 0 $\lt$ rank(`operand`).
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`variance`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `result` have the same type.
 
 ### Examples
 
