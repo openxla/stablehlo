@@ -1446,49 +1446,49 @@ LogicalResult isSpatialDimensionsValid(
                              outputSpatialDimensions.size(), " resp.");
 
   // P2.
-  SmallVector<int64_t> inputDnums(spatialDimNum + 2);
-  inputDnums[0] = inputBatchDimension;
-  inputDnums[1] = inputFeatureDimension;
+  SmallVector<int64_t> inputDimNums(spatialDimNum + 2);
+  inputDimNums[0] = inputBatchDimension;
+  inputDimNums[1] = inputFeatureDimension;
   std::copy(inputSpatialDimensions.begin(), inputSpatialDimensions.end(),
-            inputDnums.begin() + 2);
+            inputDimNums.begin() + 2);
 
-  SmallVector<int64_t> windowDnums(spatialDimNum + 2);
-  windowDnums[0] = kernelInputFeatureDimension;
-  windowDnums[1] = kernelOutputFeatureDimension;
+  SmallVector<int64_t> windowDimNums(spatialDimNum + 2);
+  windowDimNums[0] = kernelInputFeatureDimension;
+  windowDimNums[1] = kernelOutputFeatureDimension;
   std::copy(kernelSpatialDimensions.begin(), kernelSpatialDimensions.end(),
-            windowDnums.begin() + 2);
+            windowDimNums.begin() + 2);
 
-  SmallVector<int64_t> outputDnums(spatialDimNum + 2);
-  outputDnums[0] = outputBatchDimension;
-  outputDnums[1] = outputFeatureDimension;
+  SmallVector<int64_t> OutputDimNums(spatialDimNum + 2);
+  OutputDimNums[0] = outputBatchDimension;
+  OutputDimNums[1] = outputFeatureDimension;
   std::copy(outputSpatialDimensions.begin(), outputSpatialDimensions.end(),
-            outputDnums.begin() + 2);
+            OutputDimNums.begin() + 2);
 
   auto numDims = lhs.getType().cast<RankedTensorType>().getRank();
   const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
 
-  if (!llvm::all_of(inputDnums, inRange) ||
-      !llvm::all_of(windowDnums, inRange) ||
-      !llvm::all_of(outputDnums, inRange))
+  if (!llvm::all_of(inputDimNums, inRange) ||
+      !llvm::all_of(windowDimNums, inRange) ||
+      !llvm::all_of(OutputDimNums, inRange))
     return emitOptionalError(location,
                              "expects input, kernel, and output "
                              "dimension-numbers to be in-range [0, ",
                              numDims, ").");
 
-  if (hasDuplicates(inputDnums))
+  if (hasDuplicates(inputDimNums))
     return emitOptionalError(
         location, "expects input dimension-numbers to be unique, got {",
-        inputDnums, "}.");
+        inputDimNums, "}.");
 
-  if (hasDuplicates(windowDnums))
+  if (hasDuplicates(windowDimNums))
     return emitOptionalError(
         location, "expects kernel dimension-numbers to be unique, got {",
-        windowDnums, "}.");
+        windowDimNums, "}.");
 
-  if (hasDuplicates(outputDnums))
+  if (hasDuplicates(OutputDimNums))
     return emitOptionalError(
         location, "expects output dimension-numbers to be unique, got {",
-        outputDnums, "}.");
+        OutputDimNums, "}.");
 
   return success();
 }
@@ -1623,11 +1623,17 @@ LogicalResult verifyConvolutionAttributes(
 //  1. Input args to ConvolutionOp 'op' are RankedTypes.
 //  2. rank-of(input-type) == rank-of(output-type)
 SmallVector<int64_t> inferConvolutionOpReturnShape(
-    Value lhs, Value rhs, int64_t inputBatchDimension,
+    // clang-format off
+    Value lhs, Value rhs, 
+    int64_t inputBatchDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelOutputFeatureDimension, int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t batchGroupCount, const ArrayRef<hlo::WindowDimension> window) {
+    int64_t kernelOutputFeatureDimension, 
+    int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, 
+    ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t batchGroupCount, 
+    // clang-format on
+    const ArrayRef<hlo::WindowDimension> window) {
   // We keep the 'unknown' dimensions as it is in the
   // output-shape. To do that we initilize the output dimensions with the shape
   // of the return-type and updates only the spatial + non-spatial dimensions.
