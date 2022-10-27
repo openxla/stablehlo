@@ -1631,7 +1631,7 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
     int64_t outputBatchDimension,
     int64_t outputFeatureDimension, 
     ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t batchGroupCount, 
+    int64_t batchGroupCount,
     // clang-format on
     const ArrayRef<hlo::WindowDimension> window) {
   // We keep the 'unknown' dimensions as it is in the
