@@ -2480,11 +2480,11 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
   let summary = "SelectAndScatter operator";
   let description = [{
     Runs a windowed selection `select` function over `operand` with shape
-    `window_dimensions` and stride `window_strides`. This will produce an amount
-    of selected locations whose shape matches `source`. These are then scattered
-    to the output which is initialized with `init_value`.
-    Multiple scattered elements which land in the same output location are
-    combined using the `scatter` function.
+    `window_dimensions` and stride `window_strides` to produce an amount
+    of selected locations whose shape matches `source`. The values in `source`
+    are then scattered to the selected locations in output. Multiple scattered
+    elements which land in the same output location are combined using the
+    `scatter` function.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect_and_scatter
@@ -2493,14 +2493,14 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     ```mlir
     %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
       ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %1 = "stablehlo.compare"(%arg3, %arg4) {
+        %0 = "stablehlo.compare"(%arg3, %arg4) {
           comparison_direction = #stablehlo<comparison_direction GE>
         } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
-        "stablehlo.return"(%1) : (tensor<i1>) -> ()
+        "stablehlo.return"(%0) : (tensor<i1>) -> ()
     }, {
       ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %1 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
-        "stablehlo.return"(%1) : (tensor<ui32>) -> ()
+        %0 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
+        "stablehlo.return"(%0) : (tensor<ui32>) -> ()
     }) {
       window_dimensions = dense<[3, 1]> : tensor<2xi64>,
       window_strides = dense<[2, 1]> : tensor<2xi64>,
