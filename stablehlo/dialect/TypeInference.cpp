@@ -1069,16 +1069,38 @@ LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
   return success();
 }
 
+LogicalResult inferReduceOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr dimensions, Region& body,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  for (auto input : inputs) {
+    Type elementTy = getElementTypeOrSelf(input.getType());
+    auto rankedTy = input.getType().dyn_cast<RankedTensorType>();
+    if (!rankedTy) {
+      inferredReturnShapes.emplace_back(elementTy);
+      continue;
+    }
+
+    int64_t rank = rankedTy.getRank();
+    llvm::SmallVector<bool, 4> dimsMask(rank, false);
+    for (int64_t dim : dimensions.getValues<int64_t>()) dimsMask[dim] = true;
+    SmallVector<int64_t, 4> shape;
+    for (int64_t i = 0; i < rank; ++i)
+      if (!dimsMask[i]) shape.push_back(rankedTy.getDimSize(i));
+    inferredReturnShapes.emplace_back(shape, elementTy);
+  }
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that
 //      1. the dimensions of reduce-op are in-bounds for the given shape.
 //      2. the dimension-attribute have no duplicate entries.
 //  P3. Verify the inner block defining the reducer function.
-LogicalResult inferReduceOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr dimensions, Region& body,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
+                             ValueRange initValues,
+                             DenseIntElementsAttr dimensions, Region& body) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
@@ -1144,16 +1166,6 @@ LogicalResult inferReduceOp(
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, newDimensions, allInputsUnranked)))
     return failure();
-
-  for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    TensorType inputType = inputArgTypes[inputIdx];
-    Type elementType = inputType.getElementType();
-    if (inputType.hasRank())
-      inferredReturnShapes.emplace_back(newDimensions, elementType);
-    else
-      inferredReturnShapes.emplace_back(elementType);
-  }
-
   return success();
 }
 
@@ -1394,6 +1406,14 @@ LogicalResult inferSortOp(
     Region& comparator,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandTypes = inputs.getTypes();
+  for (auto resultType : operandTypes)
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  return success();
+}
+
+LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
+                           uint64_t dimension, Region& comparator) {
+  auto operandTypes = inputs.getTypes();
   for (auto operandType : operandTypes) {
     auto operandShapedType = operandType.cast<ShapedType>();
     if (operandShapedType.hasRank()) {
@@ -1440,9 +1460,6 @@ LogicalResult inferSortOp(
     return emitOptionalError(location,
                              "comparator must return tensor<i1> but got ",
                              comparatorResult[0].getType());
-
-  for (auto resultType : operandTypes)
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }
 

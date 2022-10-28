@@ -170,6 +170,7 @@ LogicalResult inferOptimizationBarrierOp(
 LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
+
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions, Region& body,
@@ -208,6 +209,9 @@ LogicalResult inferSortOp(
     Region& comparator,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
+                           uint64_t dimension, Region& comparator);
+
 LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
                                DenseIntElementsAttr permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes);
@@ -221,6 +225,9 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
                            Region& cond, Region& body,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
+                             ValueRange initValues,
+                             DenseIntElementsAttr dimensions, Region& body);
 }  // end namespace hlo
 }  // end namespace mlir
 

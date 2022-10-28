@@ -3305,6 +3305,11 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
                             adaptor.getBody(), inferredReturnShapes);
 }
 
+LogicalResult ReduceOp::verify() {
+  return hlo::verifyReduceOp(getLoc(), getInputs(), getInitValues(),
+                             getDimensions(), getBody());
+}
+
 LogicalResult ReduceOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
@@ -3788,12 +3793,18 @@ void SortOp::build(OpBuilder& builder, OperationState& state,
 }
 
 LogicalResult SortOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, Optional<Location>, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
-                          adaptor.getComparator(), inferredReturnShapes);
+  for (auto resultType : adaptor.getInputs().getTypes())
+    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  return success();
+}
+
+LogicalResult SortOp::verify() {
+  return hlo::verifySortOp(getLoc(), getInputs(), getDimension(),
+                           getComparator());
 }
 
 //===----------------------------------------------------------------------===//

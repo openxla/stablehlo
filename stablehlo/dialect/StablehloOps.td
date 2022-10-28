@@ -1432,6 +1432,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   let results = (outs Variadic<HLO_Tensor>);
 
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
 
   // TODO(hinsu): Verify that the attached body arguments and results are
   // compatible with reduce op's operands.
@@ -2593,6 +2594,8 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
   let builders = [
     OpBuilder<(ins "ValueRange":$inputs, CArg<"int64_t", "-1">:$dimension,
       CArg<"bool", "false">:$is_stable)>];
+
+  let hasVerifier = 1;
 }
 
 def StableHLO_ReverseOp: StableHLO_Op<"reverse",
