@@ -489,18 +489,17 @@ IEEE-754 specification.
 
 ### Semantics
 
-Computes the Cholesky decomposition of a batch of symmetric (Hermitian) positive
-definite matrices.
+Computes the Cholesky decomposition of a batch of matrices.
 
-If `lower` is `true`, it computes the lower-triangular matrices `l` such that
-$a = l \cdot l^{T}$. If `lower` is `false`, it computes the upper-triangular
-matrices `u` such that $a = u^{T} \cdot u$.
-
-If the rank of `a` is greater than 2, all except the minor 2 dimensions of `a`
-are treated as batch dimensions.
-
-If `a` is not symmetric (Hermitian) positive definite, the result is
+More formally, for all `i`, `result[i0, ..., iR-3, :, :]` is a Cholesky
+decomposition of `a[i0, ..., iR-3, :, :]`, in the form of either of a
+lower-triangular (if `lower` is `true`) or upper-triangular (if `lower` is
+`false`) matrix. The output values in the opposite triangle, i.e. the strict
+upper triangle or strict lower triangle correspondingly, are
 implementation-defined.
+
+If there exists `i` where the input matrix is not an Hermitian
+positive-definite matrix, then the result is implementation-defined.
 
 ### Inputs
 
@@ -517,8 +516,9 @@ implementation-defined.
 
 ### Constraints
 
-  * (C1) `a` and `result` have the same element type.
-  * (C2) rank(`a`) > 2.
+  * (C1) `a` and `result` have the same type.
+  * (C2) rank(`a`) >= 2.
+  * (C3) dim(`a`, -2) = dim(`a`, -1).
 
 ### Examples
 
@@ -528,7 +528,9 @@ implementation-defined.
 //      [2.0, 20.0, 26.0],
 //      [3.0, 26.0, 70.0]
 //     ]
-%result = "stablehlo.cholesky"(%a) {lower=true} : (tensor<3x3xf32>) -> tensor<3x3xf32>
+%result = "stablehlo.cholesky"(%a) {
+  lower = true
+} : (tensor<3x3xf32>) -> tensor<3x3xf32>
 // %result: [
 //           [1.0, 0.0, 0.0],
 //           [2.0, 4.0, 0.0],
