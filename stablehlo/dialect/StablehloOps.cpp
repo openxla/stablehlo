@@ -3793,13 +3793,12 @@ void SortOp::build(OpBuilder& builder, OperationState& state,
 }
 
 LogicalResult SortOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location>, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  for (auto resultType : adaptor.getInputs().getTypes())
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
-  return success();
+  return hlo::inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
+                          adaptor.getComparator(), inferredReturnShapes);
 }
 
 LogicalResult SortOp::verify() {
