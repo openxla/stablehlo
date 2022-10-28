@@ -1825,7 +1825,7 @@ while cond(internal_state) == True:
 results = internal_state
 ```
 
-The behaviour of an infinite loop is implementation-defined.
+The behaviour of an infinite loop is TBD.
 
 ### Inputs
 
