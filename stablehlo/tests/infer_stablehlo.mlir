@@ -531,6 +531,18 @@ func.func @tensor_bounds(%arg0: tensor<3x5xf32>, %arg1: tensor<i32>) -> tensor<*
 
 // -----
 
+// CHECK-LABEL: @static_tensor_bounds
+func.func @static_tensor_bounds(%arg0: tensor<?x5xf32, #stablehlo.type_extensions<bounds = [8, -1]>>) -> tensor<*xindex> {
+  %bounds = stablehlo.constant dense<8> : tensor<i32>
+  %result = "stablehlo.set_dimension_size"(%arg0, %bounds) {dimension = 0 : i64} : (tensor<?x5xf32, #stablehlo.type_extensions<bounds = [8, -1]>>, tensor<i32>) -> tensor<*xf32>
+
+  // CHECK: types0 = tensor<8x5xf32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @edit_tensor_bounds
 func.func @edit_tensor_bounds(%arg0: tensor<?x5xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, %arg1: tensor<i32>) -> tensor<*xindex> {
   %result = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x5xf32, #stablehlo.type_extensions<bounds = [3, -1]>>, tensor<i32>) -> tensor<*xf32>
