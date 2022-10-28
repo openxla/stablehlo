@@ -20,7 +20,7 @@ ODS files (like [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main
 Do we need adding tests for the constraints from the ODS? Please see “Establish testing guidelines” below.
 
 
-## (P3) Split verifications to verifiers and shape functions
+## (P3) Maintain verification code in verifiers and shape functions
 
 Both 
 - **verifiers**: implemented by `Op::verify()`, and 
