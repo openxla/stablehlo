@@ -1634,10 +1634,6 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
     int64_t batchGroupCount,
     // clang-format on
     const ArrayRef<hlo::WindowDimension> window) {
-  // We keep the 'unknown' dimensions as it is in the
-  // output-shape. To do that we initilize the output dimensions with the shape
-  // of the return-type and updates only the spatial + non-spatial dimensions.
-  // Precondition 2 ensures that size of output-shape == size of input-shape.
   auto lhsType = lhs.getType().cast<RankedTensorType>();
   SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
                                         ShapedType::kDynamicSize);
@@ -1753,6 +1749,12 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
           // clang-format on
           location)))
     return failure();
+
+  if (numDims != inputSpatialDimensions.size() + 2)
+    return emitOptionalError(location, "expects convolution arguments to have ",
+                             inputSpatialDimensions.size() + 2,
+                             " dimensions. Got: ", numDims);
+
 
   // P3.
   SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
@@ -4912,37 +4914,26 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
   // TODO(b/202040055): we should check the attribute invariant and print the
   // "raw" form if they are violated, otherwise we'll crash here.
-  constexpr int64_t kUnknownDim = std::numeric_limits<int64_t>::min();
   auto printDim =
-      [&](ArrayRef<int64_t> spatialDims,
-          ArrayRef<std::pair<int64_t, NonSpatialDim>> nonSpatialDims) {
-        int64_t numDims = 0;
-        if (!spatialDims.empty()) {
-          numDims =
-              *std::max_element(spatialDims.begin(), spatialDims.end()) + 1;
-        }
-        for (const auto& dim : nonSpatialDims) {
-          numDims = std::max(numDims, dim.first + 1);
-        }
-
-        llvm::SmallVector<int64_t> dims(numDims, kUnknownDim);
+      [&p](ArrayRef<int64_t> spatial_dims,
+           ArrayRef<std::pair<int64_t, NonSpatialDim>> non_spatial_dims) {
+        llvm::SmallVector<int64_t> dims(non_spatial_dims.size() +
+                                        spatial_dims.size());
         // Fill each element of dims with a (< 0) NonSpatialDim enum or a (>=0)
         // spatial dimension index.
-        for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
-             nonSpatialDims) {
-          dims[nonSpatialDim.first] = nonSpatialDim.second;
+        for (const std::pair<int64_t, NonSpatialDim>& non_spatial_dim :
+             non_spatial_dims) {
+          dims[non_spatial_dim.first] = non_spatial_dim.second;
         }
-        for (const auto& spatialDim : llvm::enumerate(spatialDims)) {
-          dims[spatialDim.value()] = static_cast<int64_t>(spatialDim.index());
+        for (auto spatial_dim : llvm::enumerate(spatial_dims)) {
+          dims[spatial_dim.value()] = static_cast<int64_t>(spatial_dim.index());
         }
 
         // Each dimension numbers will be printed as a comma separated list
         // surrounded by square brackets, e.g., [b, 0, 1, 2, f]
         p << '[';
         llvm::interleaveComma(dims, p, [&](int64_t dim) {
-          if (dim == kUnknownDim) {
-            p << "?";
-          } else if (dim >= 0) {
+          if (dim >= 0) {
             p << dim;
           } else {
             p << nonSpatialDimToString(static_cast<NonSpatialDim>(dim));
@@ -5078,13 +5069,8 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
           return parser.emitError(dimLocation)
                  << "Duplicate entries for spatial dimension " << spatialDim;
         maxParsedSpatialDim = std::max(spatialDim, maxParsedSpatialDim);
-      } else if (!parser.parseOptionalQuestion()) {
-        // Do nothing other than increment `index` at the bottom of the loop;
-        // '?' means "unknown dimension", and it's not represented in the
-        // return value of this function.
       } else {
-        // We did not parse an integer or question mark. We expect a keyword
-        // token.
+        // We did not parse an integer. We expect a keyword token.
         StringRef keyword;
         if (parser.parseKeyword(&keyword)) {
           return failure();

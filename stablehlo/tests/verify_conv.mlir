@@ -789,11 +789,13 @@ func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf
 // These tests are moved from ops_stablehlo.mlir and need check for duplication.
 //===----------------------------------------------------------------------===//
 
-// CHECK: func @conv2d_generic
-// CHECK: stablehlo.convolution
-// CHECK-SAME: dim_numbers = [b, 0, 1, ?, f]x[0, 1, ?, i, o]->[?, b, 0, 1, f]
-// CHECK-SAME{LITERAL}: window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
+// This is an positive test in MLIR-HLO:
+// https://github.com/tensorflow/mlir-hlo/blob/master/tests/Dialect/mhlo/ops.mlir#L3829 
+// but negative here: stablehlo.convolution does no support unknown dimenstion
+// dim_numbers = [b, 0, 1, ?, f]x[0, 1, ?, i, o]->[?, b, 0, 1, f]
+// window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
 func.func @conv2d_generic(%arg0: tensor<1x8x8x32x207xf32>, %arg1: tensor<3x3x32x207x16xf32>) -> tensor<32x1x8x8x16xf32> {
+  // expected-error@+1{{expects convolution arguments to have 4 dimensions. Got: 5}}
   %0 = "stablehlo.convolution"(%arg0, %arg1) {batch_group_count = 1 : i64,
     dimension_numbers = #stablehlo.conv<raw
       input_batch_dimension = 0,
@@ -889,14 +891,6 @@ func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x2x4x3xf32>) -
 // CHECK: stablehlo.conv = #stablehlo.conv<[b, 1, 0, f]x[0, 1, i, o]->[b, 0, 1, f]>
 module attributes {
   stablehlo.conv = #stablehlo.conv<[b, 1, 0, f]x[0, 1, i, o]->[b, 0, 1, f]>
-} {}
-
-// -----
-
-// CHECK: module
-// CHECK: stablehlo.conv = #stablehlo.conv<[b, 1, 0, ?, f]x[?, 0, 1, i, o]->[b, ?, 0, 1, f]>
-module attributes {
-  stablehlo.conv = #stablehlo.conv<[b, 1, 0, ?, f]x[?, 0, 1, i, o]->[b, ?, 0, 1, f]>
 } {}
 
 // -----
