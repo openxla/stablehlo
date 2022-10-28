@@ -1940,16 +1940,18 @@ This general form allows dot product between multi-dimensional tensors, and to
 contract multiple dimensions at a time. It also allows to specify the batching
 dimensions, which determines the dimensions to avoid summing during contraciton.
 
-More formally, `result[id, ik] = sum(lhs[md, mk] * rhs[nd, nk])` where:
+More formally, let:
+* `batching_dims` = [0, 1, ..., size(`lhs_batching_dims`)].
+* LCD = `lhs_contracting_dimensions`.
+* RCD = `rhs_contracting_dimensions`.
 
-1. `id == md == nd` where `md == lhs_batching_dimensions[j]` and `nd == rhs_batching_dimensions[j]` for `j` in [0, size(`lhs_batching_dimensions`))
-2. `id = md` where `d` $\notin$ `lhs_contracting_dimensions` $\cup$ `lhs_batching_dimensions`
-3. `id = nd` where `d` $\notin$ `rhs_contracting_dimensions` $\cup$ `rhs_batching_dimensions`
+$$result[...,\ ip,\ ...] = \sum_{d\ =\ 0}^{size(LCD)} \sum_{(c,\ c')\ =\
+(0,\ 0)}^{(dim(lhs,\ LCD[d]),\ dim(rhs,\ RCD[d]))}
+lhs(...,\ jc,\ ...,\ jq,\ ...)\ *\ rhs(...,\ kc',\ ...,\ kr,\ ...)$$
 
-The summation is from `0` to prod(dim(`lhs_contracting_dimensions`, `i`)) for all `i` in [0, size(`lhs_contracting_dimensions`))
-for all `mk`, `nk` combinations defined as:
-* `mk` in [0, dim(`lhs`, `k`)) for all `k` $\in$ `lhs_contracting_dimensions`
-* `nk` in [0, dim(`rhs`, `k`)) for all `k` $\in$ `rhs_contracting_dimensions`
+* If p is in `batching_dims`, j[`lhs_batching_dims`[p]] = ip and
+k[`rhs_batching_dims`[p]] = ip.
+* jq = kr = ip otherwise.
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
@@ -1962,8 +1964,8 @@ computations on accelerator backends. This can be one of the following:
 
 | Name                         | Type                                         |
 |------------------------------|----------------------------------------------|
-| `lhs`                        | tensor of any supported types                |
-| `rhs`                        | tensor of any supported types                |
+| `lhs`                        | tensor of any supported type                 |
+| `rhs`                        | tensor of any supported type                 |
 | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64` |
 | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64` |
 | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64` |
@@ -1972,9 +1974,9 @@ computations on accelerator backends. This can be one of the following:
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of any supported types |
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
 
 ### Constraints
 
@@ -1999,13 +2001,12 @@ computations on accelerator backends. This can be one of the following:
   * (C10) `dim(lhs, lhs_contracting_dimensions[i])` =
   `dim(rhs, rhs_contracting_dimensions[i])` for all `i` $\in$ [0,
   size(`lhs_contracting_dimensions`)).
-  * (C11) `dim(result, i)` is equal to (in order):
-    * `lhs_batching_dimensions[i]` for all 0 $\le$ `i` $\lt$
-    size(`lhs_batching_dimensions`).
-    * `dim(lhs, i)` for all 0 $\le$ `i` $\lt$ rank(`lhs`) where `i` $\notin$
-    `lhs_batching_dimensions` and `i` $\notin$ `lhs_contracting_dimensions`.
-    * `dim(rhs, i)` for all 0 $\le$ `i` $\lt$ rank(`rhs`) where `i` $\notin$
-    `rhs_batching_dimensions` and `i` $\notin$ `rhs_contracting_dimensions`.
+  * (C11) shape(`result`) $=$ {`lhs_batching_dimensions[i]`: for all `i` $\in$
+  [0 size(`lhs_batching_dimensions`))} + {`dim(lhs, i)`: for all i $\in$
+  [0, rank(`lhs`)) where `i` $\notin$ `lhs_batching_dimensions` $\cup$
+  `lhs_contracting_dimensions`} + {`dim(rhs, i)`: for all i $\in$
+  [0, rank(`rhs`)) where `i` $\notin$ `rhs_batching_dimensions` $\cup$
+  `rhs_contracting_dimensions`}.
 
 ### Examples
 
