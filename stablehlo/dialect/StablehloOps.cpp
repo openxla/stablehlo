@@ -1750,11 +1750,10 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
           location)))
     return failure();
 
-  if (numDims != inputSpatialDimensions.size() + 2)
+  if ((size_t)numDims != inputSpatialDimensions.size() + 2)
     return emitOptionalError(location, "expects convolution arguments to have ",
                              inputSpatialDimensions.size() + 2,
                              " dimensions. Got: ", numDims);
-
 
   // P3.
   SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
