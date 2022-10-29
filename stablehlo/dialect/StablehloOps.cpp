@@ -1412,7 +1412,7 @@ LogicalResult CollectivePermuteOp::verify() {
 
 namespace {
 // Checks:
-//  P1. Same sizes for input, kernel and output spatial_dims.
+//  P1. Same sizes for input, kernel and output spatialDims.
 //  P2. Spatial and non-spatial dimentions (for input,kernel, &output) should
 //      be unique and in range [0, num_dims), where num_dims = rank of input
 //      (lhs/rhs) tensors.
@@ -4914,17 +4914,17 @@ void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
   // TODO(b/202040055): we should check the attribute invariant and print the
   // "raw" form if they are violated, otherwise we'll crash here.
   auto printDim =
-      [&p](ArrayRef<int64_t> spatial_dims,
-           ArrayRef<std::pair<int64_t, NonSpatialDim>> non_spatial_dims) {
-        llvm::SmallVector<int64_t> dims(non_spatial_dims.size() +
-                                        spatial_dims.size());
+      [&p](ArrayRef<int64_t> spatialDims,
+           ArrayRef<std::pair<int64_t, NonSpatialDim>> non_spatialDims) {
+        llvm::SmallVector<int64_t> dims(non_spatialDims.size() +
+                                        spatialDims.size());
         // Fill each element of dims with a (< 0) NonSpatialDim enum or a (>=0)
         // spatial dimension index.
-        for (const std::pair<int64_t, NonSpatialDim>& non_spatial_dim :
-             non_spatial_dims) {
-          dims[non_spatial_dim.first] = non_spatial_dim.second;
+        for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
+             non_spatialDims) {
+          dims[nonSpatialDim.first] = nonSpatialDim.second;
         }
-        for (auto spatial_dim : llvm::enumerate(spatial_dims)) {
+        for (auto spatial_dim : llvm::enumerate(spatialDims)) {
           dims[spatial_dim.value()] = static_cast<int64_t>(spatial_dim.index());
         }
 
@@ -5025,7 +5025,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
                 llvm::SmallDenseMap<NonSpatialDim, int64_t, 4,
                                     DenseMapInfoNonSpatialDim>>;
 
-  // Note that the allowed_non_spatial_dims is a set (as opposed to unordered
+  // Note that the allowed_non_spatialDims is a set (as opposed to unordered
   // set) because its used to print a list of allowed non spatial dims in the
   // error messages, so making it a set keeps the error messages deterministic.
   auto parseDims =
