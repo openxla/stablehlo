@@ -191,8 +191,9 @@ stablehloOutputOperandAliasGetOperandIndex(MlirAttribute attr);
 
 MLIR_CAPI_EXPORTED intptr_t
 stablehloOutputOperandAliasGetOperandTupleIndicesSize(MlirAttribute attr);
-MLIR_CAPI_EXPORTED int64_t stablehloOutputOperandAliasGetOperandTupleIndicesElem(
-    MlirAttribute attr, intptr_t pos);
+MLIR_CAPI_EXPORTED int64_t
+stablehloOutputOperandAliasGetOperandTupleIndicesElem(MlirAttribute attr,
+                                                      intptr_t pos);
 
 //===----------------------------------------------------------------------===//
 // ComparisonDirectionAttr

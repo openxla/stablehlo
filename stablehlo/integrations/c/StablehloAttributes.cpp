@@ -378,7 +378,7 @@ intptr_t stablehloOutputOperandAliasGetOutputTupleIndicesSize(
 }
 
 int64_t stablehloOutputOperandAliasGetOutputTupleIndicesElem(MlirAttribute attr,
-                                                            intptr_t pos) {
+                                                             intptr_t pos) {
   return unwrap(attr)
       .cast<mlir::stablehlo::OutputOperandAliasAttr>()
       .getOutputTupleIndices()[pos];
@@ -398,8 +398,8 @@ intptr_t stablehloOutputOperandAliasGetOperandTupleIndicesSize(
       .size();
 }
 
-int64_t stablehloOutputOperandAliasGetOperandTupleIndicesElem(MlirAttribute attr,
-                                                             intptr_t pos) {
+int64_t stablehloOutputOperandAliasGetOperandTupleIndicesElem(
+    MlirAttribute attr, intptr_t pos) {
   return unwrap(attr)
       .cast<mlir::stablehlo::OutputOperandAliasAttr>()
       .getOperandTupleIndices()[pos];

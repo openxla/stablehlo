@@ -486,7 +486,8 @@ LogicalResult CustomCallOp::verify() {
                                   "layout constraints yet";
         auto tensorType = type.dyn_cast<TensorType>();
 
-        // For non-tensor types such as !stablehlo.token, the layout should be empty.
+        // For non-tensor types such as !stablehlo.token, the layout should be
+        // empty.
         if (!tensorType) {
           if (layout.empty()) continue;
           return emitOpError()
