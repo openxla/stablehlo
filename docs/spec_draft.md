@@ -194,6 +194,7 @@ described below)
    * [subtract](#stablehlosubtract)
    * [tanh](#stablehlotanh)
    * [transpose](#stablehlotranspose)
+   * [while](#stablehlowhile)
    * [xor](#stablehloxor)
 
 ## stablehlo.abs
@@ -1806,6 +1807,68 @@ where `i[d] = j[permutation[d]]`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.while
+
+### Semantics
+
+Produces the output from executing `body` function 0 or more times while the
+`cond` function outputs `true`. More formally, the semantics can be expressed
+using Python-like syntax as follows:
+
+```python
+internal_state = operands
+while cond(internal_state) == True:
+  internal_state = body(internal_state)
+results = internal_state
+```
+
+The behaviour of an infinite loop is TBD.
+
+### Inputs
+
+| Name       | Type                                             |
+|------------|--------------------------------------------------|
+| `operands` | variadic number of tensors of any supported type |
+| `cond`     | `function`                                       |
+| `body`     | `function`                                       |
+
+### Outputs
+
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
+
+### Constraints
+
+  * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
+         `Ti` = `type(operands[i])`.
+  * (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
+         `Ti` = `type(operands[i])`.
+  * (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
+
+### Examples
+
+```mlir
+// %constant0: 1
+// %input0: 0
+// %input1: 10
+%results:2 = "stablehlo.while"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction LT>
+    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%0) : (tensor<i1>) -> ()
+}, {
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
+}) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
+// %results#0: 10
+// %results#1: 10
+```
 
 [Back to Ops](#index-of-ops)
 

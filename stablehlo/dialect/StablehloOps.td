@@ -1209,10 +1209,24 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     ]> {
   let summary = "While operator";
   let description = [{
-    Returns the result of executing a body function until the cond body returns
-    true.
+    Produces the output from executing `body` function 0 or more times while the
+    `cond` function outputs `true`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#while.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlowhile
+
+    Example:
+    %results:2 = "stablehlo.while"(%input0, %input1) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.compare"(%arg0, %arg1) {
+          comparison_direction = #stablehlo<comparison_direction LT>
+        } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+        "stablehlo.return"(%0) : (tensor<i1>) -> ()
+    }, {
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
+    }) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
   }];
   let arguments = (ins Variadic<HLO_TensorOrToken>:$operand);
 
