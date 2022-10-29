@@ -187,6 +187,9 @@ LogicalResult inferSelectOp(
     Optional<Location> location, Value pred, Value onTrue, Value onFalse,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferSelectAndScatterOp(
+    Value operend, SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,

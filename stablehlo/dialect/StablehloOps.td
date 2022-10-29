@@ -2478,7 +2478,7 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 }
 
 def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
-      [RecursiveMemoryEffects]> {
+      [RecursiveMemoryEffects, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "SelectAndScatter operator";
   let description = [{
     Runs a windowed selection `select` function over `operand` with shape

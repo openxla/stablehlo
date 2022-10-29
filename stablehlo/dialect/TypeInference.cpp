@@ -1281,6 +1281,17 @@ LogicalResult inferSelectOp(
                                               inferredReturnShapes);
 }
 
+LogicalResult inferSelectAndScatterOp(
+    Value operend, SmallVectorImpl<Type>& inferredReturnTypes) {
+  Type elementTy = getElementTypeOrSelf(operend.getType());
+  auto rankedTy = operend.getType().dyn_cast<RankedTensorType>();
+  if (rankedTy)
+    inferredReturnTypes.emplace_back(operend.getType());
+  else
+    inferredReturnTypes.emplace_back(UnrankedTensorType::get(elementTy));
+  return success();
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:
