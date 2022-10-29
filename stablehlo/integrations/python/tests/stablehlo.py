@@ -35,6 +35,20 @@ def test_channel_handle():
   assert attr.handle == 1
   assert attr.channel_type == 2
 
+@run
+def test_output_operand_alias():
+  """Check that OutputOperandAlias attributes is available and usable."""
+
+  attr = OutputOperandAlias.get(
+      output_tuple_indices=[0],
+      operand_index=0,
+      operand_tuple_indices=[1])
+  assert str(attr) == ("#stablehlo.output_operand_alias<output_tuple_indices = [0], "
+                       "operand_index = 0, "
+                       "operand_tuple_indices = [1]>")
+  assert attr.output_tuple_indices == [0]
+  assert attr.operand_index == 0
+  assert attr.operand_tuple_indices == [1]
 
 @run
 def test_comparison_direction_attr():

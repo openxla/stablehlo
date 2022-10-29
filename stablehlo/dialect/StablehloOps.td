@@ -2042,7 +2042,12 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
         $api_version,
     DefaultValuedOptionalAttr<StableHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$operand_layouts,
-    OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts
+    OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts,
+    DefaultValuedOptionalAttr<
+        TypedArrayAttrBase<
+            OutputOperandAlias,
+            "Aliasing attribute for outputs and operands of CustomCall">,
+        "{}">:$output_operand_aliases
   );
   let results = (outs Variadic<HLO_TensorOrTokenOrTuple>);
   let hasVerifier = 1;
@@ -2051,6 +2056,19 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     custom<CustomCallTarget>($call_target_name) `(` $inputs `)`
       attr-dict `:` functional-type(operands, results)
   }];
+  
+  // TODO(b/244367323): Need update all usage by adding the arg
+  // `output_operand_aliases`, and remove this builder after the bug fix.
+  let builders = [
+    OpBuilder<(ins
+      "::mlir::TypeRange":$result_type, "::mlir::ValueRange":$operands,
+      "::mlir::StringAttr":$call_target_name,
+      "::mlir::BoolAttr":$has_side_effect,
+      "::mlir::StringAttr":$backend_config,
+      "::mlir::stablehlo::CustomCallApiVersionAttr":$api_version,
+      "::mlir::ArrayAttr":$called_computations,
+      "::mlir::ArrayAttr":$operand_layouts,
+      "::mlir::ArrayAttr":$result_layouts)>];
 }
 
 def StableHLO_DotOp: StableHLO_Op<"dot",
