@@ -2381,7 +2381,7 @@ The following diagram shows how elements in `updates[k]` map on elements in
 `updates[k]` indices and explains in detail which `results[k]` indices they
 correspond to.
 
-<img align="center" src="spec_draft/scatter.png" />
+<img align="center" src="spec_draft/scatter.svg" />
 
 More formally, for all `update_index` from the index space of `updates[0]`,
 `result_index` in `result[0]` is computed as follows:
@@ -2418,9 +2418,12 @@ If `indices_are_sorted` is true then the implementation can assume that
 by the user. If they are not then the semantics is implementation defined.
 
 If `unique_indices` is true then the implementation can assume that all
-`result_index` indices  being scattered to are unique.  If `unique_indices` is
-true and the indices being scattered to are not unique then the semantics is
-implementation defined.
+`result_index` indices  being scattered to are unique. If `unique_indices`
+is true but the indices being scattered to are not unique then the semantics
+is implementation defined.
+
+The fact that `indices_are_sorted` is `true` or `unique_indices` is `true` may
+be leveraged to improve performance on some backends.
 
 ### Inputs
 
