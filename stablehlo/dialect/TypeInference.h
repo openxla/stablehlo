@@ -183,6 +183,9 @@ LogicalResult inferReduceWindowOp(
 LogicalResult inferReturnOp(Optional<Location> location,
                             SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferScatterOp(Optional<Location> location, ValueRange inputs,
+                             SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferSelectOp(
     Optional<Location> location, Value pred, Value onTrue, Value onFalse,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);

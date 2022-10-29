@@ -1251,6 +1251,21 @@ LogicalResult inferReturnOp(Optional<Location> location,
   return success();
 }
 
+LogicalResult inferScatterOp(Optional<Location> location, ValueRange inputs,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
+  for (auto input : inputs) {
+    Type elementTy = getElementTypeOrSelf(input.getType());
+    auto rankedTy = input.getType().dyn_cast<RankedTensorType>();
+    if (!rankedTy) {
+      inferredReturnTypes.emplace_back(UnrankedTensorType::get(elementTy));
+      continue;
+    }
+
+    inferredReturnTypes.emplace_back(input.getType());
+  }
+  return success();
+}
+
 LogicalResult inferSelectOp(
     Optional<Location> location, Value pred, Value onTrue, Value onFalse,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {

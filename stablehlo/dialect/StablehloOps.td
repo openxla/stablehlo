@@ -2403,7 +2403,9 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
-def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, RecursiveMemoryEffects]> {
+def StableHLO_ScatterOp: StableHLO_Op<"scatter", 
+      [SameVariadicOperandSize, RecursiveMemoryEffects, 
+      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Scatter operator";
   let description = [{
     Produces `results` tensors which are equal to `inputs` tensors except that
