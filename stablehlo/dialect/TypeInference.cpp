@@ -1246,12 +1246,11 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferReturnOp(Optional<Location> location,
-                            SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
   return success();
 }
 
-LogicalResult inferScatterOp(Optional<Location> location, ValueRange inputs,
+LogicalResult inferScatterOp(Optional<Location>, ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   for (auto input : inputs) {
     Type elementTy = getElementTypeOrSelf(input.getType());

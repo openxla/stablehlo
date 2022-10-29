@@ -4053,8 +4053,7 @@ LogicalResult ScatterOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ScatterOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferScatterOp(location, adaptor.getInputs(),
-                             inferredReturnTypes);
+  return hlo::inferScatterOp(adaptor.getInputs(), inferredReturnTypes);
 }
 
 /*
