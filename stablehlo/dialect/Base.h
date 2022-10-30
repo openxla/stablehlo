@@ -44,6 +44,7 @@ namespace hlo {
 
 // TODO(zhouxin) change to a better name as it's used by both of size and bound
 // Check if the dimension size is dynamic.
+// TODO(zhouxin) add isStaticDimSize() as well.
 inline static bool isDynamicDimSize(int64_t val) {
   return val == ShapedType::kDynamicSize;
 }
@@ -63,7 +64,7 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 // `concatenateDim` is set other than default -1, then that dimensions will be
 // concatenated into return type instead.
 LogicalResult inferMostSpecificType(Optional<Location> location,
-                                    ValueTypeRange<ValueRange> inputTypes,
+                                    TypeRange inputTypes,
                                     SmallVectorImpl<Type> &inferredReturnTypes,
                                     int64_t concatenateDim = -1);
 

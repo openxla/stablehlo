@@ -182,7 +182,7 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
 //  c2:  X              ?, B            ?, X+B
 //  c3:  ?              ?               ?
 //  c4:  ?              ?, B            ?
-//  c5:  ?, B1          ?, B2           ?, B1+B2
+//  c5:  ?, B           ?, C            ?, B+C
 static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
     int64_t leftSize, int64_t rightSize, int64_t leftBound,
     int64_t rightBound) {
@@ -207,39 +207,45 @@ static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
 //       Dim of lhs     Dim of rhs      Infer
 //  c0:  X              X               X
 //  c1:  X              ?               X
-//  c2:  X              ?, B(>X)        X
+//  c2:  X              ?, B(>=X)       X
 //  c3:  X              ?, B(<X)        Will error out by compatible checks
 //  c4:  ?              ?               ?
 //  c5:  ?              ?, B            ?, B
-//  c6:  ?, B           ?, B            ?, B
-//  c7:  ?, B1          ?, B2           ?, min(B1, B2)
+//  c6:  ?, B           ?, C            ?, min(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
-  if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
-    return emitOptionalError(location, "Mismatch dimension size ", leftSize,
-                             " and ", rightSize, " in dimension ", dim);
-  if (isLeftStaticDim || isRightStaticDim)
-    return isLeftStaticDim
-               ? std::make_pair(leftSize, ShapedType::kDynamicSize)
-               : std::make_pair(rightSize, ShapedType::kDynamicSize);
-
   bool isLeftStaticBound = !isDynamicDimSize(leftBound);
   bool isRightStaticBound = !isDynamicDimSize(rightBound);
-  if (isLeftStaticBound && isRightStaticBound)
-    return std::make_pair(ShapedType::kDynamicSize,
-                          std::min(leftBound, rightBound));
-  if (isLeftStaticBound)
-    return std::make_pair(ShapedType::kDynamicSize, leftBound);
-  if (isRightStaticBound)
-    return std::make_pair(ShapedType::kDynamicSize, rightBound);
-  return std::make_pair(ShapedType::kDynamicSize, ShapedType::kDynamicSize);
+  int64_t size = ShapedType::kDynamicSize;
+  int64_t bound = ShapedType::kDynamicSize;
+
+  if (isLeftStaticDim || isRightStaticDim) {
+    if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
+      return emitOptionalError(location, "Mismatched dimension sizes ",
+                               leftSize, " and ", rightSize, " in dimension ",
+                               dim);
+    size = isLeftStaticDim ? leftSize : rightSize;
+    if (isLeftStaticBound || isRightStaticBound) {
+      int64_t check_bound = isLeftStaticBound ? leftBound : rightBound;
+      if (size > check_bound)
+        return emitOptionalError(location, "Mismatched dimension size ", size,
+                                 " and bound ", check_bound, " in dimension ",
+                                 dim);
+    }
+  } else {
+    if (isLeftStaticBound && isRightStaticBound)
+      bound = std::min(leftBound, rightBound);
+    else
+      bound = isLeftStaticBound ? leftBound : rightBound;
+  }
+  return std::make_pair(size, bound);
 }
 
 LogicalResult inferMostSpecificType(Optional<Location> location,
-                                    ValueTypeRange<ValueRange> inputTypes,
+                                    TypeRange inputTypes,
                                     SmallVectorImpl<Type>& inferredReturnTypes,
                                     int64_t concatenateDim) {
   SmallVector<RankedTensorType> rankedTypes;
@@ -252,23 +258,18 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
   }
 
   auto rank = rankedTypes[0].getRank();
-  // BoundedDialectInterface* dialect = nullptr;
-  SmallVector<int64_t> inferredDimSizes(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> inferredSizes(rankedTypes[0].getShape());
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
-
   bool anyInputHaveBounds = false;
+
   for (const auto& it : llvm::enumerate(rankedTypes)) {
     RankedTensorType rankedType = it.value();
     ArrayRef<int64_t> bounds = encodingToBounds(rankedType.getEncoding());
     if (!bounds.empty()) anyInputHaveBounds = true;
 
-    // Init the inferredDimSizes[dim] / inferredBounds[dim] with rankedTypes[0]
+    // Init the inferredSizes[dim] / inferredBounds[dim] with rankedTypes[0]
     if (it.index() == 0) {
-      for (int dim = 0; dim < rank; ++dim) {
-        inferredDimSizes[dim] = rankedType.getDimSize(dim);
-        inferredBounds[dim] =
-            bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
-      }
+      if (!bounds.empty()) inferredBounds = to_vector(bounds);
       continue;
     }
 
@@ -276,7 +277,7 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
     for (int dim = 0; dim < rank; ++dim) {
       std::pair<int64_t, int64_t> inferredDimAndBound;
 
-      int64_t leftSize = inferredDimSizes[dim];
+      int64_t leftSize = inferredSizes[dim];
       int64_t rightSize = rankedType.getShape()[dim];
       int64_t leftBound = inferredBounds[dim];
       int64_t rightBound =
@@ -290,13 +291,13 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
         if (failed(inferredDimAndBoundOrErr)) return failure();
         inferredDimAndBound = *inferredDimAndBoundOrErr;
       }
-      inferredDimSizes[dim] = inferredDimAndBound.first;
+      inferredSizes[dim] = inferredDimAndBound.first;
       inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
 
   inferredReturnTypes.push_back(RankedTensorType::get(
-      inferredDimSizes, rankedTypes[0].getElementType(),
+      inferredSizes, rankedTypes[0].getElementType(),
       boundsToEncoding(
           rankedTypes[0].getEncoding(),
           // Empty array as argument is an indicator to boundsToEncoding() that

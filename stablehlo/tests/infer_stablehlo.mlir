@@ -696,6 +696,15 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
 
 // -----
 
+// Alse see this in Base.cpp
+// Inference rules to concat dimensions with bounds (lhs/rhs are commutative):
+//       Dim of lhs     Dim of rhs      Infer
+//  c0:  X              Y               X+Y
+//  c1:  X              ?               ?
+//  c2:  X              ?, B            ?, X+B
+//  c3:  ?              ?               ?
+//  c4:  ?              ?, B            ?
+//  c5:  ?, B           ?, C            ?, B+C
 // CHECK-LABEL: @concat_bounds_c0
 func.func @concat_bounds_c0(
   %arg0: tensor<5x1xi32, #stablehlo.type_extensions<bounds = [-1, -1]>>, 
