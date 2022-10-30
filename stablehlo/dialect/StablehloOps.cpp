@@ -5025,7 +5025,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
                 llvm::SmallDenseMap<NonSpatialDim, int64_t, 4,
                                     DenseMapInfoNonSpatialDim>>;
 
-  // Note that the allowed_non_spatialDims is a set (as opposed to unordered
+  // Note that the allowedNonSpatialDims is a set (as opposed to unordered
   // set) because its used to print a list of allowed non spatial dims in the
   // error messages, so making it a set keeps the error messages deterministic.
   auto parseDims =
