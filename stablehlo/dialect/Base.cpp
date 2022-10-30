@@ -183,9 +183,10 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
 //  c3:  ?              ?               ?
 //  c4:  ?              ?, B            ?
 //  c5:  ?, B           ?, C            ?, B+C
-static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
-    int64_t leftSize, int64_t rightSize, int64_t leftBound,
-    int64_t rightBound) {
+std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
+                                                         int64_t rightSize,
+                                                         int64_t leftBound,
+                                                         int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
   int64_t size = ShapedType::kDynamicSize;
@@ -200,7 +201,7 @@ static std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
         !isDynamicDimSize(rightSizeOrBound))
       bound = leftSizeOrBound + rightSizeOrBound;
   }
-  return std::make_pair(size, bound);
+  return {size, bound};
 }
 
 // Inference rules to merge dimensions with bounds (lhs/rhs are commutative):
@@ -244,10 +245,10 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
   return std::make_pair(size, bound);
 }
 
-LogicalResult inferMostSpecificType(Optional<Location> location,
-                                    TypeRange inputTypes,
-                                    SmallVectorImpl<Type>& inferredReturnTypes,
-                                    int64_t concatenateDim) {
+// TODO(zhouxin) Refactor to better handle errors and return single type
+LogicalResult inferMostSpecificType(
+    Optional<Location> location, TypeRange inputTypes,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -258,7 +259,7 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
   }
 
   auto rank = rankedTypes[0].getRank();
-  SmallVector<int64_t> inferredSizes(rankedTypes[0].getShape());
+  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
   bool anyInputHaveBounds = false;
 
@@ -267,30 +268,18 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
     ArrayRef<int64_t> bounds = encodingToBounds(rankedType.getEncoding());
     if (!bounds.empty()) anyInputHaveBounds = true;
 
-    // Init the inferredSizes[dim] / inferredBounds[dim] with rankedTypes[0]
-    if (it.index() == 0) {
-      if (!bounds.empty()) inferredBounds = to_vector(bounds);
-      continue;
-    }
-
-    // Infer each dim for current rankedType (from inputTypes[1:end])
     for (int dim = 0; dim < rank; ++dim) {
       std::pair<int64_t, int64_t> inferredDimAndBound;
-
       int64_t leftSize = inferredSizes[dim];
       int64_t rightSize = rankedType.getShape()[dim];
       int64_t leftBound = inferredBounds[dim];
       int64_t rightBound =
           bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
-      if (dim == concatenateDim) {
-        inferredDimAndBound = inferConcatenatedDimAndBound(
-            leftSize, rightSize, leftBound, rightBound);
-      } else {
-        auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
-            location, dim, leftSize, rightSize, leftBound, rightBound);
-        if (failed(inferredDimAndBoundOrErr)) return failure();
-        inferredDimAndBound = *inferredDimAndBoundOrErr;
-      }
+
+      auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
+          location, dim, leftSize, rightSize, leftBound, rightBound);
+      if (failed(inferredDimAndBoundOrErr)) return failure();
+      inferredDimAndBound = *inferredDimAndBoundOrErr;
       inferredSizes[dim] = inferredDimAndBound.first;
       inferredBounds[dim] = inferredDimAndBound.second;
     }
@@ -304,7 +293,6 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type
           anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({}))));
-
   return success();
 }
 

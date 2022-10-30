@@ -807,3 +807,36 @@ func.func @concat_bounds_c5(
   %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<?x?xi32>) -> tensor<*xindex> 
   func.return %1 : tensor<*xindex>
 }
+
+// -----
+
+// Note: unranked input types can't be ignored, consider these input types:
+// c0: (<5x?xf32>, <*xf32>) with concat dim 0 should infer <?x?xf32>
+// c1: (<5x?xf32>, <*xf32>) with concat dim 1 should infer <5x?xf32>
+// Instead, they should be replaced with dynamic tensors: tensor<?x...?x>
+//
+// CHECK-LABEL: @concat_bounds_unranked_c0
+func.func @concat_bounds_unranked_c0(
+  %arg0: tensor<*xi32>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (
+    tensor<*xi32>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>) -> tensor<5x?xi32>
+  // CHECK: types0 = tensor<?x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<5x?xi32>) -> tensor<*xindex> 
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @concat_bounds_unranked_c1
+func.func @concat_bounds_unranked_c1(
+  %arg0: tensor<*xi32>, 
+  %arg1: tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>)  -> tensor<*xindex> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 1 : i64 } : (
+    tensor<*xi32>, 
+    tensor<5x?xi32, #stablehlo.type_extensions<bounds = [-1, 4]>>) -> tensor<5x?xi32>
+  // CHECK: types0 = tensor<5x?xi32>
+  %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<5x?xi32>) -> tensor<*xindex> 
+  func.return %1 : tensor<*xindex>
+}

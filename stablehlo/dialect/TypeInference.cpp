@@ -571,19 +571,65 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
     }
   }
 
-  auto firstType = inputs[0].getType().cast<ShapedType>();
-  auto outElement = firstType.getElementType();
+  auto elementType = inputs[0].getType().cast<ShapedType>().getElementType();
+  if (!firstRankedType) {
+    inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
+    return success();
+  }
 
-  for (auto operand : inputs.getTypes()) {
-    auto type = operand.cast<ShapedType>();
-    if (!type.hasRank()) {
-      inferredReturnTypes.push_back(UnrankedTensorType::get(outElement));
-      return success();
+  // Infer the most specific (size, bound) of all dimenstions of the return type
+  auto rank = firstRankedType.getRank();
+  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
+  // Note: for the concatenate dimension, 0 should be the identical element:
+  // Any dim size can keep unchanged when concatenated with 0
+  inferredSizes[dimension] = 0;
+  bool anyInputHaveBounds = false;
+
+  // Note: unranked input types can't be ignored, consider these input types:
+  // c0: (<5x?xf32>, <*xf32>) with concat dim 0 should infer <?x?xf32>
+  // c1: (<5x?xf32>, <*xf32>) with concat dim 1 should infer <5x?xf32>
+  // Instead, they should be replaced with dynamic tensors: tensor<?x...?x>
+  for (const auto& it : llvm::enumerate(inputs.getTypes())) {
+    RankedTensorType rankedType = it.value().dyn_cast<RankedTensorType>();
+    SmallVector<int64_t> bounds;
+    if (rankedType)
+      bounds = to_vector(encodingToBounds(rankedType.getEncoding()));
+    if (!bounds.empty()) anyInputHaveBounds = true;
+
+    // Infer each dim for current rankedType (from inputTypes[1:end])
+    for (int dim = 0; dim < rank; ++dim) {
+      std::pair<int64_t, int64_t> inferredDimAndBound;
+
+      int64_t leftSize = inferredSizes[dim];
+      int64_t rightSize =
+          rankedType ? rankedType.getShape()[dim] : ShapedType::kDynamicSize;
+      int64_t leftBound = inferredBounds[dim];
+      int64_t rightBound =
+          bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
+      if (dim == dimension) {
+        inferredDimAndBound = inferConcatenatedDimAndBound(
+            leftSize, rightSize, leftBound, rightBound);
+      } else {
+        auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
+            location, dim, leftSize, rightSize, leftBound, rightBound);
+        if (failed(inferredDimAndBoundOrErr)) return failure();
+        inferredDimAndBound = *inferredDimAndBoundOrErr;
+      }
+      inferredSizes[dim] = inferredDimAndBound.first;
+      inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
 
-  return inferMostSpecificType(location, inputs.getTypes(), inferredReturnTypes,
-                               dimension);
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      inferredSizes, elementType,
+      boundsToEncoding(
+          firstRankedType.getEncoding(),
+          // Empty array as argument is an indicator to boundsToEncoding() that
+          // there are no bounds at all in inputs, thus sparsity attributes will
+          // be included in the return type
+          anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({}))));
+  return success();
 }
 
 LogicalResult inferDotGeneralOp(
