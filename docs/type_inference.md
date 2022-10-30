@@ -20,7 +20,7 @@ ODS files (like [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main
 Do we need adding tests for the constraints from the ODS? Please see “Establish testing guidelines” below.
 
 
-## (P3) Merge verifiers into shape functions
+## (P3) Maintain verification code in verifiers and shape functions
 
 Both 
 - **verifiers**: implemented by `Op::verify()`, and 
@@ -31,10 +31,7 @@ may have verification code to check operands/attributes/results. An ideal split 
 1. Duplicated code: for example in verifiers we do some processing on the operands then verify some intermediate results, then in shape functions these intermediate results are useful to infer the final results. These intermediate results have to be calculated twice.
 2. Maintenance burden: as verifications of an op are contained in two different methods. 
 
-Thus, in most cases the verifiers will be removed and all the verification logic will be merged into the shape functions (example: [PR#135](https://github.com/openxla/stablehlo/pull/135)). The only exceptions will be:
-
-1. Ops that cannot have a shape function: like `stablehlo.reshape`, whose result type cannot be inferred.
-2. (should be rare) Ops that have tons of logic in their verifier but very little logic in their shape function.
+One solution is to discard verifiers totally and move all the verification code into the shape functions [example](https://github.com/openxla/stablehlo/pull/135)). However, there are user cases that the op is created before all the components are in place, for [example](https://github.com/tensorflow/mlir-hlo/blob/master/lib/Dialect/mhlo/transforms/mhlo_canonicalize_reduction.cc#L222), the ReduceOp is created without regions and soon the shape functions are used. Involving verifications in shape functions would break the use cases like this. Thus, the most practical solution is to include as much as possible verifications in verifiers and leave the shape function as thin as possible.
 
 ## (P4) Establish testing guidelines
 
