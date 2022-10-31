@@ -355,8 +355,9 @@ logical operation.
 
 Computes mean and variance across batch and spatial dimensions and normalizes
 the `operand` tensor, for each feature in the `feature_index` dimension and
-produces `output`, `batch_mean` and `batch_var` tensors. Refer
-[Batch Normalization Paper](https://arxiv.org/abs/1502.03167) for the detailed
+produces `output`, `batch_mean` and `batch_var` tensors. Refer the
+`Batch Normalizing Transform` algorithm from the
+[Batch Normalization](https://arxiv.org/abs/1502.03167) paper for the detailed
 algorithm.
 
 ### Inputs
@@ -380,12 +381,11 @@ algorithm.
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) 0 $\lt$ rank(`operand`).
-  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
-  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
-  * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
-  * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
-  * (C7) `operand` and `output` have the same type.
+  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`batch_var`) $=$ `dim(operand, feature_index)`.
+  * (C6) `operand` and `output` have the same type.
 
 ### Examples
 
@@ -396,16 +396,16 @@ algorithm.
 //           ]
 // %scale: [1.0, 1.0]
 // %offset: [1.0, 1.0]
-%results:3 = "mhlo.batch_norm_training"(%operand, %scale, %offset) {
+%results:3 = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
   epsilon = 0.0 : f32,
-  feature_index = 1 : i64
-} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
-// %result#0: [
-//             [[0.0, 0.0], [2.0, 2.0]],
-//             [[2.0, 2.0], [0.0, 0.0]]
-//            ]
-// %result#1: [2.0, 3.0]
-// %result#2: [1.0, 1.0]
+  feature_index = 2 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+// %results#0: [
+//              [[0, 0], [2, 2]],
+//              [[2, 2], [0, 0]]
+//             ]
+// %results#1: [2, 3]
+// %results#2: [1, 1]
 ```
 
 [Back to Ops](#index-of-ops)

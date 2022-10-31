@@ -1629,10 +1629,10 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
 
     Example:
     ```mlir
-    %results:3 = "mhlo.batch_norm_training"(%operand, %scale, %offset) {
+    %results:3 = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
       epsilon = 0.0 : f32,
-      feature_index = 1 : i64
-    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+      feature_index = 2 : i64
+    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
     ```
   }];
 
