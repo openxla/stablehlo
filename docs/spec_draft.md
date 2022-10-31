@@ -519,6 +519,7 @@ positive-definite matrix, then the result is implementation-defined.
   * (C1) `a` and `result` have the same type.
   * (C2) rank(`a`) >= 2.
   * (C3) dim(`a`, -2) = dim(`a`, -1).
+  * (C4) `lower` is optional with default value `false`.
 
 ### Examples
 
