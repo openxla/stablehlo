@@ -1759,6 +1759,9 @@ More formally, `results[:][result_index] = reduce(input_slices)` where:
   corresponds to the element types of `results`.
   * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
   sizes of `inputs[k]` corresponding to `dimensions` are not included.
+  * (C8) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+  `Ek = element_type(inputs[k])`.
 
 ### Examples
 
