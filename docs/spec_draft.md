@@ -709,21 +709,14 @@ implementation-defined.
 
 ### Semantics
 
-Performs the forward and inverse Fourier Transforms for real and complex
-inputs/outputs. Multidimensional FFTs up to rank 3 are supported.
+Performs the forward and inverse Fourier transforms for real and complex
+inputs/outputs.
 
 `fft_type` is one of the following:
-
-* `FFT`: Forward complex-to-complex FFT. Shape is unchanged.
-* `IFFT`: Inverse complex-to-complex FFT. Shape is unchanged.
-* `RFFT`: Forward real-to-complex FFT. Shape of the innermost axis is reduced to
-`fft_length[-1] // 2 + 1` if `fft_length[-1]` is a non-zero value, omitting the
-reversed conjugate part of the transformed signal beyond the Nyquist frequency.
-* `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real). Shape
-of the innermost axis is expanded to `fft_length[-1]` if `fft_length[-1]` is a
-non-zero value, inferring the part of the transformed signal beyond the Nyquist
-frequency from the reverse conjugate of the 1 to `fft_length[-1] // 2 + 1`
-entries.
+  * `FFT`: Forward complex-to-complex FFT.
+  * `IFFT`: Inverse complex-to-complex FFT.
+  * `RFFT`: Forward real-to-complex FFT.
+  * `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real).
 
 `fft_length` is the time-domain lengths of the axes being transformed. This is
 needed in particular for IRFFT to right-size the innermost axis, since `RFFT` of
@@ -735,6 +728,56 @@ axes. Note that for the real->complex and complex->real cases, the innermost
 axis transform is (effectively) performed first (`RFFT`; last for `IRFFT` to
 have compatible element type), which is why the innermost axis is the one which
 changes size. Other axis transforms will then be complex->complex.
+
+More formally, given the function `fft` which takes 1-dimensional tensors of
+complex types as input, produces 1-dimensional tensors of same types as
+output and computes the discrete Fourier transform:
+
+For `fft_type = FFT`, `result` is defined as the final result of a series of L
+computations where `L = size(fft_length)`. For example, for `L = 3`:
+  * `result1[i0, ..., :]` = `fft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+
+Furthermore, given the function `ifft` which has the same type signature and
+computes the inverse of `fft`:
+
+For `fft_type = IFFT`, `result` is defined as the inverse of the computations
+for `fft_type = FFT`. For example, for `L = 3`:
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `ifft(result2[i0, ..., :])` for all `i`.
+
+Furthermore, given the function `rfft` which takes 1-dimensional tensors of
+floating-point types, produces 1-dimensional tensors of complex types of the
+same floating-point semantics and works as follows:
+  * `rfft(real_operand) = truncated_result` where
+  * `complex_operand[i] = (real_operand, 0)` for all `i`.
+  * `complex_result = fft(complex_operand)`.
+  * `truncated_result = complex_result[:(rank(complex_result) / 2 + 1)]`.
+
+(When the discrete Fourier transform is computed for real operands, the first
+`N/2 + 1` elements of the result unambiguously define the rest of the result,
+so the result of `rfft` is truncated to avoid computing redundant elements).
+
+For `fft_type = RFFT`, `result` is defined as the final result of a series of L
+computations where `L = size(fft_length)`. For example, for `L = 3`:
+  * `result1[i0, ..., :]` = `rfft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+
+Finally, given the function `irfft` which has the same type signature and
+computes the inverse of `rfft`:
+
+For `fft_type = IRFFT`, `result` is defined as the inverse of the computations
+for `fft_type = RFFT`. For example, for `L = 3`:
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `irfft(result2[i0, ..., :])` for all `i`.
 
 ### Inputs
 
@@ -753,28 +796,36 @@ changes size. Other axis transforms will then be complex->complex.
 ### Constraints
 
   * (C1) rank(`operand`) is in range [1, 3].
-  * (C2) Depending on `fft_type`, `operand` and `result` type vary:
-    * For `FFT`, `operand` and `result` have the same complex type.
-    * For `IFFT`, `operand` and `result` have the same complex type.
-    * For `RFFT`, `operand` has float and `result` has complex type of the same
-    float precision.
-    * For `IRFFT`, `operand` has complex and `result` has float type of the same
-    float precision.
+  * (C2) The relationship between `operand` and `result` types varies:
+    * If `fft_type = FFT`, `operand` and `result` have the same type.
+    * If `fft_type = IFFT`, `operand` and `result` have the same type.
+    * If `fft_type = RFFT`, `operand` has float and `result` has complex type of
+    the same floating-point semantics. Shape of the innermost axis is reduced to
+    `fft_length[-1] // 2 + 1` if `fft_length[-1]` is a non-zero value, omitting
+    the reversed conjugate part of the transformed signal beyond the Nyquist
+    frequency.
+    * If `fft_type = IRFFT`, `operand` has complex and `result` has float type
+    of the same floating-point semantics. Shape of the innermost axis is
+    expanded to `fft_length[-1]` if `fft_length[-1]` is a non-zero value,
+    inferring the part of the transformed signal beyond the Nyquist frequency
+    from the reverse conjugate of the 1 to `fft_length[-1] // 2 + 1` entries.
   * (C3) size(`fft_length`) is in range [0, rank(`operand`)).
   * (C4) `fft_length` values are positive.
-  * (C5) If `fft_type = RFFT`, dim(`result`, `d`) = dim(`operand`, `d`) for all
-  `d` dimensions where `d` $\neq$ rank(`operand`)-1 and
-  dim(`result`, rank(`operand`)-1) = `fft_length[-1]/2 + 1`.
-  If `fft_type = IRFFT`, dim(`result`, `d`) = `fft_length[-1]/2 + 1` for all `d` dimensions where `d` $\neq$ rank(`operand`)-1 and dim(`result`, rank(`operand`)-1) =
-  dim(`operand`, rank(`operand`)-1).
+  * (C5) If among `operand` and `result`, there is a tensor `real` of a
+  floating-type type, then `dims(real)[-size(fft_length):] = fft_length`.
+  * (C6) `dim(result, d) = dim(operand, d)` for all `d`, except for:
+    * If `fft_type = RFFT`,
+      `dim(result, -1) = dim(operand, -1) == 0 ? 0 : dim(operand, -1) / 2 + 1`.
+    * If `fft_type = IRFFT`,
+      `dim(operand, -1) = dim(result, -1) == 0 ? 0 : dim(result, -1) / 2 + 1`.
 
 ### Examples
 
 ```mlir
 // %operand: [(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
 %result = "stablehlo.fft"(%operand) {
-  fft_length = dense<4> : tensor<1xi64>,
-  fft_type = #stablehlo<fft_type FFT>
+  fft_type = #stablehlo<fft_type FFT>,
+  fft_length = dense<4> : tensor<1xi64>
 } : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
 // %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```

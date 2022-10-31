@@ -2142,7 +2142,7 @@ def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp
 def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let summary = "Fast fourier transform operator";
   let description = [{
-    Performs the forward and inverse Fourier Transforms for real and complex
+    Performs the forward and inverse Fourier transforms for real and complex
     inputs/outputs.
 
     See:
