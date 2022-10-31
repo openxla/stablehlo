@@ -60,17 +60,18 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
 
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
-std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(
-    int64_t leftSize, int64_t rightSize, int64_t leftBound,
-    int64_t rightBound);
+std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
+                                                         int64_t rightSize,
+                                                         int64_t leftBound,
+                                                         int64_t rightBound);
 
 FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound);
 
 // Infer single most specific return type from inputTypes with support for
-// bounds. (Size, bound) of each dimension of the return type will be merged 
-// from corresponding dimensions of every inputType by merging them. 
+// bounds. (Size, bound) of each dimension of the return type will be merged
+// from corresponding dimensions of every inputType by merging them.
 LogicalResult inferMostSpecificType(Optional<Location> location,
                                     TypeRange inputTypes,
                                     SmallVectorImpl<Type> &inferredReturnTypes);
