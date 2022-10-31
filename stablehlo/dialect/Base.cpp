@@ -44,7 +44,7 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
     if (shape.empty() || !boundedAttr) return true;
     auto bounds = boundedAttr.getBounds();
     for (auto [dim_size, bound] : llvm::zip(shape, bounds))  // NOLINT
-      if (bound != ShapedType::kDynamicSize && bound < dim_size) return false;
+      if (!isDynamicDimSize(bound) && bound < dim_size) return false;
     return true;
   };
 
@@ -165,8 +165,7 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding) {
 
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
   if (bounds.empty()) return prototype;
-  if (llvm::all_of(bounds,
-                   [&](auto b) { return b == ShapedType::kDynamicSize; }))
+  if (llvm::all_of(bounds, [&](auto b) { return isDynamicDimSize(b); }))
     return {};
   if (!prototype)
     llvm::report_fatal_error(
@@ -174,6 +173,127 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
         "got none");
   auto dialect = cast<BoundedDialectInterface>(&prototype.getDialect());
   return dialect->createBoundedAttr(bounds);
+}
+
+// Inference rules to concat dimensions with bounds (lhs/rhs are commutative):
+//       Dim of lhs     Dim of rhs      Infer
+//  c0:  X              Y               X+Y
+//  c1:  X              ?               ?
+//  c2:  X              ?, B            ?, X+B
+//  c3:  ?              ?               ?
+//  c4:  ?              ?, B            ?
+//  c5:  ?, B           ?, C            ?, B+C
+std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
+                                                         int64_t rightSize,
+                                                         int64_t leftBound,
+                                                         int64_t rightBound) {
+  bool isLeftStaticDim = !isDynamicDimSize(leftSize);
+  bool isRightStaticDim = !isDynamicDimSize(rightSize);
+  int64_t size = ShapedType::kDynamicSize;
+  int64_t bound = ShapedType::kDynamicSize;
+
+  if (isLeftStaticDim && isRightStaticDim) {
+    size = leftSize + rightSize;
+  } else {
+    int64_t leftSizeOrBound = isLeftStaticDim ? leftSize : leftBound;
+    int64_t rightSizeOrBound = isRightStaticDim ? rightSize : rightBound;
+    if (!isDynamicDimSize(leftSizeOrBound) &&
+        !isDynamicDimSize(rightSizeOrBound))
+      bound = leftSizeOrBound + rightSizeOrBound;
+  }
+  return {size, bound};
+}
+
+// Inference rules to merge dimensions with bounds (lhs/rhs are commutative):
+//       Dim of lhs     Dim of rhs      Infer
+//  c0:  X              X               X
+//  c1:  X              ?               X
+//  c2:  X              ?, B(>=X)       X
+//  c3:  X              ?, B(<X)        Will error out by compatible checks
+//  c4:  ?              ?               ?
+//  c5:  ?              ?, B            ?, B
+//  c6:  ?, B           ?, C            ?, min(B, C)
+FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
+    Optional<Location> location, int64_t dim, int64_t leftSize,
+    int64_t rightSize, int64_t leftBound, int64_t rightBound) {
+  bool isLeftStaticDim = !isDynamicDimSize(leftSize);
+  bool isRightStaticDim = !isDynamicDimSize(rightSize);
+  bool isLeftStaticBound = !isDynamicDimSize(leftBound);
+  bool isRightStaticBound = !isDynamicDimSize(rightBound);
+  int64_t size = ShapedType::kDynamicSize;
+  int64_t bound = ShapedType::kDynamicSize;
+
+  if (isLeftStaticDim || isRightStaticDim) {
+    if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
+      return emitOptionalError(location, "Mismatched dimension sizes ",
+                               leftSize, " and ", rightSize, " in dimension ",
+                               dim);
+    size = isLeftStaticDim ? leftSize : rightSize;
+    if (isLeftStaticBound || isRightStaticBound) {
+      int64_t check_bound = isLeftStaticBound ? leftBound : rightBound;
+      if (size > check_bound)
+        return emitOptionalError(location, "Mismatched dimension size ", size,
+                                 " and bound ", check_bound, " in dimension ",
+                                 dim);
+    }
+  } else {
+    if (isLeftStaticBound && isRightStaticBound)
+      bound = std::min(leftBound, rightBound);
+    else
+      bound = isLeftStaticBound ? leftBound : rightBound;
+  }
+  return std::make_pair(size, bound);
+}
+
+// TODO(zhouxin) Refactor to better handle errors and return single type
+LogicalResult inferMostSpecificType(
+    Optional<Location> location, TypeRange inputTypes,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  SmallVector<RankedTensorType> rankedTypes;
+  for (auto inputType : inputTypes)
+    if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
+      rankedTypes.push_back(rankedType);
+  if (rankedTypes.empty()) {
+    inferredReturnTypes.push_back(inputTypes[0]);
+    return success();
+  }
+
+  auto rank = rankedTypes[0].getRank();
+  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
+  bool anyInputHaveBounds = false;
+
+  for (const auto& it : llvm::enumerate(rankedTypes)) {
+    RankedTensorType rankedType = it.value();
+    ArrayRef<int64_t> bounds = encodingToBounds(rankedType.getEncoding());
+    if (!bounds.empty()) anyInputHaveBounds = true;
+
+    for (int dim = 0; dim < rank; ++dim) {
+      std::pair<int64_t, int64_t> inferredDimAndBound;
+      int64_t leftSize = inferredSizes[dim];
+      int64_t rightSize = rankedType.getShape()[dim];
+      int64_t leftBound = inferredBounds[dim];
+      int64_t rightBound =
+          bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
+
+      auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
+          location, dim, leftSize, rightSize, leftBound, rightBound);
+      if (failed(inferredDimAndBoundOrErr)) return failure();
+      inferredDimAndBound = *inferredDimAndBoundOrErr;
+      inferredSizes[dim] = inferredDimAndBound.first;
+      inferredBounds[dim] = inferredDimAndBound.second;
+    }
+  }
+
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      inferredSizes, rankedTypes[0].getElementType(),
+      boundsToEncoding(
+          rankedTypes[0].getEncoding(),
+          // Empty array as argument is an indicator to boundsToEncoding() that
+          // there are no bounds at all in inputs, thus sparsity attributes will
+          // be included in the return type
+          anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({}))));
+  return success();
 }
 
 }  // namespace hlo
