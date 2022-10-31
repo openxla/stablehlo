@@ -577,11 +577,11 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
     return success();
   }
 
-  // Infer the most specific (size, bound) of all dimenstions of the return type
+  // Infer the most specific (size, bound) of all dimensions of the return type
   auto rank = firstRankedType.getRank();
   SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
-  // Note: for the concatenate dimension, 0 should be the identical element:
+  // Note: for the concatenate dimension, 0 should be the identity element:
   // Any dim size can keep unchanged when concatenated with 0
   inferredSizes[dimension] = 0;
   bool anyInputHaveBounds = false;
@@ -597,7 +597,6 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
       bounds = to_vector(encodingToBounds(rankedType.getEncoding()));
     if (!bounds.empty()) anyInputHaveBounds = true;
 
-    // Infer each dim for current rankedType (from inputTypes[1:end])
     for (int dim = 0; dim < rank; ++dim) {
       std::pair<int64_t, int64_t> inferredDimAndBound;
 
