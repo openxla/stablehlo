@@ -354,11 +354,10 @@ logical operation.
 ### Semantics
 
 Normalizes the `operand` tensor across batch and spatial dimensions, for each
-feature in the `feature_index` dimension and produces a `result` tensor. It uses
-`mean` and `variance` provided in the input instead of computing them. Refer the
-`Batch Normalizing Transform` algorithm from the
-[Batch Normalization](https://arxiv.org/abs/1502.03167) paper for the detailed
-algorithm.
+feature in the `feature_index` dimension and produces a `result` tensor. The
+algorithm for `Batch Norm Inference` is same as 
+[Batch Norm Training](#stablehlobatch_norm_training), except it uses `mean`
+and `variance` provided in the input instead of computing them.
 
 ### Inputs
 
