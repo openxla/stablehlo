@@ -3108,8 +3108,11 @@ algorithm used.
 
 `rng_algorithm` is one of the following:
   * `DEFAULT`: Backend specific algorithm.
-  * `THREE_FRY`: ThreeFry counter-based PRNG algorithm.
-  * `PHILOX`: Philox algorithm to generate random numbers in parallel.
+  * `THREE_FRY`: Threefry counter-based PRNG algorithm.*
+  * `PHILOX`: Philox algorithm to generate random numbers in parallel.*
+
+\* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
+](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
 
 More formally, given the function `rng_algorithm` which takes an
 `initial_state` as input, the `output` with uniform random data is generated
