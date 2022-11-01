@@ -185,6 +185,7 @@ described below)
    * [pad](#stablehlopad)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
+   * [return](#stablehloreturn)
    * [reverse](#stablehloreverse)
    * [rsqrt](#stablehlorsqrt)
    * [sine](#stablehlosine)
@@ -1354,6 +1355,31 @@ spaces of `result` and `operand`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.return
+
+### Semantics
+Terminates a function and returns the `results` of that function.
+
+### Inputs
+
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
+
+### Constraints
+
+  * (C1) Type of `results` and the function return type should be same.
+
+### Examples
+
+```mlir
+// %results: 1
+stablehlo.return %results : tensor<i32>
+// %results: 1
+```
 
 [Back to Ops](#index-of-ops)
 

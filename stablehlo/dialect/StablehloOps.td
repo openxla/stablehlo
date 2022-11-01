@@ -2653,15 +2653,14 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 
 def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
   let summary = [{
-    The `hlo.return` operation terminates a region and returns values.
+    Terminates a function and returns the `results` of that function.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreturn
 
     Example:
-
     ```mlir
-    %0 = stablehlo.reduce %arg0, %arg1 {
-      ...
-      stablehlo.return %1 : tensor<f32>
-    }
+    stablehlo.return %results : tensor<i32>
     ```
   }];
 
