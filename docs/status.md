@@ -81,7 +81,7 @@ one of the following tracking labels.
 | exponential_minus_one    | no            | yes*         | yes*           | yes             | no          |
 | fft                      | no            | yes*         | yes*           | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
-| gather                   | no            | yes*         | yes*           | no              | no          |
+| gather                   | yes           | yes          | yes            | no              | no          |
 | get_dimension_size       | no            | revisit      | no             | yes             | no          |
 | get_tuple_element        | no            | revisit      | revisit        | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |

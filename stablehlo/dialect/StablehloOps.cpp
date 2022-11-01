@@ -897,8 +897,8 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
 //  P2. Verify 0 <= start_index_map[i] < rank(operand), for every i.
 //  P3. Verify 0 <= index_vector_dim <= rank(start_indices).
 //  P4. Verify size(start_index_map) == shape(start_indices)[index_vector_dim].
-//  P5. Verify offset_dims is_sorted and no repeated.
-//  P6. Verify collapsed_slice_dims is_sorted and no repeated.
+//  P5. Verify offset_dims is_sorted and not repeated.
+//  P6. Verify collapsed_slice_dims is_sorted and not repeated.
 //  P7. Verify rank(operand) == size(offset_dims) + size(collapsed_slice_dims).
 //  P8. Verify slice_sizes has rank of 1.
 //  P9. Verify size(slice_sizes) == rank(operand).

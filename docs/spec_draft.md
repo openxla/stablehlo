@@ -172,6 +172,7 @@ described below)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
    * [floor](#stablehlofloor)
+   * [gather](#stablehlogather)
    * [if](#stablehloif)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
@@ -844,6 +845,147 @@ defined and one of the following:
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.gather
+
+### Semantics
+
+Gathers slices from `operand` tensor from offsets specified in `start_indices`
+and produces a `result` tensor.
+
+The following diagram shows how elements in `result` map on elements in
+`operand` using a concrete example. The diagram picks a few example `result`
+indices and explains in detail which `operand` indices they correspond to.
+
+<img align="center" src="spec_draft/gather.svg" />
+
+More formally, `result[result_index] = operand[operand_index]` where:
+  * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
+  * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
+  * `start_index` =
+      * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+        elements in `batch_index` and `:` is inserted at the `index_vector_dim`
+        index, if `index_vector_dim` < `rank(start_indices)`.
+      * `[start_indices[batch_index]]` otherwise.
+  * For `do` in `axes(operand)`,
+      * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
+      * `full_start_index[do]` = `0` otherwise.
+  * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
+  * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+    elements in `offset_index`, and `0` is inserted at indices from
+    `collapsed_slice_dims`.
+  * `operand_index` = `add(full_start_index, full_offset_index)`.
+    If `operand_index` is out of bounds for `operand`, then the behavior is
+    implementation-defined.
+
+If `indices_are_sorted` is `true` then the implementation can assume that
+`start_indices` are sorted with respect to `start_index_map`, otherwise the
+behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
+`full_start_index(id)` <= `full_start_index(jd)`.
+
+### Inputs
+
+| Name                   | Type                                         | Constraints                      |
+|------------------------|----------------------------------------------|----------------------------------|
+| `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12), (C15) |
+| `start_indices`        | tensor of any supported integer type         | (C2), (C3), (C13), (C14)         |
+| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)          |
+| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C14)    |
+| `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)                |
+| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13), (C14)         |
+| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12), (C14)  |
+| `indices_are_sorted`   | constant of type `i1`                        |                                  |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
+         size(`collapsed_slice_dims`).
+
+  * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
+
+  * (C3) size(`start_index_map`) $=$
+         `index_vector_dim` $\lt$ rank(`start_indices`) ?
+         dim(`start_indices`, `index_vector_dim`) : 1.
+
+  * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
+         order.
+
+  * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
+         such that $0 \le$ i $\lt$ size(`offset_dims`).
+
+  * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
+         ascending order.
+
+  * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
+          $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
+
+  * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
+
+  * (C9) All dimensions in `start_index_map` are unique.
+
+  * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
+         such that $0 \le$ i $\lt$ size(`start_index_map`).
+
+  * (C11) size(`slice_sizes`) $=$ rank(`operand`).
+
+  * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
+          such that $0 \le$ i $\lt$ size(`slice_sizes`).
+  * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
+          size(`offset_dims`), where
+          `effective_start_indices_rank` $=$
+          `index_vector_dim` $\lt$ rank(`start_indices`) ?
+          rank(`start_indices`) : rank(`start_indices`) + 1.
+  * (C14) `shape(result)` $=$ `concatenate(shape(start_indices), slice_sizes)`
+          except that:
+    * The dimension size of `start_indices` corresponding to
+      `index_vector_dim` is not included.
+    * The dimension sizes in `slice_sizes` corresponding to
+      `collapsed_slice_dims` are not included.
+
+  * (C15) `operand` and `result` have the same element type.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1, 2], [3, 4], [5, 6], [7, 8]],
+//            [[9, 10],[11, 12], [13, 14], [15, 16]],
+//            [[17, 18], [19, 20], [21, 22], [23, 24]]
+//           ]
+// %start_indices: [
+//                  [[0, 0], [1, 0], [2, 1]],
+//                  [[0, 1], [1, 1], [0, 2]]
+//                 ]
+%result = "stablehlo.gather"(%operand, %start_indices) {
+  dimension_numbers = #stablehlo.gather<
+    offset_dims = [2, 3],
+    collapsed_slice_dims = [0],
+    start_index_map = [1, 0],
+    index_vector_dim = 2>,
+  slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
+  indices_are_sorted = false
+} : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
+// %result: [
+//            [
+//              [[1, 2], [3, 4]],
+//              [[3, 4], [5, 6]],
+//              [[13, 14], [15, 16]]
+//            ],
+//            [
+//              [[9, 10], [11, 12]],
+//              [[11, 12], [13, 14]],
+//              [[17, 18], [19, 20]]
+//            ]
+//          ]
+```
 
 [Back to Ops](#index-of-ops)
 
