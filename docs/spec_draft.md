@@ -880,15 +880,10 @@ More formally, `result[result_index] = operand[operand_index]` where:
     If `operand_index` is out of bounds for `operand`, then the behavior is
     implementation-defined.
 
-If `indices_are_sorted` is `true` then the implementation can assume that the
-generated `operand_index`-es are ordered: Given two operand indices
-`[..., id, ...]` and `[..., jd, ...]`, we say `[..., id, ...]` is ordered
-before `[..., jd, ...]` if `[..., i'd, ...]'` is lexicographically less that
-`[..., j'd, ...]'`
-where
-  * `i'd = i[start_index_map[d]]` and  `j'd = j[start_index_map[d]]`
-     if d $\in$ `start_index_map`.
-  *  `i'd = id` and  `j'd = jd`, otherwise.
+If `indices_are_sorted` is `true` then the implementation can assume that
+`start_indices` are sorted with respect to `start_index_map`, otherwise the
+behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
+`full_start_index(id)` <= `full_start_index(jd)`.
 
 ### Inputs
 
