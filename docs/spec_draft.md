@@ -25,7 +25,7 @@ Following are the supported element types in StableHLO:
     are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
     (represents a pair of `f64`). Exact representation of complex types
     (e.g. whether the real part or the imaginary part comes first in memory)
-    is implementation-dependent.
+    is implementation-defined.
 
 **Tensor types** are the cornerstone of the StableHLO type system. They model
 immutable n-dimensional arrays and are referred to in the document as
