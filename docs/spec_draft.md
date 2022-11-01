@@ -1822,7 +1822,46 @@ Produces an `output` tensor from a constant `value`.
 ### Semantics
 
 Performs an element-wise conversion of values from one element type to another
-on `operand` tensor.
+on `operand` tensor and produces a `result` tensor.
+
+More formally, conversion from element `A` of `operand` to element `B` of
+another type is defined as the following:
+  * Conversion of same element type with different precision:
+    * The result is rounded using any normalizing rounding-direction attributes
+      from the IEEE-754 specification (e.g. `roundTiesToEven`).
+  * Conversion from integer to:
+    * signed integer: signExtend or truncate.
+    * unsigned integer: zero-extend or truncate.
+    * boolean: `B = A != 0 ? true : false`.
+    * floating-point*: `B = (float) A`.
+    * complex*: `B = ((float) A, 0.0)`.
+  * Conversion from boolean to:
+    * signed integer: `B = A ? 1 : 0`.
+    * unsigned integer: `B = A ? 1 : 0`.
+    * floating-point: `B = A ? 1.0 : 0.0`.
+    * complex: `B = A ? (1.0, 0.0) : (0.0, 0.0)`.
+  * Conversion from floating-point to:
+    * signed integer*: `B = round(A)`.
+    * unsigned integer*: `B = round(A)`.
+    * boolean: `B = A != 0.0 ? true : false`.
+    * floating-point: `B = round(A)` with upcast or downcast.
+    * complex: `B = (A, 0.0)` with upcast or downcast.
+  * Conversion from complex to:
+    * signed integer*: `B = round(A.real)`.
+    * unsigned integer*: `B = round(A.real)`.
+    * boolean: `B = A != (0.0, 0.0) ? true : false`.
+    * floating-point: `B = A.real` with upcast or downcast.
+    * complex: `B = round(A)` with upcast or downcast.
+  * Conversion from A to itself (i.e. A == B) is a no-op.
+
+\* For conversions involving floating-point-to-integer, complex-to-integer, and
+vice versa, if there is an unsigned/signed overflow, the result is
+implementation-defined and one of the following:
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+    for unsigned overflow. For signed integer overflow, wraps the result around
+    the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+    saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 ### Inputs
 
