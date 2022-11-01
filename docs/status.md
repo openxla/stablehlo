@@ -50,9 +50,9 @@ one of the following tracking labels.
 | all_to_all               | no            | yes*         | yes*           | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | yes           | revisit      | yes            | yes             | no          |
-| batch_norm_grad          | no            | yes*         | yes*           | no              | no          |
+| batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
-| batch_norm_training      | no            | revisit      | yes            | no              | no          |
+| batch_norm_training      | yes           | revisit      | yes            | no              | no          |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes*         | yes*           | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |

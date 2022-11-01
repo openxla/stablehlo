@@ -168,6 +168,7 @@ syntax.
    * [after_all](#stablehloafter_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
+   * [batch_norm_grad](#stablehlobatch_norm_grad)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
    * [bitcast_convert](#stablehlobitcast_convert)
@@ -424,6 +425,78 @@ with corner cases TBD. Numeric precision is implementation-defined.
 // %rhs: [0.0, 0.0, 0.0]
 %result = "stablehlo.atan2"(%lhs, %rhs) : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.batch_norm_grad
+
+### Semantics
+
+Computes gradients of `Batch Normalizing Transform` for `operand`, `scale` and
+offset, for each feature in the `feature_index` dimension, using `grad_output`
+and produces `grad_operand`, `grad_scale` and `grad_offset` tensors. Refer the
+[Batch Normalization](https://arxiv.org/abs/1502.03167) paper for the detailed
+differential equations.
+
+### Inputs
+
+| Name            | Type                                        |
+|-----------------|---------------------------------------------|
+| `operand`       | tensor of floating-point type               |
+| `scale`         | 1-dimensional tensor of floating-point type |
+| `mean`          | 1-dimensional tensor of floating-point type |
+| `variance`      | 1-dimensional tensor of floating-point type |
+| `grad_output`   | tensor of floating-point type               |
+| `epsilon`       | constant of type `f32`                      |
+| `feature_index` | constant of type `si64`                     |
+
+### Outputs
+
+| Name           | Type                                        |
+|----------------|---------------------------------------------|
+| `grad_operand` | tensor of floating-point type               |
+| `grad_scale`   | 1-dimensional tensor of floating-point type |
+| `grad_offset`  | 1-dimensional tensor of floating-point type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`variance`) $=$ `dim(operand, feature_index)`.
+  * (C6) `operand` and `grad_output` have the same type.
+  * (C7) `operand` and `grad_operand` have the same type.
+  * (C8) size(`grad_scale`) $=$ `dim(operand, feature_index)`.
+  * (C9) size(`grad_offset`) $=$ `dim(operand, feature_index)`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1.0, 2.0], [3.0, 4.0]],
+//            [[5.0, 6.0], [7.0, 8.0]]
+//           ]
+// %scale: [1.0, 1.0]
+// %mean: [2.0, 3.0]
+// %variance: [1.0, 1.0]
+// %grad_output: [
+//                [[0.1, 0.1], [0.1, 0.1]],
+//                [[0.1, 0.1], [0.1, 0.1]]
+//               ]
+%results:3 = "stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance,
+                                         %grad_output) {
+  epsilon = 0.0 : f32,
+  feature_index = 2 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
+     tensor<2x2x2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+// %results#0: [
+//              [[0.2, 0.2], [-0.2, -0.2]],
+//              [[-0.6, -0.6], [-1, -1]]
+//             ]
+// %results#1: [0.8, 0.8]
+// %results#2: [0.4, 0.4]
 ```
 
 [Back to Ops](#index-of-ops)
