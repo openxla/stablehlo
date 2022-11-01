@@ -67,7 +67,7 @@ one of the following tracking labels.
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | no          |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
-| convert                  | yes           | no           | infeasible     | yes             | no          |
+| convert                  | yes           | yes          | infeasible     | yes             | no          |
 | convolution              | revisit       | yes          | revisit        | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
