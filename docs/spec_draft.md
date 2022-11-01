@@ -382,6 +382,7 @@ syntax.
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
+   * [rng_bit_generator](#stablehlorng_bit_generator)
    * [round_nearest_afz](#stablehloround_nearest_afz)
    * [round_nearest_even](#stablehloround_nearest_even)
    * [rsqrt](#stablehlorsqrt)
@@ -3088,6 +3089,60 @@ hidden state.
 //           [1, 1, 1],
 //           [0, 0, 0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.rng_bit_generator
+
+### Semantics
+
+Returns an `output` filled with uniform random data and an updated
+`output_state` using the `rng_algorithm` given `initial_state`. The output is
+guaranteed to be deterministic from the initial state, but it is not guaranteed
+to be deterministic between backends and different compiler versions.
+
+`initial_state` is the initial state of the current random number generation.
+The initial state, required shape, and valid values are dependent on the
+algorithm used.
+
+`rng_algorithm` is one of the following:
+  * `DEFAULT`: Backend specific algorithm.
+  * `THREE_FRY`: ThreeFry counter-based PRNG algorithm.
+  * `PHILOX`: Philox algorithm to generate random numbers in parallel.
+
+### Inputs
+
+| Name            | Type                                                 |
+|-----------------|------------------------------------------------------|
+| `initial_state` | tensor of integer or floating-point type             |
+| `rng_algorithm` | constant of type `enum {DEFAULT, THREE_FRY, PHILOX}` |
+
+### Outputs
+
+| Name           | Type                                     |
+|----------------|------------------------------------------|
+| `output_state` | tensor of integer or floating-point type |
+| `output`       | tensor of integer or floating-point type |
+
+### Constraints
+
+  * (C1) Shape of `initial_state` vary depending on the `rng_algorithm`:
+    * If `rng_algorithm = DEFAULT`, `initial_state` has backend-specific
+      requirements.
+    * If `rng_algorithm = THREE_FRY`, `initial_state` is 2-dimensional.
+    * If `rng_algorithm = PHILOX`, `initial_state` is 3-dimensional.
+  * (C2) `output_state` has the same shape as `initial_state`.
+
+### Examples
+
+```mlir
+// %initial_state: [1, 2, 3]
+%output_state, %output = "stablehlo.rng_bit_generator"(%initial_state) {
+  rng_algorithm = #stablehlo.rng_algorithm<DEFAULT>
+} : (tensor<3xi32>) -> (tensor<3xi32>, tensor<2x2xf64>)
+// %output_state: []
+// %output: [[], []]
 ```
 
 [Back to Ops](#index-of-ops)
