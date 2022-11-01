@@ -741,113 +741,6 @@ IEEE-754 specification.
 
 [Back to Ops](#index-of-ops)
 
-## stablehlo.if
-
-### Semantics
-
-Produces the output from executing exactly one function from `true_branch` or
-`false_branch` depending on the value of `pred`. Formally, if `pred` is `true`,
-output of `true_branch` is returned, else if pred is `false`, output of
-`false_branch` is returned.
-
-### Inputs
-
-| Name           | Type                                       |
-|----------------|--------------------------------------------|
-| `pred`         | 1-dimensional tensor constant of type `i1` |
-| `true_branch`  | `function`                                 |
-| `false_branch` | `function`                                 |
-
-### Outputs
-
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
-
-### Constraints
-
-  * (C1) `true_branch` and `false_branch` have 0 inputs.
-  * (C2) `true_branch` and `false_branch` have the same output types.
-  * (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
-
-### Examples
-
-```mlir
-// %result_true_branch: 10
-// %result_false_branch: 11
-// %pred: true
-%result = "stablehlo.if"(%pred) ({
-  "stablehlo.return"(%result_true_branch) : (tensor<i32>) -> ()
-}, {
-  "stablehlo.return"(%result_false_branch) : (tensor<i32>) -> ()
-}) : (tensor<i1>) -> tensor<i32>
-// %result: 10
-```
-
-[Back to Ops](#index-of-ops)
-
-## stablehlo.iota
-
-### Semantics
-Fills a `result` tensor with values in increasing order starting from zero along
-the `iota_dimension` dimension. More formally,
-`result[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
-
-For integers, if the dimension size is larger than what the element type's
-maximum value can hold, an overflow occurs and the behavior is implementation-
-defined and one of the following:
-
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
-  for unsigned overflow.
-
-### Inputs
-
-| Name             | Type   |
-|------------------|--------|
-| `iota_dimension` | `si64` |
-
-### Outputs
-
-| Name     | Type                                              |
-|----------|---------------------------------------------------|
-| `result` | tensor of integer, floating-point or complex type |
-
-### Constraints
-
-  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the
-  `result`.
-
-### Examples
-
-```mlir
-%result = "stablehlo.iota"() {
-  iota_dimension = 0 : i64
-} : () -> tensor<4x5xi32>
-// %result: [
-//           [0, 0, 0, 0, 0],
-//           [1, 1, 1, 1, 1],
-//           [2, 2, 2, 2, 2],
-//           [3, 3, 3, 3, 3]
-//          ]
-
-%result = "stablehlo.iota"() {
-  iota_dimension = 1 : i64
-} : () -> tensor<4x5xi32>
-// %result: [
-//           [0, 1, 2, 3, 4],
-//           [0, 1, 2, 3, 4],
-//           [0, 1, 2, 3, 4],
-//           [0, 1, 2, 3, 4]
-//          ]
-```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
-
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.gather
 
 ### Semantics
@@ -986,6 +879,113 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //            ]
 //          ]
 ```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.if
+
+### Semantics
+
+Produces the output from executing exactly one function from `true_branch` or
+`false_branch` depending on the value of `pred`. Formally, if `pred` is `true`,
+output of `true_branch` is returned, else if pred is `false`, output of
+`false_branch` is returned.
+
+### Inputs
+
+| Name           | Type                                       |
+|----------------|--------------------------------------------|
+| `pred`         | 1-dimensional tensor constant of type `i1` |
+| `true_branch`  | `function`                                 |
+| `false_branch` | `function`                                 |
+
+### Outputs
+
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
+
+### Constraints
+
+  * (C1) `true_branch` and `false_branch` have 0 inputs.
+  * (C2) `true_branch` and `false_branch` have the same output types.
+  * (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
+
+### Examples
+
+```mlir
+// %result_true_branch: 10
+// %result_false_branch: 11
+// %pred: true
+%result = "stablehlo.if"(%pred) ({
+  "stablehlo.return"(%result_true_branch) : (tensor<i32>) -> ()
+}, {
+  "stablehlo.return"(%result_false_branch) : (tensor<i32>) -> ()
+}) : (tensor<i1>) -> tensor<i32>
+// %result: 10
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.iota
+
+### Semantics
+Fills a `result` tensor with values in increasing order starting from zero along
+the `iota_dimension` dimension. More formally,
+`result[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
+
+For integers, if the dimension size is larger than what the element type's
+maximum value can hold, an overflow occurs and the behavior is implementation-
+defined and one of the following:
+
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
+  for unsigned overflow.
+
+### Inputs
+
+| Name             | Type   |
+|------------------|--------|
+| `iota_dimension` | `si64` |
+
+### Outputs
+
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
+| `result` | tensor of integer, floating-point or complex type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the
+  `result`.
+
+### Examples
+
+```mlir
+%result = "stablehlo.iota"() {
+  iota_dimension = 0 : i64
+} : () -> tensor<4x5xi32>
+// %result: [
+//           [0, 0, 0, 0, 0],
+//           [1, 1, 1, 1, 1],
+//           [2, 2, 2, 2, 2],
+//           [3, 3, 3, 3, 3]
+//          ]
+
+%result = "stablehlo.iota"() {
+  iota_dimension = 1 : i64
+} : () -> tensor<4x5xi32>
+// %result: [
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4],
+//           [0, 1, 2, 3, 4]
+//          ]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
 
 [Back to Ops](#index-of-ops)
 
