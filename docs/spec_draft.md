@@ -2413,17 +2413,15 @@ Using this mapping between `update_index` and `result_index`, we define
     `updated_results = update_computation(results[:][result_index], updates[:][update_index])`.
   * `eval([], results) = results`.
 
-If `indices_are_sorted` is true then the implementation can assume that
-`scatter_indices` are sorted (in ascending `scatter_dims_to_operand_dims` order)
-by the user. If they are not then the semantics is implementation defined.
+If `indices_are_sorted` is `true` then the implementation can assume that
+`scatter_indices` are sorted with respect to `scatter_dims_to_operand_dims`,
+otherwise the ￼behavior is undefined. More formally, for all `id < jd` from
+`indices(result)`, `full_start_index(id)` <= `full_start_index(jd)`.
 
 If `unique_indices` is true then the implementation can assume that all
 `result_index` indices  being scattered to are unique. If `unique_indices`
 is true but the indices being scattered to are not unique then the semantics
-is implementation defined.
-
-The fact that `indices_are_sorted` is `true` or `unique_indices` is `true` may
-be leveraged to improve performance on some backends.
+is undefined.
 
 ### Inputs
 
