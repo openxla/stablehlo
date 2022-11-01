@@ -193,6 +193,7 @@ described below)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
+   * [rng](#stablehlorng)
    * [rsqrt](#stablehlorsqrt)
    * [select](#stablehloselect)
    * [sine](#stablehlosine)
@@ -1917,6 +1918,76 @@ and produces a `result` tensor. More formally,
 ```
 
 [Back to Ops](#index-of-ops)
+
+## stablehlo.rng
+
+### Semantics
+
+Constructs an output of a given shape with random numbers generated given
+`rng_distribution`.
+
+`rng_distribution` is one of the following:
+  * `UNIFORM`: the uniform distribution over the interval `[a,b)`. The
+    parameters and output element type have to be a boolean type, an integral
+    type or a floating point types, and the types have to be consistent.
+  * `NORMAL`: the normal distribution with parameters $\mu$ = `a` and $\sigma$ =
+    `b`. The parameters and output shape have to have a floating point
+    elemental type. The parameters furthermore have to be scalar valued.
+
+If `rng_distribution = UNIFORM` and `b` $\le$ `a`, the result is implementation-
+defined.
+
+More formally, given the interval [`a`, `b`) and the `shape` which describes the
+shape of the resulting tensor:
+  * For `rng_distribution = UNIFORM`, given the distribution `uniform`,
+    `result` is the output of shape `shape` with random numbers generated
+    following the uniform distribution over the interval [`a`, `b`):
+    * `result = uniform(a, b)`.
+  * For `rng_distribution = NORMAL`, given the distribution `normal`,
+    `result` is the output of shape `shape` with random numbers generated
+    following the $N(\mu, \sigma)$ normal distribution over the interval
+    [`a`, `b`) where $\mu$ = `a` and $\sigma$ = `b`:
+    * `result = normal(a, b)`.
+
+### Inputs
+
+| Name               | Type                                                 |
+|--------------------|------------------------------------------------------|
+| `a`                | constant of integer, boolean, or floating-point type |
+| `b`                | constant of integer, boolean, or floating-point type |
+| `shape`            | 1-dimensional tensor of integer type                 |
+| `rng_distribution` | constant of type `enum {UNIFORM, NORMAL}`            |
+
+### Outputs
+
+| Name     | Type                                               |
+|----------|----------------------------------------------------|
+| `result` | tensor of integer, boolean, or floating-point type |
+
+### Constraints
+
+  * (C1) `a`, `b`, and `result` have the same element type.
+  * (C2) dim(`result`, `i`) = `shape[i]` for all `i` $\in$ [0, size(`shape`)).
+  * (C3) If `rng_distribution = NORMAL`, `a` and `b` have floating-point type.
+
+### Examples
+
+```mlir
+// %a = 0
+// %b = 2
+// %shape = [3, 3]
+%result = "stablehlo.rng"(%a, %b, %shape) {
+  rng_distribution = #stablehlo<rng_distribution NORMAL>
+} : (tensor<i32>, tensor<i32>, tensor<2xi32>) -> tensor<3x3xi32>
+// %result: [
+//           [1, 0, 1],
+//           [1, 1, 1],
+//           [0, 0, 0]
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.rsqrt
 
 ### Semantics

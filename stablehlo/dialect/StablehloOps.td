@@ -2747,27 +2747,17 @@ def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
 //===----------------------------------------------------------------------===//
 
 def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementTypesMatch<["a", "b", "result"]>]> {
-  let summary = "RNG with uniform distribution.";
+  let summary = "RNG operator with uniform or normal distribution.";
   let description = [{
-    Constructs an output of a given shape with random numbers generated
-    following the given `rng_distribution` with two parameters:
-      `UNIFORM`: the uniform distribution over the interval `[a,b)`. The parameters
-                 and output element type have to be a boolean type, an integral type or a
-                 floating point types, and the types have to be consistent.
+    Constructs an output of a given shape with random numbers generated given
+    `rng_distribution`.
 
-                 See https://www.tensorflow.org/xla/operation_semantics#rnguniform.
-
-      `NORMAL`: the normal distribution with parameters `mu` (=`a`) and
-                `sigma` (=`b`). The parameters and output shape have to have a
-                floating point elemental type. The parameters furthermore have
-                to be scalar valued.
-
-                See https://www.tensorflow.org/xla/operation_semantics#rngnormal.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorng
 
     Example:
-
     ```mlir
-    %1 = stablehlo.rng %arg0, %arg1, %0, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
+    %result = stablehlo.rng %a, %b, %shape, distribution = NORMAL : (tensor<i32>, tensor<i32>, tensor<2xi32>) -> tensor<3x3xi32>
     ```
   }];
   let arguments = (ins
