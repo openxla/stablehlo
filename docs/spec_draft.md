@@ -498,8 +498,8 @@ lower-triangular (if `lower` is `true`) or upper-triangular (if `lower` is
 upper triangle or strict lower triangle correspondingly, are
 implementation-defined.
 
-If there exists `i` where the input matrix is not an Hermitian
-positive-definite matrix, then the result is implementation-defined.
+If there exists `i` where the input matrix is not an Hermitian positive-definite
+matrix, then the behavior is undefined.
 
 ### Inputs
 
@@ -519,7 +519,6 @@ positive-definite matrix, then the result is implementation-defined.
   * (C1) `a` and `result` have the same type.
   * (C2) rank(`a`) >= 2.
   * (C3) dim(`a`, -2) = dim(`a`, -1).
-  * (C4) `lower` is optional with default value `false`.
 
 ### Examples
 
