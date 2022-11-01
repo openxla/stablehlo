@@ -396,6 +396,7 @@ syntax.
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
+   * [convert](#stablehloconvert)
    * [convolution](#stablehloconvolution)
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
@@ -1813,6 +1814,39 @@ Produces an `output` tensor from a constant `value`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.convert
+
+### Semantics
+
+Performs an element-wise conversion of values from one element type to another
+on `operand` tensor.
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `operand` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same shape.
+
+### Examples
+
+```mlir
+// %operand: [1, 2, 3]
+%result = "stablehlo.convert"(%operand) : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
+// %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
+```
 
 [Back to Ops](#index-of-ops)
 

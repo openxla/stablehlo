@@ -254,15 +254,15 @@ def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
     [Pure, SameOperandsAndResultShape], HLO_Tensor> {
   let summary = "Convert operator";
   let description = [{
-    Performs element-wise conversion of values from one type to another, e.g.
-    float to int.
+    Performs an element-wise conversion of values from one element type to
+    another on `operand` tensor and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#convertelementtype.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconvert
 
     Example:
-
     ```mlir
-    %0 = stablehlo.convert %arg0 : (tensor<2xi32>) -> tensor<2xf32>
+    %result = stablehlo.convert %operand : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
     ```
   }];
   let builders = [
