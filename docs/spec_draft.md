@@ -3111,6 +3111,11 @@ algorithm used.
   * `THREE_FRY`: ThreeFry counter-based PRNG algorithm.
   * `PHILOX`: Philox algorithm to generate random numbers in parallel.
 
+More formally, given the function `rng_algorithm` which takes an
+`initial_state` as input, the `output` with uniform random data is generated
+given `initial_state`:
+  * `output_state, output = rng(initial_state)`
+
 ### Inputs
 
 | Name            | Type                                                 |
