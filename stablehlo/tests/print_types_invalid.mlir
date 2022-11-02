@@ -61,6 +61,15 @@ func.func @complex_type_not_complex(%arg0: tensor<1xf64>) -> () {
   func.return
 }
 
+
+// -----
+
+func.func @custom_call_target_not_symbol(%arg0 : tensor<3x4xf32>) -> () {
+  // expected-error @+1 {{custom op 'stablehlo.custom_call' expected valid '@'-identifier for symbol name}}
+  %0 = stablehlo.custom_call "test"(%arg0, %arg0) {backend_config = "bar", has_side_effect = true} : (tensor<3x4xf32>, tensor<3x4xf32>) -> tensor<1x2x3xf32>
+  "stablehlo.return"() : () -> ()
+}
+
 // -----
 
 func.func @dense_array_nested(%arg0: tensor<1x2xf64>) -> () {

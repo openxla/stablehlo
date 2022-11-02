@@ -184,6 +184,20 @@ void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
 ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
                                   IntegerAttr& mantissa);
 
+// CustomCallTarget - Print custom call target using upstream SymbolRef
+// printing.
+//
+// Generic:
+//    {custom_call_target = "foo"}
+//    {custom_call_target = "not-valid-id"}
+//
+// Custom:
+//    @foo
+//    @"not-valid-id"
+void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target);
+
+ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
+
 }  // namespace hlo
 }  // namespace mlir
 
