@@ -1940,7 +1940,7 @@ implementation-defined.
 | `a`                | constant of integer, boolean, or floating-point type |
 | `b`                | constant of integer, boolean, or floating-point type |
 | `shape`            | 1-dimensional tensor of integer type                 |
-| `rng_distribution` | constant of type `enum {UNIFORM, NORMAL}`            |
+| `rng_distribution` | enum of `UNIFORM` and `NORMAL`                       |
 
 ### Outputs
 
