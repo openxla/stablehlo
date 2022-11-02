@@ -1590,13 +1590,12 @@ specification. Numeric precision is implementation-defined.
 ## stablehlo.select
 
 ### Semantics
+
 Produces a `result` tensor where each element is selected from `on_true` or
 `on_false` tensor based on the value of the corresponding element of `pred`.
-More formally, if `predicate[i0, ..., iR-1] = true` then
-`result[i0, ..., iR-1] = on_true[i0, ..., iR-1]`  else
-`result[i0, ..., iR-1] = on_false[i0, ..., iR-1]`, where
-`predicate[i0, ..., iR-1] = pred` if `rank(pred)` $=$ `0` else
-`predicate[i0, ..., iR-1] = pred[i0, ..., iR-1]`.
+More formally,
+`result[i0, ..., iR-1] = predicate[i0, ..., iR-1] ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
+where `predicate[i0, ..., iR-1] = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Inputs
 
@@ -1621,20 +1620,10 @@ More formally, if `predicate[i0, ..., iR-1] = true` then
 ### Examples
 
 ```mlir
-// pred is a scalar
-
-// %pred: false
-// %on_true: [[1, 2], [3, 4]]
-// %on_false: [[5, 6], [7, 8]]
-%result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<i1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
-// %result: [[5, 6], [7, 8]]
-
-// pred is a ranked tensor
-
 // %pred: [[false, true], [true, false]]
 // %on_true: [[1, 2], [3, 4]]
 // %on_false: [[5, 6], [7, 8]]
-%result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi32>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+%result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
 ```
 
