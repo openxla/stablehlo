@@ -1686,18 +1686,15 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
     [Pure]> {
   let summary = "BitcastConvert operator";
   let description = [{
-    Similar to a 'tf.bitcast' in TensorFlow, performs an element-wise bitcast
-    operation from a data shape to a target shape. The dimensions must match,
-    and the conversion is an element-wise one. Bitcast is implemented as a
-    low-level cast, so machines with different floating-point representations
-    will give different results.
+    Performs an element-wise bitcast operation from a data shape to a target
+    shape.
 
-    See https://www.tensorflow.org/xla/operation_semantics#bitcastconverttype.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobitcast_convert
 
     Example:
-
     ```mlir
-    %0 = stablehlo.bitcast_convert %arg0 : (tensor<2xi32>) -> tensor<2xf32>
+    %result = stablehlo.bitcast_convert %operand : (tensor<2xf32>) -> tensor<2x4xi8>
     ```
   }];
 

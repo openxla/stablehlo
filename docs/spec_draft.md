@@ -165,6 +165,7 @@ described below)
    * [and](#stablehloand)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
+   * [bitcast_convert](#stablehlobitcast_convert)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
@@ -504,6 +505,57 @@ Numeric precision is implementation-defined.
 //          ]
 // %batch_mean: [2.0, 3.0]
 // %batch_var: [1.0, 1.0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.bitcast_convert
+
+### Semantics
+
+Performs an element-wise bitcast operation from `operand` tensor and produces
+a `result` tensor where the bits are reinterpreted with the new element type.
+Bitcast is implemented as a low-level cast, so machines with different
+floating-point representations will give different results (e.g. endianesss).
+Conversions between different bitwidths are not element-wise and creates/deletes
+a dimension if new element type requires less/more bits, respectively.
+
+More formally, let `E` and `E'` be the `operand` and `result` element type,
+respectively:
+  * If `numBits(E) > numBits(E')`,
+    `result[i0, ..., iR-1, :] = operand[j0, ..., jR-1]` where
+    `R = rank(operand)`, and `dim(result, -1) = numBits(E)/numBits(E')`.
+  * If `numBits(E') > numBits(E)`,
+    `result[i0, ..., iR-2] = operand[j0, ..., jR-2, :]` where
+    `R = rank(operand)`, and `dim(operand, -1) = numBits(E')/numBits(E)`.
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `operand` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same shape except for the last
+    dimension.
+  * (C2) Cannot convert between real and complex type.
+
+### Examples
+
+```mlir
+// %operand: [0,0, 1.0]
+%result = "stablehlo.bitcast_convert"(%operand) : (tensor<2xf32>) -> tensor<2x4xi8>
+// %result: [
+//           [0, 0, 0, 0],
+//           [0, 0, -128, 63] // little-endian representation of floating-point 1
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
