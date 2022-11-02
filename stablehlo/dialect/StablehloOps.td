@@ -484,15 +484,15 @@ def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "PopulationCount operator";
   let description = [{
-    Returns the number of bits set in each operand element-wise.
+    Counts the number of bits set in `operand` tensor element-wise and produces
+    a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopopcnt
 
     Example:
-
     ```mlir
-    %0 = stablehlo.popcnt %arg0 : tensor<2x2xi32>
+    %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
     ```
   }];
 }
@@ -1507,8 +1507,8 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
     Example:
 
     ```mlir
-    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4] 
-      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32> 
+    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4]
+      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
     ```
   }];
   let arguments = (ins
@@ -1521,7 +1521,7 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` custom<VariadicOperandWithAttribute>($start_indices) 
+    $operand `,` custom<VariadicOperandWithAttribute>($start_indices)
       `sizes` `=` custom<DenseI64Array>($slice_sizes)
       attr-dict `:` functional-type(operands, results)
   }];
@@ -1727,7 +1727,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions) 
+    $operand `,` `dims` `=` custom<DenseI64Array>($broadcast_dimensions)
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2519,7 +2519,7 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` $padding_value `,` 
+    $operand `,` $padding_value `,`
       `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
       `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
       `interior` `=` custom<DenseI64Array>($interior_padding)

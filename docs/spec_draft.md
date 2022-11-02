@@ -184,6 +184,7 @@ described below)
    * [not](#stablehlonot)
    * [or](#stablehloor)
    * [pad](#stablehlopad)
+   * [popcnt](#stablehlopopcnt)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
@@ -1406,6 +1407,39 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0],
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.popcnt
+
+### Semantics
+
+Counts the number of bits set in `operand` tensor element-wise and produces a
+`result` tensor.
+
+### Inputs
+
+| Name      | Type                   |
+|-----------|------------------------|
+| `operand` | tensor of integer type |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of integer type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [0, 1, 2, 127]
+%result = "stablehlo.popcnt"(%lhs, %rhs) : (tensor<4xi8>) -> tensor<4xi8>
+// %result: [0, 1, 1, 7]
 ```
 
 [Back to Ops](#index-of-ops)
