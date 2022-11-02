@@ -166,6 +166,7 @@ described below)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
+   * [cholesky](#stablehlocholesky)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
@@ -482,6 +483,61 @@ IEEE-754 specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.cholesky
+
+### Semantics
+
+Computes the Cholesky decomposition of a batch of matrices.
+
+More formally, for all `i`, `result[i0, ..., iR-3, :, :]` is a Cholesky
+decomposition of `a[i0, ..., iR-3, :, :]`, in the form of either of a
+lower-triangular (if `lower` is `true`) or upper-triangular (if `lower` is
+`false`) matrix. The output values in the opposite triangle, i.e. the strict
+upper triangle or strict lower triangle correspondingly, are
+implementation-defined.
+
+If there exists `i` where the input matrix is not an Hermitian positive-definite
+matrix, then the behavior is undefined.
+
+### Inputs
+
+| Name    | Type                                       |
+|---------|--------------------------------------------|
+| `a`     | tensor of floating-point or complex type   |
+| `lower` | 0-dimensional tensor constant of type `i1` |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `a` and `result` have the same type.
+  * (C2) rank(`a`) >= 2.
+  * (C3) dim(`a`, -2) = dim(`a`, -1).
+
+### Examples
+
+```mlir
+// %a: [
+//      [1.0, 2.0, 3.0],
+//      [2.0, 20.0, 26.0],
+//      [3.0, 26.0, 70.0]
+//     ]
+%result = "stablehlo.cholesky"(%a) {
+  lower = true
+} : (tensor<3x3xf32>) -> tensor<3x3xf32>
+// %result: [
+//           [1.0, 0.0, 0.0],
+//           [2.0, 4.0, 0.0],
+//           [3.0, 5.0, 6.0]
+//          ]
+```
 
 [Back to Ops](#index-of-ops)
 
