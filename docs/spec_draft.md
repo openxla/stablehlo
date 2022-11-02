@@ -2699,22 +2699,21 @@ If `unit_diagonal` is true, the diamonal elements of `a` are assumed to be 1 and
 not accessed.
 
 `transpose_a` can be one of the following:
-
-* `TRANSPOSE_INVALID`: Illegal matrix; transpose is invalid.
-* `NO_TRANSPOSE`: Perform operation as-is.
-* `TRANSPOSE`: Perform operation on transpose of `a`
-* `ADJOINT`: Perform operation on conjugate transpose of `a`.
+  * `TRANSPOSE_INVALID`: Illegal matrix; transpose is invalid.
+  * `NO_TRANSPOSE`: Perform operation as-is.
+  * `TRANSPOSE`: Perform operation on transpose of `a`
+  * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
 ### Inputs
 
-| Name            | Type                                                                          |
-|-----------------|-------------------------------------------------------------------------------|
-| `a`             | tensor of floating-point or complex type                                      |
-| `b`             | tensor of floating-point or complex type                                      |
-| `left_side`     | constant of type `i1`                                                         |
-| `lower`         | constant of type `i1`                                                         |
-| `unit_diagonal` | constant of type `i1`                                                         |
-| `transpose_a`   | constant of type `enum {TRANSPOSE_INVALID, NO_TRANSPOSE, TRANSPOSE, ADJOINT}` |
+| Name            | Type                                                                    |
+|-----------------|-------------------------------------------------------------------------|
+| `a`             | tensor of floating-point or complex type                                |
+| `b`             | tensor of floating-point or complex type                                |
+| `left_side`     | constant of type `i1`                                                   |
+| `lower`         | constant of type `i1`                                                   |
+| `unit_diagonal` | constant of type `i1`                                                   |
+| `transpose_a`   | enum of `TRANSPOSE_INVALID`, `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |
 
 ### Outputs
 
