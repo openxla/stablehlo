@@ -187,6 +187,7 @@ described below)
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
    * [clamp](#stablehloclamp)
+   * [compare](#stablehlocompare)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -838,6 +839,67 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 // %max: [10, 15, 20]
 %result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
 // %result: [5, 13, 20]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.compare
+
+### Semantics
+
+Performs element-wise comparison of `lhs` and `rhs` tensors based on
+`comparison_direction` and produces a `result` tensor. More formally,
+`result[i0, ..., iR-1]` =
+`compare_function(lhs[i0, ..., iR-1], rhs[i0, ..., iR-1])`.
+
+### Inputs
+
+| Name                   | Type                          |
+|------------------------|-------------------------------|
+| `lhs`                  | tensor of any supported type  |
+| `rhs`                  | tensor of any supported type  |
+| `comparison_direction` | type of comparison to perform |
+
+### Outputs
+
+| Name     | Type                |
+|----------|---------------------|
+| `result` | tensor of type `i1` |
+
+### Constraints
+
+  * (C1) `lhs` and `rhs` have the same type.
+  * (C2) `lhs` and `result` have the same shape.
+
+### Examples
+
+```mlir
+// compare booleans
+
+// %lhs: [true, false]
+// %rhs: [false, true]
+%result = "stablehlo.compare"(%lhs, %rhs) {
+  comparison_direction = #stablehlo<comparison_direction LT>
+} : (tensor<2xi1>, tensor<2xi1>) -> tensor<2xi1>
+// %result: [false, true]
+
+// compare integers
+
+// %lhs: [1, 3]
+// %rhs: [2, 2]
+%result = "stablehlo.compare"(%lhs, %rhs) {
+  comparison_direction = #stablehlo<comparison_direction LT>
+} : (tensor<2xi32>, tensor<2xi32>) -> tensor<2xi1>
+// %result: [true, false]
+
+// compare floats
+
+// %lhs: [1.0, 3,0]
+// %rhs: [1.1, 2.9]
+%result = "stablehlo.compare"(%lhs, %rhs) {
+  comparison_direction = #stablehlo<comparison_direction LT>
+} : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+// %result: [true, false]
 ```
 
 [Back to Ops](#index-of-ops)
