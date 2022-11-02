@@ -1970,7 +1970,7 @@ computations on accelerator backends. This can be one of the following:
 | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64` |
 | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64` |
 | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64` |
-| `precision_config`           | constant of type `si64`                      |
+| `precision_config`           | enum of `DEFAULT`, `HIGH`, and `HIGHEST`     |
 
 ### Outputs
 
