@@ -1923,31 +1923,15 @@ and produces a `result` tensor. More formally,
 
 ### Semantics
 
-Constructs an output of a given shape with random numbers generated given
-`rng_distribution`.
+Constructs a `result` tensor of a given shape `shape` with random numbers
+generated using the `rng_distribution` algorithm. If `rng_distribution` $=$
+`UNIFORM`, then the random numbers are generated following the uniform
+distribution over the interval [`a`, `b`). If `rng_distribution` $=$ `NORMAL`,
+then the random numbers are generated following the normal distribution with
+mean = `a` and standard deviation = `b`.
 
-`rng_distribution` is one of the following:
-  * `UNIFORM`: the uniform distribution over the interval `[a,b)`. The
-    parameters and output element type have to be a boolean type, an integral
-    type or a floating point types, and the types have to be consistent.
-  * `NORMAL`: the normal distribution with parameters $\mu$ = `a` and $\sigma$ =
-    `b`. The parameters and output shape have to have a floating point
-    elemental type. The parameters furthermore have to be scalar valued.
-
-If `rng_distribution = UNIFORM` and `b` $\le$ `a`, the result is implementation-
-defined.
-
-More formally, given the interval [`a`, `b`) and the `shape` which describes the
-shape of the resulting tensor:
-  * For `rng_distribution = UNIFORM`, given the distribution `uniform`,
-    `result` is the output of shape `shape` with random numbers generated
-    following the uniform distribution over the interval [`a`, `b`):
-    * `result = uniform(a, b)`.
-  * For `rng_distribution = NORMAL`, given the distribution `normal`,
-    `result` is the output of shape `shape` with random numbers generated
-    following the $N(\mu, \sigma)$ normal distribution over the interval
-    [`a`, `b`) where $\mu$ = `a` and $\sigma$ = `b`:
-    * `result = normal(a, b)`.
+If `rng_distribution = UNIFORM` and `b` $\le$ `a`, the result is
+implementation-defined.
 
 ### Inputs
 
@@ -1968,7 +1952,8 @@ shape of the resulting tensor:
 
   * (C1) `a`, `b`, and `result` have the same element type.
   * (C2) dim(`result`, `i`) = `shape[i]` for all `i` $\in$ [0, size(`shape`)).
-  * (C3) If `rng_distribution = NORMAL`, `a` and `b` have floating-point type.
+  * (C3) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
+    floating-point element type.
 
 ### Examples
 
@@ -1978,7 +1963,7 @@ shape of the resulting tensor:
 // %shape = [3, 3]
 %result = "stablehlo.rng"(%a, %b, %shape) {
   rng_distribution = #stablehlo<rng_distribution NORMAL>
-} : (tensor<i32>, tensor<i32>, tensor<2xi32>) -> tensor<3x3xi32>
+} : (tensor<f32>, tensor<f32>, tensor<2xi32>) -> tensor<3x3xf32>
 // %result: [
 //           [1, 0, 1],
 //           [1, 1, 1],
