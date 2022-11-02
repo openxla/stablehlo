@@ -718,17 +718,6 @@ inputs/outputs.
   * `RFFT`: Forward real-to-complex FFT.
   * `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real).
 
-`fft_length` is the time-domain lengths of the axes being transformed. This is
-needed in particular for IRFFT to right-size the innermost axis, since `RFFT` of
-with even `fft_length` has the same output shape as odd `fft_length`.
-
-For multidimensional FFT, when more than one `fft_length` is provided, this is
-equivalent to applying a cascade of FFT operations to each of the innermost
-axes. Note that for the real->complex and complex->real cases, the innermost
-axis transform is (effectively) performed first (`RFFT`; last for `IRFFT` to
-have compatible element type), which is why the innermost axis is the one which
-changes size. Other axis transforms will then be complex->complex.
-
 More formally, given the function `fft` which takes 1-dimensional tensors of
 complex types as input, produces 1-dimensional tensors of same types as
 output and computes the discrete Fourier transform:
@@ -795,25 +784,22 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 
 ### Constraints
 
-  * (C1) rank(`operand`) is in range [1, 3].
-  * (C2) The relationship between `operand` and `result` types varies:
-    * If `fft_type = FFT`, `operand` and `result` have the same type.
-    * If `fft_type = IFFT`, `operand` and `result` have the same type.
-    * If `fft_type = RFFT`, `operand` has float and `result` has complex type of
-    the same floating-point semantics. Shape of the innermost axis is reduced to
-    `fft_length[-1] // 2 + 1` if `fft_length[-1]` is a non-zero value, omitting
-    the reversed conjugate part of the transformed signal beyond the Nyquist
-    frequency.
-    * If `fft_type = IRFFT`, `operand` has complex and `result` has float type
-    of the same floating-point semantics. Shape of the innermost axis is
-    expanded to `fft_length[-1]` if `fft_length[-1]` is a non-zero value,
-    inferring the part of the transformed signal beyond the Nyquist frequency
-    from the reverse conjugate of the 1 to `fft_length[-1] // 2 + 1` entries.
-  * (C3) size(`fft_length`) is in range [0, rank(`operand`)).
-  * (C4) `fft_length` values are positive.
-  * (C5) If among `operand` and `result`, there is a tensor `real` of a
+  * (C1) `rank(operand)` $\ge$ `size(fft_length)`.
+  * (C2) The relationship between `operand` and `result` element types varies:
+    * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
+      have the same complex type.
+    * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
+      have the same complex type.
+    * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
+      `element_type(result)` is a complex type of the same floating-point
+      semantics.
+    * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
+      `element_type(result)` is a floating-point type of the same floating-point
+      semantics.
+  * (C3) 1 $\le$ `size(fft_length)` $\le$ 3.
+  * (C4) If among `operand` and `result`, there is a tensor `real` of a
   floating-type type, then `dims(real)[-size(fft_length):] = fft_length`.
-  * (C6) `dim(result, d) = dim(operand, d)` for all `d`, except for:
+  * (C5) `dim(result, d) = dim(operand, d)` for all `d`, except for:
     * If `fft_type = RFFT`,
       `dim(result, -1) = dim(operand, -1) == 0 ? 0 : dim(operand, -1) / 2 + 1`.
     * If `fft_type = IRFFT`,
