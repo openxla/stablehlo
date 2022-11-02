@@ -1434,14 +1434,14 @@ namespace {
 LogicalResult isSpatialDimensionsValid(
     Value lhs,
     // clang-format off
-    int64_t inputBatchDimension, 
+    int64_t inputBatchDimension,
     int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension, 
+    int64_t kernelInputFeatureDimension,
     int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions, 
+    ArrayRef<int64_t> kernelSpatialDimensions,
     int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, 
+    int64_t outputFeatureDimension,
     ArrayRef<int64_t> outputSpatialDimensions,
     // clang-format on
     Optional<Location> location) {
@@ -1525,16 +1525,16 @@ LogicalResult isSpatialDimensionsValid(
 LogicalResult verifyConvolutionAttributes(
     // clang-format off
     Value lhs, Value rhs,
-    int64_t inputBatchDimension, 
+    int64_t inputBatchDimension,
     int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension, 
+    int64_t kernelInputFeatureDimension,
     int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions, 
+    ArrayRef<int64_t> kernelSpatialDimensions,
     int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, 
+    int64_t outputFeatureDimension,
     ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t featureGroupCount, 
+    int64_t featureGroupCount,
     int64_t batchGroupCount,
     // clang-format on
     Optional<Location> location) {
@@ -1542,10 +1542,10 @@ LogicalResult verifyConvolutionAttributes(
   if (failed(isSpatialDimensionsValid(
           lhs,
           // clang-format off
-          inputBatchDimension, 
-          inputFeatureDimension, 
+          inputBatchDimension,
+          inputFeatureDimension,
           inputSpatialDimensions,
-          kernelInputFeatureDimension, 
+          kernelInputFeatureDimension,
           kernelOutputFeatureDimension,
           kernelSpatialDimensions,
           outputBatchDimension,
@@ -1635,12 +1635,12 @@ LogicalResult verifyConvolutionAttributes(
 //  2. rank-of(input-type) == rank-of(output-type)
 SmallVector<int64_t> inferConvolutionOpReturnShape(
     // clang-format off
-    Value lhs, Value rhs, 
+    Value lhs, Value rhs,
     int64_t inputBatchDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelOutputFeatureDimension, 
+    int64_t kernelOutputFeatureDimension,
     int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, 
+    int64_t outputFeatureDimension,
     ArrayRef<int64_t> outputSpatialDimensions,
     int64_t batchGroupCount,
     // clang-format on
@@ -1746,10 +1746,10 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
   if (failed(verifyConvolutionAttributes(
           lhs, rhs,
           // clang-format off
-          inputBatchDimension, 
-          inputFeatureDimension, 
+          inputBatchDimension,
+          inputFeatureDimension,
           inputSpatialDimensions,
-          kernelInputFeatureDimension, 
+          kernelInputFeatureDimension,
           kernelOutputFeatureDimension,
           kernelSpatialDimensions,
           outputBatchDimension,
@@ -4348,6 +4348,28 @@ namespace stablehlo {
 //===----------------------------------------------------------------------===//
 
 namespace {
+struct HLOInlinerInterface : public DialectInlinerInterface {
+  using DialectInlinerInterface::DialectInlinerInterface;
+
+  // Allow all call operations to be inlined.
+  bool isLegalToInline(Operation* call, Operation* callable,
+                       bool wouldBeCloned) const final {
+    return true;
+  }
+  // We don't have any special restrictions on what can be inlined into
+  // destination regions (e.g. while/conditional bodies). Always allow it.
+  bool isLegalToInline(Region* dest, Region* src, bool wouldBeCloned,
+                       BlockAndValueMapping& valueMapping) const final {
+    return true;
+  }
+  // Operations in StableHLO dialect are always legal to inline since they are
+  // pure.
+  bool isLegalToInline(Operation*, Region*, bool,
+                       BlockAndValueMapping&) const final {
+    return true;
+  }
+};
+
 struct HLOBoundedDialectInterface : public hlo::BoundedDialectInterface {
   using BoundedDialectInterface::BoundedDialectInterface;
 
@@ -4367,6 +4389,7 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >();
+  addInterfaces<HLOInlinerInterface>();
   addInterfaces<HLOBoundedDialectInterface>();
   addBytecodeInterface(this);
   addTypes<TokenType>();
