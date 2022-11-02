@@ -773,7 +773,7 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 | Name         | Type                                         |
 |--------------|----------------------------------------------|
 | `operand`    | tensor of floating-point or complex type     |
-| `fft_type`   | constant of type `si64`                      |
+| `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   |
 | `fft_length` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
