@@ -2701,7 +2701,7 @@ not accessed.
 `transpose_a` can be one of the following:
   * `TRANSPOSE_INVALID`: Illegal matrix; transpose is invalid.
   * `NO_TRANSPOSE`: Perform operation as-is.
-  * `TRANSPOSE`: Perform operation on transpose of `a`
+  * `TRANSPOSE`: Perform operation on transpose of `a`.
   * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
 ### Inputs
@@ -2723,11 +2723,11 @@ not accessed.
 
 ### Constraints
 
-  * (C1) `a` and `b` have the same type.
-  * (C2) `a` and `b` have the same rank and rank $\ge$ 2.
-  * (C3) dim(`a`, -2) = dim(`a`, -1) = dim(`b`, -2) = dim(`b`, -1).
+  * (C1) `a` and `b` have the same type and rank $\ge$ 2.
+  * (C2) dim(`a`, -2) = dim(`a`, -1).
+  * (C3) `a` and `b` have same shape except `R-1` and `R-2` dimensions.
   * (C4) Suppose `a` has shape `[..., M, M]`, then `b` has shape `[..., M, K]`
-  if `left_side` is true and `[..., K, M]` otherwise.
+    if `left_side` is true and `[..., K, M]` otherwise.
 
 ### Examples
 

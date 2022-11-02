@@ -149,7 +149,7 @@ one of the following tracking labels.
 | torch_index_select       | no            | revisit      | no             | no              | no          |
 | trace                    | no            | revisit      | no             | yes             | no          |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
-| triangular_solve         | no            | yes*         | yes*           | no              | no          |
+| triangular_solve         | yes           | yes          | yes            | no              | no          |
 | tuple                    | no            | revisit      | revisit        | yes             | no          |
 | unary_einsum             | no            | revisit      | no             | no              | no          |
 | uniform_dequantize       | no            | yes*         | yes*           | yes             | no          |

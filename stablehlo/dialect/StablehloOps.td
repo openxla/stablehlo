@@ -2611,23 +2611,21 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
     [Pure, SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "TriangularSolve operator";
   let description = [{
-    Solves systems of linear equations with lower or upper triangular
-    coefficient matrices by forward- or back-substitution. Broadcasting along
-    leading dimensions, this routine solves one of the matrix systems
-    op(a) * x = b, or x * op(a) = b, for the variable x, given a and b, where
-    op(a) is either op(a) = a, or op(a) = Transpose(a), or
-    op(a) = Conj(Transpose(a)).
+    Solves systems of linear equations of a batch of matrices with lower or
+    upper triangular coefficients by forward- or back-substitution.
 
-    Input data is read only from the lower/upper triangle of a, depending on the
-    value of lower. Values from the other triangle are ignored. Output data is
-    returned in the same triangle; the values in the other triangle are
-    implementation-defined and may be anything.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlotriangular_solve
 
-    If the rank of a and b are greater than 2, they are treated as batches of
-    matrices, where all except the minor 2 dimensions are batch dimensions. a
-    and b must have equal batch dimensions.
-
-    See https://www.tensorflow.org/xla/operation_semantics#triangularsolve.
+    Example:
+    ```mlir
+    %result = "stablehlo.triangular_solve"(%a, %b) {
+      left_side = true,
+      lower = true,
+      unit_diagonal = false,
+      transpose_a = #stablehlo<transpose NO_TRANSPOSE>
+    } : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<3x3xf32>
+    ```
   }];
   let arguments = (ins
     HLO_FpOrComplexTensor:$a,
