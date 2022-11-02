@@ -347,5 +347,13 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
   mantissa = parser.getBuilder().getI32IntegerAttr(mant);
   return success();
 }
+
+void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target) {
+  p.printSymbolName(target.getValue());
+}
+
+ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
+  return parser.parseSymbolName(target);
+}
 }  // namespace hlo
 }  // namespace mlir

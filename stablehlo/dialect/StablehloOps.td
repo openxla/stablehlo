@@ -2001,7 +2001,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     Example:
 
     ```mlir
-    %1 = stablehlo.custom_call "foo"(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
+    %1 = stablehlo.custom_call @foo(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
           : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
     ```
   }];
@@ -2025,8 +2025,8 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    $call_target_name `(` $inputs `)` attr-dict
-      `:` functional-type(operands, results)
+    custom<CustomCallTarget>($call_target_name) `(` $inputs `)` 
+      attr-dict `:` functional-type(operands, results)
   }];
 }
 
