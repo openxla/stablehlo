@@ -520,15 +520,6 @@ floating-point representations will give different results (e.g. endianesss).
 Conversions between different bitwidths are not element-wise and creates/deletes
 a dimension if new element type requires less/more bits, respectively.
 
-More formally, let `E` and `E'` be the `operand` and `result` element type,
-respectively:
-  * If `numBits(E) > numBits(E')`,
-    `result[i0, ..., iR-1, :] = operand[j0, ..., jR-1]` where
-    `R = rank(operand)`, and `dim(result, -1) = numBits(E)/numBits(E')`.
-  * If `numBits(E') > numBits(E)`,
-    `result[i0, ..., iR-2] = operand[j0, ..., jR-2, :]` where
-    `R = rank(operand)`, and `dim(operand, -1) = numBits(E')/numBits(E)`.
-
 ### Inputs
 
 | Name      | Type                         |
@@ -546,6 +537,14 @@ respectively:
   * (C1) `operand` and `result` have the same shape except for the last
     dimension.
   * (C2) Cannot convert between real and complex type.
+  * (C3) Let `E` and `E'` be the `operand` and `result` element type,
+    respectively:
+    * If `numBits(E) > numBits(E')`,
+      `result[i0, ..., iR-1, :] = operand[j0, ..., jR-1]` where
+      `R = rank(operand)`, and `dim(result, -1) = numBits(E)/numBits(E')`.
+    * If `numBits(E') > numBits(E)`,
+      `result[i0, ..., iR-2] = operand[j0, ..., jR-2, :]` where
+      `R = rank(operand)`, and `dim(operand, -1) = numBits(E')/numBits(E)`.
 
 ### Examples
 
