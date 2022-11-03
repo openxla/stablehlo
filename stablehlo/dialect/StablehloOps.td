@@ -2343,7 +2343,7 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 
     Example:
     ```mlir
-    %result = stablehlo.select %pred, %on_true, %on_false : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+    %result = stablehlo.select %pred, %on_true, %on_false : tensor<2x2xi1>, tensor<2x2xi32>
     ```
   }];
   let arguments = (ins
