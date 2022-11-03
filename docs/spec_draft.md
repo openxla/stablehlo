@@ -513,12 +513,22 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Performs an element-wise bitcast operation from `operand` tensor and produces
-a `result` tensor where the bits are reinterpreted with the new element type.
-Bitcast is implemented as a low-level cast, so machines with different
-floating-point representations will give different results (e.g. endianesss).
+Performs an element-wise bitcast operation on `operand` tensor and produces a
+`result` tensor where the bits are reinterpreted with the new element type.
 Conversions between different bitwidths are not element-wise and creates/deletes
 a dimension if new element type requires less/more bits, respectively.
+
+Bitcast is implemented as a low-level cast, so machines with different
+floating-point representations (e.g. endianesss) will give different results.
+
+Let `E` and `E'` be the `operand` and `result` element type respectively, and
+`R = rank(operand)`:
+  * If `numBits(E) == numBits(E')`,
+     `bitRepr(result[i0, ..., iR-1]) = bitRepr(operand[i0, ..., iR-1])`.
+  * If `numBits(E) > numBits(E')`,
+    `bitRepr(result[i0, ..., iR-1, :]) = bitRepr(operand[i0, ..., iR-1])`.
+  * If `numBits(E') > numBits(E)`,
+    `bitRepr(result[i0, ..., iR-2]) = bitRepr(operand[i0, ..., iR-2, :])`.
 
 ### Inputs
 
@@ -535,16 +545,16 @@ a dimension if new element type requires less/more bits, respectively.
 ### Constraints
 
   * (C1) `operand` and `result` have the same shape except for the last
-    dimension.
-  * (C2) Cannot convert between real and complex type.
-  * (C3) Let `E` and `E'` be the `operand` and `result` element type,
-    respectively:
-    * If `numBits(E) > numBits(E')`,
-      `result[i0, ..., iR-1, :] = operand[j0, ..., jR-1]` where
-      `R = rank(operand)`, and `dim(result, -1) = numBits(E)/numBits(E')`.
-    * If `numBits(E') > numBits(E)`,
-      `result[i0, ..., iR-2] = operand[j0, ..., jR-2, :]` where
-      `R = rank(operand)`, and `dim(operand, -1) = numBits(E')/numBits(E)`.
+    dimension. Let `E` and `E'` be the `operand` and `result` element type,
+    respectively and `R = rank(operand)`:
+    * If `numBits(E)` $=$ `numBits(E')`, shape(`operand`) $=$ shape(`result`).
+    * If `numBits(E)` $\gt$ `numBits(E')`, dim(`result`, `i`) $=$
+      dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1), and
+      `dim(result, -1) = numBits(E)/numBits(E')`.
+    * If `numBits(E')` $\gt$ `numBits(E)`, dim(`result`, `i`) $=$
+      dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1), and
+      `dim(operand, -1) = numBits(E')/numBits(E)`.
+  * (C2) Conversion between real and complex types is not permitted.
 
 ### Examples
 
