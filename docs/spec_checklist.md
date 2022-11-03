@@ -9,7 +9,8 @@ reviews:
      [the ODS](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td).
   1. Check if the "Semantics" section matches XLA's
      [Operation Semantics](https://www.tensorflow.org/xla/operation_semantics).
-  1. Check if the "Operands" section lists items in the same order as the ODS.
+  1. Check if the "Inputs" and "Outputs" sections list items in the same order
+     as the ODS.
   1. Check whether the "Constraints" section:
       1. Matches XLA's
          [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc).
