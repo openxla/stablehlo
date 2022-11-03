@@ -2695,12 +2695,12 @@ solving for the variable `x` given `a` and `b`, where `op(a)` is either
 output values in the opposite triangle, i.e. the strict upper triangle or strict
 lower triangle correspondingly, are implementation-defined.
 
-If `unit_diagonal` is true, the diamonal elements of `a` are assumed to be 1 and
+If `unit_diagonal` is true, the diagonal elements of `a` are assumed to be 1 and
 not accessed.
 
 `transpose_a` can be one of the following:
   * `TRANSPOSE_INVALID`: Illegal matrix; transpose is invalid.
-  * `NO_TRANSPOSE`: Perform operation as-is.
+  * `NO_TRANSPOSE`: Perform operation using `a` as-is.
   * `TRANSPOSE`: Perform operation on transpose of `a`.
   * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
