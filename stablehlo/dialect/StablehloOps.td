@@ -484,8 +484,8 @@ def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "PopulationCount operator";
   let description = [{
-    Counts the number of bits set in `operand` tensor element-wise and produces
-    a `result` tensor.
+    Performs element-wise count of the number of bits set in the `operand`
+    tensor and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopopcnt

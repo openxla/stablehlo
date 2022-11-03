@@ -1415,8 +1415,8 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 ### Semantics
 
-Counts the number of bits set in `operand` tensor element-wise and produces a
-`result` tensor.
+Performs element-wise count of the number of bits set in the `operand` tensor
+and produces a `result` tensor.
 
 ### Inputs
 
@@ -1438,7 +1438,7 @@ Counts the number of bits set in `operand` tensor element-wise and produces a
 
 ```mlir
 // %operand: [0, 1, 2, 127]
-%result = "stablehlo.popcnt"(%lhs, %rhs) : (tensor<4xi8>) -> tensor<4xi8>
+%result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
 ```
 
