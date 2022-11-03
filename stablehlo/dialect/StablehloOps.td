@@ -35,7 +35,6 @@ def StableHLO_Dialect : Dialect {
     a portability layer between ML frameworks and ML compilers.
   }];
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
 }
@@ -2025,7 +2024,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   let hasVerifier = 1;
 
   let assemblyFormat = [{
-    custom<CustomCallTarget>($call_target_name) `(` $inputs `)` 
+    custom<CustomCallTarget>($call_target_name) `(` $inputs `)`
       attr-dict `:` functional-type(operands, results)
   }];
 }
