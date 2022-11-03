@@ -2687,13 +2687,15 @@ where `i[d] = j[permutation[d]]`.
 Solves systems of linear equations of a batch of matrices with lower or upper
 triangular coefficients by forward- or back-substitution.
 
-More formally, for all `i`, `result[i0, ..., iR-3, :, :]` is the solution to
-`op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` (`left_side` is true)
-`x * op(a[i0, ..., iR-3, :, :]) = b[i0, ..., iR-3, :, :]` (`left_side` is false)
-solving for the variable `x` given `a` and `b`, where `op(a)` is either
-`op(a) = a`, or `op(a) = Transpose(a)`, or `op(a) = Conj(Transpose(a))`. The
-output values in the opposite triangle, i.e. the strict upper triangle or strict
-lower triangle correspondingly, are implementation-defined.
+More formally, given `a` and `b`, `result[i0, ..., iR-3, :, :]` is the solution
+to `op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` when `left_side` is
+`true` or `x * op(a[i0, ..., iR-3, :, :]) = b[i0, ..., iR-3, :, :]` when
+`left_side` is `false`, solving for the variable `x` where `op(a)` is either
+`op(a) = a`, or `op(a) = Transpose(a)`, or `op(a) = Conj(Transpose(a))`.
+
+Input data is read only from the lower triangle of `a`, if `lower` is `true` or
+upper triangle of `a`, otherwise. Output data is returned in the same triangle;
+the values in the other triangle are implementation-defined.
 
 If `unit_diagonal` is true, the diagonal elements of `a` are assumed to be 1 and
 not accessed.
@@ -2723,11 +2725,12 @@ not accessed.
 
 ### Constraints
 
-  * (C1) `a` and `b` have the same type and rank $\ge$ 2.
+  * (C1) `a`, `b`, and `result` have the same element type and rank $\ge$ 2.
   * (C2) dim(`a`, -2) = dim(`a`, -1).
-  * (C3) `a` and `b` have same shape except `R-1` and `R-2` dimensions.
-  * (C4) Suppose `a` has shape `[..., M, M]`, then `b` has shape `[..., M, K]`
-    if `left_side` is true and `[..., K, M]` otherwise.
+  * (C3) dim(`a`, `i`) $=$ dim(`b`, `i`) for all `i` $\in$ [0, R-3]. If
+    `left_size = true`, dim(`b`, -2) $=$ dim(`a`, -1) and dim(`b`, -1) $=$
+    dim(`a`, -1) otherwise.
+  * (C4) `b` and `result` have the same type.
 
 ### Examples
 
