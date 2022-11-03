@@ -492,7 +492,7 @@ def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
 
     Example:
     ```mlir
-    %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
+    %result = stablehlo.popcnt %operand : tensor<4xi8>
     ```
   }];
 }
