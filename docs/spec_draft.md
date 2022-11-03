@@ -172,6 +172,7 @@ described below)
    * [cosine](#stablehlocosine)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
+   * [fft](#stablehlofft)
    * [floor](#stablehlofloor)
    * [gather](#stablehlogather)
    * [if](#stablehloif)
@@ -757,6 +758,119 @@ implementation-defined.
 // %operand: (1.0, 2.0)
 %result = "stablehlo.exponential"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (-1.13120438, 2.47172667)
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.fft
+
+### Semantics
+
+Performs the forward and inverse Fourier transforms for real and complex
+inputs/outputs.
+
+`fft_type` is one of the following:
+  * `FFT`: Forward complex-to-complex FFT.
+  * `IFFT`: Inverse complex-to-complex FFT.
+  * `RFFT`: Forward real-to-complex FFT.
+  * `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real).
+
+More formally, given the function `fft` which takes 1-dimensional tensors of
+complex types as input, produces 1-dimensional tensors of same types as
+output and computes the discrete Fourier transform:
+
+For `fft_type = FFT`, `result` is defined as the final result of a series of L
+computations where `L = size(fft_length)`. For example, for `L = 3`:
+  * `result1[i0, ..., :]` = `fft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+
+Furthermore, given the function `ifft` which has the same type signature and
+computes the inverse of `fft`:
+
+For `fft_type = IFFT`, `result` is defined as the inverse of the computations
+for `fft_type = FFT`. For example, for `L = 3`:
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `ifft(result2[i0, ..., :])` for all `i`.
+
+Furthermore, given the function `rfft` which takes 1-dimensional tensors of
+floating-point types, produces 1-dimensional tensors of complex types of the
+same floating-point semantics and works as follows:
+  * `rfft(real_operand) = truncated_result` where
+  * `complex_operand[i] = (real_operand, 0)` for all `i`.
+  * `complex_result = fft(complex_operand)`.
+  * `truncated_result = complex_result[:(rank(complex_result) / 2 + 1)]`.
+
+(When the discrete Fourier transform is computed for real operands, the first
+`N/2 + 1` elements of the result unambiguously define the rest of the result,
+so the result of `rfft` is truncated to avoid computing redundant elements).
+
+For `fft_type = RFFT`, `result` is defined as the final result of a series of L
+computations where `L = size(fft_length)`. For example, for `L = 3`:
+  * `result1[i0, ..., :]` = `rfft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+
+Finally, given the function `irfft` which has the same type signature and
+computes the inverse of `rfft`:
+
+For `fft_type = IRFFT`, `result` is defined as the inverse of the computations
+for `fft_type = RFFT`. For example, for `L = 3`:
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+    for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `irfft(result2[i0, ..., :])` for all `i`.
+
+### Inputs
+
+| Name         | Type                                         |
+|--------------|----------------------------------------------|
+| `operand`    | tensor of floating-point or complex type     |
+| `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   |
+| `fft_length` | 1-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `rank(operand)` $\ge$ `size(fft_length)`.
+  * (C2) The relationship between `operand` and `result` element types varies:
+    * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
+      have the same complex type.
+    * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
+      have the same complex type.
+    * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
+      `element_type(result)` is a complex type of the same floating-point
+      semantics.
+    * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
+      `element_type(result)` is a floating-point type of the same floating-point
+      semantics.
+  * (C3) 1 $\le$ `size(fft_length)` $\le$ 3.
+  * (C4) If among `operand` and `result`, there is a tensor `real` of a
+  floating-type type, then `dims(real)[-size(fft_length):] = fft_length`.
+  * (C5) `dim(result, d) = dim(operand, d)` for all `d`, except for:
+    * If `fft_type = RFFT`,
+      `dim(result, -1) = dim(operand, -1) == 0 ? 0 : dim(operand, -1) / 2 + 1`.
+    * If `fft_type = IRFFT`,
+      `dim(operand, -1) = dim(result, -1) == 0 ? 0 : dim(result, -1) / 2 + 1`.
+
+### Examples
+
+```mlir
+// %operand: [(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+%result = "stablehlo.fft"(%operand) {
+  fft_type = #stablehlo<fft_type FFT>,
+  fft_length = dense<4> : tensor<1xi64>
+} : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
+// %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```
 
 [Back to Ops](#index-of-ops)

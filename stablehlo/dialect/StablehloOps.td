@@ -2127,19 +2127,19 @@ def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp
 def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let summary = "Fast fourier transform operator";
   let description = [{
-    Returns the fast-fourier-transform of the input array.
+    Performs the forward and inverse Fourier transforms for real and complex
+    inputs/outputs.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#fft.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlofft
 
     Example:
-
     ```mlir
-    %0 = stablehlo.fft %arg0, type = RFFT, length = [9] : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+    %result = stablehlo.fft %operand, type = FFT, length = [4] : (tensor<4xcomplex<f32>>) -> tensor<4xcomplex<f32>>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
+    HLO_FpOrComplexTensor:$operand,
     StableHLO_FftTypeAttr:$fft_type,
     I64ElementsAttr:$fft_length
   );
