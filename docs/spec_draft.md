@@ -1923,24 +1923,24 @@ and produces a `result` tensor. More formally,
 
 ### Semantics
 
-Constructs a `result` tensor of a given shape `shape` with random numbers
-generated using the `rng_distribution` algorithm. If `rng_distribution` $=$
-`UNIFORM`, then the random numbers are generated following the uniform
-distribution over the interval [`a`, `b`). If `rng_distribution` $=$ `NORMAL`,
-then the random numbers are generated following the normal distribution with
-mean = `a` and standard deviation = `b`.
+Generates random numbers using the `rng_distribution` algorithm and produces a
+`result` tensor of a given shape `shape`. If `rng_distribution` $=$ `UNIFORM`,
+then the random numbers are generated following the uniform distribution over
+the interval [`a`, `b`). If `rng_distribution` $=$ `NORMAL`, then the random
+numbers are generated following the normal distribution with mean = `a` and
+standard deviation = `b`.
 
-If `rng_distribution = UNIFORM` and `b` $\le$ `a`, the result is
+If `rng_distribution = UNIFORM` and `a` $\ge$ `b`, the result is
 implementation-defined.
 
 ### Inputs
 
-| Name               | Type                                                 |
-|--------------------|------------------------------------------------------|
-| `a`                | constant of integer, boolean, or floating-point type |
-| `b`                | constant of integer, boolean, or floating-point type |
-| `shape`            | 1-dimensional tensor of integer type                 |
-| `rng_distribution` | enum of `UNIFORM` and `NORMAL`                       |
+| Name               | Type                                                             |
+|--------------------|------------------------------------------------------------------|
+| `a`                | 0-dimensional tensor of integer, boolean, or floating-point type |
+| `b`                | 0-dimensional tensor of integer, boolean, or floating-point type |
+| `shape`            | 1-dimensional tensor constant of type `si64`                     |
+| `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   |
 
 ### Outputs
 
@@ -1951,9 +1951,9 @@ implementation-defined.
 ### Constraints
 
   * (C1) `a`, `b`, and `result` have the same element type.
-  * (C2) dim(`result`, `i`) = `shape[i]` for all `i` $\in$ [0, size(`shape`)).
-  * (C3) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
+  * (C2) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
     floating-point element type.
+  * (C3) shape(`result`) = `shape`.
 
 ### Examples
 
@@ -1962,8 +1962,8 @@ implementation-defined.
 // %b = 2
 // %shape = [3, 3]
 %result = "stablehlo.rng"(%a, %b, %shape) {
-  rng_distribution = #stablehlo<rng_distribution NORMAL>
-} : (tensor<f32>, tensor<f32>, tensor<2xi32>) -> tensor<3x3xf32>
+  rng_distribution = #stablehlo<rng_distribution UNIFORM>
+} : (tensor<i32>, tensor<i32>, tensor<2xi64>) -> tensor<3x3xi32>
 // %result: [
 //           [1, 0, 1],
 //           [1, 1, 1],

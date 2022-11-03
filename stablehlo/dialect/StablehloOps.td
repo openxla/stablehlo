@@ -2749,15 +2749,15 @@ def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
 def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementTypesMatch<["a", "b", "result"]>]> {
   let summary = "RNG operator with uniform or normal distribution.";
   let description = [{
-    Constructs a `result` tensor of a given shape `shape` with random numbers
-    generated using the `rng_distribution` algorithm.
+    Generates random numbers using the `rng_distribution` algorithm and produces
+    a `result` tensor of a given shape `shape`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorng
 
     Example:
     ```mlir
-    %result = stablehlo.rng %a, %b, %shape, distribution = NORMAL : (tensor<f32>, tensor<f32>, tensor<2xi32>) -> tensor<3x3xf32>
+    %result = stablehlo.rng %a, %b, %shape, distribution = NORMAL : (tensor<i32>, tensor<i32>, tensor<2xi64>) -> tensor<3x3xi32>
     ```
   }];
   let arguments = (ins
