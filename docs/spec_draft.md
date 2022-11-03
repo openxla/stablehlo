@@ -1594,8 +1594,8 @@ specification. Numeric precision is implementation-defined.
 Produces a `result` tensor where each element is selected from `on_true` or
 `on_false` tensor based on the value of the corresponding element of `pred`.
 More formally,
-`result[i0, ..., iR-1] = predicate[i0, ..., iR-1] ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
-where `predicate[i0, ..., iR-1] = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
+`result[i0, ..., iR-1] = predicate ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
+where `predicate = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Inputs
 
@@ -1614,8 +1614,7 @@ where `predicate[i0, ..., iR-1] = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 ### Constraints
 
   * (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
-  * (C2) `on_true` and `on_false` have same type.
-  * (C3) `on_true` and `result` have same type.
+  * (C2) `on_true`, `on_false` and `result` have same type.
 
 ### Examples
 
