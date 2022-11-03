@@ -23,8 +23,11 @@ reviews:
          spec, check that the "Verification" and "Type Inference" columns in
          [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md)
          say "yes".
-  1. Check whether the "Examples" section uses valid MLIR syntax by running
-     `stablehlo-opt` on code examples.
+  1. Check whether the "Examples" section:
+      1. Uses valid MLIR syntax by running `stablehlo-opt` on code examples.
+      1. Uses generic MLIR syntax (we stick to generic syntax in the spec to
+         avoid having to change the spec upon prettyprinter changes).
   1. Check that the "Specification" column in status.md says "yes".
-  1. Check that the `description` in op's ODS links to the corresponding section
-     of the spec.
+  1. Check that the `description` in op's ODS:
+      1. Links to the corresponding section of the spec.
+      1. Uses the same example as the spec but via pretty syntax.
