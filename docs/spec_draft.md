@@ -403,11 +403,13 @@ def batch_norm_inference(operand, scale, offset, epsilon, feature_index):
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
-  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
-  * (C4) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
-  * (C5) size(`batch_var`) $=$ `dim(operand, feature_index)`.
-  * (C6) `operand` and `output` have the same type.
+  * (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
+         have the same element type.
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `output` have the same type.
 
 ### Examples
 
@@ -423,11 +425,11 @@ def batch_norm_inference(operand, scale, offset, epsilon, feature_index):
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
 // %results#0: [
-//              [[0, 0], [2, 2]],
-//              [[2, 2], [0, 0]]
+//              [[0.0, 0.0], [2.0, 2.0]],
+//              [[2.0, 2.0], [0.0, 0.0]]
 //             ]
-// %results#1: [2, 3]
-// %results#2: [1, 1]
+// %results#1: [2.0, 3.0]
+// %results#2: [1.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
