@@ -802,10 +802,6 @@ func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf
 
 // -----
 
-//===----------------------------------------------------------------------===//
-// These tests are moved from ops_stablehlo.mlir and need check for duplication.
-//===----------------------------------------------------------------------===//
-
 // This is an positive test in MLIR-HLO:
 // https://github.com/tensorflow/mlir-hlo/blob/master/tests/Dialect/mhlo/ops.mlir#L3829
 // but negative here: stablehlo.convolution does no support unknown dimenstion

@@ -1876,7 +1876,7 @@ foreach rhs spatial index [k0, k1, ...]
         batch_group_size = input_batch_size / batch_group_count
         input_batch_size = dim(lhs, input_batch_dimension)
         batch_group_index = result_index[output_feature_dimension] / depthwise_multiplier
-        depthwise_multiplier = batch_group_count > 1 ? dim(rhs, kernel_output_feature_dimension) / input_batch_size : 1
+        depthwise_multiplier = batch_group_count > 1 ? dim(rhs, kernel_output_feature_dimension) / batch_group_count : 1
 
     lhs_full_index[input_feature_dimension] = rhs_iz + feature_group_index * input_feature_group_size
       where
@@ -2012,8 +2012,6 @@ The `precision_config` values have the following semantics.
           * `window[i] = dim(rhs, kernel_spatial_dimension[i])`.
 
   * (C15) element-type(`lhs`) $=$ element-type(`result`).
-
-  * C(TBD) dim(`rhs`, `kernel_output_feature_dimension`) % dim(`lhs`, `input_batch_dimension`) $=$ 0.
 
   * C(TBD) The size of `precision_config` array.
 
