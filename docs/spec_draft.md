@@ -353,9 +353,10 @@ logical operation.
 
 ### Semantics
 
-Normalizes the `operand` tensor across batch and spatial dimensions, for each
-feature in the `feature_index` dimension and produces a `result` tensor. More
-formally, the semantics can be expressed using Python-like syntax as follows:
+Normalizes the `operand` tensor across all dimensions except for the
+`feature_index` dimension and produces a `result` tensor. More formally, this
+operation can be expressed as a decomposition to existing StableHLO operations
+using Python-like syntax as follows:
 
 ```python
 def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, feature_index):
@@ -373,6 +374,8 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   normalized_operand = divide(centered_operand, stddev)
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
+
+Numeric precision is implementation-defined.
 
 ### Inputs
 
