@@ -2817,17 +2817,18 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
 }
 
 def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
-  let summary = "Uniform random number generator operator";
+  let summary = "Uniform pseudo random number generator operator";
   let description = [{
-    Returns an `output` filled with uniform random data and an updated
-    `output_state` using the `rng_algorithm` given `initial_state`.
+    Returns an `output` filled with uniform random data and an updated output
+    state `output_state` given an initial state `initial_state` using the
+    pseudorandom number generator algorithm `rng_algorithm`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorng_bit_generator
 
     Example:
     ```mlir
-    %output_state, %output = stablehlo.rng_bit_generator %initial_state, algorithm = DEFAULT : (tensor<3xi32>) -> (tensor<3xi32>, tensor<2x2xf64>)
+    %output_state, %output = stablehlo.rng_bit_generator %initial_state, algorithm = DEFAULT : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
     ```
   }];
   let arguments = (ins

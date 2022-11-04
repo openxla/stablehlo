@@ -3097,16 +3097,18 @@ hidden state.
 
 ### Semantics
 
-Returns an `output` filled with uniform random data and an updated
-`output_state` using the `rng_algorithm` given `initial_state`. The output is
-guaranteed to be deterministic from the initial state, but it is not guaranteed
-to be deterministic between backends and different compiler versions.
+Returns an `output` filled with uniform random bits and an updated output state
+`output_state` given an initial state `initial_state` using the pseudorandom
+number generator algorithm `rng_algorithm`. The output is guaranteed to be
+deterministic function of `initial_state`, but it is not guaranteed to be
+deterministic between backends and different compiler versions.
 
 `initial_state` is the initial state of the current random number generation.
 The initial state, required shape, and valid values are dependent on the
 algorithm used.
 
-`rng_algorithm` is one of the following:
+`rng_algorithm` is one of the following, different variants of the algorithm is
+implementation-defined:
   * `DEFAULT`: Backend specific algorithm.
   * `THREE_FRY`: Threefry counter-based PRNG algorithm.*
   * `PHILOX`: Philox algorithm to generate random numbers in parallel.*
@@ -3114,17 +3116,12 @@ algorithm used.
 \* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
 ](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
 
-More formally, given the function `rng_algorithm` which takes an
-`initial_state` as input, the `output` with uniform random data is generated
-given `initial_state`:
-  * `output_state, output = rng(initial_state)`
-
 ### Inputs
 
-| Name            | Type                                                 |
-|-----------------|------------------------------------------------------|
-| `initial_state` | tensor of integer or floating-point type             |
-| `rng_algorithm` | constant of type `enum {DEFAULT, THREE_FRY, PHILOX}` |
+| Name            | Type                                         |
+|-----------------|----------------------------------------------|
+| `initial_state` | tensor of integer or floating-point type     |
+| `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` |
 
 ### Outputs
 
@@ -3135,22 +3132,31 @@ given `initial_state`:
 
 ### Constraints
 
-  * (C1) Shape of `initial_state` vary depending on the `rng_algorithm`:
-    * If `rng_algorithm = DEFAULT`, `initial_state` has backend-specific
-      requirements.
-    * If `rng_algorithm = THREE_FRY`, `initial_state` is 2-dimensional.
-    * If `rng_algorithm = PHILOX`, `initial_state` is 3-dimensional.
-  * (C2) `output_state` has the same shape as `initial_state`.
+  * (C1) shape(`initial_state`) $=$ shape(`output_state`).
+  * (C2) The relationship between `initial_state`, `output_state`, and `output`
+      varies:
+    * If `rng_algorithm = DEFAULT`:
+      * `initial_state`, `output_state`, and `output` have backend-specific
+        requirements.
+    * If `rng_algorithm = THREE_FRY`:
+      * type(`initial_state`) $=$ type(`output_state`) $=$ `2xui64`.
+      * element_type(`output`) $\in$ {`ui32`, `ui64`}.
+    * If `rng_algorithm = PHILOX`:
+      * type(`initial_state`) $=$ type(`output_state`) $=$ `3xui64`.
+      * element_type(`output`) $\in$ {`ui32`, `ui64`}.
 
 ### Examples
 
 ```mlir
-// %initial_state: [1, 2, 3]
+// %initial_state: [1, 2]
 %output_state, %output = "stablehlo.rng_bit_generator"(%initial_state) {
-  rng_algorithm = #stablehlo.rng_algorithm<DEFAULT>
-} : (tensor<3xi32>) -> (tensor<3xi32>, tensor<2x2xf64>)
-// %output_state: []
-// %output: [[], []]
+  rng_algorithm = #stablehlo.rng_algorithm<THREE_FRY>
+} : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
+// %output_state: [1, 6]
+// %output: [
+//           [9236835810183407956, 16087790271692313299],
+//           [18212823393184779219, 2658481902456610144]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
