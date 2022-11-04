@@ -395,30 +395,32 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
-  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
-  * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
-  * (C5) size(`variance`) $=$ `dim(operand, feature_index)`.
-  * (C6) `operand` and `result` have the same type.
+  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the 
+    same element type.
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`variance`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `result` have the same type.
 
 ### Examples
 
 ```mlir
 // %operand: [
 //            [[1.0, 2.0], [3.0, 4.0]],
-//            [[5.0, 6.0], [7.0, 8.0]]
+//            [[3.0, 4.0], [1.0, 2.0]]
 //           ]
-// %scale: [2.0, 2.0]
-// %offset: [2.0, 2.0]
-// %mean: [1.0, 1.0]
-// %variance: [4.0, 4.0]
+// %scale: [1.0, 1.0]
+// %offset: [1.0, 1.0]
+// %mean: [2.0, 3.0]
+// %variance: [1.0, 1.0]
 %result = "stablehlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
 // %result: [
-//            [[2, 3], [4, 5]],
-//            [[6, 7], [8, 9]]
+//           [[0.0, 0.0], [2.0, 2.0]],
+//           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
 ```
 
