@@ -360,10 +360,9 @@ formally, the semantics can be expressed using Python-like syntax as follows:
 
 ```python
 def compute_mean(operand, feature_index):
-  sum = reduce(inputs = operand, init_values = 0, body = lambda x,y : x+y,
+  aggregate = reduce(inputs = operand, init_values = 0, body = lambda x,y : x+y,
                dimensions = [ i for i in range(rank(operand)) if i != feature_index ])
-  denominator = size(operand) / dim(operand, feature_index)
-  return divide(sum, denominator)
+  return divide(aggregate, size(operand) / dim(operand, feature_index))
 
 def compute_variance(operand, feature_index):
   centered_operand = subtract(operand, compute_mean(operand, feature_index))
