@@ -2318,18 +2318,15 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
     InferTensorTypeWithReify]> {
   let summary = "Select operator";
   let description = [{
-    Constructs an output tensor from the elements of `on_true` and `on_false`
-    based on the values of `pred`. All three operands must be of the same shape
-    with the exception of `pred`, which may also be a scalar in which case it is
-    broadcasted.
+    Produces a `result` tensor where each element is selected from `on_true` or
+    `on_false` tensor based on the value of the corresponding element of `pred`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#select.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect
 
     Example:
-
     ```mlir
-    %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>, tensor<2x3xi32>
-    %1 = stablehlo.select %arg0, %arg2, %arg3 : (tensor<2x3xi1>, tensor<2x?xi32>, tensor<?x2xi32>) -> tensor<2x?xi32>
+    %result = stablehlo.select %pred, %on_true, %on_false : tensor<2x2xi1>, tensor<2x2xi32>
     ```
   }];
   let arguments = (ins

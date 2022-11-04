@@ -191,6 +191,7 @@ described below)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rsqrt](#stablehlorsqrt)
+   * [select](#stablehloselect)
    * [sine](#stablehlosine)
    * [slice](#stablehloslice)
    * [sort](#stablehlosort)
@@ -1786,6 +1787,47 @@ specification. Numeric precision is implementation-defined.
 // %operand: [(1.0, 2.0)]
 %result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: [(0.56886448, -0.35157758)]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.select
+
+### Semantics
+
+Produces a `result` tensor where each element is selected from `on_true` or
+`on_false` tensor based on the value of the corresponding element of `pred`.
+More formally,
+`result[i0, ..., iR-1] = predicate ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
+where `predicate = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
+
+### Inputs
+
+| Name       | Type                         |
+|------------|------------------------------|
+| `pred`     | tensor of type `i1`          |
+| `on_true`  | tensor of any supported type |
+| `on_false` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
+  * (C2) `on_true`, `on_false` and `result` have same type.
+
+### Examples
+
+```mlir
+// %pred: [[false, true], [true, false]]
+// %on_true: [[1, 2], [3, 4]]
+// %on_false: [[5, 6], [7, 8]]
+%result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+// %result: [[5, 2], [3, 8]]
 ```
 
 [Back to Ops](#index-of-ops)
