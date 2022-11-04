@@ -74,6 +74,10 @@ whether/when they follow the canonical order) and how individual tensor elements
 in a particular order are packed together into a tensor (e.g. how these elements
 are aligned, whether they are stored contiguously, etc).
 
+**Token Types** Values of this type are used for ordering side-effecting
+operations using data dependencies which are robust against compiler
+optimizations.
+
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
@@ -162,6 +166,7 @@ described below)
 ## Index of Ops
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
+   * [after_all](#stablehloafter_all)
    * [and](#stablehloand)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
@@ -301,6 +306,35 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
+
+[Back to Ops](#index-of-ops)
+
+# stablehlo.after_all
+
+### Semantics
+Ensures that the operations producing the `inputs` are ordered before any
+operation that depend on `result`.
+
+### Inputs
+
+| Name     | Type                       |
+|----------|----------------------------|
+| `inputs` | variadic number of `token` |
+
+### Outputs
+
+| Name     | Type  |
+|----------|-------|
+| `result` | token |
+
+### Constraints
+  * size(`inputs`) $\ge$ 0.
+
+### Examples
+
+```mlir
+%result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+```
 
 [Back to Ops](#index-of-ops)
 

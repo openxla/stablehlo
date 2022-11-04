@@ -1117,17 +1117,16 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure]> {
   let summary = "AfterAll operator";
 
   let description = [{
-    AfterAll takes a variadic number of tokens and produces a single token.
-    Tokens are primitive types which can be threaded between side-effecting
-    operations to enforce ordering. AfterAll can be used as a join of tokens
-    for ordering a operation after a set operations.
+    Ensures that the operations producing the `inputs` are ordered before any
+    operation that depend on `result`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#afterall.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloafter_all
 
     Example:
 
     ```mlir
-    %0 = stablehlo.after_all %arg0, %arg1 : !stablehlo.token
+    %result = stablehlo.after_all %input0, %input1 : !stablehlo.token
     ```
   }];
 
