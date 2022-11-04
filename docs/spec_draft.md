@@ -518,17 +518,17 @@ Performs an element-wise bitcast operation on `operand` tensor and produces a
 Conversions between different bitwidths are not element-wise and creates/deletes
 a dimension if new element type requires less/more bits, respectively.
 
-Bitcast is implemented as a low-level cast, so machines with different
-floating-point representations (e.g. endianesss) will give different results.
-
 Let `E` and `E'` be the `operand` and `result` element type respectively, and
 `R = rank(operand)`:
-  * If `numBits(E) == numBits(E')`,
+  * If `numBits(E)` $=$ `numBits(E')`,
      `bitRepr(result[i0, ..., iR-1]) = bitRepr(operand[i0, ..., iR-1])`.
-  * If `numBits(E) > numBits(E')`,
+  * If `numBits(E)` $\gt$ `numBits(E')`,
     `bitRepr(result[i0, ..., iR-1, :]) = bitRepr(operand[i0, ..., iR-1])`.
-  * If `numBits(E') > numBits(E)`,
+  * If `numBits(E)` $\lt$ `numBits(E')`,
     `bitRepr(result[i0, ..., iR-2]) = bitRepr(operand[i0, ..., iR-2, :])`.
+
+Bitcast is implemented as a low-level cast, so machines with different
+floating-point representations (e.g. endianesss) will give different results.
 
 ### Inputs
 
