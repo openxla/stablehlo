@@ -29,7 +29,7 @@ limitations under the License.
 #include "mlir/IR/Verifier.h"
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LogicalResult.h"
-#include "mlir/Tools/ParseUtilties.h"
+#include "mlir/Tools/ParseUtilities.h"
 
 #define DEBUG_TYPE "hlo-compatibility"
 
