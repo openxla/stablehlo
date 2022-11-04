@@ -361,23 +361,23 @@ follows:
 
 ```python
 def compute_mean(operand, feature_index):
-  aggregate = reduce(inputs = operand, init_values = 0, body = lambda x,y : x+y,
-               dimensions = [ i for i in range(rank(operand)) if i != feature_index ])
-  return divide(aggregate, size(operand) / dim(operand, feature_index))
+  (sum,) = reduce(
+      inputs=[operand],
+      init_values=[0],
+      dimensions=[i for i in range(rank(operand)) if i != feature_index],
+      body=lambda x, y: add(x, y))
+  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
+  return divide(sum, divisor_bcast)
 
-def compute_variance(operand, feature_index):
-  centered_operand = subtract(operand, compute_mean(operand, feature_index))
-  centered_operand_squared = mul(centered_operand, centered_operand)
-  return compute_mean(centered_operand_squared, feature_index)
+def compute_variance(operand, mean, feature_index):
+  mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
+  centered_operand = subtract(operand, mean_bcast)
+  return compute_mean(mul(centered_operand, centered_operand), feature_index)
 
 def batch_norm_training(operand, scale, offset, epsilon, feature_index):
-  # Compute `mean` and `variance` (as 1-dimensional tensors)
   mean = compute_mean(operand, feature_index)
-  variance = compute_variance(operand, feature_index)
-
-  # Perform normalization with computed `mean` and `variance` instead of
-  # depending on `mean` and `variance` provided in the input like
-  # `batch_norm_inference`
+  variance = compute_variance(operand, mean, feature_index)
   return batch_norm_inference(operand, scale, offset, mean,
                               variance, epsilon, feature_index)
 ```
