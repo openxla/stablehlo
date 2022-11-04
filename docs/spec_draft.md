@@ -354,10 +354,25 @@ logical operation.
 ### Semantics
 
 Normalizes the `operand` tensor across batch and spatial dimensions, for each
-feature in the `feature_index` dimension and produces a `result` tensor. The
-algorithm for `Batch Norm Inference` is same as 
-[Batch Norm Training](#stablehlobatch_norm_training), except it uses `mean`
-and `variance` provided in the input instead of computing them.
+feature in the `feature_index` dimension and produces a `result` tensor. More
+formally, the semantics can be expressed using Python-like syntax as follows:
+
+```python
+def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, feature_index):
+  # Broadcast inputs to shape(operand)
+  scale_bcast = broadcast_in_dim(scale, [feature_index], shape(operand))
+  offset_bcast = broadcast_in_dim(offset, [feature_index], shape(operand))
+  mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
+  variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+
+  # Perform normalization using the provided `mean` and `variance` instead of 
+  # computing them like `batch_norm_training` does.
+  centered_operand = subtract(operand, mean_bcast)
+  stddev = sqrt(add(variance_bcast, epsilon_bcast))
+  normalized_operand = divide(centered_operand, stddev)
+  return add(multiply(scale_bcast, normalized_operand), offset_bcast)
+```
 
 ### Inputs
 
