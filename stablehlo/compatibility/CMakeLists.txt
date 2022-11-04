@@ -12,24 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(LLVM_TARGET_DEFINITIONS VersionedStablehloOps.td)
-mlir_tablegen(VersionedStablehloOps.h.inc -gen-op-decls)
-mlir_tablegen(VersionedStablehloOps.cpp.inc -gen-op-defs)
-add_public_tablegen_target(VersionedStablehloOpsIncGen)
-add_dependencies(mlir-headers VersionedStablehloOpsIncGen)
-
-add_mlir_dialect_library(VersionedStablehloOps
-  PARTIAL_SOURCES_INTENDED
-  VersionedStablehloOps.cpp
-  # VersionedStablehloBytecode.cpp
-
-  DEPENDS
-  VersionedStablehloOpsIncGen
-
-  LINK_LIBS PUBLIC
-  MLIRIR
-  MLIRSupport
-)
+add_subdirectory(dialect)
+add_subdirectory(transforms)
 
 # Add base compatibility library
 add_mlir_library(DialectCompatibility
@@ -37,8 +21,9 @@ add_mlir_library(DialectCompatibility
   DialectCompatibilityBase.cpp
 
   LINK_LIBS PUBLIC
-  #VersionedStablehloOps
+  VersionedStablehloOps
+  CompatibilityPasses
+  MLIRBytecodeWriter
   MLIRIR
   MLIRParser
-  MLIRBytecodeWriter
 )

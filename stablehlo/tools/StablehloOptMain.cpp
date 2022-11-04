@@ -17,6 +17,8 @@ limitations under the License.
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "stablehlo/dialect/Register.h"
+#include "stablehlo/compatibility/transforms/CompatibilityPasses.h"
+#include "stablehlo/compatibility/dialect/Register.h"
 #include "stablehlo/tests/TestUtils.h"
 
 int main(int argc, char **argv) {
@@ -26,6 +28,9 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
+
+  mlir::versionedhlo::registerAllDialects(registry);
+  mlir::versionedhlo::registerStablehloCompatibilityPasses();
 
   return failed(
       mlir::MlirOptMain(argc, argv, "StableHLO optimizer driver\n", registry));
