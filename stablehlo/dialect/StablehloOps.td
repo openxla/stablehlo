@@ -1342,8 +1342,8 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     ]> {
   let summary = "Reduce operator";
   let description = [{
-    Performs a reduction function `body` over the `inputs` and `init_values`
-    along the `dimensions` and produces a `result` tensor.
+    Applies a function `body` to `inputs` and `init_values` along the
+    `dimensions` and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce

@@ -1701,8 +1701,8 @@ and produces a `result` tensor.
 
 ### Semantics
 
-Performs a reduction function `body` over the `inputs` and `init_values` along
-the `dimensions` and produces a `result` tensor.
+Applies a function `body` to `inputs` and `init_values` along the `dimensions`
+and produces a `result` tensor.
 
 The order of reductions is implementation-defined, which means that `body` and
 `init_values` must form a monoid to guarantee that the operation produces the
@@ -1729,12 +1729,12 @@ More formally, `results[:][result_index] = reduce(input_slices)` where:
 
 ### Inputs
 
-| Name          | Type                                             |
-|---------------|--------------------------------------------------|
-| `inputs`      | variadic number of tensors of any supported type |
-| `init_values` | 0-dimensional tensor of any supported type       |
-| `dimensions`  | 1-dimensional tensor constant of type `si64`     |
-| `body`        | `function`                                       |
+| Name          | Type                                                           |
+|---------------|----------------------------------------------------------------|
+| `inputs`      | variadic number of tensors of any supported type               |
+| `init_values` | variadic number of 0-dimensional tensors of any supported type |
+| `dimensions`  | 1-dimensional tensor constant of type `si64`                   |
+| `body`        | `function`                                                     |
 
 ### Outputs
 
@@ -1752,16 +1752,11 @@ More formally, `results[:][result_index] = reduce(input_slices)` where:
   * (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
   `d`.
   * (C5) All dimensions in `dimensions` are unique.
-  * (C6) The full function type of `body` is
-  `(T0, ..., TN-1, T0, ..., TN-1) -> (T0, ..., TN-1)`, where the first and
-  second set of input types `T0,..., TN-1` corresponds to the element types of
-  `inputs` and `init_values` respectively. The output types `(T0, ..., TN-1)`
-  corresponds to the element types of `results`.
-  * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
-  sizes of `inputs[k]` corresponding to `dimensions` are not included.
-  * (C8) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+  * (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
   `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
   `Ek = element_type(inputs[k])`.
+  * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
+  sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 ### Examples
 
