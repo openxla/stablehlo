@@ -2701,21 +2701,20 @@ If `unit_diagonal` is true, the diagonal elements of `a` are assumed to be 1 and
 not accessed.
 
 `transpose_a` can be one of the following:
-  * `TRANSPOSE_INVALID`: Illegal matrix; transpose is invalid.
   * `NO_TRANSPOSE`: Perform operation using `a` as-is.
   * `TRANSPOSE`: Perform operation on transpose of `a`.
   * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
 ### Inputs
 
-| Name            | Type                                                                    |
-|-----------------|-------------------------------------------------------------------------|
-| `a`             | tensor of floating-point or complex type                                |
-| `b`             | tensor of floating-point or complex type                                |
-| `left_side`     | constant of type `i1`                                                   |
-| `lower`         | constant of type `i1`                                                   |
-| `unit_diagonal` | constant of type `i1`                                                   |
-| `transpose_a`   | enum of `TRANSPOSE_INVALID`, `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |
+| Name            | Type                                               |
+|-----------------|----------------------------------------------------|
+| `a`             | tensor of floating-point or complex type           |
+| `b`             | tensor of floating-point or complex type           |
+| `left_side`     | constant of type `i1`                              |
+| `lower`         | constant of type `i1`                              |
+| `unit_diagonal` | constant of type `i1`                              |
+| `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |
 
 ### Outputs
 
@@ -2725,7 +2724,7 @@ not accessed.
 
 ### Constraints
 
-  * (C1) `a`, `b`, and `result` have the same element type and rank $\ge$ 2.
+  * (C1) `a` and `b` have the same element type and rank $\ge$ 2.
   * (C2) dim(`a`, -2) = dim(`a`, -1).
   * (C3) dim(`a`, `i`) $=$ dim(`b`, `i`) for all `i` $\in$ [0, R-3]. If
     `left_size = true`, dim(`b`, -2) $=$ dim(`a`, -1) and dim(`b`, -1) $=$
