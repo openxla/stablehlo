@@ -41,7 +41,7 @@ one of the following tracking labels.
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | no            | yes*         | yes*           | yes             | no          |
 | batch_norm_grad          | no            | yes*         | yes*           | no              | no          |
-| batch_norm_inference     | no            | yes*         | yes*           | no              | no          |
+| batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
 | batch_norm_training      | no            | yes*         | yes*           | no              | no          |
 | bitcast_convert          | no            | yes*         | infeasible     | yes             | no          |
 | broadcast                | no            | yes*         | yes*           | yes             | no          |
