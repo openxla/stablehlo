@@ -353,10 +353,11 @@ logical operation.
 
 ### Semantics
 
-Computes mean and variance across batch and spatial dimensions and normalizes
-the `operand` tensor, for each feature in the `feature_index` dimension and
-produces `output`, `batch_mean` and `batch_var` tensors. More
-formally, the semantics can be expressed using Python-like syntax as follows:
+Computes mean and variance across all dimensions except for the `feature_index`
+dimension and normalizes the `operand` tensor producing `output`, `batch_mean`
+and `batch_var` tensors. More formally, this operation can be expressed as a
+decomposition to existing StableHLO operations using Python-like syntax as
+follows:
 
 ```python
 def compute_mean(operand, feature_index):
@@ -369,7 +370,7 @@ def compute_variance(operand, feature_index):
   centered_operand_squared = mul(centered_operand, centered_operand)
   return compute_mean(centered_operand_squared, feature_index)
 
-def batch_norm_inference(operand, scale, offset, epsilon, feature_index):
+def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   # Compute `mean` and `variance` (as 1-dimensional tensors)
   mean = compute_mean(operand, feature_index)
   variance = compute_variance(operand, feature_index)
@@ -380,6 +381,8 @@ def batch_norm_inference(operand, scale, offset, epsilon, feature_index):
   return batch_norm_inference(operand, scale, offset, mean,
                               variance, epsilon, feature_index)
 ```
+
+Numeric precision is implementation-defined.
 
 ### Inputs
 
