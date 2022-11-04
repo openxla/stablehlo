@@ -474,6 +474,23 @@ func.func @invalid_conv_window_attributes(%arg0: tensor<1x8x8x207xf32>,
 
 func.func @invalid_conv_window_attributes(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
+  // expected-error@+1 {{expects window-reversal to have same dimension-size as size of window dimensions (2), but got: 1.}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[1, 1], [1, 1]],
+           lhs_dilate = [1, 1], rhs_dilate = [1, 1], reverse = [false]}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} :
+       (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32>
+  func.return %0 : tensor<1x8x8x16xf32>
+}
+
+// -----
+
+func.func @invalid_conv_window_attributes(%arg0: tensor<1x8x8x207xf32>,
+    %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
   // expected-error@+1 {{expects padding-entries to have same dimension-size as size of window dimensions (2), but got: 1.}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
@@ -814,37 +831,6 @@ func.func @conv2d_generic(%arg0: tensor<1x8x8x32x207xf32>, %arg1: tensor<3x3x32x
 
 // -----
 
-// CHECK: func @conv2d
-// CHECK: stablehlo.convolution
-// CHECK-SAME: dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]
-// CHECK-SAME{LITERAL}: window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
-func.func @conv2d(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
-  %0 = stablehlo.convolution(%arg0, %arg1)
-         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
-         window = {stride = [1, 1], pad = [[1, 1], [1, 1]], lhs_dilate = [1, 1], rhs_dilate = [1, 1]}
-         {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} :
-       (tensor<1x8x8x207xf32>, tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32>
-  func.return %0 : tensor<1x8x8x16xf32>
-}
-
-// -----
-
-// CHECK: func @conv_empty_spatial_dimensions
-// CHECK: stablehlo.convolution
-// CHECK-SAME: dim_numbers = [b, f]x[i, o]->[b, f]
-// CHECK-SAME{LITERAL}: window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [], reverse = []}
-func.func @conv_empty_spatial_dimensions(%arg0: tensor<3x2xf16>, %arg1: tensor<2x2xf16>) -> tuple<tensor<3x2xf16>> {
-  %0 = stablehlo.convolution(%arg0, %arg1)
-         dim_numbers = [b, f]x[i, o]->[b, f],
-         window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [], reverse = []}
-         {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]}
-       : (tensor<3x2xf16>, tensor<2x2xf16>) -> tensor<3x2xf16>
-  %1 = "stablehlo.tuple"(%0) : (tensor<3x2xf16>) -> tuple<tensor<3x2xf16>>
-  func.return %1 : tuple<tensor<3x2xf16>>
-}
-
-// -----
-
 func.func @conv2d(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
   // expected-error @+3 {{'stablehlo.convolution' Expected array with 2 elements, got 3 elements instead}}
   %0 = stablehlo.convolution(%arg0, %arg1)
@@ -869,21 +855,6 @@ module attributes { stablehlo.conv = #stablehlo.conv<raw
       output_batch_dimension = 0,
       output_feature_dimension = 3,
       output_spatial_dimensions = [2, 1]>} {}
-
-// -----
-
-// CHECK-LABEL: func @convolution
-// CHECK: stablehlo.convolution
-// CHECK-SAME: dim_numbers = [b, 1, 0, f]x[0, 1, i, o]->[b, 0, 1, f]
-// CHECK-SAME{LITERAL}: window = {stride = [2, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [1, 2]}
-func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x2x4x3xf32>) -> tensor<2x1x1x3xf32> {
-  %0 = stablehlo.convolution(%arg0, %arg1)
-     dim_numbers = [b, 1, 0, f]x[0, 1, i, o]->[b, 0, 1, f],
-     window = {stride = [2, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [1, 2]}
-     { batch_group_count = 1 : i64, feature_group_count = 1 : i64}
-  : (tensor<2x2x3x4xf32>, tensor<3x2x4x3xf32>) -> tensor<2x1x1x3xf32>
-  func.return %0 : tensor<2x1x1x3xf32>
-}
 
 // -----
 
@@ -955,18 +926,6 @@ module attributes {
   // expected-error@+1{{Unexpected dimension -2}}
   stablehlo.conv = #stablehlo.conv<[b, f, 1, -2]x[o, 0, 1, i]->[f, b, 0, 1]>
 } {}
-
-// -----
-
-func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32> {
-  // expected-error@+3{{Expected array with 2 elements, got 3 elements instead}}
-  %0 = stablehlo.convolution(%arg0, %arg1)
-     dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
-     window = {stride = [2, 1], pad = [[0, 1, 2], [0, 1]], rhs_dilate = [1, 2]}
-     { batch_group_count = 1 : i64, feature_group_count = 1 : i64}
-  : (tensor<2x2x3x4xf32>, tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32>
-  func.return %0 : tensor<3x5x5x4xf32>
-}
 
 // -----
 
