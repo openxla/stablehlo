@@ -241,20 +241,9 @@ defined and one of the following:
 ### Examples
 
 ```mlir
-// integers
 // %operand: [-2, 0, 2]
 %result = "stablehlo.abs"(%operand) : (tensor<3xi32>) -> tensor<3xi32>
 // %result: [2, 0, 2]
-
-// floats
-// %operand: [-2.2, 0.0, 2.2]
-%result = "stablehlo.abs"(%operand) : (tensor<3xf32>) -> tensor<3xf32>
-// %result = [2.2, 0.0, 2.2]
-
-// complex
-// %operand: [(0.0, 1.0), (4.0, -3.0)]
-%result = "stablehlo.abs"(%operand) : (tensor<2xcomplex<f64>>) -> tensor<2xf64>
-// %result = [1, 5.0]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -300,7 +289,7 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 ```mlir
 // %lhs: [[1, 2], [3, 4]]
 // %rhs: [[5, 6], [7, 8]]
-%result = "stablehlo.add"(%lhs, %rhs) : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xf32>
+%result = "stablehlo.add"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[6, 8], [10, 12]]
 ```
 
@@ -312,9 +301,9 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 
 ### Semantics
 
-Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
-types and produces a `result` tensor. For boolean tensors, it computes the
-logical operation.
+Performs element-wise bitwise or logical AND of two tensors `lhs` and `rhs` and
+produces a `result` tensor. For integer tensors, computes the bitwise operation.
+For boolean tensors, computes the logical operation.
 
 ### Inputs
 
@@ -336,17 +325,10 @@ logical operation.
 ### Examples
 
 ```mlir
-// Bitwise operation with with integer tensors
 // %lhs: [[1, 2], [3, 4]]
 // %rhs: [[5, 6], [7, 8]]
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 0]]
-
-// Logical operation with with boolean tensors
-// %lhs: [[false, false], [true, true]]
-// %rhs: [[false, true], [false, true]]
-%result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
-// %result: [[false, false], [false, true]]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -666,23 +648,11 @@ tensor. More formally,
 ### Examples
 
 ```mlir
-// 1-dimensional concatenate
-
-// %input0 = [1, 2]
-// %input1 = [3, 4]
-// %input2 = [5, 6]
-%result = "stablehlo.concatenate"(%input0, %input1, %input2) {
-  dimension = 0 : i64
-} : (tensor<2xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<6xi32>
-// %result: [1, 2, 3, 4, 5, 6]
-
-// 2-dimensional concatenate
-
 // %input0: [[1, 2], [3, 4], [5, 6]]
 // %input1: [[7, 8]]
 %result = "stablehlo.concatenate"(%input0, %input1) {
   dimension = 0 : i64
-} : (tensor<3x2xi32>, tensor<1x2xi32>, i64) -> tensor<4x2xi32>
+} : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
