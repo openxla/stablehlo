@@ -433,11 +433,55 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Computes gradients of `Batch Normalizing Transform` for `operand`, `scale` and
-offset, for each feature in the `feature_index` dimension, using `grad_output`
-and produces `grad_operand`, `grad_scale` and `grad_offset` tensors. Refer the
-[Batch Normalization](https://arxiv.org/abs/1502.03167) paper for the detailed
-differential equations.
+Computes gradients of `operand`, `scale` and offset, using `mean`, `variance`
+and `grad_output`, the gradient of output from `batch_norm_training`, and
+produces `grad_operand`, `grad_scale` and `grad_offset` tensors. More formally,
+this operation can be expressed as a decomposition to existing StableHLO
+operations using Python-like syntax as follows:
+
+```python
+def reduce_sum(operand, feature_index):
+  (sum,) = reduce(
+      inputs=[operand],
+      init_values=[0],
+      dimensions=[i for i in range(rank(operand)) if i != feature_index],
+      body=lambda x, y: add(x, y))
+  return sum
+
+def compute_mean(operand, feature_index):
+  sum = reduce_sum(operand, feature_index)
+  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
+  return divide(sum, divisor_bcast)
+
+def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, feature_index):
+  # Broadcast inputs to shape(operand)
+  scale_bcast = broadcast_in_dim(scale, [feature_index], shape(operand))
+  mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
+  variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+
+  centered_operand = subtract(operand, mean_bcast)
+  stddev = sqrt(add(variance_bcast, epsilon_bcast))
+  normalized_operand = divide(centered_operand, stddev)
+
+  intermediate_cl = compute_mean(multiply(grad_output, divide(normalized_operand, stddev)))
+  mean_grad_output = compute_mean(grad_output, feature_index)
+
+  intermediate_cl_bcast = broadcast_in_dim(intermediate_cl, [feature_index], shape(operand))
+  mean_grad_output_bcast = broadcast_in_dim(mean_grad_output, [feature_index], shape(operand))
+
+  grad_operand = multiply(
+    divide(scale_bcast, stddev),
+    subtract(
+      subtract(grad_output, mean_grad_output_bcast),
+      multiply(intermediate_cl_bcast, centered_operand)
+    )
+  )
+  grad_scale = reduce_sum(multiply(grad_output, normalized_operand), feature_index)
+  grad_offset = reduce_sum(grad_output, feature_index)
+  return grad_operand, grad_scale, grad_offset
+```
 
 ### Inputs
 
@@ -462,14 +506,12 @@ differential equations.
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) size(`scale`) $=$ `dim(operand, feature_index)`.
-  * (C3) size(`offset`) $=$ `dim(operand, feature_index)`.
-  * (C4) size(`mean`) $=$ `dim(operand, feature_index)`.
-  * (C5) size(`variance`) $=$ `dim(operand, feature_index)`.
-  * (C6) `operand` and `grad_output` have the same type.
-  * (C7) `operand` and `grad_operand` have the same type.
-  * (C8) size(`grad_scale`) $=$ `dim(operand, feature_index)`.
-  * (C9) size(`grad_offset`) $=$ `dim(operand, feature_index)`.
+  * (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
+         `grad_scale` and `grad_offset` have the same element type.
+  * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
+  * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
+         same shape.
+  * (C5) size(`scale`) $=$ `dim(operand, feature_index)`.
 
 ### Examples
 
