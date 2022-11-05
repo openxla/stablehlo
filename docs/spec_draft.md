@@ -1898,13 +1898,11 @@ foreach rhs spatial index [k0, k1, ...]
   result[result_index] = value
 ```
 
-The `precision_config` values have the following semantics.
-  * `DEFAULT`: Fastest mode, but least accurate. Performs computations in
-             bfloat16.
-  * `HIGH`: Slower but more accurate. Performs float32 computations in 3 bfloat16
-          passes, or using tensorfloat32 where available.
-  * `HIGHEST`: Slowest but most accurate. Performs computations in float32 or
-             float64 as applicable.
+`precision_config` controls the tradeoff between speed and accuracy for
+computations on accelerator backends. The values can be one of the followings:
+  * `DEFAULT`:  (default value). Fastest mode, but least accurate.
+  * `HIGH`: Slower but more accurate.
+  * `HIGHEST`: Slowest but most accurate.
 
 ### Inputs
 
@@ -1928,7 +1926,7 @@ The `precision_config` values have the following semantics.
 | `output_spatial_dimension`        | 1-dimensional tensor constant of type `si64`      | (C1), (C4), (C14)                                  |
 | `feature_group_count`             | constant of type `si64`                           | (C5), (C6), (C8)                                   |
 | `batch_group_count`               | constant of type `si64`                           | (C5), (C6), (C8), (C14)                            |
-| `precision_config`                | array of enum of `DEFAULT`, `HIGH`, and `HIGHEST` |                                                    |
+| `precision_config`                | array of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C16)                                              |
 
 
 ### Outputs
@@ -2013,7 +2011,7 @@ The `precision_config` values have the following semantics.
 
   * (C15) element-type(`lhs`) $=$ element-type(`result`).
 
-  * C(TBD) The size of `precision_config` array.
+  * C(16) size(`precision_config`) $=$ 2 or $=$ 0.
 
 
 

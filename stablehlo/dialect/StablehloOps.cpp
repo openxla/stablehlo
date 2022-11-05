@@ -173,6 +173,14 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   return b.create<arith::IndexCastOp>(loc, type, value);
 }
 
+// Checks if the precision config has a valid size, if provided.
+LogicalResult verifyPrecisionConfig(Optional<Location> loc,
+                                    ::mlir::ArrayAttr attrArr) {
+  return !attrArr || attrArr.size() == 2 || attrArr.size() == 0
+             ? success()
+             : emitOptionalError(
+                   loc, "expects precision config to be null or of size 2.");
+}
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -722,7 +730,8 @@ LogicalResult DotOp::verify() {
                          << " from operands " << lhsType << " and " << rhsType;
     }
   }
-  return success();
+
+  return verifyPrecisionConfig(getLoc(), getPrecisionConfigAttr());
 }
 
 // PrecisionConfig - Optional attribute, print the array as raw enums
@@ -772,6 +781,9 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
+  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
+    return failure();
+
   return hlo::inferDotGeneralOp(
       location, adaptor.getLhs(), adaptor.getRhs(),
       adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
@@ -1727,7 +1739,8 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
  *  P1. Verify the input, kernel types.
  *  P2. Verify the convolution atributes.
  *  P3. Verify and collect the window atributes.
- *  P4. Verify the return shape.
+ *  P4. Verify precision_config attribute.
+ *  P5. Verify the return shape.
  *      TODO(b/232574102): Verify the element-type of return-value.
  */
 LogicalResult ConvolutionOp::inferReturnTypeComponents(
@@ -1829,7 +1842,11 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
       *rhsDilationOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
 
-  // P4.
+  // P3.
+  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
+    return failure();
+
+  // P5.
   auto expectedReturnShape = inferConvolutionOpReturnShape(
       lhs, rhs, inputBatchDimension, inputSpatialDimensions,
       kernelOutputFeatureDimension, outputBatchDimension,
@@ -3845,9 +3862,8 @@ LogicalResult TransposeOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TransposeOp::Adaptor adaptor(operands, attributes, regions);
-  LogicalResult result = hlo::inferTransposeOp(
-      loc, adaptor.getOperand(), adaptor.getPermutation(), inferredReturnTypes);
-  return result;
+  return hlo::inferTransposeOp(loc, adaptor.getOperand(),
+                               adaptor.getPermutation(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

@@ -934,6 +934,7 @@ func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -
   : (tensor<2x2x3x4xf32>, tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32>
   func.return %0 : tensor<3x5x5x4xf32>
 }
+
 // -----
 
 func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32> {
@@ -945,6 +946,7 @@ func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -
   : (tensor<2x2x3x4xf32>, tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32>
   func.return %0 : tensor<3x5x5x4xf32>
 }
+
 // -----
 
 func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32> {
@@ -955,4 +957,23 @@ func.func @convolution(%arg0: tensor<2x2x3x4xf32>, %arg1: tensor<3x5x5x3xf32>) -
      { batch_group_count = 1 : i64, feature_group_count = 1 : i64}
   : (tensor<2x2x3x4xf32>, tensor<3x5x5x3xf32>) -> tensor<3x5x5x4xf32>
   func.return %0 : tensor<3x5x5x4xf32>
+}
+
+// -----
+
+func.func @conv_invalid_precision_config(%arg0: tensor<3x2xf16>,
+    %arg1: tensor<2x2xf16>) -> tuple<tensor<3x2xf16>> {
+  // expected-error@+1{{expects precision config to be null or of size 2.}}
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, f]x[i, o]->[b, f],
+         window = {stride = [], pad = [], lhs_dilate = [], rhs_dilate = [],
+           reverse = []}
+         {
+           batch_group_count = 1 : i64,
+           feature_group_count = 1 : i64,
+           precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+         }
+       : (tensor<3x2xf16>, tensor<2x2xf16>) -> tensor<3x2xf16>
+  %1 = "stablehlo.tuple"(%0) : (tensor<3x2xf16>) -> tuple<tensor<3x2xf16>>
+  func.return %1 : tuple<tensor<3x2xf16>>
 }
