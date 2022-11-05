@@ -188,6 +188,7 @@ described below)
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
+   * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
@@ -368,7 +369,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
   epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
 
-  # Perform normalization using the provided `mean` and `variance` instead of 
+  # Perform normalization using the provided `mean` and `variance` instead of
   # computing them like `batch_norm_training` does.
   centered_operand = subtract(operand, mean_bcast)
   stddev = sqrt(add(variance_bcast, epsilon_bcast))
@@ -399,7 +400,7 @@ Numeric precision is implementation-defined.
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the 
+  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
     same element type.
   * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
   * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
@@ -1692,6 +1693,84 @@ and produces a `result` tensor.
 // %operand: [0, 1, 2, 127]
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce
+
+### Semantics
+
+Applies a function `body` to `inputs` and `init_values` along the `dimensions`
+and produces a `result` tensor.
+
+The order of reductions is implementation-defined, which means that `body` and
+`init_values` must form a monoid to guarantee that the operation produces the
+same results for all inputs on all implementations.
+
+However, this condition doesn't hold for many popular reductions. E.g.
+floating-point addition for `body` and zero for `init_values` don't actually
+form a monoid because floating-point addition is not associative. What this
+means for numeric precision is implementation-defined.
+
+More formally, `results[:][result_index] = reduce(input_slices)` where:
+  * `input_slices` = `inputs[:][ri0, ..., :, ..., riR-1]`, where `ri` are
+    individual elements in `result_index` and `:` are inserted at `dimensions`.
+  * `reduce(input_slices)` = `eval(schedule)` for some binary tree `schedule`
+    where:
+    * `eval(node)` = `body(eval(node.left), eval(node.right))`.
+    * `eval(leaf)` = `leaf.value`.
+  * `schedule` is an implementation-defined full binary tree whose in-order
+    traversal consists of:
+    * `input_slices[:][index]` values, for all `index` in the index space
+      of `input_slices`, in the ascending lexicographic order of `index`.
+    * Interspersed with an implementation-defined amount of `init_values`
+      at implementation-defined positions.
+
+### Inputs
+
+| Name          | Type                                                           |
+|---------------|----------------------------------------------------------------|
+| `inputs`      | variadic number of tensors of any supported type               |
+| `init_values` | variadic number of 0-dimensional tensors of any supported type |
+| `dimensions`  | 1-dimensional tensor constant of type `si64`                   |
+| `body`        | `function`                                                     |
+
+### Outputs
+
+| Name      | Type                                             |
+|-----------|--------------------------------------------------|
+| `results` | variadic number of tensors of any supported type |
+
+### Constraints
+
+  * (C1) All `inputs` have the same shape.
+  * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
+  element_type(`results[k]`) for all `k` $\in$ [0, N).
+  * (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
+  N >= 1.
+  * (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
+  `d`.
+  * (C5) All dimensions in `dimensions` are unique.
+  * (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+  `Ek = element_type(inputs[k])`.
+  * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
+  sizes of `inputs[k]` corresponding to `dimensions` are not included.
+
+### Examples
+
+```mlir
+// %input = [[0, 1, 2, 3, 4, 5]]
+// %init_value = 0
+%result = "stablehlo.reduce"(%input, %init_value) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+}) {
+  dimensions = dense<1> : tensor<1xi64>
+} : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+// %result = [15]
 ```
 
 [Back to Ops](#index-of-ops)

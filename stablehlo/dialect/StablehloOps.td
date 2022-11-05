@@ -1342,10 +1342,22 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     ]> {
   let summary = "Reduce operator";
   let description = [{
-    Returns the result of executing a reduction function on one or more arrays
-    in parallel.
+    Applies a function `body` to `inputs` and `init_values` along the
+    `dimensions` and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#reduce.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce
+
+    Example:
+    ```mlir
+    %result = "stablehlo.reduce"(%input, %init_value) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+    }) {
+      dimensions = dense<1> : tensor<1xi64>
+    } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+    ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
