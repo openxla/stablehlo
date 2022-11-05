@@ -766,7 +766,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Performs element-wise count of the number of leading zeros in the `operand`
+Performs element-wise count of the number of leading zero bits in the `operand`
 tensor and produces a `result` tensor.
 
 ### Inputs
@@ -789,7 +789,7 @@ tensor and produces a `result` tensor.
 
 ```mlir
 // %operand: [[0, 1], [127, -1]]
-%result = "stablehlo.count_leading_zeros"(%operand) : (2x2xi8) -> tensor<2x2xi8>
+%result = "stablehlo.count_leading_zeros"(%operand) : (tensor<2x2xi8>) -> tensor<2x2xi8>
 // %result: [[8, 7], [1, 0]]
 ```
 
