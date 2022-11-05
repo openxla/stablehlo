@@ -171,6 +171,7 @@ described below)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
+   * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
    * [fft](#stablehlofft)
@@ -368,7 +369,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
   epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
 
-  # Perform normalization using the provided `mean` and `variance` instead of 
+  # Perform normalization using the provided `mean` and `variance` instead of
   # computing them like `batch_norm_training` does.
   centered_operand = subtract(operand, mean_bcast)
   stddev = sqrt(add(variance_bcast, epsilon_bcast))
@@ -399,7 +400,7 @@ Numeric precision is implementation-defined.
 ### Constraints
 
   * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the 
+  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
     same element type.
   * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
   * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
@@ -758,6 +759,39 @@ specification. Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.count_leading_zeros
+
+### Semantics
+
+Performs element-wise count of the number of leading zeros in the `operand`
+tensor and produces a `result` tensor.
+
+### Inputs
+
+| Name      | Type                   |
+|-----------|------------------------|
+| `operand` | tensor of integer type |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of integer type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [[0, 1], [127, -1]]
+%result = "stablehlo.count_leading_zeros"(%operand) : (2x2xi8) -> tensor<2x2xi8>
+// %result: [[8, 7], [1, 0]]
+```
 
 [Back to Ops](#index-of-ops)
 

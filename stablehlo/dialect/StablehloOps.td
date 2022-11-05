@@ -271,15 +271,15 @@ def StableHLO_ClzOp: StableHLO_UnaryElementwiseOp<"count_leading_zeros",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "Count-leading-zeros (Clz) operator";
   let description = [{
-    Returns the number of leading zeros in each operand element-wise.
+    Performs element-wise count of the number of leading zeros in the `operand`
+    tensor and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocount_leading_zeros
 
     Example:
-
     ```mlir
-    %0 = stablehlo.count_leading_zeros %arg0 : tensor<2x2xi32>
+    %result = stablehlo.count_leading_zeros %operand : tensor<2x2xi32>
     ```
   }];
 }
