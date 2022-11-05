@@ -102,7 +102,7 @@ one of the following tracking labels.
 | log                      | yes           | yes          | yes            | yes             | no          |
 | log_plus_one             | no            | yes*         | yes*           | yes             | no          |
 | logistic                 | yes           | yes          | yes            | yes             | no          |
-| map                      | no            | yes*         | yes*           | no              | no          |
+| map                      | yes           | yes          | yes            | no              | no          |
 | maximum                  | yes           | yes          | yes            | yes             | yes         |
 | minimum                  | yes           | yes          | yes            | yes             | yes         |
 | multiply                 | yes           | yes          | yes            | yes             | yes         |

@@ -2261,16 +2261,23 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operator";
   let description = [{
-  Applies a scalar function over the given operands arrays, producing an array
-  of the same dimensions where each element is the result of the mapped function
-  applied to the corresponding elements in the input arrays.
+  Performs a map function `computation` over the `inputs` along the `dimensions`
+  and produces a `result` tensor where each element is the result of
+  `computation` applied to the corresponding elements in `inputs`.
 
-  The mapped function is an arbitrary computation with the restriction that it
-  has N inputs of scalar type T and a single output with type S. The output has
-  the same dimensions as the operands except that the element type T is replaced
-  with S.
+  See:
+  https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlomap
 
-  See https://www.tensorflow.org/xla/operation_semantics#map.
+  Example:
+  ```mlir
+  %result = "stablehlo.map"(%input0, %input1) ({
+    ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+      %0 = "stablehlo.multiply"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+      "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  }) {
+    dimensions = dense<[0, 1]> : tensor<2xi64>
+  } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+  ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
