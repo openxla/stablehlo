@@ -174,6 +174,7 @@ described below)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
+   * [clamp](#stablehloclamp)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -778,6 +779,44 @@ matrix, then the behavior is undefined.
 //           [2.0, 4.0, 0.0],
 //           [3.0, 5.0, 6.0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.clamp
+
+### Semantics
+
+Clamps every element of the `operand` tensor between a minimum and maximum
+value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
+`minium(maximum(operand[i0, ..., iR-1], min[0, ..., iR-1]), max[i0, ..., iR-1])`.
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `min`     | tensor of any supported type |
+| `operand` | tensor of any supported type |
+| `max`     | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `min`, `operand`, `max` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %min: [5, 10, 15]
+// %operand: [3, 13, 23]
+// %max: [10, 15, 20]
+%result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
+// %result: [5, 13, 20]
 ```
 
 [Back to Ops](#index-of-ops)
