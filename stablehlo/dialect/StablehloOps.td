@@ -1451,9 +1451,7 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
 
     Example:
     ```mlir
-    %result = "stablehlo.compare"(%lhs, %rhs) {
-      comparison_direction = #stablehlo<comparison_direction LT>
-    } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+    %result = stablehlo.compare LT, %lhs, %rhs : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
     ```
   }];
   let arguments = (ins
