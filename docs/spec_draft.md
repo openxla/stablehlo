@@ -370,14 +370,15 @@ def compute_mean(operand, feature_index):
   divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
   return divide(sum, divisor_bcast)
 
-def compute_variance(operand, mean, feature_index):
+def compute_variance(operand, feature_index):
+  mean = compute_mean(operand, feature_index)
   mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
   centered_operand = subtract(operand, mean_bcast)
   return compute_mean(mul(centered_operand, centered_operand), feature_index)
 
 def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   mean = compute_mean(operand, feature_index)
-  variance = compute_variance(operand, mean, feature_index)
+  variance = compute_variance(operand, feature_index)
   return batch_norm_inference(operand, scale, offset, mean,
                               variance, epsilon, feature_index)
 ```
