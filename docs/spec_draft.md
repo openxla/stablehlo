@@ -853,27 +853,27 @@ formally, `result[i0, ..., iR-1]` =
 `comparison_direction lhs[i0, ..., iR-1], rhs[i0, ..., iR-1]`.
 
 `comparison_direction` can be one of the following:
-  * `EQ`: `lhs` $=$ `rhs`
-  * `NE`: `lhs` $\ne$ `rhs`
-  * `GE`: `lhs` $\ge$ `rhs`
-  * `GT`: `lhs` $\gt$ `rhs`
-  * `LE`: `lhs` $\le$ `rhs`
-  * `LT`: `lhs` $\lt$ `rhs`
+  * `EQ`: `lhs` $=$ `rhs`.
+  * `NE`: `lhs` $\ne$ `rhs`.
+  * `GE`: `lhs` $\ge$ `rhs`.
+  * `GT`: `lhs` $\gt$ `rhs`.
+  * `LE`: `lhs` $\le$ `rhs`.
+  * `LT`: `lhs` $\lt$ `rhs`.
 
 `compare_type` can be one of the following:
   * `FLOAT`: Floating type comparison of `lhs` and `rhs`.
   * `TOTALORDER`: Total ordering floating type comparison of `lhs` and `rhs`.
-  * `SIGNED`: Signed comparison of `lhs` and `rhs`
-  * `UNSIGNED`: Unsigned comparison of `lhs` and `rhs`
+  * `SIGNED`: Signed comparison of `lhs` and `rhs`.
+  * `UNSIGNED`: Unsigned comparison of `lhs` and `rhs`.
 
 ### Inputs
 
-| Name                   | Type                                                |
-|------------------------|-----------------------------------------------------|
-| `lhs`                  | tensor of any supported type                        |
-| `rhs`                  | tensor of any supported type                        |
-| `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, `LT`          |
-| `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, `UNSIGNED` |
+| Name                   | Type                                                   |
+|------------------------|--------------------------------------------------------|
+| `lhs`                  | tensor of any supported type                           |
+| `rhs`                  | tensor of any supported type                           |
+| `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |
+| `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` |
 
 ### Outputs
 
