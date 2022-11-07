@@ -663,7 +663,7 @@ tensor. More formally,
 
 ### Semantics
 
-Produces a `result` tensor from a constant `value`.
+Produces an `output` tensor from a constant `value`.
 
 ### Inputs
 
@@ -675,19 +675,19 @@ Produces a `result` tensor from a constant `value`.
 
 | Name     | Type                         |
 |----------|------------------------------|
-| `result` | tensor of any supported type |
+| `output` | tensor of any supported type |
 
 ### Constraints
 
-  * (C1) `value` and `result` have the same type.
+  * (C1) `value` and `output` have the same type.
 
 ### Examples
 
 ```mlir
-%result = "stablehlo.constant"() {
+%output = "stablehlo.constant"() {
   value = dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
 } : () -> tensor<2x2xf32>
-// %result: [[0.0, 1.0], [2.0, 3.0]]
+// %output: [[0.0, 1.0], [2.0, 3.0]]
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
@@ -1188,9 +1188,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 ## stablehlo.iota
 
 ### Semantics
-Fills a `result` tensor with values in increasing order starting from zero along
-the `iota_dimension` dimension. More formally,
-`result[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
+Fills an `output` tensor with values in increasing order starting from zero
+along the `iota_dimension` dimension. More formally,
+`output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
 
 For integers, if the dimension size is larger than what the element type's
 maximum value can hold, an overflow occurs and the behavior is implementation-
@@ -1212,30 +1212,30 @@ defined and one of the following:
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
-| `result` | tensor of integer, floating-point or complex type |
+| `output` | tensor of integer, floating-point or complex type |
 
 ### Constraints
 
   * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the
-  `result`.
+  `output`.
 
 ### Examples
 
 ```mlir
-%result = "stablehlo.iota"() {
+%output = "stablehlo.iota"() {
   iota_dimension = 0 : i64
 } : () -> tensor<4x5xi32>
-// %result: [
+// %output: [
 //           [0, 0, 0, 0, 0],
 //           [1, 1, 1, 1, 1],
 //           [2, 2, 2, 2, 2],
 //           [3, 3, 3, 3, 3]
 //          ]
 
-%result = "stablehlo.iota"() {
+%output = "stablehlo.iota"() {
   iota_dimension = 1 : i64
 } : () -> tensor<4x5xi32>
-// %result: [
+// %output: [
 //           [0, 1, 2, 3, 4],
 //           [0, 1, 2, 3, 4],
 //           [0, 1, 2, 3, 4],

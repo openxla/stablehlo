@@ -71,14 +71,14 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
     [ConstantLike, Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Constant operator";
   let description = [{
-    Produces a `result` tensor from a constant `value`.
+    Produces an `output` tensor from a constant `value`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconstant
 
     Example:
     ```mlir
-    %result = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+    %output = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
     ```
   }];
   let arguments = (ins
@@ -103,7 +103,7 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
 def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
   let summary = "Iota operator";
   let description = [{
-    Fills a `result` tensor with values in increasing order starting from zero
+    Fills an `output` tensor with values in increasing order starting from zero
     along the `iota_dimension` dimension.
 
     See:
@@ -111,7 +111,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
 
     Example:
     ```mlir
-    %result = stablehlo.iota dim = 0 : tensor<4x5xi32>
+    %output = stablehlo.iota dim = 0 : tensor<4x5xi32>
     ```
   }];
   let arguments = (ins I64Attr:$iota_dimension);
