@@ -49,7 +49,7 @@ jobs:
       id: llvm-version
       shell: bash
       run: |
-        echo "::set-output name=version::$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)"
+        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
     # Check out LLVM, and install tools for compilation 
     - name: Setup workspace
