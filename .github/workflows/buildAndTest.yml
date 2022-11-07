@@ -34,11 +34,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-arch: [ubuntu-x86_64]
-        include:
-          - os-arch: ubuntu-x86_64
-            os: ubuntu-22.04
-    runs-on: ${{ matrix.os }}
+        llvm-build: [in-tree, out-of-tree]
+    runs-on: ubuntu-22.04 
 
     steps:
     - name: Checkout StableHLO
@@ -57,17 +54,26 @@ jobs:
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
 
-    - name: Configure and Build LLVM os-arch='${{ matrix.os-arch }}'
+    - name: Configure and Build LLVM with in-tree StableHLO
+      if: ${{ matrix.llvm-build == 'in-tree' }}
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_llvm_with_stablehlo.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR" "$GITHUB_WORKSPACE"
+
+    - name: Configure and Build LLVM with out-of-tree StableHLO
+      if: ${{ matrix.llvm-build == 'out-of-tree' }}
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
 
-    - name: Build and Test StableHLO os-arch='${{ matrix.os-arch }}'
+    - name: Build and Test StableHLO'
+      if: ${{ matrix.llvm-build == 'out-of-tree' }}
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_stablehlo.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
 
-    - name: Build and Test StableHLO Python API os-arch='${{ matrix.os-arch }}'
+    - name: Build and Test StableHLO Python API'
+      if: ${{ matrix.llvm-build == 'out-of-tree' }}
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_stablehlo_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"
