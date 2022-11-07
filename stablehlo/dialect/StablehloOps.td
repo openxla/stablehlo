@@ -243,7 +243,7 @@ def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
 
     Example:
     ```mlir
-    %result = stablehlo.ceil %operand : tensor<2xf32>
+    %result = stablehlo.ceil %operand : tensor<5xf32>
     ```
   }];
 }
@@ -692,7 +692,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
 
     Example:
     ```mlir
-    %result = stablehlo.add %lhs, %rhs : tensor<4xf32>
+    %result = stablehlo.add %lhs, %rhs : tensor<2x2xi32>
     ```
   }];
 }
@@ -923,15 +923,15 @@ class StableHLO_BinaryBiwiseOrLogicalElementwiseOp<string mnemonic> :
 def StableHLO_AndOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"and"> {
   let summary = "And operator";
   let description = [{
-    Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
-    types and produces a `result` tensor.
+    Performs element-wise bitwise or logical AND of two tensors `lhs` and `rhs`
+    and produces a `result` tensor
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloand
 
     Example:
     ```mlir
-    %result = stablehlo.and %lhs, %rhs : tensor<i1>
+    %result = stablehlo.and %lhs, %rhs : tensor<2x2xi32>
     ```
   }];
 }
@@ -1183,11 +1183,13 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocase
 
     Example:
+    ```mlir
     %result = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+      stablehlo.return %result_branch0 : tensor<i32>
     }, {
-      "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
+      stablehlo.return %result_branch1 : tensor<i32>
     }) : (tensor<i32>) -> tensor<i32>
+    ```
   }];
 
   let arguments = (ins
@@ -1607,9 +1609,8 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     InferTensorType]> {
   let summary = "Batch Normalization for Inference";
   let description = [{
-    Normalizes the `operand` tensor across batch and spatial dimensions, for
-    each feature in the `feature_index` dimension and produces a `result`
-    tensor.
+    Normalizes the `operand` tensor across all dimensions except for the
+    `feature_index` dimension and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_inference
@@ -1736,7 +1737,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     Example:
 
     ```mlir
-    %0 = stablehlo.broadcast_in_dim %arg0, dims = [1, 2] : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
+    %result = stablehlo.broadcast_in_dim %operand, dims = [2, 1] : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
     ```
   }];
   let arguments = (ins
@@ -1877,7 +1878,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
     Example:
     ```mlir
-     %result = stablehlo.concatenate %input0, %input1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     %result = stablehlo.concatenate %input0, %input1, dim = 1 : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
     ```
    }];
 
