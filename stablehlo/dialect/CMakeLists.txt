@@ -106,6 +106,7 @@ add_mlir_dialect_library(StablehloTypeInference
   LINK_LIBS PUBLIC
   MLIRInferTypeOpInterface
   MLIRIR
+  StablehloBase
 )
 
 set(LLVM_TARGET_DEFINITIONS StablehloOps.td)
