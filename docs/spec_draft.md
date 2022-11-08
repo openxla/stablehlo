@@ -1955,8 +1955,7 @@ k[`rhs_batching_dims`[p]] = ip.
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
-
-  * `DEFAULT`: Fastest mode, but least accurate.
+  * `DEFAULT`: Fastest mode, but least accurate (default value).
   * `HIGH`: Slower, but more accurate.
   * `HIGHEST`: Slowest, but most accurate.
 
