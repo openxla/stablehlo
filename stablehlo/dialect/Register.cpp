@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "stablehlo/dialect/Register.h"
 
+#include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
@@ -24,6 +25,7 @@ namespace stablehlo {
 
 void registerAllDialects(mlir::DialectRegistry &registry) {
   // clang-format off
+  registry.insert<mlir::sparse_tensor::SparseTensorDialect>();
   registry.insert<mlir::chlo::ChloDialect,
                   mlir::stablehlo::StablehloDialect>();
   // clang-format on
