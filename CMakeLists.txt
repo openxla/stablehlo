@@ -38,6 +38,7 @@ endif()
 # Options and settings
 #-------------------------------------------------------------------------------
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
+option(STABLEHLO_STRICT_LINT "Build StableHLO with strict warnings and warnings as errors" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -52,6 +53,11 @@ endif()
 #-------------------------------------------------------------------------------
 # MLIR/LLVM Configuration
 #-------------------------------------------------------------------------------
+if (STABLEHLO_STRICT_LINT)
+  set(LLVM_ENABLE_WARNINGS ON)
+  set(LLVM_ENABLE_WERROR ON)
+  set(LLVM_ENABLE_PEDANTIC ON)
+endif()
 
 if(STABLEHLO_STANDALONE_BUILD)
   message(STATUS "Building StableHLO standalone")
