@@ -3534,11 +3534,9 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 ### Semantics
 
 Reduces floating-point precision element-wise by modeling the effect of
-converting floating-point value to a lower precision format using
-`exponent_bits` and `mantissa_bits` and back to the original format on
-`operand` tensor and produces a `result` tensor. `exponent_bits` and
-`mantissa_bits` can be specified arbitrarily, but not all bit sizes may be
-supported on all hardware implementations.
+converting a floating-point value to a lower precision format using
+`exponent_bits` and `mantissa_bits` and back to the original precision format of
+`operand` tensor and produces a `result` tensor.
 
 ### Inputs
 
