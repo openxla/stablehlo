@@ -1900,9 +1900,9 @@ foreach rhs spatial index [k0, k1, ...]
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. The values can be one of the followings:
-  * `DEFAULT`:  (default value). Fastest mode, but least accurate.
-  * `HIGH`: Slower but more accurate.
-  * `HIGHEST`: Slowest but most accurate.
+  * `DEFAULT`: Fastest mode, but least accurate (default value).
+  * `HIGH`: Slower, but more accurate.
+  * `HIGHEST`: Slowest, but most accurate.
 
 ### Inputs
 
@@ -2011,7 +2011,7 @@ computations on accelerator backends. The values can be one of the followings:
 
   * (C15) element-type(`lhs`) $=$ element-type(`result`).
 
-  * C(16) size(`precision_config`) $=$ 2 or $=$ 0.
+  * C(16) size(`precision_config`) $=$ 0 or $=$ 2.
 
 
 
