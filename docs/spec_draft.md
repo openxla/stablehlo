@@ -2006,6 +2006,7 @@ computations on accelerator backends. This can be one of the following:
   `lhs_contracting_dimensions`} + {`dim(rhs, i)`: for all i $\in$
   [0, rank(`rhs`)) where `i` $\notin$ `rhs_batching_dimensions` $\cup$
   `rhs_contracting_dimensions`}.
+  * (C12) size(`precision_config`) $=$ 0 or $=$ 2.
 
 ### Examples
 
