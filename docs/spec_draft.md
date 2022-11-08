@@ -363,7 +363,7 @@ follows:
 def compute_mean(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[0],
+      init_values=[0.0],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   divisor = constant(num_elements(operand) / dim(operand, feature_index))
@@ -423,16 +423,17 @@ Numeric precision is implementation-defined.
 //           ]
 // %scale: [1.0, 1.0]
 // %offset: [1.0, 1.0]
-%results:3 = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
+%output, %batch_mean, %batch_var =
+"stablehlo.batch_norm_training"(%operand, %scale, %offset) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-// %results#0: [
-//              [[0.0, 0.0], [2.0, 2.0]],
-//              [[2.0, 2.0], [0.0, 0.0]]
-//             ]
-// %results#1: [2.0, 3.0]
-// %results#2: [1.0, 1.0]
+// %output: [
+//           [[0.0, 0.0], [2.0, 2.0]],
+//           [[2.0, 2.0], [0.0, 0.0]]
+//          ]
+// %batch_mean: [2.0, 3.0]
+// %batch_var: [1.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
