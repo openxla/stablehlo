@@ -61,24 +61,6 @@ def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumb
   let hasCustomAssemblyFormat = 1;
 }
 
-def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNumbers"> {
-  let cppNamespace = "::mlir::stablehlo";
-  let mnemonic = "conv";
-  let summary = "Structure of dimension information for conv op";
-  let parameters = (ins
-    "int64_t":$inputBatchDimension,
-    "int64_t":$inputFeatureDimension,
-    StableHLO_Dim:$inputSpatialDimensions,
-    "int64_t":$kernelInputFeatureDimension,
-    "int64_t":$kernelOutputFeatureDimension,
-    StableHLO_Dim:$kernelSpatialDimensions,
-    "int64_t":$outputBatchDimension,
-    "int64_t":$outputFeatureDimension,
-    StableHLO_Dim:$outputSpatialDimensions
-  );
-  let hasCustomAssemblyFormat = 1;
-}
-
 def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "output_operand_alias";
@@ -116,11 +98,11 @@ def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
     "int64_t":$operandIndex,
     StableHLO_Dim:$operandTupleIndices
   );
-  let assemblyFormat = [{
-    `<` `output_tuple_indices` `=` $outputTupleIndices `,`
-        `operand_index` `=` $operandIndex `,`
-        `operand_tuple_indices` `=` $operandTupleIndices `>`
-  }];
+  let assemblyFormat = "`<` "
+                      "`output_tuple_indices` `=` `[` $outputTupleIndices `]` `,`"
+                      "`operand_index` `=` $operandIndex `,`"
+                      "`operand_tuple_indices` `=` `[` $operandTupleIndices `]`"
+                      "`>`";
 }
 
 def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {

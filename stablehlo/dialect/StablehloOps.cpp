@@ -438,20 +438,6 @@ void ConstantOp::print(::mlir::OpAsmPrinter& p) {
 // CustomCallOp
 //===----------------------------------------------------------------------===//
 
-void CustomCallOp::build(
-    ::mlir::OpBuilder& odsBuilder, ::mlir::OperationState& odsState,
-    ::mlir::TypeRange resultType, ::mlir::ValueRange operands,
-    ::mlir::StringAttr callTargetName, ::mlir::BoolAttr hasSideEffect,
-    ::mlir::StringAttr backendConfig,
-    ::mlir::stablehlo::CustomCallApiVersionAttr apiVersion,
-    ::mlir::ArrayAttr calledComputations, ::mlir::ArrayAttr operandLayouts,
-    ::mlir::ArrayAttr resultLayouts) {
-  return CustomCallOp::build(odsBuilder, odsState, resultType, operands,
-                             callTargetName, hasSideEffect, backendConfig,
-                             apiVersion, calledComputations, operandLayouts,
-                             resultLayouts, nullptr);
-}
-
 LogicalResult CustomCallOp::verify() {
   // If both operand and result layout attributes are not specified then nothing
   // to verify.
