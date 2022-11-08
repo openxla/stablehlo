@@ -35,6 +35,7 @@ def test_channel_handle():
   assert attr.handle == 1
   assert attr.channel_type == 2
 
+
 @run
 def test_comparison_direction_attr():
   attr = stablehlo.ComparisonDirectionAttr.get("EQ")
