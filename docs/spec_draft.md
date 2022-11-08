@@ -3104,7 +3104,7 @@ deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between backends and different compiler versions.
 
 `initial_state` is the initial state of the current random number generation.
-The initial state, required shape, and valid values are dependent on the
+The initial state, supported element type, and valid values are dependent on the
 algorithm used.
 
 `rng_algorithm` is one of the following, different variants of the algorithm is
@@ -3133,10 +3133,9 @@ implementation-defined:
 ### Constraints
 
   * (C1) shape(`initial_state`) $=$ shape(`output_state`).
-  * (C2) The relationship between `initial_state`, `output_state`, and `output`
-      varies:
+  * (C2) For `initial_state`, `output_state`, and `output`:
     * If `rng_algorithm = DEFAULT`:
-      * `initial_state`, `output_state`, and `output` have backend-specific
+      * `initial_state`, `output_state`, and `output` have backend-specific type
         requirements.
     * If `rng_algorithm = THREE_FRY`:
       * type(`initial_state`) $=$ type(`output_state`) $=$ `2xui64`.
