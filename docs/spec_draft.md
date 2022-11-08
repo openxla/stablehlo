@@ -1487,11 +1487,12 @@ More formally, `result[i0, ..., iR-1] = computation(inputs0[i0, ..., iR-1], `
 ### Constraints
 
   * (C1) `inputs` and `result` have the same shape.
-  * (C2) size(`dimensions`) $=$ size(`inputs`).
-  * (C3) `dimensions[i]` $\lt$ `dimensions[i+1]` for all `i` $\in$ [0, `R`-2].
-  * (C3) `computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>,`
-    `..., tensor<EN-1>) -> tensor<E'>` where `Ek = element_type(inputs[k])`
-    and `E' = element_type(result)`.
+  * (C2) size(`inputs`) $=$ N $\ge$ 1.
+  * (C3) size(`dimensions`) $=$ rank(`inputs[k]`) for all `k` $\in$ [0, N).
+  * (C4) `dimensions[i]` $\lt$ `dimensions[i+1]` for all `i` $\in$ [0, `R`-2].
+  * (C5) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
+    where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
+    element_type(`result`).
 
 ### Examples
 
