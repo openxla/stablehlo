@@ -789,7 +789,10 @@ matrix, then the behavior is undefined.
 
 Clamps every element of the `operand` tensor between a minimum and maximum
 value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
-`minium(maximum(operand[i0, ..., iR-1], min[0, ..., iR-1]), max[i0, ..., iR-1])`.
+`minimum(maximum(operand[i0, ..., iR-1], min[i0, ..., iR-1]), max[i0, ..., iR-1])`,
+where `minimum` and `maximum` operations correspond to
+[stablehlo.minimum](#stablehlominimum) and
+[stablehlo.maximum](#stablehlomaximum).
 
 ### Inputs
 
@@ -807,7 +810,7 @@ value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
 
 ### Constraints
 
-  * (C1) `min`, `operand`, `max` and `result` have the same type.
+  * (C1) `min`, `operand`, `max`, and `result` have the same type.
 
 ### Examples
 

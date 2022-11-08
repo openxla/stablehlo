@@ -1858,7 +1858,7 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
 
     Example:
     ```mlir
-    %result = stablehlo.clamp %min, %operand, %max : tensor<4xf32>
+    %result = stablehlo.clamp %min, %operand, %max : tensor<3xi32>
     ```
   }];
 
