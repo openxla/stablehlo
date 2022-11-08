@@ -169,6 +169,10 @@ MLIR_CAPI_EXPORTED int64_t
 stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(MlirAttribute attr,
                                                             intptr_t pos);
 
+//===----------------------------------------------------------------------===//
+// OutputOperandAlias
+//===----------------------------------------------------------------------===//
+
 // Creates a new OutputOperandAlias attribute with the given parameters. The
 // pairs of consecutive intptr_t / int64_t* arguments are interpeted as sized
 // arrays.

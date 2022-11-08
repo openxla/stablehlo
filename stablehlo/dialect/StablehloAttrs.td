@@ -116,11 +116,11 @@ def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
     "int64_t":$operandIndex,
     StableHLO_Dim:$operandTupleIndices
   );
-  let assemblyFormat = "`<` "
-                       "`output_tuple_indices` `=` `[` $outputTupleIndices `]` `,`"
-                       "`operand_index` `=` $operandIndex `,`"
-                       "`operand_tuple_indices` `=` `[` $operandTupleIndices `]`"
-                       "`>`";
+  let assemblyFormat = [{
+    `<` `output_tuple_indices` `=` $outputTupleIndices `,`
+        `operand_index` `=` $operandIndex `,`
+        `operand_tuple_indices` `=` $operandTupleIndices `>`
+  }];
 }
 
 def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {

@@ -352,7 +352,7 @@ int64_t stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(
 }
 
 //===----------------------------------------------------------------------===//
-// OutputOperandAliasAttr
+// OutputOperandAlias
 //===----------------------------------------------------------------------===//
 
 MLIR_CAPI_EXPORTED MlirAttribute stablehloOutputOperandAliasGet(

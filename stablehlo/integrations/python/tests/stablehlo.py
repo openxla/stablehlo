@@ -37,12 +37,11 @@ def test_channel_handle():
 
 @run
 def test_output_operand_alias():
-  """Check that OutputOperandAlias attributes is available and usable."""
-
   attr = stablehlo.OutputOperandAlias.get(
       output_tuple_indices=[0],
       operand_index=0,
       operand_tuple_indices=[1])
+  assert attr is not None
   assert str(attr) == ("#stablehlo.output_operand_alias<output_tuple_indices = [0], "
                        "operand_index = 0, "
                        "operand_tuple_indices = [1]>")
