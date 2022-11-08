@@ -71,14 +71,14 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
     [ConstantLike, Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Constant operator";
   let description = [{
-    Produces a `result` tensor from a constant `value`.
+    Produces an `output` tensor from a constant `value`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconstant
 
     Example:
     ```mlir
-    %result = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
+    %output = stablehlo.constant dense<[[0.0, 1.0], [2.0, 3.0]]> : tensor<2x2xf32>
     ```
   }];
   let arguments = (ins
@@ -103,7 +103,7 @@ def StableHLO_ConstantOp : StableHLO_Op<"constant",
 def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
   let summary = "Iota operator";
   let description = [{
-    Fills a `result` tensor with values in increasing order starting from zero
+    Fills an `output` tensor with values in increasing order starting from zero
     along the `iota_dimension` dimension.
 
     See:
@@ -111,7 +111,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
 
     Example:
     ```mlir
-    %result = stablehlo.iota dim = 0 : tensor<4x5xi32>
+    %output = stablehlo.iota dim = 0 : tensor<4x5xi32>
     ```
   }];
   let arguments = (ins I64Attr:$iota_dimension);
@@ -243,7 +243,7 @@ def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
 
     Example:
     ```mlir
-    %result = stablehlo.ceil %operand : tensor<2xf32>
+    %result = stablehlo.ceil %operand : tensor<5xf32>
     ```
   }];
 }
@@ -271,15 +271,15 @@ def StableHLO_ClzOp: StableHLO_UnaryElementwiseOp<"count_leading_zeros",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "Count-leading-zeros (Clz) operator";
   let description = [{
-    Returns the number of leading zeros in each operand element-wise.
+    Performs element-wise count of the number of leading zero bits in the
+    `operand` tensor and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocount_leading_zeros
 
     Example:
-
     ```mlir
-    %0 = stablehlo.count_leading_zeros %arg0 : tensor<2x2xi32>
+    %result = stablehlo.count_leading_zeros %operand : tensor<2x2xi8>
     ```
   }];
 }
@@ -692,7 +692,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
 
     Example:
     ```mlir
-    %result = stablehlo.add %lhs, %rhs : tensor<4xf32>
+    %result = stablehlo.add %lhs, %rhs : tensor<2x2xi32>
     ```
   }];
 }
@@ -923,15 +923,15 @@ class StableHLO_BinaryBiwiseOrLogicalElementwiseOp<string mnemonic> :
 def StableHLO_AndOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"and"> {
   let summary = "And operator";
   let description = [{
-    Performs element-wise bitwise AND of two tensors `lhs` and `rhs` of integer
-    types and produces a `result` tensor.
+    Performs element-wise bitwise or logical AND of two tensors `lhs` and `rhs`
+    and produces a `result` tensor
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloand
 
     Example:
     ```mlir
-    %result = stablehlo.and %lhs, %rhs : tensor<i1>
+    %result = stablehlo.and %lhs, %rhs : tensor<2x2xi32>
     ```
   }];
 }
@@ -1183,11 +1183,13 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocase
 
     Example:
+    ```mlir
     %result = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+      stablehlo.return %result_branch0 : tensor<i32>
     }, {
-      "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
+      stablehlo.return %result_branch1 : tensor<i32>
     }) : (tensor<i32>) -> tensor<i32>
+    ```
   }];
 
   let arguments = (ins
@@ -1342,10 +1344,22 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     ]> {
   let summary = "Reduce operator";
   let description = [{
-    Returns the result of executing a reduction function on one or more arrays
-    in parallel.
+    Applies a function `body` to `inputs` and `init_values` along the
+    `dimensions` and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#reduce.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce
+
+    Example:
+    ```mlir
+    %result = "stablehlo.reduce"(%input, %init_value) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+    }) {
+      dimensions = dense<1> : tensor<1xi64>
+    } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+    ```
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
@@ -1595,9 +1609,19 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     InferTensorType]> {
   let summary = "Batch Normalization for Inference";
   let description = [{
-    Normalizes an array across batch and spatial dimensions.
+    Normalizes the `operand` tensor across all dimensions except for the
+    `feature_index` dimension and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#batchnorminference
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_inference
+
+    Example:
+    ```mlir
+    %result = "stablehlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
+      epsilon = 0.0 : f32,
+      feature_index = 2 : i64
+    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+    ```
   }];
 
   let arguments = (ins
@@ -1725,7 +1749,7 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     Example:
 
     ```mlir
-    %0 = stablehlo.broadcast_in_dim %arg0, dims = [1, 2] : (tensor<1x2xi32>) -> tensor<1x2x2xi32>
+    %result = stablehlo.broadcast_in_dim %operand, dims = [2, 1] : (tensor<1x3xi32>) -> tensor<2x3x2xi32>
     ```
   }];
   let arguments = (ins
@@ -1866,7 +1890,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
     Example:
     ```mlir
-     %result = stablehlo.concatenate %input0, %input1, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+     %result = stablehlo.concatenate %input0, %input1, dim = 1 : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
     ```
    }];
 
@@ -2330,18 +2354,15 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
     InferTensorTypeWithReify]> {
   let summary = "Select operator";
   let description = [{
-    Constructs an output tensor from the elements of `on_true` and `on_false`
-    based on the values of `pred`. All three operands must be of the same shape
-    with the exception of `pred`, which may also be a scalar in which case it is
-    broadcasted.
+    Produces a `result` tensor where each element is selected from `on_true` or
+    `on_false` tensor based on the value of the corresponding element of `pred`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#select.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect
 
     Example:
-
     ```mlir
-    %0 = stablehlo.select %arg0, %arg1, %arg1 : tensor<2x3xi1>, tensor<2x3xi32>
-    %1 = stablehlo.select %arg0, %arg2, %arg3 : (tensor<2x3xi1>, tensor<2x?xi32>, tensor<?x2xi32>) -> tensor<2x?xi32>
+    %result = stablehlo.select %pred, %on_true, %on_false : tensor<2x2xi1>, tensor<2x2xi32>
     ```
   }];
   let arguments = (ins

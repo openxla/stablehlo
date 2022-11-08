@@ -17,16 +17,26 @@ particular aspect, as mentioned in the corresponding column, is tracked using
 one of the following tracking labels.
 
  - Generic labels
-    - **yes**: complete
-    - **no**: not complete yet, but part of [the roadmap](https://github.com/openxla/stablehlo#roadmap).
+    - **yes**: there is a comprehensive implementation.
+    - **no**: there is no implementation, but working on that is part of
+      [the roadmap](https://github.com/openxla/stablehlo#roadmap).
+      Note that Verifier can never be labeled as "no" because the ODS already
+      implements some verification.
  - Customized labels for Verifier and Type Inference
-    - **yes**: in sync with [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
-    - **yes\***: in sync with [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
-    - **revisit**: there is an implementation in between
-      [the ODS](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td)
-      and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp)
-      but it needs to be revisited to determine its status.
-    - **infeasible**: infeasible to implement by design.
+    - **yes**: there is an implementation, and it's in sync with
+      [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
+    - **yes\***: there is an implementation, and it's in sync with
+      [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
+      Since XLA semantics is oftentimes underdocumented, we are using
+      [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
+      and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
+      as the reference.
+    - **revisit**: there is an implementation, but it doesn't fall under "yes"
+      or "yes\*" - either because we haven't audited it yet, or because we have
+      and found issues.
+    - **infeasible**: there is no implementation, because it's infeasible.
+      For example, because the result type of an op cannot be inferred from
+      its operands and attributes.
 
 ## Status
 
@@ -41,8 +51,8 @@ one of the following tracking labels.
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | no            | yes*         | yes*           | yes             | no          |
 | batch_norm_grad          | no            | yes*         | yes*           | no              | no          |
-| batch_norm_inference     | no            | yes*         | yes*           | no              | no          |
-| batch_norm_training      | yes           | revisit      | yes            | no              | no          |
+| batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
+| batch_norm_training      | no            | revisit      | yes            | no              | no          |
 | bitcast_convert          | no            | yes*         | infeasible     | yes             | no          |
 | broadcast                | no            | yes*         | yes*           | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |
@@ -60,7 +70,7 @@ one of the following tracking labels.
 | convert                  | no            | yes*         | infeasible     | yes             | no          |
 | convolution              | no            | yes*         | yes*           | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
-| count_leading_zeros      | no            | yes*         | yes*           | yes             | no          |
+| count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
 | create_token             | no            | revisit      | no             | yes             | no          |
 | cross-replica-sum        | no            | revisit      | revisit        | no              | no          |
 | cstr_reshapable          | no            | revisit      | no             | yes             | no          |
@@ -107,7 +117,7 @@ one of the following tracking labels.
 | real                     | no            | yes*         | yes*           | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | no            | revisit      | no             | no              | no          |
-| reduce                   | no            | yes*         | yes*           | revisit         | no          |
+| reduce                   | yes           | revisit      | yes            | revisit         | no          |
 | reduce_precision         | no            | yes*         | yes*           | yes             | no          |
 | reduce_scatter           | no            | revisit      | no             | no              | no          |
 | reduce_window            | no            | yes*         | yes*           | no              | no          |
@@ -122,7 +132,7 @@ one of the following tracking labels.
 | round_nearest_even       | no            | revisit      | revisit        | yes             | no          |
 | rsqrt                    | yes           | yes          | yes            | yes             | no          |
 | scatter                  | no            | revisit      | no             | no              | no          |
-| select                   | no            | yes*         | yes*           | yes             | no          |
+| select                   | yes           | yes          | yes            | yes             | no          |
 | select_and_scatter       | no            | revisit      | no             | no              | no          |
 | send                     | no            | revisit      | no             | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
