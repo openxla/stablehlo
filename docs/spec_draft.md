@@ -489,8 +489,7 @@ Numeric precision is implementation-defined.
 //           ]
 // %scale: [1.0, 1.0]
 // %offset: [1.0, 1.0]
-%output, %batch_mean, %batch_var =
-"stablehlo.batch_norm_training"(%operand, %scale, %offset) {
+%output, %batch_mean, %batch_var = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
