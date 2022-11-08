@@ -433,17 +433,19 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Computes gradients of `operand`, `scale` and offset, using `mean`, `variance`
-and `grad_output`, the gradient of output from `batch_norm_training`, and
-produces `grad_operand`, `grad_scale` and `grad_offset` tensors. More formally,
-this operation can be expressed as a decomposition to existing StableHLO
-operations using Python-like syntax as follows:
+Computes gradients of `operand`, `scale` and offset
+(refer [batch_norm_training](#stablehlobatch_norm_training)), using `mean`,
+`variance` and `grad_output`, the gradient of output from
+[batch_norm_training](#stablehlobatch_norm_training), and produces
+`grad_operand`, `grad_scale` and `grad_offset` tensors. More formally, this
+operation can be expressed as a decomposition to existing StableHLO operations
+using Python-like syntax as follows:
 
 ```python
 def reduce_sum(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[0],
+      init_values=[0.0],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   return sum
@@ -465,20 +467,23 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   stddev = sqrt(add(variance_bcast, epsilon_bcast))
   normalized_operand = divide(centered_operand, stddev)
 
-  intermediate_cl = compute_mean(multiply(grad_output, divide(normalized_operand, stddev)))
+  intermediate_expr = compute_mean(
+    multiply(grad_output, divide(normalized_operand, stddev)))
+  intermediate_expr_bcast = broadcast_in_dim(
+    intermediate_expr, [feature_index], shape(operand))
   mean_grad_output = compute_mean(grad_output, feature_index)
-
-  intermediate_cl_bcast = broadcast_in_dim(intermediate_cl, [feature_index], shape(operand))
-  mean_grad_output_bcast = broadcast_in_dim(mean_grad_output, [feature_index], shape(operand))
+  mean_grad_output_bcast = broadcast_in_dim(
+    mean_grad_output, [feature_index], shape(operand))
 
   grad_operand = multiply(
     divide(scale_bcast, stddev),
     subtract(
       subtract(grad_output, mean_grad_output_bcast),
-      multiply(intermediate_cl_bcast, centered_operand)
+      multiply(intermediate_expr_bcast, centered_operand)
     )
   )
-  grad_scale = reduce_sum(multiply(grad_output, normalized_operand), feature_index)
+  grad_scale = reduce_sum(
+    multiply(grad_output, normalized_operand), feature_index)
   grad_offset = reduce_sum(grad_output, feature_index)
   return grad_operand, grad_scale, grad_offset
 ```
