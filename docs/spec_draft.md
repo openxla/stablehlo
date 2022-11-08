@@ -1930,8 +1930,9 @@ the interval [`a`, `b`). If `rng_distribution` $=$ `NORMAL`, then the random
 numbers are generated following the normal distribution with mean = `a` and
 standard deviation = `b`.
 
-If `rng_distribution = UNIFORM` and `a` $\ge$ `b`, the result is
-implementation-defined.
+If `rng_distribution = UNIFORM` and `a` $\ge$ `b`, the behavior is undefined.
+Similarly, if `rng_distribution = NORMAL` and `b` $\le$ 0, the behavior is
+undefined.
 
 ### Inputs
 
