@@ -2832,8 +2832,8 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
     ```
   }];
   let arguments = (ins
-    HLO_IntOrFpTensor:$initial_state,
-    StableHLO_RngAlgorithmAttr:$rng_algorithm
+    StableHLO_RngAlgorithmAttr:$rng_algorithm,
+    HLO_IntOrFpTensor:$initial_state
   );
 
   let results = (outs
