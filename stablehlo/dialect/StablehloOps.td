@@ -1587,8 +1587,9 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
 
     Example:
     ```mlir
-    %results:3 = "stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance,
-                                             %grad_output) {
+    %grad_operand, %grad_scale, %grad_offset =
+    "stablehlo.batch_norm_grad"(%operand, %scale,
+                                %mean, %variance, %grad_output) {
       epsilon = 0.0 : f32,
       feature_index = 2 : i64
     } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
