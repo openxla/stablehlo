@@ -1966,18 +1966,27 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllGatherOp::verify() {
-  // If operand and result are both ranked, then the size of the gather
-  // dimension in the result should be a multiple of the size of the gather
-  // dimension in the operand.
   auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
   auto resultType = getType().dyn_cast<RankedTensorType>();
-  uint64_t allGatherDimIndex = getAllGatherDim();
-  if (!operandType || !resultType ||
-      operandType.isDynamicDim(allGatherDimIndex) ||
+  int64_t allGatherDimIndex = getAllGatherDim();
+  if (!operandType || !resultType) return success();
+
+  if (resultType.getRank() != operandType.getRank())
+    return emitOpError() << "operand and return must have the same rank.";
+
+  if (allGatherDimIndex < 0 || allGatherDimIndex >= operandType.getRank())
+    return emitOpError() << "all_gather_dim must be a valid index of operand.";
+
+  if (operandType.isDynamicDim(allGatherDimIndex) ||
       resultType.isDynamicDim(allGatherDimIndex))
     return success();
+
+  if (failed(verifyReplicaGroups(*this, /*is_uniform_sized=*/true)))
+    return failure();
+
   if (operandType.getDimSize(allGatherDimIndex) == 0)
     return emitOpError() << "operand gather dimension cannot be zero.";
+
   if ((resultType.getDimSize(allGatherDimIndex) %
        operandType.getDimSize(allGatherDimIndex)) != 0)
     return emitOpError()
@@ -1985,6 +1994,14 @@ LogicalResult AllGatherOp::verify() {
            << resultType.getDimSize(allGatherDimIndex)
            << ", expected to be a multiple of operand gather dimension size "
            << operandType.getDimSize(allGatherDimIndex);
+
+  for (int64_t index = 0; index < operandType.getRank(); index++) {
+    if (index == allGatherDimIndex) continue;
+    if (resultType.getDimSize(index) != operandType.getDimSize(index))
+      return emitOpError()
+             << "operand and result should have the same shape except for the "
+                "dimension size at 'all_gather_dim'.";
+  }
 
   return success();
 }

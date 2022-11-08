@@ -1252,9 +1252,21 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
   string summary = "AllGather operator";
 
   string description = [{
-    Performs concatenation across replicas.
+    For each replica sub-group in `replica_groups`, the operation
+    concatenates the replicas of `input` tensor formed using the sub-group along
+    `all_gather_dim` dimension following the order of the replicas in the
+    sub-group and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#allgather
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_gather
+
+    Example:
+    ```mlir
+    %result = "stablehlo.all_gather"(%operand) {
+      all_gather_dim = 1 : i64,
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<2x2xf32>) -> tensor<2x4xf32>
+    ```
   }];
 
   let arguments = (ins

@@ -87,20 +87,6 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
   using Base::Base;
 };
 
-// TODO(b/236017415): remove when we migrate to prefix accessor.
-namespace accessor_dispatch {
-template <typename OpT>
-auto getReplicaGroups(OpT op, int)
-    -> decltype(op.getReplicaGroups(), DenseIntElementsAttr{}) {
-  return op.getReplicaGroups();
-}
-template <typename OpT>
-auto getReplicaGroups(OpT op, char)
-    -> decltype(op.replica_groups(), DenseIntElementsAttr{}) {
-  return op.replica_groups();
-}
-}  // namespace accessor_dispatch
-
 // Verifies replica groups attached to collective communication operations.
 // If the attribute is not empty, it must be a rank 2 tensor, and each replica
 // should appear exactly once. If `is_uniform_sized` is true, then we also check
@@ -108,26 +94,22 @@ auto getReplicaGroups(OpT op, char)
 // `use_global_device_ids` set, then replica group cannot be empty.
 template <typename OpT>
 LogicalResult verifyReplicaGroups(OpT op, bool isUniformSized) {
-  DenseIntElementsAttr attr = accessor_dispatch::getReplicaGroups(op, 0);
+  DenseIntElementsAttr attr = op.getReplicaGroups();
   auto replicaGroupType = attr.getType().dyn_cast<RankedTensorType>();
   if (!replicaGroupType || replicaGroupType.getRank() != 2 ||
       !replicaGroupType.getElementType().isInteger(/*width=*/64))
     return op.emitOpError(
         "replica groups should be a rank 2 tensor of 64 bit integers");
 
-  if (replicaGroupType.getShape().equals(ArrayRef<int64_t>{0, 0})) {
-    if (op->hasAttr("use_global_device_ids") &&
-        op->getAttr("use_global_device_ids")
-            .template cast<BoolAttr>()
-            .getValue()) {
+  if (replicaGroupType.getShape()[0] == 0 ||
+      replicaGroupType.getShape()[1] == 0) {
+    if (op.getUseGlobalDeviceIds())
       return op.emitOpError(
           "if `use_global_device_ids` is set, the replica groups cannot be "
           "empty");
-    }
     return success();
   }
 
-  int64_t maxReplicaIdSeen = 0;
   llvm::SmallSet<int64_t, 8> replicaSeen;
   for (int64_t id : attr.getValues<int64_t>()) {
     // Replica groups are stored in a 2D tensor. If the op supports non-uniform
@@ -142,10 +124,9 @@ LogicalResult verifyReplicaGroups(OpT op, bool isUniformSized) {
     if (!replicaSeen.insert(id).second) {
       return op.emitOpError("replica id #") << id << " seen more than once";
     }
-    maxReplicaIdSeen = std::max(maxReplicaIdSeen, id);
   }
 
-  for (int64_t id = 0; id <= maxReplicaIdSeen; id++) {
+  for (size_t id = 0; id < replicaSeen.size(); id++) {
     if (!replicaSeen.contains(id)) {
       return op.emitOpError("replica id #")
              << id << " not seen in replica groups";
