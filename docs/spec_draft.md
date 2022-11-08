@@ -3103,10 +3103,6 @@ number generator algorithm `rng_algorithm`. The output is guaranteed to be
 deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between backends and different compiler versions.
 
-`initial_state` is the initial state of the current random number generation.
-The initial state, supported element type, and valid values are dependent on the
-algorithm used.
-
 `rng_algorithm` is one of the following, different variants of the algorithm is
 implementation-defined:
   * `DEFAULT`: Backend specific algorithm.
@@ -3138,10 +3134,10 @@ implementation-defined:
       * `initial_state`, `output_state`, and `output` have backend-specific type
         requirements.
     * If `rng_algorithm = THREE_FRY`:
-      * type(`initial_state`) $=$ type(`output_state`) $=$ `2xui64`.
+      * type(`initial_state`) $=$ type(`output_state`) $=$ `tensor<2xui64>`.
       * element_type(`output`) $\in$ {`ui32`, `ui64`}.
     * If `rng_algorithm = PHILOX`:
-      * type(`initial_state`) $=$ type(`output_state`) $=$ `3xui64`.
+      * type(`initial_state`) $=$ type(`output_state`) $=$ `tensor<3xui64>`.
       * element_type(`output`) $\in$ {`ui32`, `ui64`}.
 
 ### Examples
