@@ -431,6 +431,7 @@ syntax.
    * [real](#stablehloreal)
    * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
+   * [reduce_precision](#stablehloreduce_precision)
    * [reduce_scatter](#stablehloreduce_scatter)
    * [reduce_window](#stablehloreduce_window)
    * [remainder](#stablehloremainder)
@@ -3524,6 +3525,50 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
   dimensions = dense<1> : tensor<1xi64>
 } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
 // %result = [15]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce_precision
+
+### Semantics
+
+Reduces floating-point precision element-wise by modeling the effect of
+converting floating-point value to a lower precision format using
+`exponent_bits` and `mantissa_bits` and back to the original format on
+`operand` tensor and produces a `result` tensor. `exponent_bits` and
+`mantissa_bits` can be specified arbitrarily, but not all bit sizes may be
+supported on all hardware implementations.
+
+### Inputs
+
+| Name            | Type                          |
+|-----------------|-------------------------------|
+| `operand`       | tensor of floating-point type |
+| `exponent_bits` | constant of type `si32`       |
+| `mantissa_bits` | constant of type `si32`       |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+  * (C2) `exponent_bits` $\ge$ 1.
+  * (C3) `mantissa_bits` $\ge$ 0.
+
+### Examples
+
+```mlir
+// %operand: [0.0, NaN, 3.40282347e+38]
+%result = "stablehlo.reduce_precision"(%operand) {
+  exponent_bits = 5,
+  mantissa_bits = 2
+} : (tensor<3xf32>) -> tensor<3xf32>
+// %result: [0.0, NaN, inf]
 ```
 
 [Back to Ops](#index-of-ops)

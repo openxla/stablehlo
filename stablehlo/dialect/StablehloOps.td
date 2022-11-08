@@ -3061,19 +3061,17 @@ def StableHLO_ReducePrecisionOp :
     StableHLO_Op<"reduce_precision", [HLO_CompatibleOperandsAndResultType]> {
   let summary = "Reduce precision operator";
   let description = [{
-    Models the effect of converting floating - point values to a lower -
-    precision format(such as IEEE - FP16) and back to the original
-    format. The number of exponent and mantissa bits in the lower -
-    precision format can be specified arbitrarily,
-    although all bit sizes may not be supported on all hardware
-    implementations.
+    Reduces floating-point precision element-wise by modeling the effect of
+    converting floating-point value to a lower precision format using
+    `exponent_bits` and `mantissa_bits` and back to the original format on
+    `operand` tensor and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#reduceprecision.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce_precision
 
     Example:
-
     ```mlir
-    %0 = stablehlo.reduce_precision %arg0, format = e8m10 : tensor<3x4xf32>
+    %result = stablehlo.reduce_precision %operand, format = e5m2 : tensor<3xf32>
     ```
   }];
   let arguments = (ins
