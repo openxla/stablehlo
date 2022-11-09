@@ -532,8 +532,8 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 //                [[0.1, 0.1], [0.1, 0.1]],
 //                [[0.1, 0.1], [0.1, 0.1]]
 //               ]
-%grad_operand, %grad_scale, %grad_offset =
-"stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance, %grad_output) {
+%grad_operand, %grad_scale, %grad_offset = "stablehlo.batch_norm_grad"(%operand, %scale, %mean,
+                                                                       %variance, %grad_output) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
