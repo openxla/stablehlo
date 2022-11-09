@@ -219,15 +219,16 @@ def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Cubic root operator";
   let description = [{
-    Returns element-wise cubic root of the operand.
+    Performs element-wise cubic root operation on `operand` tensor and produces
+    a `result` tensor, implementing the `rootn(x, 3)` operation from the
+    IEEE-754 specification.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocbrt
 
     Example:
-
     ```mlir
-    %0 = stablehlo.cbrt %arg0 : tensor<3x4xf32>
+    %result = stablehlo.cbrt %operand : tensor<4xf32>
     ```
   }];
 }
