@@ -197,6 +197,9 @@ described below)
    * [rng](#stablehlorng)
    * [rsqrt](#stablehlorsqrt)
    * [select](#stablehloselect)
+   * [shift_left](#stablehloshift_left)
+   * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
+   * [shift_right_logical](#stablehloshift_right_logical)
    * [sine](#stablehlosine)
    * [slice](#stablehloslice)
    * [sort](#stablehlosort)
@@ -2142,6 +2145,111 @@ where `predicate = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %on_false: [[5, 6], [7, 8]]
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.shift_left
+
+### Semantics
+
+Performs element-wise left-shift operation on the `lhs` tensor by `rhs` number
+of bits and produces a `result` tensor.
+
+### Inputs
+
+| Name  | Type                   |
+|-------|------------------------|
+| `lhs` | tensor of integer type |
+| `rhs` | tensor of integer type |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of integer type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [-1, -2, 3, 4, 7, 7]
+// %rhs: [1, 2, 3, 6, 7, 8]
+%result = "stablehlo.shift_left"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
+// %result: [-2, -8, 24, 0, -128, 0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.shift_right_arithmetic
+
+### Semantics
+
+Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
+`rhs` number of bits and produces a `result` tensor.
+
+### Inputs
+
+| Name  | Type                   |
+|-------|------------------------|
+| `lhs` | tensor of integer type |
+| `rhs` | tensor of integer type |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of integer type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [-1, -128, -36, 5, 3, 7]
+// %rhs: [1, 2, 3, 2, 1, 3]
+%result = "stablehlo.shift_right_arithmetic"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
+// %result: [-1, -32, -5, 1, 1, 0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.shift_right_logical
+
+### Semantics
+
+Performs element-wise logical right-shift operation on the `lhs` tensor by `rhs`
+number of bits and produces a `result` tensor.
+
+### Inputs
+
+| Name  | Type                   |
+|-------|------------------------|
+| `lhs` | tensor of integer type |
+| `rhs` | tensor of integer type |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of integer type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [-1, -128, -36, 5, 3, 7]
+// %rhs: [1, 2, 2, 2, 1, 3]
+%result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
+// %result: [127, 32, 55, 1, 1, 0]
 ```
 
 [Back to Ops](#index-of-ops)
