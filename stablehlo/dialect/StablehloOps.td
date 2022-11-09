@@ -718,13 +718,15 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
     SameOperandsElementType, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Complex operator";
   let description = [{
-    Performs element-wise conversion of a pair of real and imaginary values to
-    a complex value.
+    Performs element-wise conversion to a complex value from a pair of real and
+    imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocomplex
 
     Example:
-
     ```mlir
-    %0 = stablehlo.complex %arg0, %arg0 : tensor<4xcomplex<f32>>
+    %result = stablehlo.complex %lhs, %rhs : tensor<2xcomplex<f32>>
     ```
   }];
   let arguments = (ins HLO_Fp32Or64Tensor:$lhs, HLO_Fp32Or64Tensor:$rhs);
