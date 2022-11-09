@@ -358,7 +358,7 @@ def StableHLO_ImagOp: StableHLO_UnaryElementwiseOp<"imag",
     HLO_FpOrComplexTensor, HLO_FpTensor> {
   let summary = "Imag operator";
   let description = [{
-    Extracts an imaginary value element-wise from `operand` and produces a
+    Extracts the imaginary part, element-wise, from the `operand` and produces a
     `result` tensor.
 
     See:
@@ -504,8 +504,8 @@ def StableHLO_RealOp: StableHLO_UnaryElementwiseOp<"real",
     HLO_FpOrComplexTensor, HLO_FpTensor> {
   let summary = "Real operator";
   let description = [{
-    Extracts a real value element-wise from `operand` and produces a `result`
-    tensor.
+    Extracts the real part, element-wise, from the `operand` and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreal

@@ -1191,8 +1191,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 ### Semantics
 
-Extracts an imaginary value element-wise from `operand` and produces a `result`
-tensor.
+Extracts the imaginary part, element-wise, from the `operand` and produces a
+`result` tensor.
 
 ### Inputs
 
@@ -1212,7 +1212,8 @@ tensor.
     * If element_type(`operand`) is complex:
       * shape(`operand`) $=$ shape(`result`).
       * element_type(`result`) $=$ same underlying floating-point element type.
-    * type(`operand`) $=$ type(`result`) otherwise.
+    * If element_type(`operand`) is floating-point:
+      * `type(`operand`) $=$ type(`result`).
 
 ### Examples
 
@@ -1744,7 +1745,7 @@ and produces a `result` tensor.
 
 ### Semantics
 
-Extracts a real value element-wise from `operand` and produces a `result`
+Extracts the real part, element-wise, from the `operand` and produces a `result`
 tensor.
 
 ### Inputs
@@ -1765,7 +1766,8 @@ tensor.
     * If element_type(`operand`) is complex:
       * shape(`operand`) $=$ shape(`result`).
       * element_type(`result`) $=$ same underlying floating-point element type.
-    * type(`operand`) $=$ type(`result`) otherwise.
+    * If element_type(`operand`) is floating-point:
+      * type(`operand`) $=$ type(`result`).
 
 ### Examples
 
