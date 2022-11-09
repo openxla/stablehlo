@@ -164,6 +164,7 @@ described below)
    * [add](#stablehloadd)
    * [and](#stablehloand)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
+   * [batch_norm_training](#stablehlobatch_norm_training)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
@@ -410,6 +411,94 @@ Numeric precision is implementation-defined.
 //           [[0.0, 0.0], [2.0, 2.0]],
 //           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.batch_norm_training
+
+### Semantics
+
+Computes mean and variance across all dimensions except for the `feature_index`
+dimension and normalizes the `operand` tensor producing `output`, `batch_mean`
+and `batch_var` tensors. More formally, this operation can be expressed as a
+decomposition to existing StableHLO operations using Python-like syntax as
+follows:
+
+```python
+def compute_mean(operand, feature_index):
+  (sum,) = reduce(
+      inputs=[operand],
+      init_values=[0.0],
+      dimensions=[i for i in range(rank(operand)) if i != feature_index],
+      body=lambda x, y: add(x, y))
+  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
+  return divide(sum, divisor_bcast)
+
+def compute_variance(operand, feature_index):
+  mean = compute_mean(operand, feature_index)
+  mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
+  centered_operand = subtract(operand, mean_bcast)
+  return compute_mean(mul(centered_operand, centered_operand), feature_index)
+
+def batch_norm_training(operand, scale, offset, epsilon, feature_index):
+  mean = compute_mean(operand, feature_index)
+  variance = compute_variance(operand, feature_index)
+  return batch_norm_inference(operand, scale, offset, mean,
+                              variance, epsilon, feature_index)
+```
+
+Numeric precision is implementation-defined.
+
+### Inputs
+
+| Name            | Type                                        |
+|-----------------|---------------------------------------------|
+| `operand`       | tensor of floating-point type               |
+| `scale`         | 1-dimensional tensor of floating-point type |
+| `offset`        | 1-dimensional tensor of floating-point type |
+| `epsilon`       | constant of type `f32`                      |
+| `feature_index` | constant of type `si64`                     |
+
+### Outputs
+
+| Name         | Type                                        |
+|--------------|---------------------------------------------|
+| `output`     | tensor of floating-point type               |
+| `batch_mean` | 1-dimensional tensor of floating-point type |
+| `batch_var`  | 1-dimensional tensor of floating-point type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
+         have the same element type.
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `output` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1.0, 2.0], [3.0, 4.0]],
+//            [[3.0, 4.0], [1.0, 2.0]]
+//           ]
+// %scale: [1.0, 1.0]
+// %offset: [1.0, 1.0]
+%output, %batch_mean, %batch_var = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
+  epsilon = 0.0 : f32,
+  feature_index = 2 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+// %output: [
+//           [[0.0, 0.0], [2.0, 2.0]],
+//           [[2.0, 2.0], [0.0, 0.0]]
+//          ]
+// %batch_mean: [2.0, 3.0]
+// %batch_var: [1.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
