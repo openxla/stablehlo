@@ -38,6 +38,7 @@ endif()
 # Options and settings
 #-------------------------------------------------------------------------------
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
+option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -52,6 +53,11 @@ endif()
 #-------------------------------------------------------------------------------
 # MLIR/LLVM Configuration
 #-------------------------------------------------------------------------------
+if (STABLEHLO_ENABLE_STRICT_BUILD)
+  set(LLVM_ENABLE_WARNINGS ON)
+  set(LLVM_ENABLE_WERROR ON)
+  set(LLVM_ENABLE_PEDANTIC ON)
+endif()
 
 if(STABLEHLO_STANDALONE_BUILD)
   message(STATUS "Building StableHLO standalone")
@@ -79,6 +85,7 @@ else()
   set(MLIR_INCLUDE_DIR ${MLIR_MAIN_SRC_DIR}/include ) # --includedir
   set(MLIR_GENERATED_INCLUDE_DIR ${LLVM_BINARY_DIR}/tools/mlir/include)
 
+  include(HandleLLVMOptions)
   include_directories(SYSTEM ${MLIR_INCLUDE_DIR})
   include_directories(SYSTEM ${MLIR_GENERATED_INCLUDE_DIR})
   include_directories(SYSTEM ${MLIR_TABLEGEN_OUTPUT_DIR})
