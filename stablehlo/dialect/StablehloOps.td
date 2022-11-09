@@ -2053,7 +2053,12 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
         $api_version,
     DefaultValuedOptionalAttr<StableHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$operand_layouts,
-    OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts
+    OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts,
+    DefaultValuedOptionalAttr<
+        TypedArrayAttrBase<
+            OutputOperandAlias,
+            "Aliasing attribute for outputs and operands of CustomCall">,
+        "{}">:$output_operand_aliases
   );
   let results = (outs Variadic<HLO_TensorOrTokenOrTuple>);
   let hasVerifier = 1;

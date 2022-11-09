@@ -61,6 +61,50 @@ def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumb
   let hasCustomAssemblyFormat = 1;
 }
 
+def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
+  let cppNamespace = "::mlir::stablehlo";
+  let mnemonic = "output_operand_alias";
+  let summary =
+    "Attribute that models the alias relationship of output and operand of a CustomCall op";
+  let description = [{
+    This attribute captures the alias relationship of the output to one of the
+    operands for a CustomCall op, denoted by `operand_index`. The
+    `output_tuple_indices` and `operand_tuple_indices` are used to index into
+    output and operand types. These indices lists are empty if the corresponding
+    types are not tuple types, and can be arbitrarily long in case of
+    arbitrarily nested tuple types.
+
+    See https://www.tensorflow.org/xla/aliasing.
+
+    Example when used as array with in stablehlo.custom-call:
+
+    ```mlir
+    %0 = "stablehlo.custom_call"(%arg0, %arg1) {
+      // other attributes
+      output_operand_alias = [
+        #stablehlo.output_operand_alias<output_tuple_indices = [0],
+                                   operand_index = 0,
+                                   operand_tuple_indices = [1]>
+      ]
+    } : (tuple<tensor<1x1xf32>, tensor<2x3xf32>>, tensor<5x5xf32>) -> tuple<tensor<2x3xf32>>
+
+    The output and the 0th operand are both tuples. The aliasing shows the
+    relationship between the 0th element in output tuple with the 1st element in
+    the 0th operand. And both of them are of the same type: tensor<2x3xf32>.
+    ```
+  }];
+  let parameters = (ins
+    StableHLO_Dim:$outputTupleIndices,
+    "int64_t":$operandIndex,
+    StableHLO_Dim:$operandTupleIndices
+  );
+  let assemblyFormat = "`<` "
+                      "`output_tuple_indices` `=` `[` $outputTupleIndices `]` `,`"
+                      "`operand_index` `=` $operandIndex `,`"
+                      "`operand_tuple_indices` `=` `[` $operandTupleIndices `]`"
+                      "`>`";
+}
+
 def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "result_alias";

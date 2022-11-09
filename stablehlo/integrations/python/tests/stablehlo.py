@@ -123,6 +123,29 @@ def test_gather_dimension_numbers():
 
 
 @run
+def test_output_operand_alias():
+  attr = stablehlo.OutputOperandAlias.get(
+      output_tuple_indices=[0],
+      operand_index=0,
+      operand_tuple_indices=[1])
+  assert attr is not None
+  assert str(attr) == ("#stablehlo.output_operand_alias<output_tuple_indices = [0], "
+                       "operand_index = 0, "
+                       "operand_tuple_indices = [1]>")
+  assert attr.output_tuple_indices == [0]
+  assert attr.operand_index == 0
+  assert attr.operand_tuple_indices == [1]
+
+
+@run
+def test_precision_attr():
+  attr = stablehlo.PrecisionAttr.get("DEFAULT")
+  assert attr is not None
+  assert str(attr) == ("#stablehlo<precision DEFAULT>")
+  assert attr.value == "DEFAULT"
+
+
+@run
 def test_rng_algorithm_attr():
   attr = stablehlo.RngAlgorithmAttr.get("DEFAULT")
   assert attr is not None
@@ -136,14 +159,6 @@ def test_rng_distribution_attr():
   assert attr is not None
   assert str(attr) == ("#stablehlo<rng_distribution UNIFORM>")
   assert attr.value == "UNIFORM"
-
-
-@run
-def test_precision_attr():
-  attr = stablehlo.PrecisionAttr.get("DEFAULT")
-  assert attr is not None
-  assert str(attr) == ("#stablehlo<precision DEFAULT>")
-  assert attr.value == "DEFAULT"
 
 
 @run

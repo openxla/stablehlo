@@ -352,6 +352,60 @@ int64_t stablehloConvDimensionNumbersGetOutputSpatialDimensionsElem(
 }
 
 //===----------------------------------------------------------------------===//
+// OutputOperandAlias
+//===----------------------------------------------------------------------===//
+
+MLIR_CAPI_EXPORTED MlirAttribute stablehloOutputOperandAliasGet(
+    MlirContext ctx, intptr_t nOutputTupleIndices,
+    const int64_t *outputTupleIndices, int64_t operandIndex,
+    intptr_t nOperandTupleIndices, const int64_t *operandTupleIndices) {
+  return wrap(mlir::stablehlo::OutputOperandAliasAttr::get(
+      unwrap(ctx), llvm::makeArrayRef(outputTupleIndices, nOutputTupleIndices),
+      operandIndex,
+      llvm::makeArrayRef(operandTupleIndices, nOperandTupleIndices)));
+}
+
+bool stablehloAttributeIsAOutputOperandAlias(MlirAttribute attr) {
+  return unwrap(attr).isa<mlir::stablehlo::OutputOperandAliasAttr>();
+}
+
+intptr_t stablehloOutputOperandAliasGetOutputTupleIndicesSize(
+    MlirAttribute attr) {
+  return unwrap(attr)
+      .cast<mlir::stablehlo::OutputOperandAliasAttr>()
+      .getOutputTupleIndices()
+      .size();
+}
+
+int64_t stablehloOutputOperandAliasGetOutputTupleIndicesElem(MlirAttribute attr,
+                                                             intptr_t pos) {
+  return unwrap(attr)
+      .cast<mlir::stablehlo::OutputOperandAliasAttr>()
+      .getOutputTupleIndices()[pos];
+}
+
+int64_t stablehloOutputOperandAliasGetOperandIndex(MlirAttribute attr) {
+  return unwrap(attr)
+      .cast<mlir::stablehlo::OutputOperandAliasAttr>()
+      .getOperandIndex();
+}
+
+intptr_t stablehloOutputOperandAliasGetOperandTupleIndicesSize(
+    MlirAttribute attr) {
+  return unwrap(attr)
+      .cast<mlir::stablehlo::OutputOperandAliasAttr>()
+      .getOperandTupleIndices()
+      .size();
+}
+
+int64_t stablehloOutputOperandAliasGetOperandTupleIndicesElem(
+    MlirAttribute attr, intptr_t pos) {
+  return unwrap(attr)
+      .cast<mlir::stablehlo::OutputOperandAliasAttr>()
+      .getOperandTupleIndices()[pos];
+}
+
+//===----------------------------------------------------------------------===//
 // ComparisonDirectionAttr
 //===----------------------------------------------------------------------===//
 
