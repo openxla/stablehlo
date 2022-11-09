@@ -178,6 +178,7 @@ described below)
    * [floor](#stablehlofloor)
    * [gather](#stablehlogather)
    * [if](#stablehloif)
+   * [imag](#stablehloimag)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
@@ -189,6 +190,7 @@ described below)
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
+   * [real](#stablehloreal)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
@@ -1185,6 +1187,43 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.imag
+
+### Semantics
+
+Extracts an imaginary value element-wise from `operand` and produces a `result`
+tensor.
+
+### Inputs
+
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) For `operand` and `result`:
+    * If element_type(`operand`) is complex:
+      * shape(`operand`) $=$ shape(`result`).
+      * element_type(`result`) $=$ same underlying floating-point element type.
+    * type(`operand`) $=$ type(`result`) otherwise.
+
+### Examples
+
+```mlir
+// %operand: [(1.0, 2.0), (3.0, 4.0)]
+%result = "stablehlo.imag"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
+// %result: [2.0, 4.0]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.iota
 
 ### Semantics
@@ -1697,6 +1736,43 @@ and produces a `result` tensor.
 // %operand: [0, 1, 2, 127]
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.real
+
+### Semantics
+
+Extracts a real value element-wise from `operand` and produces a `result`
+tensor.
+
+### Inputs
+
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) For `operand` and `result`:
+    * If element_type(`operand`) is complex:
+      * shape(`operand`) $=$ shape(`result`).
+      * element_type(`result`) $=$ same underlying floating-point element type.
+    * type(`operand`) $=$ type(`result`) otherwise.
+
+### Examples
+
+```mlir
+// %operand: [(1.0, 2.0), (3.0, 4.0)]
+%result = "stablehlo.real"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
+// %result: [1.0, 3.0]
 ```
 
 [Back to Ops](#index-of-ops)

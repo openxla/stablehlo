@@ -95,7 +95,7 @@ one of the following tracking labels.
 | get_dimension_size       | no            | revisit      | no             | yes             | no          |
 | get_tuple_element        | no            | revisit      | revisit        | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |
-| imag                     | no            | yes*         | yes*           | yes             | no          |
+| imag                     | yes           | yes          | yes            | yes             | no          |
 | infeed                   | no            | revisit      | no             | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | no            | yes*         | yes*           | yes             | no          |
@@ -114,7 +114,7 @@ one of the following tracking labels.
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | no            | yes*         | yes*           | yes             | no          |
-| real                     | no            | yes*         | yes*           | yes             | no          |
+| real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | no            | revisit      | no             | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | no          |
