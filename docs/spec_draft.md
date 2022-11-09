@@ -221,6 +221,7 @@ syntax.
    * [shift_left](#stablehloshift_left)
    * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
    * [shift_right_logical](#stablehloshift_right_logical)
+   * [sign](#stablehlosign)
    * [sine](#stablehlosine)
    * [slice](#stablehloslice)
    * [sort](#stablehlosort)
@@ -3121,6 +3122,46 @@ number of bits and produces a `result` tensor.
 // %rhs: [1, 2, 3, 2, 1, 3]
 %result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
 // %result: [127, 32, 27, 1, 1, 0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.sign
+
+### Semantics
+
+Returns the sign of the `operand` element-wise and produces a `result` tensor.
+For each element `e`:
+```
+sign(e) = -1  if e < 0
+        = -0  if e = -0
+        = NaN if e = NaN
+        = +0  if e = +0
+        = 1   if e > 0
+```
+
+### Inputs
+
+| Name      | Type                                                      |
+|-----------|-----------------------------------------------------------|
+| `operand` | tensor of signed integer, floating-point, or complex type |
+
+### Outputs
+
+| Name     | Type                                                      |
+|----------|-----------------------------------------------------------|
+| `result` | tensor of signed integer, floating-point, or complex type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [-10.0, -0.0, 0x7FFFFFFF, 0.0, 10.0]
+%result = "stablehlo.sign"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
+// %result: [-1.0, -0.0, 0x7FFFFFFF, 0.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
