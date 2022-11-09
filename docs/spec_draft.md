@@ -861,17 +861,19 @@ formally, `result[i0, ..., iR-1]` =
   * `LT`: `lhs` $\lt$ `rhs`.
 
 `compare_type` can be one of the following:
-  * `FLOAT`: Floating type comparison of `lhs` and `rhs`.
-  * `TOTALORDER`: Total ordering floating type comparison of `lhs` and `rhs`.
+  * `FLOAT`: Standard floating-point comparison of `lhs` and `rhs` as specified
+             in IEEE-754.
+  * `TOTALORDER`: `totalOrder` floating-point comparison of `lhs` and `rhs` as
+                  specified in IEEE-754.
   * `SIGNED`: Signed comparison of `lhs` and `rhs`.
   * `UNSIGNED`: Unsigned comparison of `lhs` and `rhs`.
 
 ### Inputs
 
-| Name                   | Type                                                   |
-|------------------------|--------------------------------------------------------|
-| `lhs`                  | tensor of any supported type                           |
-| `rhs`                  | tensor of any supported type                           |
+| Name                   | Type                                                    |
+|------------------------|---------------------------------------------------------|
+| `lhs`                  | tensor of any supported type                            |
+| `rhs`                  | tensor of any supported type                            |
 | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |
 | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` |
 
@@ -885,6 +887,12 @@ formally, `result[i0, ..., iR-1]` =
 
   * (C1) `lhs` and `rhs` have the same element type.
   * (C2) `lhs`, `rhs`, and `result` have the same shape.
+  * (C3) Let `E` be the `lhs` element type:
+    * If `E` is complex type, `comparison_direction` $\in$ `{EQ, NE}`,
+      `compare_type` = `FLOAT`.
+    * If `E` is signed integer type, `compare_type` = `SIGNED`.
+    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
+    * If `E` is floating-type, `compare_type` $\in$ `{FLOAT, TOTALORDER}`.
 
 ### Examples
 
@@ -892,6 +900,7 @@ formally, `result[i0, ..., iR-1]` =
 // %lhs: [1.0, 3,0]
 // %rhs: [1.1, 2.9]
 %result = "stablehlo.compare"(%lhs, %rhs) {
+  compare_type = #stablehlo<compare_type FLOAT>,
   comparison_direction = #stablehlo<comparison_direction LT>
 } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
 // %result: [true, false]
