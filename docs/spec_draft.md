@@ -194,6 +194,7 @@ described below)
    * [remainder](#stablehloremainder)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
+   * [rng](#stablehlorng)
    * [rsqrt](#stablehlorsqrt)
    * [select](#stablehloselect)
    * [sine](#stablehlosine)
@@ -2006,6 +2007,66 @@ and produces a `result` tensor. More formally,
 ```
 
 [Back to Ops](#index-of-ops)
+
+## stablehlo.rng
+
+### Semantics
+
+Generates random numbers using the `rng_distribution` algorithm and produces a
+`result` tensor of a given shape `shape`.
+
+If `rng_distribution` $=$ `UNIFORM`, then the random numbers are generated
+following the uniform distribution over the interval [`a`, `b`). If `a` $\ge$
+`b`, the behavior is undefined.
+
+If `rng_distribution` $=$ `NORMAL`, then the random numbers are generated
+following the normal distribution with mean = `a` and standard deviation = `b`.
+If `b` $\lt$ 0, the behavior is undefined.
+
+The exact way how random numbers are generated is implementation-defined. For
+example, they may or may not be deterministic, and they may or may not use
+hidden state.
+
+### Inputs
+
+| Name               | Type                                                             |
+|--------------------|------------------------------------------------------------------|
+| `a`                | 0-dimensional tensor of integer, boolean, or floating-point type |
+| `b`                | 0-dimensional tensor of integer, boolean, or floating-point type |
+| `shape`            | 1-dimensional tensor constant of type `si64`                     |
+| `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   |
+
+### Outputs
+
+| Name     | Type                                               |
+|----------|----------------------------------------------------|
+| `result` | tensor of integer, boolean, or floating-point type |
+
+### Constraints
+
+  * (C1) `a`, `b`, and `result` have the same element type.
+  * (C2) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
+    floating-point element type.
+  * (C3) shape(`result`) = `shape`.
+
+### Examples
+
+```mlir
+// %a = 0
+// %b = 2
+// %shape = [3, 3]
+%result = "stablehlo.rng"(%a, %b, %shape) {
+  rng_distribution = #stablehlo<rng_distribution UNIFORM>
+} : (tensor<i32>, tensor<i32>, tensor<2xi64>) -> tensor<3x3xi32>
+// %result: [
+//           [1, 0, 1],
+//           [1, 1, 1],
+//           [0, 0, 0]
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.rsqrt
 
 ### Semantics

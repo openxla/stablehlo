@@ -126,7 +126,7 @@ one of the following tracking labels.
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
 | return                   | no            | revisit      | no             | yes             | no          |
 | reverse                  | yes           | revisit      | yes            | yes             | no          |
-| rng                      | no            | yes*         | yes*           | yes             | no          |
+| rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | no            | yes*         | infeasible     | yes             | no          |
 | round_nearest_afz        | no            | yes*         | yes*           | yes             | no          |
 | round_nearest_even       | no            | revisit      | revisit        | yes             | no          |
