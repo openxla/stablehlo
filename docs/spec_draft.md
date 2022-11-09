@@ -1924,15 +1924,19 @@ and produces a `result` tensor. More formally,
 ### Semantics
 
 Generates random numbers using the `rng_distribution` algorithm and produces a
-`result` tensor of a given shape `shape`. If `rng_distribution` $=$ `UNIFORM`,
-then the random numbers are generated following the uniform distribution over
-the interval [`a`, `b`). If `rng_distribution` $=$ `NORMAL`, then the random
-numbers are generated following the normal distribution with mean = `a` and
-standard deviation = `b`.
+`result` tensor of a given shape `shape`.
 
-If `rng_distribution = UNIFORM` and `a` $\ge$ `b`, the behavior is undefined.
-Similarly, if `rng_distribution = NORMAL` and `b` $\le$ 0, the behavior is
-undefined.
+If `rng_distribution` $=$ `UNIFORM`, then the random numbers are generated
+following the uniform distribution over the interval [`a`, `b`). If `a` $\ge$
+`b`, the behavior is undefined.
+
+If `rng_distribution` $=$ `NORMAL`, then the random numbers are generated
+following the normal distribution with mean = `a` and standard deviation = `b`.
+If `b` $\lt$ 0, the behavior is undefined.
+
+The exact way how random numbers are generated is implementation-defined. For
+example, they may or may not be deterministic, and they may or may not use
+hidden state.
 
 ### Inputs
 
