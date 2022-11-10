@@ -49,7 +49,7 @@ one of the following tracking labels.
 | all_reduce               | no            | revisit      | revisit        | no              | no          |
 | all_to_all               | no            | yes*         | yes*           | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
-| atan2                    | no            | yes*         | yes*           | yes             | no          |
+| atan2                    | yes           | revisit      | yes            | yes             | no          |
 | batch_norm_grad          | no            | yes*         | yes*           | no              | no          |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
 | batch_norm_training      | no            | revisit      | yes            | no              | no          |

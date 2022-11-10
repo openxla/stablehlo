@@ -163,6 +163,7 @@ described below)
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [and](#stablehloand)
+   * [atan2](#stablehloatan2)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
@@ -336,6 +337,46 @@ For boolean tensors, computes the logical operation.
 // %rhs: [[5, 6], [7, 8]]
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 0]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.atan2
+
+### Semantics
+
+Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
+`result` tensor, implementing the `atan2` operation from the IEEE-754
+specification. For complex element types, it computes a complex atan2 function
+below, with corner cases TBD. Numeric precision is implementation-defined.
+`log` and `sqrt` operations correspond to [stablehlo.log](#stablehlolog) and
+[stablehlo.sqrt](#stablehlosqrt):
+$$atan2(lhs, rhs) = -i * \log\left(\frac{rhs + i * lhs}{sqrt(rhs^{2} + lhs^{2})}\right)$$
+
+### Inputs
+
+| Name  | Type                                     |
+|-------|------------------------------------------|
+| `lhs` | tensor of floating-point or complex type |
+| `rhs` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [0.0, 1.0, -1.0]
+// %rhs: [0.0, 0.0, 0.0]
+%result = "stablehlo.atan2"(%lhs, %rhs) : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
+// %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
 ```
 
 [Back to Ops](#index-of-ops)
