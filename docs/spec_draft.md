@@ -188,6 +188,7 @@ described below)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
    * [iota](#stablehloiota)
+   * [is_finite](#stablehlois_finite)
    * [log](#stablehlolog)
    * [log_plus_one](#stablehlolog_plus_one)
    * [logistic](#stablehlologistic)
@@ -1508,6 +1509,39 @@ defined and one of the following:
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.is_finite
+
+### Semantics
+
+Performs element-wise check whether the value in `x` is finite (i.e. is neither
++inf, -inf, nor NaN) and produces a `y` tensor.
+
+### Inputs
+
+| Name | Type                          |
+|------|-------------------------------|
+| `x`  | tensor of floating-point type |
+
+### Outputs
+
+| Name | Type                   |
+|------|------------------------|
+| `y`  | tensor of boolean type |
+
+### Constraints
+
+  * (C1) `x` and `y` have the same shape.
+
+### Examples
+
+```mlir
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
+%result = "stablehlo.is_finite"(%operand) : (tensor<7xf32>) -> tensor<7xi1>
+// %result: [false, false, false, true, true, true, true]
+```
 
 [Back to Ops](#index-of-ops)
 

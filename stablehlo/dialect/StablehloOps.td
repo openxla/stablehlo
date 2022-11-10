@@ -375,18 +375,15 @@ def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_Tensor> {
   let summary = "IsFinite operator";
   let description = [{
-    Tests whether each element of operand is finite, i.e., is not positive or
-    negative infinity, and is not NaN. Returns a tensor of 1-bit integers with
-    the same shape as the input, where each element is nonzero (i.e. true) if
-    and only if the corresponding input element is finite.
+    Performs element-wise check whether the value in `x` is finite (i.e. is
+    neither +inf, -inf, nor NaN) and produces a `y` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlois_finite
 
     Example:
-
     ```mlir
-    %0 = stablehlo.is_finite %arg0 : (tensor<2xf32>) -> tensor<2xi1>
+    %result = stablehlo.is_finite %operand : (tensor<7xf32>) -> tensor<7xi1>
     ```
   }];
   let arguments = (ins HLO_FpTensor:$x);
