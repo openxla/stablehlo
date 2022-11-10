@@ -1,183 +1,74 @@
-# StableHLO Compatibility
+# StableHLO Compatibility RFC v2
 
-## Compatibility Guarantees
-
-(G1) libStablehlo provides 6 months of backward compatibility, i.e. StableHLO programs serialized by an old version of libStablehlo have the same semantics when deserialized by new versions of libStablehlo within the compatibility window.
-
-(G2) libStablehlo provides 3 weeks of forward compatibility, i.e. StableHLO programs serialized by a new version of libStablehlo have the same semantics when deserialized by old versions of libStablehlo within the compatibility window, unless they are using new features introduced since the old version.
-
-(G3) Source compatibility for C, C++ and Python APIs within libStablehlo is an aspirational goal. At the moment, we don't offer source compatibility guarantees, but please let us know if this is an important use case for you, and we can have a discussion about supporting it.
-
-\*StableHLO semantics is defined by the StableHLO specification and can be tested using the StableHLO interpreter. While we're bootstrapping the StableHLO specification, we will be referring to a combination of [XLA's Operation Semantics](https://www.tensorflow.org/xla/operation_semantics) and existing implementations to define the semantics.
+Based on discussions held over the past two months, and new use cases and feedback left in comments on the first revision of this RFC, we propose the following path forward for compatibility guarantees for StableHLO programs:
+- Proposal 1: Add StableHLO forks of modularity ops, builtin/quant types and attributes, global ops, and additional upstream ops from future RFCs. Maintain conversion patterns to their upstream equivalents.
+- Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
+- Proposal 3: Provide forward / backward compatibility within a major release, with major releases spaced at least 6 months apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
+- Proposal 4: Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization.
 
 ## StableHLO Programs
 
-For the purposes of compatibility guarantees, we define StableHLO programs as MLIR programs that include ops, attributes, and types specified below. This definition is based on our experience with lowering JAX/PyTorch/TensorFlow programs to MHLO and interviewing various groups using MHLO. Please let us know if you're interested in expanding this definition, and we can have a discussion about this.
+For the purposes of compatibility guarantees, we define StableHLO programs as programs that only include ops, attributes, and types from the StableHLO opset. There will be several additions to the StableHLO opset to accomplish this goal of providing a self-contained opset that satisfies current use cases.
 
-|  Dialect     | Ops, attributes and types |
-| ------------ | ----------- |
-| Arith        | `AddIOp, CmpIOp, CmpIPredicateAttr, ConstantOp, DivSIOp, ExtSIOp, IndexCastOp, MaxSIOp, MinSIOp, MulIOp, SelectOp, SubIOp, TruncIOp` |
-| Builtin      | No ops, but all attributes and types. |
-| CHLO         | All ops, attributes and types. |
-| Func         | `CallOp` |
-| MLProgram    | All ops, attributes and types. |
-| SparseTensor | Aspirational (pending the sparsity RFC which is expected in Q4 2022). |
-| StableHLO    | All ops, attributes and types except `CustomCallOp` whose semantics is implementation-defined. |
-| Tensor       | `CastOp, DimOp, FromElementsOp` |
+These include:
+- Modularity ops: `ModuleOp`, `FuncOp`, `CallOp`.
+- Forks of types / attributes from Builtin and Quant dialect.
+- Global ops from ml_program dialect.
+- Additional new ops, attributes and types may be proposed and added by the Dynamism RFC*, Sparsity RFC or other RFCs in the future
 
-We will provide a pass `--stablehlo-compatibility-check` which succeeds if a given program is fully covered by these compatibility guarantees and fails if it doesn't.
+_*As a stop-gap provision, we propose adding `AddIOp`, `CmpIOp`, `ConstantIOp`, `DivSIOp`, `ExtSIOp`, `IndexCastOp`, `MaxSIOp`, `MinSIOp`, `MulIOp`, `SelectOp`, `SubIOp`, `TruncIOp`, `CastOp`, `DimOp`, `FromElementsOp` to the StableHLO opset to accommodate how MHLO programs look like today. These ops may be deprecated by the Dynamism RFC._
 
-## Compatibility Protocols
+For all ops, attributes and types that are introduced in StableHLO but are not present in MHLO, a legalization to/from upstream dialects will be maintained. If incompatible changes are made upstream, legalization may fail, and the mismatch will need to be handled separately by the user (i.e. the producer will want to find a way to represent the upstream op in a different way using existing StableHLO ops, and the consumer will want to handle the StableHLO op directly).
 
-### Compatible Changes
-_Characteristics of a compatible change:_
+**Proposal 1:** Add StableHLO forks of modularity ops, builtin/quant types and attributes, global ops, and additional upstream ops from future RFCs. Maintain conversion patterns to their upstream equivalents.
 
-- Does not break forward or backward compatibility.
-- May require updating Python/C APIs.
+## StableHLO Versioning
+StableHLO (opset, libStablehlo and serialization format) will version in compliance with [semver](https://semver.org/) (Semantic Versioning 2.0.0), with additions and modifications described in this section. Serialization format will be described in a future Serialization RFC in Q4 2022.
 
-_Example:_ Rename an operation, but not the mnemonic `OldOp → NewOp` _(recent example: `SinOp → SineOp`)_.
+**Major Version Bumps:** Backward incompatible changes will cause the major version to be bumped. This includes removing ops, and other semantic changes that prevent IR upgrades.
 
-_Compatibility Protocol:_
+**Minor Version Bumps:** Backward compatible changes will bump the minor version number. These changes may be forward compatible, depending on whether new semantics are introduced. This includes feature additions and feature renaming.
 
-![Compatible Change Protocol Diagram](images/compatible_change.png)
+**Patch Version Bumps:** All other changes will bump the patch version. This includes error message improvements, changing crashes into an error, doc improvements that occur between releases, prettyprint enhancements, and feature additions not related to the StableHLO opset such as new legalization passes or tooling improvements.
 
-_Description:_
-- 1/1/23: Create bytecode_v1 from libStablehlo@v1
-- 1/7/23: Rename `OldOp → NewOp`, mnemonic remains `MyDialect.OldOp` in libStablehlo@v2
-  + No change to serialization / deserialization
-  + Requires changes to users of other libStablehlo APIs
-  + Backward compatibility: bytecode_v1 has the same semantics in libStablehlo@v2.
-  + Forward compatibility: bytecode_v2 has the same semantics in libStablehlo@v1.
+**StableHLO Releases:** Commits will be tagged with a release number at least once a week, and only after tests which verify compatibility have passed. Users are only guaranteed compatibility if using a tagged commit. If a commit is found to be broken, it will be flagged as invalid, and a patch release will be tagged as soon as possible.
 
-### Migration Change
-_Characteristics of a migration change:_
-- Change in dialect breaks serialization in a semantically compatible manner (IR able to be upgraded/downgraded).
-- Downgrade bytecode for 3 weeks.
-- Upgrade bytecode for 6 months.
+**Forward compatibility** will be provided at the serialization layer by allowing clients to target previous releases when a program only uses features compatible with a previous release. For example, if a program uses features (ops, attributes and/or types) compatible with `v0.9.0+`, `v1.1.0+` and `v1.2.0+`, then `v1.2.0` is the minimal version that the program is compatible with.
 
-_Example:_ Rename an operation mnemonic, `OldOp → NewOp` _(possible future example: `cross-replica-sum → cross_replica_sum`)_.
+**Proposal 2:** Use _Major.Minor.Patch_ versioning for StableHLO releases.
 
-_Compatibility Protocol:_
+## Compatibility Guarantees
+**(G1) Backward compatibility:** StableHLO provides backward compatibility within major releases, i.e. StableHLO programs serialized by an old version of libStablehlo have the same semantics* when deserialized by new versions of libStablehlo within a major release. Additionally, any program serialized in major version `N` can be deserialized in major version `N+1`. The same is not true of serialization, as deprecated features in version `N+1` may prevent the serialization of a program.
 
-![Migration Change Protocol Diagram](images/migration_change.png)
+**(G2) Forward compatibility:** StableHLO provides forward compatibility within major releases when possible, and an additional 1 month between major releases, i.e. StableHLO programs serialized by a new version of libStablehlo have the same semantics when deserialized by old versions of libStablehlo within a major release, unless they are using new features introduced since the old version.
 
-_Description:_
-- 1/1/23: Create bytecode_v1 from libStablehlo@v1
-- 1/7/2023: Rename op and mnemonic `OldOp → NewOp`, build libStablehlo@v2
-  + Need upgrade / downgrade hooks (before and after serialization) to achieve forward and backward compatibility. We'll communicate this feature request to MLIR upstream and will work with the community to evaluate and potentially implement it.
-  + Backward compatibility: In libStablehlo@v2, when deserializing `OldOp` from bytecode_v1, upgrade it to `NewOp`.
-  + Forward compatibility: In libStablehlo@v2, when serializing `NewOp` during the forward compatibility window, downgrade it to `OldOp`, so that libStablehlo@v1 can handle bytecode_v2.
-- 1/29/23: Create bytecode_v3 from libStablehlo@v3
-  + Forward compatibility: Window has closed, no need for downgrade anymore.
-  + Backward compatibility: Maintain upgrade until compatibility window closes.
+**(G3) Source compatibility** for C, C++ and Python APIs within libStablehlo is an aspirational goal. At the moment, we don't offer source compatibility guarantees, but please let us know if this is an important use case for you, and we can have a discussion about supporting it.
 
-### Addition Change
-_Characteristics of a addition change:_
-- A new feature is introduced, with new semantics.
-- No forward compatibility guarantees when feature is used.
-- Warn on forward incompatibility if serializing new feature during the forward compatibility window.
+**(G4) Version 0.x.x:** There will be some stability guarantees while in major version 0. There is not stability guaranteed within the major version, but we will provide 1 month of forward and backward compatibility between minor versions. This approach is chosen to allow dialect evolution and cleanup in the early days, as well as refine compatibility procedures while meeting the requirements of early adopters. Stability within major version will begin with version `1.x.x` and will happen in 2023.
 
-_Example:_ Change enum `Enum` which has value `<A>` to add a new value `<B>`.
+_*StableHLO semantics is defined by the StableHLO specification and can be tested using the StableHLO interpreter. Refer to the [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md) for reference semantics._
 
-_Compatibility Protocol:_
+**Proposal 3:** Provide forward / backward compatibility within a major release, with major releases happening at least 6 months apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
 
-![Addition Change Protocol Diagram](images/addition_change.png)
+## What's not covered?
+**Bugs:** We may make backward incompatible changes if the current implementation is clearly broken, that is, if it contradicts the Operation's spec.
 
-_Description:_
-- 1/1/23: Create bytecode_v1 from libStablehlo@v1
-- 1/7/2023: Add enum value `<B>` which has new semantics in libStablehlo@v2
-  + No need to create a new version of the op or to write upgrade / downgrade hooks.
-  + Backward compatibility: libStablehlo@v2 can handle `<A>` from bytecode_v1.
-  + Forward compatibility: libStablehlo@v1 can handle `<A>` from bytecode_v2, but `<B>` from bytecode_v2 doesn't fall under provided compatibility guarantees because it's a new feature. During the forward compatibility window, `--stablehlo-compatibility-check` will emit a warning if it sees `<B>`.
-- 1/29/23: Remove warning in libStablehlo@v3
-  + Backward compatibility: Nothing changes from 1/7/2023.
-  + Forward compatibility: Window has closed, no need to emit warning anymore.
+**Unspecced features:** We may make backward incompatible changes to features which haven't been specced (see [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md)).
 
-### Deprecation Change
-_Characteristics of a deprecation change:_
-- Remove a feature with backwards compatibility
-- Prevent creation of new bytecode using feature
-- Clean up after backward compatibility window
+**Numerical accuracy:** StableHLO has multiple ops that have implementation-defined accuracy across consumers and even within the same consumer across versions. As a result, StableHLO doesn't aim to make any guarantees about numerical accuracy, although this may change in a future RFC.
 
-_Example:_ Change enum `Enum` which has values `<A>` and `<B>` to remove value `<B>`.
+## Compatibility Implementation
 
-_Compatibility Protocol:_
+### Upgrades and Downgrades
+To improve the experience of producers and consumers, we will keep the StableHLO dialect at the latest version of the opset, so that the dialect doesn't get polluted with compatibility constructs, e.g. `FooV2Op` ops. Backward and forward compatibility guarantees will be maintained via upgrade and downgrade hooks correspondingly, which will be run during serialization and deserialization as described below. Use cases requiring sending artifacts will be able specify a target version for serialization, so that artifacts can be shared and used on various versions of libStablehlo.
 
-![Deprecation Change Protocol Diagram](images/deprecation_change.png)
+### The Versioned Dialect
+The versioned dialect is a shallow versioned copy of the StableHLO dialect which is used for upgrades, downgrades, and serialization/deserialization. Operations in this dialect use versioned attributes and types, equivalent to the op they are forked from, but do not have traits, custom verifiers, or prettyprinters, and they are unchanged after addition to the dialect. Upgrades and downgrades will be defined as conversion patterns on the versioned dialect. Serialization and deserialization of StableHLO dialect will involve legalization to and from the versioned dialect. Only the most recent version of an op is able to be legalized to the StableHLO dialect.
 
-_Description:_
-- 1/1/23: Create bytecode_v1 from libStablehlo@v1
-- 1/7/23: Add compatibility check to prevent serialization of `<B>` in libStablehlo@v2
-  + Backward compatibility: libStablehlo@v2 can deserialize `<A>` and `<B>` from bytecode_v1.
-  + Forward compatibility: libStablehlo@v1 can handle `<A>` from bytecode_v2. libStablehlo@v2 prevents the serialization of `<B>`.
-- 6/8/23: Remove `<B>` deserialization and enum value in libStablehlo@v3.
-  + Ensure that numeric value of other enums does not change due to deletion.
-  + Backward compatibility: Window has closed, no need to maintain `<B>`.
-  + Forward compatibility: No changes required, libStablehlo@v2 can handle all libStablehlo@v3 programs.
+The following demonstrates serialization on a `v1.5.x` producer that targets the `v1.3.x` opset, and is deserialized on a `v1.4.x` consumer:
 
-### Versioned Op Change
-_Characteristics of a change that requires versioning:_
-- A change is introduced that cannot be upgraded / downgraded
-- Create new version of legacy op
-- A combination of Addition/Deprecation Protocols from there
+![Version Dialect Roundtrip. Use 'View File' feature to load image properly.](images/version_dialect.png)
 
-_Example:_ Changing the signature and semantics to an op, adding an operand.
+A new op is added to the versioned dialect at every bump in minor version number to reflect the backward compatible change made. Additionally, if an attribute or type used by an op is changed and requires a version bump, the op using it will also require a new version. The process of upgrading/downgrading versioned IR and legalizing to/from StableHLO must always succeed if compatibility guarantees are applicable.
 
-_Compatibility Protocol:_
-
-![Versioned Op Change Protocol Diagram](images/versioned_op_change.png)
-
-_Description:_
-- 1/1/23: Create bytecode_v1 from libStablehlo@v1
-- 1/7/23: Add compatibility check to prevent serialization of `MyOp` in libStablehlo@v2
-  + Forward compatibility: Add check so `--stablehlo-compatibility-check` emits a warning if `MyOp_v2` is used and cannot be downgraded.
-  + Backward compatibility: No change in deserialization of `MyOp`, libStablehlo@v2 can handle bytecode_v1.
-- 1/29/23: Remove forward compatibility warning 
-- 6/8/23: Remove `MyOp` in libStablehlo@v4
-  + Backward compatibility window over.
-  + Optionally rename `MyOp_v2` to `MyOp` via Migration Protocol
-
-### Changes in Dependent Dialects
-StableHLO will use forks of supported operations in dependent dialects for serialization / deserialization only. These forked operations allow StableHLO a finer control of the compatibility changes of operations in other dialects using the protocols above.
-
-_Proposal:_
-- Have stable shims of supported operations in other dialects.
-- Downgrade IR to shim before serializing `arith.addi → stablehlo.arith.addi`
-- Upgrade IR to other dialect on deserialization.
-
-With the above rules, we are able to provide compatibility guarantees for Migration and Additions. 
-
-_Example:_ Move `builtin.func → func.func`.
-
-![Dependent Dialect Change Protocol Diagram](images/dependent_dialect_change.png)
-
-There are still some open questions that require more discussion, regarding semantic changes or breaking changes to ops in other dialects. One option would be to do a deeper copy of the op into StableHLO and support it in our interpreter and transformations.
-
-## Compatibility Testing
-
-### Detecting Backward Incompatibility
-An approach similar to [LLVM bitcode compatibility testing](https://llvm.org/docs/DeveloperPolicy.html#ir-backwards-compatibility) can be used to detect backwards incompatibilities in StableHLO deserialization:
-> “After each X.Y release, compatibility.ll must be copied to compatibility-X.Y.ll. The corresponding bitcode file should be assembled using the X.Y build and committed as compatibility-X.Y.ll.bc.”
-
-There are large FileCheck integration tests for StableHLO (`ops_stablehlo_roundtrip.mlir`) and CHLO (`ops_chlo_roundtrip.mlir`). Simple breaking changes in backwards compatibility can be statically detected locally and in the “Build and Test” GitHub Action using the following procedure:
-
-- Create versions of the roundtrip files at certain increments.
-  + Create a copy as `ops_stablehlo_roundtrip_2022_09_06.mlir` and serialized `ops_stablehlo_roundtrip_2022_09_06_bc.mlir` for version created on Sep 6, 2022. 
-  + Copies of this file older than 6 months can be removed.
-  + The creation of these files should be scripted for easy testing, and we can automate this with GH actions as well.
-- In the most recent version of libStablehlo, deserialize all bytecode files from previous revisions.
-- Any failures to deserialize indicate a backwards incompatibility.
-
-This method has a bit of churn, we could automate the update of these files at a regular cadence to take the burden off the developer. Automate an update of the bytecode file every week.
-
-To ensure semantic guarantees, a more in-depth dynamic test suite using the interpreter will also be provided, and similarly versioned. This can be used to test result values and error cases across verisons.
-
-### Detecting Forward Incompatibility
-The IR structure of a program should not change during the forward incompatiblity window. Because of this, forward incompatibilities can be more reliably tested statically. A method similar to backward compatibility testing can be used, except with an older verion of the libStablehlo for testing.
-
-A GitHub Action named “Forward Compatibility Testing” can be added which does the following:
-- Checkout the repo at a commit from 3 weeks ago and build.
-- Fetch all the newer serialized revisions of `*_roundtrip_*` files, as described in Backward Compatibility Testing.
-- Deserialize and run FileCheck tests for all serialized files dated between the checked out version and most recent version.
-  + _Note:_ The FileCheck checks in `*_roundtrip_*` files should use generic format, to prevent compatible changes like pretty print engancements from causing failures.
-- A failure during deserialization or FileCheck comparison indicates a forwards incompatibility.
+**Proposal 4:** Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization. 
