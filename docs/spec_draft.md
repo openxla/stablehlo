@@ -1194,6 +1194,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 Extracts the imaginary part, element-wise, from the `operand` and produces a
 `result` tensor.
 
+More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
+
 ### Inputs
 
 | Name      | Type                                     |
@@ -1208,12 +1210,10 @@ Extracts the imaginary part, element-wise, from the `operand` and produces a
 
 ### Constraints
 
-  * (C1) For `operand` and `result`:
-    * If element_type(`operand`) is complex:
-      * shape(`operand`) $=$ shape(`result`).
-      * element_type(`result`) $=$ same underlying floating-point element type.
-    * If element_type(`operand`) is floating-point:
-      * `type(`operand`) $=$ type(`result`).
+  * (C1) shape(`result`) = shape(`operand`).
+  * (C2) element_type(`result`) $=$
+    * element_type(`operand`) if it's a floating-point type.
+    * real_type(element_type(`operand`)) otherwise.
 
 ### Examples
 
@@ -1748,6 +1748,8 @@ and produces a `result` tensor.
 Extracts the real part, element-wise, from the `operand` and produces a `result`
 tensor.
 
+More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
+
 ### Inputs
 
 | Name      | Type                                     |
@@ -1762,12 +1764,10 @@ tensor.
 
 ### Constraints
 
-  * (C1) For `operand` and `result`:
-    * If element_type(`operand`) is complex:
-      * shape(`operand`) $=$ shape(`result`).
-      * element_type(`result`) $=$ same underlying floating-point element type.
-    * If element_type(`operand`) is floating-point:
-      * type(`operand`) $=$ type(`result`).
+  * (C1) shape(`result`) = shape(`operand`).
+  * (C2) element_type(`result`) $=$
+    * element_type(`operand`) if it's a floating-point type.
+    * real_type(element_type(`operand`)) otherwise.
 
 ### Examples
 
