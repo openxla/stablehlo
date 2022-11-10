@@ -815,15 +815,15 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
       [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Power operator";
   let description = [{
-    Returns `lhs ^ rhs` element-wise.
+    Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
+    produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopower
 
     Example:
-
     ```mlir
-    %0 = stablehlo.power %arg0, %arg0 : tensor<2xf32>
+    %result = stablehlo.power %lhs, %rhs : tensor<6xf32>
     ```
   }];
 }
@@ -840,7 +840,7 @@ def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
 
     Example:
     ```mlir
-    %result = stablehlo.remainder %lhs, %rhs : (ensor<4xi64>
+    %result = stablehlo.remainder %lhs, %rhs : tensor<4xi64>
     ```
   }];
 }

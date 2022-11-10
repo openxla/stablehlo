@@ -204,6 +204,7 @@ syntax.
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
+   * [power](#stablehlopower)
    * [real](#stablehloreal)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
@@ -2209,6 +2210,41 @@ and produces a `result` tensor.
 // %operand: [0, 1, 2, 127]
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.power
+
+### Semantics
+
+Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
+produces a `result` tensor.
+
+### Inputs
+
+| Name  | Type                                              |
+|-------|---------------------------------------------------|
+| `lhs` | tensor of integer, floating-point or complex type |
+| `rhs` | tensor of integer, floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                                              |
+|----------|---------------------------------------------------|
+| `result` | tensor of integer, floating-point or complex type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs` and, `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [-2.0, -0.0, -36.0, 5.0, 3.0, 10000.0]
+// %rhs: [2.0, 2.0, 1.1, 2.0, -1.0, 10.0]
+%result = "stablehlo.power"(%lhs, %rhs) : (tensor<6xf32>, tensor<6xf32>) -> tensor<6xf32>
+// %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
 
 [Back to Ops](#index-of-ops)
