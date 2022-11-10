@@ -632,10 +632,9 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 ### Constraints
 
-  * (C1) `lhs` and `rhs` have the same floating-point element type.
-  * (C2) shape(`lhs`) $=$ shape(`rhs`) $=$ shape(`result`).
-  * (C3) element_type(`lhs`) $=$ underlying floating-point element type in
-    element_type(`result`).
+  * (C1) `lhs` and `rhs` have the same type.
+  * (C2) shape(`result`) $=$ shape(`lhs`).
+  * (C3) element_type(`result`) = complex_type(element_type(`lhs`)).
 
 ### Examples
 
