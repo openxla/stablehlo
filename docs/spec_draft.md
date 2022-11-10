@@ -3131,13 +3131,13 @@ number of bits and produces a `result` tensor.
 ### Semantics
 
 Returns the sign of the `operand` element-wise and produces a `result` tensor.
-For each element `e`:
+For each element `x`:
 ```
-sign(e) = -1  if e < 0
-        = -0  if e = -0
-        = NaN if e = NaN
-        = +0  if e = +0
-        = 1   if e > 0
+sign(x) = -1  if x < 0
+        = -0  if x = -0
+        = NaN if x = NaN
+        = +0  if x = +0
+        = 1   if x > 0
 ```
 
 ### Inputs
