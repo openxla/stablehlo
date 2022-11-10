@@ -2036,6 +2036,28 @@ LogicalResult AllGatherOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// AllReduceOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult AllReduceOp::verify() {
+  if (failed(verifyReplicaGroups(*this, /*is_uniform_sized=*/false)))
+    return failure();
+
+  auto operandType = getOperand().getType().cast<TensorType>();
+  bool operandTypeRanked = operandType.isa<RankedTensorType>();
+  Block& block = getComputation().front();
+  SmallVector<TensorType> accumulatorSubshapes;
+  if (failed(hlo::verifyReducerShape(
+          this->getLoc(), block, {operandType},
+          {RankedTensorType::get({}, operandType.getElementType())},
+          /*numInputs=*/1, /*allowedDimensions=*/{},
+          /*allInputsUnranked=*/!operandTypeRanked, accumulatorSubshapes)))
+    return failure();
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // BatchNormGradOp
 //===----------------------------------------------------------------------===//
 

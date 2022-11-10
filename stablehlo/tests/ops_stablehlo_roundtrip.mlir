@@ -60,7 +60,7 @@ func.func @test_all_reduce2(%arg0: tensor<10xf32>) -> tensor<10xf32> {
     "stablehlo.return"(%max) : (tensor<f32>) -> ()
   })
   {
-    replica_groups = dense<[[0, 2, 4, -1], [1, 3, 5, 7]]> : tensor<2x4xi64>,
+    replica_groups = dense<[[0, 2, 4, -1], [1, 3, 5, 6]]> : tensor<2x4xi64>,
     channel_handle = #stablehlo.channel_handle<
       handle = 5,
       type = 2

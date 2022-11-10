@@ -1304,9 +1304,23 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
     [HLO_CompatibleOperandsAndResultType]> {
   let summary = "AllReduce operator";
   let description = [{
-    Performs a custom reduction across replicas.
+    For each replica sub-group in `replica_groups`, the operation performs
+    reduction, using `computation`, over the replicas of `input` tensor formed
+    using the sub-group and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#allreduce.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_reduce
+
+    Example:
+    ```mlir
+    %result = "mhlo.all_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = mhlo.add %arg1, %arg2 : tensor<i32>
+        mhlo.return %0 : tensor<i32>
+    }) {
+      replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+    } : (tensor<4xi32>) -> tensor<4xi32>
+    ```
   }];
 
   let arguments = (ins
@@ -1324,6 +1338,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
       "::mlir::Type":$result_type, "::mlir::Value":$operand,
       "::mlir::DenseIntElementsAttr":$replica_groups,
       "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
+  let hasVerifier = 1;
 }
 
 def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
