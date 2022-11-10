@@ -175,6 +175,7 @@ described below)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
    * [exponential](#stablehloexponential)
+   * [exponential_minus_one](#stablehloexponential_minus_one)
    * [fft](#stablehlofft)
    * [floor](#stablehlofloor)
    * [gather](#stablehlogather)
@@ -936,6 +937,42 @@ implementation-defined.
 // %operand: (1.0, 2.0)
 %result = "stablehlo.exponential"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (-1.13120438, 2.47172667)
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.exponential_minus_one
+
+### Semantics
+
+Performs element-wise exponential minus one operation on `operand` tensor and
+produces a `result` tensor. For floating-point element types, it implements the
+`expm1` operation from the IEEE-754 specification. For complex element types, it
+computes a complex exponential minus one, with corner cases TBD. Numeric
+precision is implementation-defined.
+
+### Inputs
+
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [0.0, 1.0]
+%result = "stablehlo.exponential_minus_one"(%operand) : (tensor<2xf32>) -> tensor<2xf32>
+// %result: [0.0, 1.71828187]
 ```
 
 [Back to Ops](#index-of-ops)
