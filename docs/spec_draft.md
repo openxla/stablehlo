@@ -182,6 +182,7 @@ described below)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
+   * [log_plus_one](#stablehlolog_plus_one)
    * [maximum](#stablehlomaximum)
    * [minimum](#stablehlominimum)
    * [multiply](#stablehlomultiply)
@@ -1414,6 +1415,41 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 // %operand: (1.0, 2.0)
 %result = "stablehlo.logistic"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (1.02141536, 0.40343871)
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.log_plus_one
+
+### Semantics
+
+Computes element-wise natural logarithm of `operand` tensor incremented by 1 and
+produces a `result` tensor. More formally,
+`result[i0, ..., iR-1] = ln(operand[i0, ..., iR-1] + 1)`, where `ln()` is the
+natural logarithm operation.
+
+### Inputs
+
+| Name      | Type                          |
+|-----------|-------------------------------|
+| `operand` | tensor of floating-point type |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [-2.0, -0.0, -0.999, 7.0, 6.38905621, 15.0]
+%result = "mhlo.log_plus_one"(%lhs) : (tensor<6xf32>) -> tensor<6xf32>
+// %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
 [Back to Ops](#index-of-ops)

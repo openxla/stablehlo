@@ -415,15 +415,15 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Log1p operator";
   let description = [{
-    Returns `log(operand+1)` element-wise.
+    Computes element-wise natural logarithm of `operand` tensor incremented by 1
+    and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlolog_plus_one
 
     Example:
-
     ```mlir
-    %0 = stablehlo.log_plus_one %arg0 : tensor<2xf32>
+    %result = stablehlo.log_plus_one %operand : tensor<6xf32>
     ```
   }];
 }
