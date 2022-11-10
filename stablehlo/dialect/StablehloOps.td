@@ -582,7 +582,7 @@ def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
 
     Example:
     ```mlir
-    %result = stablehlo.sign %operand : tensor<5xf32>
+    %result = stablehlo.sign %operand : tensor<7xf32>
     ```
   }];
 }

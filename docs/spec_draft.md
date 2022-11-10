@@ -3159,9 +3159,9 @@ sign(x) = -1  if x < 0
 ### Examples
 
 ```mlir
-// %operand: [-10.0, -0.0, 0x7FFFFFFF, 0.0, 10.0]
-%result = "stablehlo.sign"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
-// %result: [-1.0, -0.0, 0x7FFFFFFF, 0.0, 1.0]
+// %operand: [0xFF800000, -10.0, -0.0, 0x7FFFFFFF, 0.0, 10.0, 0x7F800000]
+%result = "stablehlo.sign"(%operand) : (tensor<7xf32>) -> tensor<7xf32>
+// %result: [-1.0, -1.0, -0.0, 0x7FFFFFFF, 0.0, 1.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)
