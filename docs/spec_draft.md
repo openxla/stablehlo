@@ -169,6 +169,7 @@ described below)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
+   * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
    * [cosine](#stablehlocosine)
@@ -695,6 +696,43 @@ matrix, then the behavior is undefined.
 //           [2.0, 4.0, 0.0],
 //           [3.0, 5.0, 6.0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.complex
+
+### Semantics
+
+Performs element-wise conversion to a complex value from a pair of real and
+imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
+
+### Inputs
+
+| Name  | Type                          |
+|-------|-------------------------------|
+| `lhs` | tensor of type `f32` or `f64` |
+| `rhs` | tensor of type `f32` or `f64` |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of complex type |
+
+### Constraints
+
+  * (C1) `lhs` and `rhs` have the same type.
+  * (C2) shape(`result`) $=$ shape(`lhs`).
+  * (C3) element_type(`result`) = complex_type(element_type(`lhs`)).
+
+### Examples
+
+```mlir
+// %lhs: [1.0, 3.0]
+// %rhs: [2.0, 4.0]
+%result = "stablehlo.complex"(%lhs, %rhs) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xcomplex<f32>>
+// %result: [(1.0, 2.0), (3.0, 4.0)]
 ```
 
 [Back to Ops](#index-of-ops)

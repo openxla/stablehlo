@@ -63,7 +63,7 @@ one of the following tracking labels.
 | clamp                    | no            | yes*         | yes*           | yes             | no          |
 | collective_permute       | no            | revisit      | revisit        | no              | no          |
 | compare                  | no            | yes*         | yes*           | yes             | no          |
-| complex                  | no            | yes*         | yes*           | yes             | no          |
+| complex                  | yes           | yes          | yes            | yes             | no          |
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | no          |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
