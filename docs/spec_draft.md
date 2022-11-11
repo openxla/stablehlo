@@ -1463,12 +1463,11 @@ For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Semantics
 
-Performs a map function `computation` over the `inputs` along the `dimensions`
-and produces a `result` tensor where each element is the result of `computation`
-applied to the corresponding elements in `inputs`.
+Applies a map function `computation` to `inputs` along the `dimensions` and
+produces a `result` tensor.
 
-More formally, `result[i0, ..., iR-1] = computation(inputs0[i0, ..., iR-1], `
-`..., inputsN-1[i0, ..., iR-1])`.
+More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
+`..., inputs[N-1][i0, ..., iR-1])`.
 
 ### Inputs
 
@@ -1486,11 +1485,10 @@ More formally, `result[i0, ..., iR-1] = computation(inputs0[i0, ..., iR-1], `
 
 ### Constraints
 
-  * (C1) `inputs` and `result` have the same shape.
+  * (C1) All `inputs` and `result` have the same shape.
   * (C2) size(`inputs`) $=$ N $\ge$ 1.
-  * (C3) size(`dimensions`) $=$ rank(`inputs[k]`) for all `k` $\in$ [0, N).
-  * (C4) `dimensions[i]` $\lt$ `dimensions[i+1]` for all `i` $\in$ [0, `R`-2].
-  * (C5) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
+  * (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
+  * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
     where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
     element_type(`result`).
 
@@ -1501,8 +1499,8 @@ More formally, `result[i0, ..., iR-1] = computation(inputs0[i0, ..., iR-1], `
 // %input1: [[4, 5], [6, 7]]
 %result = "stablehlo.map"(%input0, %input1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.multiply"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+    %0 = stablehlo.multiply %arg0, %arg1 : tensor<i32>
+    stablehlo.return %0 : tensor<i32>
 }) {
   dimensions = dense<[0, 1]> : tensor<2xi64>
 } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
@@ -1848,8 +1846,8 @@ and produces a `result` tensor.
 
 ### Semantics
 
-Applies a function `body` to `inputs` and `init_values` along the `dimensions`
-and produces a `result` tensor.
+Applies a reduction function `body` to `inputs` and `init_values` along the
+`dimensions` and produces a `result` tensor.
 
 The order of reductions is implementation-defined, which means that `body` and
 `init_values` must form a monoid to guarantee that the operation produces the

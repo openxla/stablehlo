@@ -1344,7 +1344,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     ]> {
   let summary = "Reduce operator";
   let description = [{
-    Applies a function `body` to `inputs` and `init_values` along the
+    Applies a reduction function `body` to `inputs` and `init_values` along the
     `dimensions` and produces a `result` tensor.
 
     See:
@@ -2261,22 +2261,21 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operator";
   let description = [{
-  Performs a map function `computation` over the `inputs` along the `dimensions`
-  and produces a `result` tensor where each element is the result of
-  `computation` applied to the corresponding elements in `inputs`.
+    Applies a map function `computation` to `inputs` along the `dimensions` and
+    produces a `result` tensor.
 
-  See:
-  https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlomap
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlomap
 
-  Example:
-  ```mlir
-  %result = "stablehlo.map"(%input0, %input1) ({
-    ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-      %0 = "stablehlo.multiply"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-      "stablehlo.return"(%0) : (tensor<i32>) -> ()
-  }) {
-    dimensions = dense<[0, 1]> : tensor<2xi64>
-  } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+    Example:
+    ```mlir
+    %result = "stablehlo.map"(%input0, %input1) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = stablehlo.multiply %arg0, %arg1 : tensor<i32>
+        stablehlo.return %0 : tensor<i32>
+    }) {
+      dimensions = dense<[0, 1]> : tensor<2xi64>
+    } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
   ```
   }];
   let arguments = (ins
