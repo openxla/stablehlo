@@ -1538,9 +1538,9 @@ Performs element-wise check whether the value in `x` is finite (i.e. is neither
 ### Examples
 
 ```mlir
-// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
-%result = "stablehlo.is_finite"(%operand) : (tensor<7xf32>) -> tensor<7xi1>
-// %result: [false, false, false, true, true, true, true]
+// %x: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
+%y = "stablehlo.is_finite"(%x) : (tensor<7xf32>) -> tensor<7xi1>
+// %y: [false, false, false, true, true, true, true]
 ```
 
 [Back to Ops](#index-of-ops)
