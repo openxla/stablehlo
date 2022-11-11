@@ -1385,8 +1385,7 @@ implementation-defined.
 Computes element-wise logarithm of `operand` tensor plus one and produces a
 `result` tensor. More formally,
 `result[i0, ..., iR-1] = log(operand[i0, ..., iR-1] + 1)`, where `log` is the
-operation from IEEE-754 specification. For complex element types, it computes a
-complex log plus one, with corner cases TBD. Numeric precision is
+operation from IEEE-754 specification. Numeric precision is
 implementation-defined.
 
 ### Inputs
