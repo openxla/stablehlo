@@ -358,12 +358,15 @@ def StableHLO_ImagOp: StableHLO_UnaryElementwiseOp<"imag",
     HLO_FpOrComplexTensor, HLO_FpTensor> {
   let summary = "Imag operator";
   let description = [{
-    Returns `Imag(operand)` element-wise.
+    Extracts the imaginary part, element-wise, from the `operand` and produces a
+    `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloimag
 
     Example:
-
     ```mlir
-    %0 = stablehlo.imag %arg0 : (tensor<complex<f64>>) -> tensor<f64>
+    %result = stablehlo.imag %operand : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
     ```
   }];
 }
@@ -501,12 +504,15 @@ def StableHLO_RealOp: StableHLO_UnaryElementwiseOp<"real",
     HLO_FpOrComplexTensor, HLO_FpTensor> {
   let summary = "Real operator";
   let description = [{
-    Returns `Real(operand)` element-wise.
+    Extracts the real part, element-wise, from the `operand` and produces a
+    `result` tensor.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreal
 
     Example:
-
     ```mlir
-    %1 = stablehlo.real %arg2 : (tensor<complex<f32>>) -> tensor<f32>
+    %result = stablehlo.real %operand : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
     ```
   }];
 }
