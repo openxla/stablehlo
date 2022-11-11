@@ -415,8 +415,8 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Log1p operator";
   let description = [{
-    Computes element-wise natural logarithm of `operand` tensor incremented by 1
-    and produces a `result` tensor.
+    Computes element-wise logarithm of `operand` tensor plus one and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlolog_plus_one
