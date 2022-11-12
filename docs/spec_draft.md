@@ -184,6 +184,7 @@ described below)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
    * [logistic](#stablehlologistic)
+   * [map](#stablehlomap)
    * [maximum](#stablehlomaximum)
    * [minimum](#stablehlominimum)
    * [multiply](#stablehlomultiply)
@@ -1536,6 +1537,56 @@ For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.map
+
+### Semantics
+
+Applies a map function `computation` to `inputs` along the `dimensions` and
+produces a `result` tensor.
+
+More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
+`..., inputs[N-1][i0, ..., iR-1])`.
+
+### Inputs
+
+| Name          | Type                                             |
+|---------------|--------------------------------------------------|
+| `inputs`      | variadic number of tensors of any supported type |
+| `dimensions`  | 1-dimensional tensor constant of type `si64`     |
+| `computation` | `function`                                       |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) All `inputs` and `result` have the same shape.
+  * (C2) size(`inputs`) $=$ N $\ge$ 1.
+  * (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
+  * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
+    where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
+    element_type(`result`).
+
+### Examples
+
+```mlir
+// %input0: [[0, 1], [2, 3]]
+// %input1: [[4, 5], [6, 7]]
+%result = "stablehlo.map"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = stablehlo.multiply %arg0, %arg1 : tensor<i32>
+    stablehlo.return %0 : tensor<i32>
+}) {
+  dimensions = dense<[0, 1]> : tensor<2xi64>
+} : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+// %result: [[0, 5], [12, 21]]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.minimum
 
 ### Semantics
@@ -1911,8 +1962,8 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 
 ### Semantics
 
-Applies a function `body` to `inputs` and `init_values` along the `dimensions`
-and produces a `result` tensor.
+Applies a reduction function `body` to `inputs` and `init_values` along the
+`dimensions` and produces a `result` tensor.
 
 The order of reductions is implementation-defined, which means that `body` and
 `init_values` must form a monoid to guarantee that the operation produces the
