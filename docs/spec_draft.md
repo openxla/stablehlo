@@ -348,10 +348,11 @@ For boolean tensors, computes the logical operation.
 Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 `result` tensor, implementing the `atan2` operation from the IEEE-754
 specification. For complex element types, it computes a complex atan2 function
-below, with corner cases TBD. Numeric precision is implementation-defined.
-`log` and `sqrt` operations correspond to [stablehlo.log](#stablehlolog) and
-[stablehlo.sqrt](#stablehlosqrt):
-$$atan2(lhs, rhs) = -i * \log\left(\frac{rhs + i * lhs}{sqrt(rhs^{2} + lhs^{2})}\right)$$
+defined below, with corner cases TBD. Numeric precision is
+implementation-defined. `log` and `sqrt` operations correspond to
+[stablehlo.log](#stablehlolog) and [stablehlo.sqrt](#stablehlosqrt):
+$$atan2(lhs, rhs) = -i * \log\left(\frac{rhs + i * lhs}{sqrt(rhs^{2} + lhs^{2})}
+\right)$$
 
 ### Inputs
 
