@@ -113,7 +113,7 @@ one of the following tracking labels.
 | outfeed                  | no            | revisit      | no             | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
-| power                    | yes           | yes          | yes            | yes             | no          |
+| power                    | yes           | revisit      | yes            | yes             | no          |
 | real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | no            | revisit      | no             | no              | no          |
