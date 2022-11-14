@@ -2724,12 +2724,10 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 
   * (C1) `a` and `b` have the same element type
   * (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
-  * (C3) dim(`a`, -2) = dim(`a`, -1).
-  * (C4) The relationship between `shape(a)` and `shape(b)` is as follows:
+  * (C3) The relationship between shape(`a`) and shape(`b`) is as follows:
     * For all `i` $\in$ [0, R-3], dim(`a`, `i`) $=$ dim(`b`, `i`).
-    * `dim(a, R-2)` = `dim(b, left_side ? R-2 : R-1)`.
-    * `dim(a, R-1)` is the same as discussed in C2.
-  * (C5) `b` and `result` have the same type.
+    * `dim(a, R-2)` $=$ `dim(a, R-1)` $=$ `dim(b, left_side ? R-2 : R-1)`.
+  * (C4) `b` and `result` have the same type.
 
 ### Examples
 
