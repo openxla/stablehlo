@@ -848,11 +848,9 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 ### Semantics
 
 Performs element-wise comparison of `lhs` and `rhs` tensors according to
-`comparison_direction` and `compare_type`, and produces a `result` tensor. More
-formally, `result[i0, ..., iR-1]` =
-`comparison_direction lhs[i0, ..., iR-1], rhs[i0, ..., iR-1]`.
+`comparison_direction` and `compare_type`, and produces a `result` tensor.
 
-`comparison_direction` can be one of the following:
+The values of `comparison_direction` have the following semantics:
   * `EQ`: `lhs` $=$ `rhs`.
   * `NE`: `lhs` $\ne$ `rhs`.
   * `GE`: `lhs` $\ge$ `rhs`.
@@ -860,9 +858,11 @@ formally, `result[i0, ..., iR-1]` =
   * `LE`: `lhs` $\le$ `rhs`.
   * `LT`: `lhs` $\lt$ `rhs`.
 
-`compare_type` can be one of the following:
-  * `FLOAT`: Standard floating-point comparison of `lhs` and `rhs` as specified
-             in IEEE-754.
+The values of `compare_type` have the following semantics:
+  * `FLOAT`: If element-type is floating-type, standard floating-point
+             comparison of `lhs` and `rhs` is performed as specified in
+             IEEE-754, if element-type is complex-type lexicographic comparison
+             on (real, imaginary) pairs is performed with corner cases TBD.
   * `TOTALORDER`: `totalOrder` floating-point comparison of `lhs` and `rhs` as
                   specified in IEEE-754.
   * `SIGNED`: Signed comparison of `lhs` and `rhs`.
@@ -887,9 +887,9 @@ formally, `result[i0, ..., iR-1]` =
 
   * (C1) `lhs` and `rhs` have the same element type.
   * (C2) `lhs`, `rhs`, and `result` have the same shape.
-  * (C3) Let `E` be the `lhs` element type:
-    * If `E` is complex type, `comparison_direction` $\in$ `{EQ, NE}`,
-      `compare_type` = `FLOAT`.
+  * (C3) Given `E` is the `lhs` element type, the following are legal values of
+         `compare_type`:
+    * If `E` is complex type, `compare_type` = `FLOAT`.
     * If `E` is signed integer type, `compare_type` = `SIGNED`.
     * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
     * If `E` is floating-type, `compare_type` $\in$ `{FLOAT, TOTALORDER}`.
