@@ -2611,8 +2611,8 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
     [Pure, SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "TriangularSolve operator";
   let description = [{
-    Solves systems of linear equations of a batch of matrices with lower or
-    upper triangular coefficients by forward- or back-substitution.
+    Solves batches of systems of linear equations with lower or upper triangular
+    coefficient matrices.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlotriangular_solve
