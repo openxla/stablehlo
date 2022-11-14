@@ -1841,14 +1841,13 @@ responsible in computing the value at `result_index` using dot product.
 value = 0;
 foreach rhs spatial index [k0, k1, ...]
   ##
-  ## Compute the components in lhs_full_index at spatial indices.
+  ## Compute the components in lhs_full_index at spatial dimensions.
   ##
   i0' = result_index[output_spatial_dimension[0]] * window_strides[0] - padding[0][0] + k0 * rhs_dilation[0]
-  i0 = base_dilations[0] > 1 ? i0' / base_dilations[0]
+  i0 = base_dilations[0] > 1 ? i0' / base_dilations[0] : i0'
 
   i1' = result_index[output_spatial_dimension[1]] * window_strides[1] - padding[1][0] + k1 * rhs_dilation[1]
-  i1 = base_dilations[1] > 1 ? i1' / base_dilations[1]
-
+  i1 = base_dilations[1] > 1 ? i1' / base_dilations[1] : i1'
   ... omiting similar logic for other spatial dimensions ...
 
   if i0' % lhs_dilation[0] != 0 or i0 not in bounds of dim(lhs, 0), then skip [k0, k1]
@@ -1858,7 +1857,7 @@ foreach rhs spatial index [k0, k1, ...]
   lhs_full_index[input_spatial_dimension] = [i0, i1, ...]
 
   ##
-  ## Compute the components in rhs_full_index at spatial indices.
+  ## Compute the components in rhs_full_index at spatial dimensions.
   ##
   rhs_full_index[kernel_spatial_dimension] = [
     window_reversal[0] ? dim(rhs, kernel_spatial_dimension[0]) - 1 - k0 : k0,
