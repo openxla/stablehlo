@@ -2684,26 +2684,24 @@ where `i[d] = j[permutation[d]]`.
 
 ### Semantics
 
-Solves systems of linear equations of a batch of matrices with lower or upper
-triangular coefficients by forward- or back-substitution.
+Solves batches of systems of linear equations with lower or upper triangular
+coefficient matrices.
 
 More formally, given `a` and `b`, `result[i0, ..., iR-3, :, :]` is the solution
 to `op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` when `left_side` is
 `true` or `x * op(a[i0, ..., iR-3, :, :]) = b[i0, ..., iR-3, :, :]` when
-`left_side` is `false`, solving for the variable `x` where `op(a)` is either
-`op(a) = a`, or `op(a) = Transpose(a)`, or `op(a) = Conj(Transpose(a))`.
+`left_side` is `false`, solving for the variable `x` where `op(a)` is determined
+by `transpose_a`, which can be one of the following:
+  * `NO_TRANSPOSE`: Perform operation using `a` as-is.
+  * `TRANSPOSE`: Perform operation on transpose of `a`.
+  * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
 Input data is read only from the lower triangle of `a`, if `lower` is `true` or
 upper triangle of `a`, otherwise. Output data is returned in the same triangle;
 the values in the other triangle are implementation-defined.
 
-If `unit_diagonal` is true, the diagonal elements of `a` are assumed to be 1 and
-not accessed.
-
-`transpose_a` can be one of the following:
-  * `NO_TRANSPOSE`: Perform operation using `a` as-is.
-  * `TRANSPOSE`: Perform operation on transpose of `a`.
-  * `ADJOINT`: Perform operation on conjugate transpose of `a`.
+If `unit_diagonal` is true, then the implementation can assume that the diagonal
+elements of `a` are equal to 1, otherwise the behavior is undefined.
 
 ### Inputs
 
@@ -2724,25 +2722,27 @@ not accessed.
 
 ### Constraints
 
-  * (C1) `a` and `b` have the same element type and rank $\ge$ 2.
-  * (C2) dim(`a`, -2) = dim(`a`, -1).
-  * (C3) dim(`a`, `i`) $=$ dim(`b`, `i`) for all `i` $\in$ [0, R-3]. If
-    `left_size = true`, dim(`b`, -2) $=$ dim(`a`, -1) and dim(`b`, -1) $=$
-    dim(`a`, -1) otherwise.
-  * (C4) `b` and `result` have the same type.
+  * (C1) `a` and `b` have the same element type
+  * (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
+  * (C3) dim(`a`, -2) = dim(`a`, -1).
+  * (C4) The relationship between `shape(a)` and `shape(b)` is as follows:
+    * For all `i` $\in$ [0, R-3], dim(`a`, `i`) $=$ dim(`b`, `i`).
+    * `dim(a, R-2)` = `dim(b, left_side ? R-2 : R-1)`.
+    * `dim(a, R-1)` is the same as discussed in C2.
+  * (C5) `b` and `result` have the same type.
 
 ### Examples
 
 ```mlir
 // %a = [
-//       [1, 0, 0],
-//       [2, 4, 0],
-//       [3, 5, 6]
+//       [1.0, 0.0, 0.0],
+//       [2.0, 4.0, 0.0],
+//       [3.0, 5.0, 6.0]
 //      ]
 // %b = [
-//       [2, 0, 0],
-//       [4, 8, 0],
-//       [6, 10, 12]
+//       [2.0, 0.0, 0.0],
+//       [4.0, 8.0, 0.0],
+//       [6.0, 10.0, 12.0]
 //      ]
 %result = "stablehlo.triangular_solve"(%a, %b) {
   left_side = true,
@@ -2751,9 +2751,9 @@ not accessed.
   transpose_a = #stablehlo<transpose NO_TRANSPOSE>
 } : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<3x3xf32>
 // %result: [
-//           [2, 0, 0],
-//           [0, 2, 0],
-//           [0, 0, 2]
+//           [2.0, 0.0, 0.0],
+//           [0.0, 2.0, 0.0],
+//           [0.0, 0.0, 2.0]
 //          ]
 ```
 
