@@ -9,7 +9,7 @@ Following are the supported element types in StableHLO:
     document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}.
     * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}.
-  * **Boolean types** referred to in the document as `i1`. Exact
+  * **Boolean type** referred to in the document as `i1`. Exact
   representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
   is implementation-defined.
   * **Floating-point types**
@@ -74,9 +74,8 @@ whether/when they follow the canonical order) and how individual tensor elements
 in a particular order are packed together into a tensor (e.g. how these elements
 are aligned, whether they are stored contiguously, etc).
 
-**Token Types** Values of this type are used for ordering side-effecting
-operations using data dependencies which are robust against compiler
-optimizations.
+**Token type** Values of this type are used for imposing order on execution of
+side-effecting operations using data dependencies.
 
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
@@ -312,8 +311,10 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 # stablehlo.after_all
 
 ### Semantics
-Ensures that the operations producing the `inputs` are ordered before any
-operation that depend on `result`.
+
+Ensures that the operations producing the `inputs` are executed before any
+operations that depend on `result`. Execution of this operation does nothing, it
+only exists to establish data dependencies from `result` to `inputs`.
 
 ### Inputs
 
@@ -326,9 +327,6 @@ operation that depend on `result`.
 | Name     | Type  |
 |----------|-------|
 | `result` | token |
-
-### Constraints
-  * size(`inputs`) $\ge$ 0.
 
 ### Examples
 
