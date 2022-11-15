@@ -299,15 +299,16 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 Multiple instances of a compiled StableHLO program could be running to exploit
 data parallelism. Each instance is called a replica identified uniquely using
 replica id (`rid`). In addition, several different StableHLO programs can be
-executed together to exploit MPMD style parallelism and these are called
-partitions each of which is identified uniquely using a partition id (`pid`).
+executed together to exploit "Multiple Program Multiple Data" (MPMD) style
+parallelism and these are called partitions each of which is identified uniquely
+using a partition id (`pid`).
 
-In this setting, a collective communication operation is executed by
-partitioning each execution instance of `rid`, `pid` pair, henceforth referred
-to as `ei(rid, pid)` into groups. A group ensures that all the execution
-instances within a group can participate in the operation without getting
-interfered by execution instances from other groups. The number of groups
-represents the number of operations to be executed in parallel.
+In this setting, a collective communication operation is executed by logically
+partitioning each execution instance (`ei`) of `rid`, `pid` pair, henceforth
+referred to as `ei(rid, pid)` into groups. A group ensures that all the
+execution instances within a group can participate in the operation without
+getting interfered by execution instances from other groups. The number of
+groups represents the number of operations to be executed in parallel.
 
 ## Errors
 
@@ -550,96 +551,115 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ### Semantics
 
-For each replica sub-group in `replica_groups`, the operation
+For each replica subgroup in `replica_groups`, the operation
 [concatenates](#stablehloconcatenate) the replicas of `input` tensor formed
-using the sub-group along `all_gather_dim` dimension following the order of the
-replicas in the sub-group and produces a `result` tensor.
+using the subgroup along `all_gather_dim` dimension following the order of the
+replicas in the subgroup and produces a `result` tensor.
 
 `channel_handle`, an optional input, is a handle given to a user to represent a
 communication channel between two computations via a
 [stablehlo.send](#stablehlosend) and [stablehlo.recv](#stablehlorecv)
-instruction pair or via collective instructions (e.g. stablehlo.all_reduce,
-stablehlo.all_gather etc.). It is represented using a `channel-id` and a
-`channel-type`. A `channel-id` is used for cross-partition communication: only
-operations with the same opcode and `channel-id` can communicate to each
-other. Non-positive `channel-id` is equivalent to no channel id. The
-`channel-type` is not relevant for this instruction.
+instruction pair or via collective instructions (e.g.
+[stablehlo.all_reduce](#stablehloall_reduce),
+[stablehlo.all_gather](#stablehloall_gather), etc.). It is represented using a
+`channel-id` and a `channel-type`. A `channel-id` is used for cross-partition
+communication: only operations with the same opcode and `channel-id` can
+communicate to each other. Non-positive `channel-id` is equivalent to no channel
+id. The `channel-type` is not relevant for this instruction.
 
 In the instruction syntax, multiple replica ids are grouped as a replica
-sub-group and multiple replica sub-groups form `replica_groups`. The input
+subgroup and multiple replica subgroups form `replica_groups`. The input
 `use_global_device_ids`, if true, interprets the ids in `replica_groups` as
 global device ids given by `rid * P + pid` where P = number of partitions.
 
-Given,
-  * P: Number of partition-ids
-  * R: Number of replica-ids
-  * all_partions_ids: { i : i $\in$ [0, P) }
-  * all_relica_ids: { i : i $\in$ [0, R) }
-  * S: size of each sub-group in `replica_groups` in instruction
-  * G: number of sub-groups in `replica_groups` in instruction
+In the instruction syntax, multiple replica ids are grouped as a replica
+subgroup and multiple replica subgroups form `replica_groups`. If
+`use_global_device_ids = true`, the ids in `replica_groups` are interpreted as
+global device ids given by `rid * num_pids + pid` where `num_pids` $=$ number of
+partitions.
 
-The formation of `groups` of execution instances is based on  `replica_groups`,
-`channel-id` and `use_global_device_ids` and is defined  as follows:
+Given,
+  * `num_pids`: Number of partition ids
+  * `num_rids`: Number of replica ids
+  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }
+  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }
+  * `size_subgroup`: size of each subgroup in `replica_groups`.
+  * `num_subgroup`: number of subgroups in `replica_groups`.
+
+The formation of `groups` of execution instances is based on `replica_groups`,
+`channel-id` and `use_global_device_ids` and is defined as follows:
 
 1. If `channel_handle` is not provided and `use_global_device_ids` $=$ `false`
-   * Number of groups formed: G * P.
-   * Size of each group: S.
-   * Interpretation of `replica_groups`: contains replica ids.
-   * The formation of `groups` can be demonstrated as follows:
+   * Number of groups formed: `num_subgroup` * `num_pids`.
+   * Size of each group: `size_subgroup`.
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
      ```python
-     if len(replica_groups) == 0:
-       replica_groups = all_partions_ids
+     all_replica_ids = [rid for rid in range(num_rids)]
+     all_partition_ids = [pid for pid in range(num_pids)]
+     groups = []
 
-     for g in replica_groups:
-       for pid in all_partions_ids:
-         for rid in `g`:
-           group += ei(rid, pid)
-         groups += group
+     if len(replica_groups) == 0:
+       replica_groups = all_replica_ids
+
+     for replica_group in replica_groups:
+       for pid in all_partition_ids:
+         sub_group = []
+         for rid in replica_group:
+           sub_group.append(ei(rid, pid))
+         groups.append(sub_group)
      return groups
      ```
-    * An examples assuming P = 2: `replica_groups`: `[[0, 2], [1, 3]]` and the
-      `groups` formed: `{ei(0, 0), ei(2, 0)}, {ei(0, 1), ei(2, 1)},  {ei(1, 0), ei(3, 0)}, and {ei(1, 1), ei(3, 1)}`.
+    * For example, assuming `num_pids = 2` and `replica_groups = [[0, 2], [1, 3]]`:
+      `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
 
 2. If `channel_handle` is not provided and `use_global_device_ids` $=$ `true`
    * Invalid configuration.
 
 3. If `channel_handle` is provided and `use_global_device_ids` = false
-   * Number of groups formed: G.
-   * Size of each group: S * P.
-   * Interpretation of `replica_groups`: contains replica ids.
-   * The formation of `groups` can be demonstrated as follows:
+   * Number of groups formed: `num_subgroup`.
+   * Size of each group: `size_subgroup` * `num_pids`.
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
      ```python
+     all_replica_ids = [rid for rid in range(num_rids)]
+     all_partition_ids = [pid for pid in range(num_pids)]
+     groups = []
+
      if len(replica_groups) == 0:
-       replica_groups = all_partions_ids
+       replica_groups = all_replica_ids
 
-     for g in replica_groups:
-       for rid in g:
-         for pid in all_partions_ids:
-           group += ei(rid, pid)
-       groups += group
+     for replica_group in replica_groups:
+       sub_group = []
+       for rid in replica_group:
+         for pid in all_partition_ids:
+           sub_group.append(ei(rid, pid))
+       groups.append(sub_group)
      return groups
      ```
-    * An example assuming P = 2: `replica_groups`: `[[0, 2], [1, 3]]` and the
-      `groups` formed: `{ei(0, 0), ei(0, 1), ei(2, 0), ei(2, 1)} and {ei(1, 0), ei(1, 1), ei(3, 0), ei(3, 1)}`.
+    * For example, assuming `num_pids = 2` and `replica_groups = [[0, 2], [1, 3]]`:
+      `groups` formed: `[ei(0, 0), ei(0, 1), ei(2, 0), ei(2, 1)] and [ei(1, 0), ei(1, 1), ei(3, 0), ei(3, 1)]`.
 
-3. If `channel_handle` is provided and `use_global_device_ids` $=$ `true`
-   * Number of groups formed: G.
-   * Size of each group: S.
-   * Interpretation of `replica_groups`: contains global device ids.
-   * The formation of `groups` can be demonstrated as follows:
+4. If `channel_handle` is provided and `use_global_device_ids` $=$ `true`
+   * Number of groups formed: `num_subgroup`.
+   * Size of each group: `size_subgroup`.
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
      ```python
-     for g in replica_groups:
-       for global_device_id in g:
-           group += ei(global_device_id / P, global_device_id % P)
-       groups += group
+     groups = []
+     for replica_group in replica_groups:
+       sub_group = []
+       for global_device_id in replica_group:
+         sub_group.append(ei(global_device_id // num_pids, global_device_id % num_pids))
+       groups.append(sub_group)
      return groups
      ```
-    * An example assuming P = 2: `replica_groups`: `[[4, 5], [6, 7]]` and the
-      `groups` formed: `{ei(2, 0), ei(2, 1)} and {ei(3, 0), ei(3, 1)}`.
+    * For example, assuming `num_pids = 2` and `replica_groups = `[[4, 5], [6, 7]]`:
+      `groups` formed: `[ei(2, 0), ei(2, 1)] and [ei(3, 0), ei(3, 1)]`.
 
-For each `group` $\in$ `groups`, the `result`, to be visible by each member of
-`group`, is given by `concatenate(operands, all_gather_dim)`, where
-`operands` = { `operand` w.r.t each `ei(rid, pid)` following the same order in
+For each `group` $\in$ `groups`, the `result` is given by:
+`concatenate(operands, all_gather_dim)`, where `operands` =
+{ `operand` corresponding to the execution instances', following their order, in
 `group` }.
 
 ### Inputs
@@ -660,20 +680,21 @@ For each `group` $\in$ `groups`, the `result`, to be visible by each member of
 
 ### Constraints
 
-  * (C1) `all_gather_dim` $\in$ [0, rank(`operand`).
-  * (C2) dim(`operand`, `all_gather_dim`) $\ne$ 0
+  * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
+  * (C2) dim(`operand`, `all_gather_dim`) $\ne$ 0.
   * (C3) dim(`result`, `all_gather_dim`) % dim(`operand`, `all_gather_dim`) $=$ 0.
-  * (C4) On `replica_groups`
-    * All the sub-groups in `replica_groups` are of same size.
-    * The replica ids should cover all the value in the range [0, n), where
-      n is the number of replicas in `replica_groups`.
+  * (C4) On `replica_groups`:
+    * All the subgroups in `replica_groups` have the same size.
+    * The replica ids contains all values in the range [0, N) where N is the
+      number of replicas in `replica_groups`.
     * An empty `replica groups` is allowed only when `use_global_device_ids` is
       `false`.
   * (C5) element_type(`operand`) $=$ element_type(`result`).
   * (C6) rank(`operand`) $=$ rank(`result`).
-  * (C7) dim(`result`, i) is given by
+  * (C7) dim(`result`, i) is given by:
     * dim(`operand`, i), i $\ne$ `all_gather_dim`.
-    * dim(`result`, `all_gather_dim`) / dim(`operand`, `all_gather_dim`) * dim(`operand`, i), otherwise.
+    * `shard_count` * dim(`operand`, i), otherwise, where `shard_count` $=$
+      dim(`result`, `all_gather_dim`) / dim(`operand`, `all_gather_dim`).
 
 ### Examples
 
