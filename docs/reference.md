@@ -33,9 +33,9 @@ SmallVector<Tensor> eval(func::FuncOp func, ArrayRef<Tensor> args);
 ```
 which does the following:
 
-* Tracks the SSA arguments of `func` and their associated runtime `Tensor`
+1. Tracks the SSA arguments of `func` and their associated runtime `Tensor`
    values, provided in `args`, using a symbol table map, M.
-* Foreach op within `func` in their SSACFG order:
+2. Foreach op within `func` in their SSACFG order:
   - Invokes `eval` on op. For each SSA operand of the op, extract its
   runtime value from M to be provided as argument to the `eval` invocation.
   - Tracks the SSA result(s) of the op and the evaluated value in M.
