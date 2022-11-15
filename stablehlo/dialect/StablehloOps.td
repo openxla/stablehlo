@@ -2356,9 +2356,9 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
 
    ```mlir
    %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
-     ^bb0(%arg0: tensor<i8>, %arg1: tensor<i8>):
-       %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i8>, tensor<i8>) -> tensor<i8>
-       "stablehlo.return"(%0) : (tensor<i8>) -> ()
+     ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+       %0 = mhlo.add %arg0, %arg1 : tensor<i32>
+       mhlo.return %0 : tensor<i32>
    }) {
      scatter_dimension_numbers = #stablehlo.scatter<
        update_window_dims = [2,3],
@@ -2367,7 +2367,7 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
        index_vector_dim = 2>,
      indices_are_sorted = false,
      unique_indices = false
-   } : (tensor<3x4x2xi8>, tensor<2x3x2xi8>, tensor<2x3x2x2xi8>) -> tensor<3x4x2xi8>
+   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<2x3x2x2xi32>) -> tensor<3x4x2xi32>
    ```
 
   }];
