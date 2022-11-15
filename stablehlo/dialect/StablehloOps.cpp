@@ -1922,6 +1922,17 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllToAllOp::Adaptor adaptor(operands, attributes, regions);
+
+  int64_t splitCount = adaptor.getSplitCount();
+  if (splitCount <= 0)
+    return emitOptionalError(location, "AllToAll split_count must be > 0");
+
+  if (failed(
+          hlo::verifyReplicaGroups(location, adaptor.getReplicaGroups(),
+                                   /*useGlobalDeviceIdsAvailableAndTrue*/ false,
+                                   /*isUniformSized=*/true)))
+    return failure();
+
   Type operandType = adaptor.getOperand().getType();
   RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
   if (!operandRankedType) {
@@ -1946,7 +1957,6 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 
   // If operand is ranked, size of split dimension should be a multiple of split
   // count.
-  int64_t splitCount = adaptor.getSplitCount();
   auto splitDimSize = operandRankedType.getDimSize(splitDimension);
   if (splitDimSize % splitCount != 0) {
     return emitOptionalError(

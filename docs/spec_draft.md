@@ -294,6 +294,15 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
+### Replica and Partition of a program
+
+Multiple instances of a compiled StableHLO program could be running to exploit
+data parallelism. Each instance is called a replica identified uniquely using
+replica id (`rid`). In addition, several different StableHLO programs can be
+executed together to exploit "Multiple Program Multiple Data" (MPMD) style
+parallelism and these are called partitions each of which is identified uniquely
+using a partition id (`pid`).
+
 ## Errors
 
 StableHLO programs are validated through an extensive set of constraints for
@@ -338,6 +347,7 @@ syntax.
    * [add](#stablehloadd)
    * [after_all](#stablehloafter_all)
    * [all_gather](#stablehloall_gather)
+   * [all_to_all](#stablehloall_to_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
    * [batch_norm_grad](#stablehlobatch_norm_grad)
@@ -527,6 +537,156 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ```mlir
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+```
+
+## stablehlo.all_to_all
+
+### Semantics
+
+Scatters `split_count` blocks of data, by splitting `operand` along
+`split_dimension`, from all the execution instances to all the execution
+instances. Each execution instance concatenates the received blocks along the
+`concat_dimension`.
+
+The following diagram shows how the scattered blocks of `operand`, from all the
+execution instances, are concatenated to form `result` in each executon
+instance.
+
+<img align="center" src="spec_draft/all_to_all.svg" />
+
+In the instruction syntax, multiple replica ids are grouped as a replica
+subgroup and multiple replica subgroups form `replica_groups`.
+
+The execution of the operation involves logically partitioning each execution
+instance (`ei`) of `rid`, `pid` pair, henceforth referred to as `ei(rid, pid)`
+into groups. All the execution instances within a group can participate in the
+operation without getting interfered by execution instances from other groups.
+The number of groups represents the number of `stablehlo.all_to_all` operations
+executed in parallel.
+
+Given,
+  * `num_pids`: Number of partition ids
+  * `num_rids`: Number of replica ids
+  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }
+  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }
+  * `size_subgroup`: size of each subgroup in `replica_groups`.
+  * `num_subgroup`: number of subgroups in `replica_groups`.
+
+The formation of groups is defined as follows:
+   * Number of groups formed: `num_subgroup` * `num_pids`.
+
+   * Size of each group: `size_subgroup`.
+
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
+     ```python
+     all_replica_ids = [rid for rid in range(num_rids)]
+     all_partition_ids = [pid for pid in range(num_pids)]
+     groups = []
+
+     if len(replica_groups) == 0:
+       replica_groups = all_replica_ids
+
+     for replica_group in replica_groups:
+       for pid in all_partition_ids:
+         sub_group = []
+         for rid in replica_group:
+           sub_group.append(ei(rid, pid))
+         groups.append(sub_group)
+     return groups
+     ```
+
+  * For example, assuming `num_pids = 2` and
+      `replica_groups = [[0, 2], [1, 3]]`:
+      `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
+
+For each group `G` $\in$ `groups`, the operation can be described in two phases:
+  * **Scatter Phase**: Each `operand`, corresponding to an execution instance in `G`,
+    is split into `split_count` number of blocks, described below using
+    Python-like syntax, and the blocks are scattered to all the execution
+    instances in `G`.
+    ```python
+    blocks = [
+        slice(
+          operand=operand,
+          start_indices=[s0, s1, ..., sR-1],
+            # where
+            #  - sk = 0 if k != split_dimension
+            #  - sk = j* dim(operand) / split_count, if k == split_dimension
+            #  - R = rank(operand)
+        limit_indices=[l0, l1, ..., lR-1],
+            # where
+            #   - lk = dim(operand, k)  if k != split_dimension
+            #   - lk = dim(operand, split_dimension) / split_count, if k == split_dimension
+        strides=[t0, t1, ..., tR-1],
+            # where
+            #   - lk = 0  if k != split_dimension
+            #   - lk = dim(operand, split_dimension) / split_count, if k == split_dimension
+        ) for j in range(0, split_count)]
+    ```
+  * **Gather phase**: Each execution instance in `G` concatenates the received
+    blocks along the `concat_dimension` to produce `result` which is given by
+    ```python
+      result = concatenate(received_blocks, concat_dimension)`,
+        where received_blocks = { received blocks sorted based on the order of
+          exection instances in G}
+    ```
+
+### Inputs
+
+| Name               | Type                                         |
+|--------------------|----------------------------------------------|
+| `operand`          | tensor of any supported type                 |
+| `split_dimension`  | constant of type `si64`                      |
+| `concat_dimension` | constant of type `si64`                      |
+| `split_count`      | constant of type `si64`                      |
+| `replica_groups`   | 2-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
+  * (C1) `concat_dimension` $\in$ [0, rank(`operand`)).
+  * (C1) `split_count` $\gt$ 0.
+  * (C1) dim(`result`, `split_dimension`) % `split_count` $=$ 0.
+  * (C1) On `replica_groups`:
+    * All the subgroups in `replica_groups` have the same size.
+
+    * The replica ids contains all values in the range [0, N) where N is the
+      number of replicas in `replica_groups`.
+
+    * An empty `replica groups` is allowed only when `use_global_device_ids` is
+      `false`.
+  * (C1) dim(`result`, i) is given by:
+    * dim(`operand`, i) / `split_count`, i $=$ `split_dimension`.
+    * dim(`operand`, i) * `split_count`, i $=$ `concat_dimension`.
+    * dim(`operand`, i)`, otherwise.
+
+### Examples
+
+```mlir
+%result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+// %operand: [
+//            [1, 2, 3, 4],
+//            [5, 6, 7, 8]
+//           ]
+%result = "stablehlo.all_to_all"(%operand) {
+  split_dimension = 1 : i64,
+  concat_dimension = 0 : i64,
+  split_count = 2 : i64,
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+} : (tensor<2x4xf32>) -> tensor<4x2xf32>
+// %result: [
+//           [1, 2],
+//           [5, 6],
+//           [3, 4],
+//           [7, 8]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)

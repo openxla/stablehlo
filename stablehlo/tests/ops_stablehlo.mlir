@@ -288,6 +288,33 @@ func.func @alltoall_out_bound_concat_dimension(%data: tensor<4x16xf32>) -> tenso
 
 // -----
 
+func.func @alltoall_invalid_split_count(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{AllToAll split_count must be > 0}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 0 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @alltoall_invalid_split_count(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{AllToAll split_count must be > 0}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = -1 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+
+// -----
+
 func.func @alltoall_invalid_split_dim_size(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 // expected-error@+1 {{split dimension has size 16, expected to be a multiple of split_count 5}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -295,6 +322,58 @@ func.func @alltoall_invalid_split_dim_size(%data: tensor<4x16xf32>) -> tensor<16
     concat_dimension = 0 : i64,
     split_count = 5 : i64,
     replica_groups = dense<[[0, 1, 2, 3, 4]]> : tensor<1x5xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{replica groups should be a rank 2 tensor of 64 bit integers}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[[0], [1], [2], [3]]]> : tensor<1x4x1xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{replica id #1 not seen in replica groups}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[-5, -4, -3, 0]]> : tensor<1x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{replica id #2 seen more than once}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 2]]> : tensor<2x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{replica id #4 not seen in replica groups}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 2, 6, 8], [1, 3, 5, 7]]> : tensor<2x4xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }
