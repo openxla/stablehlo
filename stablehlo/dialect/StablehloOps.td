@@ -1686,9 +1686,9 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
     [Pure]> {
   let summary = "BitcastConvert operator";
   let description = [{
-    Performs an element-wise bitcast operation on `operand` tensor and produces
-    a `result` tensor where the bits are reinterpreted with the new element
-    type.
+    Performs a bitcast operation on `operand` tensor and produces a `result`
+    tensor where the bits of the entire `operand` tensor are reinterpreted using
+    the type of the `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobitcast_convert

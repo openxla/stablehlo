@@ -513,22 +513,23 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Performs an element-wise bitcast operation on `operand` tensor and produces a
-`result` tensor where the bits are reinterpreted with the new element type.
-Conversions between different bitwidths are not element-wise and creates/deletes
-a dimension if new element type requires less/more bits, respectively.
+Performs a bitcast operation on `operand` tensor and produces a `result` tensor
+where the bits of the entire `operand` tensor are reinterpreted using the
+type of the `result` tensor.
 
 Let `E` and `E'` be the `operand` and `result` element type respectively, and
 `R = rank(operand)`:
-  * If `numBits(E)` $=$ `numBits(E')`,
-     `bitRepr(result[i0, ..., iR-1]) = bitRepr(operand[i0, ..., iR-1])`.
-  * If `numBits(E)` $\gt$ `numBits(E')`,
-    `bitRepr(result[i0, ..., iR-1, :]) = bitRepr(operand[i0, ..., iR-1])`.
-  * If `numBits(E)` $\lt$ `numBits(E')`,
-    `bitRepr(result[i0, ..., iR-2]) = bitRepr(operand[i0, ..., iR-2, :])`.
+  * If `num_bits(E')` $=$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
+  * If `num_bits(E')` $\lt$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-1, :]) = bits(operand[i0, ..., iR-1])`.
+  * If `num_bits(E')` $\gt$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-2]) = bits(operand[i0, ..., iR-2, :])`.
 
-Bitcast is implemented as a low-level cast, so machines with different
-floating-point representations (e.g. endianesss) will give different results.
+The behavior of `bits` is implementation-defined because the exact
+representation of tensors is implementation-defined, and the exact
+representation of floating-point types is implementation-defined (e.g. IEEE-754
+allows implementations to deviate on endianness).
 
 ### Inputs
 
@@ -544,26 +545,27 @@ floating-point representations (e.g. endianesss) will give different results.
 
 ### Constraints
 
-  * (C1) `operand` and `result` have the same shape except for the last
-    dimension. Let `E` and `E'` be the `operand` and `result` element type,
+  * (C1) Let `E` and `E'` be the `operand` and `result` element type,
     respectively and `R = rank(operand)`:
-    * If `numBits(E)` $=$ `numBits(E')`, shape(`operand`) $=$ shape(`result`).
-    * If `numBits(E)` $\gt$ `numBits(E')`, dim(`result`, `i`) $=$
-      dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1), and
-      `dim(result, -1) = numBits(E)/numBits(E')`.
-    * If `numBits(E')` $\gt$ `numBits(E)`, dim(`result`, `i`) $=$
-      dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1), and
-      `dim(operand, -1) = numBits(E')/numBits(E)`.
-  * (C2) Conversion between real and complex types is not permitted.
+    * If `num_bits(E')` $=$ `num_bits(E)`, shape(`result`) $=$ shape(`operand`).
+    * If `num_bits(E')` $\lt$ `num_bits(E)`:
+      * `rank(result) = R+1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1].
+      * `dim(result, R) = num_bits(E)/num_bits(E')`.
+    * If `num_bits(E')` $\gt$ `num_bits(E)`:
+      * `rank(result) = R-1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1).
+      * `dim(operand, R-1) = num_bits(E')/num_bits(E)`.
+  * (C2) Conversion between complex and non-complex types is not permitted.
 
 ### Examples
 
 ```mlir
-// %operand: [0,0, 1.0]
+// %operand: [0.0, 1.0]
 %result = "stablehlo.bitcast_convert"(%operand) : (tensor<2xf32>) -> tensor<2x4xi8>
 // %result: [
 //           [0, 0, 0, 0],
-//           [0, 0, -128, 63] // little-endian representation of floating-point 1
+//           [0, 0, -128, 63] // little-endian representation of 1.0
 //          ]
 ```
 
