@@ -1,5 +1,13 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file | FileCheck %s
 
+func.func @constant_like(%arg0: tensor<1x2xi64>) -> (tensor<1x2xi32>) {
+  // expected-error @+1 {{'chlo.constant_like' op value's type doesn't match element return type}}
+  %0 = "chlo.constant_like"(%arg0) { value = 3.2 : f32 } : (tensor<1x2xi64>) -> tensor<1x2xi32>
+  func.return %0 : tensor<1x2xi32>
+}
+
+// -----
+
 // CHECK-LABEL: func @minimum_broadcast_shapes
 func.func @minimum_broadcast_shapes(%lhs: tensor<?xindex>, %rhs: tensor<?xindex>)
     -> (tensor<?xindex>, tensor<?xindex>) {
