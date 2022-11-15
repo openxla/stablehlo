@@ -1172,12 +1172,12 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 | Name                   | Type                                         | Constraints                      |
 |------------------------|----------------------------------------------|----------------------------------|
 | `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12), (C15) |
-| `start_indices`        | tensor of any supported integer type         | (C2), (C3), (C13), (C14)         |
-| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)          |
-| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C14)    |
+| `start_indices`        | tensor of any supported integer type         | (C2), (C3), (C13)                |
+| `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5),                |
+| `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13)    |
 | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)                |
-| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13), (C14)         |
-| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12), (C14)  |
+| `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)                |
+| `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12), (C13)  |
 | `indices_are_sorted`   | constant of type `i1`                        |                                  |
 
 ### Outputs
@@ -1220,17 +1220,17 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
   * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
           such that $0 \le$ i $\lt$ size(`slice_sizes`).
-  * (C13) rank(`result`) $=$ `effective_start_indices_rank` - 1 $+$
-          size(`offset_dims`), where
-          `effective_start_indices_rank` $=$
-          `index_vector_dim` $\lt$ rank(`start_indices`) ?
-          rank(`start_indices`) : rank(`start_indices`) + 1.
-  * (C14) `shape(result)` $=$ `concatenate(shape(start_indices), slice_sizes)`
-          except that:
-    * The dimension size of `start_indices` corresponding to
-      `index_vector_dim` is not included.
-    * The dimension sizes in `slice_sizes` corresponding to
-      `collapsed_slice_dims` are not included.
+
+  * (C13) `shape(result)` $=$ `combine(batch_dim_sizes, offset_dim_sizes)`
+          where:
+    * `batch_dim_sizes` = `shape(start_indices)` except that the dimension size
+      of `start_indices` corresponding to `index_vector_dim` is not included.
+
+    * `offset_dim_sizes` = `shape(slice_sizes)` except that the dimension sizes
+      in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
+
+    * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
+     `offset_dim_sizes` at axes corresponding to `offset_dims`.
 
   * (C15) `operand` and `result` have the same element type.
 
