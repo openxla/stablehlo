@@ -352,6 +352,7 @@ syntax.
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
    * [dynamic_slice](#stablehlodynamic_slice)
+   * [dynamic_update_slice](#stablehlodynamic_update_slice)
    * [exponential](#stablehloexponential)
    * [exponential_minus_one](#stablehloexponential_minus_one)
    * [fft](#stablehlofft)
@@ -1590,6 +1591,70 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 // %result: [
 //           [1, 1],
 //           [1, 1]
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.dynamic_update_slice
+
+### Semantics
+
+Overwrites the `operand` tensor at `start_indices` with values from `update`
+tensor and produces a `result` tensor. More formally,
+`result[start_indices0+j0, ..., start_indicesR-1+jR-1] = update[j0, ..., jR-1]`
+and `result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise where `R` $=$
+rank(`operand`).
+
+### Inputs
+
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `update`        | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+  * (C2) element_type(`update`) $=$ element_type(`operand`).
+  * (C3) rank(`update`) $=$ rank(`operand`).
+  * (C4) size(`start_indices`) $=$ rank(`operand`).
+  * (C5) Each `start_indices` `dk` is in range [0, shape(`operand`)[`k`]) for
+    `k` in range [0, rank(`operand`)).
+  * (C6) 0 $\le$ `k`th `start_indices` + shape(`update`)[`k`] $\le$
+    shape(`operand`).
+  * (C7) dim(`update`, `k`) $\ne$ 0 for all `k` in range [0, R).
+
+
+### Examples
+
+```mlir
+// %operand: [
+//            [1, 1, 1, 1],
+//            [1, 1, 0, 0],
+//            [1, 1, 0, 0],
+//            [1, 1, 1, 1]
+//           ]
+// %update: [
+//           [1, 1],
+//           [1, 1]
+//          ]
+// %start_indices0: 1
+// %start_indices1: 2
+%result = "stablehlo.dynamic_update_slice"(%operand, %update, %start_indices0, %start_indices1)
+  : (tensor<4x4xi32>, tensor<2x2xi32>, tensor<i64>, tensor<i64>) -> tensor<4x4xi32>
+// %result: [
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1]
 //          ]
 ```
 
