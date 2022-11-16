@@ -93,7 +93,7 @@ one of the following tracking labels.
 | floor                    | yes           | yes          | yes            | yes             | yes         |
 | gather                   | yes           | yes          | yes            | no              | no          |
 | get_dimension_size       | no            | revisit      | no             | yes             | no          |
-| get_tuple_element        | no            | revisit      | revisit        | yes             | no          |
+| get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |
 | imag                     | yes           | yes          | yes            | yes             | no          |
 | infeed                   | no            | revisit      | no             | no              | no          |

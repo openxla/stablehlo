@@ -184,6 +184,7 @@ described below)
    * [fft](#stablehlofft)
    * [floor](#stablehlofloor)
    * [gather](#stablehlogather)
+   * [get_tuple_element](#stablehloget_tuple_element)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
    * [iota](#stablehloiota)
@@ -1323,6 +1324,42 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //              [[17, 18], [19, 20]]
 //            ]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.get_tuple_element
+
+### Semantics
+
+Returns the element at `index` position of the `operand` tuple as `result`.
+
+### Inputs
+
+| Name      | Type                                                                       |
+|-----------|----------------------------------------------------------------------------|
+| `operand` | a variadic sized tuple of tokens, tuples, or tensors of any supported type |
+| `index`   | constant of type `ui32`                                                    |
+
+### Outputs
+
+| Name     | Type                                          |
+|----------|-----------------------------------------------|
+| `result` | token, tuple, or tensor of any supported type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `index` $\lt$ size(`operand`).
+  * (C2) type(`operand[index]`) $=$ type(`result`).
+
+### Examples
+
+```mlir
+// %operand: {[1.0, 2.0], {[3]}}
+%result = "stablehlo.get_tuple_element"(%operand) {
+  index = 0 : i32
+  } : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
+// %result: [1.0, 2.0]
 ```
 
 [Back to Ops](#index-of-ops)
