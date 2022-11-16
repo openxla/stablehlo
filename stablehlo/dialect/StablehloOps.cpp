@@ -1993,9 +1993,8 @@ LogicalResult AllGatherOp::verify() {
       return emitOpError() << "operand and return must have the same rank";
 
     for (int64_t index = 0; index < operandType.getRank(); index++) {
-      if (index == allGatherDimIndex) continue;
-
-      if (operandType.isDynamicDim(index) || resultType.isDynamicDim(index))
+      if (index == allGatherDimIndex || operandType.isDynamicDim(index) ||
+          resultType.isDynamicDim(index))
         continue;
 
       if (resultType.getDimSize(index) != operandType.getDimSize(index))
