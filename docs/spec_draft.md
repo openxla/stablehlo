@@ -1259,48 +1259,33 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
   * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
          size(`collapsed_slice_dims`).
-
   * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
-
   * (C3) size(`start_index_map`) $=$
          `index_vector_dim` $\lt$ rank(`start_indices`) ?
          dim(`start_indices`, `index_vector_dim`) : 1.
-
   * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
          order.
-
   * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
          such that $0 \le$ i $\lt$ size(`offset_dims`).
-
   * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
          ascending order.
-
   * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
           $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
-
   * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
-
   * (C9) All dimensions in `start_index_map` are unique.
-
   * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
          such that $0 \le$ i $\lt$ size(`start_index_map`).
-
   * (C11) size(`slice_sizes`) $=$ rank(`operand`).
-
   * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
           such that $0 \le$ i $\lt$ size(`slice_sizes`).
-
   * (C13) `shape(result)` $=$ `combine(batch_dim_sizes, offset_dim_sizes)`
           where:
     * `batch_dim_sizes` = `shape(start_indices)` except that the dimension size
       of `start_indices` corresponding to `index_vector_dim` is not included.
-
     * `offset_dim_sizes` = `shape(slice_sizes)` except that the dimension sizes
       in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
-
     * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
      `offset_dim_sizes` at axes corresponding to `offset_dims`.
-
   * (C15) `operand` and `result` have the same element type.
 
 ### Examples
