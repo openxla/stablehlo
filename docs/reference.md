@@ -33,12 +33,12 @@ SmallVector<Tensor> eval(func::FuncOp func, ArrayRef<Tensor> args);
 ```
 which does the following:
 
-* Tracks the SSA arguments of `func` and their associated runtime `Tensor`
+1. Tracks the SSA arguments of `func` and their associated runtime `Tensor`
    values, provided in `args`, using a symbol table map, M.
-* Foreach op within `func` in their SSACFG order:
-  - Invokes `eval` on op. For each SSA operand of the op, extract its
+2. Foreach op within `func` in their SSACFG order:
+   * Invokes `eval` on op. For each SSA operand of the op, extract its
   runtime value from M to be provided as argument to the `eval` invocation.
-  - Tracks the SSA result(s) of the op and the evaluated value in M.
+   * Tracks the SSA result(s) of the op and the evaluated value in M.
 
 The op-level `eval` as mentioned in (2) is responsible for implementing the
 execution semantics of the op. Following is an example for `stablehlo::AddOp`.
