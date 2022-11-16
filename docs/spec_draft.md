@@ -213,6 +213,7 @@ described below)
    * [subtract](#stablehlosubtract)
    * [tanh](#stablehlotanh)
    * [transpose](#stablehlotranspose)
+   * [triangular_solve](#stablehlotriangular_solve)
    * [while](#stablehlowhile)
    * [xor](#stablehloxor)
 
@@ -2730,6 +2731,83 @@ where `i[d] = j[permutation[d]]`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.triangular_solve
+
+### Semantics
+
+Solves batches of systems of linear equations with lower or upper triangular
+coefficient matrices.
+
+More formally, given `a` and `b`, `result[i0, ..., iR-3, :, :]` is the solution
+to `op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` when `left_side` is
+`true` or `x * op(a[i0, ..., iR-3, :, :]) = b[i0, ..., iR-3, :, :]` when
+`left_side` is `false`, solving for the variable `x` where `op(a)` is determined
+by `transpose_a`, which can be one of the following:
+  * `NO_TRANSPOSE`: Perform operation using `a` as-is.
+  * `TRANSPOSE`: Perform operation on transpose of `a`.
+  * `ADJOINT`: Perform operation on conjugate transpose of `a`.
+
+Input data is read only from the lower triangle of `a`, if `lower` is `true` or
+upper triangle of `a`, otherwise. Output data is returned in the same triangle;
+the values in the other triangle are implementation-defined.
+
+If `unit_diagonal` is true, then the implementation can assume that the diagonal
+elements of `a` are equal to 1, otherwise the behavior is undefined.
+
+### Inputs
+
+| Name            | Type                                               |
+|-----------------|----------------------------------------------------|
+| `a`             | tensor of floating-point or complex type           |
+| `b`             | tensor of floating-point or complex type           |
+| `left_side`     | constant of type `i1`                              |
+| `lower`         | constant of type `i1`                              |
+| `unit_diagonal` | constant of type `i1`                              |
+| `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `a` and `b` have the same element type
+  * (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
+  * (C3) The relationship between shape(`a`) and shape(`b`) is as follows:
+    * For all `i` $\in$ [0, R-3], dim(`a`, `i`) $=$ dim(`b`, `i`).
+    * `dim(a, R-2)` $=$ `dim(a, R-1)` $=$ `dim(b, left_side ? R-2 : R-1)`.
+  * (C4) `b` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %a = [
+//       [1.0, 0.0, 0.0],
+//       [2.0, 4.0, 0.0],
+//       [3.0, 5.0, 6.0]
+//      ]
+// %b = [
+//       [2.0, 0.0, 0.0],
+//       [4.0, 8.0, 0.0],
+//       [6.0, 10.0, 12.0]
+//      ]
+%result = "stablehlo.triangular_solve"(%a, %b) {
+  left_side = true,
+  lower = true,
+  unit_diagonal = false,
+  transpose_a = #stablehlo<transpose NO_TRANSPOSE>
+} : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<3x3xf32>
+// %result: [
+//           [2.0, 0.0, 0.0],
+//           [0.0, 2.0, 0.0],
+//           [0.0, 0.0, 2.0]
+//          ]
+```
 
 [Back to Ops](#index-of-ops)
 
