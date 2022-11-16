@@ -549,7 +549,7 @@ instances. Each execution instance concatenates the received blocks along the
 `concat_dimension`.
 
 The following diagram shows how the scattered blocks of `operand`, from all the
-execution instances, are concatenated to form `result` in each executon
+execution instances, are concatenated to form `result` in each execution
 instance.
 
 <img align="center" src="spec_draft/all_to_all.svg" />
@@ -662,6 +662,9 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
 
     * An empty `replica groups` is allowed only when `use_global_device_ids` is
       `false`.
+
+    * `split_count` $=$ `size_subgroup`.
+
   * (C1) dim(`result`, i) is given by:
     * dim(`operand`, i) / `split_count`, i $=$ `split_dimension`.
     * dim(`operand`, i) * `split_count`, i $=$ `concat_dimension`.
@@ -681,6 +684,10 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
   split_count = 2 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x4xf32>) -> tensor<4x2xf32>
+//
+// Assuming both the replicas have identical data, following is the result
+// visible in all the execution instances.
+//
 // %result: [
 //           [1, 2],
 //           [5, 6],

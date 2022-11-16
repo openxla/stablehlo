@@ -380,6 +380,19 @@ func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x
 
 // -----
 
+func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+1 {{subgroup size of replica_groups must be 4}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 2, 4], [1, 3, 5]]> : tensor<2x3xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
 func.func @allgather_incompatible_types(%arg0: tensor<128x32xf32>) -> tensor<128x100xf32> {
   // expected-error@+1 {{result gather dimension has size 100, expected to be a multiple of operand gather dimension size 32}}
   %0 = "stablehlo.all_gather"(%arg0) {

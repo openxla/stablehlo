@@ -1930,7 +1930,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
   if (failed(
           hlo::verifyReplicaGroups(location, adaptor.getReplicaGroups(),
                                    /*useGlobalDeviceIdsAvailableAndTrue*/ false,
-                                   /*isUniformSized=*/true)))
+                                   /*isUniformSized=*/true, splitCount)))
     return failure();
 
   Type operandType = adaptor.getOperand().getType();
