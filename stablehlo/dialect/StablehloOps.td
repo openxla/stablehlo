@@ -323,15 +323,15 @@ def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Exponential minus one operator";
   let description = [{
-    Returns `e^(operand) - 1` element-wise.
+    Performs element-wise exponential minus one operation on `operand` tensor
+    and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloexponential_minus_one
 
     Example:
-
     ```mlir
-    %0 = stablehlo.exponential_minus_one %arg0 : tensor<2x2xf32>
+    %result = stablehlo.exponential_minus_one %operand : tensor<2xf32>
     ```
   }];
 }
