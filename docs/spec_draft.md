@@ -2345,44 +2345,34 @@ correspond to.
 More formally, for all `update_index` from the index space of `updates[0]`,
   * `update_scatter_dims` = [`d` for `d` in `axes(updates[0])` and `d` not in
     `update_window_dims`].
-
   * `update_scatter_index` = [`update_index[d]` for `d` in
     `update_scatter_dims`].
-
   * `start_index` =
       * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
         elements in `update_scatter_index` and `:` is inserted at the
         `index_vector_dim` index, if `index_vector_dim` <
         `rank(scatter_indices)`.
       * `[scatter_indices[update_scatter_index]]` otherwise.
-
   * For `do` in `axes(inputs[0])`,
       * `full_start_index[do]` = `start_index[ds]` if
         `do = scatter_dims_to_operand_dims[ds]`.
       * `full_start_index[do]` = `0` otherwise.
-
   * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
-
   * `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `update_window_index`, and `0` is inserted at indices from
     `inserted_window_dims`.
-
   * `result_index` = `add(full_start_index, full_window_index)`.
 
 Using this mapping between `update_index` and `result_index`, we define
 `results = eval(schedule, inputs)`, where:
   * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
-
   * `eval([update_index, ...], results) = eval([...], updated_results)` where:
     * `updated_values = update_computation(results[:][result_index], updates[:][update_index])`.
-
     * `updated_results` is a copy of `results` with `results[:][result_index]`
       set to `updated_values[:]`.
-
     * If `result_index` is out of bounds for `shape(results[:])`, the behavior
       is implementation-defined.
-
   * `eval([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
@@ -2419,55 +2409,38 @@ is undefined.
 ### Constraints
 
   * (C1) All `inputs` have the same shape.
-
   * (C2) rank(`inputs`[0]) = size(`update_window_dims`) +
          size(`inserted_window_dims`).
-
   * (C3) All `updates` have the same shape.
-
   * (C4) `shape(updates[0])` $=$
           `combine(update_scatter_dim_sizes, update_window_dim_sizes)` where:
     * `update_scatter_dim_sizes` = `shape(scatter_indices)` except that
       the dimension size of `scatter_indices` corresponding to
       `index_vector_dim` is not included.
-
     * `update_window_dim_sizes` $\le$ `shape(inputs[0])` except that
       the dimension sizes in `inputs[0]` corresponding to `inserted_window_dims`
       are not included.
-
     * `combine` puts `update_scatter_dim_sizes` at axes corresponding to
      `update_scatter_dims` and `update_window_dim_sizes` at axes corresponding
      to `update_window_dims`.
-
   * (C5) N $=$ size(`inputs`) = size(`updates`) and N $\ge$ 1.
-
   * (C6) `element_type(updates[k]) = element_type(inputs[k])` for any k $\in$
          [0, N).
-
   * (C7) All dimensions in `update_window_dims` are unique and sorted.
-
   * (C8) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
     `update_window_dims`[i] $\lt$ rank(`updates`[0]).
-
   * (C9) All dimensions in `inserted_window_dims` are unique and sorted.
-
   * (C10) For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
     `inserted_window_dims`[i] $\lt$ rank(`inputs`[0]).
-
   * (C11) size(`scatter_dims_to_operand_dims`) $=$
          `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
          dim(`scatter_indices`, `index_vector_dim`) : 1.
-
   * (C12) All dimensions in `scatter_dims_to_operand_dims` are unique.
-
   * (C13) For all i $\in$ [0, size(`scatter_dims_to_operand_dims`)), $0 \le$
         `scatter_dims_to_operand_dims`[i] $\lt$ rank(`inputs`[0]).
-
   * (C14) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
-
   * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
           where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
-
   * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
 
 ### Examples
