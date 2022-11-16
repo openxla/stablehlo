@@ -9,7 +9,7 @@ Following are the supported element types in StableHLO:
     document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}.
     * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}.
-  * **Boolean types** referred to in the document as `i1`. Exact
+  * **Boolean type** referred to in the document as `i1`. Exact
   representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
   is implementation-defined.
   * **Floating-point types**
@@ -73,6 +73,9 @@ does not define in which order tensor elements are laid out in memory (e.g.
 whether/when they follow the canonical order) and how individual tensor elements
 in a particular order are packed together into a tensor (e.g. how these elements
 are aligned, whether they are stored contiguously, etc).
+
+**Token type** Values of this type are used for imposing order on execution of
+side-effecting operations using data dependencies.
 
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
@@ -162,6 +165,7 @@ described below)
 ## Index of Ops
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
+   * [after_all](#stablehloafter_all)
    * [and](#stablehloand)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
@@ -302,6 +306,34 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
+
+[Back to Ops](#index-of-ops)
+
+# stablehlo.after_all
+
+### Semantics
+
+Ensures that the operations producing the `inputs` are executed before any
+operations that depend on `result`. Execution of this operation does nothing, it
+only exists to establish data dependencies from `result` to `inputs`.
+
+### Inputs
+
+| Name     | Type                       |
+|----------|----------------------------|
+| `inputs` | variadic number of `token` |
+
+### Outputs
+
+| Name     | Type    |
+|----------|---------|
+| `result` | `token` |
+
+### Examples
+
+```mlir
+%result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+```
 
 [Back to Ops](#index-of-ops)
 
@@ -586,9 +618,9 @@ returned.
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
@@ -1327,9 +1359,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
@@ -2735,17 +2767,17 @@ The behaviour of an infinite loop is TBD.
 
 ### Inputs
 
-| Name       | Type                                             |
-|------------|--------------------------------------------------|
-| `operands` | variadic number of tensors of any supported type |
-| `cond`     | `function`                                       |
-| `body`     | `function`                                       |
+| Name       | Type                                                       |
+|------------|------------------------------------------------------------|
+| `operands` | variadic number of tensors of any supported type or tokens |
+| `cond`     | `function`                                                 |
+| `body`     | `function`                                                 |
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
