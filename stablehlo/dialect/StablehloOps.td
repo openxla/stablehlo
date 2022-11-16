@@ -1520,15 +1520,16 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
        InferTensorType]> {
   let summary = "Dynamic Slice operator";
   let description = [{
-    Extracts a sub-array from the input array at dynamic start_indices.
+    Extracts a subtensor of the shape in `slice_sizes` from the `operand` tensor
+    starting from `start_indices` and produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#dynamicslice.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlodynamic_slice
 
     Example:
-
     ```mlir
-    %0 = stablehlo.dynamic_slice %arg2, %arg3, %arg3, sizes = [1, 4]
-      : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+    %result = stablehlo.dynamic_slice %operand, %start_indices0, %start_indices1, sizes = [2, 2]
+      : (tensor<4x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x2xi32>
     ```
   }];
   let arguments = (ins

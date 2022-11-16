@@ -182,6 +182,7 @@ syntax.
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
+   * [dynamic_slice](#stablehlodynamic_slice)
    * [exponential](#stablehloexponential)
    * [exponential_minus_one](#stablehloexponential_minus_one)
    * [fft](#stablehlofft)
@@ -1101,6 +1102,63 @@ produces an implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [5, -5, -5, 5]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.dynamic_slice
+
+### Semantics
+
+Extracts a subtensor of the shape in `slice_sizes` from the `operand` tensor
+starting from `start_indices` and produces a `result` tensor. More formally,
+`result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
+`jd = start_indices[d] + id`.
+
+### Inputs
+
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+| `slice_sizes`   | 1-dimensional tensor of type `si64`                      |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
+  * (C3) Each `start_indices` `dk` is in range [0, shape(`operand`)[`k`]) for
+    all `k` in range [0, rank(`operand`)).
+  * (C4) `slice_sizes[k]` is in range [0, shape(`operand`)[`k`]) for all `k` in
+    range [0, rank(`operand`)).
+  * (C5) 0 $\le$ `k`th `start_indices` + `slice_sizes[k]` $\le$
+    shape(`operand`)[`k`] for all `k` in range [0, rank(`operand`)).
+  * (C6) shape(`result`) $=$ `slice_sizes`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [0, 0, 0, 0],
+//            [0, 0, 1, 1],
+//            [0, 0, 1, 1],
+//            [0, 0, 0, 0]
+//           ]
+// %start_indices0: 1
+// %start_indices1: 2
+%result = "stablehlo.dynamic_slice"(%operand, %start_indices0, %start_indices1) {
+  slice_sizes = [2, 2]
+} : (tensor<4x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x2xi32>
+// %result: [
+//           [1, 1],
+//           [1, 1]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)

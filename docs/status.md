@@ -84,7 +84,7 @@ one of the following tracking labels.
 | dynamic_iota             | no            | revisit      | infeasible     | yes             | no          |
 | dynamic_pad              | no            | revisit      | no             | yes             | no          |
 | dynamic_reshape          | no            | revisit      | infeasible     | yes             | no          |
-| dynamic_slice            | no            | yes*         | yes*           | yes             | no          |
+| dynamic_slice            | yes           | revisit      | yes            | yes             | no          |
 | dynamic_update_slice     | no            | revisit      | no             | yes             | no          |
 | einsum                   | no            | revisit      | no             | no              | no          |
 | exponential              | yes           | yes          | yes            | yes             | no          |
