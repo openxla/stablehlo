@@ -20,7 +20,10 @@ limitations under the License.
 include "mlir/IR/OpBase.td"
 include "mlir/IR/TensorEncoding.td"
 
-def StableHLO_Dim : ArrayRefParameter<"int64_t", "Dimension">;
+def StableHLO_Dim : ArrayRefParameter<"int64_t", "Dimension"> {
+  let parser = "mlir::stablehlo::parseIntArray($_parser)";
+  let printer = "mlir::stablehlo::printIntArray($_printer, $_self)";
+}
 
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
   let cppNamespace = "::mlir::stablehlo";
@@ -98,11 +101,11 @@ def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
     "int64_t":$operandIndex,
     StableHLO_Dim:$operandTupleIndices
   );
-  let assemblyFormat = "`<` "
-                      "`output_tuple_indices` `=` `[` $outputTupleIndices `]` `,`"
-                      "`operand_index` `=` $operandIndex `,`"
-                      "`operand_tuple_indices` `=` `[` $operandTupleIndices `]`"
-                      "`>`";
+  let assemblyFormat = [{
+    `<` `output_tuple_indices` `=` $outputTupleIndices `,`
+        `operand_index` `=` $operandIndex `,`
+        `operand_tuple_indices` `=` $operandTupleIndices `>`
+  }];
 }
 
 def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {

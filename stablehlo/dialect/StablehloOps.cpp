@@ -4509,6 +4509,18 @@ static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
   return success();
 }
 
+FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser) {
+  SmallVector<int64_t> ints;
+  if (failed(parseDims(parser, ints))) return failure();
+  return ints;
+}
+
+void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
+  printer << '[';
+  llvm::interleaveComma(ints, printer);
+  printer << ']';
+}
+
 /// Parse a custom attribute that resembles a struct of the form
 /// <
 ///   foo = something_parsed_by_custom_parser,
