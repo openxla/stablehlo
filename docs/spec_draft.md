@@ -62,6 +62,11 @@ At the moment, StableHLO only supports dense tensors, so each tensor has
     0 elements. Such tensors are allowed and are useful in rare cases, e.g.
     to model empty slices.
 
+**Tuple types** are ordered list of elements of (possibly)different types.
+Referred in document as `tuple<T0, T2, ... TN-1>`, where `N` represents the size
+of the tuple and `Ti` are represent the type of the elements in the tuple, `Ti`
+can be of `token` type, `tuple` type, or a `tensor` of any supported type.
+
 **Canonical representation** of a tensor is a 1-dimensional array of elements
 which correspond to indices ordered lexicographically. For example, for a
 `tensor<2x3xf32>` with the following mapping from indices to elements:
@@ -215,6 +220,7 @@ described below)
    * [tanh](#stablehlotanh)
    * [transpose](#stablehlotranspose)
    * [triangular_solve](#stablehlotriangular_solve)
+   * [tuple](#stablehlotuple)
    * [while](#stablehlowhile)
    * [xor](#stablehloxor)
 
@@ -2959,6 +2965,39 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 //           [0.0, 2.0, 0.0],
 //           [0.0, 0.0, 2.0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.tuple
+
+### Semantics
+Groups a variadic number of tokens, tuples, or tensors in `val` into a tuple,
+`result`.
+
+### Inputs
+
+| Name  | Type                                                                |
+|-------|---------------------------------------------------------------------|
+| `val` | variadic number of tokens, tuples, or tensors of any supported type |
+
+### Outputs
+
+| Name     | Type                                                                       |
+|----------|----------------------------------------------------------------------------|
+| `result` | a variadic sized tuple of tokens, tuples, or tensors of any supported type |
+
+### Constraints
+
+  * (C1) For all i, `type(val[i])` = `type(result[i])`.
+
+### Examples
+
+```mlir
+// type(%arg0): tensor<2xf32>
+// type(%arg1): tuple<tensor<i32>>
+%result = "stablehlo.tuple"(%arg0, %arg1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
+// type(%result): tuple<tensor<2xf32>, tuple<tensor<i32>>>
 ```
 
 [Back to Ops](#index-of-ops)
