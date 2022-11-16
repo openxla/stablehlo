@@ -296,11 +296,9 @@ Element max(const Element &e1, const Element &e2) {
       },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
-                          ? lhs.imag() > rhs.imag()
-                          : lhs.real() > rhs.real();
-        return cmpRes ? lhs : rhs;
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        llvm::report_fatal_error("max(complex, complex) is unsupported");
       });
 }
 
@@ -314,11 +312,9 @@ Element min(const Element &e1, const Element &e2) {
       },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
-                          ? lhs.imag() < rhs.imag()
-                          : lhs.real() < rhs.real();
-        return cmpRes ? lhs : rhs;
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        llvm::report_fatal_error("min(complex, complex) is unsupported");
       });
 }
 

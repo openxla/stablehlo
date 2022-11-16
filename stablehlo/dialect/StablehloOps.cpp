@@ -2458,6 +2458,26 @@ LogicalResult ComplexOp::inferReturnTypes(
 }
 
 //===----------------------------------------------------------------------===//
+// MaxOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult MaxOp::verify() {
+  return getLhs().getType().getElementType().isa<ComplexType>()
+             ? emitOpError() << "unsupported complex element type"
+             : success();
+}
+
+//===----------------------------------------------------------------------===//
+// MinOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult MinOp::verify() {
+  return getLhs().getType().getElementType().isa<ComplexType>()
+             ? emitOpError() << "unsupported complex element type"
+             : success();
+}
+
+//===----------------------------------------------------------------------===//
 // ImagOp
 //===----------------------------------------------------------------------===//
 

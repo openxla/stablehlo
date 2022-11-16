@@ -776,6 +776,7 @@ def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
     %result = stablehlo.maximum %lhs, %rhs : tensor<4xf32>
     ```
   }];
+  let hasVerifier = 1;
 }
 
 def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
@@ -793,6 +794,7 @@ def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
     %result = stablehlo.minimum %lhs, %rhs : tensor<4xf32>
     ```
   }];
+  let hasVerifier = 1;
 }
 
 def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",

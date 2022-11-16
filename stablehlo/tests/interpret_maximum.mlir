@@ -246,33 +246,3 @@ func.func @max_op_test_f64() -> tensor<11xf64> {
   // CHECK-NEXT: 0x7FF0000000000000 : f64
   // CHECK-NEXT: 0x7FF8000000000000 : f64
 }
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: max_op_test_c64
-func.func @max_op_test_c64() -> tensor<4xcomplex<f32>> {
-  %0 = stablehlo.constant dense<[(1.5, 2.5), (1.5, 7.5), (0.0, 1.5), (0.0, 1.5)]> : tensor<4xcomplex<f32>>
-  %1 = stablehlo.constant dense<[(7.5, 1.5), (1.5, 2.5), (-0.0, 2.5), (0.0, 1.5)]> : tensor<4xcomplex<f32>>
-  %2 = stablehlo.maximum %0, %1 : tensor<4xcomplex<f32>>
-  func.return %2 : tensor<4xcomplex<f32>>
-  // CHECK-NEXT: tensor<4xcomplex<f32>> {
-  // CHECK-NEXT: [7.500000e+00 : f32, 1.500000e+00 : f32]
-  // CHECK-NEXT: [1.500000e+00 : f32, 7.500000e+00 : f32]
-  // CHECK-NEXT: [-0.000000e+00 : f32, 2.500000e+00 : f32]
-  // CHECK-NEXT: [0.000000e+00 : f32, 1.500000e+00 : f32]
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: max_op_test_c128
-func.func @max_op_test_c128() -> tensor<4xcomplex<f64>> {
-  %0 = stablehlo.constant dense<[(1.5, 2.5), (1.5, 7.5), (0.0, 1.5), (0.0, 1.5)]> : tensor<4xcomplex<f64>>
-  %1 = stablehlo.constant dense<[(7.5, 1.5), (1.5, 2.5), (-0.0, 2.5), (0.0, 1.5)]> : tensor<4xcomplex<f64>>
-  %2 = stablehlo.maximum %0, %1 : tensor<4xcomplex<f64>>
-  func.return %2 : tensor<4xcomplex<f64>>
-  // CHECK-NEXT: tensor<4xcomplex<f64>> {
-  // CHECK-NEXT:  [7.500000e+00 : f64, 1.500000e+00 : f64]
-  // CHECK-NEXT:  [1.500000e+00 : f64, 7.500000e+00 : f64]
-  // CHECK-NEXT:  [-0.000000e+00 : f64, 2.500000e+00 : f64]
-  // CHECK-NEXT:  [0.000000e+00 : f64, 1.500000e+00 : f64]
-}

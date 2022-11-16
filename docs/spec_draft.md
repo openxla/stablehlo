@@ -1559,22 +1559,21 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `maximum`
-operation from the IEEE-754 specification. For complex element types, it performs
-lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
+operation from the IEEE-754 specification. For boolean element type, the
+behavior is same as [stablehlo.or](#stablehloor).
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type                                               |
+|-------|----------------------------------------------------|
+| `lhs` | tensor of integer, boolean, or floating-point type |
+| `rhs` | tensor of integer, boolean, or floating-point type |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type                                               |
+|----------|----------------------------------------------------|
+| `result` | tensor of integer, boolean, or floating-point type |
 
 ### Constraints
 
@@ -1649,23 +1648,21 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
 
 Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. For floating-point element types, it implements the `minimum`
-operation from the IEEE-754 specification. For complex element types, it performs
-lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element type, the behavior is same as
-[stablehlo.and](#stablehloand).
+operation from the IEEE-754 specification. For boolean element type, the
+behavior is same as [stablehlo.and](#stablehloand).
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type                                               |
+|-------|----------------------------------------------------|
+| `lhs` | tensor of integer, boolean, or floating-point type |
+| `rhs` | tensor of integer, boolean, or floating-point type |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type                                               |
+|----------|----------------------------------------------------|
+| `result` | tensor of integer, boolean, or floating-point type |
 
 ### Constraints
 
