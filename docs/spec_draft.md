@@ -617,9 +617,9 @@ returned.
 
 ### Outputs
 
-| Name      | Type                                                      |
-|-----------|-----------------------------------------------------------|
-| `results` | variadic number of tensors of token or any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
@@ -1322,9 +1322,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 ### Outputs
 
-| Name      | Type                                                      |
-|-----------|-----------------------------------------------------------|
-| `results` | variadic number of tensors of token or any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
@@ -2730,17 +2730,17 @@ The behaviour of an infinite loop is TBD.
 
 ### Inputs
 
-| Name       | Type                                                      |
-|------------|-----------------------------------------------------------|
-| `operands` | variadic number of tensors of token or any supported type |
-| `cond`     | `function`                                                |
-| `body`     | `function`                                                |
+| Name       | Type                                                       |
+|------------|------------------------------------------------------------|
+| `operands` | variadic number of tensors of any supported type or tokens |
+| `cond`     | `function`                                                 |
+| `body`     | `function`                                                 |
 
 ### Outputs
 
-| Name      | Type                                                      |
-|-----------|-----------------------------------------------------------|
-| `results` | variadic number of tensors of token or any supported type |
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
 
 ### Constraints
 
