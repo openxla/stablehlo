@@ -698,6 +698,12 @@ For each group `G` $\in$ `groups`, the `result` is given by:
   all_gather_dim = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x2xf32>) -> tensor<2x4xf32>
+//
+// Assuming num_pids = 1,
+// groups formed = [[ei(0, 0), ei(1, 0))]]
+// Assuming all the execution instances to have identical operand vaue,
+// following is the result value visible in all the execution instances.
+//
 // %result: [[1.0, 2.0, 1.0, 2.0], [3.0, 4.0, 3.0, 4.0]]
 ```
 
