@@ -1118,9 +1118,7 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure]> {
 
   let description = [{
     Ensures that the operations producing the `inputs` are executed before any
-    operations that depend on `result`. Execution of this operation does
-    nothing, it only exists to establish data dependencies from `result` to
-    `inputs`.
+    operations that depend on `result`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloafter_all

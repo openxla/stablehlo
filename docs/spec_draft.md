@@ -324,9 +324,9 @@ only exists to establish data dependencies from `result` to `inputs`.
 
 ### Outputs
 
-| Name     | Type  |
-|----------|-------|
-| `result` | token |
+| Name     | Type    |
+|----------|---------|
+| `result` | `token` |
 
 ### Examples
 
