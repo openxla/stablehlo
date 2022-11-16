@@ -2345,11 +2345,31 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
 def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, RecursiveMemoryEffects]> {
   let summary = "Scatter operator";
   let description = [{
-    Generates a result which is the value of the input array `operand`,
-    with several slices (at indices specified by `scatter_indices`)
-    updated with the values in `updates` using `update_computation`.
+    Generate `results` which is the values of the `inputs` operand, with several
+    slices at indices specified by `scatter_indices`, updated with the values in
+    `updates` using `update_computation`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#scatter.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloscatter
+
+   Example:
+
+   ```mlir
+   %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
+     ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+       %0 = stablehlo.add %arg0, %arg1 : tensor<i32>
+       stablehlo.return %0 : tensor<i32>
+   }) {
+     scatter_dimension_numbers = #stablehlo.scatter<
+       update_window_dims = [2,3],
+       inserted_window_dims = [0],
+       scatter_dims_to_operand_dims = [1, 0],
+       index_vector_dim = 2>,
+     indices_are_sorted = false,
+     unique_indices = false
+   } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<2x3x2x2xi32>) -> tensor<3x4x2xi32>
+   ```
+
   }];
   let arguments = (ins
     Variadic<HLO_Tensor>:$inputs,
