@@ -87,54 +87,6 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
   using Base::Base;
 };
 
-// Verifies replica groups attached to collective communication operations.
-// If the attribute is not empty, it must be a rank 2 tensor, and each replica
-// should appear exactly once. If `is_uniform_sized` is true, then we also check
-// that each group is of the same size. If the operation has
-// `use_global_device_ids` set, then replica group cannot be empty.
-template <typename OpT>
-LogicalResult verifyReplicaGroups(OpT op, bool isUniformSized) {
-  DenseIntElementsAttr attr = op.getReplicaGroups();
-  auto replicaGroupType = attr.getType().dyn_cast<RankedTensorType>();
-  if (!replicaGroupType || replicaGroupType.getRank() != 2 ||
-      !replicaGroupType.getElementType().isInteger(/*width=*/64))
-    return op.emitOpError(
-        "replica groups should be a rank 2 tensor of 64 bit integers");
-
-  if (replicaGroupType.getShape()[0] == 0 ||
-      replicaGroupType.getShape()[1] == 0) {
-    if (op.getUseGlobalDeviceIds())
-      return op.emitOpError(
-          "if `use_global_device_ids` is set, the replica groups cannot be "
-          "empty");
-    return success();
-  }
-
-  llvm::SmallSet<int64_t, 8> replicaSeen;
-  for (int64_t id : attr.getValues<int64_t>()) {
-    // Replica groups are stored in a 2D tensor. If the op supports non-uniform
-    // groups, null replica IDs are stored as -1.
-    if (id == -1) {
-      if (isUniformSized) {
-        return op.emitOpError("Invalid replica id -1");
-      }
-      continue;
-    }
-
-    if (!replicaSeen.insert(id).second) {
-      return op.emitOpError("replica id #") << id << " seen more than once";
-    }
-  }
-
-  for (size_t id = 0; id < replicaSeen.size(); id++) {
-    if (!replicaSeen.contains(id)) {
-      return op.emitOpError("replica id #")
-             << id << " not seen in replica groups";
-    }
-  }
-  return success();
-}
-
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
     Operation *op, DenseIntElementsAttr attr);

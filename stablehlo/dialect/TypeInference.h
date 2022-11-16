@@ -76,6 +76,17 @@ LogicalResult verifyReducerShape(
     ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
     SmallVectorImpl<TensorType>& accumulatorSubShapes);
 
+// Verifies replica groups attached to collective communication operations.
+// If the attribute is not empty, it must be a rank 2 tensor, and each replica
+// should appear exactly once. If `is_uniform_sized` is true, then we also check
+// that each group is of the same size. If the operation has
+// `use_global_device_ids` set, then replica group cannot be empty.
+LogicalResult verifyReplicaGroups(Optional<Location> location,
+                                  DenseIntElementsAttr attr,
+                                  bool useGlobalDeviceIdsAvailableAndTrue,
+                                  bool isUniformSized,
+                                  Optional<size_t> expectedSubgroupSize);
+
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
