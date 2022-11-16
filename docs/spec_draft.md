@@ -62,11 +62,6 @@ At the moment, StableHLO only supports dense tensors, so each tensor has
     0 elements. Such tensors are allowed and are useful in rare cases, e.g.
     to model empty slices.
 
-**Tuple types** are ordered list of elements of (possibly)different types.
-Referred in document as `tuple<T0, T2, ... TN-1>`, where `N` represents the size
-of the tuple and `Ti` are represent the type of the elements in the tuple, `Ti`
-can be of `token` type, `tuple` type, or a `tensor` of any supported type.
-
 **Canonical representation** of a tensor is a 1-dimensional array of elements
 which correspond to indices ordered lexicographically. For example, for a
 `tensor<2x3xf32>` with the following mapping from indices to elements:
@@ -81,6 +76,11 @@ are aligned, whether they are stored contiguously, etc).
 
 **Token type** Values of this type are used for imposing order on execution of
 side-effecting operations using data dependencies.
+
+**Tuple types** are ordered sets of elements of (possibly)different types.
+Referred in document as `tuple<T0, T2, ... TN-1>`, where `N` represents the size
+of the tuple and `Ti` are represent the type of the elements in the tuple, `Ti`
+can be of `token` type, `tuple` type, or a `tensor` of any supported type.
 
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
@@ -2994,10 +2994,10 @@ Groups a variadic number of tokens, tuples, or tensors in `val` into a tuple,
 ### Examples
 
 ```mlir
-// type(%arg0): tensor<2xf32>
-// type(%arg1): tuple<tensor<i32>>
+// %arg0: [1.0, 2.0]
+// %arg1: {[3]}
 %result = "stablehlo.tuple"(%arg0, %arg1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
-// type(%result): tuple<tensor<2xf32>, tuple<tensor<i32>>>
+// %result: {[1.0, 2.0], {[3]}}
 ```
 
 [Back to Ops](#index-of-ops)
