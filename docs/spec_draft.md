@@ -1627,7 +1627,7 @@ rank(`operand`).
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
   * (C5) Each `start_indices` `dk` is in range [0, shape(`operand`)[`k`]) for
-    `k` in range [0, rank(`operand`)).
+    all `k` in range [0, rank(`operand`)).
   * (C6) 0 $\le$ `k`th `start_indices` + shape(`update`)[`k`] $\le$
     shape(`operand`).
   * (C7) dim(`update`, `k`) $\ne$ 0 for all `k` in range [0, R).
