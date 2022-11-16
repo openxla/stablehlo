@@ -128,7 +128,7 @@ one of the following tracking labels.
 | reverse                  | yes           | revisit      | yes            | yes             | no          |
 | rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | no            | yes*         | infeasible     | yes             | no          |
-| round_nearest_afz        | no            | yes*         | yes*           | yes             | no          |
+| round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
 | round_nearest_even       | yes           | yes          | yes            | yes             | no          |
 | rsqrt                    | yes           | yes          | yes            | yes             | no          |
 | scatter                  | yes           | revisit      | no             | no              | no          |

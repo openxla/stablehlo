@@ -210,6 +210,7 @@ syntax.
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
+   * [round_nearest_afz](#stablehloround_nearest_afz)
    * [round_nearest_even](#stablehloround_nearest_even)
    * [rsqrt](#stablehlorsqrt)
    * [scatter](#stablehloscatter)
@@ -2522,6 +2523,39 @@ hidden state.
 //           [1, 1, 1],
 //           [0, 0, 0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.round_nearest_afz
+
+### Semantics
+
+Performs element-wise round, rounding to nearest integer with ties away from
+zero, on `operand` tensor and produces a `result` tensor.
+
+### Inputs
+
+| Name      | Type                          |
+|-----------|-------------------------------|
+| `operand` | tensor of floating-point type |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `opernad` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand = [-2.5, 0.5, 2.5]
+%result = "stablehlo.round_nearest_afz"(%operand) : (tensor<3xf32>) -> tensor<3xf32>
+// %result: [-3.0, 1.0, 3.0]
 ```
 
 [Back to Ops](#index-of-ops)
