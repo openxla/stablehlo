@@ -539,6 +539,8 @@ it only exists to establish data dependencies from `result` to `inputs`.
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
 
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.all_to_all
 
 ### Semantics
@@ -651,21 +653,17 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
 ### Constraints
 
   * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
-  * (C1) `concat_dimension` $\in$ [0, rank(`operand`)).
-  * (C1) `split_count` $\gt$ 0.
-  * (C1) dim(`result`, `split_dimension`) % `split_count` $=$ 0.
-  * (C1) On `replica_groups`:
+  * (C2) `concat_dimension` $\in$ [0, rank(`operand`)).
+  * (C3) `split_count` $\gt$ 0.
+  * (C4) dim(`result`, `split_dimension`) % `split_count` $=$ 0.
+  * (C5) On `replica_groups`:
     * All the subgroups in `replica_groups` have the same size.
-
     * The replica ids contains all values in the range [0, N) where N is the
       number of replicas in `replica_groups`.
-
     * An empty `replica groups` is allowed only when `use_global_device_ids` is
       `false`.
-
     * `split_count` $=$ `size_subgroup`.
-
-  * (C1) dim(`result`, i) is given by:
+  * (C6) dim(`result`, i) is given by:
     * dim(`operand`, i) / `split_count`, i $=$ `split_dimension`.
     * dim(`operand`, i) * `split_count`, i $=$ `concat_dimension`.
     * dim(`operand`, i)`, otherwise.
@@ -673,7 +671,6 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
 ### Examples
 
 ```mlir
-%result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 // %operand: [
 //            [1, 2, 3, 4],
 //            [5, 6, 7, 8]
