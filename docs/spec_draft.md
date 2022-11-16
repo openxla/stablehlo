@@ -682,8 +682,10 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x4xf32>) -> tensor<4x2xf32>
 //
-// Assuming both the replicas have identical data, following is the result
-// visible in all the execution instances.
+// Assuming num_pids = 1,
+// groups formed = [[ei(0, 0), ei(1, 0)]]
+// Assuming all the execution instances to have identical operand vaue,
+// following is the result value visible in all the execution instances.
 //
 // %result: [
 //           [1, 2],
