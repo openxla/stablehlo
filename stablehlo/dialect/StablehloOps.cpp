@@ -2040,7 +2040,10 @@ LogicalResult AllGatherOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllReduceOp::verify() {
-  if (failed(verifyReplicaGroups(*this, /*is_uniform_sized=*/false)))
+  if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
+                                      getUseGlobalDeviceIds(),
+                                      /*isUniformSized=*/false,
+                                      /*expectedSubgroupSize*/ llvm::None)))
     return failure();
 
   auto operandType = getOperand().getType().cast<TensorType>();

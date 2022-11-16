@@ -1313,13 +1313,13 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
 
     Example:
     ```mlir
-    %result = "mhlo.all_reduce"(%operand) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = mhlo.add %arg1, %arg2 : tensor<i32>
-        mhlo.return %0 : tensor<i32>
+    %result = "stablehlo.all_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+        %0 = stablehlo.add %arg1, %arg2 : tensor<f32>
+        stablehlo.return %0 : tensor<f32>
     }) {
       replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-    } : (tensor<4xi32>) -> tensor<4xi32>
+    } : (tensor<4xf32>) -> tensor<4xf32>
     ```
   }];
 
