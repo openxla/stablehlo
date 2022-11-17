@@ -168,6 +168,7 @@ MAP_STABLEHLO_TO_VERSION_V0(WhileOp)
 MAP_STABLEHLO_TO_VERSION_V0(XorOp)
 
 #undef MAP_STABLEHLO_TO_VERSION
+#undef MAP_STABLEHLO_TO_VERSION_V0
 
 }  // namespace versionedhlo
 }  // namespace mlir

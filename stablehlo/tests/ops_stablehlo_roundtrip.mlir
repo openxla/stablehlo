@@ -15,8 +15,6 @@
 // containing 'Not Implemented' the test will pass. This is tested for read and
 // write.
 
-module {
-
 func.func @test_add(%arg0: tensor<2xi1>) -> tensor<2xi1> {
   %0 = "stablehlo.add"(%arg0, %arg0) : (tensor<2xi1>, tensor<2xi1>) -> tensor<2xi1>
   func.return %0 : tensor<2xi1>
@@ -777,5 +775,4 @@ func.func @test_attr_type_extensions(%arg: tensor<4xf32>, %size: tensor<i32>) ->
   %0 = "stablehlo.set_dimension_size"(%arg, %size) {dimension = 0 : i64} : (tensor<4xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>
   %1 = tensor.cast %0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>> to tensor<?xf32>
   func.return %1 : tensor<?xf32>
-}
 }
