@@ -181,7 +181,7 @@ ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 void printDynamicShape(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
 
 ParseResult parseDynamicShape(AsmParser& parser,
-                              FailureOr<SmallVector<int64_t>> & shape);
+                              FailureOr<SmallVector<int64_t>>& shape);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //
@@ -216,19 +216,16 @@ ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
 //   Custom:
 //     [1, 2]
 FailureOr<SmallVector<int64_t>> parseHloDim(AsmParser& parser);
-void printHloDim(AsmPrinter &printer, ArrayRef<int64_t> ints);
-
-
+void printHloDim(AsmPrinter& printer, ArrayRef<int64_t> ints);
 
 // IntArray - Calls parseHloDim, with an interface that works for
 // custom directives.
-ParseResult parseIntArray(AsmParser& parser,
-                          SmallVector<int64_t> & ints);
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 ParseResult parseIntArray(AsmParser& parser,
                           FailureOr<SmallVector<int64_t>>& ints);
 
-void printIntArray(AsmPrinter &printer, ArrayRef<int64_t> ints);
+void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
 
 }  // namespace hlo
 }  // namespace mlir

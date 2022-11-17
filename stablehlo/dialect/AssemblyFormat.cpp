@@ -313,7 +313,8 @@ void printDynamicShape(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
   p << ']';
 }
 
-ParseResult parseDynamicShape(AsmParser& parser, FailureOr<SmallVector<int64_t>> & shapeResult) {
+ParseResult parseDynamicShape(AsmParser& parser,
+                              FailureOr<SmallVector<int64_t>>& shapeResult) {
   SmallVector<int64_t> shape;
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
@@ -322,7 +323,8 @@ ParseResult parseDynamicShape(AsmParser& parser, FailureOr<SmallVector<int64_t>>
     }
     return parser.parseInteger(shape.emplace_back());
   };
-  auto res = parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
+  auto res =
+      parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
   if (succeeded(res)) {
     shapeResult = shape;
   } else {
@@ -403,12 +405,13 @@ void printHloDim(AsmPrinter& printer, ArrayRef<int64_t> ints) {
   printer << ']';
 }
 
-ParseResult parseIntArray(AsmParser& parser, FailureOr<SmallVector<int64_t>> & ints) {
+ParseResult parseIntArray(AsmParser& parser,
+                          FailureOr<SmallVector<int64_t>>& ints) {
   ints = parseHloDim(parser);
   return success(/*isSuccess=*/succeeded(ints));
 }
 
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t> & ints) {
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
   auto intsOrFail = parseHloDim(parser);
   if (failed(intsOrFail)) {
     return failure();
@@ -420,8 +423,6 @@ ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t> & ints) {
 void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
   printHloDim(printer, ints);
 }
-
-
 
 }  // namespace hlo
 }  // namespace mlir

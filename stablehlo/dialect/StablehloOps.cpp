@@ -76,10 +76,10 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
-using mlir::hlo::printDynamicShape;
 using mlir::hlo::parseDynamicShape;
-using mlir::hlo::printIntArray;
 using mlir::hlo::parseIntArray;
+using mlir::hlo::printDynamicShape;
+using mlir::hlo::printIntArray;
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/StablehloAttrs.cpp.inc"
@@ -4497,7 +4497,7 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
   dims.clear();
-  return parseIntArray(parser, dims); 
+  return parseIntArray(parser, dims);
 }
 
 static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
@@ -4510,7 +4510,6 @@ static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
            << dims.size();
   return success();
 }
-
 
 /// Parse a custom attribute that resembles a struct of the form
 /// <
