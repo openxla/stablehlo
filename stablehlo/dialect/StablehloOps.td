@@ -519,8 +519,8 @@ def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Round operator, ties away from zero";
   let description = [{
-    Performs element-wise round, rounding to nearest integer with ties away from
-    zero, on `operand` tensor and produces a `result` tensor.
+    Performs element-wise rounding towards the nearest integer, breaking ties
+    away from zero, on the `operand` tensor and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloround_nearest_afz
