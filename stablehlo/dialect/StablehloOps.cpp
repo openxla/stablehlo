@@ -76,6 +76,10 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
+using mlir::hlo::printDynamicShape;
+using mlir::hlo::parseDynamicShape;
+using mlir::hlo::printIntArray;
+using mlir::hlo::parseIntArray;
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/StablehloAttrs.cpp.inc"
@@ -4493,9 +4497,10 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
   dims.clear();
-  return parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
-    return parser.parseInteger(dims.emplace_back());
-  });
+  auto failOrDims = mlir::hlo::parseHloDim(parser);
+  if (failed(failOrDims)) return failure();
+  dims = *failOrDims;
+  return success();
 }
 
 static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
@@ -4509,17 +4514,6 @@ static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
   return success();
 }
 
-FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser) {
-  SmallVector<int64_t> ints;
-  if (failed(parseDims(parser, ints))) return failure();
-  return ints;
-}
-
-void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
-  printer << '[';
-  llvm::interleaveComma(ints, printer);
-  printer << ']';
-}
 
 /// Parse a custom attribute that resembles a struct of the form
 /// <

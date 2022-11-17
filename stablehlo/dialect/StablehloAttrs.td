@@ -21,8 +21,8 @@ include "mlir/IR/OpBase.td"
 include "mlir/IR/TensorEncoding.td"
 
 def StableHLO_Dim : ArrayRefParameter<"int64_t", "Dimension"> {
-  let parser = "mlir::stablehlo::parseIntArray($_parser)";
-  let printer = "mlir::stablehlo::printIntArray($_printer, $_self)";
+  let parser = "mlir::hlo::parseHloDim($_parser)";
+  let printer = "mlir::hlo::printHloDim($_printer, $_self)";
 }
 
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
@@ -175,7 +175,7 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
 
     See `HLO_BoundedAttrInterface` for documentation for `bounds`.
   }];
-  let assemblyFormat = "`<` `bounds` `=` `[` $bounds `]` `>`";
+  let assemblyFormat = "`<` `bounds` `=` custom<DynamicShape>($bounds) `>`";
 }
 
 // A layout attribute (1D tensor of index type)
