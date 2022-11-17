@@ -2548,7 +2548,7 @@ from zero, on the `operand` tensor and produces a `result` tensor.
 
 ### Constraints
 
-  * (C1) `opernad` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 

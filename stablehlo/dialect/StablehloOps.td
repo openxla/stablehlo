@@ -527,7 +527,7 @@ def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
 
     Example:
     ```mlir
-    %result = stablehlo.round_nearest_afz %operand : tensor<3xf32>
+    %result = stablehlo.round_nearest_afz %operand : tensor<5xf32>
     ```
   }];
 }
