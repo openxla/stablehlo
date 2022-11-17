@@ -6,3 +6,4 @@ This file is not to be submitted. Just needed to log the work still to be done s
 4. Validate target version string.
 5. Add versioned dialect type forks.
 6. Add bytecode for Versioned StableHLO
+7. Add versioned CHLO ops
