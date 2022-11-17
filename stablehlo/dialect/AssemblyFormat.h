@@ -172,16 +172,16 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
-// DynamicShape - Print an array of ints. Dynamic dimensions printed as `?`.
+// DimensionSizes - Print an array of ints. Dynamic dimensions printed as `?`.
 //
 //   Generic:
 //     [1, -1]
 //   Custom:
 //     [1, ?]
-void printDynamicShape(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
 
-ParseResult parseDynamicShape(AsmParser& parser,
-                              FailureOr<SmallVector<int64_t>>& shape);
+ParseResult parseDimensionSizes(AsmParser& parser,
+                                FailureOr<SmallVector<int64_t>>& shape);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //
@@ -209,23 +209,17 @@ void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target);
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
 
-// HloDim - Print an ArrayRef of integrer values with brackets.
+// IntArray - Print an array of ints with brackets. Unlike DimensionSizes,
+// doesn't have special handling for kDynamicSize.
 //
 //   Generic:
 //     1, 2
 //   Custom:
 //     [1, 2]
-FailureOr<SmallVector<int64_t>> parseHloDim(AsmParser& parser);
-void printHloDim(AsmPrinter& printer, ArrayRef<int64_t> ints);
-
-// IntArray - Calls parseHloDim, with an interface that works for
-// custom directives.
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
-
-ParseResult parseIntArray(AsmParser& parser,
-                          FailureOr<SmallVector<int64_t>>& ints);
-
 void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
+
+FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser);
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 }  // namespace hlo
 }  // namespace mlir

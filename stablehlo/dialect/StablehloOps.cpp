@@ -76,9 +76,9 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
-using mlir::hlo::parseDynamicShape;
+using mlir::hlo::parseDimensionSizes;
 using mlir::hlo::parseIntArray;
-using mlir::hlo::printDynamicShape;
+using mlir::hlo::printDimensionSizes;
 using mlir::hlo::printIntArray;
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES

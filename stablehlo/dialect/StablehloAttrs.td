@@ -20,9 +20,9 @@ limitations under the License.
 include "mlir/IR/OpBase.td"
 include "mlir/IR/TensorEncoding.td"
 
-def StableHLO_Dim : ArrayRefParameter<"int64_t", "Dimension"> {
-  let parser = "mlir::hlo::parseHloDim($_parser)";
-  let printer = "mlir::hlo::printHloDim($_printer, $_self)";
+def StableHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
+  let parser = "mlir::hlo::parseIntArray($_parser)";
+  let printer = "mlir::hlo::printIntArray($_printer, $_self)";
 }
 
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
@@ -30,9 +30,9 @@ def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimen
   let mnemonic = "scatter";
   let summary = "Attribute that models the dimension information for scatter";
   let parameters = (ins
-      StableHLO_Dim:$updateWindowDims,
-      StableHLO_Dim:$insertedWindowDims,
-      StableHLO_Dim:$scatterDimsToOperandDims,
+      StableHLO_Dims:$updateWindowDims,
+      StableHLO_Dims:$insertedWindowDims,
+      StableHLO_Dims:$scatterDimsToOperandDims,
       "int64_t":$indexVectorDim
   );
   let hasCustomAssemblyFormat = 1;
@@ -43,9 +43,9 @@ def StableHLO_GatherDimensionNumbers : AttrDef<StableHLO_Dialect, "GatherDimensi
   let mnemonic = "gather";
   let summary = "Attribute that models the dimension information for gather";
   let parameters = (ins
-      StableHLO_Dim:$offsetDims,
-      StableHLO_Dim:$collapsedSliceDims,
-      StableHLO_Dim:$startIndexMap,
+      StableHLO_Dims:$offsetDims,
+      StableHLO_Dims:$collapsedSliceDims,
+      StableHLO_Dims:$startIndexMap,
       "int64_t":$indexVectorDim
   );
   let hasCustomAssemblyFormat = 1;
@@ -56,10 +56,10 @@ def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumb
   let mnemonic = "dot";
   let summary = "Attribute that models the dimension information for dot.";
   let parameters = (ins
-      StableHLO_Dim:$lhsBatchingDimensions,
-      StableHLO_Dim:$rhsBatchingDimensions,
-      StableHLO_Dim:$lhsContractingDimensions,
-      StableHLO_Dim:$rhsContractingDimensions
+      StableHLO_Dims:$lhsBatchingDimensions,
+      StableHLO_Dims:$rhsBatchingDimensions,
+      StableHLO_Dims:$lhsContractingDimensions,
+      StableHLO_Dims:$rhsContractingDimensions
   );
   let hasCustomAssemblyFormat = 1;
 }
@@ -97,9 +97,9 @@ def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
     ```
   }];
   let parameters = (ins
-    StableHLO_Dim:$outputTupleIndices,
+    StableHLO_Dims:$outputTupleIndices,
     "int64_t":$operandIndex,
-    StableHLO_Dim:$operandTupleIndices
+    StableHLO_Dims:$operandTupleIndices
   );
   let assemblyFormat = [{
     `<` `output_tuple_indices` `=` $outputTupleIndices `,`
@@ -133,9 +133,9 @@ def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {
     ```
   }];
   let parameters = (ins
-    StableHLO_Dim:$argTupleIndices,
+    StableHLO_Dims:$argTupleIndices,
     "int64_t":$resultIndex,
-    StableHLO_Dim:$resultTupleIndices,
+    StableHLO_Dims:$resultTupleIndices,
     "bool":$isMustAlias
   );
   let hasCustomAssemblyFormat = 1;
@@ -175,7 +175,7 @@ def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
 
     See `HLO_BoundedAttrInterface` for documentation for `bounds`.
   }];
-  let assemblyFormat = "`<` `bounds` `=` custom<DynamicShape>($bounds) `>`";
+  let assemblyFormat = "`<` `bounds` `=` ` ` custom<DimensionSizes>($bounds) `>`";
 }
 
 // A layout attribute (1D tensor of index type)
@@ -218,15 +218,15 @@ def StableHLO_ConvDimensionNumbers : AttrDef<StableHLO_Dialect, "ConvDimensionNu
   let parameters = (ins
     "int64_t":$inputBatchDimension,
     "int64_t":$inputFeatureDimension,
-    StableHLO_Dim:$inputSpatialDimensions,
+    StableHLO_Dims:$inputSpatialDimensions,
 
     "int64_t":$kernelInputFeatureDimension,
     "int64_t":$kernelOutputFeatureDimension,
-    StableHLO_Dim:$kernelSpatialDimensions,
+    StableHLO_Dims:$kernelSpatialDimensions,
 
     "int64_t":$outputBatchDimension,
     "int64_t":$outputFeatureDimension,
-    StableHLO_Dim:$outputSpatialDimensions
+    StableHLO_Dims:$outputSpatialDimensions
   );
   let hasCustomAssemblyFormat = 1;
 }

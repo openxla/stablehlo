@@ -301,19 +301,19 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
-void printDynamicShape(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
   auto printIntOrQuestion = [&](int64_t value) {
     if (ShapedType::isDynamic(value))
       p << '?';
     else
       p << value;
   };
-  p << " [";
+  p << '[';
   llvm::interleaveComma(shape, p, printIntOrQuestion);
   p << ']';
 }
 
-ParseResult parseDynamicShape(AsmParser& parser,
+ParseResult parseDimensionSizes(AsmParser& parser,
                               FailureOr<SmallVector<int64_t>>& shapeResult) {
   SmallVector<int64_t> shape;
   auto parseElt = [&]() -> ParseResult {
@@ -389,7 +389,13 @@ ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
 }
 
-FailureOr<SmallVector<int64_t>> parseHloDim(AsmParser& parser) {
+void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
+  printer << '[';
+  llvm::interleaveComma(ints, printer);
+  printer << ']';
+}
+
+FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser) {
   SmallVector<int64_t> ints;
   if (failed(parser.parseCommaSeparatedList(
           AsmParser::Delimiter::Square,
@@ -399,29 +405,13 @@ FailureOr<SmallVector<int64_t>> parseHloDim(AsmParser& parser) {
   return ints;
 }
 
-void printHloDim(AsmPrinter& printer, ArrayRef<int64_t> ints) {
-  printer << '[';
-  llvm::interleaveComma(ints, printer);
-  printer << ']';
-}
-
-ParseResult parseIntArray(AsmParser& parser,
-                          FailureOr<SmallVector<int64_t>>& ints) {
-  ints = parseHloDim(parser);
-  return success(/*isSuccess=*/succeeded(ints));
-}
-
 ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
-  auto intsOrFail = parseHloDim(parser);
+  auto intsOrFail = parseIntArray(parser);
   if (failed(intsOrFail)) {
     return failure();
   }
   ints = std::move(*intsOrFail);
   return success();
-}
-
-void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
-  printHloDim(printer, ints);
 }
 
 }  // namespace hlo
