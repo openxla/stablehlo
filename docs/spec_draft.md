@@ -2370,8 +2370,9 @@ hidden state.
 
 ### Semantics
 
-Performs element-wise round, rounding to nearest integer with ties towards even,
-on `operand` tensor and produces a `result` tensor.
+Performs element-wise rounding towards the nearest integer, breaking ties
+towards the even integer, on the `operand` tensor and produces a `result`
+tensor.
 
 ### Inputs
 
@@ -2392,9 +2393,9 @@ on `operand` tensor and produces a `result` tensor.
 ### Examples
 
 ```mlir
-// %operand = [-2.5, 0.5, 2.5]
-%result = "stablehlo.round_nearest_even"(%operand) : (tensor<3xf32>) -> tensor<3xf32>
-// %result: [-2.0, 0.0, 2.0]
+// %operand = [-2.5, 0.4, 0.5, 0.6, 2.5]
+%result = "stablehlo.round_nearest_even"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
+// %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
 
 [Back to Ops](#index-of-ops)

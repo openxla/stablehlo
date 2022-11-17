@@ -539,8 +539,9 @@ def StableHLO_RoundNearestEvenOp: StableHLO_UnaryElementwiseOp<"round_nearest_ev
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Round operator, ties to even";
   let description = [{
-    Performs element-wise round, rounding to nearest integer with ties towards
-    even, on `operand` tensor and produces a `result` tensor.
+    Performs element-wise rounding towards the nearest integer, breaking ties
+    towards the even integer, on the `operand` tensor and produces a `result`
+    tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloround_nearest_even
@@ -548,7 +549,7 @@ def StableHLO_RoundNearestEvenOp: StableHLO_UnaryElementwiseOp<"round_nearest_ev
     Example:
 
     ```mlir
-    %result = stablehlo.round_nearest_even %operand : tensor<3xf32>
+    %result = stablehlo.round_nearest_even %operand : tensor<5xf32>
     ```
   }];
 }
