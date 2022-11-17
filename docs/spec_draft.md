@@ -300,7 +300,7 @@ Multiple instances of a compiled StableHLO program could be running to exploit
 data parallelism. Each instance is called a replica identified uniquely using
 replica id (`rid`). In addition, several different StableHLO programs can be
 executed together to exploit "Multiple Program Multiple Data" (MPMD) style
-parallelism and these are called partitions each of which is identified uniquely
+parallelism and these are called partitions, each of which is identified uniquely
 using a partition id (`pid`).
 
 ## Errors
@@ -556,7 +556,7 @@ instruction pair or via collective instructions (e.g.
 [stablehlo.all_reduce](#stablehloall_reduce),
 [stablehlo.all_gather](#stablehloall_gather), etc.). It is represented using a
 `channel-id` and a `channel-type`. A `channel-id` is used for cross-partition
-communication: only operations with the same opcode and `channel-id` can
+communication; only operations with the same opcode and `channel-id` can
 communicate to each other. Non-positive `channel-id` is equivalent to no channel
 id. The `channel-type` is not relevant for this instruction.
 
@@ -594,7 +594,7 @@ The formation of groups is defined as follows:
      groups = []
 
      if len(replica_groups) == 0:
-       replica_groups = all_replica_ids
+       replica_groups = [all_replica_ids]
 
      for replica_group in replica_groups:
        for pid in all_partition_ids:
@@ -621,7 +621,7 @@ The formation of groups is defined as follows:
      groups = []
 
      if len(replica_groups) == 0:
-       replica_groups = all_replica_ids
+       replica_groups = [all_replica_ids]
 
      for replica_group in replica_groups:
        sub_group = []
@@ -693,18 +693,16 @@ For each group `G` $\in$ `groups`, the `result` is given by:
 ### Examples
 
 ```mlir
-// %operand: [[1.0, 2.0], [3.0, 4.0]]
+// %operand (at ei(0, 0)): [[1.0, 2.0], [3.0, 4.0]]
+// %operand (at ei(1, 0)): [[5.0, 6.0], [7.0, 8.0]]
 %result = "stablehlo.all_gather"(%operand) {
   all_gather_dim = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x2xf32>) -> tensor<2x4xf32>
 //
-// Assuming num_pids = 1,
-// groups formed = [[ei(0, 0), ei(1, 0))]]
-// Assuming all the execution instances to have identical operand vaue,
-// following is the result value visible in all the execution instances.
+// Assuming num_pids = 1, a single group [ei(0, 0), ei(1, 0)] is formed.
 //
-// %result: [[1.0, 2.0, 1.0, 2.0], [3.0, 4.0, 3.0, 4.0]]
+// %result (at ei(0, 0) or ei(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
 ```
 
 [Back to Ops](#index-of-ops)
