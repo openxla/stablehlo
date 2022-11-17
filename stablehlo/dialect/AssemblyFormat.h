@@ -219,8 +219,12 @@ FailureOr<SmallVector<int64_t>> parseHloDim(AsmParser& parser);
 void printHloDim(AsmPrinter &printer, ArrayRef<int64_t> ints);
 
 
+
 // IntArray - Calls parseHloDim, with an interface that works for
 // custom directives.
+ParseResult parseIntArray(AsmParser& parser,
+                          SmallVector<int64_t> & ints);
+
 ParseResult parseIntArray(AsmParser& parser,
                           FailureOr<SmallVector<int64_t>>& ints);
 

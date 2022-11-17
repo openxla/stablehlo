@@ -4497,10 +4497,7 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
   dims.clear();
-  auto failOrDims = mlir::hlo::parseHloDim(parser);
-  if (failed(failOrDims)) return failure();
-  dims = *failOrDims;
-  return success();
+  return parseIntArray(parser, dims); 
 }
 
 static ParseResult parseDimsWithMinimumElements(AsmParser& parser,

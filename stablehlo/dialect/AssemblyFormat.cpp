@@ -404,11 +404,16 @@ void printHloDim(AsmPrinter& printer, ArrayRef<int64_t> ints) {
 }
 
 ParseResult parseIntArray(AsmParser& parser, FailureOr<SmallVector<int64_t>> & ints) {
+  ints = parseHloDim(parser);
+  return success(/*isSuccess=*/succeeded(ints));
+}
+
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t> & ints) {
   auto intsOrFail = parseHloDim(parser);
   if (failed(intsOrFail)) {
     return failure();
   }
-  ints = *intsOrFail;
+  ints = std::move(*intsOrFail);
   return success();
 }
 
