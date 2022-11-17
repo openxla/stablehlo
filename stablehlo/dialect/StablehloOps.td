@@ -1318,7 +1318,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
         %0 = stablehlo.add %arg1, %arg2 : tensor<f32>
         stablehlo.return %0 : tensor<f32>
     }) {
-      replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
     } : (tensor<4xf32>) -> tensor<4xf32>
     ```
   }];
