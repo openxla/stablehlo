@@ -109,8 +109,9 @@ struct InferReturnTypeComponentsPattern : public RewritePattern {
     auto *newOp = rewriter.create(state);
     for (const auto &it : llvm::enumerate(components)) {
       if (it.value().hasRank()) {
-        newOp->setAttr((StringRef("dims") + Twine(it.index())).str(),
-                       rewriter.getI64ArrayAttr(fixDynamicDims(it.value().getDims())));
+        newOp->setAttr(
+            (StringRef("dims") + Twine(it.index())).str(),
+            rewriter.getI64ArrayAttr(fixDynamicDims(it.value().getDims())));
       }
       if (it.value().getElementType()) {
         newOp->setAttr((Twine("element_type") + Twine(it.index())).str(),

@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/dialect/AssemblyFormat.h"
+
 #include <cstdint>
 #include <string>
 
@@ -327,7 +328,8 @@ FailureOr<SmallVector<int64_t>> parseDimensionSizes(AsmParser& parser) {
     }
     return parser.parseInteger(dims.emplace_back());
   };
-  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt))) {
+  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Square,
+                                            parseElt))) {
     return failure();
   }
   return dims;
