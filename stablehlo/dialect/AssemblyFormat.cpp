@@ -314,7 +314,7 @@ void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
 }
 
 ParseResult parseDimensionSizes(AsmParser& parser,
-                              FailureOr<SmallVector<int64_t>>& shapeResult) {
+                                FailureOr<SmallVector<int64_t>>& shapeResult) {
   SmallVector<int64_t> shape;
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
