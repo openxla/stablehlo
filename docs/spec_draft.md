@@ -1136,7 +1136,7 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
 
   * (C1) `operand` and `result` have the same element type.
   * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
-  * (C3) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`) for all `k` $\in$
+  * (C3) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
     [0, rank(`operand`)).
   * (C4) shape(`result`) $=$ `slice_sizes`.
 
