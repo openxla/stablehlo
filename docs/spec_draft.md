@@ -1120,11 +1120,11 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
 
 ### Inputs
 
-| Name            | Type                                                     |
-|-----------------|----------------------------------------------------------|
-| `operand`       | tensor of any supported type                             |
-| `start_indices` | variadic number of 0-dimensional tensors of integer type |
-| `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
+| Name            | Type                                                    |
+|-----------------|---------------------------------------------------------|
+| `operand`       | tensor of any supported type                            |
+| `start_indices` | variadic number of 0-dimensional tensors of type `si64` |
+| `slice_sizes`   | 1-dimensional tensor constant of type `si64`            |
 
 ### Outputs
 
