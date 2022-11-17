@@ -300,7 +300,7 @@ Multiple instances of a compiled StableHLO program could be running to exploit
 data parallelism. Each instance is called a replica identified uniquely using
 replica id (`rid`). In addition, several different StableHLO programs can be
 executed together to exploit "Multiple Program Multiple Data" (MPMD) style
-parallelism and these are called partitions each of which is identified uniquely
+parallelism and these are called partitions, each of which is identified uniquely
 using a partition id (`pid`).
 
 ## Errors
@@ -587,7 +587,7 @@ The formation of groups is defined as follows:
      groups = []
 
      if len(replica_groups) == 0:
-       replica_groups = all_replica_ids
+       replica_groups = [all_replica_ids]
 
      for replica_group in replica_groups:
        for pid in all_partition_ids:
@@ -602,11 +602,10 @@ The formation of groups is defined as follows:
       `replica_groups = [[0, 2], [1, 3]]`:
       `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
 
-For each group `G` $\in$ `groups`, the operation can be described in two phases:
-  * **Scatter Phase**: Each `operand`, corresponding to an execution instance in `G`,
+For each group `G` $\in$ `groups`, the operation can be described as:
+  * Each `operand`, corresponding to an execution instance in `G`,
     is split into `split_count` number of blocks, described below using
-    Python-like syntax, and the blocks are scattered to all the execution
-    instances in `G`.
+    Python-like syntax.
     ```python
     blocks = [
         slice(
@@ -626,7 +625,9 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
             #   - lk = dim(operand, split_dimension) / split_count, if k == split_dimension
         ) for j in range(0, split_count)]
     ```
-  * **Gather phase**: Each execution instance in `G` concatenates the received
+  * `blocks` are scattered to all the execution instances in `G` such that
+    `blocks[i]` is send to ith execution instance, for i $\in$ G.
+  * Each execution instance in `G` concatenates the received
     blocks along the `concat_dimension` to produce `result` which is given by
     ```python
       result = concatenate(received_blocks, concat_dimension)`,
@@ -671,9 +672,13 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
 ### Examples
 
 ```mlir
-// %operand: [
+// %operand (at ei(0, 0)): [
 //            [1, 2, 3, 4],
 //            [5, 6, 7, 8]
+//           ]
+// %operand (at ei(1, 0)): [
+//            [9, 10, 11, 12],
+//            [13, 14, 15, 16]
 //           ]
 %result = "stablehlo.all_to_all"(%operand) {
   split_dimension = 1 : i64,
@@ -682,17 +687,20 @@ For each group `G` $\in$ `groups`, the operation can be described in two phases:
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x4xf32>) -> tensor<4x2xf32>
 //
-// Assuming num_pids = 1,
-// groups formed = [[ei(0, 0), ei(1, 0)]]
-// Assuming all the execution instances to have identical operand vaue,
-// following is the result value visible in all the execution instances.
+// Assuming num_pids = 1, a single group [ei(0, 0), ei(1, 0)] is formed.
 //
-// %result: [
-//           [1, 2],
-//           [5, 6],
-//           [3, 4],
-//           [7, 8]
-//          ]
+// %result (at ei(0, 0)): [
+//                         [1, 2],
+//                         [5, 6],
+//                         [9, 10],
+//                         [13, 14]
+//                        ]
+// %result (at ei(1, 0)): [
+//                         [3, 4],
+//                         [7, 8],
+//                         [11, 12],
+//                         [15, 16]
+//                        ]
 ```
 
 [Back to Ops](#index-of-ops)
