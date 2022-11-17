@@ -183,9 +183,6 @@ ParseResult parseWindowAttributes(OpAsmParser &parser,
                                   DenseIntElementsAttr &rhsDilation,
                                   DenseElementsAttr &windowReversal);
 
-// Print and parse IntArrays
-FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser &parser);
-void printIntArray(AsmPrinter &printer, ArrayRef<int64_t> ints);
 }  // end namespace stablehlo
 }  // end namespace mlir
 

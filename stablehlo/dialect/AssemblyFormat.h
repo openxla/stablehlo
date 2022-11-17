@@ -172,6 +172,17 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
+// DimensionSizes - Print an array of ints. Dynamic dimensions printed as `?`.
+//
+//   Generic:
+//     [1, -1]
+//   Custom:
+//     [1, ?]
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
+
+ParseResult parseDimensionSizes(AsmParser& parser,
+                                FailureOr<SmallVector<int64_t>>& shape);
+
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //
 //   Generic:
@@ -197,6 +208,18 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
 void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target);
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
+
+// IntArray - Print an array of ints with brackets. Unlike DimensionSizes,
+// doesn't have special handling for kDynamicSize.
+//
+//   Generic:
+//     1, 2
+//   Custom:
+//     [1, 2]
+void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
+
+FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser);
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 }  // namespace hlo
 }  // namespace mlir

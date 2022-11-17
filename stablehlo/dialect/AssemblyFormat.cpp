@@ -18,6 +18,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
@@ -300,6 +301,38 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
+  auto printIntOrQuestion = [&](int64_t value) {
+    if (ShapedType::isDynamic(value))
+      p << '?';
+    else
+      p << value;
+  };
+  p << '[';
+  llvm::interleaveComma(shape, p, printIntOrQuestion);
+  p << ']';
+}
+
+ParseResult parseDimensionSizes(AsmParser& parser,
+                                FailureOr<SmallVector<int64_t>>& shapeResult) {
+  SmallVector<int64_t> shape;
+  auto parseElt = [&]() -> ParseResult {
+    if (!parser.parseOptionalQuestion()) {
+      shape.push_back(ShapedType::kDynamicSize);
+      return success();
+    }
+    return parser.parseInteger(shape.emplace_back());
+  };
+  auto res =
+      parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
+  if (succeeded(res)) {
+    shapeResult = shape;
+  } else {
+    shapeResult = failure();
+  }
+  return success();
+}
+
 // Print attributes as e#m#
 void printExponentMantissa(AsmPrinter& p, Operation*, IntegerAttr exponent,
                            IntegerAttr mantissa) {
@@ -355,5 +388,31 @@ void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target) {
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
 }
+
+void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
+  printer << '[';
+  llvm::interleaveComma(ints, printer);
+  printer << ']';
+}
+
+FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser) {
+  SmallVector<int64_t> ints;
+  if (failed(parser.parseCommaSeparatedList(
+          AsmParser::Delimiter::Square,
+          [&]() { return parser.parseInteger(ints.emplace_back()); }))) {
+    return failure();
+  }
+  return ints;
+}
+
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
+  auto intsOrFail = parseIntArray(parser);
+  if (failed(intsOrFail)) {
+    return failure();
+  }
+  ints = std::move(*intsOrFail);
+  return success();
+}
+
 }  // namespace hlo
 }  // namespace mlir
