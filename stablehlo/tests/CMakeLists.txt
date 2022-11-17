@@ -24,7 +24,6 @@ set(STABLEHLO_TEST_DEPENDS
         FileCheck count not
         stablehlo-opt
         stablehlo-interpreter
-        stablehlo-translate
 )
 add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
         ${CMAKE_CURRENT_BINARY_DIR}

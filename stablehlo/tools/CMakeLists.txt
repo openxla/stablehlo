@@ -16,7 +16,6 @@
 set(LLVM_OPTIONAL_SOURCES
   StablehloOptMain.cpp
   StablehloInterpreterMain.cpp
-  StablehloTranslateMain.cpp
 )
 
 # stablehlo-opt
@@ -34,20 +33,6 @@ llvm_update_compile_flags(stablehlo-opt)
 target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
 
 mlir_check_all_link_libraries(stablehlo-opt)
-
-# stablehlo-translate
-add_llvm_executable(stablehlo-translate StablehloTranslateMain.cpp)
-llvm_update_compile_flags(stablehlo-translate)
-target_link_libraries(stablehlo-translate PRIVATE
-  ${dialect_libs}
-  MLIRIR
-  MLIRSupport
-  MLIRTranslateLib
-  DialectCompatibility
-  StablehloRegister
-)
-
-mlir_check_all_link_libraries(stablehlo-translate)
 
 # stablehlo-interpreter
 add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)

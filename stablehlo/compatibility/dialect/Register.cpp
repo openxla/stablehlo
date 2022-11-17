@@ -22,9 +22,7 @@ namespace mlir {
 namespace versionedhlo {
 
 void registerAllDialects(mlir::DialectRegistry &registry) {
-  // clang-format off
   registry.insert<mlir::versionedhlo::VersionedhloDialect>();
-  // clang-format on
 }
 
 }  // namespace stablehlo

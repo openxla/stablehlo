@@ -25,14 +25,11 @@ def VersionedhloLegalizeToStablehloPass : Pass<"versionedhlo-legalize-to-stableh
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
 
-def VersionedhloUpgradePass : Pass<"versionedhlo-upgrade", "ModuleOp"> {
-  let summary = "Upgrade Versioned StableHLO.";
-}
-
-def VersionedhloDowngradePass : Pass<"versionedhlo-downgrade", "ModuleOp"> {
-  let summary = "Downgrade Versioned StableHLO to target version.";
+def VersionedhloToVersionPass : Pass<"versionedhlo-to-version"> {
+  let summary = "Convert between versions of VersionedHLO.";
   let options = [
-    Option<"targetVersion", "target-version", "int64_t", /*default=*/"0",
+    Option<"targetVersion", "target", "std::string", "\"current\"",
            "The target version for downgrade. (Defaults to minimum supported)">,
   ];
+
 }

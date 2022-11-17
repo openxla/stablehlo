@@ -26,7 +26,7 @@ include "mlir/IR/AttrTypeBase.td"
 // Attributes
 //===----------------------------------------------------------------------===//
 
-// FIXME: This should be versioned differently
+// FIXME: Use shared AssemblyFormat code.
 def VersionedHLO_Dim : ArrayRefParameter<"int64_t", "Dimension"> {
   let printer = [{ $_printer << '['; llvm::interleaveComma($_self, $_printer); $_printer << ']' }];
   let parser = [{

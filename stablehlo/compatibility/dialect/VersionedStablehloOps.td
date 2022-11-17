@@ -20,7 +20,7 @@ limitations under the License.
 include "stablehlo/compatibility/dialect/VersionedStablehloEnums.td"
 include "stablehlo/compatibility/dialect/VersionedStablehloAttrs.td"
 
-include "mlir/Dialect/Shape/IR/ShapeBase.td" // FIXME: Remove dep
+include "mlir/Dialect/Shape/IR/ShapeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -30,11 +30,9 @@ include "mlir/IR/OpBase.td"
 def VersionInterface : OpInterface<"VersionInterface"> {
   let methods = [
     InterfaceMethod<
-      "Description...", "std::string", "getMinVersion">,
+      "Description...", "llvm::StringLiteral", "getMinVersion">,
     InterfaceMethod<
-      "Description...", "std::string", "getMaxVersion">,
-    InterfaceMethod<
-      "Description...", "bool", "isLatestVersion", (ins), "return ($_op.getMaxVersion() == \"\");">,
+      "Description...", "llvm::StringLiteral", "getMaxVersion">,
   ];
 }
 
@@ -42,20 +40,20 @@ def VersionInterface : OpInterface<"VersionInterface"> {
 // - ReturnOp needs a trait for Terminator.
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
 //   multiple variadic arguments.
-class VersionedHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion = "0.0.0", string maxVersion = ""> :
+class VersionedHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion = "0.0.0", string maxVersion = "current"> :
     Op<VersionedHLO_Dialect, mnemonic, 
       [DeclareOpInterfaceMethods<VersionInterface>] # traits> {
     let extraClassDefinition = [{
-    std::string $cppClass::getMinVersion() {
-      return "}] #  minVersion # [{";
-    }
-    std::string $cppClass::getMaxVersion() {
-      return "}] #  maxVersion # [{";
-    }
+      llvm::StringLiteral $cppClass::getMinVersion() {
+        return llvm::StringLiteral("}] #  minVersion # [{");
+      }
+      llvm::StringLiteral $cppClass::getMaxVersion() {
+        return llvm::StringLiteral("}] #  maxVersion # [{");
+      }
   }];
 }
 
-class VersionedHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = ""> :
+class VersionedHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = "current"> :
     VersionedHLO_OpWithTraits<mnemonic, [], minVersion, maxVersion>;
 
 def VersionedHLO_ConstantOp : VersionedHLO_Op<"constant"> {

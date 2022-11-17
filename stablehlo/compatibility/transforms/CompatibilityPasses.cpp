@@ -14,7 +14,11 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h"
+#include <climits>
+#include <memory>
+#include <utility>
 
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
@@ -33,8 +37,7 @@ namespace mlir {
 namespace versionedhlo {
 #define GEN_PASS_DEF_STABLEHLOLEGALIZETOVERSIONEDHLOPASS
 #define GEN_PASS_DEF_VERSIONEDHLOLEGALIZETOSTABLEHLOPASS
-#define GEN_PASS_DEF_VERSIONEDHLOUPGRADEPASS
-#define GEN_PASS_DEF_VERSIONEDHLODOWNGRADEPASS
+#define GEN_PASS_DEF_VERSIONEDHLOTOVERSIONPASS
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
 
@@ -184,8 +187,7 @@ struct StablehloLegalizeToVersionedhloPass
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       LLVM_DEBUG(llvm::dbgs() << "Failed partial conversion\n");
-      // FIXME:
-      // return signalPassFailure();
+      return signalPassFailure();
     }
   }
 };
@@ -454,105 +456,73 @@ void populateVersionedhloToStablehloPatterns(RewritePatternSet* patterns,
       >(patterns, converter, context);
 }
 
-/////////////////////////////
-/// VersionedHLO Upgrades ///
-/////////////////////////////
-namespace {
-struct VersionedhloUpgradePass
-    : public impl::VersionedhloUpgradePassBase<VersionedhloUpgradePass> {
-  void runOnOperation() override {
-    ConversionTarget target(getContext());
-    target.addDynamicallyLegalDialect<VersionedhloDialect>([](Operation* op) {
-      if (auto versionInterface = dyn_cast<VersionInterface>(op)) {
-        return versionInterface.isLatestVersion();
-      }
-      return false;
-    });
-
-    versionedhlo::VersionedTypeConverterBase converter;  // FIXME
-    RewritePatternSet patterns(&getContext());
-    versionedhlo::populateVersionedhloUpgradePatterns(&patterns, &converter,
-                                                      &getContext());
-
-    // Conversion from VersionedHLO to StableHLO should never fail.
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns)))) {
-      return signalPassFailure();
-    }
-  }
-};
-
-class CustomCallOpToV2 : public OpConversionPattern<CustomCallOp> {
- public:
-  using OpConversionPattern<CustomCallOp>::OpConversionPattern;
-  LogicalResult matchAndRewrite(
-      CustomCallOp stablehloOp, typename CustomCallOp::Adaptor adaptor,
-      ConversionPatternRewriter& rewriter) const final {
-    rewriter.replaceOpWithNewOp<CustomCallOpV2>(
-        stablehloOp, stablehloOp->getResultTypes(), stablehloOp.getOperands(),
-        stablehloOp->getAttrs());
-
-    return success();
-  }
-};
-}  // namespace
-
-void populateVersionedhloUpgradePatterns(RewritePatternSet* patterns,
-                                         TypeConverter* converter,
-                                         MLIRContext* context) {
-  patterns->add<CustomCallOpToV2>(*converter, context);
-}
-
 ///////////////////////////////
-/// VersionedHLO Downgrades ///
+/// VersionedHLO To Version ///
 ///////////////////////////////
 namespace {
-int64_t getMajorVersion(llvm::StringRef ref) {
+// Parse x.y.z --> int64_t(y)
+int64_t getMinorVersion(llvm::StringRef ref) {
+  // FIXME: Move these to constants in the tablegen.
+  if (ref == "current") {
+    return 100; // max?
+  }
+  if (ref == "minimum") {
+    return 0;
+  }
+
   // Precondition: must be x.y.z
   auto isDot = [](char c){return c == '.';};
   auto majorS = ref.drop_until(isDot).drop_front(1).take_until(isDot);
   int64_t major;
   if (majorS.getAsInteger(/*radix=*/10, major)) {
-    return -1;  // FIXME: Error
+    return -1;  // FIXME: This function needs better error handling.
   }
   return major;
 }
 
-struct VersionedhloDowngradePass
-    : public impl::VersionedhloDowngradePassBase<VersionedhloDowngradePass> {
-  VersionedhloDowngradePass()
-      : impl::VersionedhloDowngradePassBase<VersionedhloDowngradePass>() {}
-  VersionedhloDowngradePass(VersionedhloDowngradePassOptions const& opts)
-      : impl::VersionedhloDowngradePassBase<VersionedhloDowngradePass>(opts) {}
+struct VersionedhloToVersionPass
+    : public impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass> {
+  VersionedhloToVersionPass()
+      : impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass>() {}
+  VersionedhloToVersionPass(VersionedhloToVersionPassOptions const& opts)
+      : impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass>(opts) {}
 
   void runOnOperation() override {
     ConversionTarget target(getContext());
-    VersionedhloDowngradePassOptions opts{targetVersion};
+    VersionedhloToVersionPassOptions opts{targetVersion};
 
+    // An op is legal if the target version is in the ops `[min, max)`
+    // supported version range, or target and op are the current verison.
+    // Example:
+    //   CustomCallv1 0.0.0 -> 0.1.0
+    //   CustomCallv2 0.1.0 -> 0.5.0
+    //   CustomCallv3 0.5.0 -> Curr
+    // Target Curr (0.5.0):
+    //   v3 legal    { Curr  in [0.5.0, Curr] }
+    //   v2 illegal  { Curr !in [0.1.0, 0.5.0) }
+    //   v1 illegal  { Curr !in [0.0.0, 0.1.0) }
+    // Target 0.4.0:
+    //   v3 illegal { 0.4 !in [0.5.0, Curr] }
+    //   v2 legal   { 0.4  in [0.1.0, 0.5.0) }
+    //   v1 illegal { 0.4 !in [0.0.0, 0.5.0) }
+    // Target 0.0.0:
+    //   v3 illegal { 0.0 !in [0.5, Curr] }
+    //   v2 illegal { 0.1 !in [0.0, 0.5) }
+    //   v1 legal   { 0.0  in [0.0, 0.1) }
     target.addDynamicallyLegalDialect<VersionedhloDialect>([&opts](Operation* op) {
-      if (auto versionInterface = dyn_cast<VersionInterface>(op)) {
-        // An op is legal if it's minimum supported version number is less than
-        // or equal to the target version.
-        // Example:
-        //   CustomCallv1 0.0.0 -> 0.1.0
-        //   CustomCallv2 0.1.0 -> 0.5.0
-        //   CustomCallv3 0.5.0 -> <inf>
-        // Target 0.4.0.
-        //   v3 illegal { 0.5 > 0.4 }
-        //   v2 legal   { 0.1 < 0.4 }
-        // Target 0.0.0
-        //   v3 illegal { 0.5 > 0.0 }
-        //   v2 illegal { 0.1 > 0.0 }
-        //   v1 legal   { 0.0 <= 0.0}
-        return getMajorVersion(versionInterface.getMinVersion()) <=
-               opts.targetVersion;
+      if (auto versionInterface = dyn_cast<VersionInterface>(op)) { 
+        int64_t targetVersion = getMinorVersion(opts.targetVersion);
+        int64_t minVersion = getMinorVersion(versionInterface.getMinVersion());
+        int64_t maxVersion = getMinorVersion(versionInterface.getMaxVersion());
+        bool isCurrent = (targetVersion == maxVersion && opts.targetVersion == "current");
+        return (minVersion <= targetVersion && targetVersion < maxVersion) || isCurrent;
       }
       return false;
     });
 
     versionedhlo::VersionedTypeConverterBase converter;
     RewritePatternSet patterns(&getContext());
-    versionedhlo::populateVersionedhloDowngradePatterns(&patterns, &converter,
+    versionedhlo::populateVersionedhloToVersionPatterns(&patterns, &converter,
                                                         &getContext(), opts);
 
     // Conversion from VersionedHLO to StableHLO should never fail.
@@ -563,60 +533,71 @@ struct VersionedhloDowngradePass
   }
 };
 
-LogicalResult emitDowngradeError(Operation* op, llvm::StringRef message) {
+////////////////////////////////////////////
+/// Upgrade and Downgrade Infrastructure ///
+////////////////////////////////////////////
+
+LogicalResult emitToVersionError(Operation* op, llvm::StringRef message) {
   return op->emitError("failed to downgrade ") << op->getName() << ", " << message;
 }
 
-using VersionNumber = int64_t;
+template <typename SourceOp, typename TargetOp>
+struct VersionConversionPattern : OpConversionPattern<SourceOp> {
+  using OpConversionPattern<SourceOp>::OpConversionPattern;
 
-class CustomCallOpV1Downgrade : public OpConversionPattern<CustomCallOpV2> {
- public:
-  using OpConversionPattern<CustomCallOpV2>::OpConversionPattern;
+  // This method allows subclasses to add or remove attributes if needed.
+  // Can also fail if an op uses a feature that cannot be represented
+  // in previous versions of the opset.
+  virtual LogicalResult prepareOpForConversion(SourceOp op) const = 0;
 
-  // Downgrade CustomCallOp to v0.0.0
-  static VersionNumber getDowngradeVersionNumber() {
-    // FIXME: return CustomCallOp::getMinVersion() ??
-    // -- Think about how to make this class easier going forward.
-    // -- Transform from A -> B if max(B) < targetVersion?
-    return 0;
-  }
-
-  LogicalResult matchAndRewrite(
-      CustomCallOpV2 op, typename CustomCallOpV2::Adaptor adaptor,
-      ConversionPatternRewriter& rewriter) const final {
-    if (op.getResultLayouts().has_value()) {
-      return emitDowngradeError(op, "has an non-empty result layout.");
+  virtual LogicalResult matchAndRewrite(
+      SourceOp op, typename SourceOp::Adaptor adaptor,
+      ConversionPatternRewriter& rewriter) const override {
+    if (failed(prepareOpForConversion(op))) {
+      return failure();
     }
-
-    // Remove attr and downgrade.
-    if (op->hasAttr("result_layout")) op->removeAttr("result_layout");
-    rewriter.replaceOpWithNewOp<CustomCallOp>(op, op->getResultTypes(),
-                                              op.getOperands(), op->getAttrs());
-
+    auto newOp = rewriter.replaceOpWithNewOp<TargetOp>(
+        op, op->getResultTypes(), op.getOperands(), op->getAttrs());
+    for (auto [hloRegion, stablehloRegion] :
+         llvm::zip(op->getRegions(), newOp->getRegions())) {
+      rewriter.inlineRegionBefore(hloRegion, stablehloRegion,
+                                  stablehloRegion.end());
+    }
     return success();
   }
 };
 
-template <typename DowngradePattern>
-void maybeAddDowngradePass(RewritePatternSet* patterns,
-                           TypeConverter* converter, MLIRContext* context,
-                           int64_t targetVersion) {
-  // Apply conversion pattern if target version is lower than what the downgrade
-  // would make the op be.
-  // FIXME: if (targetVersion <= DowngradePattern::TargetOp::getMaxVersion())
-  // {...}
-  if (targetVersion <= DowngradePattern::getDowngradeVersionNumber()) {
-    patterns->add<CustomCallOpV1Downgrade>(*converter, context);
+/////////////////////////////////////////
+/// Upgrade and Downgrade Definitions ///
+/////////////////////////////////////////
+
+// versionedhlo.custom_call --> versionedhlo.custom_call_v2
+struct CustomCallOpV2Upgrade : public VersionConversionPattern<CustomCallOp, CustomCallOpV2>{
+  using VersionConversionPattern<CustomCallOp, CustomCallOpV2>::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(CustomCallOp) const final {
+    return success();
+  } 
+};
+
+// versionedhlo.custom_call_v2 --> versionedhlo.custom_call
+struct CustomCallOpV1Downgrade : public VersionConversionPattern<CustomCallOpV2, CustomCallOp> {
+  using VersionConversionPattern<CustomCallOpV2, CustomCallOp>::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
+    if (op.getResultLayouts().has_value()) {
+      return emitToVersionError(op, "op has a non-empty result_layouts attribute");
+    }
+    if (op->hasAttr("result_layout")) op->removeAttr("result_layout");
+    return success();
   }
-}
+};
 
 }  // namespace
 
-void populateVersionedhloDowngradePatterns(
+void populateVersionedhloToVersionPatterns(
     RewritePatternSet* patterns, TypeConverter* converter, MLIRContext* context,
-    VersionedhloDowngradePassOptions const& opts){
-  maybeAddDowngradePass<CustomCallOpV1Downgrade>(patterns, converter, context,
-                                                 opts.targetVersion);
+    VersionedhloToVersionPassOptions const& opts){
+  patterns->add<CustomCallOpV2Upgrade>(*converter, context);
+  patterns->add<CustomCallOpV1Downgrade>(*converter, context);
 }
 
 }  // namespace versionedhlo

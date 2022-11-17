@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 set(LLVM_TARGET_DEFINITIONS VersionedStablehloOps.td)
 mlir_tablegen(VersionedStablehloOps.h.inc -gen-op-decls)
 mlir_tablegen(VersionedStablehloOps.cpp.inc -gen-op-defs)

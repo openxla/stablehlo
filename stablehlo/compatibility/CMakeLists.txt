@@ -14,16 +14,3 @@
 
 add_subdirectory(dialect)
 add_subdirectory(transforms)
-
-# Add base compatibility library
-add_mlir_library(DialectCompatibility
-  PARTIAL_SOURCES_INTENDED
-  DialectCompatibilityBase.cpp
-
-  LINK_LIBS PUBLIC
-  VersionedStablehloOps
-  CompatibilityPasses
-  MLIRBytecodeWriter
-  MLIRIR
-  MLIRParser
-)

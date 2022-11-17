@@ -23,7 +23,6 @@ limitations under the License.
 namespace mlir {
 namespace versionedhlo {
 
-// FIXME: After we have forked types, we don't want this to be a passthrough.
 class VersionedTypeConverterBase : public TypeConverter {
  public:
   VersionedTypeConverterBase() : TypeConverter() {

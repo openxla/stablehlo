@@ -1,0 +1,8 @@
+This file is not to be submitted. Just needed to log the work still to be done somewhere central.
+
+1. Address FIXME comments
+2. Error if target version is greater than current version.
+3. Error if target version is less than minimum supported version.
+4. Validate target version string.
+5. Add versioned dialect type forks.
+6. Add bytecode for Versioned StableHLO

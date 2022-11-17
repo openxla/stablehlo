@@ -42,7 +42,7 @@ VersionedhloDialect::VersionedhloDialect(MLIRContext* context)
 #define GET_OP_LIST
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.cpp.inc"
       >();
-  //addBytecodeInterface(this);
+  // TODO (gleasonk): addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST

@@ -20,11 +20,11 @@ limitations under the License.
 
 namespace mlir {
 namespace versionedhlo {
-// std::unique_ptr<::mlir::Pass> createStablehloLegalizeToVersionedhloPass();
 #define GEN_PASS_DECL_STABLEHLOLEGALIZETOVERSIONEDHLOPASS
 #define GEN_PASS_DECL_VERSIONEDHLOLEGALIZETOSTABLEHLOPASS
 #define GEN_PASS_DECL_VERSIONEDHLOUPGRADEPASS
 #define GEN_PASS_DECL_VERSIONEDHLODOWNGRADEPASS
+#define GEN_PASS_DECL_VERSIONEDHLOTOVERSIONPASS
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
 
 /// Registers all transformation passes.
@@ -40,14 +40,9 @@ void populateVersionedhloToStablehloPatterns(RewritePatternSet *patterns,
                                              TypeConverter *converter,
                                              MLIRContext *context);
 
-// Populates Versioned StableHLO upgrade rewriting patterns.
-void populateVersionedhloUpgradePatterns(RewritePatternSet *patterns,
-                                         TypeConverter *converter,
-                                         MLIRContext *context);
-
 // Populates Versioned StableHLO downgrade rewriting patterns.
-void populateVersionedhloDowngradePatterns(
+void populateVersionedhloToVersionPatterns(
     RewritePatternSet *patterns, TypeConverter *converter, MLIRContext *context,
-    VersionedhloDowngradePassOptions const &opts);
+    VersionedhloToVersionPassOptions const &opts);
 }  // namespace versionedhlo
 }
