@@ -570,7 +570,7 @@ The execution of the operation involves logically partitioning each execution
 instance (`ei`) of `rid`, `pid` pair, henceforth referred to as `ei(rid, pid)`
 into groups. All the execution instances within a group can participate in the
 operation without getting interfered by execution instances from other groups.
-The number of groups represents the number of `stablehlo.all_to_all` operations
+The number of groups represents the number of `stablehlo.all_gather` operations
 executed in parallel.
 
 Given,
