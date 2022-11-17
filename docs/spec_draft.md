@@ -1110,10 +1110,13 @@ produces an implementation-defined value.
 
 ### Semantics
 
-Extracts a subtensor of the shape in `slice_sizes` from the `operand` tensor
-starting from `start_indices` and produces a `result` tensor. More formally,
-`result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
-`jd = start_indices[d] + id`.
+Extracts a slice of shape `slice_sizes` from the `operand` tensor starting from
+`start_indices` and produces a `result` tensor.
+
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
+  * `jd = effective_start_indices[d] + id`.
+  * `effective_start_indices[d] = clamp(start_indices[d], 0, dim(operand, d) - `
+    `slice_sizes[d])`.
 
 ### Inputs
 
@@ -1121,7 +1124,7 @@ starting from `start_indices` and produces a `result` tensor. More formally,
 |-----------------|----------------------------------------------------------|
 | `operand`       | tensor of any supported type                             |
 | `start_indices` | variadic number of 0-dimensional tensors of integer type |
-| `slice_sizes`   | 1-dimensional tensor of type `si64`                      |
+| `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
 
 ### Outputs
 
@@ -1133,13 +1136,9 @@ starting from `start_indices` and produces a `result` tensor. More formally,
 
   * (C1) `operand` and `result` have the same element type.
   * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
-  * (C3) Each `start_indices` `dk` is in range [0, shape(`operand`)[`k`]) for
-    all `k` in range [0, rank(`operand`)).
-  * (C4) `slice_sizes[k]` is in range [0, shape(`operand`)[`k`]) for all `k` in
-    range [0, rank(`operand`)).
-  * (C5) 0 $\le$ `k`th `start_indices` + `slice_sizes[k]` $\le$
-    shape(`operand`)[`k`] for all `k` in range [0, rank(`operand`)).
-  * (C6) shape(`result`) $=$ `slice_sizes`.
+  * (C3) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`) for all `k` $\in$
+    [0, rank(`operand`)).
+  * (C4) shape(`result`) $=$ `slice_sizes`.
 
 ### Examples
 

@@ -1520,8 +1520,8 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
        InferTensorType]> {
   let summary = "Dynamic Slice operator";
   let description = [{
-    Extracts a subtensor of the shape in `slice_sizes` from the `operand` tensor
-    starting from `start_indices` and produces a `result` tensor.
+    Extracts a slice of shape `slice_sizes` from the `operand` tensor starting
+    from `start_indices` and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlodynamic_slice
