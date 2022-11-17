@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <memory>
+
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-
-#include <memory>
 
 namespace mlir {
 namespace versionedhlo {
@@ -45,4 +45,4 @@ void populateVersionedhloToVersionPatterns(
     RewritePatternSet *patterns, TypeConverter *converter, MLIRContext *context,
     VersionedhloToVersionPassOptions const &opts);
 }  // namespace versionedhlo
-}
+}  // namespace mlir

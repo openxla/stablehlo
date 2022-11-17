@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h"
+
 #include <climits>
 #include <memory>
 #include <utility>
@@ -464,14 +465,14 @@ namespace {
 int64_t getMinorVersion(llvm::StringRef ref) {
   // FIXME: Move these to constants in the tablegen.
   if (ref == "current") {
-    return 100; // max?
+    return 100;  // max?
   }
   if (ref == "minimum") {
     return 0;
   }
 
   // Precondition: must be x.y.z
-  auto isDot = [](char c){return c == '.';};
+  auto isDot = [](char c) { return c == '.'; };
   auto majorS = ref.drop_until(isDot).drop_front(1).take_until(isDot);
   int64_t major;
   if (majorS.getAsInteger(/*radix=*/10, major)) {
@@ -509,13 +510,16 @@ struct VersionedhloToVersionPass
     //   v3 illegal { 0.0 !in [0.5, Curr] }
     //   v2 illegal { 0.1 !in [0.0, 0.5) }
     //   v1 legal   { 0.0  in [0.0, 0.1) }
-    target.addDynamicallyLegalDialect<VersionedhloDialect>([&opts](Operation* op) {
-      if (auto versionInterface = dyn_cast<VersionInterface>(op)) { 
+    target.addDynamicallyLegalDialect<VersionedhloDialect>([&opts](
+                                                               Operation* op) {
+      if (auto versionInterface = dyn_cast<VersionInterface>(op)) {
         int64_t targetVersion = getMinorVersion(opts.targetVersion);
         int64_t minVersion = getMinorVersion(versionInterface.getMinVersion());
         int64_t maxVersion = getMinorVersion(versionInterface.getMaxVersion());
-        bool isCurrent = (targetVersion == maxVersion && opts.targetVersion == "current");
-        return (minVersion <= targetVersion && targetVersion < maxVersion) || isCurrent;
+        bool isCurrent =
+            (targetVersion == maxVersion && opts.targetVersion == "current");
+        return (minVersion <= targetVersion && targetVersion < maxVersion) ||
+               isCurrent;
       }
       return false;
     });
@@ -538,7 +542,8 @@ struct VersionedhloToVersionPass
 ////////////////////////////////////////////
 
 LogicalResult emitToVersionError(Operation* op, llvm::StringRef message) {
-  return op->emitError("failed to downgrade ") << op->getName() << ", " << message;
+  return op->emitError("failed to downgrade ")
+         << op->getName() << ", " << message;
 }
 
 template <typename SourceOp, typename TargetOp>
@@ -572,19 +577,24 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /////////////////////////////////////////
 
 // versionedhlo.custom_call --> versionedhlo.custom_call_v2
-struct CustomCallOpV2Upgrade : public VersionConversionPattern<CustomCallOp, CustomCallOpV2>{
-  using VersionConversionPattern<CustomCallOp, CustomCallOpV2>::VersionConversionPattern;
+struct CustomCallOpV2Upgrade
+    : public VersionConversionPattern<CustomCallOp, CustomCallOpV2> {
+  using VersionConversionPattern<CustomCallOp,
+                                 CustomCallOpV2>::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOp) const final {
     return success();
-  } 
+  }
 };
 
 // versionedhlo.custom_call_v2 --> versionedhlo.custom_call
-struct CustomCallOpV1Downgrade : public VersionConversionPattern<CustomCallOpV2, CustomCallOp> {
-  using VersionConversionPattern<CustomCallOpV2, CustomCallOp>::VersionConversionPattern;
+struct CustomCallOpV1Downgrade
+    : public VersionConversionPattern<CustomCallOpV2, CustomCallOp> {
+  using VersionConversionPattern<CustomCallOpV2,
+                                 CustomCallOp>::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
     if (op.getResultLayouts().has_value()) {
-      return emitToVersionError(op, "op has a non-empty result_layouts attribute");
+      return emitToVersionError(op,
+                                "op has a non-empty result_layouts attribute");
     }
     if (op->hasAttr("result_layout")) op->removeAttr("result_layout");
     return success();
@@ -595,7 +605,7 @@ struct CustomCallOpV1Downgrade : public VersionConversionPattern<CustomCallOpV2,
 
 void populateVersionedhloToVersionPatterns(
     RewritePatternSet* patterns, TypeConverter* converter, MLIRContext* context,
-    VersionedhloToVersionPassOptions const& opts){
+    VersionedhloToVersionPassOptions const& opts) {
   patterns->add<CustomCallOpV2Upgrade>(*converter, context);
   patterns->add<CustomCallOpV1Downgrade>(*converter, context);
 }

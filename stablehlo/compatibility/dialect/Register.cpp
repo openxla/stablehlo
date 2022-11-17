@@ -25,5 +25,5 @@ void registerAllDialects(mlir::DialectRegistry &registry) {
   registry.insert<mlir::versionedhlo::VersionedhloDialect>();
 }
 
-}  // namespace stablehlo
+}  // namespace versionedhlo
 }  // namespace mlir

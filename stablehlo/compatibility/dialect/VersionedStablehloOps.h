@@ -32,7 +32,6 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 
-
 // Include order matters.
 #include "stablehlo/compatibility/dialect/VersionedStablehloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES

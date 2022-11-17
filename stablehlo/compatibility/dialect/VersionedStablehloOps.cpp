@@ -15,16 +15,14 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
-#include "mlir/IR/TypeUtilities.h"
-#include "llvm/ADT/TypeSwitch.h"
 
+#include "llvm/ADT/TypeSwitch.h"
+#include "mlir/IR/TypeUtilities.h"
 
 // Include order matters
 #include "stablehlo/compatibility/dialect/VersionedStablehloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/compatibility/dialect/VersionedStablehloAttrs.cpp.inc"
-
-
 #include "stablehlo/compatibility/dialect/VersionedStablehloOpInterfaces.cpp.inc"
 #define GET_OP_CLASSES
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.cpp.inc"
@@ -37,7 +35,8 @@ namespace versionedhlo {
 //===----------------------------------------------------------------------===//
 
 VersionedhloDialect::VersionedhloDialect(MLIRContext* context)
-    : Dialect(getDialectNamespace(), context, TypeID::get<VersionedhloDialect>()) {
+    : Dialect(getDialectNamespace(), context,
+              TypeID::get<VersionedhloDialect>()) {
   addOperations<
 #define GET_OP_LIST
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.cpp.inc"
@@ -71,7 +70,7 @@ void VersionedhloDialect::printType(Type type, DialectAsmPrinter& os) const {
 // Entry point for Attribute parsing, TableGen generated code will handle the
 // dispatch to the individual classes.
 Attribute VersionedhloDialect::parseAttribute(DialectAsmParser& parser,
-                                           Type type) const {
+                                              Type type) const {
   StringRef attrTag;
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
@@ -83,13 +82,11 @@ Attribute VersionedhloDialect::parseAttribute(DialectAsmParser& parser,
 // Entry point for Attribute printing, TableGen generated code will handle the
 // dispatch to the individual classes.
 void VersionedhloDialect::printAttribute(Attribute attr,
-                                      DialectAsmPrinter& os) const {
+                                         DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
 }
 
-
-
-}  // namespace stablehlo
+}  // namespace versionedhlo
 }  // namespace mlir

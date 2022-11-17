@@ -26,9 +26,7 @@ namespace versionedhlo {
 class VersionedTypeConverterBase : public TypeConverter {
  public:
   VersionedTypeConverterBase() : TypeConverter() {
-    addConversion([](Type t) -> Type {
-      return t;
-    });
+    addConversion([](Type t) -> Type { return t; });
     addConversion([&](TupleType type) -> Type {
       SmallVector<Type> convertedTypes;
       if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
@@ -41,7 +39,7 @@ class VersionedTypeConverterBase : public TypeConverter {
 class StablehloToVersionedhloTypeConverter : public VersionedTypeConverterBase {
  public:
   StablehloToVersionedhloTypeConverter() : VersionedTypeConverterBase() {
-    addConversion([](stablehlo::TokenType token) -> Type{
+    addConversion([](stablehlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
@@ -51,7 +49,7 @@ class StablehloToVersionedhloTypeConverter : public VersionedTypeConverterBase {
 class VersionedhloToStablehloTypeConverter : public VersionedTypeConverterBase {
  public:
   VersionedhloToStablehloTypeConverter() : VersionedTypeConverterBase() {
-    addConversion([](versionedhlo::TokenType token) -> Type{
+    addConversion([](versionedhlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
     });

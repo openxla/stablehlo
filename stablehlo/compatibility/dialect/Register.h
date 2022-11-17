@@ -25,7 +25,7 @@ namespace versionedhlo {
 // Add versionedhlo dialects to the provided registry.
 void registerAllDialects(DialectRegistry &registry);
 
-}  // namespace stablehlo
+}  // namespace versionedhlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_COMPATIBILITY_DIALECT_REGISTER_H

@@ -50,7 +50,7 @@ using StablehloToVersionedhloOp =
     using Type = stablehlo::OpName;                                   \
   };
 
-#define MAP_STABLEHLO_TO_VERSION_V0(OpName) MAP_STABLEHLO_TO_VERSION(OpName,)
+#define MAP_STABLEHLO_TO_VERSION_V0(OpName) MAP_STABLEHLO_TO_VERSION(OpName, )
 
 MAP_STABLEHLO_TO_VERSION_V0(AbsOp)
 MAP_STABLEHLO_TO_VERSION_V0(AddOp)
@@ -169,7 +169,7 @@ MAP_STABLEHLO_TO_VERSION_V0(XorOp)
 
 #undef MAP_STABLEHLO_TO_VERSION
 
-}  // namespace stablehlo
+}  // namespace versionedhlo
 }  // namespace mlir
 
 #endif  // MLIR_HLO_DIALECT_MHLO_TRANSFORMS_MAP_STABLEHLO_TO_HLO_OP_H
