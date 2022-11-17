@@ -1110,7 +1110,7 @@ produces an implementation-defined value.
 
 ### Semantics
 
-Extracts a slice of shape `slice_sizes` from the `operand` tensor starting from
+Extracts a slice of shape `slice_sizes` from the `operand` tensor starting at
 `start_indices` and produces a `result` tensor.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
