@@ -1470,6 +1470,10 @@ LogicalResult verifyCollectivePermuteSourceTargetPairs(
   llvm::DenseSet<int64_t> targets;
   for (auto i = attr.begin(), e = attr.end(); i != e; ++i) {
     auto val = (*i).getSExtValue();
+    if (val < 0)
+      return op->emitError()
+             << "replica ids in source_target_pairs must be >= 0.";
+
     if (i.getIndex() % 2 == 0) {
       bool isUnique = sources.insert(val).second;
       if (!isUnique) return op->emitError() << "duplicate sources not allowed.";

@@ -1250,6 +1250,16 @@ func.func @collective_permute_duplicate_sources(%arg0: tensor<128x32xf32>) -> te
 
 // -----
 
+func.func @collective_permute_duplicate_sources(%arg0: tensor<128x32xf32>) -> tensor<128x32xf32> {
+  // expected-error@+1 {{replica ids in source_target_pairs must be >= 0}}
+  %0 = "stablehlo.collective_permute"(%arg0) {
+    source_target_pairs = dense<[[0, 1], [-1, 0]]> : tensor<2x2xi64>
+  } : (tensor<128x32xf32>) -> tensor<128x32xf32>
+  func.return %0 : tensor<128x32xf32>
+}
+
+// -----
+
 func.func @concat_0D(%arg0: tensor<i32>, %arg1: tensor<i32>)  -> tensor<2xi32> {
   // expected-error@+1 {{rank-0 values cannot be concatenated}}
   %0 = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<i32>, tensor<i32>) -> tensor<2xi32>

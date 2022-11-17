@@ -391,6 +391,7 @@ syntax.
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
    * [clamp](#stablehloclamp)
+   * [collective_permute](#stablehlocollective_permute)
    * [compare](#stablehlocompare)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
@@ -1537,6 +1538,137 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 // %max: [10, 15, 20]
 %result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
 // %result: [5, 13, 20]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.collective_permute
+
+### Semantics
+
+Sends and receives data between source and target replica pairs mentioned in
+`source_target_pairs`.
+
+`channel_handle`, an optional input, is a handle given to a user to represent a
+communication channel between two computations via a
+[stablehlo.send](#stablehlosend) and [stablehlo.recv](#stablehlorecv)
+instruction pair or via collective instructions (e.g.
+[stablehlo.all_reduce](#stablehloall_reduce),
+[stablehlo.all_gather](#stablehloall_gather), etc.). It is represented using a
+`channel-id` and a `channel-type`. A `channel-id` is used for cross-partition
+communication: only operations with the same opcode and `channel-id` can
+communicate to each other. Non-positive `channel-id` is equivalent to no channel
+id. The `channel-type` is not relevant for this instruction.
+
+In the instruction syntax, multiple pairs of source and target replica ids
+are grouped to form `source_target_pairs`.
+
+The execution of the operation involves logically partitioning each execution
+instance (`ei`) of `rid`, `pid` pair, henceforth referred to as `ei(rid, pid)`
+into groups. All the execution instances within a group can participate in the
+operation without getting interfered by execution instances from other groups.
+The number of groups represents the number of `stablehlo.collective_permute`
+operations executed in parallel.
+
+Given,
+  * `num_pids`: Number of partition ids
+  * `num_rids`: Number of replica ids
+  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }
+  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }
+  * `num_subgroup`: number of (source, target) pairs in `source_target_pairs`.
+
+The formation of groups is defined as follows:
+
+1. If `channel_handle` is not provided
+   * Number of groups formed: `num_subgroup` * `num_pids`.
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
+     ```python
+     all_partition_ids = [pid for pid in range(num_pids)]
+     groups = []
+
+     if len(source_target_pairs) != 0:
+       for source_target_pair in source_target_pairs:
+         for pid in all_partition_ids:
+           sub_group = []
+           for rid in source_target_pair:
+             sub_group.append(ei(rid, pid))
+           groups.append(sub_group)
+       return groups
+     ```
+    * For example, assuming `num_pids = 2` and `source_target_pairs = [[0, 2], [1, 3]]`:
+      `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
+
+2. If `channel_handle` is provided
+   * Number of groups formed: num_rids * `num_subgroup`.
+   * The formation of `groups` can be demonstrated, using Python-like syntax, as
+     follows:
+     ```python
+
+     all_replica_ids = [rid for rid in range(num_rids)]
+     groups = []
+
+     if len(source_target_pairs) != 0:
+       for source_target_pair in source_target_pairs:
+         sub_group = []
+         for rid in all_replica_ids
+           # ids in the `source_target_pairs groups` are interpreted as partition ids.
+           for pid in source_target_pair:
+             sub_group.append(ei(rid, pid))
+           groups.append(sub_group)
+       return groups
+     ```
+    * For example, assuming `all_replica_ids = [0, 1]` and `partition_groups = [[0, 2], [1, 3]]`:
+      `groups` formed: `[ei(0, 0), ei(0, 2)], [ei(0, 1), ei(0, 3)], [ei(1, 0), ei(1, 2)], [ei(1, 1), ei(1, 3)]`
+
+For each group `[ei(rid1, pid1), ei(rid2, pid2)]` $\in$ `groups`, the `result`
+at `ei(rid2', pid2')` is given by `operand` at `ei(rid1, pid1)`. If an `ei(rid,
+pid)` is not a target in any group in `groups`, then the `result` on that
+execution isnatnce is a tensor consists of 0(s) with the same shape as the
+`operand`.
+
+### Inputs
+
+| Name                  | Type                                                                                                                                                     |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `operand`             | tensor of any supported type                                                                                                                             |
+| `source_target_pairs` | 2-dimensional tensor constant of type `si64`                                                                                                             |
+| `channel_handle`      | constant of type struct { `channel-id`: `si64`, `channel-type`: enum of `CHANNEL_TYPE_INVALID`, `DEVICE_TO_DEVICE`, `DEVICE_TO_HOST`, `HOST_TO_DEVICE` } |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) dim(`source_target_pairs`, 1) $=$ 2.
+  * (C2) All memmbers of { `source_target_pairs`[i][0] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
+  * (C3) All memmbers of { `source_target_pairs`[i][1] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
+  * (C4) type(`result`) $=$ type(`operand`).
+
+### Examples
+
+```mlir
+// %operand (at ei(0, 0)): [
+//                          [1, 2],
+//                          [5, 6]
+//                         ]
+%result = "stablehlo.collective_permute"(%operand) {
+  source_target_pairs = dense<[[0, 1]]> : tensor<2x2xi64>,
+} : (tensor<2x2xf32>) -> tensor<2x2xf32>
+//
+// Assuming num_pids = 1, a single group [ei(0, 0), ei(1, 0)] is formed.
+//
+// %result (at ei(0, 0)): [
+//                         [0, 0],
+//                         [0, 0]
+//                        ]
+// %result (at ei(1, 0)): [
+//                         [1, 2],
+//                         [5, 6]
+//                        ]
 ```
 
 [Back to Ops](#index-of-ops)

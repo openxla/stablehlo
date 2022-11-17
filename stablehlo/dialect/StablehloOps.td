@@ -2000,15 +2000,17 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "CollectivePermute operator";
   let description = [{
-    CollectivePermute is a collective operation that sends and receives data
-    cross replicas.
-    Note that there are the following restrictions on the source_target_pair:
-    - Any two pairs should not have the same target replica id, and they should
-    not have the same source replica id.
-    - If a replica id is not a target in any pair, then the output on that
-    replica is a tensor consists of 0(s) with the same shape as the input.
+    Sends and receives data between source and target replicas mentioned in `source_target_pairs`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#collectivepermute.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocollective_permute
+
+    Example:
+    ```mlir
+    %result = "stablehlo.collective_permute"(%operand) {
+      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    } : (tensor<4x2xf32>) -> tensor<4x2xf32>
+    ```
 
   }];
 
