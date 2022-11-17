@@ -1601,18 +1601,20 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 ### Semantics
 
 Overwrites the `operand` tensor at `start_indices` with values from `update`
-tensor and produces a `result` tensor. More formally,
-`result[start_indices0+j0, ..., start_indicesR-1+jR-1] = update[j0, ..., jR-1]`
-and `result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise where `R` $=$
-rank(`operand`).
+tensor and produces a `result` tensor.
+
+More formally, `result[j0, ..., jR-1] = update[i0, ..., iR-1]` if
+`jd = effective_start_indices[d] + id` where `effective_start_indices[d] = `
+`clamp(start_indices[d], 0, dim(operand, d) - dim(update, d))` and
+`result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise.
 
 ### Inputs
 
-| Name            | Type                                                     |
-|-----------------|----------------------------------------------------------|
-| `operand`       | tensor of any supported type                             |
-| `update`        | tensor of any supported type                             |
-| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+| Name            | Type                                                    |
+|-----------------|---------------------------------------------------------|
+| `operand`       | tensor of any supported type                            |
+| `update`        | tensor of any supported type                            |
+| `start_indices` | variadic number of 0-dimensional tensors of type `si64` |
 
 ### Outputs
 
@@ -1626,11 +1628,8 @@ rank(`operand`).
   * (C2) element_type(`update`) $=$ element_type(`operand`).
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
-  * (C5) Each `start_indices` `dk` is in range [0, shape(`operand`)[`k`]) for
-    all `k` in range [0, rank(`operand`)).
-  * (C6) 0 $\le$ `k`th `start_indices` + shape(`update`)[`k`] $\le$
-    shape(`operand`).
-  * (C7) dim(`update`, `k`) $\ne$ 0 for all `k` in range [0, R).
+  * (C5) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` in range
+    [0, rank(`operand`)).
 
 
 ### Examples
