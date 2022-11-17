@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 #define STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 
+#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
 
@@ -178,10 +179,13 @@ ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 //     [1, -1]
 //   Custom:
 //     [1, ?]
-void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
+std::string dimensionToString(int64_t dim);
 
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims);
+
+FailureOr<SmallVector<int64_t>> parseDimensionSizes(AsmParser& parser);
 ParseResult parseDimensionSizes(AsmParser& parser,
-                                FailureOr<SmallVector<int64_t>>& shape);
+                                FailureOr<SmallVector<int64_t>>& dims);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //
@@ -218,7 +222,6 @@ ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
 //     [1, 2]
 void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
 
-FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser);
 ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 }  // namespace hlo

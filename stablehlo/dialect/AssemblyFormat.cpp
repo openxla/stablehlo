@@ -14,10 +14,13 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/dialect/AssemblyFormat.h"
+#include <cstdint>
+#include <string>
 
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"
 
@@ -301,35 +304,42 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
-void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape) {
-  auto printIntOrQuestion = [&](int64_t value) {
-    if (ShapedType::isDynamic(value))
-      p << '?';
-    else
-      p << value;
-  };
+std::string dimensionToString(int64_t dim) {
+  if (hlo::isDynamicDimSize(dim)) {
+    return "?";
+  }
+  return std::to_string(dim);
+}
+
+void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims) {
   p << '[';
-  llvm::interleaveComma(shape, p, printIntOrQuestion);
+  llvm::interleaveComma(dims, p,
+                        [&p](int64_t dim) { p << dimensionToString(dim); });
   p << ']';
 }
 
-ParseResult parseDimensionSizes(AsmParser& parser,
-                                FailureOr<SmallVector<int64_t>>& shapeResult) {
-  SmallVector<int64_t> shape;
+FailureOr<SmallVector<int64_t>> parseDimensionSizes(AsmParser& parser) {
+  SmallVector<int64_t> dims;
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
-      shape.push_back(ShapedType::kDynamic);
+      dims.push_back(ShapedType::kDynamic);
       return success();
     }
-    return parser.parseInteger(shape.emplace_back());
+    return parser.parseInteger(dims.emplace_back());
   };
-  auto res =
-      parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
-  if (succeeded(res)) {
-    shapeResult = shape;
-  } else {
-    shapeResult = failure();
+  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt))) {
+    return failure();
   }
+  return dims;
+}
+
+ParseResult parseDimensionSizes(AsmParser& parser,
+                                FailureOr<SmallVector<int64_t>>& dims) {
+  auto failOrDims = parseDimensionSizes(parser);
+  if (failed(failOrDims)) {
+    return failure();
+  }
+  dims = std::move(*failOrDims);
   return success();
 }
 
@@ -395,22 +405,12 @@ void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
   printer << ']';
 }
 
-FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser) {
-  SmallVector<int64_t> ints;
+ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
   if (failed(parser.parseCommaSeparatedList(
           AsmParser::Delimiter::Square,
           [&]() { return parser.parseInteger(ints.emplace_back()); }))) {
     return failure();
   }
-  return ints;
-}
-
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
-  auto intsOrFail = parseIntArray(parser);
-  if (failed(intsOrFail)) {
-    return failure();
-  }
-  ints = std::move(*intsOrFail);
   return success();
 }
 

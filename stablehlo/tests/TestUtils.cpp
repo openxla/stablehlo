@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "stablehlo/tests/TestUtils.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -34,11 +35,21 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
 
 namespace {
+
+// Convert dynamic dimensions to -1 for infer tests.
+SmallVector<int64_t> fixDynamicDims(ArrayRef<int64_t> arr) {
+  SmallVector<int64_t> dims;
+  for (int64_t dim : arr) {
+    dims.push_back(isDynamicDimSize(dim) ? -1 : dim);
+  }
+  return dims;
+}
 
 struct InferReturnTypesPattern : public RewritePattern {
   explicit InferReturnTypesPattern(MLIRContext *context)
@@ -99,7 +110,7 @@ struct InferReturnTypeComponentsPattern : public RewritePattern {
     for (const auto &it : llvm::enumerate(components)) {
       if (it.value().hasRank()) {
         newOp->setAttr((StringRef("dims") + Twine(it.index())).str(),
-                       rewriter.getI64ArrayAttr(it.value().getDims()));
+                       rewriter.getI64ArrayAttr(fixDynamicDims(it.value().getDims())));
       }
       if (it.value().getElementType()) {
         newOp->setAttr((Twine("element_type") + Twine(it.index())).str(),

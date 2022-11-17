@@ -53,6 +53,7 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
@@ -196,7 +197,8 @@ LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
         location,
         "expects the size of scale factor to be same as the "
         "feature count, but the size of scale factor is ",
-        scaleShape, " and the feature count is ", featureCount, ".");
+        dimensionToString(scaleShape), " and the feature count is ",
+        dimensionToString(featureCount), ".");
 
   return success();
 }
@@ -557,8 +559,8 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
     auto firstShape = firstRankedType.getShape();
     auto secondShape = secondType.getShape();
     for (int d = 0; d < firstRankedType.getRank(); ++d) {
-      if (!ShapedType::isDynamic(firstShape[d]) &&
-          !ShapedType::isDynamic(secondShape[d]) &&
+      if (!isDynamicDimSize(firstShape[d]) &&
+          !isDynamicDimSize(secondShape[d]) &&
           firstShape[d] != secondShape[d] && d != dimension) {
         return emitOptionalError(
             location, "shapes of operand (", firstRankedIndex, ") and (", i,

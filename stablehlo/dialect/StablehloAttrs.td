@@ -21,8 +21,8 @@ include "mlir/IR/OpBase.td"
 include "mlir/IR/TensorEncoding.td"
 
 def StableHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
-  let parser = "mlir::hlo::parseIntArray($_parser)";
-  let printer = "mlir::hlo::printIntArray($_printer, $_self)";
+  let parser = "mlir::hlo::parseDimensionSizes($_parser)";
+  let printer = "mlir::hlo::printDimensionSizes($_printer, $_self)";
 }
 
 def StableHLO_ScatterDimensionNumbers : AttrDef<StableHLO_Dialect, "ScatterDimensionNumbers"> {
