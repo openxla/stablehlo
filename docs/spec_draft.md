@@ -1628,7 +1628,7 @@ More formally, `result[j0, ..., jR-1] = update[i0, ..., iR-1]` if
   * (C2) element_type(`update`) $=$ element_type(`operand`).
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
-  * (C5) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` in range
+  * (C5) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
     [0, rank(`operand`)).
 
 
