@@ -1390,7 +1390,8 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "GetTupleElement operator";
   let description = [{
-    Returns the element at `index` position of the `operand` tuple as `result`.
+    Extracts element at `index` position of the `operand` tuple and produces a
+    `result`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloget_tuple_element
