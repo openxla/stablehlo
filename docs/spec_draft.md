@@ -889,7 +889,8 @@ The values of `compare_type` have the following semantics:
   * (C2) `lhs`, `rhs`, and `result` have the same shape.
   * (C3) Given `E` is the `lhs` element type, the following are legal values of
          `compare_type`:
-    * If `E` is complex type, `compare_type` = `FLOAT`.
+    * If `E` is complex type, `compare_type` = `FLOAT` and
+      `comparison_direction` $\in$ `{EQ, NE}`.
     * If `E` is signed integer type, `compare_type` = `SIGNED`.
     * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
     * If `E` is floating-type, `compare_type` $\in$ `{FLOAT, TOTALORDER}`.
