@@ -1384,20 +1384,21 @@ implementation-defined.
 
 Performs element-wise log plus one operation on `operand` tensor and produces a
 `result` tensor. For floating-point element types, it implements the `logp1`
-operation from the IEEE-754 specification. Numeric precision is
+operation from the IEEE-754 specification. For complex element types, it
+computes a complex log plus one, with corner cases TBD. Numeric precision is
 implementation-defined.
 
 ### Inputs
 
-| Name      | Type                          |
-|-----------|-------------------------------|
-| `operand` | tensor of floating-point type |
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of floating-point type |
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
 
 ### Constraints
 
