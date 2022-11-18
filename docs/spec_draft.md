@@ -862,8 +862,8 @@ The values of `compare_type` have the following semantics:
   * `FLOAT`: If element-type is floating-type, ordered floating-point comparison
              of `lhs` and `rhs` is performed for all values of
              `comparison_direction` except for `NE` for which unordered
-             comparison is performed. If element-type is complex-type, only `EQ`
-             and `NE` comparison of (real, imag) pairs is supported.
+             comparison is performed. If element-type is complex-type,
+             lexicographic comparison of (real, imag) pairs is performed.
   * `TOTALORDER`: `totalOrder` floating-point comparison of `lhs` and `rhs` as
                   specified in IEEE-754.
   * `SIGNED`: Signed comparison of `lhs` and `rhs`.
