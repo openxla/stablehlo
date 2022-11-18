@@ -1603,10 +1603,11 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 Overwrites the `operand` tensor at `start_indices` with values from `update`
 tensor and produces a `result` tensor.
 
-More formally, `result[j0, ..., jR-1] = update[i0, ..., iR-1]` if
-`jd = effective_start_indices[d] + id` where `effective_start_indices[d] = `
-`clamp(start_indices[d], 0, dim(operand, d) - dim(update, d))` and
-`result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise.
+More formally, `result[j0, ..., jR-1]` is defined as:
+  * `update[i0, ..., iR-1]` if `jd = effective_start_indices[d] + id` where
+    `effective_start_indices[d] = clamp(start_indices[d], 0, dim(operand, d) - `
+    `dim(update, d))`
+  * `result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise.
 
 ### Inputs
 
