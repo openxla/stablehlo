@@ -859,10 +859,11 @@ The values of `comparison_direction` have the following semantics:
   * `LT`: `lhs` $\lt$ `rhs`.
 
 The values of `compare_type` have the following semantics:
-  * `FLOAT`: If element-type is floating-type, ordered floating-point
-             comparison of `lhs` and `rhs` is performed as specified in
-             IEEE-754, if element-type is complex-type lexicographic comparison
-             on (real, imaginary) pairs is performed with corner cases TBD.
+  * `FLOAT`: If element-type is floating-type, ordered floating-point comparison
+             of `lhs` and `rhs` is performed for all values of
+             `comparison_direction` except for `NE` for which unordered
+             comparison is performed. If element-type is complex-type, only `EQ`
+             and `NE` comparison of (real, imag) pairs is supported.
   * `TOTALORDER`: `totalOrder` floating-point comparison of `lhs` and `rhs` as
                   specified in IEEE-754.
   * `SIGNED`: Signed comparison of `lhs` and `rhs`.
@@ -888,12 +889,15 @@ The values of `compare_type` have the following semantics:
   * (C1) `lhs` and `rhs` have the same element type.
   * (C2) `lhs`, `rhs`, and `result` have the same shape.
   * (C3) Given `E` is the `lhs` element type, the following are legal values of
-         `compare_type`:
+         `compare_type` and `comparison_direction`:
     * If `E` is complex type, `compare_type` = `FLOAT` and
-      `comparison_direction` $\in$ `{EQ, NE}`.
-    * If `E` is signed integer type, `compare_type` = `SIGNED`.
-    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
-    * If `E` is floating-type, `compare_type` $\in$ `{FLOAT, TOTALORDER}`.
+      `comparison_direction` $\in$ {`EQ`, `NE`}.
+    * If `E` is signed integer type, `compare_type` = `SIGNED` and
+      `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
+    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`
+      and `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
+    * If `E` is floating-type, `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}
+      and `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
 
 ### Examples
 
