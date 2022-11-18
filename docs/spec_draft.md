@@ -613,27 +613,25 @@ For each group `G` $\in$ `groups`, the operation can be described as:
           start_indices=[s0, s1, ..., sR-1],
             # where
             #  - sk = 0 if k != split_dimension
-            #  - sk = j* dim(operand) / split_count, if k == split_dimension
+            #  - sk = j * dim(operand) // split_count, if k == split_dimension
             #  - R = rank(operand)
-        limit_indices=[l0, l1, ..., lR-1],
+          limit_indices=[l0, l1, ..., lR-1],
             # where
-            #   - lk = dim(operand, k)  if k != split_dimension
-            #   - lk = dim(operand, split_dimension) / split_count, if k == split_dimension
-        strides=[t0, t1, ..., tR-1],
+            #   - lk = dim(operand, k) if k != split_dimension
+            #   - lk = dim(operand, split_dimension) // split_count, if k == split_dimension
+          strides=[t0, t1, ..., tR-1]
             # where
-            #   - lk = 0  if k != split_dimension
-            #   - lk = dim(operand, split_dimension) / split_count, if k == split_dimension
-        ) for j in range(0, split_count)]
+            #   - lk = 0 if k != split_dimension
+            #   - lk = dim(operand, split_dimension) // split_count, if k == split_dimension
+        ) for j in range(split_count)]
     ```
   * `blocks` are scattered to all the execution instances in `G` such that
     `blocks[i]` is send to ith execution instance, for i $\in$ G.
   * Each execution instance in `G` concatenates the received
     blocks along the `concat_dimension` to produce `result` which is given by
-    ```python
-      result = concatenate(received_blocks, concat_dimension)`,
-        where received_blocks = { received blocks sorted based on the order of
-          exection instances in G}
-    ```
+    `result = concatenate(received_blocks, concat_dimension)`,
+        where `received_blocks = { received blocks sorted based on the order of
+          execution instances in G }`.
 
 ### Inputs
 
@@ -667,19 +665,19 @@ For each group `G` $\in$ `groups`, the operation can be described as:
   * (C6) dim(`result`, i) is given by:
     * dim(`operand`, i) / `split_count`, i $=$ `split_dimension`.
     * dim(`operand`, i) * `split_count`, i $=$ `concat_dimension`.
-    * dim(`operand`, i)`, otherwise.
+    * dim(`operand`, i), otherwise.
 
 ### Examples
 
 ```mlir
 // %operand (at ei(0, 0)): [
-//            [1, 2, 3, 4],
-//            [5, 6, 7, 8]
-//           ]
+//                          [1, 2, 3, 4],
+//                          [5, 6, 7, 8]
+//                         ]
 // %operand (at ei(1, 0)): [
-//            [9, 10, 11, 12],
-//            [13, 14, 15, 16]
-//           ]
+//                          [9, 10, 11, 12],
+//                          [13, 14, 15, 16]
+//                         ]
 %result = "stablehlo.all_to_all"(%operand) {
   split_dimension = 1 : i64,
   concat_dimension = 0 : i64,
