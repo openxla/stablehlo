@@ -1382,10 +1382,9 @@ implementation-defined.
 
 ### Semantics
 
-Computes element-wise logarithm of `operand` tensor plus one and produces a
-`result` tensor. More formally,
-`result[i0, ..., iR-1] = log(operand[i0, ..., iR-1] + 1)`, where `log` is the
-operation from IEEE-754 specification. Numeric precision is
+Performs element-wise log plus one operation on `operand` tensor and produces a
+`result` tensor. For floating-point element types, it implements the `logp1`
+operation from the IEEE-754 specification. Numeric precision is
 implementation-defined.
 
 ### Inputs
@@ -1408,7 +1407,7 @@ implementation-defined.
 
 ```mlir
 // %operand: [-2.0, -0.0, -0.999, 7.0, 6.38905621, 15.0]
-%result = "mhlo.log_plus_one"(%operand) : (tensor<6xf32>) -> tensor<6xf32>
+%result = "stablehlo.log_plus_one"(%operand) : (tensor<6xf32>) -> tensor<6xf32>
 // %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
