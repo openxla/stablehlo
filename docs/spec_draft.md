@@ -859,7 +859,7 @@ The values of `comparison_direction` have the following semantics:
   * `LT`: `lhs` $\lt$ `rhs`.
 
 The values of `compare_type` have the following semantics:
-  * `FLOAT`: If element-type is floating-type, standard floating-point
+  * `FLOAT`: If element-type is floating-type, ordered floating-point
              comparison of `lhs` and `rhs` is performed as specified in
              IEEE-754, if element-type is complex-type lexicographic comparison
              on (real, imaginary) pairs is performed with corner cases TBD.
