@@ -567,10 +567,10 @@ The number of groups represents the number of `stablehlo.all_to_all` operations
 executed in parallel.
 
 Given,
-  * `num_pids`: Number of partition ids
-  * `num_rids`: Number of replica ids
-  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }
-  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }
+  * `num_pids`: Number of partition ids.
+  * `num_rids`: Number of replica ids.
+  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }.
+  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }.
   * `size_subgroup`: size of each subgroup in `replica_groups`.
   * `num_subgroup`: number of subgroups in `replica_groups`.
 
@@ -629,9 +629,9 @@ For each group `G` $\in$ `groups`, the operation can be described as:
     `blocks[i]` is send to ith execution instance, for i $\in$ G.
   * Each execution instance in `G` concatenates the received
     blocks along the `concat_dimension` to produce `result` which is given by
-    `result = concatenate(received_blocks, concat_dimension)`,
-        where `received_blocks = { received blocks sorted based on the order of
-          execution instances in G }`.
+    `result = concatenate(received_blocks, concat_dimension)`, where
+    `received_blocks` = { received blocks sorted based on the order of execution
+    instances in `G` }.
 
 ### Inputs
 
@@ -671,12 +671,12 @@ For each group `G` $\in$ `groups`, the operation can be described as:
 
 ```mlir
 // %operand (at ei(0, 0)): [
-//                          [1, 2, 3, 4],
-//                          [5, 6, 7, 8]
+//                          [1.0, 2.0, 3.0, 4.0],
+//                          [5.0, 6.0, 7.0, 8.0]
 //                         ]
 // %operand (at ei(1, 0)): [
-//                          [9, 10, 11, 12],
-//                          [13, 14, 15, 16]
+//                          [9.0, 10.0, 11.0, 12.0],
+//                          [13.0, 14.0, 15.0, 16.0]
 //                         ]
 %result = "stablehlo.all_to_all"(%operand) {
   split_dimension = 1 : i64,
@@ -688,16 +688,16 @@ For each group `G` $\in$ `groups`, the operation can be described as:
 // Assuming num_pids = 1, a single group [ei(0, 0), ei(1, 0)] is formed.
 //
 // %result (at ei(0, 0)): [
-//                         [1, 2],
-//                         [5, 6],
-//                         [9, 10],
-//                         [13, 14]
+//                         [1.0, 2.0],
+//                         [5.0, 6.0],
+//                         [9.0, 10.0],
+//                         [13.0, 14.0]
 //                        ]
 // %result (at ei(1, 0)): [
-//                         [3, 4],
-//                         [7, 8],
-//                         [11, 12],
-//                         [15, 16]
+//                         [3.0, 4.0],
+//                         [7.0, 8.0],
+//                         [11.0, 12.0],
+//                         [15.0, 16.0]
 //                        ]
 ```
 
