@@ -3540,10 +3540,10 @@ converting a floating-point value to a lower precision format using
 bits or mantissa bits exceed that of the operand's, those relevant conversions
 are skipped.
 
- The input values are rounded to the nearest value representable with the given
- number of mantissa bits (using "ties to even" semantics), and any values that
- exceed the range specified by the number of exponent bits are clamped to
- positive or negative infinity.
+The input values are rounded to the nearest value representable with the given
+number of mantissa bits (using "ties to even" semantics), and any values that
+exceed the range specified by the number of exponent bits are clamped to
+positive or negative infinity.
 
 ### Inputs
 
