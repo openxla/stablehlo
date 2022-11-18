@@ -19,7 +19,11 @@ reviews:
       1. Matches the ODS.
       1. Matches
          [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp).
-      1. If there are any mismatches, check that there are corresponding tickets.
+      1. If there are any mismatches, check that there are corresponding
+         tickets. If the ticket happens to be a generic one, applied to multiple
+         similar mismatches, then make sure to add a link of the ticket in all
+         the affected PRs: to keep track of all the PRs linked to the common
+         ticket.
       1. If the corresponding parts of the ODS and StablehloOps.cpp match the
          spec, check that the "Verification" and "Type Inference" columns in
          [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md)
