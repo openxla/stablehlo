@@ -789,9 +789,10 @@ matrix, then the behavior is undefined.
 
 Clamps every element of the `operand` tensor between a minimum and maximum
 value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
-`minimum(maximum(operand[i0, ..., iR-1], min[i0, ..., iR-1]), max[i0, ..., iR-1])`,
-where `minimum` and `maximum` operations correspond to
-[stablehlo.minimum](#stablehlominimum) and
+`minimum(maximum(operand[i0, ..., iR-1], min_val), max_val)`,
+where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
+`max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`, `minimum` and `maximum`
+operations correspond to [stablehlo.minimum](#stablehlominimum) and
 [stablehlo.maximum](#stablehlomaximum).
 
 ### Inputs
@@ -809,8 +810,11 @@ where `minimum` and `maximum` operations correspond to
 | `result` | tensor of any supported type |
 
 ### Constraints
-
-  * (C1) `min`, `operand`, `max`, and `result` have the same type.
+  
+  * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
+  * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
+  * (C3) `min`, `operand`, and `max` have the same element type.
+  * (C4) `operand` and `result` have the same type.
 
 ### Examples
 
