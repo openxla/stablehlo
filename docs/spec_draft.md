@@ -2226,7 +2226,7 @@ overflow, the result is implementation-defined and one of the following:
 
   * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
