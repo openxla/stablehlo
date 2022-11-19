@@ -19,6 +19,10 @@ limitations under the License.
 
 include "mlir/IR/OpBase.td"
 
+//===----------------------------------------------------------------------===//
+// Versioned Dialect Constants and Declaration
+//===----------------------------------------------------------------------===//
+
 def VersionedHLO_Dialect : Dialect {
   let name = "versionedhlo";
   let cppNamespace = "::mlir::versionedhlo";

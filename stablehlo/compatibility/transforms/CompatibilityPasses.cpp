@@ -21,12 +21,15 @@ limitations under the License.
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "stablehlo/compatibility/dialect/VersionNumber.h"
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
 #include "stablehlo/compatibility/transforms/CompatibilityTypeConversion.h"
 #include "stablehlo/compatibility/transforms/MapStablehloToVersionedStablehlo.h"
@@ -45,8 +48,7 @@ namespace versionedhlo {
 /// Registers all Torch transformation passes.
 void registerStablehloCompatibilityPasses() { registerPasses(); }
 
-namespace {
-// FIXME: This should be removed when we have stablehlo.func
+// From CompatibilityTypeConversion.h
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter) {
@@ -64,6 +66,8 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
   populateCallOpTypeConversionPattern(patterns, converter);
   populateReturnOpTypeConversionPattern(patterns, converter);
 }
+
+namespace {
 
 //////////////////////////////////
 /// StableHLO --> VersionedHLO ///
@@ -461,25 +465,6 @@ void populateVersionedhloToStablehloPatterns(RewritePatternSet* patterns,
 /// VersionedHLO To Version ///
 ///////////////////////////////
 namespace {
-// Parse x.y.z --> int64_t(y)
-int64_t getMinorVersion(llvm::StringRef ref) {
-  // FIXME: Move these to constants in the tablegen.
-  if (ref == "current") {
-    return 100;  // max?
-  }
-  if (ref == "minimum") {
-    return 0;
-  }
-
-  // Precondition: must be x.y.z
-  auto isDot = [](char c) { return c == '.'; };
-  auto majorS = ref.drop_until(isDot).drop_front(1).take_until(isDot);
-  int64_t major;
-  if (majorS.getAsInteger(/*radix=*/10, major)) {
-    return -1;  // FIXME: This function needs better error handling.
-  }
-  return major;
-}
 
 struct VersionedhloToVersionPass
     : public impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass> {
@@ -488,38 +473,60 @@ struct VersionedhloToVersionPass
   VersionedhloToVersionPass(VersionedhloToVersionPassOptions const& opts)
       : impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass>(opts) {}
 
+  FailureOr<VersionNumber> validateTargetVersion(llvm::StringRef versionRef) {
+    auto failOrVersion = VersionNumber::get(targetVersion);
+    if (failed(failOrVersion)) {
+      return emitError(
+          getOperation()->getLoc(),
+          "invalid target version number argument " + targetVersion);
+    }
+    VersionNumber targetVersionNumber = *failOrVersion;
+    if (targetVersionNumber < VersionNumber::getMinimumSupported()) {
+      return emitError(getOperation()->getLoc())
+             << "target version " << targetVersion
+             << " is less than minimum supported";
+    }
+    if (VersionNumber::getCurrent() < targetVersionNumber) {
+      return emitError(getOperation()->getLoc())
+             << "target version " << targetVersion
+             << " is greater than current version";
+    }
+    return targetVersionNumber;
+  }
+
   void runOnOperation() override {
     ConversionTarget target(getContext());
-    VersionedhloToVersionPassOptions opts{targetVersion};
 
-    // An op is legal if the target version is in the ops `[min, max)`
-    // supported version range, or target and op are the current verison.
+    // Validate version number
+    auto failOrVersion = validateTargetVersion(targetVersion);
+    if (failed(failOrVersion)) {
+      return signalPassFailure();
+    }
+    VersionNumber targetVersionNumber = *failOrVersion;
+
+    // An op is legal if the target version is in the ops `[min, max]`
+    // supported version range.
     // Example:
-    //   CustomCallv1 0.0.0 -> 0.1.0
-    //   CustomCallv2 0.1.0 -> 0.5.0
+    //   CustomCallv1 0.0.0 -> 0.0.x
+    //   CustomCallv2 0.1.0 -> 0.4.x
     //   CustomCallv3 0.5.0 -> Curr
     // Target Curr (0.5.0):
-    //   v3 legal    { Curr  in [0.5.0, Curr] }
-    //   v2 illegal  { Curr !in [0.1.0, 0.5.0) }
-    //   v1 illegal  { Curr !in [0.0.0, 0.1.0) }
+    //   v3 legal    { Curr  in [0.5, Curr] }
+    //   v2 illegal  { Curr !in [0.1, 0.4] }
+    //   v1 illegal  { Curr !in [0.0, 0.0] }
     // Target 0.4.0:
-    //   v3 illegal { 0.4 !in [0.5.0, Curr] }
-    //   v2 legal   { 0.4  in [0.1.0, 0.5.0) }
-    //   v1 illegal { 0.4 !in [0.0.0, 0.5.0) }
+    //   v3 illegal { 0.4 !in [0.5, Curr] }
+    //   v2 legal   { 0.4  in [0.1, 0.4] }
+    //   v1 illegal { 0.4 !in [0.0, 0.0] }
     // Target 0.0.0:
     //   v3 illegal { 0.0 !in [0.5, Curr] }
-    //   v2 illegal { 0.1 !in [0.0, 0.5) }
-    //   v1 legal   { 0.0  in [0.0, 0.1) }
-    target.addDynamicallyLegalDialect<VersionedhloDialect>([&opts](
+    //   v2 illegal { 0.1 !in [0.1, 0.4] }
+    //   v1 legal   { 0.0  in [0.0, 0.1] }
+    target.addDynamicallyLegalDialect<VersionedhloDialect>([&targetVersionNumber](
                                                                Operation* op) {
-      if (auto versionInterface = dyn_cast<VersionInterface>(op)) {
-        int64_t targetVersion = getMinorVersion(opts.targetVersion);
-        int64_t minVersion = getMinorVersion(versionInterface.getMinVersion());
-        int64_t maxVersion = getMinorVersion(versionInterface.getMaxVersion());
-        bool isCurrent =
-            (targetVersion == maxVersion && opts.targetVersion == "current");
-        return (minVersion <= targetVersion && targetVersion < maxVersion) ||
-               isCurrent;
+      if (auto interface = dyn_cast<VersionInterface>(op)) {
+        return (interface.getMinVersion() <= targetVersionNumber &&
+                targetVersionNumber <= interface.getMaxVersion());
       }
       return false;
     });
@@ -527,7 +534,7 @@ struct VersionedhloToVersionPass
     versionedhlo::VersionedTypeConverterBase converter;
     RewritePatternSet patterns(&getContext());
     versionedhlo::populateVersionedhloToVersionPatterns(&patterns, &converter,
-                                                        &getContext(), opts);
+                                                        &getContext());
 
     // Conversion from VersionedHLO to StableHLO should never fail.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -603,9 +610,9 @@ struct CustomCallOpV1Downgrade
 
 }  // namespace
 
-void populateVersionedhloToVersionPatterns(
-    RewritePatternSet* patterns, TypeConverter* converter, MLIRContext* context,
-    VersionedhloToVersionPassOptions const& opts) {
+void populateVersionedhloToVersionPatterns(RewritePatternSet* patterns,
+                                           TypeConverter* converter,
+                                           MLIRContext* context) {
   patterns->add<CustomCallOpV2Upgrade>(*converter, context);
   patterns->add<CustomCallOpV1Downgrade>(*converter, context);
 }

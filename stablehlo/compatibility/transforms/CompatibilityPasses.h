@@ -41,8 +41,8 @@ void populateVersionedhloToStablehloPatterns(RewritePatternSet *patterns,
                                              MLIRContext *context);
 
 // Populates Versioned StableHLO downgrade rewriting patterns.
-void populateVersionedhloToVersionPatterns(
-    RewritePatternSet *patterns, TypeConverter *converter, MLIRContext *context,
-    VersionedhloToVersionPassOptions const &opts);
+void populateVersionedhloToVersionPatterns(RewritePatternSet *patterns,
+                                           TypeConverter *converter,
+                                           MLIRContext *contexts);
 }  // namespace versionedhlo
 }  // namespace mlir

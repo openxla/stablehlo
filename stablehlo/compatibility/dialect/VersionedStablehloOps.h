@@ -17,9 +17,10 @@ limitations under the License.
 #ifndef STABLEHLO_COMPATIBILITY_VERSIONED_STABLEHLO_OPS_H
 #define STABLEHLO_COMPATIBILITY_VERSIONED_STABLEHLO_OPS_H
 
-#include <algorithm>
+#include "stablehlo/compatibility/dialect/VersionNumber.h"
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -56,6 +57,15 @@ class VersionedhloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+
+  // Return a value represenging the max supported dialect
+  static llvm::StringRef getCurrentDialectVersion() {
+    return "0.2.0";
+  }
+
+  static llvm::StringRef getMinimumDialectVersion() {
+    return "0.0.0";
+  }
 };
 
 class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {

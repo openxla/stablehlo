@@ -26,18 +26,9 @@ include "mlir/IR/AttrTypeBase.td"
 // Attributes
 //===----------------------------------------------------------------------===//
 
-// FIXME: Use shared AssemblyFormat code.
 def VersionedHLO_Dim : ArrayRefParameter<"int64_t", "Dimension"> {
-  let printer = [{ $_printer << '['; llvm::interleaveComma($_self, $_printer); $_printer << ']' }];
-  let parser = [{
-      [&]() -> FailureOr<SmallVector<int64_t>> {
-      SmallVector<int64_t> dims;
-      if ($_parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&](){
-        return $_parser.parseInteger(dims.emplace_back());
-      })) return failure();
-      return dims;
-    }();
-  }];
+  let parser = "mlir::hlo::parseIntArray($_parser)";
+  let printer = "mlir::hlo::printIntArray($_printer, $_self)";
 }
 
 def VersionedHLO_ScatterDimensionNumbers : AttrDef<VersionedHLO_Dialect, "ScatterDimensionNumbers"> {

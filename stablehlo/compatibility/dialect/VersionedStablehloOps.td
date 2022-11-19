@@ -30,9 +30,9 @@ include "mlir/IR/OpBase.td"
 def VersionInterface : OpInterface<"VersionInterface"> {
   let methods = [
     InterfaceMethod<
-      "Description...", "llvm::StringLiteral", "getMinVersion">,
+      "Description...", "mlir::versionedhlo::VersionNumber", "getMinVersion">,
     InterfaceMethod<
-      "Description...", "llvm::StringLiteral", "getMaxVersion">,
+      "Description...", "mlir::versionedhlo::VersionNumber", "getMaxVersion">,
   ];
 }
 
@@ -43,13 +43,13 @@ def VersionInterface : OpInterface<"VersionInterface"> {
 class VersionedHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion = "0.0.0", string maxVersion = "current"> :
     Op<VersionedHLO_Dialect, mnemonic, 
       [DeclareOpInterfaceMethods<VersionInterface>] # traits> {
-    let extraClassDefinition = [{
-      llvm::StringLiteral $cppClass::getMinVersion() {
-        return llvm::StringLiteral("}] #  minVersion # [{");
-      }
-      llvm::StringLiteral $cppClass::getMaxVersion() {
-        return llvm::StringLiteral("}] #  maxVersion # [{");
-      }
+  let extraClassDefinition = [{
+    mlir::versionedhlo::VersionNumber $cppClass::getMinVersion() {
+      return *mlir::versionedhlo::VersionNumber::get("}] #  minVersion # [{");
+    }
+    mlir::versionedhlo::VersionNumber $cppClass::getMaxVersion() {
+      return *mlir::versionedhlo::VersionNumber::get("}] #  maxVersion # [{");
+    }
   }];
 }
 
@@ -610,7 +610,7 @@ def VersionedHLO_CrossReplicaSumOp : VersionedHLO_Op<"cross-replica-sum"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VersionedHLO_CustomCallOp: VersionedHLO_Op<"custom_call", "0.0.0", "0.1.0"> {
+def VersionedHLO_CustomCallOp: VersionedHLO_Op<"custom_call", "0.0.0", "0.0.0"> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,

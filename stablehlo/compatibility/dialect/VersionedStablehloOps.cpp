@@ -15,6 +15,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -29,6 +30,8 @@ limitations under the License.
 
 namespace mlir {
 namespace versionedhlo {
+
+using mlir::hlo::printIntArray;
 
 //===----------------------------------------------------------------------===//
 // StableHLO Dialect Constructor

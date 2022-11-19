@@ -33,6 +33,7 @@ add_mlir_dialect_library(VersionedStablehloOps
   VersionedStablehloOpsIncGen
 
   LINK_LIBS PUBLIC
+  StablehloAssemblyFormat
   MLIRIR
   MLIRSupport
   MLIRQuantDialect

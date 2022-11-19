@@ -56,5 +56,11 @@ class VersionedhloToStablehloTypeConverter : public VersionedTypeConverterBase {
   }
 };
 
+// Complements conversion patterns with boilerplate that makes sure `func.func`,
+// `func.call` and `func.return` ops which involve illegal types get converted
+// to use legal types.
+void registerFuncOpsForTypeConversion(ConversionTarget& target,
+                                      RewritePatternSet& patterns,
+                                      TypeConverter& converter);
 }  // namespace versionedhlo
 }  // namespace mlir
