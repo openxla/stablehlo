@@ -377,6 +377,7 @@ syntax.
    * [real](#stablehloreal)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
+   * [replica_id](#stablehloreplica_id)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
@@ -2857,6 +2858,33 @@ implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [2, -2, 2, -2]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.replica_id
+
+### Semantics
+
+Returns the unique id of the replica in the interval [0, N), where N is the
+number of replicas. Since all the replicas are running the same program, a
+`stablehlo.replica_id` call in the program will return a different value on each
+replica.
+
+### Outputs
+
+| Name     | Type                  |
+|----------|-----------------------|
+| `result` | tensor of type `ui32` |
+
+### Constraints
+
+  * (C1) rank(`result`) $=$ 0.
+
+### Examples
+
+```mlir
+%result = stablehlo.replica_id : tensor<ui32>
 ```
 
 [Back to Ops](#index-of-ops)

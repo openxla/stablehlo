@@ -1079,19 +1079,15 @@ def StableHLO_ReplicaIdOp : StableHLO_Op<"replica_id", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "ReplicaId operator";
   let description = [{
-    Returns the unique ID (int32 scalar) of the replica.
+    Returns the unique id of the replica in the interval [0, N), where N is the
+    number of replicas.
 
-    The unique ID of each replica is an unsigned integer in the interval [0, N),
-    where N is the number of replicas. Since all the replicas are running the
-    same program, a ReplicaId() call in the program will return a different
-    value on each replica.
-
-    See https://www.tensorflow.org/xla/operation_semantics#replicaid.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreplica_id
 
     Example:
-
     ```mlir
-    %0 = stablehlo.replica_id : tensor<ui32>
+    %result = stablehlo.replica_id : tensor<ui32>
     ```
   }];
   let results = (outs TensorOf<[UI32]>);

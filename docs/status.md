@@ -122,7 +122,7 @@ one of the following tracking labels.
 | reduce_scatter           | no            | revisit      | no             | no              | no          |
 | reduce_window            | no            | yes*         | yes*           | no              | no          |
 | remainder                | yes           | yes          | yes            | yes             | no          |
-| replica_id               | no            | revisit      | revisit        | yes             | no          |
+| replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
 | return                   | no            | revisit      | no             | yes             | no          |
 | reverse                  | yes           | revisit      | yes            | yes             | no          |
