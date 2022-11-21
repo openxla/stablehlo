@@ -350,11 +350,11 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
     }
   }
 
-  if (isUniformSized && expectedSubgroupSize)
-    if (ids.size() / replicaGroupType.getShape()[0] != *expectedSubgroupSize)
-      return emitOptionalError(location,
-                               "subgroup size of replica_groups must be ",
-                               *expectedSubgroupSize);
+  if (isUniformSized && expectedSubgroupSize &&
+      (ids.size() / replicaGroupType.getShape()[0] != *expectedSubgroupSize))
+    return emitOptionalError(location,
+                             "subgroup size of replica_groups must be ",
+                             *expectedSubgroupSize);
 
   return success();
 }

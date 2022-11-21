@@ -651,7 +651,8 @@ The formation of groups is defined as follows:
     * For example, assuming `num_pids = 2` and `replica_groups = [[4, 5], [6, 7]]`:
       `groups` formed: `[ei(2, 0), ei(2, 1)] and [ei(3, 0), ei(3, 1)]`.
 
-For each group `G` $\in$ `groups`, the `result` is given by:
+For each group `G` $\in$ `groups`, the `result`, to be visible by each member of
+`G`, is given by:
 `concatenate(operands, all_gather_dim)`, where `operands` =
 { `operand` corresponding to the execution instances, following their order, in
 `G` }.
