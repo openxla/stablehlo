@@ -227,7 +227,7 @@ class CompatibleOperandsAndResultType
 
   // This function is not going to be called automatically.
   // It needs to be paired with INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS
-  // (see examples in StablehloOps.cc).
+  // (see examples in StablehloOps.cpp).
   static LogicalResult inferReturnTypeComponentsFromOperands(
       MLIRContext *context, Optional<Location> location,
       ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,

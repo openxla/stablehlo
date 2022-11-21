@@ -968,6 +968,15 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
   return success();
 }
 
+LogicalResult inferOptimizationBarrierOp(
+    ValueRange inputs, SmallVectorImpl<Type>& inferredReturnTypes) {
+  for (auto inputArgType : inputs.getTypes()) {
+    inferredReturnTypes.emplace_back(inputArgType);
+  }
+
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that

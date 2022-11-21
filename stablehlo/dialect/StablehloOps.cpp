@@ -3291,6 +3291,18 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 }
 
 //===----------------------------------------------------------------------===//
+// OptimizationBarrierOp
+//===----------------------------------------------------------------------===//
+LogicalResult OptimizationBarrierOp::inferReturnTypes(
+    MLIRContext*, Optional<Location>, ValueRange operands,
+    DictionaryAttr attributes, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  OptimizationBarrierOp::Adaptor adaptor(operands, attributes);
+  return hlo::inferOptimizationBarrierOp(adaptor.getOperand(),
+                                         inferredReturnTypes);
+}
+
+//===----------------------------------------------------------------------===//
 // RngBitGeneratorOp
 //===----------------------------------------------------------------------===//
 
