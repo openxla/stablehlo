@@ -470,7 +470,7 @@ LogicalResult TopKOp::inferReturnTypeComponents(
     return emitOptionalError(location, "operand's rank must be at least 1");
   }
   auto operandLastDim = operandTy.getShape()[operandTy.getRank() - 1];
-  if (operandLastDim == ShapedType::kDynamicSize) {
+  if (operandLastDim == ShapedType::kDynamic) {
     return emitOptionalError(location,
                              "operand's last dimension must be static");
   }

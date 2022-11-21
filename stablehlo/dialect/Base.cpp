@@ -189,8 +189,8 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
                                                          int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
-  int64_t size = ShapedType::kDynamicSize;
-  int64_t bound = ShapedType::kDynamicSize;
+  int64_t size = ShapedType::kDynamic;
+  int64_t bound = ShapedType::kDynamic;
 
   if (isLeftStaticDim && isRightStaticDim) {
     size = leftSize + rightSize;
@@ -220,8 +220,8 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
   bool isLeftStaticBound = !isDynamicDimSize(leftBound);
   bool isRightStaticBound = !isDynamicDimSize(rightBound);
-  int64_t size = ShapedType::kDynamicSize;
-  int64_t bound = ShapedType::kDynamicSize;
+  int64_t size = ShapedType::kDynamic;
+  int64_t bound = ShapedType::kDynamic;
 
   if (isLeftStaticDim || isRightStaticDim) {
     if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
@@ -259,8 +259,8 @@ LogicalResult inferMostSpecificType(
   }
 
   auto rank = rankedTypes[0].getRank();
-  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
-  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamic);
+  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
   bool anyInputHaveBounds = false;
 
   for (const auto& it : llvm::enumerate(rankedTypes)) {
@@ -273,8 +273,7 @@ LogicalResult inferMostSpecificType(
       int64_t leftSize = inferredSizes[dim];
       int64_t rightSize = rankedType.getShape()[dim];
       int64_t leftBound = inferredBounds[dim];
-      int64_t rightBound =
-          bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
+      int64_t rightBound = bounds.empty() ? ShapedType::kDynamic : bounds[dim];
 
       auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
           location, dim, leftSize, rightSize, leftBound, rightBound);

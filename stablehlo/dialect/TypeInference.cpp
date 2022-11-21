@@ -279,7 +279,7 @@ SmallVector<int64_t> inferWindowOutputShape(
   SmallVector<int64_t> outputDimensions(window.size());
   for (int64_t i = 0; i < static_cast<int64_t>(window.size()); ++i) {
     if (isDynamicDimSize(baseShape[i]) || isDynamicDimSize(window[i].size)) {
-      outputDimensions[i] = ShapedType::kDynamicSize;
+      outputDimensions[i] = ShapedType::kDynamic;
     } else {
       const auto& dim = window[i];
 
@@ -431,7 +431,7 @@ LogicalResult verifyReducerShape(
          argShapeIdx < static_cast<int64_t>(argShape.size());
          outputShapeIdx++)
       if (allowedDimensions[outputShapeIdx] == argShape[argShapeIdx] ||
-          argShape[argShapeIdx] == ShapedType::kDynamicSize)
+          argShape[argShapeIdx] == ShapedType::kDynamic)
         argShapeIdx++;
 
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
@@ -579,8 +579,8 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
 
   // Infer the most specific (size, bound) of all dimensions of the return type
   auto rank = firstRankedType.getRank();
-  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamicSize);
-  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamic);
+  SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
   // Note: for the concatenate dimension, 0 should be the identity element:
   // Any dim size can keep unchanged when concatenated with 0
   inferredSizes[dimension] = 0;
@@ -602,10 +602,9 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
 
       int64_t leftSize = inferredSizes[dim];
       int64_t rightSize =
-          rankedType ? rankedType.getShape()[dim] : ShapedType::kDynamicSize;
+          rankedType ? rankedType.getShape()[dim] : ShapedType::kDynamic;
       int64_t leftBound = inferredBounds[dim];
-      int64_t rightBound =
-          bounds.empty() ? ShapedType::kDynamicSize : bounds[dim];
+      int64_t rightBound = bounds.empty() ? ShapedType::kDynamic : bounds[dim];
       if (dim == dimension) {
         inferredDimAndBound = inferConcatenatedDimAndBound(
             leftSize, rightSize, leftBound, rightBound);
@@ -880,10 +879,9 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
                              ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
-  SmallVector<int64_t> resultShape(rank, ShapedType::kDynamicSize);
+  SmallVector<int64_t> resultShape(rank, ShapedType::kDynamic);
   ArrayRef<int64_t> inputBounds = encodingToBounds(inputType.getEncoding());
-  SmallVector<int64_t> resultBounds(inputBounds.size(),
-                                    ShapedType::kDynamicSize);
+  SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int i = 0, e = inputShape.size(); i < e; i++) {
     int64_t paddingLowVal = edgePaddingLow.getValues<APInt>()[i].getSExtValue();
@@ -1153,9 +1151,8 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
   SmallVector<int64_t, 4> strideVals(strides.getValues<int64_t>());
 
   ArrayRef<int64_t> inputBounds = encodingToBounds(rankedTy.getEncoding());
-  SmallVector<int64_t> shape(rank, ShapedType::kDynamicSize);
-  SmallVector<int64_t> resultBounds(inputBounds.size(),
-                                    ShapedType::kDynamicSize);
+  SmallVector<int64_t> shape(rank, ShapedType::kDynamic);
+  SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int64_t i = 0, e = rank; i != e; i++) {
     // P3.
