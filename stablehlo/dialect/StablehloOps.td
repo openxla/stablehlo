@@ -707,15 +707,16 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
       [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Atan2 operator";
   let description = [{
-    Returns `atan2(lhs/rhs)` element-wise.
+    Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces
+    a `result` tensor, implementing the `atan2` operation from the IEEE-754
+    specification.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloatan2
 
     Example:
-
     ```mlir
-    %0 = stablehlo.atan2 %arg0, %arg1 : tensor<4xi32>
+    %result = stablehlo.atan2 %lhs, %rhs : tensor<3xf32>
     ```
   }];
 }
