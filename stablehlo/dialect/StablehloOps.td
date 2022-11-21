@@ -1997,10 +1997,11 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
-    [Pure, HLO_CompatibleOperandsAndResultType]> {
+    [HLO_CompatibleOperandsAndResultType]> {
   let summary = "CollectivePermute operator";
   let description = [{
-    Sends and receives data between source and target replicas mentioned in `source_target_pairs`.
+    Within each process group in the StableHLO grid, sends and receives data
+    between processes in the group.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocollective_permute

@@ -61,7 +61,7 @@ one of the following tracking labels.
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |
 | clamp                    | yes           | revisit      | yes            | yes             | no          |
-| collective_permute       | yes           | yes          | yes            | no              | no          |
+| collective_permute       | yes           | revisit      | yes            | no              | no          |
 | compare                  | yes           | yes          | yes            | yes             | no          |
 | complex                  | yes           | yes          | yes            | yes             | no          |
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |

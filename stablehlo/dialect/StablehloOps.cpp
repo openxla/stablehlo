@@ -1456,7 +1456,7 @@ LogicalResult AbsOp::inferReturnTypes(
 // Verifies the source target pairs attached to collective permute.
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
     Operation* op, DenseIntElementsAttr attr) {
-  auto type = attr.getType().dyn_cast<RankedTensorType>();
+  auto type = attr.getType().cast<RankedTensorType>();
   if (type.getRank() != 2)
     return op->emitError() << "expect source_target_pairs attribute to be of "
                               "rank 2, but got rank "
