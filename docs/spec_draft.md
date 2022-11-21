@@ -189,6 +189,7 @@ described below)
    * [imag](#stablehloimag)
    * [iota](#stablehloiota)
    * [log](#stablehlolog)
+   * [log_plus_one](#stablehlolog_plus_one)
    * [logistic](#stablehlologistic)
    * [map](#stablehlomap)
    * [maximum](#stablehlomaximum)
@@ -1546,6 +1547,42 @@ implementation-defined.
 // %operand: (1.0, 2.0)
 %result = "stablehlo.log"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (0.80471896, 1.10714871)
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.log_plus_one
+
+### Semantics
+
+Performs element-wise log plus one operation on `operand` tensor and produces a
+`result` tensor. For floating-point element types, it implements the `logp1`
+operation from the IEEE-754 specification. For complex element types, it
+computes a complex log plus one, with corner cases TBD. Numeric precision is
+implementation-defined.
+
+### Inputs
+
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [-2.0, -0.0, -0.999, 7.0, 6.38905621, 15.0]
+%result = "stablehlo.log_plus_one"(%operand) : (tensor<6xf32>) -> tensor<6xf32>
+// %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
 [Back to Ops](#index-of-ops)
