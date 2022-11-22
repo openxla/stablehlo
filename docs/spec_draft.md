@@ -2372,7 +2372,7 @@ hidden state.
 
 Performs element-wise rounding towards the nearest integer, breaking ties
 towards the even integer, on the `operand` tensor and produces a `result`
-tensor.
+tensor. Implements the `roundToIntegralTiesToEven` operation from the IEEE-754 specification.
 
 ### Inputs
 
