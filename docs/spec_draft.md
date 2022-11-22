@@ -385,6 +385,7 @@ syntax.
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
    * [real](#stablehloreal)
+   * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [replica_id](#stablehloreplica_id)
@@ -397,6 +398,7 @@ syntax.
    * [rsqrt](#stablehlorsqrt)
    * [scatter](#stablehloscatter)
    * [select](#stablehloselect)
+   * [send](#stablehlosend)
    * [shift_left](#stablehloshift_left)
    * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
    * [shift_right_logical](#stablehloshift_right_logical)
@@ -3080,6 +3082,87 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.recv
+
+### Semantics
+
+Receives data to a partition from a [stablehlo.send](#stablehlosend)
+instruction, in another partition, that shares the same channel handle
+`channel_handle`.
+
+`stablehlo.recv`, paired with the corresponding [stablehlo.send](#stablehlosend)
+instruction, represents synchronous communication. However, in order to enable
+asynchronous data transfers, it is decomposed into two HLO instructions
+(`Recv` and `RecvDone`). Similarly, the paired
+[stablehlo.send](#stablehlosend) is internally decomposed into two HLO
+instructions (`Send` and `SendDone`).
+
+These 4 instructions, each associated with a particular channel, has the
+following semantics:
+
+  * **Recv**: Initiator of the channel by allocating the receive buffer and
+              notifying the sender that it is ready to receive data.
+  * **Send**: Waits for the Recv notification and starts the data transfer to
+              the receive buffer.
+  * **SendDone**: Waits until the Send operation is done, so that the sender
+                  buffer can be reused for other purposes.
+  * **RecvDone**: waits until the data transfer is done and the receive buffer
+                  is ready for use.
+
+The diagram shows the execution order of the instructions.
+
+<img align="center" src="spec_draft/happens-before.svg" />
+
+`channel_handle` is the unique identifier for each
+[stablehlo.send](#stablehlorsend)/[stablehlo.recv](#stablehlorecv) pair. It is
+represented using a `channel-id` and a `channel-type`. A `channel-id` is used
+for cross-partition communication; only operations with the same opcode and
+`channel-id` can communicate to each other. The `channel-type` type has the
+following semantics:
+
+  * `CHANNEL_TYPE_INVALID`: Invalid primitive type to serve as default.
+  * `DEVICE_TO_DEVICE`: A channel for sending data between devices.
+  * `DEVICE_TO_HOST`: A channel for sending data from the device to the host.
+                      Can only be used with a `stablehlo.send` operation.
+  * `HOST_TO_DEVICE`: A channel for sending data from the host to the device.
+                      Can only be used with a `stablehlo.recv` operation.
+
+If `is_host_transfer`, an optional input with default value as `fasle`, is
+`true`, then the operation transfers data from the host.
+
+### Inputs
+
+| Name               | Type                                                                                                                                                     |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `token`            | `token`                                                                                                                                                  |
+| `channel_handle`   | constant of type struct { `channel-id`: `si64`, `channel-type`: enum of `CHANNEL_TYPE_INVALID`, `DEVICE_TO_DEVICE`, `DEVICE_TO_HOST`, `HOST_TO_DEVICE` } |
+| `is_host_transfer` | constant of type `i1`                                                                                                                                    |
+
+### Outputs
+
+| Name      | Type                                                      |
+|-----------|-----------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or token |
+
+### Constraints
+  * (C1) [ticket](https://github.com/openxla/stablehlo/issues/579) `channel-type` must be
+    * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+  * (C2) size(`results`) >= 1.
+  * (C3) type(`results`[-1]) $=$ `token`.
+
+### Examples
+
+```mlir
+%result:2 = "stablehlo.recv"(%token) {
+  channel_handle = #stablehlo.channel_handle< handle = 5, type = 3>,
+  is_host_transfer = true
+} : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+```
+
+[Back to Ops](#index-of-ops)
+
+
 ## stablehlo.reduce
 
 ### Semantics
@@ -3727,6 +3810,85 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %on_false: [[5, 6], [7, 8]]
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.send
+
+### Semantics
+
+Sends data `inputs` from one partition to a [stablehlo.recv](#stablehlorecv)
+instruction, in another partition, that shares the same channel handle
+`channel_handle`.
+
+`stablehlo.send`, paired with the corresponding [stablehlo.recv](#stablehlorecv)
+instruction, represents synchronous communication. However, in order to enable
+asynchronous data transfers, it is decomposed into two HLO instructions
+(`Send` and `SendDone`). Similarly, the paired
+[stablehlo.recv](#stablehlorecv) is internally decomposed into two HLO
+instructions (`Recv` and `RecvDone`).
+
+These 4 instructions, each associated with a particular channel, has the
+following semantics:
+
+  * **Recv**: Initiator of the channel by allocating the receive buffer and
+              notifying the sender that it is ready to receive data.
+  * **Send**: Waits for the Recv notification and starts the data transfer to
+              the receive buffer.
+  * **SendDone**: Waits until the Send operation is done, so that the sender
+                  buffer can be reused for other purposes.
+  * **RecvDone**: waits until the data transfer is done and the receive buffer
+                  is ready for use.
+
+The diagram shows the execution order of the instructions.
+
+<img align="center" src="spec_draft/happens-before.svg" />
+
+`channel_handle` is the unique identifier for each
+[stablehlo.send](#stablehlorsend)/[stablehlo.recv](#stablehlorecv) pair. It is
+represented using a `channel-id` and a `channel-type`. A `channel-id` is used
+for cross-partition communication; only operations with the same opcode and
+`channel-id` can communicate to each other. The `channel-type` type has the
+following semantics:
+
+  * `CHANNEL_TYPE_INVALID`: Invalid primitive type to serve as default.
+  * `DEVICE_TO_DEVICE`: A channel for sending data between devices.
+  * `DEVICE_TO_HOST`: A channel for sending data from the device to the host.
+                      Can only be used with a `stablehlo.send` operation.
+  * `HOST_TO_DEVICE`: A channel for sending data from the host to the device.
+                      Can only be used with a `stablehlo.recv` operation.
+
+If `is_host_transfer`, an optional input with default value as `fasle`, is
+`true`, then the operation transfers data to the host.
+
+### Inputs
+
+| Name               | Type                                                                                                                                                     |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `inputs`           | variadic number of tensors of any supported type                                                                                                         |
+| `token`            | `token`                                                                                                                                                  |
+| `channel_handle`   | constant of type struct { `channel-id`: `si64`, `channel-type`: enum of `CHANNEL_TYPE_INVALID`, `DEVICE_TO_DEVICE`, `DEVICE_TO_HOST`, `HOST_TO_DEVICE` } |
+| `is_host_transfer` | constant of type `i1`                                                                                                                                    |
+
+### Outputs
+
+| Name      | Type  |
+|-----------|-------|
+| `results` | token |
+
+### Constraints
+  * (C1) [ticket](https://github.com/openxla/stablehlo/issues/579) `channel-type` must be
+    * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+
+### Examples
+
+```mlir
+%result = "stablehlo.send"(%operand, %token) {
+  channel_handle = #stablehlo.channel_handle< handle = 5, type = 2>,
+  is_host_transfer = true
+} : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

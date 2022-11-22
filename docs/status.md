@@ -116,7 +116,7 @@ one of the following tracking labels.
 | power                    | yes           | revisit      | yes            | yes             | no          |
 | real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
-| recv                     | no            | revisit      | no             | no              | no          |
+| recv                     | yes           | revisit      | infeasible     | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | no          |
 | reduce_precision         | no            | yes*         | yes*           | yes             | no          |
 | reduce_scatter           | no            | revisit      | no             | no              | no          |
@@ -134,7 +134,7 @@ one of the following tracking labels.
 | scatter                  | yes           | revisit      | no             | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | no          |
 | select_and_scatter       | no            | revisit      | no             | no              | no          |
-| send                     | no            | revisit      | no             | no              | no          |
+| send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
 | shift_left               | yes           | revisit      | yes            | yes             | no          |
 | shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |

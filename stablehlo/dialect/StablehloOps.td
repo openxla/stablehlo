@@ -1022,18 +1022,25 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   let results = (outs HLO_Token);
 }
 
-def StableHLO_SendOp : StableHLO_Op<"send", []> {
+def StableHLO_SendOp : StableHLO_Op<"send",
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
 
   let summary = "Send operator";
 
   let description = [{
-    Sends the given operand data to a Recv instruction in another computation
-    that shares the same channel handle. Does not return any data. Similar to
-    the Recv operation, Send operation represents synchronous communication,
-    and is internally decomposed into 2 HLO instructions (Send and SendDone) to
-    enable asynchronous data transfers.
+    Sends data `inputs` from one partition to a stablehlo.recv instruction,
+    in another partition, that shares the same channel handle.
 
-    See https://www.tensorflow.org/xla/operation_semantics#send.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosend
+
+    Example:
+    ```mlir
+    %result = "stablehlo.send"(%operand, %token) {
+      channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+      is_host_transfer = true
+    } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
+    ```
   }];
 
   let arguments = (ins
@@ -1051,14 +1058,18 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
   let summary = "Recv operator";
 
   let description = [{
-    Receives data of the given shape from a Send instruction in another
-    computation that shares the same channel handle. Returns a tuple containing
-    value for the received data and a token. Recv operation represents
-    synchronous communication. However, the instruction is internally decomposed
-    into 2 HLO instructions (Recv and RecvDone) to enable asynchronous data
-    transfers.
+    Receives data to a partition from a stablehlo.send instruction, in another
+    partition, that shares the same channel handle `channel_handle`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#recv.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorecv
+
+    Example:
+    ```mlir
+    %result:2 = "stablehlo.recv"(%token) {
+      channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+      is_host_transfer = true
+    } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
   }];
 
   let arguments = (ins
