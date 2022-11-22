@@ -207,6 +207,7 @@ described below)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
+   * [round_nearest_even](#stablehloround_nearest_even)
    * [rsqrt](#stablehlorsqrt)
    * [scatter](#stablehloscatter)
    * [select](#stablehloselect)
@@ -2397,6 +2398,40 @@ hidden state.
 //           [1, 1, 1],
 //           [0, 0, 0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.round_nearest_even
+
+### Semantics
+
+Performs element-wise rounding towards the nearest integer, breaking ties
+towards the even integer, on the `operand` tensor and produces a `result`
+tensor. Implements the `roundToIntegralTiesToEven` operation from the IEEE-754 specification.
+
+### Inputs
+
+| Name      | Type                          |
+|-----------|-------------------------------|
+| `operand` | tensor of floating-point type |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand = [-2.5, 0.4, 0.5, 0.6, 2.5]
+%result = "stablehlo.round_nearest_even"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
+// %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
 
 [Back to Ops](#index-of-ops)
