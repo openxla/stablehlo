@@ -65,7 +65,7 @@ Value computeNaryElementwiseBroadcastingResultExtents(Location loc,
     auto ty = s.getType().cast<RankedTensorType>();
     assert(ty.getRank() == 1 && "expect extent tensor type");
     if (ty.isDynamicDim(0)) {
-      resultRank = ShapedType::kDynamicSize;
+      resultRank = ShapedType::kDynamic;
       break;
     }
     resultRank = std::max(resultRank, ty.getDimSize(0));

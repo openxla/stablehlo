@@ -46,7 +46,7 @@ namespace hlo {
 // Check if the dimension size is dynamic.
 // TODO(zhouxin) add isStaticDimSize() as well.
 inline static bool isDynamicDimSize(int64_t val) {
-  return val == ShapedType::kDynamicSize;
+  return val == ShapedType::kDynamic;
 }
 
 // Returns true if the given types are the same for the purposes of HLO type

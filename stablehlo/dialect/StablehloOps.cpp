@@ -154,7 +154,7 @@ static LogicalResult rngInferReturnTypeComponents(
       inferredReturnShapes.emplace_back(elementType);
       return success();
     }
-    shapeVector.resize(size, ShapedType::kDynamicSize);
+    shapeVector.resize(size, ShapedType::kDynamic);
     inferredReturnShapes.emplace_back(shapeVector, elementType);
     return success();
   }
@@ -1329,7 +1329,7 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
                           errorEmitter)))
     return failure();
 
-  auto getSliceDim = [](int64_t index) { return ShapedType::kDynamicSize; };
+  auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
   return inferGatherReturnTypeComponents(operandShape, startIndicesShape,
                                          getSliceDim, dimensionNumbers,
                                          inferredReturnShapes, errorEmitter);
@@ -1699,7 +1699,7 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
     const ArrayRef<hlo::WindowDimension> window) {
   auto lhsType = lhs.getType().cast<RankedTensorType>();
   SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
-                                        ShapedType::kDynamicSize);
+                                        ShapedType::kDynamic);
 
   // Infer the output spatial dimensions.
   auto numSpatialDims = inputSpatialDimensions.size();
@@ -1720,7 +1720,7 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
       rhsType.getShape()[kernelOutputFeatureDimension];
 
   outputDimensions[outputBatchDimension] = hlo::isDynamicDimSize(inputBatch)
-                                               ? ShapedType::kDynamicSize
+                                               ? ShapedType::kDynamic
                                                : inputBatch / batchGroupCount;
   outputDimensions[outputFeatureDimension] = kernelOutputFeatures;
 
@@ -3341,7 +3341,7 @@ LogicalResult SelectOp::inferReturnTypeComponents(
     for (auto dim : llvm::zip(trueType.getShape(), falseType.getShape())) {
       dims.push_back(std::get<0>(dim) == std::get<1>(dim)
                          ? std::get<0>(dim)
-                         : ShapedType::kDynamicSize);
+                         : ShapedType::kDynamic);
     }
     outputType = ShapedTypeComponents(dims, trueType.getElementType());
   }
@@ -3394,13 +3394,13 @@ LogicalResult SetDimensionSizeOp::inferReturnTypes(
   }
 
   auto shape = llvm::to_vector<4>(inputType.getShape());
-  llvm::SmallVector<int64_t, 4> bounds(rank, ShapedType::kDynamicSize);
+  llvm::SmallVector<int64_t, 4> bounds(rank, ShapedType::kDynamic);
   if (auto encoding =
           inputType.getEncoding().dyn_cast_or_null<TypeExtensionsAttr>())
     bounds = llvm::to_vector<4>(encoding.getBounds());
 
-  if (shape[dim] != ShapedType::kDynamicSize) bounds[dim] = shape[dim];
-  shape[dim] = ShapedType::kDynamicSize;
+  if (shape[dim] != ShapedType::kDynamic) bounds[dim] = shape[dim];
+  shape[dim] = ShapedType::kDynamic;
 
   DenseIntElementsAttr sizeAttr;
   if (matchPattern(adaptor.getSize(), m_Constant(&sizeAttr))) {
@@ -3408,14 +3408,13 @@ LogicalResult SetDimensionSizeOp::inferReturnTypes(
         sizeAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
     if (splat == bounds[dim]) {
       shape[dim] = splat;
-      bounds[dim] = ShapedType::kDynamicSize;
+      bounds[dim] = ShapedType::kDynamic;
     }
   }
 
   auto extensions = TypeExtensionsAttr::get(context, bounds);
   auto resultType =
-      llvm::all_of(bounds,
-                   [](int64_t v) { return v == ShapedType::kDynamicSize; })
+      llvm::all_of(bounds, [](int64_t v) { return v == ShapedType::kDynamic; })
           ? RankedTensorType::get(shape, inputType.getElementType())
           : RankedTensorType::get(shape, inputType.getElementType(),
                                   extensions);

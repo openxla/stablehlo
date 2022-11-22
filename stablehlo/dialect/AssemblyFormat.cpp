@@ -318,7 +318,7 @@ ParseResult parseDimensionSizes(AsmParser& parser,
   SmallVector<int64_t> shape;
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
-      shape.push_back(ShapedType::kDynamicSize);
+      shape.push_back(ShapedType::kDynamic);
       return success();
     }
     return parser.parseInteger(shape.emplace_back());
