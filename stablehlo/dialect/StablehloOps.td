@@ -376,7 +376,7 @@ def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
   let summary = "IsFinite operator";
   let description = [{
     Performs element-wise check whether the value in `x` is finite (i.e. is
-    neither +inf, -inf, nor NaN) and produces a `y` tensor.
+    neither +Inf, -Inf, nor NaN) and produces a `y` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlois_finite

@@ -1517,7 +1517,8 @@ defined and one of the following:
 ### Semantics
 
 Performs element-wise check whether the value in `x` is finite (i.e. is neither
-+inf, -inf, nor NaN) and produces a `y` tensor.
++Inf, -Inf, nor NaN) and produces a `y` tensor. Implements the `isFinite`
+operation from the IEEE-754 specification.
 
 ### Inputs
 
@@ -1538,6 +1539,7 @@ Performs element-wise check whether the value in `x` is finite (i.e. is neither
 ### Examples
 
 ```mlir
+// Logical values: -Inf, +Inf, NaN, ...
 // %x: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
 %y = "stablehlo.is_finite"(%x) : (tensor<7xf32>) -> tensor<7xi1>
 // %y: [false, false, false, true, true, true, true]
