@@ -1389,14 +1389,15 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "GetTupleElement operator";
   let description = [{
-    Returns a member of a tuple specified by an index.
+    Extracts element at `index` position of the `operand` tuple and produces a
+    `result`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#gettupleelement.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloget_tuple_element
 
     Example:
-
     ```mlir
-    %0 = stablehlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
+    %result = stablehlo.get_tuple_element %operand[0] : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
     ```
   }];
   let arguments = (ins
