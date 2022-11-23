@@ -1418,14 +1418,14 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "XLA's tuple op";
   let description = [{
-    Groups a set of tensor inputs into a single tuple object.
+    Produces a `result` tuple from values `val`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#tuple.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlotuple
 
     Example:
-
     ```mlir
-    %0 = stablehlo.tuple %arg0, %arg0 : tuple<tensor<i32>, tensor<i32>>
+    %result = stablehlo.tuple %val0, %val1 : tuple<tensor<2xf32>, tuple<tensor<i32>>>
     ```
    }];
 

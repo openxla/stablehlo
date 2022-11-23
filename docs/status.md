@@ -150,7 +150,7 @@ one of the following tracking labels.
 | trace                    | no            | revisit      | no             | yes             | no          |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
 | triangular_solve         | yes           | revisit      | yes            | no              | no          |
-| tuple                    | no            | revisit      | revisit        | yes             | no          |
+| tuple                    | yes           | yes          | yes            | yes             | no          |
 | unary_einsum             | no            | revisit      | no             | no              | no          |
 | uniform_dequantize       | no            | yes*         | yes*           | yes             | no          |
 | uniform_quantize         | no            | yes*         | infeasible     | yes             | no          |
