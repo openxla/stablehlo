@@ -1443,15 +1443,15 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
     SameOperandsAndResultShape, Elementwise, InferTensorTypeWithReify]> {
   let summary = "Comparison operator";
   let description = [{
-    Performs element-wise comparison of `lhs` and `rhs` tensors based on
-    `comparison_direction` and produces a `result` tensor.
+    Performs element-wise comparison of `lhs` and `rhs` tensors according to
+    `comparison_direction` and `compare_type`, and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocompare
 
     Example:
     ```mlir
-    %result = stablehlo.compare LT, %lhs, %rhs : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+    %result = stablehlo.compare LT, %lhs, %rhs, FLOAT : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
     ```
   }];
   let arguments = (ins

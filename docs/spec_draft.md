@@ -850,7 +850,10 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 Performs element-wise comparison of `lhs` and `rhs` tensors according to
 `comparison_direction` and `compare_type`, and produces a `result` tensor.
 
-The values of `comparison_direction` have the following semantics:
+The values of `comparison_direction` and `compare_type` have the following
+semantics:
+
+For integer and boolean element types:
   * `EQ`: `lhs` $=$ `rhs`.
   * `NE`: `lhs` $\ne$ `rhs`.
   * `GE`: `lhs` $\ge$ `rhs`.
@@ -858,16 +861,21 @@ The values of `comparison_direction` have the following semantics:
   * `LE`: `lhs` $\le$ `rhs`.
   * `LT`: `lhs` $\lt$ `rhs`.
 
-The values of `compare_type` have the following semantics:
-  * `FLOAT`: If element-type is floating-type, ordered floating-point comparison
-             of `lhs` and `rhs` is performed for all values of
-             `comparison_direction` except for `NE` for which unordered
-             comparison is performed. If element-type is complex-type,
-             lexicographic comparison of (real, imag) pairs is performed.
-  * `TOTALORDER`: `totalOrder` floating-point comparison of `lhs` and `rhs` as
-                  specified in IEEE-754.
-  * `SIGNED`: Signed comparison of `lhs` and `rhs`.
-  * `UNSIGNED`: Unsigned comparison of `lhs` and `rhs`.
+For floating-point element types and `compare_type = FLOAT`, the op implements
+the following IEEE-754 operations:
+  * `EQ`: `compareQuietEqual`.
+  * `NE`: `compareQuietNotEqual`.
+  * `GE`: `compareQuietGreaterEqual`.
+  * `GT`: `compareQuietGreater`.
+  * `LE`: `compareQuietLessEqual`.
+  * `LT`: `compareQuietLess`.
+
+For floating-point element types and `compare_type = TOTALORDER`, the op
+uses the combination of `totalOrder` and `compareQuietEqual` operations from
+IEEE-754.
+
+For complex element types, lexicographic comparison of `(real, imag)` pairs is
+performed using the provided `comparison_direction` and `compare_type`.
 
 ### Inputs
 
@@ -889,24 +897,21 @@ The values of `compare_type` have the following semantics:
   * (C1) `lhs` and `rhs` have the same element type.
   * (C2) `lhs`, `rhs`, and `result` have the same shape.
   * (C3) Given `E` is the `lhs` element type, the following are legal values of
-         `compare_type` and `comparison_direction`:
-    * If `E` is complex type, `compare_type` = `FLOAT` and
-      `comparison_direction` $\in$ {`EQ`, `NE`}.
-    * If `E` is signed integer type, `compare_type` = `SIGNED` and
-      `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
-    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`
-      and `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
-    * If `E` is floating-type, `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}
-      and `comparison_direction` $\in$ {`EQ`, `NE`, `GE`, `GT`, `LE`, `LT`}.
+         `compare_type`:
+    * If `E` is signed integer type, `compare_type` = `SIGNED`.
+    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
+    * If `E` is floating-point type,
+      `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}.
+    * If `E` is complex type, `compare_type` = `FLOAT`.
 
 ### Examples
 
 ```mlir
-// %lhs: [1.0, 3,0]
+// %lhs: [1.0, 3.0]
 // %rhs: [1.1, 2.9]
 %result = "stablehlo.compare"(%lhs, %rhs) {
-  compare_type = #stablehlo<compare_type FLOAT>,
-  comparison_direction = #stablehlo<comparison_direction LT>
+  comparison_direction = #stablehlo<comparison_direction LT>,
+  compare_type = #stablehlo<comparison_type FLOAT>
 } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
 // %result: [true, false]
 ```
