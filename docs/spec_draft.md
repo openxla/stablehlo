@@ -2247,9 +2247,9 @@ number of bits and produces a `result` tensor.
 
 ```mlir
 // %lhs: [-1, -128, -36, 5, 3, 7]
-// %rhs: [1, 2, 2, 2, 1, 3]
+// %rhs: [1, 2, 3, 2, 1, 3]
 %result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
-// %result: [127, 32, 55, 1, 1, 0]
+// %result: [127, 32, 27, 1, 1, 0]
 ```
 
 [Back to Ops](#index-of-ops)
