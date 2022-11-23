@@ -1851,19 +1851,15 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
   InferTensorType]> {
   let summary = "Clamp operator";
   let description = [{
-    Clamps an operand to within the range between a minimum and maximum value.
+    Clamps every element of the `operand` tensor between a minimum and maximum
+    value and produces a `result` tensor.
 
-    Note: All three arrays must be the same shape. Alternatively, as a
-          restricted form of broadcasting, min and/or max can be a scalar (0D
-          tensor) of the element type of the tensor operand.
-
-    See https://www.tensorflow.org/xla/operation_semantics#clamp.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloclamp
 
     Example:
-
     ```mlir
-    %0 = stablehlo.clamp %arg0, %arg1, %arg2 : (tensor<f32>, tensor<4xf32>, tensor<f32>) -> tensor<4xf32>
-    %1 = stablehlo.clamp %arg1, %arg1, %arg1 : tensor<4xf32>
+    %result = stablehlo.clamp %min, %operand, %max : tensor<3xi32>
     ```
   }];
 

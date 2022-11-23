@@ -60,7 +60,7 @@ one of the following tracking labels.
 | cbrt                     | no            | yes*         | yes*           | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |
-| clamp                    | no            | yes*         | yes*           | yes             | no          |
+| clamp                    | yes           | revisit      | yes            | yes             | no          |
 | collective_permute       | no            | revisit      | revisit        | no              | no          |
 | compare                  | no            | yes*         | yes*           | yes             | no          |
 | complex                  | yes           | yes          | yes            | yes             | no          |

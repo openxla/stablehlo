@@ -186,6 +186,7 @@ described below)
    * [case](#stablehlocase)
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
+   * [clamp](#stablehloclamp)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -792,6 +793,51 @@ matrix, then the behavior is undefined.
 //           [2.0, 4.0, 0.0],
 //           [3.0, 5.0, 6.0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.clamp
+
+### Semantics
+
+Clamps every element of the `operand` tensor between a minimum and maximum
+value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
+`minimum(maximum(operand[i0, ..., iR-1], min_val), max_val)`,
+where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
+`max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`, `minimum` and `maximum`
+operations correspond to [stablehlo.minimum](#stablehlominimum) and
+[stablehlo.maximum](#stablehlomaximum).
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `min`     | tensor of any supported type |
+| `operand` | tensor of any supported type |
+| `max`     | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+  
+  * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
+  * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
+  * (C3) `min`, `operand`, and `max` have the same element type.
+  * (C4) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %min: [5, 10, 15]
+// %operand: [3, 13, 23]
+// %max: [10, 15, 20]
+%result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
+// %result: [5, 13, 20]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -2686,8 +2732,8 @@ is undefined.
 Produces a `result` tensor where each element is selected from `on_true` or
 `on_false` tensor based on the value of the corresponding element of `pred`.
 More formally,
-`result[i0, ..., iR-1] = predicate ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
-where `predicate = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
+`result[i0, ..., iR-1] = pred_val ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
+where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Inputs
 
