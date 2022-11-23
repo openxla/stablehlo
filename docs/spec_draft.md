@@ -1337,26 +1337,26 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 ### Inputs
 
-| Name      | Type                                                                       |
-|-----------|----------------------------------------------------------------------------|
-| `operand` | a variadic sized tuple of tensors, tokens, or tuples of any supported type |
-| `index`   | constant of type `ui32`                                                    |
+| Name      | Type                    |
+|-----------|-------------------------|
+| `operand` | `tuple`                 |
+| `index`   | constant of type `si32` |
 
 ### Outputs
 
-| Name     | Type                                          |
-|----------|-----------------------------------------------|
-| `result` | tensor, token, or tuple of any supported type |
+| Name     | Type               |
+|----------|--------------------|
+| `result` | any supported type |
 
 ### Constraints
 
-  * (C1) `index` $\lt$ size(`operand`).
+  * (C1) 0 $\le$ `index` $\lt$ size(`operand`).
   * (C2) type(`operand[index]`) $=$ type(`result`).
 
 ### Examples
 
 ```mlir
-// %operand: {[1.0, 2.0], {[3]}}
+// %operand: ([1.0, 2.0], (3))
 %result = "stablehlo.get_tuple_element"(%operand) {
   index = 0 : i32
 } : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
