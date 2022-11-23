@@ -77,10 +77,17 @@ are aligned, whether they are stored contiguously, etc).
 **Token type** Values of this type are used for imposing order on execution of
 side-effecting operations using data dependencies.
 
-**Tuple types** are ordered sets of elements of (possibly) different types.
-Referred in document as `tuple<T0, T2, ... TN-1>`, where `N` represents the size
-of the tuple and `Ti` are represent the type of the elements in the tuple, `Ti`
-can be of `tensor`, `token`, or `tuple` of any supported type.
+**Tuple types** model heterogeneous lists and are referred to in the document
+using: 1) the full form: `tuple<T0, ... TN-1>`, 2) the short form: `tuple`,
+where:
+  * `N` is the tuple size.
+  * `Ti` are types of tuple elements.
+  * Element types are one of `tensor`, `token` or `tuple`.
+
+Tuple types are inherited from HLO where they are used to model variadic inputs
+and outputs. In StableHLO, variadic inputs and outputs are supported natively,
+so the only use of tuple types in StableHLO is in `custom_call` where tuple
+types are used to model HLO-compatible ABI of custom calls.
 
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
@@ -2972,32 +2979,33 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 ## stablehlo.tuple
 
 ### Semantics
-Groups a variadic number of tensors, tokens, or tuples in `val` and produces a
-`result` tuple.
+
+Produces a `result` tuple from values `val`.
 
 ### Inputs
 
-| Name  | Type                                                                |
-|-------|---------------------------------------------------------------------|
-| `val` | variadic number of tensors, tokens, or tuples of any supported type |
+| Name  | Type                                            |
+|-------|-------------------------------------------------|
+| `val` | variadic number of values of any supported type |
 
 ### Outputs
 
-| Name     | Type                                                                       |
-|----------|----------------------------------------------------------------------------|
-| `result` | a variadic sized tuple of tensors, tokens, or tuples of any supported type |
+| Name     | Type    |
+|----------|---------|
+| `result` | `tuple` |
 
 ### Constraints
 
-  * (C1) For all i, `type(val[i])` = `type(result[i])`.
+  * (C1) size(`val`) $=$ size(`result`) $=$ N.
+  * (C2) `type(val[i])` $=$ `type(result[i])`, for all `i` $\in$ range [0, N).
 
 ### Examples
 
 ```mlir
-// %var0: [1.0, 2.0]
-// %var1: {[3]}
-%result = "stablehlo.tuple"(%var0, %var1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
-// %result: {[1.0, 2.0], {[3]}}
+// %val0: [1.0, 2.0]
+// %val1: (3)
+%result = "stablehlo.tuple"(%val0, %val1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
+// %result: ([1.0, 2.0], (3))
 ```
 
 [Back to Ops](#index-of-ops)
