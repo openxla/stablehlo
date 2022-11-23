@@ -136,9 +136,9 @@ one of the following tracking labels.
 | select_and_scatter       | no            | revisit      | no             | no              | no          |
 | send                     | no            | revisit      | no             | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
-| shift_left               | no            | yes*         | yes*           | yes             | no          |
-| shift_right_arithmetic   | no            | yes*         | yes*           | yes             | no          |
-| shift_right_logical      | no            | yes*         | yes*           | yes             | no          |
+| shift_left               | yes           | revisit      | yes            | yes             | no          |
+| shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |
+| shift_right_logical      | yes           | revisit      | yes            | yes             | no          |
 | sign                     | no            | yes*         | yes*           | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | no          |

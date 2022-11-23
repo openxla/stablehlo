@@ -849,15 +849,15 @@ def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
       [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Shift Left operator";
   let description = [{
-    Returns `lhs << rhs` element-wise.
+    Performs element-wise left-shift operation on the `lhs` tensor by `rhs`
+    number of bits and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloshift_left
 
     Example:
-
     ```mlir
-    %0 = stablehlo.shift_left %arg0, %arg1 : tensor<4xi32>
+    %result = stablehlo.shift_left %lhs, %rhs : tensor<6xi8>
     ```
   }];
 }
@@ -866,15 +866,15 @@ def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_righ
       [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Shift right arithmetic operator";
   let description = [{
-    Returns arithmetic `lhs >> rhs` element-wise.
+    Performs element-wise arithmetic right-shift operation on the `lhs` tensor
+    by `rhs` number of bits and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloshift_right_arithmetic
 
     Example:
-
     ```mlir
-    %0 = stablehlo.shift_right_arithmetic %arg0, %arg1 : tensor<4xi32>
+    %result = stablehlo.shift_right_arithmetic %lhs, %rhs : tensor<6xi8>
     ```
   }];
 }
@@ -883,15 +883,15 @@ def StableHLO_ShiftRightLogicalOp : StableHLO_BinaryElementwiseOp<"shift_right_l
       [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Shift right logical operator";
   let description = [{
-    Returns logical `lhs >> rhs` element-wise.
+    Performs element-wise logical right-shift operation on the `lhs` tensor by
+    `rhs` number of bits and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloshift_right_logical
 
     Example:
-
     ```mlir
-    %0 = stablehlo.shift_right_logical %arg0, %arg1 : tensor<4xi32>
+    %result = stablehlo.shift_right_logical %lhs, %rhs : tensor<6xi8>
     ```
   }];
 }
