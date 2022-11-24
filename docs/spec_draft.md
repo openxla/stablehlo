@@ -713,7 +713,7 @@ returned.
 
 Performs element-wise cubic root operation on `operand` tensor and produces a
 `result` tensor, implementing the `rootn(x, 3)` operation from the IEEE-754
-specification. For complex element types, it computes a complex cube root, with
+specification. For complex element types, it computes a complex cubic root, with
 corner cases TBD. Numeric precision is implementation-defined.
 
 ### Inputs
@@ -860,7 +860,7 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 | `result` | tensor of any supported type |
 
 ### Constraints
-  
+
   * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
   * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
   * (C3) `min`, `operand`, and `max` have the same element type.
