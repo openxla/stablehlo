@@ -184,6 +184,7 @@ described below)
    * [batch_norm_training](#stablehlobatch_norm_training)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
+   * [cbrt](#stablehlocbrt)
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
    * [clamp](#stablehloclamp)
@@ -706,6 +707,41 @@ returned.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.cbrt
+
+### Semantics
+
+Performs element-wise cubic root operation on `operand` tensor and produces a
+`result` tensor, implementing the `rootn(x, 3)` operation from the IEEE-754
+specification. For complex element types, it computes a complex cubic root, with
+corner cases TBD. Numeric precision is implementation-defined.
+
+### Inputs
+
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
+
+### Outputs
+
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %operand: [0.0, 1.0, 8.0, 27.0]
+%result = "stablehlo.cbrt"(%operand) : (tensor<4xf32>) -> tensor<4xf32>
+// %result: [0.0, 1.0, 2.0, 3.0]
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.ceil
 
 ### Semantics
@@ -824,7 +860,7 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 | `result` | tensor of any supported type |
 
 ### Constraints
-  
+
   * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
   * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
   * (C3) `min`, `operand`, and `max` have the same element type.
