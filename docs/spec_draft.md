@@ -713,19 +713,20 @@ returned.
 
 Performs element-wise cubic root operation on `operand` tensor and produces a
 `result` tensor, implementing the `rootn(x, 3)` operation from the IEEE-754
-specification.
+specification. For complex element types, it computes a complex cube root, with
+corner cases TBD. Numeric precision is implementation-defined.
 
 ### Inputs
 
-| Name      | Type                          |
-|-----------|-------------------------------|
-| `operand` | tensor of floating-point type |
+| Name      | Type                                     |
+|-----------|------------------------------------------|
+| `operand` | tensor of floating-point or complex type |
 
 ### Outputs
 
-| Name     | Type                          |
-|----------|-------------------------------|
-| `result` | tensor of floating-point type |
+| Name     | Type                                     |
+|----------|------------------------------------------|
+| `result` | tensor of floating-point or complex type |
 
 ### Constraints
 
