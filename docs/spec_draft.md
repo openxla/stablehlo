@@ -736,8 +736,8 @@ corner cases TBD. Numeric precision is implementation-defined.
 ### Semantics
 
 Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
-Implements the rounding to integral towards positive infinity operation from the
-IEEE-754 specification.
+Implements the `roundToIntegralTowardPositive` operation from the IEEE-754
+specification.
 
 ### Inputs
 
@@ -1299,8 +1299,8 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 ### Semantics
 
 Performs element-wise floor of `operand` tensor and produces a `result` tensor.
-Implements the rounding to integral towards negative infinity operation from the
-IEEE-754 specification.
+Implements the `roundToIntegralTowardNegative` operation from the IEEE-754
+specification.
 
 ### Inputs
 
@@ -2532,7 +2532,8 @@ hidden state.
 ### Semantics
 
 Performs element-wise rounding towards the nearest integer, breaking ties away
-from zero, on the `operand` tensor and produces a `result` tensor.
+from zero, on the `operand` tensor and produces a `result` tensor. Implements
+the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 
 ### Inputs
 
