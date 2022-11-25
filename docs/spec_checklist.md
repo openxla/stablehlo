@@ -14,6 +14,8 @@ reviews:
       1. List the same items as the ODS.
       1. List the same items as [HloInstruction::CreateFromProto](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/hlo/ir/hlo_instruction.cc).
       1. Are ordered exactly like ODS.
+      1. If there are any mismatches, check that there are corresponding
+         tickets.
   1. Check whether the "Constraints" section:
       1. Matches XLA's
          [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc).
