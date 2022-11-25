@@ -162,18 +162,6 @@ syntax.
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
   `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
 
-## Structure of an Op’s Specification
-
-The specification of an op comprises of the following components (in the order
-described below)
-
-  * **Semantics** Semantics of the operation.
-  * **Inputs** Meaning of input(s) and their type(s).
-  * **Outputs** Meaning of the output(s) and the type(s).
-  * **Constraints** Constraints on the input(s) and the output(s).
-  * **Examples** Examples demonstrating the working of the op using
-    [MLIR generic syntax](https://mlir.llvm.org/docs/LangRef/#operations).
-
 ## Index of Ops
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
