@@ -379,6 +379,7 @@ syntax.
    * [get_tuple_element](#stablehloget_tuple_element)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
+   * [infeed](#stablehloinfeed)
    * [iota](#stablehloiota)
    * [is_finite](#stablehlois_finite)
    * [log](#stablehlolog)
@@ -392,6 +393,7 @@ syntax.
    * [not](#stablehlonot)
    * [optimization_barrier](#stablehlooptimization_barrier)
    * [or](#stablehloor)
+   * [outfeed](#stablehlooutfeed)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
@@ -2324,6 +2326,48 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 [Back to Ops](#index-of-ops)
 
+
+## stablehlo.infeed
+
+### Semantics
+
+Reads `results` from the infeed queue of the device. Multiple
+`stablehlo.infeed` operations are allowed in a computation, but there must be a
+total order among them.
+
+The infeed configuration `infeed_config` includes target-dependent metadata
+needed for the backend compiler (e.g., infeed buffer address).
+
+### Inputs
+
+| Name            | Type                                                                                     |
+|-----------------|------------------------------------------------------------------------------------------|
+| `token`         | `token`                                                                                  |
+| `infeed_config` | string                                                                                   |
+| `layout`        | array of array of type `integer` [todo](https://github.com/openxla/stablehlo/issues/629) |
+
+### Outputs
+
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
+
+### Constraints
+
+  * (C1) size(`results`) $\ge$ 1.
+  * (C2) type(`results`[-1]) $=$ `token`.
+  * (C3) size(`layout`) $=$ size(`results`) - 1.
+  * (C4) size(`layout[i]`) $=$ rank(`results[i]`) for all i $\in$ [0,
+         size(`layout`)).
+
+### Examples
+
+```mlir
+%results:2 = "stablehlo.infeed"(%token) { infeed_config = "", layout = [[2, 0, 1] } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.iota
 
 ### Semantics
@@ -2891,6 +2935,38 @@ operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.outfeed
+
+### Semantics
+
+Writes `inputs` to the outfeed queue of the device. The input `token` is used
+for ordering side-effecting operations.
+
+The outfeed configuration `outfeed_config` includes target-dependent metadata
+needed for the backend compiler.
+
+### Inputs
+
+| Name             | Type                                             |
+|------------------|--------------------------------------------------|
+| `inputs`         | variadic number of tensors of any supported type |
+| `token`          | `token`                                          |
+| `outfeed_config` | string                                           |
+
+### Outputs
+
+| Name      | Type    |
+|-----------|---------|
+| `results` | `token` |
+
+### Examples
+
+```mlir
+%results = "stablehlo.outfeed"(%arg0, %arg1) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)
