@@ -139,75 +139,76 @@ before their uses. Possible execution orders of the example program above are
 `%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` → `%1` → `%2` → `%4`
 → `return`.
 
-More formally, a **StableHLO run** is a combination of: 1) a StableHLO program,
-2) operation statuses (not executed yet, already executed), and 3) intermediate
-values that the run is working on. The run starts with input values to the
-`main` function, progresses through the graph of ops updating operation statuses
-and intermediate values and finishes with output values. Further formalization
-is TBD.
+More formally, a **StableHLO process** is a combination of:
+1) a StableHLO program, 2) operation statuses (not executed yet,
+already executed), and 3) intermediate values that the process is working on.
+The process starts with input values to the `main` function, progresses through
+the graph of ops updating operation statuses and intermediate values and
+finishes with output values. Further formalization is TBD.
 
 ### Parallel execution
 
 StableHLO programs can be executed in parallel, organized into a 2D grid of
 `num_replicas` by `num_partitions` which both have type `ui32`.
 
-In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO runs
-are happening at the same time. Each run has a unique
-`run_id = (replica_id, partition_id)`, where
+In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO
+processes are executing at the same time. Each process has a unique
+`process_id = (replica_id, partition_id)`, where
 `replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
 `partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
 type `ui32`. The size of the grid is known statically for every program, and
-the position within the grid is known statically for every run.
+the position within the grid is known statically for every process.
 
 Within the grid, the programs can all be the same (in the "Single Program,
 Multiple Data" style), can all be different (in the "Multiple Program, Multiple
 Data" style) or something in between. Each program has access to its position
 within the grid via the `replica_id` and `partition_id` ops.
 
-Within the grid, the runs are mostly independent from each other - they have
-separate operation statuses, separate input/intermediate/output values and most
-of the ops are executed separately between runs, with the exception of a small
-number of collective ops described below.
+Within the grid, the processes are mostly independent from each other - they
+have separate operation statuses, separate input/intermediate/output values and
+most of the ops are executed separately between processes, with the exception of
+a small number of collective ops described below.
 
-Given that execution of most of the ops is only using values from the same run,
-it is usually unambiguous to refer to these values by their names. However, when
-describing semantics of collective ops, that is insufficient, and we use the
-notation `name<run_id>` to refer to the value `name` within a particular
-`run_id`. (From what perspective, unqualified `name` can be viewed as a
-shorthand for `name<replica_id(), partition_id()>`).
+Given that execution of most of the ops is only using values from the same
+process, it is usually unambiguous to refer to these values by their names.
+However, when describing semantics of collective ops, that is insufficient, and
+we use the notation `name<process_id>` to refer to the value `name` within a
+particular process. (From what perspective, unqualified `name` can be viewed as
+a shorthand for `name<replica_id(), partition_id()>`).
 
-The execution order across runs is implementation-defined, except for the
+The execution order across processes is implementation-defined, except for the
 synchronization introduced by collective ops as described below.
 
 ### Collective ops
 
 There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
 `all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
-the runs in the StableHLO grid into **StableHLO run groups** and execute a joint
-computation within each run group, independently from other run groups.
+the processes in the StableHLO grid into **StableHLO process groups** and
+execute a joint computation within each process group, independently from other
+process groups.
 
-For all runs within each run group, collective ops introduce a synchronization
-barrier, i.e. the execution of a collective op in all these runs doesn't start
-until the execution of all these runs reaches the op. Further formalization,
-e.g. elaborating on what it means for execution to reach an op and what happens
-to a run group if this doesn't happen, is TBD.
+For all processes within each process group, collective ops introduce a
+synchronization barrier, i.e. the execution of a collective op in all these
+processes doesn't start until the execution of all these processes reaches
+the op. Further formalization, e.g. elaborating on what it means for execution
+to reach an op and what happens to a process group if it doesn't happen, is TBD.
 
-If the run group involves cross-partition communication, i.e. there are runs
-in the run group whose partition ids are different, then execution of the
-collective op needs a **StableHLO channel**, and the collective op must
+If the process group involves cross-partition communication, i.e. there are
+processes in the process group whose partition ids are different, then execution
+of the collective op needs a **StableHLO channel**, and the collective op must
 provide a positive `channel_id` of type `si64`. Further formalization, e.g.
 where these channel ids are coming from and how they are synchronized between
 programs, is TBD. Cross-replica communication doesn't need channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections below. However, the strategies by
-which the grid is split into run groups are shared between these ops and are
+which the grid is split into process groups are shared between these ops and are
 described in this section. More formally, StableHLO supports the following
 four strategies.
 
 1) **cross_replica** (as in "only cross-replica communications will be happening
-within each run group"). This strategy takes `replica_groups` - a list of lists
-of replica ids - and computes a Cartesian product of `replica_groups` by
+within each process group"). This strategy takes `replica_groups` - a list of
+lists of replica ids - and computes a Cartesian product of `replica_groups` by
 `partition_ids`. `replica_groups` must have unique elements and cover all
 `replica_ids`. More formally:
 
@@ -215,10 +216,10 @@ of replica ids - and computes a Cartesian product of `replica_groups` by
 def cross_replica(replica_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
   for replica_group in replica_groups:
     for partition_id in partition_ids:
-      run_group = []
+      process_group = []
       for replica_id in replica_group:
-        run_group.append((replica_id, partition_id))
-      yield run_group
+        process_group.append((replica_id, partition_id))
+      yield process_group
 ```
 
 For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
@@ -226,7 +227,7 @@ For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
 `[[(0, 0), (1, 0)], [(0, 1), (1, 1)], [(2, 0), (3, 0)], [(2, 1), (3, 1)]]`.
 
 2) **cross_partition** (as in "only cross-partition communications will be
-happening within each run group"). This strategy takes `partition_groups` -
+happening within each process group"). This strategy takes `partition_groups` -
 a list of lists of partition ids - and computes a Cartesian product of
 `partition_groups` by `replica_ids`. `partition_groups` must have unique
 elements and cover all `partition_ids`. More formally:
@@ -235,10 +236,10 @@ elements and cover all `partition_ids`. More formally:
 def cross_partition(partition_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
   for partition_group in partition_groups:
     for replica_id in replica_ids:
-      run_group = []
+      process_group = []
       for partition_id in partition_group:
-        run_group.append((replica_id, partition_id))
-      yield run_group
+        process_group.append((replica_id, partition_id))
+      yield process_group
 ```
 
 For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
@@ -246,7 +247,7 @@ For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
 `[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
 
 3) **cross_replica_and_partition** (as in "both cross-replica and
-cross-partition communications will be happening within each run group").
+cross-partition communications will be happening within each process group").
 This strategy takes `replica_groups` - a list of lists of replica ids - and
 computes Cartesian products of each `replica_group` by `partition_ids`.
 `replica_groups` must have unique elements and cover all `replica_ids`.
@@ -255,11 +256,11 @@ More formally:
 ```Python
 def cross_replica_and_partition(replica_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
   for replica_group in replica_groups:
-    run_group = []
+    process_group = []
     for partition_id in partition_ids:
       for replica_id in replica_group:
-        run_group.append((replica_id, partition_id))
-    yield run_group
+        process_group.append((replica_id, partition_id))
+    yield process_group
 ```
 
 For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
@@ -267,19 +268,20 @@ For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
 `[[(0, 0), (1, 0), (0, 1), (1, 1)], [(2, 0), (3, 0), (2, 1), (3, 1)]]`.
 
 4) **flattened_ids**. This strategy takes `flattened_id_groups` - a list of
-lists of "flattened" run ids in the `replica_id * num_partitions + partition_id`
-format - and turns them into run ids. `flattened_id_groups` must have unique
-elements and cover all `run_ids`. More formally:
+lists of "flattened" process ids in the
+`replica_id * num_partitions + partition_id` format - and turns them into
+process ids. `flattened_id_groups` must have unique elements and cover all
+`process_ids`. More formally:
 
 ```Python
 def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
   for flattened_id_group in flattened_id_groups:
-    run_group = []
+    process_group = []
     for flattened_id in flattened_id_group:
       replica_id = flattened_id // num_partitions
       partition_id = flattened_id % num_partitions
-      run_group.append((replica_id, partition_id))
-    yield run_group
+      process_group.append((replica_id, partition_id))
+    yield process_group
 ```
 
 For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
