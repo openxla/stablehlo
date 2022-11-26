@@ -519,16 +519,15 @@ def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
   let summary = "Round operator, ties away from zero";
   let description = [{
-    Returns `Round(operand)` element-wise, rounding to nearest integer with
-    half-way cases rounding away from zero.
+    Performs element-wise rounding towards the nearest integer, breaking ties
+    away from zero, on the `operand` tensor and produces a `result` tensor.
 
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloround_nearest_afz
 
     Example:
-
     ```mlir
-    %0 = stablehlo.round_nearest_afz %11 : tensor<10x10xbf16>
+    %result = stablehlo.round_nearest_afz %operand : tensor<5xf32>
     ```
   }];
 }
