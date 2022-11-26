@@ -46,23 +46,23 @@ jobs:
       run: |
         echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
-    # Check out LLVM, and install tools for compilation 
+    # Check out LLVM, and install tools for compilation
     - name: Setup workspace
       uses: ./.github/actions/setup-build
       with:
         llvm-version: ${{ steps.llvm-version.outputs.version }}
 
-    - name: Configure and Build LLVM'
+    - name: Configure and Build LLVM
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_llvm.sh "$LLVM_PROJECT_DIR" "$LLVM_BUILD_DIR"
 
-    - name: Build and Test StableHLO'
+    - name: Build and Test StableHLO
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_stablehlo.sh "$LLVM_BUILD_DIR" "$STABLEHLO_BUILD_DIR"
 
-    - name: Build and Test StableHLO Python API'
+    - name: Build and Test StableHLO Python API
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_stablehlo_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"
