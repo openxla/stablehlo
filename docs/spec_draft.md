@@ -111,6 +111,7 @@ Here is an example of a program that consists of a function `@main` which takes
 three inputs (`%image`, `%weights` and `%bias`) and produces one output (`%4`).
 Below we describe how this program can be executed.
 
+```mlir
 stablehlo.func @main(
   %image: tensor<28x28xf32>,
   %weights: tensor<784x10xf32>,
@@ -123,6 +124,7 @@ stablehlo.func @main(
   %4 = "stablehlo.maximum"(%2, %3) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
   "stablehlo.return"(%4): (tensor<1x10xf32>) -> ()
 }
+```
 
 ## Execution
 
