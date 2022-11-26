@@ -174,7 +174,7 @@ it is usually unambiguous to refer to these values by their names. However, when
 describing semantics of collective ops, that is insufficient, and we use the
 notation `name<run_id>` to refer to the value `name` within a particular
 `run_id`. (From what perspective, unqualified `name` can be viewed as a
-shorthand for `name<(replica_id(), partition_id())>`).
+shorthand for `name<replica_id(), partition_id()>`).
 
 The execution order across runs is implementation-defined, except for the
 synchronization introduced by collective ops as described below.
