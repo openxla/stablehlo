@@ -213,7 +213,7 @@ lists of replica ids - and computes a Cartesian product of `replica_groups` by
 `replica_ids`. More formally:
 
 ```Python
-def cross_replica(replica_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
+def cross_replica(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
   for replica_group in replica_groups:
     for partition_id in partition_ids:
       process_group = []
@@ -233,7 +233,7 @@ a list of lists of partition ids - and computes a Cartesian product of
 elements and cover all `partition_ids`. More formally:
 
 ```Python
-def cross_partition(partition_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
+def cross_partition(partition_groups: List[List[PartitionId]]) -> List[List[ProcessId]]:
   for partition_group in partition_groups:
     for replica_id in replica_ids:
       process_group = []
@@ -254,7 +254,7 @@ computes Cartesian products of each `replica_group` by `partition_ids`.
 More formally:
 
 ```Python
-def cross_replica_and_partition(replica_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
+def cross_replica_and_partition(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
   for replica_group in replica_groups:
     process_group = []
     for partition_id in partition_ids:
@@ -274,7 +274,7 @@ process ids. `flattened_id_groups` must have unique elements and cover all
 `process_ids`. More formally:
 
 ```Python
-def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[Tuple[ui32, ui32]]]:
+def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]]:
   for flattened_id_group in flattened_id_groups:
     process_group = []
     for flattened_id in flattened_id_group:
