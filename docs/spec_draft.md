@@ -172,9 +172,9 @@ a small number of collective ops described below.
 Given that execution of most of the ops is only using values from the same
 process, it is usually unambiguous to refer to these values by their names.
 However, when describing semantics of collective ops, that is insufficient, and
-we use the notation `name<process_id>` to refer to the value `name` within a
+we use the notation `name@process_id` to refer to the value `name` within a
 particular process. (From what perspective, unqualified `name` can be viewed as
-a shorthand for `name<replica_id(), partition_id()>`).
+a shorthand for `name@(replica_id(), partition_id())`).
 
 The execution order across processes is implementation-defined, except for the
 synchronization introduced by collective ops as described below.
