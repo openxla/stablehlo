@@ -2086,44 +2086,19 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let summary = "CustomCall operator";
   let description = [{
-    A custom call invokes code external to XLA. The `args` are passed to the
-    external code, and the external code is expected to produce a result of the
-    given type. The exact mechanism is backend-specific. For example, in the CPU
-    backend, a call instruction is emitted which targets a symbol with the name
-    `call_target_name`.
+    Invokes exteral code with `inputs` as arguments and produces `results`.
 
-    `call_target_name` and `backend_config` can be arbitrary strings, but
-    `call_target_name` should be short as it may be used in labels.
-    `backend_config` can encode arbitrarily large amounts of information.
-
-    `has_side_effect` must be true if the custom call has side-effects.
-    `api_version` specifies the version of the API used by the custom call
-    function.
-
-    A custom call may apply functions within the scope of the parent module.
-    They can be referenced using `called_computations` attribute.
-
-    A custom call can also have layout constraints on operands and results which
-    can be specified as optional `operand_layouts` and `result_layouts`
-    attributes. The layout attribute is an array of rank-1 index tensors and the
-    i-th layout attribute specifies the layout for i-th operand/result.
-
-    The `operand_layouts` & `result_layouts` attributes can be specified under
-    the following constraints:
-    1) Either both `operand_layouts` and `result_layouts` are specified or none.
-    2) None of the operands are of tuple type.
-    3) None of the results are of tuple type except the common case of single
-       tuple result packing non-tuple values is allowed. In this case the i-th
-       `result_layouts` attribute specifies the layout of i-th element in the
-       result tuple.
-
-    See https://www.tensorflow.org/xla/operation_semantics#customcall.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocustom_call
 
     Example:
-
     ```mlir
-    %1 = stablehlo.custom_call @foo(%arg0, %arg1) {backend_config = "bar", has_side_effect = true}
-          : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
+    %results:3 = "stablehlo.custom_call"(%inputs0, %inputs1) {
+      call_target_name = "foo",
+      backend_config = "bar",
+      operand_layouts = [dense<[0]> : tensor<1xindex>, dense<> : tensor<0xindex>],
+      result_layouts = [dense<> : tensor<0xindex>, dense<[0]> : tensor<1xindex>, dense<> : tensor<0xindex>]
+    } : (tensor<2xf32>, !mhlo.token) -> (tensor<f32>, tensor<2xf32>, !mhlo.token)
     ```
   }];
 
