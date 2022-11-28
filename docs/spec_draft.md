@@ -3130,7 +3130,8 @@ number of bits and produces a `result` tensor.
 
 ### Semantics
 
-Returns the sign of the `operand` element-wise and produces a `result` tensor.
+Returns the sign of the `operand` element-wise and produces a `result` tensor,
+using [stablehlo.compare](#stablehlocompare) as the comparator.
 For each element `x`:
 ```
 sign(x) = -1  if x < 0
@@ -3159,9 +3160,10 @@ sign(x) = -1  if x < 0
 ### Examples
 
 ```mlir
-// %operand: [0xFF800000, -10.0, -0.0, 0x7FFFFFFF, 0.0, 10.0, 0x7F800000]
+// Logical values: -Inf, +Inf, NaN, ...
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
 %result = "stablehlo.sign"(%operand) : (tensor<7xf32>) -> tensor<7xf32>
-// %result: [-1.0, -1.0, -0.0, 0x7FFFFFFF, 0.0, 1.0, 1.0]
+// %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)

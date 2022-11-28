@@ -575,10 +575,10 @@ def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
   let summary = "Sign operator";
   let description = [{
     Returns the sign of the `operand` element-wise and produces a `result`
-    tensor.
+    tensor, using stablehlo.compare as the comparator.
 
     See:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorsign
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosign
 
     Example:
     ```mlir
