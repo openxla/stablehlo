@@ -433,16 +433,15 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Computes gradients of `operand`, `scale` and offset
-(refer [batch_norm_training](#stablehlobatch_norm_training)), using `mean`,
-`variance` and `grad_output`, the gradient of output from
-[batch_norm_training](#stablehlobatch_norm_training), and produces
-`grad_operand`, `grad_scale` and `grad_offset` tensors. More formally, this
-operation can be expressed as a decomposition to existing StableHLO operations
-using Python-like syntax as follows:
+Computes gradients of `operand`, `scale` and `offset` of
+[batch_norm_training](#stablehlobatch_norm_training) using some of the inputs
+and outputs of the operation, and produces `grad_operand`, `grad_scale` and
+`grad_offset` tensors. More formally, this operation can be expressed as a
+decomposition to existing StableHLO operations using Python-like syntax as
+follows:
 
 ```python
-def reduce_sum(operand, feature_index):
+def compute_sum(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
       init_values=[0.0],
@@ -451,7 +450,7 @@ def reduce_sum(operand, feature_index):
   return sum
 
 def compute_mean(operand, feature_index):
-  sum = reduce_sum(operand, feature_index)
+  sum = compute_sum(operand, feature_index)
   divisor = constant(num_elements(operand) / dim(operand, feature_index))
   divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
   return divide(sum, divisor_bcast)
@@ -463,28 +462,33 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
   epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
 
+  # Perform normalization using the provided `mean` and `variance`
+  # Intermediate values will be useful for computing gradients
   centered_operand = subtract(operand, mean_bcast)
   stddev = sqrt(add(variance_bcast, epsilon_bcast))
   normalized_operand = divide(centered_operand, stddev)
 
-  intermediate_expr = compute_mean(
-    multiply(grad_output, divide(normalized_operand, stddev)), feature_index)
-  intermediate_expr_bcast = broadcast_in_dim(
-    intermediate_expr, [feature_index], shape(operand))
-  mean_grad_output = compute_mean(grad_output, feature_index)
-  mean_grad_output_bcast = broadcast_in_dim(
-    mean_grad_output, [feature_index], shape(operand))
-
+  # Use the implementation from batchnorm_expander.cc in XLA
+  # Temporary variables have exactly the same names as in the C++ code
+  elements_per_feature = constant(
+    divide(size(operand), dim(operand, feature_index)))
+  i1 = multiply(
+    grad_output,
+    broadcast_in_dim(elements_per_feature, [], shape(operand)))
+  i2 = broadcast_in_dim(
+    compute_sum(grad_output, feature_index),
+    [feature_index], shape(operand))
+  i3 = broadcast_in_dim(
+    compute_sum(multiply(grad_output, centered_operand)),
+    [feature_index], shape(operand))
+  i4 = multiply(i3, centered_operand)
+  i5 = divide(i4, add(variance_bcast, epsilon_bcast))
   grad_operand = multiply(
-    divide(scale_bcast, stddev),
-    subtract(
-      subtract(grad_output, mean_grad_output_bcast),
-      multiply(intermediate_expr_bcast, centered_operand)
-    )
-  )
-  grad_scale = reduce_sum(
+    divide(divide(scale_bcast, stddev), elements_per_feature),
+    subtract(subtract(i1, i2), i5))
+  grad_scale = compute_sum(
     multiply(grad_output, normalized_operand), feature_index)
-  grad_offset = reduce_sum(grad_output, feature_index)
+  grad_offset = compute_sum(grad_output, feature_index)
   return grad_operand, grad_scale, grad_offset
 ```
 
@@ -523,7 +527,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 ```mlir
 // %operand: [
 //            [[1.0, 2.0], [3.0, 4.0]],
-//            [[5.0, 6.0], [7.0, 8.0]]
+//            [[3.0, 4.0], [1.0, 2.0]]
 //           ]
 // %scale: [1.0, 1.0]
 // %mean: [2.0, 3.0]
@@ -532,17 +536,17 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 //                [[0.1, 0.1], [0.1, 0.1]],
 //                [[0.1, 0.1], [0.1, 0.1]]
 //               ]
-%grad_operand, %grad_scale, %grad_offset = "stablehlo.batch_norm_grad"(%operand, %scale, %mean,
-                                                                       %variance, %grad_output) {
+%grad_operand, %grad_scale, %grad_offset =
+"stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance, %grad_output) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
 } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
      tensor<2x2x2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
 // %grad_operand: [
-//                 [[0.2, 0.2], [-0.2, -0.2]],
-//                 [[-0.6, -0.6], [-1, -1]]
+//                 [[0.0, 0.0], [0.0, 0.0]],
+//                 [[0.0, 0.0], [0.0, 0.0]]
 //                ]
-// %grad_scale:  [0.8, 0.8]
+// %grad_scale:  [0.0, 0.0]
 // %grad_offset: [0.4, 0.4]
 ```
 

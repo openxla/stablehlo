@@ -1577,17 +1577,17 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
     InferTensorType]> {
   let summary = "Batch Normalization Gradient";
   let description = [{
-    Computes gradients of `operand`, `scale` and offset, using `mean`,
-    `variance` and `grad_output`, the gradient of output from BatchNormTraining,
-    and produces `grad_operand`, `grad_scale` and `grad_offset` tensors.
+    Computes gradients of `operand`, `scale` and `offset` of BatchNormTrainingOp
+    using some of the inputs and outputs of the operation, and produces
+    `grad_operand`, `grad_scale` and `grad_offset` tensors.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlobatch_norm_grad
 
     Example:
     ```mlir
-    %grad_operand, %grad_scale, %grad_offset = "stablehlo.batch_norm_grad"(%operand, %scale, %mean,
-                                                                           %variance, %grad_output) {
+    %grad_operand, %grad_scale, %grad_offset =
+    "stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance, %grad_output) {
       epsilon = 0.0 : f32,
       feature_index = 2 : i64
     } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
