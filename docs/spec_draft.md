@@ -2230,6 +2230,12 @@ overflow, the result is implementation-defined and one of the following:
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
+For an integer, `x`, raised to a negative power, `y`, the behaviour is as
+follows:
+  * If `abs(x)` $\gt$ 1, then result is 0.
+  * If `abs(x)` $=$ 1, then result is equivalet to `x^abs(y)`.
+  * If `abs(x)` $=$ 0, then behaviour is implementation defined.
+
 For floating-point element types, it implements the `pow` operation from the
 IEEE-754 specification. For complex element types, it computes complex
 exponentiation, with corner cases TBD. Numeric precision is
