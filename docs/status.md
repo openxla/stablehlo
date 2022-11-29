@@ -139,7 +139,7 @@ one of the following tracking labels.
 | shift_left               | yes           | revisit      | yes            | yes             | no          |
 | shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |
 | shift_right_logical      | yes           | revisit      | yes            | yes             | no          |
-| sign                     | no            | yes*         | yes*           | yes             | no          |
+| sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | no          |
 | sort                     | yes           | yes          | yes            | no              | no          |

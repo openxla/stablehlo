@@ -221,6 +221,7 @@ syntax.
    * [shift_left](#stablehloshift_left)
    * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
    * [shift_right_logical](#stablehloshift_right_logical)
+   * [sign](#stablehlosign)
    * [sine](#stablehlosine)
    * [slice](#stablehloslice)
    * [sort](#stablehlosort)
@@ -3121,6 +3122,61 @@ number of bits and produces a `result` tensor.
 // %rhs: [1, 2, 3, 2, 1, 3]
 %result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
 // %result: [127, 32, 27, 1, 1, 0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.sign
+
+### Semantics
+
+Returns the sign of the `operand` element-wise and produces a `result` tensor.
+More formally, for each element `x`, the semantics can be expressed using
+Python-like syntax as follows:
+```python
+def sign(x):
+  if is_integer(x):
+    if compare(x, 0, LT, SIGNED): return -1
+    if compare(x, 0, EQ, SIGNED): return 0
+    if compare(x, 0, GT, SIGNED): return 1
+  elif is_float(x):
+    if x is NaN:
+      return NaN
+    else:
+      if compare(x, 0.0, LT, FLOAT): return -1.0
+      if compare(x, -0.0, EQ, FLOAT): return -0.0
+      if compare(x, +0.0, EQ, FLOAT): return +0.0
+      if compare(x, 0.0, GT, FLOAT): return 1.0
+  elif is_complex(x):
+    if x.real is NaN or x.imag is NaN:
+      return NaN
+    else:
+      return divide(x, abs(x))
+```
+
+### Inputs
+
+| Name      | Type                                                      |
+|-----------|-----------------------------------------------------------|
+| `operand` | tensor of signed integer, floating-point, or complex type |
+
+### Outputs
+
+| Name     | Type                                                      |
+|----------|-----------------------------------------------------------|
+| `result` | tensor of signed integer, floating-point, or complex type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+
+### Examples
+
+```mlir
+// Logical values: -Inf, +Inf, NaN, ...
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
+%result = "stablehlo.sign"(%operand) : (tensor<7xf32>) -> tensor<7xf32>
+// %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
 [Back to Ops](#index-of-ops)

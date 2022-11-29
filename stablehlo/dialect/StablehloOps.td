@@ -574,23 +574,15 @@ def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
     TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]>> {
   let summary = "Sign operator";
   let description = [{
-    Returns `sign(operand)` element-wise, where
+    Returns the sign of the `operand` element-wise and produces a `result`
+    tensor.
 
-    ```
-    sign(x) = -1  : x < 0
-            = -0  : x = -0
-            = NaN : x = NaN
-            = +0  : x = +0
-            = 1   : x > 0
-    ```
-
-    See
-    https://www.tensorflow.org/xla/operation_semantics#element-wise_unary_functions.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosign
 
     Example:
-
     ```mlir
-    %0 = stablehlo.sign %arg0 : tensor<1x2x3x4xf32>
+    %result = stablehlo.sign %operand : tensor<7xf32>
     ```
   }];
 }
