@@ -433,12 +433,11 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Computes gradients of `operand`, `scale` and `offset` of
-[batch_norm_training](#stablehlobatch_norm_training) using some of the inputs
-and outputs of the operation, and produces `grad_operand`, `grad_scale` and
-`grad_offset` tensors. More formally, this operation can be expressed as a
-decomposition to existing StableHLO operations using Python-like syntax as
-follows:
+Computes gradients of several inputs of
+[batch_norm_training](#stablehlobatch_norm_training) backpropagating from
+`grad_output`, and produces `grad_operand`, `grad_scale` and `grad_offset`
+tensors. More formally, this operation can be expressed as a decomposition to
+existing StableHLO operations using Python-like syntax as follows:
 
 ```python
 def compute_sum(operand, feature_index):
