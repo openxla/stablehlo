@@ -133,7 +133,7 @@ func.func @invalid_reduce_scatter(%data: tensor<4x16xf32>) -> tensor<3x4xf32> {
 // -----
 
 func.func @reduce_scatter(%data: tensor<4x16xf32>) -> tensor<4x4xf32> {
-  // expected-error@+1 {{replica groups should be a rank 2 tensor of 64 bit integers}}
+  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
   %0 = "stablehlo.reduce_scatter"(%data) ({
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
     %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
@@ -400,7 +400,7 @@ func.func @all_gather_invalid_result_shape(%arg0: tensor<8x2xf32>) -> tensor<4x8
 // -----
 
 func.func @all_gather_invalid_replica_group_shape(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
-  // expected-error@+1 {{replica groups should be a rank 2 tensor of 64 bit integers}}
+  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
     channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
@@ -412,7 +412,7 @@ func.func @all_gather_invalid_replica_group_shape(%arg0: tensor<8x2xf32>) -> ten
 // -----
 
 func.func @all_gather_invalid_replica_group_shape(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
-  // expected-error@+1 {{if `use_global_device_ids` is set, the replica groups cannot be empty}}
+  // expected-error@+1 {{replica groups cannot be empty}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
     channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,

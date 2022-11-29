@@ -257,8 +257,7 @@ LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
 LogicalResult ReduceScatterOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       getUseGlobalDeviceIds(),
-                                      /*isUniformSized=*/true,
-                                      /*expectedSubgroupSize*/ llvm::None)))
+                                      /*allGroupsMustHaveSameSize=*/true)))
     return failure();
   auto operandType = getOperand().getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
@@ -1971,16 +1970,18 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 LogicalResult AllGatherOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       getUseGlobalDeviceIds(),
-                                      /*isUniformSized=*/true,
-                                      /*expectedSubgroupSize*/ llvm::None)))
+                                      /*allGroupsMustHaveSameSize=*/true)))
     return failure();
 
   auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
   auto resultType = getType().dyn_cast<RankedTensorType>();
   int64_t allGatherDimIndex = getAllGatherDim();
 
+  if (allGatherDimIndex < 0)
+    return emitOpError() << "all_gather_dim must be a valid index of operand";
+
   if (operandType) {
-    if (allGatherDimIndex < 0 || allGatherDimIndex >= operandType.getRank())
+    if (allGatherDimIndex >= operandType.getRank())
       return emitOpError() << "all_gather_dim must be a valid index of operand";
 
     if (operandType.getDimSize(allGatherDimIndex) == 0)
@@ -1992,12 +1993,12 @@ LogicalResult AllGatherOp::verify() {
     if (resultType.getRank() != operandType.getRank())
       return emitOpError() << "operand and return must have the same rank";
 
-    for (int64_t index = 0; index < operandType.getRank(); index++) {
-      if (index == allGatherDimIndex || operandType.isDynamicDim(index) ||
-          resultType.isDynamicDim(index))
+    for (int64_t i = 0; i < operandType.getRank(); i++) {
+      if (i == allGatherDimIndex || operandType.isDynamicDim(i) ||
+          resultType.isDynamicDim(i))
         continue;
 
-      if (resultType.getDimSize(index) != operandType.getDimSize(index))
+      if (resultType.getDimSize(i) != operandType.getDimSize(i))
         return emitOpError() << "operand and result should have the same shape "
                                 "except for the "
                                 "dimension size at 'all_gather_dim'";

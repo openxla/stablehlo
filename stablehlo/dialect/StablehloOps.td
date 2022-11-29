@@ -1252,10 +1252,9 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
   string summary = "AllGather operator";
 
   string description = [{
-    For each replica subgroup in `replica_groups`, the operation
-    concatenates the replicas of `input` tensor formed using the subgroup along
-    `all_gather_dim` dimension following the order of the replicas in the
-    subgroup and produces a `result` tensor.
+    Within each process group in the StableHLO grid, concatenates the values of the
+    `operand` tensor from each process along `all_gather_dim` and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_gather
@@ -1265,6 +1264,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
     %result = "stablehlo.all_gather"(%operand) {
       all_gather_dim = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+      // use_global_device_ids = false
     } : (tensor<2x2xf32>) -> tensor<2x4xf32>
     ```
   }];

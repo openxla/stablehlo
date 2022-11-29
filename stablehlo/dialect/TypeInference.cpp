@@ -304,57 +304,44 @@ unsigned potentiallyComplexBitwidth(Type type) {
 }
 
 LogicalResult verifyReplicaGroups(Optional<Location> location,
-                                  DenseIntElementsAttr attr,
-                                  bool useGlobalDeviceIdsAvailableAndTrue,
-                                  bool isUniformSized,
-                                  Optional<size_t> expectedSubgroupSize) {
-  auto replicaGroupType = attr.getType().dyn_cast<RankedTensorType>();
-  if (!replicaGroupType || replicaGroupType.getRank() != 2 ||
-      !replicaGroupType.getElementType().isInteger(/*width=*/64))
-    return emitOptionalError(
-        location,
-        "replica groups should be a rank 2 tensor of 64 bit integers");
+                                  DenseIntElementsAttr replicaGroups,
+                                  bool useGlobalDeviceIds,
+                                  bool allGroupsMustHaveSameSize) {
+  auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
-  if (replicaGroupType.getShape()[0] == 0 ||
-      replicaGroupType.getShape()[1] == 0) {
-    if (useGlobalDeviceIdsAvailableAndTrue)
-      return emitOptionalError(
-          location,
-          "if `use_global_device_ids` is set, the replica groups cannot be "
-          "empty");
-    return success();
+  if (replicaGroupType.getRank() != 2)
+    return emitOptionalError(location,
+                             "replica groups should be a rank 2 tensor");
+
+  // Revisit the following check in light of #652.
+  if (replicaGroupType.getShape()[0] * replicaGroupType.getShape()[1] == 0) {
+    return emitOptionalError(location, "replica groups cannot be empty");
   }
 
-  auto ids = attr.getValues<int64_t>();
-  llvm::SmallSet<int64_t, 8> replicaSeen;
-  for (int64_t id : ids) {
+  auto replicaIds = replicaGroups.getValues<int64_t>();
+  llvm::SmallSet<int64_t, 8> replicaIdsSeen;
+  for (int64_t replicaId : replicaIds) {
     // Replica groups are stored in a 2D tensor. If the op supports non-uniform
     // groups, null replica IDs are stored as -1.
-    if (id == -1) {
-      if (isUniformSized) {
+    if (replicaId == -1) {
+      if (allGroupsMustHaveSameSize) {
         return emitOptionalError(location, "Invalid replica id -1");
       }
       continue;
     }
 
-    if (!replicaSeen.insert(id).second) {
-      return emitOptionalError(location, "replica id #", id,
+    if (!replicaIdsSeen.insert(replicaId).second) {
+      return emitOptionalError(location, "replica id #", replicaId,
                                " seen more than once");
     }
   }
 
-  for (size_t id = 0; id < replicaSeen.size(); id++) {
-    if (!replicaSeen.contains(id)) {
+  for (size_t id = 0; id < replicaIdsSeen.size(); id++) {
+    if (!replicaIdsSeen.contains(id)) {
       return emitOptionalError(location, "replica id #", id,
                                " not seen in replica groups");
     }
   }
-
-  if (isUniformSized && expectedSubgroupSize &&
-      (ids.size() / replicaGroupType.getShape()[0] != *expectedSubgroupSize))
-    return emitOptionalError(location,
-                             "subgroup size of replica_groups must be ",
-                             *expectedSubgroupSize);
 
   return success();
 }
