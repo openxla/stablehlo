@@ -2495,8 +2495,8 @@ overflow, the result is implementation-defined and one of the following:
 For an integer, `x`, raised to a negative power, `y`, the behaviour is as
 follows:
   * If `abs(x)` $\gt$ 1, then result is 0.
-  * If `abs(x)` $=$ 1, then result is equivalet to `x^abs(y)`.
-  * If `abs(x)` $=$ 0, then behaviour is implementation defined.
+  * If `abs(x)` $=$ 1, then result is equivalent to `x^abs(y)`.
+  * If `abs(x)` $=$ 0, then behaviour is implementation-defined.
 
 For floating-point element types, it implements the `pow` operation from the
 IEEE-754 specification. For complex element types, it computes complex
