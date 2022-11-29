@@ -156,13 +156,15 @@ processes are executing at the same time. Each process has a unique
 `process_id = (replica_id, partition_id)`, where
 `replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
 `partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
-type `ui32`. The size of the grid is known statically for every program, and
-the position within the grid is known statically for every process.
+type `ui32`.
+
+The size of the grid is known statically for every program, and the position
+within the grid is known statically for every process. Each process has access
+to its position within the grid via the `replica_id` and `partition_id` ops.
 
 Within the grid, the programs can all be the same (in the "Single Program,
 Multiple Data" style), can all be different (in the "Multiple Program, Multiple
-Data" style) or something in between. Each program has access to its position
-within the grid via the `replica_id` and `partition_id` ops.
+Data" style) or something in between.
 
 Within the grid, the processes are mostly independent from each other - they
 have separate operation statuses, separate input/intermediate/output values and
@@ -173,7 +175,7 @@ Given that execution of most of the ops is only using values from the same
 process, it is usually unambiguous to refer to these values by their names.
 However, when describing semantics of collective ops, that is insufficient, and
 we use the notation `name@process_id` to refer to the value `name` within a
-particular process. (From what perspective, unqualified `name` can be viewed as
+particular process. (From that perspective, unqualified `name` can be viewed as
 a shorthand for `name@(replica_id(), partition_id())`).
 
 The execution order across processes is implementation-defined, except for the
@@ -187,11 +189,10 @@ the processes in the StableHLO grid into **StableHLO process groups** and
 execute a joint computation within each process group, independently from other
 process groups.
 
-For all processes within each process group, collective ops introduce a
-synchronization barrier, i.e. the execution of a collective op in all these
-processes doesn't start until the execution of all these processes reaches
-the op. Further formalization, e.g. elaborating on what it means for execution
-to reach an op and what happens to a process group if it doesn't happen, is TBD.
+Within each process group, collective ops may introduce a synchronization
+barrier. Further formalization, e.g. elaborating on when exactly this
+synchronization happens, how exactly the processes arrive at this barrier,
+and what happens if they don't, is TBD.
 
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
