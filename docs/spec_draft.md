@@ -204,6 +204,7 @@ syntax.
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
+   * [power](#stablehlopower)
    * [real](#stablehloreal)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
@@ -2209,6 +2210,61 @@ and produces a `result` tensor.
 // %operand: [0, 1, 2, 127]
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.power
+
+### Semantics
+
+Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
+produces a `result` tensor.
+
+For integer element types, if the exponentiation has an unsigned/signed
+overflow, the result is implementation-defined and one of the following:
+
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+  for unsigned overflow. For signed integer overflow, wraps the result around
+  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
+
+For an integer, `x`, raised to a negative power, `y`, the behaviour is as
+follows:
+  * If `abs(x)` $\gt$ 1, then result is 0.
+  * If `abs(x)` $=$ 1, then result is equivalet to `x^abs(y)`.
+  * If `abs(x)` $=$ 0, then behaviour is implementation defined.
+
+For floating-point element types, it implements the `pow` operation from the
+IEEE-754 specification. For complex element types, it computes complex
+exponentiation, with corner cases TBD. Numeric precision is
+implementation-defined.
+
+### Inputs
+
+| Name  | Type                                               |
+|-------|----------------------------------------------------|
+| `lhs` | tensor of integer, floating-point, or complex type |
+| `rhs` | tensor of integer, floating-point, or complex type |
+
+### Outputs
+
+| Name     | Type                                               |
+|----------|----------------------------------------------------|
+| `result` | tensor of integer, floating-point, or complex type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [-2.0, -0.0, -36.0, 5.0, 3.0, 10000.0]
+// %rhs: [2.0, 2.0, 1.1, 2.0, -1.0, 10.0]
+%result = "stablehlo.power"(%lhs, %rhs) : (tensor<6xf32>, tensor<6xf32>) -> tensor<6xf32>
+// %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
 
 [Back to Ops](#index-of-ops)
