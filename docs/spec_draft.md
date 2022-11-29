@@ -168,6 +168,7 @@ syntax.
    * [after_all](#stablehloafter_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
+   * [batch_norm_grad](#stablehlobatch_norm_grad)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
    * [bitcast_convert](#stablehlobitcast_convert)
@@ -424,6 +425,128 @@ with corner cases TBD. Numeric precision is implementation-defined.
 // %rhs: [0.0, 0.0, 0.0]
 %result = "stablehlo.atan2"(%lhs, %rhs) : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.batch_norm_grad
+
+### Semantics
+
+Computes gradients of several inputs of
+[batch_norm_training](#stablehlobatch_norm_training) backpropagating from
+`grad_output`, and produces `grad_operand`, `grad_scale` and `grad_offset`
+tensors. More formally, this operation can be expressed as a decomposition to
+existing StableHLO operations using Python-like syntax as follows:
+
+```python
+def compute_sum(operand, feature_index):
+  (sum,) = reduce(
+      inputs=[operand],
+      init_values=[0.0],
+      dimensions=[i for i in range(rank(operand)) if i != feature_index],
+      body=lambda x, y: add(x, y))
+  return sum
+
+def compute_mean(operand, feature_index):
+  sum = compute_sum(operand, feature_index)
+  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
+  return divide(sum, divisor_bcast)
+
+def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, feature_index):
+  # Broadcast inputs to shape(operand)
+  scale_bcast = broadcast_in_dim(scale, [feature_index], shape(operand))
+  mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
+  variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+
+  # Perform normalization using the provided `mean` and `variance`
+  # Intermediate values will be useful for computing gradients
+  centered_operand = subtract(operand, mean_bcast)
+  stddev = sqrt(add(variance_bcast, epsilon_bcast))
+  normalized_operand = divide(centered_operand, stddev)
+
+  # Use the implementation from batchnorm_expander.cc in XLA
+  # Temporary variables have exactly the same names as in the C++ code
+  elements_per_feature = constant(
+    divide(size(operand), dim(operand, feature_index)))
+  i1 = multiply(
+    grad_output,
+    broadcast_in_dim(elements_per_feature, [], shape(operand)))
+  i2 = broadcast_in_dim(
+    compute_sum(grad_output, feature_index),
+    [feature_index], shape(operand))
+  i3 = broadcast_in_dim(
+    compute_sum(multiply(grad_output, centered_operand)),
+    [feature_index], shape(operand))
+  i4 = multiply(i3, centered_operand)
+  i5 = divide(i4, add(variance_bcast, epsilon_bcast))
+  grad_operand = multiply(
+    divide(divide(scale_bcast, stddev), elements_per_feature),
+    subtract(subtract(i1, i2), i5))
+  grad_scale = compute_sum(
+    multiply(grad_output, normalized_operand), feature_index)
+  grad_offset = compute_sum(grad_output, feature_index)
+  return grad_operand, grad_scale, grad_offset
+```
+
+### Inputs
+
+| Name            | Type                                        |
+|-----------------|---------------------------------------------|
+| `operand`       | tensor of floating-point type               |
+| `scale`         | 1-dimensional tensor of floating-point type |
+| `mean`          | 1-dimensional tensor of floating-point type |
+| `variance`      | 1-dimensional tensor of floating-point type |
+| `grad_output`   | tensor of floating-point type               |
+| `epsilon`       | constant of type `f32`                      |
+| `feature_index` | constant of type `si64`                     |
+
+### Outputs
+
+| Name           | Type                                        |
+|----------------|---------------------------------------------|
+| `grad_operand` | tensor of floating-point type               |
+| `grad_scale`   | 1-dimensional tensor of floating-point type |
+| `grad_offset`  | 1-dimensional tensor of floating-point type |
+
+### Constraints
+
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
+         `grad_scale` and `grad_offset` have the same element type.
+  * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
+  * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
+         same shape.
+  * (C5) size(`scale`) $=$ `dim(operand, feature_index)`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [[1.0, 2.0], [3.0, 4.0]],
+//            [[3.0, 4.0], [1.0, 2.0]]
+//           ]
+// %scale: [1.0, 1.0]
+// %mean: [2.0, 3.0]
+// %variance: [1.0, 1.0]
+// %grad_output: [
+//                [[0.1, 0.1], [0.1, 0.1]],
+//                [[0.1, 0.1], [0.1, 0.1]]
+//               ]
+%grad_operand, %grad_scale, %grad_offset =
+"stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance, %grad_output) {
+  epsilon = 0.0 : f32,
+  feature_index = 2 : i64
+} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
+     tensor<2x2x2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+// %grad_operand: [
+//                 [[0.0, 0.0], [0.0, 0.0]],
+//                 [[0.0, 0.0], [0.0, 0.0]]
+//                ]
+// %grad_scale:  [0.0, 0.0]
+// %grad_offset: [0.4, 0.4]
 ```
 
 [Back to Ops](#index-of-ops)
