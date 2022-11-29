@@ -614,8 +614,7 @@ Let `E` and `E'` be the `operand` and `result` element type respectively, and
 
 The behavior of `bits` is implementation-defined because the exact
 representation of tensors is implementation-defined, and the exact
-representation of floating-point types is implementation-defined (e.g. IEEE-754
-allows implementations to deviate on endianness).
+representation of element types is implementation-defined as well.
 
 ### Inputs
 
