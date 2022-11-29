@@ -3104,7 +3104,7 @@ deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between implementations.
 
 `rng_algorithm` is one of the following:
-  * `DEFAULT`: Backend specific algorithm.
+  * `DEFAULT`: Implementation-defined algorithm.
   * `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
   * `PHILOX`: Implementation-defined variant of the Philox algorithm.*
 
@@ -3115,14 +3115,14 @@ deterministic between implementations.
 
 | Name            | Type                                         |
 |-----------------|----------------------------------------------|
-| `initial_state` | tensor of integer or floating-point type     |
+| `initial_state` | 1-dimensional tensor of type `ui64`          |
 | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` |
 
 ### Outputs
 
 | Name           | Type                                     |
 |----------------|------------------------------------------|
-| `output_state` | tensor of integer or floating-point type |
+| `output_state` | 1-dimensional tensor of type `ui64`      |
 | `output`       | tensor of integer or floating-point type |
 
 ### Constraints
