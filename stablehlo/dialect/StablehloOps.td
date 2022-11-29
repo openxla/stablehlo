@@ -2828,7 +2828,7 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
     Example:
     ```mlir
-    %output_state, %output = stablehlo.rng_bit_generator %initial_state, algorithm = DEFAULT : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
+    %output_state, %output = stablehlo.rng_bit_generator %initial_state, algorithm = THREE_FRY : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
     ```
   }];
   let arguments = (ins

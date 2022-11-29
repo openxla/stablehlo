@@ -3101,13 +3101,12 @@ Returns an `output` filled with uniform random bits and an updated output state
 `output_state` given an initial state `initial_state` using the pseudorandom
 number generator algorithm `rng_algorithm`. The output is guaranteed to be
 deterministic function of `initial_state`, but it is not guaranteed to be
-deterministic between backends and different compiler versions.
+deterministic between implementations.
 
-`rng_algorithm` is one of the following, different variants of the algorithm is
-implementation-defined:
+`rng_algorithm` is one of the following:
   * `DEFAULT`: Backend specific algorithm.
-  * `THREE_FRY`: Threefry counter-based PRNG algorithm.*
-  * `PHILOX`: Philox algorithm to generate random numbers in parallel.*
+  * `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
+  * `PHILOX`: Implementation-defined variant of the Philox algorithm.*
 
 \* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
 ](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
@@ -3145,7 +3144,7 @@ implementation-defined:
 ```mlir
 // %initial_state: [1, 2]
 %output_state, %output = "stablehlo.rng_bit_generator"(%initial_state) {
-  rng_algorithm = #stablehlo.rng_algorithm<THREE_FRY>
+  rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
 } : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
 // %output_state: [1, 6]
 // %output: [
