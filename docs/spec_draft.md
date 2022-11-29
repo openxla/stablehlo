@@ -1110,13 +1110,15 @@ produces an implementation-defined value.
 
 ### Semantics
 
-Extracts a slice of shape `slice_sizes` from the `operand` tensor starting at
-`start_indices` and produces a `result` tensor.
+Extracts a slice from the `operand` using dynamically-computed starting indices
+and produces a `result` tensor. `start_indices` contain the starting indices of
+the slice for each dimension subject to potential adjustment, and `slice_sizes`
+contain the sizes of the slice for each dimension.
 
-More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
-  * `jd = effective_start_indices[d] + id`.
-  * `effective_start_indices[d] = clamp(start_indices[d], 0, dim(operand, d) - `
-    `slice_sizes[d])`.
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
+  * `jd = adjusted_start_indices[d][] + id`.
+  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) - `
+    `slice_sizes)`.
 
 ### Inputs
 
@@ -1144,15 +1146,15 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` such that:
 
 ```mlir
 // %operand: [
+//            [0, 0, 1, 1],
+//            [0, 0, 1, 1],
 //            [0, 0, 0, 0],
-//            [0, 0, 1, 1],
-//            [0, 0, 1, 1],
 //            [0, 0, 0, 0]
 //           ]
-// %start_indices0: 1
-// %start_indices1: 2
+// %start_indices0: -1
+// %start_indices1: 3
 %result = "stablehlo.dynamic_slice"(%operand, %start_indices0, %start_indices1) {
-  slice_sizes = [2, 2]
+  slice_sizes = dense<[2, 2]> : tensor<2xi64>
 } : (tensor<4x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x2xi32>
 // %result: [
 //           [1, 1],
@@ -3031,10 +3033,11 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Extracts a sub-tensor from the `operand` and produces a `result` tensor.
-`start_indices` contain the starting indices of the slice for each dimension,
-`limit_indices` contain the ending indices (exclusive) for the slice for each
-dimension, and `strides` contain the strides for each dimension.
+Extracts a slice from the `operand` using statically-computed starting indices
+and produces a `result` tensor. `start_indices` contain the starting indices of
+the slice for each dimension, `limit_indices` contain the ending indices
+(exclusive) for the slice for each dimension, and `strides` contain the strides
+for each dimension.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 `jd = start_indices[d] + id * strides[d]`.
