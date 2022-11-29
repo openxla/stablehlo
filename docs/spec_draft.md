@@ -170,6 +170,7 @@ syntax.
    * [atan2](#stablehloatan2)
    * [batch_norm_inference](#stablehlobatch_norm_inference)
    * [batch_norm_training](#stablehlobatch_norm_training)
+   * [bitcast_convert](#stablehlobitcast_convert)
    * [broadcast_in_dim](#stablehlobroadcast_in_dim)
    * [case](#stablehlocase)
    * [cbrt](#stablehlocbrt)
@@ -590,6 +591,68 @@ Numeric precision is implementation-defined.
 //          ]
 // %batch_mean: [2.0, 3.0]
 // %batch_var: [1.0, 1.0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.bitcast_convert
+
+### Semantics
+
+Performs a bitcast operation on `operand` tensor and produces a `result` tensor
+where the bits of the entire `operand` tensor are reinterpreted using the
+type of the `result` tensor.
+
+Let `E` and `E'` be the `operand` and `result` element type respectively, and
+`R = rank(operand)`:
+  * If `num_bits(E')` $=$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
+  * If `num_bits(E')` $\lt$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-1, :]) = bits(operand[i0, ..., iR-1])`.
+  * If `num_bits(E')` $\gt$ `num_bits(E)`,
+    `bits(result[i0, ..., iR-2]) = bits(operand[i0, ..., iR-2, :])`.
+
+The behavior of `bits` is implementation-defined because the exact
+representation of tensors is implementation-defined, and the exact
+representation of floating-point types is implementation-defined (e.g. IEEE-754
+allows implementations to deviate on endianness).
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `operand` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) Let `E` and `E'` be the `operand` and `result` element type,
+    respectively and `R = rank(operand)`:
+    * If `num_bits(E')` $=$ `num_bits(E)`, shape(`result`) $=$ shape(`operand`).
+    * If `num_bits(E')` $\lt$ `num_bits(E)`:
+      * `rank(result) = R+1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1].
+      * `dim(result, R) = num_bits(E)/num_bits(E')`.
+    * If `num_bits(E')` $\gt$ `num_bits(E)`:
+      * `rank(result) = R-1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1).
+      * `dim(operand, R-1) = num_bits(E')/num_bits(E)`.
+  * (C2) Conversion between complex and non-complex types is not permitted.
+
+### Examples
+
+```mlir
+// %operand: [0.0, 1.0]
+%result = "stablehlo.bitcast_convert"(%operand) : (tensor<2xf32>) -> tensor<2x4xi8>
+// %result: [
+//           [0, 0, 0, 0],
+//           [0, 0, -128, 63] // little-endian representation of 1.0
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
