@@ -3131,14 +3131,33 @@ number of bits and produces a `result` tensor.
 ### Semantics
 
 Returns the sign of the `operand` element-wise and produces a `result` tensor,
-using [stablehlo.compare](#stablehlocompare) as the comparator.
-For each element `x`:
+using [stablehlo.compare](#stablehlocompare) as the comparator. For each element
+`x`, it follows the following pseudocode:
 ```
-sign(x) = -1  if x < 0
-        = -0  if x = -0
-        = NaN if x = NaN
-        = +0  if x = +0
-        = 1   if x > 0
+if element_type(x) is signed integer:
+  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=LT, compare_type=SIGNED):
+    return -1
+  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=EQ, compare_type=SIGNED):
+    return 0
+  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=GT, compare_type=SIGNED):
+    return 1
+else if element_type(x) is floating-point:
+  if x is NaN:
+    return NaN
+  else:
+    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=LT, compare_type=FLOAT):
+      return -1.0
+    if stablehlo.compare(lhs=x, rhs=-0.0, comparison_direction=EQ, compare_type=FLOAT):
+      return -0.0
+    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=EQ, compare_type=FLOAT):
+      return 0.0
+    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=GT, compare_type=FLOAT):
+      return 1.0
+else if element_type(x) is complex:
+  if x.real is NaN or x.imag is NaN:
+    return NaN
+  else:
+    return x / stablehlo.abs(x)
 ```
 
 ### Inputs
