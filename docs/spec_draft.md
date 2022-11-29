@@ -176,6 +176,7 @@ syntax.
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
    * [clamp](#stablehloclamp)
+   * [compare](#stablehlocompare)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
@@ -864,6 +865,81 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 // %max: [10, 15, 20]
 %result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
 // %result: [5, 13, 20]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.compare
+
+### Semantics
+
+Performs element-wise comparison of `lhs` and `rhs` tensors according to
+`comparison_direction` and `compare_type`, and produces a `result` tensor.
+
+The values of `comparison_direction` and `compare_type` have the following
+semantics:
+
+For integer and boolean element types:
+  * `EQ`: `lhs` $=$ `rhs`.
+  * `NE`: `lhs` $\ne$ `rhs`.
+  * `GE`: `lhs` $\ge$ `rhs`.
+  * `GT`: `lhs` $\gt$ `rhs`.
+  * `LE`: `lhs` $\le$ `rhs`.
+  * `LT`: `lhs` $\lt$ `rhs`.
+
+For floating-point element types and `compare_type = FLOAT`, the op implements
+the following IEEE-754 operations:
+  * `EQ`: `compareQuietEqual`.
+  * `NE`: `compareQuietNotEqual`.
+  * `GE`: `compareQuietGreaterEqual`.
+  * `GT`: `compareQuietGreater`.
+  * `LE`: `compareQuietLessEqual`.
+  * `LT`: `compareQuietLess`.
+
+For floating-point element types and `compare_type = TOTALORDER`, the op
+uses the combination of `totalOrder` and `compareQuietEqual` operations from
+IEEE-754.
+
+For complex element types, lexicographic comparison of `(real, imag)` pairs is
+performed using the provided `comparison_direction` and `compare_type`.
+
+### Inputs
+
+| Name                   | Type                                                    |
+|------------------------|---------------------------------------------------------|
+| `lhs`                  | tensor of any supported type                            |
+| `rhs`                  | tensor of any supported type                            |
+| `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |
+| `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` |
+
+### Outputs
+
+| Name     | Type                   |
+|----------|------------------------|
+| `result` | tensor of boolean type |
+
+### Constraints
+
+  * (C1) `lhs` and `rhs` have the same element type.
+  * (C2) `lhs`, `rhs`, and `result` have the same shape.
+  * (C3) Given `E` is the `lhs` element type, the following are legal values of
+         `compare_type`:
+    * If `E` is signed integer type, `compare_type` = `SIGNED`.
+    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
+    * If `E` is floating-point type,
+      `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}.
+    * If `E` is complex type, `compare_type` = `FLOAT`.
+
+### Examples
+
+```mlir
+// %lhs: [1.0, 3.0]
+// %rhs: [1.1, 2.9]
+%result = "stablehlo.compare"(%lhs, %rhs) {
+  comparison_direction = #stablehlo<comparison_direction LT>,
+  compare_type = #stablehlo<comparison_type FLOAT>
+} : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
+// %result: [true, false]
 ```
 
 [Back to Ops](#index-of-ops)
