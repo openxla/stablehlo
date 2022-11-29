@@ -3130,34 +3130,28 @@ number of bits and produces a `result` tensor.
 
 ### Semantics
 
-Returns the sign of the `operand` element-wise and produces a `result` tensor,
-using [stablehlo.compare](#stablehlocompare) as the comparator. For each element
-`x`, it follows the following pseudocode:
-```
-if element_type(x) is signed integer:
-  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=LT, compare_type=SIGNED):
-    return -1
-  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=EQ, compare_type=SIGNED):
-    return 0
-  if stablehlo.compare(lhs=x, rhs=0, comparison_direction=GT, compare_type=SIGNED):
-    return 1
-else if element_type(x) is floating-point:
-  if x is NaN:
-    return NaN
-  else:
-    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=LT, compare_type=FLOAT):
-      return -1.0
-    if stablehlo.compare(lhs=x, rhs=-0.0, comparison_direction=EQ, compare_type=FLOAT):
-      return -0.0
-    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=EQ, compare_type=FLOAT):
-      return 0.0
-    if stablehlo.compare(lhs=x, rhs=0.0, comparison_direction=GT, compare_type=FLOAT):
-      return 1.0
-else if element_type(x) is complex:
-  if x.real is NaN or x.imag is NaN:
-    return NaN
-  else:
-    return x / stablehlo.abs(x)
+Returns the sign of the `operand` element-wise and produces a `result` tensor.
+More formally, for each element `x`, the semantics can be expressed using
+Python-like syntax as follows:
+```python
+def sign(x):
+  if is_integer(x):
+    if compare(x, 0, LT, SIGNED): return -1
+    if compare(x, 0, EQ, SIGNED): return 0
+    if compare(x, 0, GT, SIGNED): return 1
+  elif is_float(x):
+    if x is NaN:
+      return NaN
+    else:
+      if compare(x, 0.0, LT, FLOAT): return -1.0
+      if compare(x, -0.0, EQ, FLOAT): return -0.0
+      if compare(x, +0.0, EQ, FLOAT): return +0.0
+      if compare(x, 0.0, GT, FLOAT): return 1.0
+  elif is_complex(x):
+    if x.real is NaN or x.imag is NaN:
+      return NaN
+    else:
+      return divide(x, abs(x))
 ```
 
 ### Inputs
