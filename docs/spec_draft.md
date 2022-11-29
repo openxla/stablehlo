@@ -1600,14 +1600,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 ### Semantics
 
-Overwrites the `operand` tensor at `start_indices` with values from `update`
-tensor and produces a `result` tensor.
+Produces a `result` tensor which is equal to the `operand` tensor except that
+the slice starting at `start_indices` is updated with the values in `update`.
 
-More formally, `result[j0, ..., jR-1]` is defined as:
-  * `update[i0, ..., iR-1]` if `jd = effective_start_indices[d] + id` where
-    `effective_start_indices[d] = clamp(start_indices[d], 0, dim(operand, d) - `
-    `dim(update, d))`
-  * `result[i0, ..., iR-1] = operand[i0, ..., iR-1]` otherwise.
+More formally, `result[i0, ..., iR-1]` is defined as:
+  * `update[j0, ..., jR-1]` if `jd = adjusted_start_indices[d][] + id` where
+    `adjusted_start_indices = clamp(0, start_indices, shape(operand) - update)`.
+  * `operand[i0, ..., iR-1]` otherwise.
 
 ### Inputs
 
@@ -1637,17 +1636,17 @@ More formally, `result[j0, ..., jR-1]` is defined as:
 
 ```mlir
 // %operand: [
+//            [1, 1, 0, 0],
+//            [1, 1, 0, 0],
 //            [1, 1, 1, 1],
-//            [1, 1, 0, 0],
-//            [1, 1, 0, 0],
 //            [1, 1, 1, 1]
 //           ]
 // %update: [
 //           [1, 1],
 //           [1, 1]
 //          ]
-// %start_indices0: 1
-// %start_indices1: 2
+// %start_indices0: -1
+// %start_indices1: 3
 %result = "stablehlo.dynamic_update_slice"(%operand, %update, %start_indices0, %start_indices1)
   : (tensor<4x4xi32>, tensor<2x2xi32>, tensor<i64>, tensor<i64>) -> tensor<4x4xi32>
 // %result: [

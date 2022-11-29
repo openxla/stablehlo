@@ -1537,8 +1537,9 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
        AllShapesMatch<["operand", "result"]>]> {
   let summary = "Dynamic Update Slice operator";
   let description = [{
-    Overwrites the `operand` tensor at `start_indices` with values from `update`
-    tensor and produces a `result` tensor.
+    Produces a `result` tensor which is equal to the `operand` tensor except
+    that the slice starting at `start_indices` is updated with the values in
+    `update`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloslice
