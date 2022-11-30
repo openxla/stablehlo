@@ -19,7 +19,6 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
