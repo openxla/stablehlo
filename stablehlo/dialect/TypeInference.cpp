@@ -305,7 +305,6 @@ unsigned potentiallyComplexBitwidth(Type type) {
 
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
-                                  bool useGlobalDeviceIds,
                                   bool allGroupsMustHaveSameSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 

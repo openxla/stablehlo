@@ -577,7 +577,7 @@ Afterwards, within each `process_group`:
   * (C4) `size(replica_groups)` = `num_replicas`.
   * (C5) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          from `indices(replica_groups)`.
-  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
+  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
   * (C7)`type(result) = type(operand)` except that `dim(result, all_gather_dim)`
         is given by
     * `dim(replica_groups, 1) * number_partitions * dim(operand, all_gather_dim)`,
