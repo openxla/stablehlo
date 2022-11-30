@@ -2823,8 +2823,7 @@ Also, `result[i] = operand[i]` if `type(operand[i])` is not `token`.
 ### Constraints
 
   * (C1) size(`operand`) $=$ size(`result`).
-  * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i $\in$ [0,
-         size(`operand`)).
+  * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i.
 
 ### Examples
 
