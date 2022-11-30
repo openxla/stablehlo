@@ -1369,9 +1369,10 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
     [SameOperandsAndResultElementType]> {
   let summary = "ReduceScatter operator";
   let description = [{
-    ReduceScatter performs stablehlo.all_reduce and then scatters the result by
-    splitting it into blocks along the `scatter_dimension` such that replica
-    `i` in the replica group receives the `i`th block.
+     Within each process group in the StableHLO grid, performs reduction, using
+     `computations`, over the values of the `operand` tensor from each process,
+     splits the reduction result along `scatter_dimension` into parts, and
+     scatters the split parts between the processes to produce the `result`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreduce_scatter
@@ -1385,7 +1386,7 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
     }) {
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
       scatter_dimension = 1 : i64
-    } : (tensor<4x4xf32>) -> tensor<4x2xf32>
+    } : (tensor<2x4xf32>) -> tensor<2x2xf32>
     ```
   }];
 

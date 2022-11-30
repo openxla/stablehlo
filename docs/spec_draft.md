@@ -3565,6 +3565,7 @@ Within each `process_group`:
 //                  [14.0, 16.0],
 //                  [22.0, 24.0]
 //                 ]
+<<<<<<< HEAD
 ```
 
 [Back to Ops](#index-of-ops)
@@ -3649,6 +3650,8 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
   padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
 } : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
 // %result = [[0, 0], [3, 4]]
+=======
+>>>>>>> 3e18a8a (Iter1: address review comments)
 ```
 
 [Back to Ops](#index-of-ops)
