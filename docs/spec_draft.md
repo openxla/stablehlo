@@ -207,11 +207,12 @@ which the grid is split into process groups are shared between these ops and are
 described in this section. More formally, StableHLO supports the following
 four strategies.
 
-1) **cross_replica** (as in "only cross-replica communications will be happening
-within each process group"). This strategy takes `replica_groups` - a list of
-lists of replica ids - and computes a Cartesian product of `replica_groups` by
-`partition_ids`. `replica_groups` must have unique elements and cover all
-`replica_ids`. More formally:
+#### cross_replica
+
+Only cross-replica communications happen within each process group. This
+strategy takes `replica_groups` - a list of lists of replica ids - and computes
+a Cartesian product of `replica_groups` by `partition_ids`. `replica_groups`
+must have unique elements and cover all `replica_ids`. More formally:
 
 ```Python
 def cross_replica(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
@@ -227,11 +228,13 @@ For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
 `cross_replica` will produce
 `[[(0, 0), (1, 0)], [(0, 1), (1, 1)], [(2, 0), (3, 0)], [(2, 1), (3, 1)]]`.
 
-2) **cross_partition** (as in "only cross-partition communications will be
-happening within each process group"). This strategy takes `partition_groups` -
-a list of lists of partition ids - and computes a Cartesian product of
-`partition_groups` by `replica_ids`. `partition_groups` must have unique
-elements and cover all `partition_ids`. More formally:
+#### cross_partition
+
+Only cross-partition communications happen within each process group. This
+strategy takes `partition_groups` - a list of lists of partition ids - and
+computes a Cartesian product of `partition_groups` by `replica_ids`.
+`partition_groups` must have unique elements and cover all `partition_ids`.
+More formally:
 
 ```Python
 def cross_partition(partition_groups: List[List[PartitionId]]) -> List[List[ProcessId]]:
@@ -247,12 +250,13 @@ For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
 `cross_partition` will produce
 `[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
 
-3) **cross_replica_and_partition** (as in "both cross-replica and
-cross-partition communications may be happening within each process group").
-This strategy takes `replica_groups` - a list of lists of replica ids - and
-computes Cartesian products of each `replica_group` by `partition_ids`.
-`replica_groups` must have unique elements and cover all `replica_ids`.
-More formally:
+#### cross_replica_and_partition
+
+Both cross-replica and cross-partition communications may happen within each
+process group. This strategy takes `replica_groups` - a list of lists of
+replica ids - and computes Cartesian products of each `replica_group` by
+`partition_ids`. `replica_groups` must have unique elements and cover all
+`replica_ids`. More formally:
 
 ```Python
 def cross_replica_and_partition(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
@@ -268,11 +272,12 @@ For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
 `cross_replica_and_partition` will produce
 `[[(0, 0), (1, 0), (0, 1), (1, 1)], [(2, 0), (3, 0), (2, 1), (3, 1)]]`.
 
-4) **flattened_ids**. This strategy takes `flattened_id_groups` - a list of
-lists of "flattened" process ids in the
-`replica_id * num_partitions + partition_id` format - and turns them into
-process ids. `flattened_id_groups` must have unique elements and cover all
-`process_ids`. More formally:
+#### flattened_ids
+
+This strategy takes `flattened_id_groups` - a list of lists of "flattened"
+process ids in the form of `replica_id * num_partitions + partition_id` - and
+turns them into process ids. `flattened_id_groups` must have unique elements
+and cover all `process_ids`. More formally:
 
 ```Python
 def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]]:
