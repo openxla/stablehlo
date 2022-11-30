@@ -294,15 +294,6 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
-### Replica and Partition of a program
-
-Multiple instances of a compiled StableHLO program could be running to exploit
-data parallelism. Each instance is called a replica identified uniquely using
-replica id (`rid`). In addition, several different StableHLO programs can be
-executed together to exploit "Multiple Program Multiple Data" (MPMD) style
-parallelism and these are called partitions, each of which is identified uniquely
-using a partition id (`pid`).
-
 ## Errors
 
 StableHLO programs are validated through an extensive set of constraints for
@@ -545,93 +536,37 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ### Semantics
 
-Scatters `split_count` blocks of data, by splitting `operand` along
-`split_dimension`, from all the execution instances to all the execution
-instances. Each execution instance concatenates the received blocks along the
-`concat_dimension`.
-
-The following diagram shows how the scattered blocks of `operand`, from all the
-execution instances, are concatenated to form `result` in each execution
-instance.
-
 <img align="center" src="spec_draft/all_to_all.svg" />
 
-In the instruction syntax, multiple replica ids are grouped as a replica
-subgroup and multiple replica subgroups form `replica_groups`.
+Within each process group in the StableHLO grid, splits the values of the
+`operand` tensor along `split_dimension` into parts, scatters the split parts
+between the processes, concatenates the scattered parts along `concat_dimension`
+and produces a `result` tensor.
 
-The execution of the operation involves logically partitioning each execution
-instance (`ei`) of `rid`, `pid` pair, henceforth referred to as `ei(rid, pid)`
-into groups. All the execution instances within a group can participate in the
-operation without getting interfered by execution instances from other groups.
-The number of groups represents the number of `stablehlo.all_to_all` operations
-executed in parallel.
+The operation splits the StableHLO grid into process groups using the
+`cross_replica(replica_groups)` strategy.
 
-Given,
-  * `num_pids`: Number of partition ids.
-  * `num_rids`: Number of replica ids.
-  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }.
-  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }.
-  * `size_subgroup`: size of each subgroup in `replica_groups`.
-  * `num_subgroup`: number of subgroups in `replica_groups`.
-
-The formation of groups is defined as follows:
-   * Number of groups formed: `num_subgroup` * `num_pids`.
-
-   * Size of each group: `size_subgroup`.
-
-   * The formation of `groups` can be demonstrated, using Python-like syntax, as
-     follows:
-     ```python
-     all_replica_ids = [rid for rid in range(num_rids)]
-     all_partition_ids = [pid for pid in range(num_pids)]
-     groups = []
-
-     if len(replica_groups) == 0:
-       replica_groups = [all_replica_ids]
-
-     for replica_group in replica_groups:
-       for pid in all_partition_ids:
-         sub_group = []
-         for rid in replica_group:
-           sub_group.append(ei(rid, pid))
-         groups.append(sub_group)
-     return groups
-     ```
-
-  * For example, assuming `num_pids = 2` and
-      `replica_groups = [[0, 2], [1, 3]]`:
-      `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
-
-For each group `G` $\in$ `groups`, the operation can be described as:
-  * Each `operand`, corresponding to an execution instance in `G`,
-    is split into `split_count` number of blocks, described below using
-    Python-like syntax.
-    ```python
-    blocks = [
+Afterwards, within each `process_group`:
+  * ```
+    split_parts@sender = [
         slice(
-          operand=operand,
+          operand=operand@sender,
           start_indices=[s0, s1, ..., sR-1],
             # where
-            #  - sk = 0 if k != split_dimension
-            #  - sk = j * dim(operand) // split_count, if k == split_dimension
+            #  - sj = 0 if j != split_dimension
+            #  - sj = i * dim(operand) // split_count, if j == split_dimension
             #  - R = rank(operand)
           limit_indices=[l0, l1, ..., lR-1],
             # where
-            #   - lk = dim(operand, k) if k != split_dimension
-            #   - lk = dim(operand, split_dimension) // split_count, if k == split_dimension
-          strides=[t0, t1, ..., tR-1]
-            # where
-            #   - lk = 0 if k != split_dimension
-            #   - lk = dim(operand, split_dimension) // split_count, if k == split_dimension
-        ) for j in range(split_count)]
-    ```
-  * `blocks` are scattered to all the execution instances in `G` such that
-    `blocks[i]` is send to ith execution instance, for i $\in$ G.
-  * Each execution instance in `G` concatenates the received
-    blocks along the `concat_dimension` to produce `result` which is given by
-    `result = concatenate(received_blocks, concat_dimension)`, where
-    `received_blocks` = { received blocks sorted based on the order of execution
-    instances in `G` }.
+            #   - lj = dim(operand, j) if j != split_dimension
+            #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
+          strides=[1, ..., 1]
+        ) for i in range(split_count)
+     ]
+     ``` for all `sender` in `process_group`.
+  * `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in process_group]`
+    where `receiver_index = index_of(receiver, process_group)`.
+  * `result@process = concatenate(scattered_parts@process, concat_dimension).
 
 ### Inputs
 
@@ -652,53 +587,49 @@ For each group `G` $\in$ `groups`, the operation can be described as:
 ### Constraints
 
   * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
+  * (C4) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
   * (C2) `concat_dimension` $\in$ [0, rank(`operand`)).
   * (C3) `split_count` $\gt$ 0.
-  * (C4) dim(`result`, `split_dimension`) % `split_count` $=$ 0.
-  * (C5) On `replica_groups`:
-    * All the subgroups in `replica_groups` have the same size.
-    * The replica ids contains all values in the range [0, N) where N is the
-      number of replicas in `replica_groups`.
-    * An empty `replica groups` is allowed only when `use_global_device_ids` is
-      `false`.
-    * `split_count` $=$ `size_subgroup`.
-  * (C6) dim(`result`, i) is given by:
-    * dim(`operand`, i) / `split_count`, i $=$ `split_dimension`.
-    * dim(`operand`, i) * `split_count`, i $=$ `concat_dimension`.
-    * dim(`operand`, i), otherwise.
+  * (C2) size(`replica_groups`) $\gt$ 0.
+  * (C3) All values in `replica_groups` are unique.
+  * (C4) `size(replica_groups)` = `num_replicas`.
+  * (C5) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+         from `indices(replica_groups)`.
+  * (C6) `type(result) = type(operand)` except that:
+    * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
+    * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
 
 ### Examples
 
 ```mlir
-// %operand (at ei(0, 0)): [
-//                          [1.0, 2.0, 3.0, 4.0],
-//                          [5.0, 6.0, 7.0, 8.0]
-//                         ]
-// %operand (at ei(1, 0)): [
-//                          [9.0, 10.0, 11.0, 12.0],
-//                          [13.0, 14.0, 15.0, 16.0]
-//                         ]
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [
+//                  [1.0, 2.0, 3.0, 4.0],
+//                  [5.0, 6.0, 7.0, 8.0]
+//                 ]
+// %operand@(1, 0): [
+//                  [9.0, 10.0, 11.0, 12.0],
+//                  [13.0, 14.0, 15.0, 16.0]
+//                 ]
 %result = "stablehlo.all_to_all"(%operand) {
   split_dimension = 1 : i64,
   concat_dimension = 0 : i64,
   split_count = 2 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
 } : (tensor<2x4xf32>) -> tensor<4x2xf32>
-//
-// Assuming num_pids = 1, a single group [ei(0, 0), ei(1, 0)] is formed.
-//
-// %result (at ei(0, 0)): [
-//                         [1.0, 2.0],
-//                         [5.0, 6.0],
-//                         [9.0, 10.0],
-//                         [13.0, 14.0]
-//                        ]
-// %result (at ei(1, 0)): [
-//                         [3.0, 4.0],
-//                         [7.0, 8.0],
-//                         [11.0, 12.0],
-//                         [15.0, 16.0]
-//                        ]
+// %result@(0, 0): [
+//                 [1.0, 2.0],
+//                 [5.0, 6.0],
+//                 [9.0, 10.0],
+//                 [13.0, 14.0]
+//                ]
+// %result@(1, 0): [
+//                 [3.0, 4.0],
+//                 [7.0, 8.0],
+//                 [11.0, 12.0],
+//                 [15.0, 16.0]
+//                ]
 ```
 
 [Back to Ops](#index-of-ops)

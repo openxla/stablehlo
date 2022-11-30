@@ -305,7 +305,8 @@ unsigned potentiallyComplexBitwidth(Type type) {
 
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
-                                  bool allGroupsMustHaveSameSize) {
+                                  bool allGroupsMustHaveSameSize,
+                                  Optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
   if (replicaGroupType.getRank() != 2)
@@ -341,6 +342,12 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
                                " not seen in replica groups");
     }
   }
+
+  if (allGroupsMustHaveSameSize && expectedGroupSize &&
+      (replicaIds.size() / replicaGroupType.getShape()[0] !=
+       *expectedGroupSize))
+    return emitOptionalError(location, "group size of replica_groups must be ",
+                             *expectedGroupSize);
 
   return success();
 }

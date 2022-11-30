@@ -1328,13 +1328,13 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
 }
 
 def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
-    [Pure, InferTensorType]> {
+    [SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "AllToAll operator";
   let description = [{
-    Scatters `split_count` blocks of data, by splitting `operand` along
-    `split_dimension`, from all the execution instances to all the execution
-    instances. Each execution instance concatenates the received blocks along
-    the `concat_dimension`.
+    Within each process group in the StableHLO grid, splits the values of the
+    `operand` tensor along `split_dimension` into parts, scatters the split parts
+    between the processes, concatenates the scattered parts along `concat_dimension`
+    and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_to_all

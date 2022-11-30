@@ -237,7 +237,7 @@ func.func @alltoall_unranked_input(%data: tensor<*xf32>) -> tensor<*xf32> {
 // -----
 
 func.func @alltoall_negative_split_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+1 {{AllToAll split_dimension -1 is out-of-bounds for input rank 2}}
+  // expected-error@+1 {{AllToAll split_dimension cannot be negative}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = -1 : i64,
     concat_dimension = 0 : i64,
@@ -263,7 +263,7 @@ func.func @alltoall_out_bound_split_dimension(%data: tensor<4x16xf32>) -> tensor
 // -----
 
 func.func @alltoall_negative_concat_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+1 {{AllToAll concat_dimension -1 is out-of-bounds for input rank 2}}
+  // expected-error@+1 {{AllToAll concat_dimension cannot be negative}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = -1 : i64,
@@ -315,7 +315,7 @@ func.func @alltoall_invalid_split_dim_size(%data: tensor<4x16xf32>) -> tensor<16
 // -----
 
 func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+1 {{replica groups should be a rank 2 tensor of 64 bit integers}}
+  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -367,7 +367,7 @@ func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x
 // -----
 
 func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+1 {{subgroup size of replica_groups must be 4}}
+  // expected-error@+1 {{group size of replica_groups must be 4}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
