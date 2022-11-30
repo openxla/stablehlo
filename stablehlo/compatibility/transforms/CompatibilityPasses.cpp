@@ -30,18 +30,18 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/compatibility/dialect/VersionNumber.h"
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/compatibility/dialect/VhloOps.h"
 #include "stablehlo/compatibility/transforms/CompatibilityTypeConversion.h"
-#include "stablehlo/compatibility/transforms/MapStablehloToVersionedStablehlo.h"
+#include "stablehlo/compatibility/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
-namespace versionedhlo {
-#define GEN_PASS_DEF_STABLEHLOLEGALIZETOVERSIONEDHLOPASS
-#define GEN_PASS_DEF_VERSIONEDHLOLEGALIZETOSTABLEHLOPASS
-#define GEN_PASS_DEF_VERSIONEDHLOTOVERSIONPASS
+namespace vhlo {
+#define GEN_PASS_DEF_STABLEHLOLEGALIZETOVHLOPASS
+#define GEN_PASS_DEF_VHLOLEGALIZETOSTABLEHLOPASS
+#define GEN_PASS_DEF_VHLOTOVERSIONPASS
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
 
@@ -69,22 +69,22 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
 
 namespace {
 
-//////////////////////////////////
-/// StableHLO --> VersionedHLO ///
-//////////////////////////////////
+//////////////////////////
+/// StableHLO --> VHLO ///
+//////////////////////////
 
 #define RETURN_CONVERTED_ENUM_ATTR(Name)                             \
   auto stablehloValue = stablehlo::stringify##Name(attr.getValue()); \
-  auto hloValue = versionedhlo::symbolize##Name(stablehloValue);     \
+  auto hloValue = vhlo::symbolize##Name(stablehloValue);     \
   if (!hloValue.has_value()) return {};                              \
-  return versionedhlo::Name##Attr::get(attr.getContext(), hloValue.value())
+  return vhlo::Name##Attr::get(attr.getContext(), hloValue.value())
 
-Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
+Attribute convertAttrToVhlo(Attribute stablehloAttr) {
   // Handle StableHLO attributes.
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::ChannelHandleAttr>()) {
-    return versionedhlo::ChannelHandleAttr::get(
+    return vhlo::ChannelHandleAttr::get(
         attr.getContext(), attr.getHandle(), attr.getType());
   }
   if (auto attr =
@@ -96,7 +96,7 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ConvDimensionNumbersAttr>()) {
-    return versionedhlo::ConvDimensionNumbersAttr::get(
+    return vhlo::ConvDimensionNumbersAttr::get(
         attr.getContext(), attr.getInputBatchDimension(),
         attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
         attr.getKernelInputFeatureDimension(),
@@ -110,7 +110,7 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::DotDimensionNumbersAttr>()) {
-    return versionedhlo::DotDimensionNumbersAttr::get(
+    return vhlo::DotDimensionNumbersAttr::get(
         attr.getContext(), attr.getLhsBatchingDimensions(),
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
         attr.getRhsContractingDimensions());
@@ -120,12 +120,12 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::GatherDimensionNumbersAttr>()) {
-    return versionedhlo::GatherDimensionNumbersAttr::get(
+    return vhlo::GatherDimensionNumbersAttr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::OutputOperandAliasAttr>()) {
-    return versionedhlo::OutputOperandAliasAttr::get(
+    return vhlo::OutputOperandAliasAttr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
@@ -140,7 +140,7 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ScatterDimensionNumbersAttr>()) {
-    return versionedhlo::ScatterDimensionNumbersAttr::get(
+    return vhlo::ScatterDimensionNumbersAttr::get(
         attr.getContext(), attr.getUpdateWindowDims(),
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
         attr.getIndexVectorDim());
@@ -151,7 +151,7 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   if (stablehloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {
     // Our guiding principle is to support all StableHLO functionality in
-    // versionedhlo. This check is here only for exceptional situations, e.g.
+    // vhlo. This check is here only for exceptional situations, e.g.
     // when we added a new StableHLO attribute and forgot to update the code
     // above.
     return {};
@@ -163,7 +163,7 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> hloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
-      auto hloAttr = convertAttrToVersionedhlo(stablehloAttr);
+      auto hloAttr = convertAttrToVhlo(stablehloAttr);
       if (!hloAttr) return {};
       hloAttrs.push_back(hloAttr);
     }
@@ -174,21 +174,21 @@ Attribute convertAttrToVersionedhlo(Attribute stablehloAttr) {
 
 #undef RETURN_CONVERTED_ENUM_ATTR
 
-struct StablehloLegalizeToVersionedhloPass
-    : public impl::StablehloLegalizeToVersionedhloPassBase<
-          StablehloLegalizeToVersionedhloPass> {
+struct StablehloLegalizeToVhloPass
+    : public impl::StablehloLegalizeToVhloPassBase<
+          StablehloLegalizeToVhloPass> {
   void runOnOperation() override {
     ConversionTarget target(getContext());
     target.addIllegalDialect<stablehlo::StablehloDialect>();
-    target.addLegalDialect<versionedhlo::VersionedhloDialect>();
+    target.addLegalDialect<vhlo::VhloDialect>();
 
-    versionedhlo::StablehloToVersionedhloTypeConverter converter;
+    vhlo::StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
-    versionedhlo::populateStablehloToVersionedhloPatterns(&patterns, &converter,
+    vhlo::populateStablehloToVhloPatterns(&patterns, &converter,
                                                           &getContext());
     registerFuncOpsForTypeConversion(target, patterns, converter);
 
-    // StableHLO is a subset of VersionedHLO.
+    // StableHLO is a subset of VHLO.
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       LLVM_DEBUG(llvm::dbgs() << "Failed partial conversion\n");
@@ -198,7 +198,7 @@ struct StablehloLegalizeToVersionedhloPass
 };
 
 template <typename StablehloOpTy>
-class StablehloToVersionedhloOpConverter
+class StablehloToVhloOpConverter
     : public OpConversionPattern<StablehloOpTy> {
  public:
   using OpConversionPattern<StablehloOpTy>::OpConversionPattern;
@@ -218,23 +218,23 @@ class StablehloToVersionedhloOpConverter
 
     SmallVector<NamedAttribute> stablehloAttrs;
     for (NamedAttribute hloAttr : stablehloOp->getAttrs()) {
-      auto stablehloAttr = convertAttrToVersionedhlo(hloAttr.getValue());
+      auto stablehloAttr = convertAttrToVhlo(hloAttr.getValue());
       if (!stablehloAttr) return failure();
       stablehloAttrs.push_back({hloAttr.getName(), stablehloAttr});
     }
 
-    // Convert the versionedhlo operation to a StableHLO equivalent.
+    // Convert the vhlo operation to a StableHLO equivalent.
     // This can almost be done in a generic fashion, except for
-    // versionedhlo.case that uses a variadic number of regions which means an
+    // vhlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
-    StablehloToVersionedhloOp<StablehloOpTy> versionedOp;
+    StablehloToVhloOp<StablehloOpTy> versionedOp;
     if constexpr (std::is_same<StablehloOpTy, stablehlo::CaseOp>::value) {
-      versionedOp = rewriter.replaceOpWithNewOp<versionedhlo::CaseOp>(
+      versionedOp = rewriter.replaceOpWithNewOp<vhlo::CaseOp>(
           stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs,
           stablehloOp.getBranches().size());
     } else {
       versionedOp =
-          rewriter.replaceOpWithNewOp<StablehloToVersionedhloOp<StablehloOpTy>>(
+          rewriter.replaceOpWithNewOp<StablehloToVhloOp<StablehloOpTy>>(
               stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs);
     }
 
@@ -248,39 +248,39 @@ class StablehloToVersionedhloOpConverter
 };
 
 template <typename... StablehloOpTypes>
-void populateStablehloToVersionedhloPatterns(RewritePatternSet* patterns,
+void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
                                              TypeConverter* converter,
                                              MLIRContext* context) {
-  patterns->add<StablehloToVersionedhloOpConverter<StablehloOpTypes>...>(
+  patterns->add<StablehloToVhloOpConverter<StablehloOpTypes>...>(
       *converter, context);
 }
 
-//////////////////////////////////
-/// VersionedHLO --> StableHLO ///
-//////////////////////////////////
+//////////////////////////
+/// VHLO --> StableHLO ///
+//////////////////////////
 #define RETURN_CONVERTED_ENUM_ATTR(Name)                                \
-  auto stablehloValue = versionedhlo::stringify##Name(attr.getValue()); \
+  auto stablehloValue = vhlo::stringify##Name(attr.getValue()); \
   auto hloValue = stablehlo::symbolize##Name(stablehloValue);           \
   if (!hloValue.has_value()) return {};                                 \
   return stablehlo::Name##Attr::get(attr.getContext(), hloValue.value())
 
-Attribute convertAttrToStablehlo(Attribute versionedhloAttr) {
-  LLVM_DEBUG(llvm::dbgs() << "Converting " << versionedhloAttr);
+Attribute convertAttrToStablehlo(Attribute vhloAttr) {
+  LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::ChannelHandleAttr>()) {
+          vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::ComparisonDirectionAttr>()) {
+          vhloAttr.dyn_cast<vhlo::ComparisonDirectionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection);
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::ComparisonTypeAttr>()) {
+          vhloAttr.dyn_cast<vhlo::ComparisonTypeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonType);
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::ConvDimensionNumbersAttr>()) {
+          vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersAttr>()) {
     return stablehlo::ConvDimensionNumbersAttr::get(
         attr.getContext(), attr.getInputBatchDimension(),
         attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
@@ -290,92 +290,92 @@ Attribute convertAttrToStablehlo(Attribute versionedhloAttr) {
         attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::CustomCallApiVersionAttr>()) {
+          vhloAttr.dyn_cast<vhlo::CustomCallApiVersionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::DotDimensionNumbersAttr>()) {
+          vhloAttr.dyn_cast<vhlo::DotDimensionNumbersAttr>()) {
     return stablehlo::DotDimensionNumbersAttr::get(
         attr.getContext(), attr.getLhsBatchingDimensions(),
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
         attr.getRhsContractingDimensions());
   }
-  if (auto attr = versionedhloAttr.dyn_cast<versionedhlo::FftTypeAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(FftType);
   }
-  if (auto attr = versionedhloAttr
-                      .dyn_cast<versionedhlo::GatherDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr
+                      .dyn_cast<vhlo::GatherDimensionNumbersAttr>()) {
     return stablehlo::GatherDimensionNumbersAttr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::OutputOperandAliasAttr>()) {
+          vhloAttr.dyn_cast<vhlo::OutputOperandAliasAttr>()) {
     return stablehlo::OutputOperandAliasAttr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
-  if (auto attr = versionedhloAttr.dyn_cast<versionedhlo::PrecisionAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Precision);
   }
-  if (auto attr = versionedhloAttr.dyn_cast<versionedhlo::RngAlgorithmAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm);
   }
   if (auto attr =
-          versionedhloAttr.dyn_cast<versionedhlo::RngDistributionAttr>()) {
+          vhloAttr.dyn_cast<vhlo::RngDistributionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution);
   }
-  if (auto attr = versionedhloAttr
-                      .dyn_cast<versionedhlo::ScatterDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr
+                      .dyn_cast<vhlo::ScatterDimensionNumbersAttr>()) {
     return stablehlo::ScatterDimensionNumbersAttr::get(
         attr.getContext(), attr.getUpdateWindowDims(),
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
         attr.getIndexVectorDim());
   }
-  if (auto attr = versionedhloAttr.dyn_cast<versionedhlo::TransposeAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose);
   }
-  if (versionedhloAttr.getDialect().getNamespace() ==
+  if (vhloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {
-    // Our guiding principle is to support all versionedhlo functionality in
-    // versionedhlo. This check is here only for exceptional situations, e.g.
-    // when we added a new versionedhlo attribute and forgot to update the code
+    // Our guiding principle is to support all vhlo functionality in
+    // vhlo. This check is here only for exceptional situations, e.g.
+    // when we added a new vhlo attribute and forgot to update the code
     // above.
     return {};
   }
 
-  // Handle non-versionedhlo attributes.
-  // If an attribute is not defined in versionedhlo, then it is unchanged,
+  // Handle non-vhlo attributes.
+  // If an attribute is not defined in vhlo, then it is unchanged,
   // with the exception of ArrayAttr which is converted recursively.
-  if (auto versionedhloAttrs = versionedhloAttr.dyn_cast<ArrayAttr>()) {
+  if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> hloAttrs;
-    for (auto versionedhloAttr : versionedhloAttrs) {
-      auto hloAttr = convertAttrToStablehlo(versionedhloAttr);
+    for (auto vhloAttr : vhloAttrs) {
+      auto hloAttr = convertAttrToStablehlo(vhloAttr);
       if (!hloAttr) return {};
       hloAttrs.push_back(hloAttr);
     }
-    return ArrayAttr::get(versionedhloAttrs.getContext(), hloAttrs);
+    return ArrayAttr::get(vhloAttrs.getContext(), hloAttrs);
   }
-  return versionedhloAttr;
+  return vhloAttr;
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
 
-struct VersionedhloLegalizeToStablehloPass
-    : public impl::VersionedhloLegalizeToStablehloPassBase<
-          VersionedhloLegalizeToStablehloPass> {
+struct VhloLegalizeToStablehloPass
+    : public impl::VhloLegalizeToStablehloPassBase<
+          VhloLegalizeToStablehloPass> {
   void runOnOperation() override {
     ConversionTarget target(getContext());
-    target.addIllegalDialect<versionedhlo::VersionedhloDialect>();
+    target.addIllegalDialect<vhlo::VhloDialect>();
     target.addLegalDialect<stablehlo::StablehloDialect>();
 
-    versionedhlo::VersionedhloToStablehloTypeConverter converter;
+    vhlo::VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
-    versionedhlo::populateVersionedhloToStablehloPatterns(&patterns, &converter,
+    vhlo::populateVhloToStablehloPatterns(&patterns, &converter,
                                                           &getContext());
     registerFuncOpsForTypeConversion(target, patterns, converter);
 
-    // VersionedHLO should always be convertible to StableHLO if upgraded.
+    // VHLO should always be convertible to StableHLO if upgraded.
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       return signalPassFailure();
@@ -383,13 +383,13 @@ struct VersionedhloLegalizeToStablehloPass
   }
 };
 
-template <typename VersionedhloOpTy>
-class VersionedhloToStablehloOpConverter
-    : public OpConversionPattern<VersionedhloOpTy> {
+template <typename VhloOpTy>
+class VhloToStablehloOpConverter
+    : public OpConversionPattern<VhloOpTy> {
  public:
-  using OpConversionPattern<VersionedhloOpTy>::OpConversionPattern;
+  using OpConversionPattern<VhloOpTy>::OpConversionPattern;
   LogicalResult matchAndRewrite(
-      VersionedhloOpTy stablehloOp, typename VersionedhloOpTy::Adaptor adaptor,
+      VhloOpTy stablehloOp, typename VhloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> versionedTypes;
     if (failed(this->getTypeConverter()->convertTypes(
@@ -407,19 +407,19 @@ class VersionedhloToStablehloOpConverter
       stablehloAttrs.push_back({hloAttr.getName(), stablehloAttr});
     }
 
-    // Convert the versionedhlo operation to a StableHLO equivalent.
+    // Convert the vhlo operation to a StableHLO equivalent.
     // This can almost be done in a generic fashion, except for
-    // versionedhlo.case that uses a variadic number of regions which means an
+    // vhlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
-    VersionedhloToStablehloOp<VersionedhloOpTy> versionedOp;
-    if constexpr (std::is_same<VersionedhloOpTy, versionedhlo::CaseOp>::value) {
+    VhloToStablehloOp<VhloOpTy> versionedOp;
+    if constexpr (std::is_same<VhloOpTy, vhlo::CaseOp>::value) {
       versionedOp = rewriter.replaceOpWithNewOp<stablehlo::CaseOp>(
           stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs,
           stablehloOp.getBranches().size());
     } else {
       versionedOp =
           rewriter
-              .replaceOpWithNewOp<VersionedhloToStablehloOp<VersionedhloOpTy>>(
+              .replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
                   stablehloOp, versionedTypes, stablehloOperands,
                   stablehloAttrs);
     }
@@ -434,44 +434,44 @@ class VersionedhloToStablehloOpConverter
 };
 
 template <typename... StablehloOpTypes>
-void populateVersionedhloToStablehloPatterns(RewritePatternSet* patterns,
+void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
                                              TypeConverter* converter,
                                              MLIRContext* context) {
-  patterns->add<VersionedhloToStablehloOpConverter<
-      StablehloToVersionedhloOp<StablehloOpTypes>>...>(*converter, context);
+  patterns->add<VhloToStablehloOpConverter<
+      StablehloToVhloOp<StablehloOpTypes>>...>(*converter, context);
 }
 
 }  // namespace
 
-void populateStablehloToVersionedhloPatterns(RewritePatternSet* patterns,
+void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
                                              TypeConverter* converter,
                                              MLIRContext* context) {
-  populateStablehloToVersionedhloPatterns<
+  populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >(patterns, converter, context);
 }
 
-void populateVersionedhloToStablehloPatterns(RewritePatternSet* patterns,
+void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
                                              TypeConverter* converter,
                                              MLIRContext* context) {
-  populateVersionedhloToStablehloPatterns<
+  populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >(patterns, converter, context);
 }
 
 ///////////////////////////////
-/// VersionedHLO To Version ///
+/// VHLO To Version ///
 ///////////////////////////////
 namespace {
 
-struct VersionedhloToVersionPass
-    : public impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass> {
-  VersionedhloToVersionPass()
-      : impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass>() {}
-  VersionedhloToVersionPass(VersionedhloToVersionPassOptions const& opts)
-      : impl::VersionedhloToVersionPassBase<VersionedhloToVersionPass>(opts) {}
+struct VhloToVersionPass
+    : public impl::VhloToVersionPassBase<VhloToVersionPass> {
+  VhloToVersionPass()
+      : impl::VhloToVersionPassBase<VhloToVersionPass>() {}
+  VhloToVersionPass(VhloToVersionPassOptions const& opts)
+      : impl::VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
   FailureOr<VersionNumber> validateTargetVersion(llvm::StringRef versionRef) {
     auto failOrVersion = VersionNumber::get(targetVersion);
@@ -522,7 +522,7 @@ struct VersionedhloToVersionPass
     //   v3 illegal { 0.0 !in [0.5, Curr] }
     //   v2 illegal { 0.1 !in [0.1, 0.4] }
     //   v1 legal   { 0.0  in [0.0, 0.1] }
-    target.addDynamicallyLegalDialect<VersionedhloDialect>([&targetVersionNumber](
+    target.addDynamicallyLegalDialect<VhloDialect>([&targetVersionNumber](
                                                                Operation* op) {
       if (auto interface = dyn_cast<VersionInterface>(op)) {
         return (interface.getMinVersion() <= targetVersionNumber &&
@@ -531,12 +531,12 @@ struct VersionedhloToVersionPass
       return false;
     });
 
-    versionedhlo::VersionedTypeConverterBase converter;
+    vhlo::VersionedTypeConverterBase converter;
     RewritePatternSet patterns(&getContext());
-    versionedhlo::populateVersionedhloToVersionPatterns(&patterns, &converter,
+    vhlo::populateVhloToVersionPatterns(&patterns, &converter,
                                                         &getContext());
 
-    // Conversion from VersionedHLO to StableHLO should never fail.
+    // Conversion from VHLO to StableHLO should never fail.
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       return signalPassFailure();
@@ -583,7 +583,7 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-// versionedhlo.custom_call --> versionedhlo.custom_call_v2
+// vhlo.custom_call --> vhlo.custom_call_v2
 struct CustomCallOpV2Upgrade
     : public VersionConversionPattern<CustomCallOp, CustomCallOpV2> {
   using VersionConversionPattern<CustomCallOp,
@@ -593,7 +593,7 @@ struct CustomCallOpV2Upgrade
   }
 };
 
-// versionedhlo.custom_call_v2 --> versionedhlo.custom_call
+// vhlo.custom_call_v2 --> vhlo.custom_call
 struct CustomCallOpV1Downgrade
     : public VersionConversionPattern<CustomCallOpV2, CustomCallOp> {
   using VersionConversionPattern<CustomCallOpV2,
@@ -610,12 +610,12 @@ struct CustomCallOpV1Downgrade
 
 }  // namespace
 
-void populateVersionedhloToVersionPatterns(RewritePatternSet* patterns,
+void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                            TypeConverter* converter,
                                            MLIRContext* context) {
   patterns->add<CustomCallOpV2Upgrade>(*converter, context);
   patterns->add<CustomCallOpV1Downgrade>(*converter, context);
 }
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir

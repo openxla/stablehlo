@@ -18,35 +18,35 @@ limitations under the License.
 
 #include <type_traits>
 
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/compatibility/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
-template <typename VersionedhloOpTy>
-struct VersionedhloToStablehloOpImpl {
+template <typename VhloOpTy>
+struct VhloToStablehloOpImpl {
   using Type = std::false_type;
 };
-template <typename VersionedhloOpTy>
-using VersionedhloToStablehloOp =
-    typename VersionedhloToStablehloOpImpl<VersionedhloOpTy>::Type;
+template <typename VhloOpTy>
+using VhloToStablehloOp =
+    typename VhloToStablehloOpImpl<VhloOpTy>::Type;
 
 template <typename StablehloOpTy>
-struct StablehloToVersionedhloOpImpl {
+struct StablehloToVhloOpImpl {
   using Type = std::false_type;
 };
 template <typename StablehloOpTy>
-using StablehloToVersionedhloOp =
-    typename StablehloToVersionedhloOpImpl<StablehloOpTy>::Type;
+using StablehloToVhloOp =
+    typename StablehloToVhloOpImpl<StablehloOpTy>::Type;
 
 #define MAP_STABLEHLO_TO_VERSION(OpName, OpVer)                       \
   template <>                                                         \
-  struct StablehloToVersionedhloOpImpl<stablehlo::OpName> {           \
-    using Type = versionedhlo::OpName##OpVer;                         \
+  struct StablehloToVhloOpImpl<stablehlo::OpName> {           \
+    using Type = vhlo::OpName##OpVer;                         \
   };                                                                  \
   template <>                                                         \
-  struct VersionedhloToStablehloOpImpl<versionedhlo::OpName##OpVer> { \
+  struct VhloToStablehloOpImpl<vhlo::OpName##OpVer> { \
     using Type = stablehlo::OpName;                                   \
   };
 
@@ -170,7 +170,7 @@ MAP_STABLEHLO_TO_VERSION_V0(XorOp)
 #undef MAP_STABLEHLO_TO_VERSION
 #undef MAP_STABLEHLO_TO_VERSION_V0
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir
 
 #endif  // MLIR_HLO_DIALECT_MHLO_TRANSFORMS_MAP_STABLEHLO_TO_HLO_OP_H

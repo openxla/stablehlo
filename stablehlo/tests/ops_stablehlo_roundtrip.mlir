@@ -2,7 +2,7 @@
 // RUN: diff <(stablehlo-opt %s) <(stablehlo-opt -emit-bytecode %s | stablehlo-opt)
 // RUN: stablehlo-opt -emit-bytecode -debug-only=stablehlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
-// RUN: diff <(stablehlo-opt %s) <(stablehlo-opt --stablehlo-legalize-to-versionedhlo --versionedhlo-to-version='target=minimum' -emit-bytecode | stablehlo-opt --versionedhlo-to-version='target=current' --versionedhlo-legalize-to-stablehlo %s)
+// RUN: diff <(stablehlo-opt %s) <(stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=minimum' -emit-bytecode | stablehlo-opt --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo %s)
 
 // This test compares the output from `stablehlo-opt` of this file, to a round
 // trip of the a bytecoded version of this file. If the outputs do not match,

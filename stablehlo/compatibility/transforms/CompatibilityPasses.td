@@ -15,18 +15,18 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
-def StablehloLegalizeToVersionedhloPass : Pass<"stablehlo-legalize-to-versionedhlo", "ModuleOp"> {
+def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
   let summary = "Legalize StableHLO to VersionedStableHLO.";
-  let dependentDialects = ["mlir::versionedhlo::VersionedhloDialect"];
+  let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
-def VersionedhloLegalizeToStablehloPass : Pass<"versionedhlo-legalize-to-stablehlo", "ModuleOp"> {
+def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VersionedStableHLO to StableHLO.";
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
 
-def VersionedhloToVersionPass : Pass<"versionedhlo-to-version"> {
-  let summary = "Convert between versions of VersionedHLO.";
+def VhloToVersionPass : Pass<"vhlo-to-version"> {
+  let summary = "Convert between versions of VHLO.";
   let options = [
     Option<"targetVersion", "target", "std::string", "\"current\"",
            "The target version for downgrade. (Defaults to minimum supported)">,

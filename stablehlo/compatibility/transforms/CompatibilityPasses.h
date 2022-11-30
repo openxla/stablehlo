@@ -19,30 +19,30 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
-namespace versionedhlo {
-#define GEN_PASS_DECL_STABLEHLOLEGALIZETOVERSIONEDHLOPASS
-#define GEN_PASS_DECL_VERSIONEDHLOLEGALIZETOSTABLEHLOPASS
-#define GEN_PASS_DECL_VERSIONEDHLOUPGRADEPASS
-#define GEN_PASS_DECL_VERSIONEDHLODOWNGRADEPASS
-#define GEN_PASS_DECL_VERSIONEDHLOTOVERSIONPASS
+namespace vhlo {
+#define GEN_PASS_DECL_STABLEHLOLEGALIZETOVHLOPASS
+#define GEN_PASS_DECL_VHLOLEGALIZETOSTABLEHLOPASS
+#define GEN_PASS_DECL_VHLOUPGRADEPASS
+#define GEN_PASS_DECL_VHLODOWNGRADEPASS
+#define GEN_PASS_DECL_VHLOTOVERSIONPASS
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
 
 /// Registers all transformation passes.
 void registerStablehloCompatibilityPasses();
 
 // Populates StableHLO ops to Versioned StableHLO ops rewriting patterns.
-void populateStablehloToVersionedhloPatterns(RewritePatternSet *patterns,
+void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
                                              TypeConverter *converter,
                                              MLIRContext *context);
 
 // Populates Versioned StableHLO ops to StableHLO ops rewriting patterns.
-void populateVersionedhloToStablehloPatterns(RewritePatternSet *patterns,
+void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
                                              TypeConverter *converter,
                                              MLIRContext *context);
 
 // Populates Versioned StableHLO downgrade rewriting patterns.
-void populateVersionedhloToVersionPatterns(RewritePatternSet *patterns,
+void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                            TypeConverter *converter,
                                            MLIRContext *contexts);
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir

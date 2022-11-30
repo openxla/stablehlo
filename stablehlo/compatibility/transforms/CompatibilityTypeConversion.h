@@ -15,13 +15,13 @@ limitations under the License.
 
 #include "llvm/Support/Debug.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/compatibility/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
 class VersionedTypeConverterBase : public TypeConverter {
  public:
@@ -36,9 +36,9 @@ class VersionedTypeConverterBase : public TypeConverter {
   };
 };
 
-class StablehloToVersionedhloTypeConverter : public VersionedTypeConverterBase {
+class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
  public:
-  StablehloToVersionedhloTypeConverter() : VersionedTypeConverterBase() {
+  StablehloToVhloTypeConverter() : VersionedTypeConverterBase() {
     addConversion([](stablehlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
@@ -46,10 +46,10 @@ class StablehloToVersionedhloTypeConverter : public VersionedTypeConverterBase {
   }
 };
 
-class VersionedhloToStablehloTypeConverter : public VersionedTypeConverterBase {
+class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
  public:
-  VersionedhloToStablehloTypeConverter() : VersionedTypeConverterBase() {
-    addConversion([](versionedhlo::TokenType token) -> Type {
+  VhloToStablehloTypeConverter() : VersionedTypeConverterBase() {
+    addConversion([](vhlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
     });
@@ -62,5 +62,5 @@ class VersionedhloToStablehloTypeConverter : public VersionedTypeConverterBase {
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter);
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir
