@@ -1122,11 +1122,11 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 ### Inputs
 
-| Name            | Type                                                    |
-|-----------------|---------------------------------------------------------|
-| `operand`       | tensor of any supported type                            |
-| `start_indices` | variadic number of 0-dimensional tensors of type `si64` |
-| `slice_sizes`   | 1-dimensional tensor constant of type `si64`            |
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+| `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
 
 ### Outputs
 
@@ -1138,9 +1138,10 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
   * (C1) `operand` and `result` have the same element type.
   * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
-  * (C3) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
-    [0, rank(`operand`)).
-  * (C4) shape(`result`) $=$ `slice_sizes`.
+  * (C3) All `start_indices` have the same type.
+  * (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$ [0,
+    rank(`operand`)).
+  * (C5) shape(`result`) $=$ `slice_sizes`.
 
 ### Examples
 
