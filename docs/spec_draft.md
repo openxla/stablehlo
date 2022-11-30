@@ -351,6 +351,7 @@ syntax.
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
+   * [dynamic_slice](#stablehlodynamic_slice)
    * [exponential](#stablehloexponential)
    * [exponential_minus_one](#stablehloexponential_minus_one)
    * [fft](#stablehlofft)
@@ -1531,6 +1532,65 @@ produces an implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [5, -5, -5, 5]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.dynamic_slice
+
+### Semantics
+
+Extracts a slice from the `operand` using dynamically-computed starting indices
+and produces a `result` tensor. `start_indices` contain the starting indices of
+the slice for each dimension subject to potential adjustment, and `slice_sizes`
+contain the sizes of the slice for each dimension.
+
+More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
+  * `jd = adjusted_start_indices[d][] + id`.
+  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) - `
+    `slice_sizes)`.
+
+### Inputs
+
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+| `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
+  * (C3) All `start_indices` have the same type.
+  * (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$ [0,
+    rank(`operand`)).
+  * (C5) shape(`result`) $=$ `slice_sizes`.
+
+### Examples
+
+```mlir
+// %operand: [
+//            [0, 0, 1, 1],
+//            [0, 0, 1, 1],
+//            [0, 0, 0, 0],
+//            [0, 0, 0, 0]
+//           ]
+// %start_indices0: -1
+// %start_indices1: 3
+%result = "stablehlo.dynamic_slice"(%operand, %start_indices0, %start_indices1) {
+  slice_sizes = dense<[2, 2]> : tensor<2xi64>
+} : (tensor<4x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x2xi32>
+// %result: [
+//           [1, 1],
+//           [1, 1]
+//          ]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -3534,10 +3594,11 @@ Numeric precision is implementation-defined.
 
 ### Semantics
 
-Extracts a sub-tensor from the `operand` and produces a `result` tensor.
-`start_indices` contain the starting indices of the slice for each dimension,
-`limit_indices` contain the ending indices (exclusive) for the slice for each
-dimension, and `strides` contain the strides for each dimension.
+Extracts a slice from the `operand` using statically-computed starting indices
+and produces a `result` tensor. `start_indices` contain the starting indices of
+the slice for each dimension, `limit_indices` contain the ending indices
+(exclusive) for the slice for each dimension, and `strides` contain the strides
+for each dimension.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 `jd = start_indices[d] + id * strides[d]`.
