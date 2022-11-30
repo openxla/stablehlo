@@ -364,7 +364,7 @@ func.func @all_gather_invalid_dim(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 // -----
 
 func.func @all_gather_invalid_dim(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
-  // expected-error@+1 {{all_gather_dim must be a valid index of operand}}
+  // expected-error@+1 {{all_gather_dim cannot be negative}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = -1 : i64,
     channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,

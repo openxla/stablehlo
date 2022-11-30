@@ -1978,7 +1978,7 @@ LogicalResult AllGatherOp::verify() {
   int64_t allGatherDimIndex = getAllGatherDim();
 
   if (allGatherDimIndex < 0)
-    return emitOpError() << "all_gather_dim must be a valid index of operand";
+    return emitOpError() << "all_gather_dim cannot be negative";
 
   if (operandType) {
     if (allGatherDimIndex >= operandType.getRank())
