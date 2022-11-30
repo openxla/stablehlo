@@ -2338,8 +2338,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
 def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, RecursiveMemoryEffects]> {
   let summary = "Scatter operator";
   let description = [{
-    Generate `results` which is the values of the `inputs` operand, with several
-    slices at indices specified by `scatter_indices`, updated with the values in
+    Produces `results` tensors which are equal to `inputs` tensors except that
+    several slices specified by `scatter_indices` are updated with the values
     `updates` using `update_computation`.
 
     See:

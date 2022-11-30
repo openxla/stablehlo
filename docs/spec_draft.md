@@ -1610,11 +1610,11 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 
 ### Inputs
 
-| Name            | Type                                                    |
-|-----------------|---------------------------------------------------------|
-| `operand`       | tensor of any supported type                            |
-| `update`        | tensor of any supported type                            |
-| `start_indices` | variadic number of 0-dimensional tensors of type `si64` |
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `update`        | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
 
 ### Outputs
 
@@ -1628,7 +1628,8 @@ More formally, `result[i0, ..., iR-1]` is defined as:
   * (C2) element_type(`update`) $=$ element_type(`operand`).
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
-  * (C5) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
+  * (C5) All `start_indices` have the same type.
+  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
     [0, rank(`operand`)).
 
 
@@ -3267,8 +3268,8 @@ specification. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Generate `results` which is the values of the `inputs` operand, with several
-slices at indices specified by `scatter_indices`, updated with the values in
+Produces `results` tensors which are equal to `inputs` tensors except that
+several slices specified by `scatter_indices` are updated with the values
 `updates` using `update_computation`.
 
 The following diagram shows how elements in `updates[k]` map on elements in
