@@ -2802,9 +2802,11 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 
 ### Semantics
 
-Blocks any optimization pass from moving computations across the barrier. It
-ensures that the operations producing the `operand` are executed before any
-operations that depend on `result`.
+Ensures that the operations that produce the `operand` are executed before any
+operations that depend on the `result`, preventing any optimisation pass from
+moving computations across the barrier.
+
+Also, `result[i] = operand[i]` if `type(operand[i])` is not `token`.
 
 ### Arguments
 
@@ -2821,7 +2823,8 @@ operations that depend on `result`.
 ### Constraints
 
   * (C1) size(`operand`) $=$ size(`result`).
-  * (C2) type(`operand`) $=$ type(`result`).
+  * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i $\in$ [0,
+         size(`operand`)).
 
 ### Examples
 

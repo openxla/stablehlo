@@ -2784,7 +2784,9 @@ def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
   }];
 
   let description = [{
-    Blocks any optimization pass from moving computations across the barrier.
+    Ensures that the operations that produce the `operand` are executed before
+    any operations that depend on the `result`, preventing any optimisation
+    pass from moving computations across the barrier.
 
     See
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooptimization_barrier
