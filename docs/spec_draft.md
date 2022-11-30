@@ -578,15 +578,9 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ### Semantics
 
-<<<<<<< HEAD
 Within each process group in the StableHLO grid, concatenates the values of the
 `operand` tensor from each process along `all_gather_dim` and produces a
 `result` tensor.
-=======
-For each replica sub-group in `replica_groups`, the operation performs
-[reduction](#stablehloreduce), using `computations`, over the replicas of
-`input` tensor formed using the subgroup and produces a `result` tensor.
->>>>>>> bda60a3 (Iter3: address review comments)
 
 The operation splits the StableHLO grid into `process_groups` as follows:
   * `channel_id <= 0` and `use_global_device_ids = false`,
@@ -596,116 +590,11 @@ The operation splits the StableHLO grid into `process_groups` as follows:
   * `channel_id > 0` and `use_global_device_ids = true`,
     `flattened_ids(replica_groups)`.
 
-<<<<<<< HEAD
 Afterwards, within each `process_group`:
   * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
   * `result@process = concatenate(operands@process, all_gather_dim)` for all
     `process` in `process_group`.
-=======
-In the instruction syntax, multiple replica ids are grouped as a replica
-subgroup and multiple replica subgroups form `replica_groups`. If
-`use_global_device_ids = true`, the ids in `replica_groups` are interpreted as
-global device ids given by `rid * num_pids + pid` where `num_pids` $=$ number of
-partitions.
-
-The execution of the operation involves logically partitioning each execution
-instance (`ei`) of `rid`, `pid` pair, henceforth referred to as `ei(rid, pid)`
-into groups. All the execution instances within a group can participate in the
-operation without getting interfered by execution instances from other groups.
-The number of groups represents the number of `stablehlo.all_reduce` operations
-executed in parallel.
-
-Given,
-  * `num_pids`: Number of partition ids
-  * `num_rids`: Number of replica ids
-  * `all_partions_ids`: { pid : pid $\in$ [0, `num_pids`) }
-  * `all_replica_ids`: { rid : rid $\in$ [0, `num_rids`) }
-  * `size_subgroup`: size of each subgroup in `replica_groups`.
-  * `num_subgroup`: number of subgroups in `replica_groups`.
-
-The formation of groups is defined as follows:
-
-1. If `channel_handle` is not provided and `use_global_device_ids` $=$ `false`
-   * Number of groups formed: `num_subgroup` * `num_pids`.
-   * Size of each group: `size_subgroup`.
-   * The formation of `groups` can be demonstrated, using Python-like syntax, as
-     follows:
-     ```python
-     all_replica_ids = [rid for rid in range(num_rids)]
-     all_partition_ids = [pid for pid in range(num_pids)]
-     groups = []
-
-     if len(replica_groups) == 0:
-       replica_groups = [all_replica_ids]
-
-     for replica_group in replica_groups:
-       for pid in all_partition_ids:
-         sub_group = []
-         for rid in replica_group:
-           sub_group.append(ei(rid, pid))
-         groups.append(sub_group)
-     return groups
-     ```
-    * For example, assuming `num_pids = 2` and `replica_groups = [[0, 2], [1, 3]]`:
-      `groups` formed: `[ei(0, 0), ei(2, 0)], [ei(0, 1), ei(2, 1)], [ei(1, 0), ei(3, 0)], and [ei(1, 1), ei(3, 1)]`.
-
-2. If `channel_handle` is not provided and `use_global_device_ids` $=$ `true`
-    * Invalid configuration.
-
-3. If `channel_handle` is provided and `use_global_device_ids` $=$ `false`
-   * Number of groups formed: `num_subgroup`.
-   * Size of each group: `size_subgroup` * `num_pids`.
-   * The formation of `groups` can be demonstrated, using Python-like syntax, as
-     follows:
-     ```python
-     all_replica_ids = [rid for rid in range(num_rids)]
-     all_partition_ids = [pid for pid in range(num_pids)]
-     groups = []
-
-     if len(replica_groups) == 0:
-       replica_groups = [all_replica_ids]
-
-     for replica_group in replica_groups:
-       sub_group = []
-       for rid in replica_group:
-         for pid in all_partition_ids:
-           sub_group.append(ei(rid, pid))
-       groups.append(sub_group)
-     return groups
-     ```
-    * For example, assuming `num_pids = 2` and `replica_groups = [[0, 2], [1, 3]]`:
-      `groups` formed: `[ei(0, 0), ei(0, 1), ei(2, 0), ei(2, 1)] and [ei(1, 0), ei(1, 1), ei(3, 0), ei(3, 1)]`.
-
-4. If `channel_handle` is provided and `use_global_device_ids` $=$ `true`
-   * Number of groups formed: `num_subgroup`.
-   * Size of each group: `size_subgroup`.
-   * The formation of `groups` can be demonstrated, using Python-like syntax, as
-     follows:
-     ```python
-     groups = []
-     for replica_group in replica_groups:
-       sub_group = []
-       for global_device_id in replica_group:
-         sub_group.append(ei(global_device_id // num_pids, global_device_id % num_pids))
-       groups.append(sub_group)
-     return groups
-     ```
-    * For example, assuming `num_pids = 2` and `replica_groups = [[4, 5], [6, 7]]`:
-      `groups` formed: `[ei(2, 0), ei(2, 1)] and [ei(3, 0), ei(3, 1)]`.
-
-For each group `G` $\in$ `groups`, the `result`, to be visible by each member of
-`G`, can be expressed, using Python-like syntax,  as follows:
-
-```python
-result[i0, i1, ..., iR-1] = reduce(
-      inputs=operand[i0, i1, ..., iR-1] for each `ei(rid, pid)` in G,
-      init_values=[I, such that `computation` and `I` form a monoid],
-      dimensions=[i for i in range(R)],
-      body=computation)
-```
-The order of reductions is implementation-defined.
->>>>>>> bda60a3 (Iter3: address review comments)
 
 ### Inputs
 

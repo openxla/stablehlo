@@ -215,7 +215,7 @@ func.func @all_reduce_invalid_return_type(%operand: tensor<10xf32>) -> tensor<10
 // -----
 
 func.func @all_reduce_invalid_replica_group(%operand: tensor<10xf32>) -> tensor<10xf32> {
-  // expected-error@+1 {{replica groups should be a rank 2 tensor of 64 bit integers}}
+  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
   %0 = "stablehlo.all_reduce"(%operand) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
     %max = stablehlo.maximum %arg0, %arg1 : tensor<f32>
@@ -260,7 +260,7 @@ func.func @all_reduce_invalid_replica_group(%operand: tensor<10xf32>) -> tensor<
 // -----
 
 func.func @all_reduce_invalid_replica_group(%operand: tensor<10xf32>) -> tensor<10xf32> {
-  //  expected-error@+1 {{if `use_global_device_ids` is set, the replica groups cannot be empty}}
+  //  expected-error@+1 {{replica groups cannot be empty}}
   %0 = "stablehlo.all_reduce"(%operand) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
     %max = stablehlo.maximum %arg0, %arg1 : tensor<f32>
