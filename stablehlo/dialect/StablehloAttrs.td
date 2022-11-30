@@ -64,7 +64,7 @@ def StableHLO_DotDimensionNumbers : AttrDef<StableHLO_Dialect, "DotDimensionNumb
   let hasCustomAssemblyFormat = 1;
 }
 
-def OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
+def StableHLO_OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlias"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "output_operand_alias";
   let summary =

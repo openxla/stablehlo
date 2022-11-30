@@ -585,7 +585,6 @@ struct CustomCallOpV1Downgrade
       return emitToVersionError(op,
                                 "op has a non-empty result_layouts attribute");
     }
-    if (op->hasAttr("result_layout")) op->removeAttr("result_layout");
     return success();
   }
 };

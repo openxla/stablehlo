@@ -638,7 +638,12 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.1.0"> {
         $api_version,
     DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<VHLO_ArrayOfLayoutAttr>:$operand_layouts,
-    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts
+    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts,
+    DefaultValuedOptionalAttr<
+        TypedArrayAttrBase<
+            VHLO_OutputOperandAlias,
+            "Aliasing attribute for outputs and operands of CustomCall">,
+        "{}">:$output_operand_aliases // FIXME: add test
   );
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }
