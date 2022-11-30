@@ -539,13 +539,13 @@ Within each process group in the StableHLO grid, concatenates the values of the
 `operand` tensor from each process along `all_gather_dim` and produces a
 `result` tensor.
 
-The operation splits the StableHLO grid into process groups as follows:
+The operation splits the StableHLO grid into `process_groups` as follows:
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
   * `channel_id > 0` and `use_global_device_ids = false`,
     `cross_replica_and_partition(replica_groups)`.
   * `channel_id > 0` and `use_global_device_ids = true`,
-    `flattened_ids(replica_groups).
+    `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
   * `operands@receiver = [operand@sender for sender in process_group]` for all
@@ -572,17 +572,13 @@ Afterwards, within each `process_group`:
 ### Constraints
 
   * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
-  * (C2) size(`replica_groups`) $\gt$ 0.
-  * (C3) All values in `replica_groups` are unique.
-  * (C4) `size(replica_groups)` = `num_replicas`.
-  * (C5) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+  * (C2) All values in `replica_groups` are unique.
+  * (C3) `size(replica_groups)` = `num_replicas`.
+  * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          from `indices(replica_groups)`.
-  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-  * (C7)`type(result) = type(operand)` except that `dim(result, all_gather_dim)`
-        is given by
-    * `dim(replica_groups, 1) * number_partitions * dim(operand, all_gather_dim)`,
-       for process groups formation strategy $=$  `cross_replica_and_partition`,
-    * `dim(replica_groups, 1) * dim(operand, all_gather_dim)`, otherwise.
+  * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C6)`type(result) = type(operand)` except that
+    * `dim(result, all_gather_dim)` = `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
 ### Examples
 

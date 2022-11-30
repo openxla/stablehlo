@@ -312,7 +312,7 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
     return emitOptionalError(location,
                              "replica groups should be a rank 2 tensor");
 
-  // Revisit the following check in light of #652.
+  // Revisit the following check in light of #498.
   if (replicaGroupType.getShape()[0] * replicaGroupType.getShape()[1] == 0) {
     return emitOptionalError(location, "replica groups cannot be empty");
   }
