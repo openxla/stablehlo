@@ -2877,7 +2877,7 @@ Produces `replica_id` of the current process.
 ### Examples
 
 ```mlir
-%result = stablehlo.replica_id : tensor<ui32>
+%result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
 
 [Back to Ops](#index-of-ops)
