@@ -27,7 +27,6 @@ add_dependencies(mlir-headers VhloOpsIncGen)
 add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
   VhloOps.cpp
-  # VhloBytecode.cpp
 
   DEPENDS
   VhloOpsIncGen
@@ -38,13 +37,3 @@ add_mlir_dialect_library(VhloOps
   MLIRSupport
   MLIRQuantDialect
 )
-
-add_mlir_dialect_library(VhloRegister
-  PARTIAL_SOURCES_INTENDED
-  Register.cpp
-
-  LINK_LIBS PUBLIC
-  ChloOps
-  VhloOps
-)
-

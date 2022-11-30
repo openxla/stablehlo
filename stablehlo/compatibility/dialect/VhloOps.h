@@ -30,7 +30,7 @@ limitations under the License.
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
-#include "stablehlo/compatibility/dialect/VersionNumber.h"
+#include "stablehlo/compatibility/dialect/Version.h"
 
 // Include order matters.
 #include "stablehlo/compatibility/dialect/VhloEnums.h.inc"
@@ -41,6 +41,10 @@ namespace mlir {
 namespace vhlo {
 
 class VhloDialect : public Dialect {
+  // Update this value at every bump in Dialect Version.
+  static constexpr llvm::StringLiteral CURRENT_VERSION = "0.1.0";
+  static constexpr llvm::StringLiteral MINIMUM_VERSION = "0.0.0";
+
  public:
   explicit VhloDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "vhlo"; }
@@ -57,10 +61,15 @@ class VhloDialect : public Dialect {
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
 
-  // Return a value represenging the max supported dialect
-  static llvm::StringRef getCurrentDialectVersion() { return "0.2.0"; }
+  /// Return a Version representing the current dialect version.
+  static Version getCurrentDialectVersion() {
+    return *Version::get(CURRENT_VERSION);
+  }
 
-  static llvm::StringRef getMinimumDialectVersion() { return "0.0.0"; }
+  /// Return a Version representing the minimum supported dialect version.
+  static Version getMinimumDialectVersion() {
+    return *Version::get(MINIMUM_VERSION);
+  }
 };
 
 class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {

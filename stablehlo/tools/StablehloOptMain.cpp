@@ -16,7 +16,6 @@ limitations under the License.
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
-#include "stablehlo/compatibility/dialect/Register.h"
 #include "stablehlo/compatibility/transforms/CompatibilityPasses.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/tests/TestUtils.h"
@@ -29,7 +28,6 @@ int main(int argc, char **argv) {
   mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
 
-  mlir::vhlo::registerAllDialects(registry);
   mlir::vhlo::registerStablehloCompatibilityPasses();
 
   return failed(

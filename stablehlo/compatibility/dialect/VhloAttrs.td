@@ -34,7 +34,6 @@ def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
 def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumbers"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "scatter";
-  let summary = "Attribute that models the dimension information for scatter";
   let parameters = (ins
       VHLO_Dims:$updateWindowDims,
       VHLO_Dims:$insertedWindowDims,
@@ -59,7 +58,6 @@ def VHLO_GatherDimensionNumbers : AttrDef<VHLO_Dialect, "GatherDimensionNumbers"
 def VHLO_DotDimensionNumbers : AttrDef<VHLO_Dialect, "DotDimensionNumbers"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "dot";
-  let summary = "Attribute that models the dimension information for dot.";
   let parameters = (ins
       VHLO_Dims:$lhsBatchingDimensions,
       VHLO_Dims:$rhsBatchingDimensions,
@@ -77,17 +75,6 @@ def VHLO_ArgResultAlias : AttrDef<VHLO_Dialect, "ArgResultAlias"> {
     "int64_t":$resultIndex,
     VHLO_Dims:$resultTupleIndices,
     "bool":$isMustAlias
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_OutputOperandAlias : AttrDef<VHLO_Dialect, "OutputOperandAlias"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "output_operand_alias";
-  let parameters = (ins
-    VHLO_Dims:$outputTupleIndices,
-    "int64_t":$operandIndex,
-    VHLO_Dims:$operandTupleIndices
   );
   let assemblyFormat = "`<` struct(params) `>`";
 }
@@ -154,7 +141,7 @@ def VHLO_ConvDimensionNumbers : AttrDef<VHLO_Dialect, "ConvDimensionNumbers"> {
     "int64_t":$outputFeatureDimension,
     VHLO_Dims:$outputSpatialDimensions
   );
-  let assemblyFormat = "struct(params)";
+  let assemblyFormat = "`<` struct(params) `>`";
 }
 
 def VHLO_ConvolutionAttributes {

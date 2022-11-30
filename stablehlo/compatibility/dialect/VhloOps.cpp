@@ -57,7 +57,7 @@ Type VhloDialect::parseType(DialectAsmParser& parser) const {
 
   if (dataType == "token") return TokenType::get(getContext());
   parser.emitError(parser.getNameLoc())
-      << "unknown stablehlo type: " << dataType;
+      << "unknown vhlo type: " << dataType;
   return nullptr;
 }
 
@@ -66,7 +66,7 @@ void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
     os << "token";
     return;
   }
-  os << "<unknown stablehlo type>";
+  os << "<unknown vhlo type>";
 }
 
 // Entry point for Attribute parsing, TableGen generated code will handle the
@@ -77,7 +77,7 @@ Attribute VhloDialect::parseAttribute(DialectAsmParser& parser,
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
   if (parseResult.has_value()) return attr;
-  parser.emitError(parser.getNameLoc(), "unknown stablehlo attribute");
+  parser.emitError(parser.getNameLoc(), "unknown vhlo attribute");
   return Attribute();
 }
 

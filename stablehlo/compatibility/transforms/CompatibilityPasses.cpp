@@ -29,7 +29,7 @@ limitations under the License.
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/compatibility/dialect/VersionNumber.h"
+#include "stablehlo/compatibility/dialect/Version.h"
 #include "stablehlo/compatibility/dialect/VhloOps.h"
 #include "stablehlo/compatibility/transforms/CompatibilityTypeConversion.h"
 #include "stablehlo/compatibility/transforms/MapStablehloToVhlo.h"
@@ -123,11 +123,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
     return vhlo::GatherDimensionNumbersAttr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
-  }
-  if (auto attr = stablehloAttr.dyn_cast<stablehlo::OutputOperandAliasAttr>()) {
-    return vhlo::OutputOperandAliasAttr::get(
-        attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
-        attr.getOperandTupleIndices());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::PrecisionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Precision);
@@ -300,11 +295,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasAttr>()) {
-    return stablehlo::OutputOperandAliasAttr::get(
-        attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
-        attr.getOperandTupleIndices());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Precision);
   }
@@ -456,25 +446,33 @@ struct VhloToVersionPass
   VhloToVersionPass(VhloToVersionPassOptions const& opts)
       : impl::VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
-  FailureOr<VersionNumber> validateTargetVersion(llvm::StringRef versionRef) {
-    auto failOrVersion = VersionNumber::get(targetVersion);
+  FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
+    if (versionRef == "current") {
+      return VhloDialect::getCurrentDialectVersion();
+    }
+    return Version::get(versionRef);
+  }
+
+  FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef) {
+    auto failOrVersion = parseTargetVersion(versionRef);
     if (failed(failOrVersion)) {
       return emitError(
           getOperation()->getLoc(),
           "invalid target version number argument " + targetVersion);
     }
-    VersionNumber targetVersionNumber = *failOrVersion;
-    if (targetVersionNumber < VersionNumber::getMinimumSupported()) {
+    
+    Version targetVersion = *failOrVersion;
+    if (targetVersion < VhloDialect::getMinimumDialectVersion()) {
       return emitError(getOperation()->getLoc())
-             << "target version " << targetVersion
+             << "target version " << targetVersion.getAsArray()
              << " is less than minimum supported";
     }
-    if (VersionNumber::getCurrent() < targetVersionNumber) {
+    if (VhloDialect::getCurrentDialectVersion() < targetVersion) {
       return emitError(getOperation()->getLoc())
-             << "target version " << targetVersion
+             << "target version " << targetVersion.getAsArray()
              << " is greater than current version";
     }
-    return targetVersionNumber;
+    return targetVersion;
   }
 
   void runOnOperation() override {
@@ -485,7 +483,7 @@ struct VhloToVersionPass
     if (failed(failOrVersion)) {
       return signalPassFailure();
     }
-    VersionNumber targetVersionNumber = *failOrVersion;
+    Version targetVersion = *failOrVersion;
 
     // An op is legal if the target version is in the ops `[min, max]`
     // supported version range.
@@ -506,10 +504,10 @@ struct VhloToVersionPass
     //   v2 illegal { 0.1 !in [0.1, 0.4] }
     //   v1 legal   { 0.0  in [0.0, 0.1] }
     target.addDynamicallyLegalDialect<VhloDialect>(
-        [&targetVersionNumber](Operation* op) {
+        [&targetVersion](Operation* op) {
           if (auto interface = dyn_cast<VersionInterface>(op)) {
-            return (interface.getMinVersion() <= targetVersionNumber &&
-                    targetVersionNumber <= interface.getMaxVersion());
+            return (interface.getMinVersion() <= targetVersion &&
+                    targetVersion <= interface.getMaxVersion());
           }
           return false;
         });

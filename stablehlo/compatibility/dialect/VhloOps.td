@@ -27,15 +27,6 @@ include "mlir/IR/OpBase.td"
 // Dialect and Ops
 //===----------------------------------------------------------------------===//
 
-def VersionInterface : OpInterface<"VersionInterface"> {
-  let methods = [
-    InterfaceMethod<
-      "Description...", "mlir::vhlo::VersionNumber", "getMinVersion">,
-    InterfaceMethod<
-      "Description...", "mlir::vhlo::VersionNumber", "getMaxVersion">,
-  ];
-}
-
 // Only use this base class if necessary.
 // - ReturnOp needs a trait for Terminator.
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
@@ -44,11 +35,12 @@ class VHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion =
     Op<VHLO_Dialect, mnemonic, 
       [DeclareOpInterfaceMethods<VersionInterface>] # traits> {
   let extraClassDefinition = [{
-    mlir::vhlo::VersionNumber $cppClass::getMinVersion() {
-      return *mlir::vhlo::VersionNumber::get("}] #  minVersion # [{");
+    mlir::vhlo::Version $cppClass::getMinVersion() {
+      return *mlir::vhlo::Version::get("}] #  minVersion # [{");
     }
-    mlir::vhlo::VersionNumber $cppClass::getMaxVersion() {
-      return *mlir::vhlo::VersionNumber::get("}] #  maxVersion # [{");
+    mlir::vhlo::Version $cppClass::getMaxVersion() {
+      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentDialectVersion();
+      return *mlir::vhlo::Version::get("}] #  maxVersion # [{");
     }
   }];
 }
@@ -638,12 +630,7 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.1.0"> {
         $api_version,
     DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<VHLO_ArrayOfLayoutAttr>:$operand_layouts,
-    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts,
-    DefaultValuedOptionalAttr<
-        TypedArrayAttrBase<
-            VHLO_OutputOperandAlias,
-            "Aliasing attribute for outputs and operands of CustomCall">,
-        "{}">:$output_operand_aliases // FIXME: add test
+    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts
   );
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }

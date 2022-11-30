@@ -39,6 +39,15 @@ def VHLO_Dialect : Dialect {
   let useDefaultTypePrinterParser = 0;
 }
 
+def VersionInterface : OpInterface<"VersionInterface"> {
+  let methods = [
+    InterfaceMethod<
+      "Description...", "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Description...", "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
 //===----------------------------------------------------------------------===//
 // VHLO type definitions.
 //===----------------------------------------------------------------------===//
@@ -159,7 +168,7 @@ def VHLO_StaticShapeTensor : StaticShapeTensorOf<[
       VHLO_Float, VHLO_Pred, VHLO_Int, VHLO_Complex, VHLO_QuantizedInt]>;
 
 //===----------------------------------------------------------------------===//
-// HLO combined type definitions.
+// VHLO combined type definitions.
 //===----------------------------------------------------------------------===//
 
 // Any integer or floating-point tensor types
@@ -177,6 +186,13 @@ def VHLO_IntFpOrComplexTensor : TensorOf<[VHLO_Int, VHLO_Float, VHLO_Complex]>;
 // Any pred, int or floating-point tensor types
 def VHLO_PredIntOrFpTensor : TensorOf<[VHLO_Pred, VHLO_Int, VHLO_Float]>;
 
+//===----------------------------------------------------------------------===//
+// VHLO traits
+//===----------------------------------------------------------------------===//
 
+// VHLO intentionally does not include traits since it is only used to represent
+// the in-memory structure of the IR at a given version.
+//
+// This section is included for file parity between VhloBase.td and Base.td
 
 #endif // STABLEHLO_COMPATIBILITY_VHLO_BASE

@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=minimum' %s | FileCheck %s
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.0.0' %s | FileCheck %s
 
 // CHECK-LABEL: @test_downgrade
 func.func @test_downgrade(%arg0: tensor<2xi1>) -> tensor<2xi1> {
