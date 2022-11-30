@@ -30,67 +30,65 @@ class VersionNumber {
   static constexpr llvm::StringLiteral CURRENT_VERSION = "0.1.0";
   static constexpr llvm::StringLiteral MINIMUM_VERSION = "0.0.0";
 
-  public:
-    static FailureOr<VersionNumber> get(llvm::StringRef versionRef) {
-      if (failed(VersionNumber::validateVersionString(versionRef))) {
-        return failure();
-      }
-      return VersionNumber(versionRef);
+ public:
+  static FailureOr<VersionNumber> get(llvm::StringRef versionRef) {
+    if (failed(VersionNumber::validateVersionString(versionRef))) {
+      return failure();
+    }
+    return VersionNumber(versionRef);
+  }
+
+  static VersionNumber getCurrent() { return VersionNumber(CURRENT_VERSION); }
+  static VersionNumber getMinimumSupported() {
+    return VersionNumber(MINIMUM_VERSION);
+  }
+
+  /// Validate version argument is one of {current, minimum, #.#.#}
+  static LogicalResult validateVersionString(llvm::StringRef versionRef) {
+    if (versionRef == "current" || versionRef == "minimum") {
+      return success();
     }
 
-    static VersionNumber getCurrent() {
-      return VersionNumber(CURRENT_VERSION);
-    }
-    static VersionNumber getMinimumSupported() {
-      return VersionNumber(MINIMUM_VERSION);
-    }
+    llvm::Regex versionRegex("^([0-9]+)\\.([0-9]+)\\.([0-9]+)$");
+    llvm::SmallVector<llvm::StringRef> matches;
+    return success(/*isSuccess=*/versionRegex.match(versionRef, &matches));
+  }
 
-    /// Validate version argument is one of {current, minimum, #.#.#}
-    static LogicalResult validateVersionString(llvm::StringRef versionRef) {
-      if (versionRef == "current" || versionRef == "minimum") {
-        return success();
-      }
+  int64_t getMinorVersion() const {
+    if (version == "current")
+      return parseMinorVersion(VersionNumber::CURRENT_VERSION);
+    if (version == "minimum")
+      return parseMinorVersion(VersionNumber::MINIMUM_VERSION);
+    return parseMinorVersion(version);
+  }
 
-      llvm::Regex versionRegex("^([0-9]+)\\.([0-9]+)\\.([0-9]+)$");
-      llvm::SmallVector<llvm::StringRef> matches;
-      return success(/*isSuccess=*/versionRegex.match(versionRef, &matches));
-    }
+  bool operator<(VersionNumber const& other) {
+    return getMinorVersion() < other.getMinorVersion();
+  }
+  bool operator==(VersionNumber const& other) {
+    return getMinorVersion() == other.getMinorVersion();
+  }
+  bool operator<=(VersionNumber const& other) {
+    return *this < other || *this == other;
+  }
 
-    int64_t getMinorVersion() const {
-      if (version == "current")
-        return parseMinorVersion(VersionNumber::CURRENT_VERSION);
-      if (version == "minimum")
-        return parseMinorVersion(VersionNumber::MINIMUM_VERSION);
-      return parseMinorVersion(version);
-    }
+ private:
+  VersionNumber(llvm::StringRef versionRef) : version(versionRef) {
+    assert(succeeded(VersionNumber::validateVersionString(versionRef)));
+  }
 
-    bool operator<(VersionNumber const & other) {
-      return getMinorVersion() < other.getMinorVersion();
+  int64_t parseMinorVersion(llvm::StringRef versionRef) const {
+    // Precondition: must be x.y.z
+    auto isDot = [](char c) { return c == '.'; };
+    auto minorS = versionRef.drop_until(isDot).drop_front(1).take_until(isDot);
+    int64_t minor;
+    if (minorS.getAsInteger(/*radix=*/10, minor)) {
+      llvm_unreachable("failed to parse minor version");
     }
-    bool operator==(VersionNumber const& other) {
-      return getMinorVersion() == other.getMinorVersion();
-    }
-    bool operator<=(VersionNumber const & other) {
-      return *this < other || *this == other;
-    }
+    return minor;
+  }
 
-  private:
-    VersionNumber(llvm::StringRef versionRef) : version(versionRef) {
-      assert(succeeded(VersionNumber::validateVersionString(versionRef)));
-    }
-
-    int64_t parseMinorVersion(llvm::StringRef versionRef) const {
-      // Precondition: must be x.y.z
-      auto isDot = [](char c) { return c == '.'; };
-      auto minorS = versionRef.drop_until(isDot).drop_front(1).take_until(isDot);
-      int64_t minor;
-      if (minorS.getAsInteger(/*radix=*/10, minor)) {
-        llvm_unreachable("failed to parse minor version");
-      }
-      return minor;
-    }
-
-    std::string version;
+  std::string version;
 };
 
 }  // namespace vhlo

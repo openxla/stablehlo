@@ -15,10 +15,10 @@ limitations under the License.
 ==============================================================================*/
 
 #include "stablehlo/compatibility/dialect/VhloOps.h"
-#include "stablehlo/dialect/AssemblyFormat.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 
 // Include order matters
 #include "stablehlo/compatibility/dialect/VhloEnums.cpp.inc"
@@ -38,8 +38,7 @@ using mlir::hlo::printIntArray;
 //===----------------------------------------------------------------------===//
 
 VhloDialect::VhloDialect(MLIRContext* context)
-    : Dialect(getDialectNamespace(), context,
-              TypeID::get<VhloDialect>()) {
+    : Dialect(getDialectNamespace(), context, TypeID::get<VhloDialect>()) {
   addOperations<
 #define GET_OP_LIST
 #include "stablehlo/compatibility/dialect/VhloOps.cpp.inc"
@@ -73,7 +72,7 @@ void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
 // Entry point for Attribute parsing, TableGen generated code will handle the
 // dispatch to the individual classes.
 Attribute VhloDialect::parseAttribute(DialectAsmParser& parser,
-                                              Type type) const {
+                                      Type type) const {
   StringRef attrTag;
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
@@ -84,8 +83,7 @@ Attribute VhloDialect::parseAttribute(DialectAsmParser& parser,
 
 // Entry point for Attribute printing, TableGen generated code will handle the
 // dispatch to the individual classes.
-void VhloDialect::printAttribute(Attribute attr,
-                                         DialectAsmPrinter& os) const {
+void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));

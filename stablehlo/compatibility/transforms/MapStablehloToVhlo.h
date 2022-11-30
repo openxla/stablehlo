@@ -29,25 +29,23 @@ struct VhloToStablehloOpImpl {
   using Type = std::false_type;
 };
 template <typename VhloOpTy>
-using VhloToStablehloOp =
-    typename VhloToStablehloOpImpl<VhloOpTy>::Type;
+using VhloToStablehloOp = typename VhloToStablehloOpImpl<VhloOpTy>::Type;
 
 template <typename StablehloOpTy>
 struct StablehloToVhloOpImpl {
   using Type = std::false_type;
 };
 template <typename StablehloOpTy>
-using StablehloToVhloOp =
-    typename StablehloToVhloOpImpl<StablehloOpTy>::Type;
+using StablehloToVhloOp = typename StablehloToVhloOpImpl<StablehloOpTy>::Type;
 
-#define MAP_STABLEHLO_TO_VERSION(OpName, OpVer)                       \
-  template <>                                                         \
-  struct StablehloToVhloOpImpl<stablehlo::OpName> {           \
-    using Type = vhlo::OpName##OpVer;                         \
-  };                                                                  \
-  template <>                                                         \
+#define MAP_STABLEHLO_TO_VERSION(OpName, OpVer)       \
+  template <>                                         \
+  struct StablehloToVhloOpImpl<stablehlo::OpName> {   \
+    using Type = vhlo::OpName##OpVer;                 \
+  };                                                  \
+  template <>                                         \
   struct VhloToStablehloOpImpl<vhlo::OpName##OpVer> { \
-    using Type = stablehlo::OpName;                                   \
+    using Type = stablehlo::OpName;                   \
   };
 
 #define MAP_STABLEHLO_TO_VERSION_V0(OpName) MAP_STABLEHLO_TO_VERSION(OpName, )

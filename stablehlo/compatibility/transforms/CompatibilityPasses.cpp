@@ -75,7 +75,7 @@ namespace {
 
 #define RETURN_CONVERTED_ENUM_ATTR(Name)                             \
   auto stablehloValue = stablehlo::stringify##Name(attr.getValue()); \
-  auto hloValue = vhlo::symbolize##Name(stablehloValue);     \
+  auto hloValue = vhlo::symbolize##Name(stablehloValue);             \
   if (!hloValue.has_value()) return {};                              \
   return vhlo::Name##Attr::get(attr.getContext(), hloValue.value())
 
@@ -84,8 +84,8 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::ChannelHandleAttr>()) {
-    return vhlo::ChannelHandleAttr::get(
-        attr.getContext(), attr.getHandle(), attr.getType());
+    return vhlo::ChannelHandleAttr::get(attr.getContext(), attr.getHandle(),
+                                        attr.getType());
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ComparisonDirectionAttr>()) {
@@ -184,8 +184,7 @@ struct StablehloLegalizeToVhloPass
 
     vhlo::StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
-    vhlo::populateStablehloToVhloPatterns(&patterns, &converter,
-                                                          &getContext());
+    vhlo::populateStablehloToVhloPatterns(&patterns, &converter, &getContext());
     registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // StableHLO is a subset of VHLO.
@@ -198,8 +197,7 @@ struct StablehloLegalizeToVhloPass
 };
 
 template <typename StablehloOpTy>
-class StablehloToVhloOpConverter
-    : public OpConversionPattern<StablehloOpTy> {
+class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
  public:
   using OpConversionPattern<StablehloOpTy>::OpConversionPattern;
   LogicalResult matchAndRewrite(
@@ -249,38 +247,34 @@ class StablehloToVhloOpConverter
 
 template <typename... StablehloOpTypes>
 void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
-                                             TypeConverter* converter,
-                                             MLIRContext* context) {
-  patterns->add<StablehloToVhloOpConverter<StablehloOpTypes>...>(
-      *converter, context);
+                                     TypeConverter* converter,
+                                     MLIRContext* context) {
+  patterns->add<StablehloToVhloOpConverter<StablehloOpTypes>...>(*converter,
+                                                                 context);
 }
 
 //////////////////////////
 /// VHLO --> StableHLO ///
 //////////////////////////
-#define RETURN_CONVERTED_ENUM_ATTR(Name)                                \
+#define RETURN_CONVERTED_ENUM_ATTR(Name)                        \
   auto stablehloValue = vhlo::stringify##Name(attr.getValue()); \
-  auto hloValue = stablehlo::symbolize##Name(stablehloValue);           \
-  if (!hloValue.has_value()) return {};                                 \
+  auto hloValue = stablehlo::symbolize##Name(stablehloValue);   \
+  if (!hloValue.has_value()) return {};                         \
   return stablehlo::Name##Attr::get(attr.getContext(), hloValue.value())
 
 Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::ComparisonDirectionAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection);
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::ComparisonTypeAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonType);
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersAttr>()) {
     return stablehlo::ConvDimensionNumbersAttr::get(
         attr.getContext(), attr.getInputBatchDimension(),
         attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
@@ -289,12 +283,10 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
         attr.getKernelSpatialDimensions(), attr.getOutputBatchDimension(),
         attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::CustomCallApiVersionAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::DotDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DotDimensionNumbersAttr>()) {
     return stablehlo::DotDimensionNumbersAttr::get(
         attr.getContext(), attr.getLhsBatchingDimensions(),
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
@@ -303,14 +295,12 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(FftType);
   }
-  if (auto attr = vhloAttr
-                      .dyn_cast<vhlo::GatherDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::GatherDimensionNumbersAttr>()) {
     return stablehlo::GatherDimensionNumbersAttr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::OutputOperandAliasAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasAttr>()) {
     return stablehlo::OutputOperandAliasAttr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
@@ -321,12 +311,10 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm);
   }
-  if (auto attr =
-          vhloAttr.dyn_cast<vhlo::RngDistributionAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution);
   }
-  if (auto attr = vhloAttr
-                      .dyn_cast<vhlo::ScatterDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ScatterDimensionNumbersAttr>()) {
     return stablehlo::ScatterDimensionNumbersAttr::get(
         attr.getContext(), attr.getUpdateWindowDims(),
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
@@ -371,8 +359,7 @@ struct VhloLegalizeToStablehloPass
 
     vhlo::VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
-    vhlo::populateVhloToStablehloPatterns(&patterns, &converter,
-                                                          &getContext());
+    vhlo::populateVhloToStablehloPatterns(&patterns, &converter, &getContext());
     registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // VHLO should always be convertible to StableHLO if upgraded.
@@ -384,8 +371,7 @@ struct VhloLegalizeToStablehloPass
 };
 
 template <typename VhloOpTy>
-class VhloToStablehloOpConverter
-    : public OpConversionPattern<VhloOpTy> {
+class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
  public:
   using OpConversionPattern<VhloOpTy>::OpConversionPattern;
   LogicalResult matchAndRewrite(
@@ -417,11 +403,8 @@ class VhloToStablehloOpConverter
           stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs,
           stablehloOp.getBranches().size());
     } else {
-      versionedOp =
-          rewriter
-              .replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
-                  stablehloOp, versionedTypes, stablehloOperands,
-                  stablehloAttrs);
+      versionedOp = rewriter.replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
+          stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs);
     }
 
     for (auto [hloRegion, stablehloRegion] :
@@ -435,17 +418,18 @@ class VhloToStablehloOpConverter
 
 template <typename... StablehloOpTypes>
 void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
-                                             TypeConverter* converter,
-                                             MLIRContext* context) {
-  patterns->add<VhloToStablehloOpConverter<
-      StablehloToVhloOp<StablehloOpTypes>>...>(*converter, context);
+                                     TypeConverter* converter,
+                                     MLIRContext* context) {
+  patterns
+      ->add<VhloToStablehloOpConverter<StablehloToVhloOp<StablehloOpTypes>>...>(
+          *converter, context);
 }
 
 }  // namespace
 
 void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
-                                             TypeConverter* converter,
-                                             MLIRContext* context) {
+                                     TypeConverter* converter,
+                                     MLIRContext* context) {
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
@@ -453,8 +437,8 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
 }
 
 void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
-                                             TypeConverter* converter,
-                                             MLIRContext* context) {
+                                     TypeConverter* converter,
+                                     MLIRContext* context) {
   populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
@@ -468,8 +452,7 @@ namespace {
 
 struct VhloToVersionPass
     : public impl::VhloToVersionPassBase<VhloToVersionPass> {
-  VhloToVersionPass()
-      : impl::VhloToVersionPassBase<VhloToVersionPass>() {}
+  VhloToVersionPass() : impl::VhloToVersionPassBase<VhloToVersionPass>() {}
   VhloToVersionPass(VhloToVersionPassOptions const& opts)
       : impl::VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
@@ -522,19 +505,18 @@ struct VhloToVersionPass
     //   v3 illegal { 0.0 !in [0.5, Curr] }
     //   v2 illegal { 0.1 !in [0.1, 0.4] }
     //   v1 legal   { 0.0  in [0.0, 0.1] }
-    target.addDynamicallyLegalDialect<VhloDialect>([&targetVersionNumber](
-                                                               Operation* op) {
-      if (auto interface = dyn_cast<VersionInterface>(op)) {
-        return (interface.getMinVersion() <= targetVersionNumber &&
-                targetVersionNumber <= interface.getMaxVersion());
-      }
-      return false;
-    });
+    target.addDynamicallyLegalDialect<VhloDialect>(
+        [&targetVersionNumber](Operation* op) {
+          if (auto interface = dyn_cast<VersionInterface>(op)) {
+            return (interface.getMinVersion() <= targetVersionNumber &&
+                    targetVersionNumber <= interface.getMaxVersion());
+          }
+          return false;
+        });
 
     vhlo::VersionedTypeConverterBase converter;
     RewritePatternSet patterns(&getContext());
-    vhlo::populateVhloToVersionPatterns(&patterns, &converter,
-                                                        &getContext());
+    vhlo::populateVhloToVersionPatterns(&patterns, &converter, &getContext());
 
     // Conversion from VHLO to StableHLO should never fail.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -611,8 +593,8 @@ struct CustomCallOpV1Downgrade
 }  // namespace
 
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
-                                           TypeConverter* converter,
-                                           MLIRContext* context) {
+                                   TypeConverter* converter,
+                                   MLIRContext* context) {
   patterns->add<CustomCallOpV2Upgrade>(*converter, context);
   patterns->add<CustomCallOpV1Downgrade>(*converter, context);
 }
