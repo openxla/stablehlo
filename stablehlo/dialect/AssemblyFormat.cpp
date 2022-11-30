@@ -305,43 +305,43 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
-std::string dimensionToString(int64_t dim) {
+std::string dimSizeToString(int64_t dim) {
   if (hlo::isDynamicDimSize(dim)) {
     return "?";
   }
   return std::to_string(dim);
 }
 
-void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims) {
+void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes) {
   p << '[';
-  llvm::interleaveComma(dims, p,
-                        [&p](int64_t dim) { p << dimensionToString(dim); });
+  llvm::interleaveComma(
+      dimSizes, p, [&p](int64_t dimSize) { p << dimSizeToString(dimSize); });
   p << ']';
 }
 
-FailureOr<SmallVector<int64_t>> parseDimensionSizes(AsmParser& parser) {
-  SmallVector<int64_t> dims;
+FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {
+  SmallVector<int64_t> dimSizes;
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
-      dims.push_back(ShapedType::kDynamic);
+      dimSizes.push_back(ShapedType::kDynamic);
       return success();
     }
-    return parser.parseInteger(dims.emplace_back());
+    return parser.parseInteger(dimSizes.emplace_back());
   };
   if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Square,
                                             parseElt))) {
     return failure();
   }
-  return dims;
+  return dimSizes;
 }
 
-ParseResult parseDimensionSizes(AsmParser& parser,
-                                FailureOr<SmallVector<int64_t>>& dims) {
-  auto failOrDims = parseDimensionSizes(parser);
-  if (failed(failOrDims)) {
+ParseResult parseDimSizes(AsmParser& parser,
+                          FailureOr<SmallVector<int64_t>>& dimSizes) {
+  auto failOrDimSizes = parseDimSizes(parser);
+  if (failed(failOrDimSizes)) {
     return failure();
   }
-  dims = std::move(*failOrDims);
+  dimSizes = std::move(*failOrDimSizes);
   return success();
 }
 
@@ -399,21 +399,6 @@ void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target) {
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
-}
-
-void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints) {
-  printer << '[';
-  llvm::interleaveComma(ints, printer);
-  printer << ']';
-}
-
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints) {
-  if (failed(parser.parseCommaSeparatedList(
-          AsmParser::Delimiter::Square,
-          [&]() { return parser.parseInteger(ints.emplace_back()); }))) {
-    return failure();
-  }
-  return success();
 }
 
 }  // namespace hlo

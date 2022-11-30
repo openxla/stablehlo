@@ -197,8 +197,8 @@ LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
         location,
         "expects the size of scale factor to be same as the "
         "feature count, but the size of scale factor is ",
-        dimensionToString(scaleShape), " and the feature count is ",
-        dimensionToString(featureCount), ".");
+        dimSizeToString(scaleShape), " and the feature count is ",
+        dimSizeToString(featureCount), ".");
 
   return success();
 }

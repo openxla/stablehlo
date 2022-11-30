@@ -173,18 +173,18 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
-// DimensionSizes - Print an array of ints. Dynamic dimensions printed as `?`.
+// DimSizes - Print an array of ints. Dynamic dimensions printed as `?`.
 //
 //   Generic:
 //     [1, -1]
 //   Custom:
 //     [1, ?]
-std::string dimensionToString(int64_t dim);
+std::string dimSizeToString(int64_t dim);
 
-void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims);
+void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims);
 
-FailureOr<SmallVector<int64_t>> parseDimensionSizes(AsmParser& parser);
-ParseResult parseDimensionSizes(AsmParser& parser,
+FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser);
+ParseResult parseDimSizes(AsmParser& parser,
                                 FailureOr<SmallVector<int64_t>>& dims);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
@@ -212,17 +212,6 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
 void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target);
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
-
-// IntArray - Print an array of ints with brackets. Unlike DimensionSizes,
-// doesn't have special handling for kDynamicSize.
-//
-//   Generic:
-//     1, 2
-//   Custom:
-//     [1, 2]
-void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
-
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 }  // namespace hlo
 }  // namespace mlir

@@ -20,6 +20,7 @@
 from mlir import ir
 from mlir.dialects import stablehlo
 
+
 def run(f):
   with ir.Context() as context:
     stablehlo.register_dialect(context)
@@ -195,7 +196,6 @@ def test_token_type():
 
 @run
 def test_type_extensions():
-
   dyn_size = ir.ShapedType.get_dynamic_size()
   attr = stablehlo.TypeExtensions.get(bounds=[128, dyn_size])
   assert attr is not None
