@@ -1079,8 +1079,7 @@ def StableHLO_ReplicaIdOp : StableHLO_Op<"replica_id", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "ReplicaId operator";
   let description = [{
-    Returns the unique id of the replica in the interval [0, N), where N is the
-    number of replicas.
+    Produces `replica_id` of the current process.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloreplica_id

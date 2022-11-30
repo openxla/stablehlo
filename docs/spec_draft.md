@@ -2866,20 +2866,13 @@ implementation-defined value.
 
 ### Semantics
 
-Returns the unique id of the replica in the interval [0, N), where N is the
-number of replicas. Since all the replicas are running the same program, a
-`stablehlo.replica_id` call in the program will return a different value on each
-replica.
+Produces `replica_id` of the current process.
 
 ### Outputs
 
-| Name     | Type                  |
-|----------|-----------------------|
-| `result` | tensor of type `ui32` |
-
-### Constraints
-
-  * (C1) rank(`result`) $=$ 0.
+| Name     | Type                                |
+|----------|-------------------------------------|
+| `result` | 0-dimensional tensor of type `ui32` |
 
 ### Examples
 
