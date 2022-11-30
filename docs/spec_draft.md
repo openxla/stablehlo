@@ -248,7 +248,7 @@ For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
 `[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
 
 3) **cross_replica_and_partition** (as in "both cross-replica and
-cross-partition communications will be happening within each process group").
+cross-partition communications may be happening within each process group").
 This strategy takes `replica_groups` - a list of lists of replica ids - and
 computes Cartesian products of each `replica_group` by `partition_ids`.
 `replica_groups` must have unique elements and cover all `replica_ids`.
