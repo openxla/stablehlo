@@ -25,7 +25,7 @@ namespace vhlo {
 #define GEN_PASS_DECL_VHLOUPGRADEPASS
 #define GEN_PASS_DECL_VHLODOWNGRADEPASS
 #define GEN_PASS_DECL_VHLOTOVERSIONPASS
-#include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
+#include "stablehlo/transforms/CompatibilityPasses.h.inc"
 
 /// Registers all transformation passes.
 void registerStablehloCompatibilityPasses();

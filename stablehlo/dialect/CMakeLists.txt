@@ -146,3 +146,29 @@ target_include_directories(StablehloOps INTERFACE
   $<BUILD_INTERFACE:${STABLEHLO_SOURCE_DIR}>
   $<BUILD_INTERFACE:${STABLEHLO_BINARY_DIR}>
 )
+
+set(LLVM_TARGET_DEFINITIONS VhloOps.td)
+mlir_tablegen(VhloOps.h.inc -gen-op-decls)
+mlir_tablegen(VhloOps.cpp.inc -gen-op-defs)
+mlir_tablegen(VhloOpInterfaces.h.inc -gen-op-interface-decls)
+mlir_tablegen(VhloOpInterfaces.cpp.inc -gen-op-interface-defs)
+mlir_tablegen(VhloEnums.h.inc -gen-enum-decls)
+mlir_tablegen(VhloEnums.cpp.inc -gen-enum-defs)
+mlir_tablegen(VhloAttrs.h.inc -gen-attrdef-decls)
+mlir_tablegen(VhloAttrs.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(VhloOpsIncGen)
+add_dependencies(mlir-headers VhloOpsIncGen)
+
+add_mlir_dialect_library(VhloOps
+  PARTIAL_SOURCES_INTENDED
+  VhloOps.cpp
+
+  DEPENDS
+  VhloOpsIncGen
+
+  LINK_LIBS PUBLIC
+  StablehloAssemblyFormat
+  MLIRIR
+  MLIRSupport
+  MLIRQuantDialect
+)

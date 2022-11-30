@@ -30,12 +30,12 @@ limitations under the License.
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
-#include "stablehlo/compatibility/dialect/Version.h"
+#include "stablehlo/dialect/Version.h"
 
 // Include order matters.
-#include "stablehlo/compatibility/dialect/VhloEnums.h.inc"
+#include "stablehlo/dialect/VhloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
-#include "stablehlo/compatibility/dialect/VhloAttrs.h.inc"
+#include "stablehlo/dialect/VhloAttrs.h.inc"
 
 namespace mlir {
 namespace vhlo {
@@ -80,8 +80,8 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
 }  // namespace vhlo
 }  // end namespace mlir
 
-#include "stablehlo/compatibility/dialect/VhloOpInterfaces.h.inc"
+#include "stablehlo/dialect/VhloOpInterfaces.h.inc"
 #define GET_OP_CLASSES
-#include "stablehlo/compatibility/dialect/VhloOps.h.inc"
+#include "stablehlo/dialect/VhloOps.h.inc"
 
 #endif  // STABLEHLO_COMPATIBILITY_VHLO_OPS_H

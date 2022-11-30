@@ -19,26 +19,7 @@ limitations under the License.
 
 include "mlir/IR/OpBase.td"
 
-//===----------------------------------------------------------------------===//
-// Versioned Dialect Constants and Declaration
-//===----------------------------------------------------------------------===//
-
-def VHLO_Dialect : Dialect {
-  let name = "vhlo";
-  let cppNamespace = "::mlir::vhlo";
-
-  let description = [{
-    A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
-    
-    Version log:
-      0.0.0: Base release.
-      0.1.0: CustomCallOp add result aliasing.
-  }];
-
-  let useDefaultAttributePrinterParser = 0;
-  let useDefaultTypePrinterParser = 0;
-}
-
+//
 def VersionInterface : OpInterface<"VersionInterface"> {
   let methods = [
     InterfaceMethod<
@@ -70,7 +51,7 @@ def VHLO_Complex : Complex<AnyTypeOf<[F32, F64]>>;
 //===----------------------------------------------------------------------===//
 
 // TODO(b/230381284): Upstream width-specific uniform quantized element types.
-class UniformQuantizedSignedInt<int width>
+class VHLO_UniformQuantizedSignedInt<int width>
   : Type<Or<[
       And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
            CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
@@ -87,7 +68,7 @@ class UniformQuantizedSignedInt<int width>
   int bitwidth = width;
 }
 
-class UniformQuantizedUnsignedInt<int width>
+class VHLO_UniformQuantizedUnsignedInt<int width>
   : Type<Or<[
       And<[CPred<"$_self.isa<mlir::quant::UniformQuantizedType>()">,
            CPred<"$_self.cast<mlir::quant::UniformQuantizedType>()" #
@@ -104,20 +85,20 @@ class UniformQuantizedUnsignedInt<int width>
   int bitwidth = width;
 }
 
-class UniformQuantizedSignedIntOfWidths<list<int> widths> :
-    AnyTypeOf<!foreach(w, widths, UniformQuantizedSignedInt<w>),
+class VHLO_UniformQuantizedSignedIntOfWidths<list<int> widths> :
+    AnyTypeOf<!foreach(w, widths, VHLO_UniformQuantizedSignedInt<w>),
               !interleave(widths, "/") # "-bit uniform quantized signed " #
               "integer">;
 
-class UniformQuantizedUnsignedIntOfWidths<list<int> widths> :
-    AnyTypeOf<!foreach(w, widths, UniformQuantizedUnsignedInt<w>),
+class VHLO_UniformQuantizedUnsignedIntOfWidths<list<int> widths> :
+    AnyTypeOf<!foreach(w, widths, VHLO_UniformQuantizedUnsignedInt<w>),
               !interleave(widths, "/") # "-bit uniform quantized unsigned " #
               "integer">;
 
 // Integer-based uniform quantized types. The definitions can be used to specify
 // operand's tensor types.
-def VHLO_QuantizedSignedInt : UniformQuantizedSignedIntOfWidths<[4, 8, 16, 32]>;
-def VHLO_QuantizedUnsignedInt : UniformQuantizedUnsignedIntOfWidths<[4, 8, 16, 32]>;
+def VHLO_QuantizedSignedInt : VHLO_UniformQuantizedSignedIntOfWidths<[4, 8, 16, 32]>;
+def VHLO_QuantizedUnsignedInt : VHLO_UniformQuantizedUnsignedIntOfWidths<[4, 8, 16, 32]>;
 def VHLO_QuantizedInt :
     AnyTypeOf<[VHLO_QuantizedSignedInt, VHLO_QuantizedUnsignedInt]>;
 

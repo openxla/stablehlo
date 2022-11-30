@@ -17,8 +17,8 @@ limitations under the License.
 #ifndef STABLEHLO_COMPATIBILITY_VHLO_ATTRS
 #define STABLEHLO_COMPATIBILITY_VHLO_ATTRS
 
-include "stablehlo/compatibility/dialect/VhloBase.td"
-include "stablehlo/compatibility/dialect/VhloEnums.td"
+include "stablehlo/dialect/VhloBase.td"
+include "stablehlo/dialect/VhloEnums.td"
 
 include "mlir/IR/AttrTypeBase.td"
 

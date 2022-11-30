@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <type_traits>
 
-#include "stablehlo/compatibility/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {

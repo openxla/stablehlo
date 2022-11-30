@@ -19,7 +19,7 @@ limitations under the License.
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/compatibility/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {
 namespace stablehlo {

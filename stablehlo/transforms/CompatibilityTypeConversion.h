@@ -15,7 +15,7 @@ limitations under the License.
 
 #include "llvm/Support/Debug.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/compatibility/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define DEBUG_TYPE "compat-passes"

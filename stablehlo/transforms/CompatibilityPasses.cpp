@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/compatibility/transforms/CompatibilityPasses.h"
+#include "stablehlo/transforms/CompatibilityPasses.h"
 
 #include <climits>
 #include <memory>
@@ -29,10 +29,10 @@ limitations under the License.
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/compatibility/dialect/Version.h"
-#include "stablehlo/compatibility/dialect/VhloOps.h"
-#include "stablehlo/compatibility/transforms/CompatibilityTypeConversion.h"
-#include "stablehlo/compatibility/transforms/MapStablehloToVhlo.h"
+#include "stablehlo/dialect/Version.h"
+#include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/transforms/CompatibilityTypeConversion.h"
+#include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define DEBUG_TYPE "compat-passes"
@@ -43,7 +43,7 @@ namespace vhlo {
 #define GEN_PASS_DEF_VHLOLEGALIZETOSTABLEHLOPASS
 #define GEN_PASS_DEF_VHLOTOVERSIONPASS
 #define GEN_PASS_REGISTRATION
-#include "stablehlo/compatibility/transforms/CompatibilityPasses.h.inc"
+#include "stablehlo/transforms/CompatibilityPasses.h.inc"
 
 /// Registers all Torch transformation passes.
 void registerStablehloCompatibilityPasses() { registerPasses(); }

@@ -17,7 +17,7 @@ limitations under the License.
 #ifndef STABLEHLO_COMPATIBILITY_VHLO_ENUMS
 #define STABLEHLO_COMPATIBILITY_VHLO_ENUMS
 
-include "stablehlo/compatibility/dialect/VhloBase.td"
+include "stablehlo/dialect/VhloBase.td"
 
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/PatternBase.td"

@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/compatibility/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 
 // Include order matters
-#include "stablehlo/compatibility/dialect/VhloEnums.cpp.inc"
+#include "stablehlo/dialect/VhloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
-#include "stablehlo/compatibility/dialect/VhloAttrs.cpp.inc"
-#include "stablehlo/compatibility/dialect/VhloOpInterfaces.cpp.inc"
+#include "stablehlo/dialect/VhloAttrs.cpp.inc"
+#include "stablehlo/dialect/VhloOpInterfaces.cpp.inc"
 #define GET_OP_CLASSES
-#include "stablehlo/compatibility/dialect/VhloOps.cpp.inc"
+#include "stablehlo/dialect/VhloOps.cpp.inc"
 
 namespace mlir {
 namespace vhlo {
@@ -41,13 +41,13 @@ VhloDialect::VhloDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context, TypeID::get<VhloDialect>()) {
   addOperations<
 #define GET_OP_LIST
-#include "stablehlo/compatibility/dialect/VhloOps.cpp.inc"
+#include "stablehlo/dialect/VhloOps.cpp.inc"
       >();
   // TODO (gleasonk): addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST
-#include "stablehlo/compatibility/dialect/VhloAttrs.cpp.inc"
+#include "stablehlo/dialect/VhloAttrs.cpp.inc"
       >();
 }
 
