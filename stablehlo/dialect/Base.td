@@ -200,9 +200,9 @@ def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
     RankedTensorType::getEncoding.
     The number of bounds is expected to be the same as the number of dimensions
     in the accompanying shaped type.
-    For a static dimension, the corresponding bound is ShapedType::kDynamicSize.
+    For a static dimension, the corresponding bound is ShapedType::kDynamic.
     For a dynamic dimension, the corresponding bound is either known and is
-    a non-negative number or unknown and is ShapedType::kDynamicSize.
+    a non-negative number or unknown and is ShapedType::kDynamic.
   }];
 
   let methods = [InterfaceMethod<
