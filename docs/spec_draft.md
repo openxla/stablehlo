@@ -102,26 +102,192 @@ never produced as outputs.
 
 ## Programs
 
-StableHLO programs consist of functions. Each function has inputs and outputs
-of supported types and a list of ops in static single-assignment (SSA) form
-which is terminated by a return op which produces the outputs of the function.
-StableHLO ops take inputs and produce outputs.
+**StableHLO programs** consist of **StableHLO functions**. Each function has
+inputs and outputs of supported types and a list of ops in static
+single-assignment (SSA) form which is terminated by a `return` op which produces
+the outputs of the function.
+
+Here is an example of a program that consists of a function `@main` which takes
+three inputs (`%image`, `%weights` and `%bias`) and produces one output (`%4`).
+Below we describe how this program can be executed.
 
 ```mlir
-ml_program.func @example_func(%arg: tensor<2x3xf32>) -> tensor<2x3xf32> {
- %0 = "stablehlo.floor"(%arg) : (tensor<2x3xf32>) -> tensor<2x3xf32>
- %1 = "stablehlo.ceil"(%arg) : (tensor<2x3xf32>) -> tensor<2x3xf32>
- %2 = "stablehlo.add"(%0, %1) : (tensor<2x3xf32>, tensor<2x3xf32>) -> tensor<2x3xf32>
- ml_program.return %2 : tensor<2x3xf32>
+stablehlo.func @main(
+  %image: tensor<28x28xf32>,
+  %weights: tensor<784x10xf32>,
+  %bias: tensor<1x10xf32>
+) -> tensor<1x10xf32> {
+  %0 = "stablehlo.reshape"(%image) : (tensor<28x28xf32>) -> tensor<1x784xf32>
+  %1 = "stablehlo.dot"(%0, %weights) : (tensor<1x784xf32>, tensor<784x10xf32>) -> tensor<1x10xf32>
+  %2 = "stablehlo.add"(%1, %bias) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
+  %3 = "stablehlo.constant"() { value = dense<0.0> : tensor<1x10xf32> } : () -> tensor<1x10xf32>
+  %4 = "stablehlo.maximum"(%2, %3) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
+  "stablehlo.return"(%4): (tensor<1x10xf32>) -> ()
 }
 ```
 
-A program is executed by passing argument values to a given function and
-computing output values. Output values of a function are computed by evaluating
-the graph of ops rooted in the corresponding return op. The evaluation order is
-implementation-defined, as long as ops are evaluated before their uses. Possible
-execution orders of the above example program are `%0` → `%1` → `%2` → `return`
-or `%1` → `%0` → `%2` → `return`.
+## Execution
+
+### Sequential execution
+
+A StableHLO program is executed by providing input values to the `main` function
+and computing output values. Output values of a function are computed by
+executing the graph of ops rooted in the corresponding `return` op.
+
+The execution order is implementation-defined, as long as ops are executed
+before their uses. Possible execution orders of the example program above are
+`%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` → `%1` → `%2` → `%4`
+→ `return`.
+
+More formally, a **StableHLO process** is a combination of:
+1) a StableHLO program, 2) operation statuses (not executed yet,
+already executed), and 3) intermediate values that the process is working on.
+The process starts with input values to the `main` function, progresses through
+the graph of ops updating operation statuses and intermediate values and
+finishes with output values. Further formalization is TBD.
+
+### Parallel execution
+
+StableHLO programs can be executed in parallel, organized into a 2D grid of
+`num_replicas` by `num_partitions` which both have type `ui32`.
+
+In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO
+processes are executing at the same time. Each process has a unique
+`process_id = (replica_id, partition_id)`, where
+`replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
+`partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
+type `ui32`.
+
+The size of the grid is known statically for every program, and the position
+within the grid is known statically for every process. Each process has access
+to its position within the grid via the `replica_id` and `partition_id` ops.
+
+Within the grid, the programs can all be the same (in the "Single Program,
+Multiple Data" style), can all be different (in the "Multiple Program, Multiple
+Data" style) or something in between.
+
+Within the grid, the processes are mostly independent from each other - they
+have separate operation statuses, separate input/intermediate/output values and
+most of the ops are executed separately between processes, with the exception of
+a small number of collective ops described below.
+
+Given that execution of most of the ops is only using values from the same
+process, it is usually unambiguous to refer to these values by their names.
+However, when describing semantics of collective ops, that is insufficient, and
+we use the notation `name@process_id` to refer to the value `name` within a
+particular process. (From that perspective, unqualified `name` can be viewed as
+a shorthand for `name@(replica_id(), partition_id())`).
+
+The execution order across processes is implementation-defined, except for the
+synchronization introduced by collective ops as described below.
+
+### Collective ops
+
+There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
+`all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
+the processes in the StableHLO grid into **StableHLO process groups** and
+execute a joint computation within each process group, independently from other
+process groups.
+
+Within each process group, collective ops may introduce a synchronization
+barrier. Further formalization, e.g. elaborating on when exactly this
+synchronization happens, how exactly the processes arrive at this barrier,
+and what happens if they don't, is TBD.
+
+If the process group involves cross-partition communication, i.e. there are
+processes in the process group whose partition ids are different, then execution
+of the collective op needs a **StableHLO channel**, and the collective op must
+provide a positive `channel_id` of type `si64`. Further formalization, e.g.
+where these channel ids are coming from and how they are synchronized between
+programs, is TBD. Cross-replica communication doesn't need channels.
+
+The computations performed by the collective ops are specific to individual ops
+and are described in individual op sections below. However, the strategies by
+which the grid is split into process groups are shared between these ops and are
+described in this section. More formally, StableHLO supports the following
+four strategies.
+
+1) **cross_replica** (as in "only cross-replica communications will be happening
+within each process group"). This strategy takes `replica_groups` - a list of
+lists of replica ids - and computes a Cartesian product of `replica_groups` by
+`partition_ids`. `replica_groups` must have unique elements and cover all
+`replica_ids`. More formally:
+
+```Python
+def cross_replica(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
+  for replica_group in replica_groups:
+    for partition_id in partition_ids:
+      process_group = []
+      for replica_id in replica_group:
+        process_group.append((replica_id, partition_id))
+      yield process_group
+```
+
+For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
+`cross_replica` will produce
+`[[(0, 0), (1, 0)], [(0, 1), (1, 1)], [(2, 0), (3, 0)], [(2, 1), (3, 1)]]`.
+
+2) **cross_partition** (as in "only cross-partition communications will be
+happening within each process group"). This strategy takes `partition_groups` -
+a list of lists of partition ids - and computes a Cartesian product of
+`partition_groups` by `replica_ids`. `partition_groups` must have unique
+elements and cover all `partition_ids`. More formally:
+
+```Python
+def cross_partition(partition_groups: List[List[PartitionId]]) -> List[List[ProcessId]]:
+  for partition_group in partition_groups:
+    for replica_id in replica_ids:
+      process_group = []
+      for partition_id in partition_group:
+        process_group.append((replica_id, partition_id))
+      yield process_group
+```
+
+For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
+`cross_partition` will produce
+`[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
+
+3) **cross_replica_and_partition** (as in "both cross-replica and
+cross-partition communications may be happening within each process group").
+This strategy takes `replica_groups` - a list of lists of replica ids - and
+computes Cartesian products of each `replica_group` by `partition_ids`.
+`replica_groups` must have unique elements and cover all `replica_ids`.
+More formally:
+
+```Python
+def cross_replica_and_partition(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
+  for replica_group in replica_groups:
+    process_group = []
+    for partition_id in partition_ids:
+      for replica_id in replica_group:
+        process_group.append((replica_id, partition_id))
+    yield process_group
+```
+
+For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
+`cross_replica_and_partition` will produce
+`[[(0, 0), (1, 0), (0, 1), (1, 1)], [(2, 0), (3, 0), (2, 1), (3, 1)]]`.
+
+4) **flattened_ids**. This strategy takes `flattened_id_groups` - a list of
+lists of "flattened" process ids in the
+`replica_id * num_partitions + partition_id` format - and turns them into
+process ids. `flattened_id_groups` must have unique elements and cover all
+`process_ids`. More formally:
+
+```Python
+def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]]:
+  for flattened_id_group in flattened_id_groups:
+    process_group = []
+    for flattened_id in flattened_id_group:
+      replica_id = flattened_id // num_partitions
+      partition_id = flattened_id % num_partitions
+      process_group.append((replica_id, partition_id))
+    yield process_group
+```
+
+For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
+`num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
+`[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
 ## Errors
 
@@ -333,8 +499,8 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 ### Semantics
 
 Ensures that the operations producing the `inputs` are executed before any
-operations that depend on `result`. Execution of this operation does nothing, it
-only exists to establish data dependencies from `result` to `inputs`.
+operations that depend on `result`. Execution of this operation does nothing,
+it only exists to establish data dependencies from `result` to `inputs`.
 
 ### Inputs
 
@@ -2588,10 +2754,10 @@ means for numeric precision is implementation-defined.
 More formally, `results[:][result_index] = reduce(input_slices)` where:
   * `input_slices` = `inputs[:][ri0, ..., :, ..., riR-1]`, where `ri` are
     individual elements in `result_index` and `:` are inserted at `dimensions`.
-  * `reduce(input_slices)` = `eval(schedule)` for some binary tree `schedule`
+  * `reduce(input_slices)` = `exec(schedule)` for some binary tree `schedule`
     where:
-    * `eval(node)` = `body(eval(node.left), eval(node.right))`.
-    * `eval(leaf)` = `leaf.value`.
+    * `exec(node)` = `body(exec(node.left), exec(node.right))`.
+    * `exec(leaf)` = `leaf.value`.
   * `schedule` is an implementation-defined full binary tree whose in-order
     traversal consists of:
     * `input_slices[:][index]` values, for all `index` in the index space
@@ -2989,16 +3155,16 @@ More formally, for all `update_index` from the index space of `updates[0]`,
   * `result_index` = `add(full_start_index, full_window_index)`.
 
 Using this mapping between `update_index` and `result_index`, we define
-`results = eval(schedule, inputs)`, where:
+`results = exec(schedule, inputs)`, where:
   * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
-  * `eval([update_index, ...], results) = eval([...], updated_results)` where:
+  * `exec([update_index, ...], results) = exec([...], updated_results)` where:
     * `updated_values = update_computation(results[:][result_index], updates[:][update_index])`.
     * `updated_results` is a copy of `results` with `results[:][result_index]`
       set to `updated_values[:]`.
     * If `result_index` is out of bounds for `shape(results[:])`, the behavior
       is implementation-defined.
-  * `eval([], results) = results`.
+  * `exec([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
 `scatter_indices` are sorted with respect to `scatter_dims_to_operand_dims`,
