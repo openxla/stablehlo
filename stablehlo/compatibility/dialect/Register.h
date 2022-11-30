@@ -20,12 +20,12 @@ limitations under the License.
 #include "mlir/IR/DialectRegistry.h"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
-// Add versionedhlo dialects to the provided registry.
+// Add vhlo dialects to the provided registry.
 void registerAllDialects(DialectRegistry &registry);
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_COMPATIBILITY_DIALECT_REGISTER_H

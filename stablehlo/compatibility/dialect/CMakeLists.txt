@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(LLVM_TARGET_DEFINITIONS VersionedStablehloOps.td)
-mlir_tablegen(VersionedStablehloOps.h.inc -gen-op-decls)
-mlir_tablegen(VersionedStablehloOps.cpp.inc -gen-op-defs)
-mlir_tablegen(VersionedStablehloOpInterfaces.h.inc -gen-op-interface-decls)
-mlir_tablegen(VersionedStablehloOpInterfaces.cpp.inc -gen-op-interface-defs)
-mlir_tablegen(VersionedStablehloEnums.h.inc -gen-enum-decls)
-mlir_tablegen(VersionedStablehloEnums.cpp.inc -gen-enum-defs)
-mlir_tablegen(VersionedStablehloAttrs.h.inc -gen-attrdef-decls)
-mlir_tablegen(VersionedStablehloAttrs.cpp.inc -gen-attrdef-defs)
-add_public_tablegen_target(VersionedStablehloOpsIncGen)
-add_dependencies(mlir-headers VersionedStablehloOpsIncGen)
+set(LLVM_TARGET_DEFINITIONS VhloOps.td)
+mlir_tablegen(VhloOps.h.inc -gen-op-decls)
+mlir_tablegen(VhloOps.cpp.inc -gen-op-defs)
+mlir_tablegen(VhloOpInterfaces.h.inc -gen-op-interface-decls)
+mlir_tablegen(VhloOpInterfaces.cpp.inc -gen-op-interface-defs)
+mlir_tablegen(VhloEnums.h.inc -gen-enum-decls)
+mlir_tablegen(VhloEnums.cpp.inc -gen-enum-defs)
+mlir_tablegen(VhloAttrs.h.inc -gen-attrdef-decls)
+mlir_tablegen(VhloAttrs.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(VhloOpsIncGen)
+add_dependencies(mlir-headers VhloOpsIncGen)
 
-add_mlir_dialect_library(VersionedStablehloOps
+add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
-  VersionedStablehloOps.cpp
-  # VersionedStablehloBytecode.cpp
+  VhloOps.cpp
+  # VhloBytecode.cpp
 
   DEPENDS
-  VersionedStablehloOpsIncGen
+  VhloOpsIncGen
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
@@ -39,12 +39,12 @@ add_mlir_dialect_library(VersionedStablehloOps
   MLIRQuantDialect
 )
 
-add_mlir_dialect_library(VersionedStablehloRegister
+add_mlir_dialect_library(VhloRegister
   PARTIAL_SOURCES_INTENDED
   Register.cpp
 
   LINK_LIBS PUBLIC
   ChloOps
-  VersionedStablehloOps
+  VhloOps
 )
 

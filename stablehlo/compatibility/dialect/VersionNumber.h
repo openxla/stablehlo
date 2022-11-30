@@ -24,7 +24,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
 class VersionNumber {
   static constexpr llvm::StringLiteral CURRENT_VERSION = "0.1.0";
@@ -93,7 +93,7 @@ class VersionNumber {
     std::string version;
 };
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_COMPATIBILITY_VERSION_NUMBER_H

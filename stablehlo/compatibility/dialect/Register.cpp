@@ -16,14 +16,14 @@ limitations under the License.
 
 #include "stablehlo/compatibility/dialect/Register.h"
 
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/compatibility/dialect/VhloOps.h"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
 void registerAllDialects(mlir::DialectRegistry &registry) {
-  registry.insert<mlir::versionedhlo::VersionedhloDialect>();
+  registry.insert<mlir::vhlo::VhloDialect>();
 }
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir

@@ -1,5 +1,5 @@
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The VersionedHLO Authors.
+   Copyright 2022 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VERSIONEDHLO_BASE
-#define STABLEHLO_COMPATIBILITY_VERSIONEDHLO_BASE
+#ifndef STABLEHLO_COMPATIBILITY_VHLO_BASE
+#define STABLEHLO_COMPATIBILITY_VHLO_BASE
 
 include "mlir/IR/OpBase.td"
 
@@ -23,9 +23,9 @@ include "mlir/IR/OpBase.td"
 // Versioned Dialect Constants and Declaration
 //===----------------------------------------------------------------------===//
 
-def VersionedHLO_Dialect : Dialect {
-  let name = "versionedhlo";
-  let cppNamespace = "::mlir::versionedhlo";
+def VHLO_Dialect : Dialect {
+  let name = "vhlo";
+  let cppNamespace = "::mlir::vhlo";
 
   let description = [{
     A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
@@ -179,4 +179,4 @@ def VHLO_PredIntOrFpTensor : TensorOf<[VHLO_Pred, VHLO_Int, VHLO_Float]>;
 
 
 
-#endif // STABLEHLO_COMPATIBILITY_VERSIONEDHLO_BASE
+#endif // STABLEHLO_COMPATIBILITY_VHLO_BASE

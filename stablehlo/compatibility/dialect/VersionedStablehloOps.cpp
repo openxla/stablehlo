@@ -14,22 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h"
+#include "stablehlo/compatibility/dialect/VhloOps.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/TypeUtilities.h"
 
 // Include order matters
-#include "stablehlo/compatibility/dialect/VersionedStablehloEnums.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
-#include "stablehlo/compatibility/dialect/VersionedStablehloAttrs.cpp.inc"
-#include "stablehlo/compatibility/dialect/VersionedStablehloOpInterfaces.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloAttrs.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloOpInterfaces.cpp.inc"
 #define GET_OP_CLASSES
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloOps.cpp.inc"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
 using mlir::hlo::printIntArray;
 
@@ -37,22 +37,22 @@ using mlir::hlo::printIntArray;
 // StableHLO Dialect Constructor
 //===----------------------------------------------------------------------===//
 
-VersionedhloDialect::VersionedhloDialect(MLIRContext* context)
+VhloDialect::VhloDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context,
-              TypeID::get<VersionedhloDialect>()) {
+              TypeID::get<VhloDialect>()) {
   addOperations<
 #define GET_OP_LIST
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloOps.cpp.inc"
       >();
   // TODO (gleasonk): addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<
 #define GET_ATTRDEF_LIST
-#include "stablehlo/compatibility/dialect/VersionedStablehloAttrs.cpp.inc"
+#include "stablehlo/compatibility/dialect/VhloAttrs.cpp.inc"
       >();
 }
 
-Type VersionedhloDialect::parseType(DialectAsmParser& parser) const {
+Type VhloDialect::parseType(DialectAsmParser& parser) const {
   StringRef dataType;
   if (parser.parseKeyword(&dataType)) return Type();
 
@@ -62,7 +62,7 @@ Type VersionedhloDialect::parseType(DialectAsmParser& parser) const {
   return nullptr;
 }
 
-void VersionedhloDialect::printType(Type type, DialectAsmPrinter& os) const {
+void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
   if (type.isa<TokenType>()) {
     os << "token";
     return;
@@ -72,7 +72,7 @@ void VersionedhloDialect::printType(Type type, DialectAsmPrinter& os) const {
 
 // Entry point for Attribute parsing, TableGen generated code will handle the
 // dispatch to the individual classes.
-Attribute VersionedhloDialect::parseAttribute(DialectAsmParser& parser,
+Attribute VhloDialect::parseAttribute(DialectAsmParser& parser,
                                               Type type) const {
   StringRef attrTag;
   Attribute attr;
@@ -84,12 +84,12 @@ Attribute VersionedhloDialect::parseAttribute(DialectAsmParser& parser,
 
 // Entry point for Attribute printing, TableGen generated code will handle the
 // dispatch to the individual classes.
-void VersionedhloDialect::printAttribute(Attribute attr,
+void VhloDialect::printAttribute(Attribute attr,
                                          DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
 }
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // namespace mlir

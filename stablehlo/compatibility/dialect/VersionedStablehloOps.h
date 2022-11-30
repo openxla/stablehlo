@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VERSIONED_STABLEHLO_OPS_H
-#define STABLEHLO_COMPATIBILITY_VERSIONED_STABLEHLO_OPS_H
+#ifndef STABLEHLO_COMPATIBILITY_VHLO_OPS_H
+#define STABLEHLO_COMPATIBILITY_VHLO_OPS_H
 
 #include "stablehlo/compatibility/dialect/VersionNumber.h"
 
@@ -34,17 +34,17 @@ limitations under the License.
 #include "mlir/IR/OpDefinition.h"
 
 // Include order matters.
-#include "stablehlo/compatibility/dialect/VersionedStablehloEnums.h.inc"
+#include "stablehlo/compatibility/dialect/VhloEnums.h.inc"
 #define GET_ATTRDEF_CLASSES
-#include "stablehlo/compatibility/dialect/VersionedStablehloAttrs.h.inc"
+#include "stablehlo/compatibility/dialect/VhloAttrs.h.inc"
 
 namespace mlir {
-namespace versionedhlo {
+namespace vhlo {
 
-class VersionedhloDialect : public Dialect {
+class VhloDialect : public Dialect {
  public:
-  explicit VersionedhloDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "versionedhlo"; }
+  explicit VhloDialect(MLIRContext *context);
+  static StringRef getDialectNamespace() { return "vhlo"; }
 
   // Parses a type registered to this dialect.
   Type parseType(DialectAsmParser &parser) const override;
@@ -73,11 +73,11 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
   using Base::Base;
 };
 
-}  // namespace versionedhlo
+}  // namespace vhlo
 }  // end namespace mlir
 
-#include "stablehlo/compatibility/dialect/VersionedStablehloOpInterfaces.h.inc"
+#include "stablehlo/compatibility/dialect/VhloOpInterfaces.h.inc"
 #define GET_OP_CLASSES
-#include "stablehlo/compatibility/dialect/VersionedStablehloOps.h.inc"
+#include "stablehlo/compatibility/dialect/VhloOps.h.inc"
 
-#endif  // STABLEHLO_COMPATIBILITY_VERSIONED_STABLEHLO_OPS_H
+#endif  // STABLEHLO_COMPATIBILITY_VHLO_OPS_H
