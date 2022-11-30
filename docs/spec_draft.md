@@ -377,6 +377,7 @@ syntax.
    * [real](#stablehloreal)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
+   * [replica_id](#stablehloreplica_id)
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
@@ -2857,6 +2858,26 @@ implementation-defined value.
 // %rhs: [3, 3, -3, -3]
 %result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [2, -2, 2, -2]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.replica_id
+
+### Semantics
+
+Produces `replica_id` of the current process.
+
+### Outputs
+
+| Name     | Type                                |
+|----------|-------------------------------------|
+| `result` | 0-dimensional tensor of type `ui32` |
+
+### Examples
+
+```mlir
+%result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
 
 [Back to Ops](#index-of-ops)
