@@ -337,6 +337,7 @@ syntax.
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [after_all](#stablehloafter_all)
+   * [all_gather](#stablehloall_gather)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
    * [batch_norm_grad](#stablehlobatch_norm_grad)
@@ -526,6 +527,73 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ```mlir
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.all_gather
+
+### Semantics
+
+Within each process group in the StableHLO grid, concatenates the values of the
+`operand` tensor from each process along `all_gather_dim` and produces a
+`result` tensor.
+
+The operation splits the StableHLO grid into `process_groups` as follows:
+  * `channel_id <= 0` and `use_global_device_ids = false`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = false`,
+    `cross_replica_and_partition(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = true`,
+    `flattened_ids(replica_groups)`.
+
+Afterwards, within each `process_group`:
+  * `operands@receiver = [operand@sender for sender in process_group]` for all
+    `receiver` in `process_group`.
+  * `result@process = concatenate(operands@process, all_gather_dim)` for all
+    `process` in `process_group`.
+
+### Inputs
+
+| Name                    | Type                                         |
+|-------------------------|----------------------------------------------|
+| `operand`               | tensor of any supported type                 |
+| `all_gather_dim`        | constant of type `si64`                      |
+| `replica_groups`        | 2-dimensional tensor constant of type `si64` |
+| `channel_id`            | constant of type `si64`                      |
+| `use_global_device_ids` | constant of type `boolean`                   |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
+  * (C2) All values in `replica_groups` are unique.
+  * (C3) `size(replica_groups)` = `num_replicas`.
+  * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+         from `indices(replica_groups)`.
+  * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C6)`type(result) = type(operand)` except that
+    * `dim(result, all_gather_dim)` = `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [[1.0, 2.0], [3.0, 4.0]]
+// %operand@(1, 0): [[5.0, 6.0], [7.0, 8.0]]
+%result = "stablehlo.all_gather"(%operand) {
+  all_gather_dim = 1 : i64,
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  // use_global_device_ids = false
+} : (tensor<2x2xf32>) -> tensor<2x4xf32>
+// %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
+// %result@(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
 ```
 
 [Back to Ops](#index-of-ops)
@@ -4114,7 +4182,7 @@ while cond(internal_state) == True:
 results = internal_state
 ```
 
-The behaviour of an infinite loop is TBD.
+The behavior of an infinite loop is TBD.
 
 ### Inputs
 

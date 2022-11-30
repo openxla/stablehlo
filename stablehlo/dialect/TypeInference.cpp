@@ -33,6 +33,7 @@ limitations under the License.
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -300,6 +301,48 @@ unsigned potentiallyComplexBitwidth(Type type) {
   auto complexTy = type.dyn_cast<ComplexType>();
   return complexTy ? 2 * complexTy.getElementType().getIntOrFloatBitWidth()
                    : type.getIntOrFloatBitWidth();
+}
+
+LogicalResult verifyReplicaGroups(Optional<Location> location,
+                                  DenseIntElementsAttr replicaGroups,
+                                  bool allGroupsMustHaveSameSize) {
+  auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
+
+  if (replicaGroupType.getRank() != 2)
+    return emitOptionalError(location,
+                             "replica groups should be a rank 2 tensor");
+
+  // Revisit the following check in light of #498.
+  if (replicaGroupType.getShape()[0] * replicaGroupType.getShape()[1] == 0) {
+    return emitOptionalError(location, "replica groups cannot be empty");
+  }
+
+  auto replicaIds = replicaGroups.getValues<int64_t>();
+  llvm::SmallSet<int64_t, 8> replicaIdsSeen;
+  for (int64_t replicaId : replicaIds) {
+    // Replica groups are stored in a 2D tensor. If the op supports non-uniform
+    // groups, null replica IDs are stored as -1.
+    if (replicaId == -1) {
+      if (allGroupsMustHaveSameSize) {
+        return emitOptionalError(location, "Invalid replica id -1");
+      }
+      continue;
+    }
+
+    if (!replicaIdsSeen.insert(replicaId).second) {
+      return emitOptionalError(location, "replica id #", replicaId,
+                               " seen more than once");
+    }
+  }
+
+  for (size_t id = 0; id < replicaIdsSeen.size(); id++) {
+    if (!replicaIdsSeen.contains(id)) {
+      return emitOptionalError(location, "replica id #", id,
+                               " not seen in replica groups");
+    }
+  }
+
+  return success();
 }
 
 LogicalResult verifyReducerShape(
