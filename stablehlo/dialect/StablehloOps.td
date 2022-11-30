@@ -1537,16 +1537,17 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
        AllShapesMatch<["operand", "result"]>]> {
   let summary = "Dynamic Update Slice operator";
   let description = [{
-    DynamicUpdateSlice generates a result which is the value of the input array
-    operand, with a slice update overwritten at start_indices.
+    Produces a `result` tensor which is equal to the `operand` tensor except
+    that the slice starting at `start_indices` is updated with the values in
+    `update`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#dynamicupdateslice.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloslice
 
     Example:
-
     ```mlir
-    %0 = stablehlo.dynamic_update_slice %arg0, %arg1, %arg2
-           : (tensor<4xf32>, tensor<2xf32>, tensor<i32>) -> tensor<4xf32>
+    %result = stablehlo.dynamic_update_slice %operand, %update, %start_indices0, %start_indices1
+      : (tensor<4x4xi32>, tensor<2x2xi32>, tensor<i64>, tensor<i64>) -> tensor<4x4xi32>
     ```
   }];
   let arguments = (ins
@@ -2337,8 +2338,8 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
 def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, RecursiveMemoryEffects]> {
   let summary = "Scatter operator";
   let description = [{
-    Generate `results` which is the values of the `inputs` operand, with several
-    slices at indices specified by `scatter_indices`, updated with the values in
+    Produces `results` tensors which are equal to `inputs` tensors except that
+    several slices specified by `scatter_indices` are updated with the values
     `updates` using `update_computation`.
 
     See:

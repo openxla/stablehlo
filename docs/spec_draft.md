@@ -352,6 +352,7 @@ syntax.
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
    * [dynamic_slice](#stablehlodynamic_slice)
+   * [dynamic_update_slice](#stablehlodynamic_update_slice)
    * [exponential](#stablehloexponential)
    * [exponential_minus_one](#stablehloexponential_minus_one)
    * [fft](#stablehlofft)
@@ -1590,6 +1591,70 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 // %result: [
 //           [1, 1],
 //           [1, 1]
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.dynamic_update_slice
+
+### Semantics
+
+Produces a `result` tensor which is equal to the `operand` tensor except that
+the slice starting at `start_indices` is updated with the values in `update`.
+
+More formally, `result[i0, ..., iR-1]` is defined as:
+  * `update[j0, ..., jR-1]` if `jd = adjusted_start_indices[d][] + id` where
+    `adjusted_start_indices = clamp(0, start_indices, shape(operand) - update)`.
+  * `operand[i0, ..., iR-1]` otherwise.
+
+### Inputs
+
+| Name            | Type                                                     |
+|-----------------|----------------------------------------------------------|
+| `operand`       | tensor of any supported type                             |
+| `update`        | tensor of any supported type                             |
+| `start_indices` | variadic number of 0-dimensional tensors of integer type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+  * (C2) element_type(`update`) $=$ element_type(`operand`).
+  * (C3) rank(`update`) $=$ rank(`operand`).
+  * (C4) size(`start_indices`) $=$ rank(`operand`).
+  * (C5) All `start_indices` have the same type.
+  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
+    [0, rank(`operand`)).
+
+
+### Examples
+
+```mlir
+// %operand: [
+//            [1, 1, 0, 0],
+//            [1, 1, 0, 0],
+//            [1, 1, 1, 1],
+//            [1, 1, 1, 1]
+//           ]
+// %update: [
+//           [1, 1],
+//           [1, 1]
+//          ]
+// %start_indices0: -1
+// %start_indices1: 3
+%result = "stablehlo.dynamic_update_slice"(%operand, %update, %start_indices0, %start_indices1)
+  : (tensor<4x4xi32>, tensor<2x2xi32>, tensor<i64>, tensor<i64>) -> tensor<4x4xi32>
+// %result: [
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1],
+//           [1, 1, 1, 1]
 //          ]
 ```
 
@@ -3203,8 +3268,8 @@ specification. Numeric precision is implementation-defined.
 
 ### Semantics
 
-Generate `results` which is the values of the `inputs` operand, with several
-slices at indices specified by `scatter_indices`, updated with the values in
+Produces `results` tensors which are equal to `inputs` tensors except that
+several slices specified by `scatter_indices` are updated with the values
 `updates` using `update_computation`.
 
 The following diagram shows how elements in `updates[k]` map on elements in
