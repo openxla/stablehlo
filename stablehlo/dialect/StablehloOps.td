@@ -2784,16 +2784,17 @@ def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
   }];
 
   let description = [{
-    Ensures that the operations that produce the `operand` are executed before
-    any operations that depend on the `result`, preventing any optimisation
-    pass from moving computations across the barrier.
+    Ensures that the operations that produce the `operand` are executed before any
+    operations that depend on the `result` and prevents compiler transformations
+    from moving operations across the barrier. Other than that, the operation is
+    an identity, i.e. `result` = `operand`.
 
     See
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooptimization_barrier
 
     Example:
     ```mlir
-    %result:2 = stablehlo.optimization_barrier %arg0, %arg1 : tensor<1xf32>, tensor<1xi32>
+    %result0, %result1 = stablehlo.optimization_barrier %operand0, %operand1 : tensor<f32>, tensor<f32>
     ```
   }];
 

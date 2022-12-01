@@ -2803,10 +2803,9 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 ### Semantics
 
 Ensures that the operations that produce the `operand` are executed before any
-operations that depend on the `result`, preventing any optimisation pass from
-moving computations across the barrier.
-
-Also, `result[i] = operand[i]` if `type(operand[i])` is not `token`.
+operations that depend on the `result` and prevents compiler transformations
+from moving operations across the barrier. Other than that, the operation is
+an identity, i.e. `result` = `operand`.
 
 ### Arguments
 
@@ -2828,7 +2827,11 @@ Also, `result[i] = operand[i]` if `type(operand[i])` is not `token`.
 ### Examples
 
 ```mlir
-%result:2 = "stablehlo.optimization_barrier"(%arg0, %arg1) : (tensor<1xf32>, tensor<1xi32>) -> (tensor<1xf32>, tensor<1xi32>)
+// %operand0: 0.0
+// %operand1: 1.0
+%result0, %result1 = "stablehlo.optimization_barrier"(%operand0, %operand1) : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
+// %result0: 0.0
+// %result1: 1.0
 ```
 
 [Back to Ops](#index-of-ops)

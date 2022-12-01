@@ -969,8 +969,8 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult inferOptimizationBarrierOp(
-    ValueRange inputs, SmallVectorImpl<Type>& inferredReturnTypes) {
-  for (auto inputArgType : inputs.getTypes()) {
+    ValueRange operand, SmallVectorImpl<Type>& inferredReturnTypes) {
+  for (auto inputArgType : operand.getTypes()) {
     inferredReturnTypes.emplace_back(inputArgType);
   }
 

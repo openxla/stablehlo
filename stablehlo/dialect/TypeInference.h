@@ -147,7 +147,7 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
                          SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferOptimizationBarrierOp(
-    ValueRange inputs, SmallVectorImpl<Type>& inferredReturnTypes);
+    ValueRange operand, SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
