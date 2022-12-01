@@ -566,7 +566,7 @@ Afterwards, within each `process_group`:
      ``` for all `sender` in `process_group`.
   * `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in process_group]`
     where `receiver_index = index_of(receiver, process_group)`.
-  * `result@process = concatenate(scattered_parts@process, concat_dimension).
+  * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
 
 ### Inputs
 
@@ -587,15 +587,14 @@ Afterwards, within each `process_group`:
 ### Constraints
 
   * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
-  * (C4) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
-  * (C2) `concat_dimension` $\in$ [0, rank(`operand`)).
-  * (C3) `split_count` $\gt$ 0.
-  * (C2) size(`replica_groups`) $\gt$ 0.
-  * (C3) All values in `replica_groups` are unique.
-  * (C4) `size(replica_groups)` = `num_replicas`.
-  * (C5) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+  * (C2) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
+  * (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
+  * (C4) `split_count` $\gt$ 0.
+  * (C5) All values in `replica_groups` are unique.
+  * (C6) `size(replica_groups)` = `num_replicas`.
+  * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          from `indices(replica_groups)`.
-  * (C6) `type(result) = type(operand)` except that:
+  * (C8) `type(result) = type(operand)` except that
     * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
     * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
 
