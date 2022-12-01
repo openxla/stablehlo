@@ -390,6 +390,7 @@ syntax.
    * [reshape](#stablehloreshape)
    * [reverse](#stablehloreverse)
    * [rng](#stablehlorng)
+   * [rng_bit_generator](#stablehlorng_bit_generator)
    * [round_nearest_afz](#stablehloround_nearest_afz)
    * [round_nearest_even](#stablehloround_nearest_even)
    * [rsqrt](#stablehlorsqrt)
@@ -3327,6 +3328,62 @@ hidden state.
 //           [1, 0, 1],
 //           [1, 1, 1],
 //           [0, 0, 0]
+//          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.rng_bit_generator
+
+### Semantics
+
+Returns an `output` filled with uniform random bits and an updated output state
+`output_state` given an initial state `initial_state` using the pseudorandom
+number generator algorithm `rng_algorithm`. The output is guaranteed to be
+deterministic function of `initial_state`, but it is not guaranteed to be
+deterministic between implementations.
+
+`rng_algorithm` is one of the following:
+  * `DEFAULT`: Implementation-defined algorithm.
+  * `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
+  * `PHILOX`: Implementation-defined variant of the Philox algorithm.*
+
+\* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
+](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
+
+### Inputs
+
+| Name            | Type                                         |
+|-----------------|----------------------------------------------|
+| `initial_state` | 1-dimensional tensor of type `ui64`          |
+| `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` |
+
+### Outputs
+
+| Name           | Type                                     |
+|----------------|------------------------------------------|
+| `output_state` | 1-dimensional tensor of type `ui64`      |
+| `output`       | tensor of integer or floating-point type |
+
+### Constraints
+
+  * (C1) type(`initial_state`) $=$ type(`output_state`).
+  * (C2) size(`initial_state`) depends on `rng_algorithm`:
+    * `DEFAULT`: implementation-defined.
+    * `THREE_FRY`: `2`.
+    * `PHILOX`: `2` or `3`.
+
+### Examples
+
+```mlir
+// %initial_state: [1, 2]
+%output_state, %output = "stablehlo.rng_bit_generator"(%initial_state) {
+  rng_algorithm = #stablehlo<rng_algorithm THREE_FRY>
+} : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
+// %output_state: [1, 6]
+// %output: [
+//           [9236835810183407956, 16087790271692313299],
+//           [18212823393184779219, 2658481902456610144]
 //          ]
 ```
 

@@ -2849,18 +2849,18 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
 }
 
 def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
-  let summary = "Uniform random number generator operator";
+  let summary = "Uniform pseudo random number generator operator";
   let description = [{
-    Returns an output with a given shape filled with uniform random bits using
-    the specified algorithm (or backend default) and returns an updated state
-    (with the same shape as initial state) and the generated random data.
+    Returns an `output` filled with uniform random data and an updated output
+    state `output_state` given an initial state `initial_state` using the
+    pseudorandom number generator algorithm `rng_algorithm`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#rngbitgenerator.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorng_bit_generator
 
     Example:
-
     ```mlir
-    %0, %1 = stablehlo.rng_bit_generator %arg0, algorithm = PHILOX : (tensor<3xui64>) -> (tensor<3xui64>, tensor<2x2xui32>)
+    %output_state, %output = stablehlo.rng_bit_generator %initial_state, algorithm = THREE_FRY : (tensor<2xui64>) -> (tensor<2xui64>, tensor<2x2xui64>)
     ```
   }];
   let arguments = (ins
@@ -2869,9 +2869,9 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
   );
 
   let results = (outs
-      HLO_IntOrFpTensor:$output_state,
-      HLO_IntOrFpTensor:$output
-      );
+    HLO_IntOrFpTensor:$output_state,
+    HLO_IntOrFpTensor:$output
+  );
 
   let hasVerifier = 1;
 
