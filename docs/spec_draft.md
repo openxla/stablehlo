@@ -379,6 +379,7 @@ syntax.
    * [multiply](#stablehlomultiply)
    * [negate](#stablehlonegate)
    * [not](#stablehlonot)
+   * [optimization_barrier](#stablehlooptimization_barrier)
    * [or](#stablehloor)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
@@ -2792,6 +2793,45 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 // %operand: [true, false]
 %result = "stablehlo.not"(%operand) : (tensor<2xi1>) -> tensor<2xi1>
 // %result: [false, true]
+```
+
+[Back to Ops](#index-of-ops)
+
+
+## stablehlo.optimization_barrier
+
+### Semantics
+
+Ensures that the operations that produce the `operand` are executed before any
+operations that depend on the `result` and prevents compiler transformations
+from moving operations across the barrier. Other than that, the operation is
+an identity, i.e. `result` = `operand`.
+
+### Arguments
+
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `operand` | variadic number of tensors of any supported type or tokens |
+
+### Outputs
+
+| Name     | Type                                                       |
+|----------|------------------------------------------------------------|
+| `result` | variadic number of tensors of any supported type or tokens |
+
+### Constraints
+
+  * (C1) size(`operand`) $=$ size(`result`).
+  * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i.
+
+### Examples
+
+```mlir
+// %operand0: 0.0
+// %operand1: 1.0
+%result0, %result1 = "stablehlo.optimization_barrier"(%operand0, %operand1) : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
+// %result0: 0.0
+// %result1: 1.0
 ```
 
 [Back to Ops](#index-of-ops)

@@ -146,6 +146,9 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
                          DenseIntElementsAttr interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferOptimizationBarrierOp(
+    ValueRange operand, SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions, Region& body,

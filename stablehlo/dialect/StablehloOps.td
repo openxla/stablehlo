@@ -2776,25 +2776,26 @@ def StableHLO_TorchIndexSelectOp : StableHLO_Op<"torch_index_select", [Pure]> {
 }
 
 def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
-      [Pure, HLO_PairwiseSameOperandAndResultType]> {
+      [Pure, HLO_PairwiseSameOperandAndResultType,
+      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = [{
     The `stablehlo.optimization_barrier` op blocks optimizations.
 
-    Example:
-
-    ```mlir
-    %0:2 = stablehlo.optimization_barrier %arg0, %arg1 : tensor<1xf32>, tensor<1xi32>
-    %1 = stablehlo.optimization_barrier %arg0 : tensor<1xf32>
-    stablehlo.optimization_barrier()
-    ```
   }];
 
   let description = [{
-    Blocks any optimization pass from moving computations across the barrier.
+    Ensures that the operations that produce the `operand` are executed before any
+    operations that depend on the `result` and prevents compiler transformations
+    from moving operations across the barrier. Other than that, the operation is
+    an identity, i.e. `result` = `operand`.
 
-    Ensures that all inputs are evaluated before any operators that depend on the barrier's outputs.
     See
-    https://www.tensorflow.org/xla/operation_semantics#optimizationbarrier
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooptimization_barrier
+
+    Example:
+    ```mlir
+    %result0, %result1 = stablehlo.optimization_barrier %operand0, %operand1 : tensor<f32>, tensor<f32>
+    ```
   }];
 
   let arguments = (ins Variadic<HLO_TensorOrToken>:$operand);
