@@ -35,6 +35,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
 
 namespace mlir {
@@ -43,12 +44,14 @@ namespace hlo {
 namespace {
 
 // Convert dynamic dimensions to -1 for infer tests.
-SmallVector<int64_t> fixDynamicDims(ArrayRef<int64_t> arr) {
-  SmallVector<int64_t> dims;
-  for (int64_t dim : arr) {
-    dims.push_back(isDynamicDimSize(dim) ? -1 : dim);
-  }
-  return dims;
+std::string dimSizesToString(ArrayRef<int64_t> const & arr) {
+  std::string buffer;
+  llvm::raw_string_ostream os(buffer);
+  os << '[';
+  llvm::interleaveComma(
+      arr, os, [&](int64_t dimSize) { os << dimSizeToString(dimSize); });
+  os << ']';
+  return buffer;
 }
 
 struct InferReturnTypesPattern : public RewritePattern {
@@ -109,9 +112,8 @@ struct InferReturnTypeComponentsPattern : public RewritePattern {
     auto *newOp = rewriter.create(state);
     for (const auto &it : llvm::enumerate(components)) {
       if (it.value().hasRank()) {
-        newOp->setAttr(
-            (StringRef("dims") + Twine(it.index())).str(),
-            rewriter.getI64ArrayAttr(fixDynamicDims(it.value().getDims())));
+        newOp->setAttr((StringRef("dims") + Twine(it.index())).str(),
+                       rewriter.getStringAttr(dimSizesToString(it.value().getDims())));
       }
       if (it.value().getElementType()) {
         newOp->setAttr((Twine("element_type") + Twine(it.index())).str(),

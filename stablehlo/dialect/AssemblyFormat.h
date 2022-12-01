@@ -179,13 +179,13 @@ ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 //     [1, -1]
 //   Custom:
 //     [1, ?]
-std::string dimSizeToString(int64_t dim);
+std::string dimSizeToString(int64_t dimSize);
 
-void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dims);
+void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes);
 
 FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser);
 ParseResult parseDimSizes(AsmParser& parser,
-                          FailureOr<SmallVector<int64_t>>& dims);
+                          FailureOr<SmallVector<int64_t>>& dimSizes);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //

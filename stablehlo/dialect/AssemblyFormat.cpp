@@ -305,11 +305,11 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
-std::string dimSizeToString(int64_t dim) {
-  if (hlo::isDynamicDimSize(dim)) {
+std::string dimSizeToString(int64_t dimSize) {
+  if (hlo::isDynamicDimSize(dimSize)) {
     return "?";
   }
-  return std::to_string(dim);
+  return std::to_string(dimSize);
 }
 
 void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes) {
