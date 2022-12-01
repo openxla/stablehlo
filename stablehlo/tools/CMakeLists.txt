@@ -27,7 +27,7 @@ set(LIBS
         MLIROptLib
         StablehloRegister
         StablehloTestUtils
-        Passes
+        VhloPasses
         )
 add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
 llvm_update_compile_flags(stablehlo-opt)

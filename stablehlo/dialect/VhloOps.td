@@ -64,218 +64,218 @@ class VHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion =
 class VHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = "current"> :
     VHLO_OpWithTraits<mnemonic, [], minVersion, maxVersion>;
 
-def VHLO_ConstantOp : VHLO_Op<"constant"> {
+def VHLO_ConstantOpV1 : VHLO_Op<"constant"> {
   let arguments = (ins ElementsAttr:$value);
   let results = (outs VHLO_StaticShapeTensor:$output);
 }
 
-def VHLO_CreateTokenOp : VHLO_Op<"create_token"> {
+def VHLO_CreateTokenOpV1 : VHLO_Op<"create_token"> {
   let results = (outs VHLO_Token:$output);
 }
 
-def VHLO_IotaOp : VHLO_Op<"iota"> {
+def VHLO_IotaOpV1 : VHLO_Op<"iota"> {
   let arguments = (ins I64Attr:$iota_dimension);
   let results = (outs VHLO_IntFpOrComplexTensor:$output);
 }
 
-def VHLO_DynamicIotaOp: VHLO_Op<"dynamic_iota"> {
+def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota"> {
   let arguments = (ins VHLO_DimensionTensor:$output_shape, I64Attr:$iota_dimension);
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_AbsOp: VHLO_Op<"abs"> {
+def VHLO_AbsOpV1 : VHLO_Op<"abs"> {
   let arguments = (ins TensorOf<[VHLO_SInt, VHLO_Float, VHLO_Complex]>:$operand);
   let results = (outs TensorOf<[VHLO_SInt, VHLO_Float, VHLO_Complex]>:$result);
 }
 
-def VHLO_CbrtOp: VHLO_Op<"cbrt"> {
+def VHLO_CbrtOpV1 : VHLO_Op<"cbrt"> {
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_CeilOp: VHLO_Op<"ceil"> {
+def VHLO_CeilOpV1 : VHLO_Op<"ceil"> {
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_ConvertOp : VHLO_Op<"convert"> {
+def VHLO_ConvertOpV1 : VHLO_Op<"convert"> {
   let arguments = (ins VHLO_Tensor:$operand);
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ClzOp: VHLO_Op<"count_leading_zeros"> {
+def VHLO_ClzOpV1 : VHLO_Op<"count_leading_zeros"> {
   let arguments = (ins VHLO_IntTensor:$operand);
   let results = (outs VHLO_IntTensor:$result);
 }
 
-def VHLO_CosineOp: VHLO_Op<"cosine"> {
+def VHLO_CosineOpV1 : VHLO_Op<"cosine"> {
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_ExpOp: VHLO_Op<"exponential"> {
+def VHLO_ExpOpV1 : VHLO_Op<"exponential"> {
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_Expm1Op: VHLO_Op<"exponential_minus_one"> {
+def VHLO_Expm1OpV1 : VHLO_Op<"exponential_minus_one"> {
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
-def VHLO_FloorOp: VHLO_Op<"floor"> {
+def VHLO_FloorOpV1 : VHLO_Op<"floor"> {
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_ImagOp: VHLO_Op<"imag"> {
+def VHLO_ImagOpV1 : VHLO_Op<"imag"> {
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_IsFiniteOp: VHLO_Op<"is_finite"> {
+def VHLO_IsFiniteOpV1 : VHLO_Op<"is_finite"> {
   let arguments = (ins VHLO_FpTensor:$x);
   let results = (outs VHLO_PredTensor:$y);
 }
 
-def VHLO_LogOp: VHLO_Op<"log">{
+def VHLO_LogOpV1 : VHLO_Op<"log">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_Log1pOp: VHLO_Op<"log_plus_one">{
+def VHLO_Log1pOpV1 : VHLO_Op<"log_plus_one">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_LogisticOp: VHLO_Op<"logistic">{
+def VHLO_LogisticOpV1 : VHLO_Op<"logistic">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_NotOp: VHLO_Op<"not">{
+def VHLO_NotOpV1 : VHLO_Op<"not">{
   let arguments = (ins VHLO_PredOrIntTensor:$operand);
   let results = (outs VHLO_PredOrIntTensor:$result);
 }
 
-def VHLO_NegOp: VHLO_Op<"negate">{
+def VHLO_NegOpV1 : VHLO_Op<"negate">{
   let arguments = (ins VHLO_IntFpOrComplexTensor:$operand);
   let results = (outs VHLO_IntFpOrComplexTensor:$result);
 }
 
-def VHLO_PopulationCountOp: VHLO_Op<"popcnt">{
+def VHLO_PopulationCountOpV1 : VHLO_Op<"popcnt">{
   let arguments = (ins VHLO_IntTensor:$operand);
   let results = (outs VHLO_IntTensor:$result);
 }
 
-def VHLO_RealOp: VHLO_Op<"real">{
+def VHLO_RealOpV1 : VHLO_Op<"real">{
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_RoundOp: VHLO_Op<"round_nearest_afz">{
+def VHLO_RoundOpV1 : VHLO_Op<"round_nearest_afz">{
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_RoundNearestEvenOp: VHLO_Op<"round_nearest_even">{
+def VHLO_RoundNearestEvenOpV1 : VHLO_Op<"round_nearest_even">{
   let arguments = (ins VHLO_FpTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
-def VHLO_RsqrtOp: VHLO_Op<"rsqrt">{
+def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_SignOp: VHLO_Op<"sign">{
+def VHLO_SignOpV1 : VHLO_Op<"sign">{
   let arguments = (ins TensorOf<[VHLO_SInt, VHLO_Float, VHLO_Complex]>:$operand);
   let results = (outs TensorOf<[VHLO_SInt, VHLO_Float, VHLO_Complex]>:$result);
 }
 
-def VHLO_SineOp: VHLO_Op<"sine">{
+def VHLO_SineOpV1 : VHLO_Op<"sine">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_SqrtOp: VHLO_Op<"sqrt">{
+def VHLO_SqrtOpV1 : VHLO_Op<"sqrt">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_TanhOp: VHLO_Op<"tanh">{
+def VHLO_TanhOpV1 : VHLO_Op<"tanh">{
   let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
 // Binary Ops
-def VHLO_AddOp : VHLO_Op<"add"> {
+def VHLO_AddOpV1 : VHLO_Op<"add"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_Atan2Op : VHLO_Op<"atan2"> {
+def VHLO_Atan2OpV1 : VHLO_Op<"atan2"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_ComplexOp: VHLO_Op<"complex"> {
+def VHLO_ComplexOpV1 : VHLO_Op<"complex"> {
   let arguments = (ins VHLO_Fp32Or64Tensor:$lhs, VHLO_Fp32Or64Tensor:$rhs);
   let results = (outs VHLO_ComplexTensor:$result);
 }
-def VHLO_DivOp : VHLO_Op<"divide"> {
+def VHLO_DivOpV1 : VHLO_Op<"divide"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_MaxOp : VHLO_Op<"maximum"> {
+def VHLO_MaxOpV1 : VHLO_Op<"maximum"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_MinOp : VHLO_Op<"minimum"> {
+def VHLO_MinOpV1 : VHLO_Op<"minimum"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_MulOp : VHLO_Op<"multiply"> {
+def VHLO_MulOpV1 : VHLO_Op<"multiply"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_PowOp : VHLO_Op<"power"> {
+def VHLO_PowOpV1 : VHLO_Op<"power"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_RemOp : VHLO_Op<"remainder"> {
+def VHLO_RemOpV1 : VHLO_Op<"remainder"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_ShiftLeftOp : VHLO_Op<"shift_left"> {
+def VHLO_ShiftLeftOpV1 : VHLO_Op<"shift_left"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_ShiftRightArithmeticOp : VHLO_Op<"shift_right_arithmetic"> {
+def VHLO_ShiftRightArithmeticOpV1 : VHLO_Op<"shift_right_arithmetic"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_ShiftRightLogicalOp : VHLO_Op<"shift_right_logical"> {
+def VHLO_ShiftRightLogicalOpV1 : VHLO_Op<"shift_right_logical"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_SubtractOp : VHLO_Op<"subtract"> {
+def VHLO_SubtractOpV1 : VHLO_Op<"subtract"> {
   let arguments = (ins VHLO_Tensor:$lhs, VHLO_Tensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
 
 // Logical Ops
-def VHLO_AndOp: VHLO_Op<"and"> {
+def VHLO_AndOpV1 : VHLO_Op<"and"> {
   let arguments = (ins VHLO_PredOrIntTensor:$lhs, VHLO_PredOrIntTensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_OrOp: VHLO_Op<"or"> {
+def VHLO_OrOpV1 : VHLO_Op<"or"> {
   let arguments = (ins VHLO_PredOrIntTensor:$lhs, VHLO_PredOrIntTensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
-def VHLO_XorOp : VHLO_Op<"xor"> {
+def VHLO_XorOpV1 : VHLO_Op<"xor"> {
   let arguments = (ins VHLO_PredOrIntTensor:$lhs, VHLO_PredOrIntTensor:$rhs);
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ReturnOp : VHLO_OpWithTraits<"return", [Terminator]> {
+def VHLO_ReturnOpV1 : VHLO_OpWithTraits<"return", [Terminator]> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple >:$results
   );
@@ -283,7 +283,7 @@ def VHLO_ReturnOp : VHLO_OpWithTraits<"return", [Terminator]> {
 }
 
 // Communication op definitions.
-def VHLO_InfeedOp : VHLO_Op<"infeed"> {
+def VHLO_InfeedOpV1 : VHLO_Op<"infeed"> {
   let arguments = (ins
     VHLO_Token:$token,
     DefaultValuedStrAttr<StrAttr, "">:$infeed_config,
@@ -292,7 +292,7 @@ def VHLO_InfeedOp : VHLO_Op<"infeed"> {
   let results = (outs Variadic<VHLO_TensorOrToken>);
 }
 
-def VHLO_OutfeedOp : VHLO_Op<"outfeed"> {
+def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed"> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     VHLO_Token:$token,
@@ -301,7 +301,7 @@ def VHLO_OutfeedOp : VHLO_Op<"outfeed"> {
   let results = (outs VHLO_Token);
 }
 
-def VHLO_SendOp : VHLO_Op<"send"> {
+def VHLO_SendOpV1 : VHLO_Op<"send"> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     VHLO_Token:$token,
@@ -311,7 +311,7 @@ def VHLO_SendOp : VHLO_Op<"send"> {
   let results = (outs VHLO_Token);
 }
 
-def VHLO_RecvOp : VHLO_Op<"recv"> {
+def VHLO_RecvOpV1 : VHLO_Op<"recv"> {
   let arguments = (ins
     VHLO_Token:$token,
     VHLO_ChannelHandle:$channel_handle,
@@ -321,36 +321,36 @@ def VHLO_RecvOp : VHLO_Op<"recv"> {
 }
 
 // Parallelism related op definitions.
-def VHLO_ReplicaIdOp : VHLO_Op<"replica_id"> {
+def VHLO_ReplicaIdOpV1 : VHLO_Op<"replica_id"> {
   let results = (outs TensorOf<[UI32]>);
 }
 
 // Control flow op definitions.
-def VHLO_AfterAllOp : VHLO_Op<"after_all"> {
+def VHLO_AfterAllOpV1 : VHLO_Op<"after_all"> {
   let arguments = (ins Variadic<VHLO_Token>:$inputs);
   let results = (outs VHLO_Token:$result);
 }
 
-def VHLO_IfOp: VHLO_Op<"if"> {
+def VHLO_IfOpV1 : VHLO_Op<"if"> {
   let arguments = (ins VHLO_PredTensor:$pred);
   let regions = (region SizedRegion<1>:$true_branch,
                         SizedRegion<1>:$false_branch);
   let results = (outs Variadic<VHLO_TensorOrToken>);
 }
 
-def VHLO_CaseOp : VHLO_Op<"case"> {
+def VHLO_CaseOpV1 : VHLO_Op<"case"> {
   let arguments = (ins I32Tensor:$index);
   let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
   let results = (outs Variadic<VHLO_TensorOrToken>);
 }
 
-def VHLO_WhileOp: VHLO_Op<"while"> {
+def VHLO_WhileOpV1 : VHLO_Op<"while"> {
   let arguments = (ins Variadic<VHLO_TensorOrToken>:$operand);
   let regions = (region SizedRegion<1>:$cond, SizedRegion<1>:$body);
   let results = (outs Variadic<VHLO_TensorOrToken>);
 }
 
-def VHLO_AllGatherOp : VHLO_Op<"all_gather"> {
+def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64Attr:$all_gather_dim,
@@ -361,7 +361,7 @@ def VHLO_AllGatherOp : VHLO_Op<"all_gather"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_AllReduceOp : VHLO_Op<"all_reduce"> {
+def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$replica_groups,
@@ -372,7 +372,7 @@ def VHLO_AllReduceOp : VHLO_Op<"all_reduce"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ReduceScatterOp : VHLO_Op<"reduce_scatter"> {
+def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64Attr:$scatter_dimension,
@@ -384,7 +384,7 @@ def VHLO_ReduceScatterOp : VHLO_Op<"reduce_scatter"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_AllToAllOp : VHLO_Op<"all_to_all"> {
+def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64Attr:$split_dimension,
@@ -395,7 +395,7 @@ def VHLO_AllToAllOp : VHLO_Op<"all_to_all"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ReduceOp: VHLO_OpWithTraits<"reduce", [SameVariadicOperandSize]> {
+def VHLO_ReduceOpV1 : VHLO_OpWithTraits<"reduce", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,
@@ -408,7 +408,7 @@ def VHLO_ReduceOp: VHLO_OpWithTraits<"reduce", [SameVariadicOperandSize]> {
 //===----------------------------------------------------------------------===//
 // VHLO tuple op definitions.
 //===----------------------------------------------------------------------===//
-def VHLO_GetTupleElementOp: VHLO_Op<"get_tuple_element"> {
+def VHLO_GetTupleElementOpV1 : VHLO_Op<"get_tuple_element"> {
   let arguments = (ins
     VHLO_Tuple:$operand,
     I32Attr:$index
@@ -416,12 +416,12 @@ def VHLO_GetTupleElementOp: VHLO_Op<"get_tuple_element"> {
   let results = (outs VHLO_TensorOrTokenOrTuple);
 }
 
-def VHLO_TupleOp : VHLO_Op<"tuple"> {
+def VHLO_TupleOpV1 : VHLO_Op<"tuple"> {
   let arguments = (ins Variadic<VHLO_TensorOrTokenOrTuple>:$val);
   let results = (outs VHLO_Tuple:$result);
 }
 
-def VHLO_CompareOp: VHLO_Op<"compare"> {
+def VHLO_CompareOpV1 : VHLO_Op<"compare"> {
   let arguments = (ins
     VHLO_Tensor:$lhs,
     VHLO_Tensor:$rhs,
@@ -432,7 +432,7 @@ def VHLO_CompareOp: VHLO_Op<"compare"> {
 }
 
 // Slice ops
-def VHLO_SliceOp: VHLO_Op<"slice"> {
+def VHLO_SliceOpV1 : VHLO_Op<"slice"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$start_indices,
@@ -442,7 +442,7 @@ def VHLO_SliceOp: VHLO_Op<"slice"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_DynamicSliceOp: VHLO_Op<"dynamic_slice"> {
+def VHLO_DynamicSliceOpV1 : VHLO_Op<"dynamic_slice"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     Variadic<VHLO_ScalarIntTensor>:$start_indices,
@@ -451,7 +451,7 @@ def VHLO_DynamicSliceOp: VHLO_Op<"dynamic_slice"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_DynamicUpdateSliceOp: VHLO_Op<"dynamic_update_slice"> {
+def VHLO_DynamicUpdateSliceOpV1 : VHLO_Op<"dynamic_update_slice"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_Tensor:$update,
@@ -461,7 +461,7 @@ def VHLO_DynamicUpdateSliceOp: VHLO_Op<"dynamic_update_slice"> {
 }
 
 // Other op definitions.
-def VHLO_BatchNormGradOp : VHLO_Op<"batch_norm_grad"> {
+def VHLO_BatchNormGradOpV1 : VHLO_Op<"batch_norm_grad"> {
   let arguments = (ins
     RankedTensorOf<[VHLO_Float]>:$operand,
     1DTensorOf<[VHLO_Float]>:$scale,
@@ -477,7 +477,7 @@ def VHLO_BatchNormGradOp : VHLO_Op<"batch_norm_grad"> {
       1DTensorOf<[VHLO_Float]>:$grad_offset);
 }
 
-def VHLO_BatchNormInferenceOp : VHLO_Op<"batch_norm_inference"> {
+def VHLO_BatchNormInferenceOpV1 : VHLO_Op<"batch_norm_inference"> {
   let arguments = (ins
     RankedTensorOf<[VHLO_Float]>:$operand,
     1DTensorOf<[VHLO_Float]>:$scale,
@@ -490,7 +490,7 @@ def VHLO_BatchNormInferenceOp : VHLO_Op<"batch_norm_inference"> {
   let results = (outs RankedTensorOf<[VHLO_Float]>:$result);
 }
 
-def VHLO_BatchNormTrainingOp : VHLO_Op<"batch_norm_training"> {
+def VHLO_BatchNormTrainingOpV1 : VHLO_Op<"batch_norm_training"> {
   let arguments = (ins
     RankedTensorOf<[VHLO_Float]>:$operand,
     1DTensorOf<[VHLO_Float]>:$scale,
@@ -504,12 +504,12 @@ def VHLO_BatchNormTrainingOp : VHLO_Op<"batch_norm_training"> {
       1DTensorOf<[VHLO_Float]>:$batch_var);
 }
 
-def VHLO_BitcastConvertOp : VHLO_Op<"bitcast_convert"> {
+def VHLO_BitcastConvertOpV1 : VHLO_Op<"bitcast_convert"> {
   let arguments = (ins VHLO_Tensor:$operand);
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_BroadcastOp : VHLO_Op<"broadcast"> {
+def VHLO_BroadcastOpV1 : VHLO_Op<"broadcast"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$broadcast_sizes
@@ -517,7 +517,7 @@ def VHLO_BroadcastOp : VHLO_Op<"broadcast"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_BroadcastInDimOp : VHLO_Op<"broadcast_in_dim"> {
+def VHLO_BroadcastInDimOpV1 : VHLO_Op<"broadcast_in_dim"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     BroadcastDimAttr:$broadcast_dimensions
@@ -525,7 +525,7 @@ def VHLO_BroadcastInDimOp : VHLO_Op<"broadcast_in_dim"> {
   let results = (outs VHLO_StaticShapeTensor);
 }
 
-def VHLO_DynamicBroadcastInDimOp : VHLO_Op<"dynamic_broadcast_in_dim"> {
+def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_DimensionTensor:$output_dimensions,
@@ -536,7 +536,7 @@ def VHLO_DynamicBroadcastInDimOp : VHLO_Op<"dynamic_broadcast_in_dim"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CholeskyOp : VHLO_Op<"cholesky"> {
+def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky"> {
   let arguments = (ins
     VHLO_FpOrComplexTensor:$a,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$lower
@@ -544,7 +544,7 @@ def VHLO_CholeskyOp : VHLO_Op<"cholesky"> {
   let results = (outs VHLO_FpOrComplexTensor:$result);
 }
 
-def VHLO_ClampOp : VHLO_Op<"clamp"> {
+def VHLO_ClampOpV1 : VHLO_Op<"clamp"> {
   let arguments = (ins
     VHLO_Tensor:$min,
     VHLO_Tensor:$operand,
@@ -553,7 +553,7 @@ def VHLO_ClampOp : VHLO_Op<"clamp"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ConcatenateOp : VHLO_Op<"concatenate"> {
+def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate"> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     I64Attr:$dimension
@@ -561,7 +561,7 @@ def VHLO_ConcatenateOp : VHLO_Op<"concatenate"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CollectivePermuteOp: VHLO_Op<"collective_permute"> {
+def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$source_target_pairs,
@@ -570,7 +570,7 @@ def VHLO_CollectivePermuteOp: VHLO_Op<"collective_permute"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ConvolutionOp : VHLO_Op<"convolution"> {
+def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution"> {
   let arguments = !con(
     (ins
        VHLO_Tensor:$lhs,
@@ -579,7 +579,7 @@ def VHLO_ConvolutionOp : VHLO_Op<"convolution"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CrossReplicaSumOp : VHLO_Op<"cross-replica-sum"> {
+def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$replica_groups
@@ -587,7 +587,7 @@ def VHLO_CrossReplicaSumOp : VHLO_Op<"cross-replica-sum"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CustomCallOp: VHLO_Op<"custom_call", "0.0.0", "0.0.0"> {
+def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.0.0", "0.0.0"> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
@@ -620,7 +620,7 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.1.0"> {
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }
 
-def VHLO_DotOp: VHLO_Op<"dot"> {
+def VHLO_DotOpV1 : VHLO_Op<"dot"> {
   let arguments = (
     ins VHLO_Tensor:$lhs,
     VHLO_Tensor:$rhs,
@@ -629,7 +629,7 @@ def VHLO_DotOp: VHLO_Op<"dot"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_DotGeneralOp: VHLO_Op<"dot_general"> {
+def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general"> {
   let arguments = (ins
     VHLO_Tensor:$lhs,
     VHLO_Tensor:$rhs,
@@ -639,7 +639,7 @@ def VHLO_DotGeneralOp: VHLO_Op<"dot_general"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_EinsumOp: VHLO_Op<"einsum"> {
+def VHLO_EinsumOpV1 : VHLO_Op<"einsum"> {
   let arguments = (ins
     VHLO_Tensor:$lhs,
     VHLO_Tensor:$rhs,
@@ -648,7 +648,7 @@ def VHLO_EinsumOp: VHLO_Op<"einsum"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_UnaryEinsumOp: VHLO_Op<"unary_einsum"> {
+def VHLO_UnaryEinsumOpV1 : VHLO_Op<"unary_einsum"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     StrAttr:$einsum_config
@@ -656,7 +656,7 @@ def VHLO_UnaryEinsumOp: VHLO_Op<"unary_einsum"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_FftOp: VHLO_Op<"fft"> {
+def VHLO_FftOpV1 : VHLO_Op<"fft"> {
   let arguments = (ins
     VHLO_FpOrComplexTensor:$operand,
     VHLO_FftTypeAttr:$fft_type,
@@ -665,7 +665,7 @@ def VHLO_FftOp: VHLO_Op<"fft"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_GatherOp: VHLO_Op<"gather"> {
+def VHLO_GatherOpV1 : VHLO_Op<"gather"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_IntTensor:$start_indices,
@@ -676,7 +676,7 @@ def VHLO_GatherOp: VHLO_Op<"gather"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_GetDimensionSizeOp: VHLO_Op<"get_dimension_size"> {
+def VHLO_GetDimensionSizeOpV1 : VHLO_Op<"get_dimension_size"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64Attr:$dimension
@@ -684,7 +684,7 @@ def VHLO_GetDimensionSizeOp: VHLO_Op<"get_dimension_size"> {
   let results = (outs I32Tensor);
 }
 
-def VHLO_MapOp: VHLO_Op<"map"> {
+def VHLO_MapOpV1 : VHLO_Op<"map"> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     I64ElementsAttr:$dimensions
@@ -693,17 +693,17 @@ def VHLO_MapOp: VHLO_Op<"map"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ReshapeOp: VHLO_Op<"reshape"> {
+def VHLO_ReshapeOpV1 : VHLO_Op<"reshape"> {
   let arguments = (ins VHLO_Tensor:$operand);
   let results = (outs VHLO_StaticShapeTensor);
 }
 
-def VHLO_DynamicReshapeOp: VHLO_Op<"dynamic_reshape"> {
+def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape"> {
   let arguments = (ins VHLO_Tensor:$operand, VHLO_DimensionTensor:$output_shape);
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ScatterOp: VHLO_OpWithTraits<"scatter", [SameVariadicOperandSize]> {
+def VHLO_ScatterOpV1 : VHLO_OpWithTraits<"scatter", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     TensorOf<[AnyInteger, Index]>:$scatter_indices,
@@ -716,7 +716,7 @@ def VHLO_ScatterOp: VHLO_OpWithTraits<"scatter", [SameVariadicOperandSize]> {
   let results = (outs Variadic<VHLO_Tensor>);
 }
 
-def VHLO_SelectOp: VHLO_Op<"select"> {
+def VHLO_SelectOpV1 : VHLO_Op<"select"> {
   let arguments = (ins
     VHLO_PredTensor:$pred,
     VHLO_Tensor:$on_true,
@@ -725,7 +725,7 @@ def VHLO_SelectOp: VHLO_Op<"select"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_SelectAndScatterOp: VHLO_Op<"select_and_scatter"> {
+def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_Tensor:$source,
@@ -738,7 +738,7 @@ def VHLO_SelectAndScatterOp: VHLO_Op<"select_and_scatter"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_SetDimensionSizeOp: VHLO_Op<"set_dimension_size"> {
+def VHLO_SetDimensionSizeOpV1 : VHLO_Op<"set_dimension_size"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I32Tensor:$size,
@@ -747,7 +747,7 @@ def VHLO_SetDimensionSizeOp: VHLO_Op<"set_dimension_size"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_SortOp : VHLO_Op<"sort"> {
+def VHLO_SortOpV1 : VHLO_Op<"sort"> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     DefaultValuedOptionalAttr<I64Attr, "-1">:$dimension,
@@ -757,7 +757,7 @@ def VHLO_SortOp : VHLO_Op<"sort"> {
   let results = (outs Variadic<VHLO_Tensor>);
 }
 
-def VHLO_ReverseOp: VHLO_Op<"reverse"> {
+def VHLO_ReverseOpV1 : VHLO_Op<"reverse"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$dimensions
@@ -765,7 +765,7 @@ def VHLO_ReverseOp: VHLO_Op<"reverse"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_PadOp: VHLO_Op<"pad"> {
+def VHLO_PadOpV1 : VHLO_Op<"pad"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_Tensor:$padding_value,
@@ -776,14 +776,14 @@ def VHLO_PadOp: VHLO_Op<"pad"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_TraceOp: VHLO_Op<"trace"> {
+def VHLO_TraceOpV1 : VHLO_Op<"trace"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     StrAttr:$tag
   );
 }
 
-def VHLO_TransposeOp: VHLO_Op<"transpose"> {
+def VHLO_TransposeOpV1 : VHLO_Op<"transpose"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$permutation
@@ -791,7 +791,7 @@ def VHLO_TransposeOp: VHLO_Op<"transpose"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_TriangularSolveOp: VHLO_Op<"triangular_solve"> {
+def VHLO_TriangularSolveOpV1 : VHLO_Op<"triangular_solve"> {
   let arguments = (ins
     VHLO_FpOrComplexTensor:$a,
     VHLO_FpOrComplexTensor:$b,
@@ -803,7 +803,7 @@ def VHLO_TriangularSolveOp: VHLO_Op<"triangular_solve"> {
   let results = (outs VHLO_FpOrComplexTensor);
 }
 
-def VHLO_ReduceWindowOp: VHLO_OpWithTraits<"reduce_window", [SameVariadicOperandSize]> {
+def VHLO_ReduceWindowOpV1 : VHLO_OpWithTraits<"reduce_window", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,
@@ -820,7 +820,7 @@ def VHLO_ReduceWindowOp: VHLO_OpWithTraits<"reduce_window", [SameVariadicOperand
   let regions = (region SizedRegion<1>:$body);
 }
 
-def VHLO_TorchIndexSelectOp : VHLO_Op<"torch_index_select"> {
+def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_Tensor:$index,
@@ -830,7 +830,7 @@ def VHLO_TorchIndexSelectOp : VHLO_Op<"torch_index_select"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_OptimizationBarrierOp : VHLO_Op<"optimization_barrier"> {
+def VHLO_OptimizationBarrierOpV1 : VHLO_Op<"optimization_barrier"> {
   let arguments = (ins Variadic<VHLO_TensorOrToken>:$operand);
   let results = (outs Variadic<VHLO_TensorOrToken>:$result);
 }
@@ -839,7 +839,7 @@ def VHLO_OptimizationBarrierOp : VHLO_Op<"optimization_barrier"> {
 // VHLO RNG Operators.
 //===----------------------------------------------------------------------===//
 
-def VHLO_RngOp : VHLO_Op<"rng"> {
+def VHLO_RngOpV1 : VHLO_Op<"rng"> {
   let arguments = (ins
     0DTensorOf<[VHLO_Pred, VHLO_Int, VHLO_Float]>:$a,
     0DTensorOf<[VHLO_Pred, VHLO_Int, VHLO_Float]>:$b,
@@ -849,7 +849,7 @@ def VHLO_RngOp : VHLO_Op<"rng"> {
   let results = (outs VHLO_PredIntOrFpTensor:$result);
 }
 
-def VHLO_RngBitGeneratorOp : VHLO_Op<"rng_bit_generator"> {
+def VHLO_RngBitGeneratorOpV1 : VHLO_Op<"rng_bit_generator"> {
   let arguments = (ins
     VHLO_RngAlgorithmAttr:$rng_algorithm,
     VHLO_IntOrFpTensor:$initial_state
@@ -861,17 +861,17 @@ def VHLO_RngBitGeneratorOp : VHLO_Op<"rng_bit_generator"> {
 }
 
 // Quantize Ops
-def VHLO_UniformQuantizeOp : VHLO_Op<"uniform_quantize"> {
+def VHLO_UniformQuantizeOpV1 : VHLO_Op<"uniform_quantize"> {
   let arguments = (ins TensorOf<[F32, BF16, VHLO_QuantizedInt]>:$operand);
   let results = (outs VHLO_QuantizedIntTensor:$result);
 }
 
-def VHLO_UniformDequantizeOp : VHLO_Op<"uniform_dequantize"> {
+def VHLO_UniformDequantizeOpV1 : VHLO_Op<"uniform_dequantize"> {
   let arguments = (ins VHLO_QuantizedIntTensor:$operand);
   let results = (outs TensorOf<[F32, BF16]>:$result);
 }
 
-def VHLO_ReducePrecisionOp : VHLO_Op<"reduce_precision"> {
+def VHLO_ReducePrecisionOpV1 : VHLO_Op<"reduce_precision"> {
   let arguments = (ins
     VHLO_FpTensor:$operand,
     I32Attr:$exponent_bits,
@@ -880,7 +880,7 @@ def VHLO_ReducePrecisionOp : VHLO_Op<"reduce_precision"> {
   let results = (outs VHLO_FpTensor:$output);
 }
 
-def VHLO_RealDynamicSliceOp: VHLO_Op<"real_dynamic_slice"> {
+def VHLO_RealDynamicSliceOpV1 : VHLO_Op<"real_dynamic_slice"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_DimensionTensor:$start_indices,
@@ -890,7 +890,7 @@ def VHLO_RealDynamicSliceOp: VHLO_Op<"real_dynamic_slice"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_DynamicPadOp: VHLO_Op<"dynamic_pad"> {
+def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_Tensor:$padding_value,
@@ -901,7 +901,7 @@ def VHLO_DynamicPadOp: VHLO_Op<"dynamic_pad"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_DynamicGatherOp: VHLO_Op<"dynamic_gather"> {
+def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     VHLO_IntTensor:$start_indices,
@@ -912,7 +912,7 @@ def VHLO_DynamicGatherOp: VHLO_Op<"dynamic_gather"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_DynamicConvOp : VHLO_Op<"dynamic_conv"> {
+def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv"> {
   let arguments = !con(
     (ins
        VHLO_Tensor:$lhs,
@@ -922,12 +922,12 @@ def VHLO_DynamicConvOp : VHLO_Op<"dynamic_conv"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ComputeReshapeShapeOp : VHLO_Op<"compute_reshape_shape"> {
+def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape"> {
   let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
   let results = (outs 1DTensorOf<[AnyInteger, Index]>:$result);
 }
 
-def VHLO_CstrReshapableOp : VHLO_Op<"cstr_reshapable"> {
+def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
   let results = (outs Shape_WitnessType:$result);
   let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
 }
