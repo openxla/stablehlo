@@ -2331,12 +2331,13 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 ### Semantics
 
-Reads `results` from the infeed queue of the device. Multiple
-`stablehlo.infeed` operations are allowed in a computation, but there must be a
-total order among them.
+Reads `results` from the infeed queue of the device.
 
-The infeed configuration `infeed_config` includes target-dependent metadata
-needed for the backend compiler (e.g., infeed buffer address).
+Not having a total order among the infeed operations in a program might lead to
+data races or even deadlocks.
+
+The infeed configuration string `infeed_config` includes target-dependent
+metadata.
 
 ### Inputs
 
@@ -2363,7 +2364,7 @@ needed for the backend compiler (e.g., infeed buffer address).
 ### Examples
 
 ```mlir
-%results:2 = "stablehlo.infeed"(%token) { infeed_config = "", layout = [[2, 0, 1] } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+%results:2 = "stablehlo.infeed"(%token) { infeed_config = "", layout = [[2, 0, 1]] } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
 
 [Back to Ops](#index-of-ops)
@@ -2943,11 +2944,13 @@ operation.
 
 ### Semantics
 
-Writes `inputs` to the outfeed queue of the device. The input `token` is used
-for ordering side-effecting operations.
+Writes `inputs` to the outfeed queue of the device.
 
-The outfeed configuration `outfeed_config` includes target-dependent metadata
-needed for the backend compiler.
+Not having a total order among the outfeed operations in a program might lead to
+data races or even deadlocks.
+
+The outfeed configuration string  `outfeed_config` includes target-dependent
+metadata.
 
 ### Inputs
 
@@ -2966,7 +2969,7 @@ needed for the backend compiler.
 ### Examples
 
 ```mlir
-%results = "stablehlo.outfeed"(%arg0, %arg1) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+%results = "stablehlo.outfeed"(%input0, %token) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

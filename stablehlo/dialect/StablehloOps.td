@@ -1012,7 +1012,7 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
 
     Example:
     ```mlir
-    %results = "stablehlo.outfeed"(%arg0, %arg1) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+    %results = "stablehlo.outfeed"(%input0, %token) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
 
