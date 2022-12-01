@@ -3127,17 +3127,11 @@ deterministic between implementations.
 
 ### Constraints
 
-  * (C1) shape(`initial_state`) $=$ shape(`output_state`).
-  * (C2) For `initial_state`, `output_state`, and `output`:
-    * If `rng_algorithm = DEFAULT`:
-      * `initial_state`, `output_state`, and `output` have backend-specific type
-        requirements.
-    * If `rng_algorithm = THREE_FRY`:
-      * type(`initial_state`) $=$ type(`output_state`) $=$ `tensor<2xui64>`.
-      * element_type(`output`) $\in$ {`ui32`, `ui64`}.
-    * If `rng_algorithm = PHILOX`:
-      * type(`initial_state`) $=$ type(`output_state`) $=$ `tensor<3xui64>`.
-      * element_type(`output`) $\in$ {`ui32`, `ui64`}.
+  * (C1) type(`initial_state`) $=$ type(`output_state`).
+  * (C2) size(`initial_state`) depends on `rng_algorithm`:
+    * `DEFAULT`: implementation-defined.
+    * `THREE_FRY`: `2`.
+    * `PHILOX`: `2` or `3`.
 
 ### Examples
 
