@@ -676,7 +676,10 @@ Afterwards, within each `process_group`:
 
   * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
   * (C2) All values in `replica_groups` are unique.
-  * (C3) `size(replica_groups)` = `num_replicas`.
+  * (C3) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
   * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          from `indices(replica_groups)`.
   * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
