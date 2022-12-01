@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(LLVM_TARGET_DEFINITIONS CompatibilityPasses.td)
-mlir_tablegen(CompatibilityPasses.h.inc -gen-pass-decls)
-add_public_tablegen_target(CompatibilityPassesIncGen)
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+mlir_tablegen(Passes.h.inc -gen-pass-decls)
+add_public_tablegen_target(PassesIncGen)
 
-add_mlir_dialect_library(CompatibilityPasses
+add_mlir_dialect_library(Passes
   PARTIAL_SOURCES_INTENDED
-  CompatibilityPasses.cpp
+  Passes.cpp
 
   DEPENDS
-  CompatibilityPassesIncGen
+  PassesIncGen
 
   LINK_LIBS PUBLIC
   MLIRIR

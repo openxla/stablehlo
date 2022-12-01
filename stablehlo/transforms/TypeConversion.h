@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifndef STABLEHLO_TRANSFORMS_TYPECONVERSION_H
+#define STABLEHLO_TRANSFORMS_TYPECONVERSION_H
+
 #include "llvm/Support/Debug.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -32,7 +35,6 @@ class VersionedTypeConverterBase : public TypeConverter {
       if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
       return TupleType::get(type.getContext(), convertedTypes);
     });
-    // FIXME: Do I need to do anything with ranked tensor / encoding here?
   };
 };
 
@@ -64,3 +66,5 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       TypeConverter& converter);
 }  // namespace vhlo
 }  // namespace mlir
+
+#endif  // STABLEHLO_TRANSFORMS_MAPSTABLEHLOTOVHLO_H

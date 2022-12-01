@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VERSION_NUMBER_H
-#define STABLEHLO_COMPATIBILITY_VERSION_NUMBER_H
+#ifndef STABLEHLO_DIALECT_VERSION_H
+#define STABLEHLO_DIALECT_VERSION_H
 
 #include <algorithm>
 #include <cstdint>
@@ -90,4 +90,4 @@ class Version {
 }  // namespace vhlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_COMPATIBILITY_VERSION_NUMBER_H
+#endif  // STABLEHLO_DIALECT_VERSION_H

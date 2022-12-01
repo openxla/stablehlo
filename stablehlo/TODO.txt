@@ -9,3 +9,4 @@ This file is not to be submitted. Just needed to log the work still to be done s
 7. Add versioned CHLO ops
 8. Types and Attrs need verison numbers.
 9. Figure out what to do for custom assembly for VHLO.
+10. Handle Tensor Encodings in type conversions once types are forked.

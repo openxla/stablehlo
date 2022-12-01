@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VHLO_OPS_H
-#define STABLEHLO_COMPATIBILITY_VHLO_OPS_H
+#ifndef STABLEHLO_DIALECT_VHLO_OPS_H
+#define STABLEHLO_DIALECT_VHLO_OPS_H
 
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Regex.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -84,4 +83,4 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/VhloOps.h.inc"
 
-#endif  // STABLEHLO_COMPATIBILITY_VHLO_OPS_H
+#endif  // STABLEHLO_DIALECT_VHLO_OPS_H

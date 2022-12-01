@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifndef STABLEHLO_TRANSFORMS_PASSES_H
+#define STABLEHLO_TRANSFORMS_PASSES_H
+
 #include <memory>
 
 #include "mlir/Pass/Pass.h"
@@ -25,10 +28,8 @@ namespace vhlo {
 #define GEN_PASS_DECL_VHLOUPGRADEPASS
 #define GEN_PASS_DECL_VHLODOWNGRADEPASS
 #define GEN_PASS_DECL_VHLOTOVERSIONPASS
-#include "stablehlo/transforms/CompatibilityPasses.h.inc"
-
-/// Registers all transformation passes.
-void registerStablehloCompatibilityPasses();
+#define GEN_PASS_REGISTRATION
+#include "stablehlo/transforms/Passes.h.inc"
 
 // Populates StableHLO ops to Versioned StableHLO ops rewriting patterns.
 void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
@@ -46,3 +47,5 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    MLIRContext *contexts);
 }  // namespace vhlo
 }  // namespace mlir
+
+#endif  // STABLEHLO_DIALECT_VHLO_OPS_H

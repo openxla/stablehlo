@@ -19,18 +19,23 @@ limitations under the License.
 
 include "mlir/IR/OpBase.td"
 
-//
-def VersionInterface : OpInterface<"VersionInterface"> {
+//===----------------------------------------------------------------------===//
+// VHLO Versioning Interfaces
+//===----------------------------------------------------------------------===//
+
+def VersionedInterface : OpInterface<"VersionedInterface"> {
   let methods = [
     InterfaceMethod<
-      "Description...", "mlir::vhlo::Version", "getMinVersion">,
+      "Returns the minimum version an op is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
     InterfaceMethod<
-      "Description...", "mlir::vhlo::Version", "getMaxVersion">,
+      "Returns the maximum verison an op is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
   ];
 }
 
 //===----------------------------------------------------------------------===//
-// VHLO type definitions.
+// VHLO Type Definitions.
 //===----------------------------------------------------------------------===//
 
 def VHLO_Pred : TypeAlias<I1, "pred (AKA boolean or 1-bit integer)">;

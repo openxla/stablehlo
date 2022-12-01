@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/transforms/CompatibilityPasses.h"
+#include "stablehlo/transforms/Passes.h"
 
 #include <climits>
 #include <memory>
@@ -31,7 +31,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
-#include "stablehlo/transforms/CompatibilityTypeConversion.h"
+#include "stablehlo/transforms/TypeConversion.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
@@ -42,13 +42,9 @@ namespace vhlo {
 #define GEN_PASS_DEF_STABLEHLOLEGALIZETOVHLOPASS
 #define GEN_PASS_DEF_VHLOLEGALIZETOSTABLEHLOPASS
 #define GEN_PASS_DEF_VHLOTOVERSIONPASS
-#define GEN_PASS_REGISTRATION
-#include "stablehlo/transforms/CompatibilityPasses.h.inc"
+#include "stablehlo/transforms/Passes.h.inc"
 
-/// Registers all Torch transformation passes.
-void registerStablehloCompatibilityPasses() { registerPasses(); }
-
-// From CompatibilityTypeConversion.h
+// FIXME: From TypeConversion.h
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter) {
@@ -505,7 +501,7 @@ struct VhloToVersionPass
     //   v1 legal   { 0.0  in [0.0, 0.1] }
     target.addDynamicallyLegalDialect<VhloDialect>(
         [&targetVersion](Operation* op) {
-          if (auto interface = dyn_cast<VersionInterface>(op)) {
+          if (auto interface = dyn_cast<VersionedInterface>(op)) {
             return (interface.getMinVersion() <= targetVersion &&
                     targetVersion <= interface.getMaxVersion());
           }
