@@ -53,4 +53,5 @@ add_mlir_library(StablehloTestUtils
   MLIRShapeDialect
   MLIRSupport
   MLIRTransformUtils
+  StablehloAssemblyFormat
 )

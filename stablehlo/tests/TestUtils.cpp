@@ -36,7 +36,6 @@ limitations under the License.
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
-#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
