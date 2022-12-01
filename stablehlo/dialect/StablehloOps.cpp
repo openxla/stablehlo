@@ -2041,7 +2041,8 @@ LogicalResult AllGatherOp::verify() {
 
 LogicalResult AllReduceOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/false)))
+                                      /*allGroupsMustHaveSameSize=*/false,
+                                      /*expectedGroupSize*/ llvm::None)))
     return failure();
 
   auto operandType = getOperand().getType().cast<TensorType>();
