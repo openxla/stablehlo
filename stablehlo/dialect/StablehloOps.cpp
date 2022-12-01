@@ -1986,7 +1986,8 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 
 LogicalResult AllGatherOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/true)))
+                                      /*allGroupsMustHaveSameSize=*/true,
+                                      /*expectedGroupSize*/ llvm::None)))
     return failure();
 
   auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
