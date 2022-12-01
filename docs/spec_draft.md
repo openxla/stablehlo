@@ -338,6 +338,7 @@ syntax.
    * [add](#stablehloadd)
    * [after_all](#stablehloafter_all)
    * [all_gather](#stablehloall_gather)
+   * [all_to_all](#stablehloall_to_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
    * [batch_norm_grad](#stablehlobatch_norm_grad)
@@ -527,6 +528,107 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ```mlir
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.all_to_all
+
+### Semantics
+
+<img align="center" src="spec_draft/all_to_all.svg" />
+
+Within each process group in the StableHLO grid, splits the values of the
+`operand` tensor along `split_dimension` into parts, scatters the split parts
+between the processes, concatenates the scattered parts along `concat_dimension`
+and produces a `result` tensor.
+
+The operation splits the StableHLO grid into process groups using the
+`cross_replica(replica_groups)` strategy.
+
+Afterwards, within each `process_group`:
+  * ```
+    split_parts@sender = [
+        slice(
+          operand=operand@sender,
+          start_indices=[s0, s1, ..., sR-1],
+            # where
+            #  - sj = 0 if j != split_dimension
+            #  - sj = i * dim(operand) // split_count, if j == split_dimension
+            #  - R = rank(operand)
+          limit_indices=[l0, l1, ..., lR-1],
+            # where
+            #   - lj = dim(operand, j) if j != split_dimension
+            #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
+          strides=[1, ..., 1]
+        ) for i in range(split_count)
+     ]
+     ``` for all `sender` in `process_group`.
+  * `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in process_group]`
+    where `receiver_index = index_of(receiver, process_group)`.
+  * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
+
+### Inputs
+
+| Name               | Type                                         |
+|--------------------|----------------------------------------------|
+| `operand`          | tensor of any supported type                 |
+| `split_dimension`  | constant of type `si64`                      |
+| `concat_dimension` | constant of type `si64`                      |
+| `split_count`      | constant of type `si64`                      |
+| `replica_groups`   | 2-dimensional tensor constant of type `si64` |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
+  * (C2) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
+  * (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
+  * (C4) `split_count` $\gt$ 0.
+  * (C5) All values in `replica_groups` are unique.
+  * (C6) `size(replica_groups)` = `num_replicas`.
+  * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+         from `indices(replica_groups)`.
+  * (C8) `type(result) = type(operand)` except that
+    * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
+    * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [
+//                   [1.0, 2.0, 3.0, 4.0],
+//                   [5.0, 6.0, 7.0, 8.0]
+//                  ]
+// %operand@(1, 0): [
+//                   [9.0, 10.0, 11.0, 12.0],
+//                   [13.0, 14.0, 15.0, 16.0]
+//                  ]
+%result = "stablehlo.all_to_all"(%operand) {
+  split_dimension = 1 : i64,
+  concat_dimension = 0 : i64,
+  split_count = 2 : i64,
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+} : (tensor<2x4xf32>) -> tensor<4x2xf32>
+// %result@(0, 0): [
+//                  [1.0, 2.0],
+//                  [5.0, 6.0],
+//                  [9.0, 10.0],
+//                  [13.0, 14.0]
+//                 ]
+// %result@(1, 0): [
+//                  [3.0, 4.0],
+//                  [7.0, 8.0],
+//                  [11.0, 12.0],
+//                  [15.0, 16.0]
+//                 ]
 ```
 
 [Back to Ops](#index-of-ops)

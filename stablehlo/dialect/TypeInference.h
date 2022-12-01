@@ -83,9 +83,11 @@ LogicalResult verifyReducerShape(
 //     size.
 // P4. All values in `replica_groups` are unique and covers all the values in
 //     the interval [0, N-1], where N is the total number of replica ids.
+// P5. replica group size must be equal to 'expectedGroupSize'.
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
-                                  bool allGroupsMustHaveSameSize);
+                                  bool allGroupsMustHaveSameSize,
+                                  Optional<size_t> expectedGroupSize);
 
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
