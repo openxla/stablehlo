@@ -76,10 +76,8 @@ limitations under the License.
 #include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
-using mlir::hlo::parseDimensionSizes;
-using mlir::hlo::parseIntArray;
-using mlir::hlo::printDimensionSizes;
-using mlir::hlo::printIntArray;
+using mlir::hlo::parseDimSizes;
+using mlir::hlo::printDimSizes;
 #include "stablehlo/dialect/StablehloEnums.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/StablehloAttrs.cpp.inc"
@@ -4554,19 +4552,25 @@ void StablehloDialect::printAttribute(Attribute attr,
 
 /// Helpers for attributes parsing.
 
-static ParseResult parseDims(AsmParser& parser, SmallVector<int64_t>& dims) {
-  dims.clear();
-  return parseIntArray(parser, dims);
+static ParseResult parseDims(AsmParser& parser,
+                             SmallVector<int64_t>& dimSizes) {
+  dimSizes.clear();
+  auto failOrDims = parseDimSizes(parser);
+  if (failed(failOrDims)) {
+    return failure();
+  }
+  dimSizes = std::move(*failOrDims);
+  return success();
 }
 
 static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
-                                                SmallVector<int64_t>& dims,
+                                                SmallVector<int64_t>& dimSizes,
                                                 int minElements) {
-  if (failed(parseDims(parser, dims))) return failure();
-  if (static_cast<int64_t>(dims.size()) < minElements)
+  if (failed(parseDims(parser, dimSizes))) return failure();
+  if (static_cast<int64_t>(dimSizes.size()) < minElements)
     return parser.emitError(parser.getCurrentLocation())
            << "expected at least " << minElements << " element(s), found "
-           << dims.size();
+           << dimSizes.size();
   return success();
 }
 

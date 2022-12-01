@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 #define STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
 
+#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
 
@@ -172,16 +173,19 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
-// DimensionSizes - Print an array of ints. Dynamic dimensions printed as `?`.
+// DimSizes - Print an array of ints. Dynamic dimensions printed as `?`.
 //
 //   Generic:
 //     [1, -1]
 //   Custom:
 //     [1, ?]
-void printDimensionSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> shape);
+std::string dimSizeToString(int64_t dimSize);
 
-ParseResult parseDimensionSizes(AsmParser& parser,
-                                FailureOr<SmallVector<int64_t>>& shape);
+void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes);
+
+FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser);
+ParseResult parseDimSizes(AsmParser& parser,
+                          FailureOr<SmallVector<int64_t>>& dimSizes);
 
 // ExponentMantissa - Abbreviated printing of exponent and mantissa as e#m#.
 //
@@ -208,18 +212,6 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
 void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target);
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target);
-
-// IntArray - Print an array of ints with brackets. Unlike DimensionSizes,
-// doesn't have special handling for kDynamicSize.
-//
-//   Generic:
-//     1, 2
-//   Custom:
-//     [1, 2]
-void printIntArray(AsmPrinter& printer, ArrayRef<int64_t> ints);
-
-FailureOr<SmallVector<int64_t>> parseIntArray(AsmParser& parser);
-ParseResult parseIntArray(AsmParser& parser, SmallVector<int64_t>& ints);
 
 }  // namespace hlo
 }  // namespace mlir

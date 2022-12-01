@@ -36,7 +36,7 @@ func.func @select(%pred : tensor<i1>, %a : tensor<2x2xf32>, %b : tensor<2x2xf32>
       : (tensor<i1>, tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<2x2xf32>) -> tensor<2x2xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [2, 2], element_type0 = f32} : (tensor<2x2xf32>) -> tensor<2x2xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[2, 2]", element_type0 = f32} : (tensor<2x2xf32>) -> tensor<2x2xindex>
   func.return %1 : tensor<2x2xindex>
 }
 
@@ -48,7 +48,7 @@ func.func @compare(%a : tensor<2x2xf32>, %b : tensor<2x2xf32>) -> tensor<2x2xind
       : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xi1>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<2x2xi1>) -> tensor<2x2xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [2, 2], element_type0 = i1} : (tensor<2x2xi1>) -> tensor<2x2xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[2, 2]", element_type0 = i1} : (tensor<2x2xi1>) -> tensor<2x2xindex>
   func.return %1 : tensor<2x2xindex>
 }
 
@@ -60,7 +60,7 @@ func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<1x2x3xi32>) -> tensor<1x2x3xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [1, 2, 3], element_type0 = i32} : (tensor<1x2x3xi32>) -> tensor<1x2x3xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 3]", element_type0 = i32} : (tensor<1x2x3xi32>) -> tensor<1x2x3xindex>
   func.return %1 : tensor<1x2x3xindex>
 }
 
@@ -80,7 +80,7 @@ func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tens
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<1x4xi32>) -> tensor<1x4xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [1, 4], element_type0 = i32} : (tensor<1x4xi32>) -> tensor<1x4xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 4]", element_type0 = i32} : (tensor<1x4xi32>) -> tensor<1x4xindex>
   func.return %1 : tensor<1x4xindex>
 }
 
@@ -105,7 +105,7 @@ func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
   %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x2xf32>) -> tensor<1x2x2xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [1, 2, 2], element_type0 = f32} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 2]", element_type0 = f32} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
   func.return %1: tensor<1x2x2xindex>
 }
 
@@ -121,7 +121,7 @@ func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xindex> {
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<16x4xf32>) -> tensor<16x4xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [16, 4], element_type0 = f32} : (tensor<16x4xf32>) -> tensor<16x4xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[16, 4]", element_type0 = f32} : (tensor<16x4xf32>) -> tensor<16x4xindex>
   func.return %1 : tensor<16x4xindex>
 }
 
@@ -163,7 +163,7 @@ func.func @gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi3
   } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
   %1 = "hlo_test_infer.get_return_type_components"(%res)
       : (tensor<1x5x8xi32>) -> tensor<1x5x8xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [1, 5, 8], element_type0 = i32} : (tensor<1x5x8xi32>) -> tensor<1x5x8xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 5, 8]", element_type0 = i32} : (tensor<1x5x8xi32>) -> tensor<1x5x8xindex>
   func.return %1 : tensor<1x5x8xindex>
 }
 
@@ -175,7 +175,7 @@ func.func @rng_normal(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<7xindex>
   %1 = "stablehlo.rng"(%arg0, %arg1, %0) {rng_distribution = #stablehlo<rng_distribution NORMAL>} : (tensor<f32>, tensor<f32>, tensor<1xi64>) -> tensor<7xf32>
   %2 = "hlo_test_infer.get_return_type_components"(%1)
       : (tensor<7xf32>) -> tensor<7xindex>
-// CHECK: %2 = "hlo_test_infer.return_type_components"(%1) {dims0 = [7], element_type0 = f32} : (tensor<7xf32>) -> tensor<7xindex>
+// CHECK: %2 = "hlo_test_infer.return_type_components"(%1) {dims0 = "[7]", element_type0 = f32} : (tensor<7xf32>) -> tensor<7xindex>
   func.return %2 : tensor<7xindex>
 }
 
@@ -187,7 +187,7 @@ func.func @rng_uniform(%a: tensor<f32>, %b: tensor<f32>) -> tensor<2x3x5xindex> 
   %1 = "stablehlo.rng"(%a, %b, %0) {rng_distribution = #stablehlo<rng_distribution UNIFORM>} : (tensor<f32>, tensor<f32>, tensor<3xi64>) -> tensor<2x3x5xf32>
   %2 = "hlo_test_infer.get_return_type_components"(%1)
       : (tensor<2x3x5xf32>) -> tensor<2x3x5xindex>
-// CHECK: %2 = "hlo_test_infer.return_type_components"(%1) {dims0 = [2, 3, 5], element_type0 = f32} : (tensor<2x3x5xf32>) -> tensor<2x3x5xindex>
+// CHECK: %2 = "hlo_test_infer.return_type_components"(%1) {dims0 = "[2, 3, 5]", element_type0 = f32} : (tensor<2x3x5xf32>) -> tensor<2x3x5xindex>
   func.return %2 : tensor<2x3x5xindex>
 }
 
@@ -209,7 +209,7 @@ func.func @clamp(%arg0: tensor<1xi32>) -> tensor<1xindex> {
   %0 = "stablehlo.clamp"(%arg0, %arg0, %arg0) : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<1xi32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<1xi32>) -> tensor<1xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [1], element_type0 = i32} : (tensor<1xi32>) -> tensor<1xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1]", element_type0 = i32} : (tensor<1xi32>) -> tensor<1xindex>
   func.return %1 : tensor<1xindex>
 }
 
@@ -220,7 +220,7 @@ func.func @uniform_dequantize(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:16>
   %0 = stablehlo.uniform_dequantize %arg : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<16x16xf32>) -> tensor<16x16xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [16, 16], element_type0 = f32} : (tensor<16x16xf32>) -> tensor<16x16xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[16, 16]", element_type0 = f32} : (tensor<16x16xf32>) -> tensor<16x16xindex>
   func.return %1 : tensor<16x16xindex>
 }
 
@@ -231,7 +231,7 @@ func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex> {
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [3, 9], element_type0 = complex<f32>} : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex>
+// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[3, 9]", element_type0 = complex<f32>} : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xindex>
   func.return %1 : tensor<3x9xindex>
 }
 
@@ -340,7 +340,7 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
     >
   } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
   %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
-  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [2, 4, 5], element_type0 = f32} : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[2, 4, 5]", element_type0 = f32} : (tensor<2x4x5xf32>) -> tensor<2x4x5xindex>
   func.return %1 : tensor<2x4x5xindex>
 }
 
@@ -508,7 +508,7 @@ func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
 
   }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
 
-  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = [4], element_type0 = f32} : (tensor<4xf32>) -> tensor<4xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[4]", element_type0 = f32} : (tensor<4xf32>) -> tensor<4xindex>
   %2 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<4xf32>) -> tensor<4xindex>
 
@@ -534,10 +534,10 @@ func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x2xi32>)
 
-  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0#0) {dims0 = [2, 2], dims1 = [2, 2], element_type0 = f32, element_type1 = i32} : (tensor<2x2xf32>) -> tensor<2x2xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0#0) {dims0 = "[2, 2]", dims1 = "[2, 2]", element_type0 = f32, element_type1 = i32} : (tensor<2x2xf32>) -> tensor<2x2xindex>
   %1 = "hlo_test_infer.get_return_type_components"(%0#0)
       : (tensor<2x2xf32>) -> tensor<2x2xindex>
-  // CHECK: %2 = "hlo_test_infer.return_type_components"(%0#1) {dims0 = [2, 2], dims1 = [2, 2], element_type0 = f32, element_type1 = i32} : (tensor<2x2xi32>) -> tensor<2x2xindex>
+  // CHECK: %2 = "hlo_test_infer.return_type_components"(%0#1) {dims0 = "[2, 2]", dims1 = "[2, 2]", element_type0 = f32, element_type1 = i32} : (tensor<2x2xi32>) -> tensor<2x2xindex>
   %2 = "hlo_test_infer.get_return_type_components"(%0#1)
       : (tensor<2x2xi32>) -> tensor<2x2xindex>
 
