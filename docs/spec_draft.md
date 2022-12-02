@@ -1833,6 +1833,17 @@ overflow, the result is implementation-defined and one of the following:
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
     saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
+For conversions involving floating-point-to-floating-point or
+complex-to-complex, if the source value can be exactly represented in the
+destination type, the result value is that exact representation. If the source
+value is between two adjacent destination values, the result is
+implementation-defined. Otherwise, the behavior is undefined.
+
+For conversions involving floating-point-to-complex or
+complex-to-floating-point, the imaginary value is zero or truncated,
+respectively. The conversion of inner representation of complex element type
+follows the floating-point-to-floating-point conversion.
+
 For conversions involving floating-point-to-integer or complex-to-integer,
 the fractional part is truncated. The behavior is undefined if the truncated
 value cannot be represented in the destination type.
