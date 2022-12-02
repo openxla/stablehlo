@@ -3126,7 +3126,8 @@ other operations can take a data dependency on.
   * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
     * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
     * `DEVICE_TO_DEVICE`, otherwise.
-  * (C2) type(`results`[-1]) $=$ `token`.
+  * (C2) size(`results`) $\ge$ 1.
+  * (C3) type(`results`[-1]) $=$ `token`.
 
 ### Examples
 
@@ -3819,7 +3820,7 @@ implementation-defined.
 
 | Name      | Type    |
 |-----------|---------|
-| `results` | `token` |
+| `result` | `token` |
 
 ### Constraints
   * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
