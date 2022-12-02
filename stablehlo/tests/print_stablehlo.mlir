@@ -4,10 +4,12 @@
 // CHECK-LABEL: func @zero_input
 func.func @zero_input() -> !stablehlo.token {
   // CHECK:      %0 = stablehlo.replica_id : tensor<ui32>
-  // CHECK-NEXT: %1 = stablehlo.create_token : !stablehlo.token
+  // CHECK-NEXT: %1 = stablehlo.partition_id : tensor<ui32>
+  // CHECK-NEXT: %2 = stablehlo.create_token : !stablehlo.token
   %0 = "stablehlo.replica_id"() : () -> tensor<ui32>
-  %1 = "stablehlo.create_token"() : () -> !stablehlo.token
-  return %1 : !stablehlo.token
+  %1 = "stablehlo.partition_id"() : () -> tensor<ui32>
+  %2 = "stablehlo.create_token"() : () -> !stablehlo.token
+  return %2 : !stablehlo.token
 }
 
 // CHECK-LABEL: func @zero_output_ret2

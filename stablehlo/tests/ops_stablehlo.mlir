@@ -1838,6 +1838,14 @@ func.func @replica_id() -> tensor<ui32> {
 
 // -----
 
+// CHECK-LABEL: func @partition_id
+func.func @partition_id() -> tensor<ui32> {
+  %0 = "stablehlo.partition_id"() : () -> tensor<ui32>
+  func.return %0 : tensor<ui32>
+}
+
+// -----
+
 // CHECK-LABEL: func @rng_bit_generator
 func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>) {
   %4 = stablehlo.constant dense<[10, 12]> : tensor<2xui64>

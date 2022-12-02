@@ -420,6 +420,7 @@ syntax.
    * [or](#stablehloor)
    * [outfeed](#stablehlooutfeed)
    * [pad](#stablehlopad)
+   * [partition_id](#stablehlopartition_id)
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
    * [real](#stablehloreal)
@@ -3151,6 +3152,26 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0],
 //           [0, 0, 0, 0, 0, 0, 0, 0, 0]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.partition_id
+
+### Semantics
+
+Produces `partition_id` of the current process.
+
+### Outputs
+
+| Name     | Type                                |
+|----------|-------------------------------------|
+| `result` | 0-dimensional tensor of type `ui32` |
+
+### Examples
+
+```mlir
+%result = "stablehlo.partition_id"() : () -> tensor<ui32>
 ```
 
 [Back to Ops](#index-of-ops)
