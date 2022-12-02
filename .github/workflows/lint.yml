@@ -28,6 +28,6 @@ jobs:
       - name: Checking out repository
         uses: actions/checkout@v2
 
-      - name: Running clang-format on changed source files
+      - name: Running lint_whitespace_checks.sh on source files
         run: |
           ./build_tools/github_actions/lint_whitespace_checks.sh
