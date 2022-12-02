@@ -31,17 +31,17 @@ namespace vhlo {
 #define GEN_PASS_REGISTRATION
 #include "stablehlo/transforms/Passes.h.inc"
 
-// Populates StableHLO ops to Versioned StableHLO ops rewriting patterns.
+// Populates StableHLO ops to VHLO ops rewriting patterns.
 void populateStablehloToVhloPatterns(RewritePatternSet *patterns,
                                      TypeConverter *converter,
                                      MLIRContext *context);
 
-// Populates Versioned StableHLO ops to StableHLO ops rewriting patterns.
+// Populates VHLO ops to StableHLO ops rewriting patterns.
 void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
                                      TypeConverter *converter,
                                      MLIRContext *context);
 
-// Populates Versioned StableHLO downgrade rewriting patterns.
+// Populates VHLO downgrade rewriting patterns.
 void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);

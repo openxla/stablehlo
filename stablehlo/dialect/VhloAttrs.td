@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VHLO_ATTRS
-#define STABLEHLO_COMPATIBILITY_VHLO_ATTRS
+#ifndef STABLEHLO_DIALECT_VHLO_ATTRS
+#define STABLEHLO_DIALECT_VHLO_ATTRS
 
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloEnums.td"
@@ -169,4 +169,4 @@ def VHLO_ConvolutionAttributes {
   );
 }
 
-#endif // STABLEHLO_COMPATIBILITY_VHLO_ATTRS
+#endif // STABLEHLO_DIALECT_VHLO_ATTRS

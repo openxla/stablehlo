@@ -16,12 +16,12 @@ limitations under the License.
 include "mlir/Pass/PassBase.td"
 
 def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
-  let summary = "Legalize StableHLO to VersionedStableHLO.";
+  let summary = "Legalize StableHLO to VHLO.";
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
-  let summary = "Legalize VersionedStableHLO to StableHLO.";
+  let summary = "Legalize VHLO to StableHLO.";
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
 }
 

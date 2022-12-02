@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VHLO_BASE
-#define STABLEHLO_COMPATIBILITY_VHLO_BASE
+#ifndef STABLEHLO_DIALECT_VHLO_BASE
+#define STABLEHLO_DIALECT_VHLO_BASE
 
 include "mlir/IR/OpBase.td"
 
@@ -181,4 +181,4 @@ def VHLO_PredIntOrFpTensor : TensorOf<[VHLO_Pred, VHLO_Int, VHLO_Float]>;
 //
 // This section is included for file parity between VhloBase.td and Base.td
 
-#endif // STABLEHLO_COMPATIBILITY_VHLO_BASE
+#endif // STABLEHLO_DIALECT_VHLO_BASE

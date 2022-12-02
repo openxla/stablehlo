@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VHLO_ENUMS
-#define STABLEHLO_COMPATIBILITY_VHLO_ENUMS
+#ifndef STABLEHLO_DIALECT_VHLO_ENUMS
+#define STABLEHLO_DIALECT_VHLO_ENUMS
 
 include "stablehlo/dialect/VhloBase.td"
 
@@ -198,4 +198,4 @@ def VHLO_RngAlgorithm : I32EnumAttr<"RngAlgorithm",
 
 def VHLO_RngAlgorithmAttr : EnumAttr<VHLO_Dialect, VHLO_RngAlgorithm, "rng_algorithm">;
 
-#endif // STABLEHLO_COMPATIBILITY_VHLO_ENUMS
+#endif // STABLEHLO_DIALECT_VHLO_ENUMS

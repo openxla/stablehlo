@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_COMPATIBILITY_VHLO_OPS
-#define STABLEHLO_COMPATIBILITY_VHLO_OPS
+#ifndef STABLEHLO_DIALECT_VHLO_OPS
+#define STABLEHLO_DIALECT_VHLO_OPS
 
 include "mlir/Dialect/Shape/IR/ShapeBase.td"
 include "mlir/IR/OpBase.td"
@@ -30,7 +30,7 @@ def VHLO_Dialect : Dialect {
 
   let description = [{
     A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
-    
+
     Version log:
       0.0.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
       0.1.0: Add CustomCallOp input output aliasing: https://github.com/openxla/stablehlo/pull/403
@@ -934,4 +934,4 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
   let arguments = (ins Index:$num_elements, 1DTensorOf<[AnyInteger, Index]>:$dynamic_shape);
 }
 
-#endif // STABLEHLO_COMPATIBILITY_STABLEHLO_OPS
+#endif // STABLEHLO_DIALECT_STABLEHLO_OPS

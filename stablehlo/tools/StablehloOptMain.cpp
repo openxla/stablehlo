@@ -23,12 +23,11 @@ limitations under the License.
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
+  mlir::vhlo::registerPasses();
 
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
-
-  mlir::vhlo::registerPasses();
 
   return failed(
       mlir::MlirOptMain(argc, argv, "StableHLO optimizer driver\n", registry));
