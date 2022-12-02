@@ -324,15 +324,13 @@ The diagram shows the execution order of the instructions.
 
 <img align="center" src="spec_draft/happens-before.svg" />
 
-The `channel_type` directs the transfer direction and has the following options:
-
+The `channel_type` specifies the transfer direction and has the following
+options:
   * `DEVICE_TO_DEVICE`: A channel for sending data between devices.
-
   * `DEVICE_TO_HOST`: A channel for sending data from the device to the host.
                       Can only be used with a `stablehlo.send` operation. How
                       the sent data is received on the HOST side is
                       implementation defined.
-
   * `HOST_TO_DEVICE`: A channel for sending data from the host to the device.
                       Can only be used with a `stablehlo.recv` operation. How
                       the received data is sent from the HOST is implementation
