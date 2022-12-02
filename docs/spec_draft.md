@@ -179,7 +179,19 @@ particular process. (From that perspective, unqualified `name` can be viewed as
 a shorthand for `name@(replica_id(), partition_id())`).
 
 The execution order across processes is implementation-defined, except for the
-synchronization introduced by collective ops as described below.
+synchronization introduced by point-to-point communication and collective ops
+as described below.
+
+### Point-to-point communication
+
+StableHLO processes can communicate with each other through
+**StableHLO channels**. A channel is represented by a positive id of type
+`si64`. Through various ops, it is possible to send values to channels and
+receive them from channels.
+
+Further formalization, e.g. where these channel ids are coming from, how
+processes programs become aware of them and what kind of synchronization is
+introduced by them, is TBD.
 
 ### Collective ops
 
@@ -197,9 +209,8 @@ and what happens if they don't, is TBD.
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
 of the collective op needs a **StableHLO channel**, and the collective op must
-provide a positive `channel_id` of type `si64`. Further formalization, e.g.
-where these channel ids are coming from and how they are synchronized between
-programs, is TBD. Cross-replica communication doesn't need channels.
+provide a positive `channel_id` of type `si64`. Cross-replica communication
+doesn't need channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections below. However, the strategies by
@@ -293,48 +304,6 @@ def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]
 For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
-
-### Point-to-point communication ops
-
-There are two such ops in StableHLO: `send` and `recv`, which are used to
-transfer data from one partition to another partition.
-
-`recv`, paired with the corresponding `send` instruction, represents a
-synchronous communication. A pair of corresponding send recv instructions is
-determined by the fact that they share a common channel handle pair
-{`channel_id`, `channel_type`}.
-
-In order to enable asynchronous data transfers, a `send` (or `recv`) is
-decomposed into two HLO instructions, `Send` and `SendDone` (or `Recv` and
-`RecvDone`). [todo](https://github.com/openxla/stablehlo/issues/642)
-
-These 4 instructions, each associated with a particular channel handle, has the
-following semantics:
-
-  * **Recv**: Initiates the channel by allocating the receive buffer and
-              notifying the sender that it is ready to receive data.
-  * **Send**: Waits for the Recv notification and starts the data transfer to
-              the receive buffer.
-  * **SendDone**: Waits until the Send operation is done, so that the sender
-                  buffer can be reused for other purposes.
-  * **RecvDone**: waits until the data transfer is done and the receive buffer
-                  is ready for use.
-
-The diagram shows the execution order of the instructions.
-
-<img align="center" src="spec_draft/happens-before.svg" />
-
-The `channel_type` specifies the transfer direction and has the following
-options:
-  * `DEVICE_TO_DEVICE`: A channel for sending data between devices.
-  * `DEVICE_TO_HOST`: A channel for sending data from the device to the host.
-                      Can only be used with a `stablehlo.send` operation. How
-                      the sent data is received on the HOST side is
-                      implementation defined.
-  * `HOST_TO_DEVICE`: A channel for sending data from the host to the device.
-                      Can only be used with a `stablehlo.recv` operation. How
-                      the received data is sent from the HOST is implementation
-                      defined.
 
 ## Errors
 
@@ -3128,21 +3097,24 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 
 ### Semantics
 
-Receives data into a partition from a [stablehlo.send](#stablehlosend)
-instruction, in another partition, that shares the same channel handle pair
-{`channel_id`, `channel_type`}.
+Receives data from a channel with `channel_id` and produces `results`.
 
 If `is_host_transfer` is `true`, then the operation transfers data from the
-host.
+host. Otherwise, it transfers data from another device. What this means is
+implementation-defined.
+
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify its side effects as a value that
+other operations can take a data dependency on.
 
 ### Inputs
 
-| Name               | Type                                                               |
-|--------------------|--------------------------------------------------------------------|
-| `token`            | `token`                                                            |
-| `channel_id`       | constant of type `si64`                                            |
-| `channel_type`     | enum of `DEVICE_TO_DEVICE`, `DEVICE_TO_HOST`, and `HOST_TO_DEVICE` |
-| `is_host_transfer` | constant of type `i1`                                              |
+| Name               | Type                                            |
+|--------------------|-------------------------------------------------|
+| `token`            | `token`                                         |
+| `channel_id`       | constant of type `si64`                         |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` |
+| `is_host_transfer` | constant of type `i1`                           |
 
 ### Outputs
 
@@ -3154,14 +3126,15 @@ host.
   * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
     * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
     * `DEVICE_TO_DEVICE`, otherwise.
-  * (C2) size(`results`) > 0 if `is_host_transfer` $=$ `true`.
-  * (C3) type(`results`[-1]) $=$ `token`.
+  * (C2) type(`results`[-1]) $=$ `token`.
 
 ### Examples
 
 ```mlir
-%result:2 = "stablehlo.recv"(%token) {
-  channel_handle = #stablehlo.channel_handle< handle = 5, type = 3>,
+%results:2 = "stablehlo.recv"(%token) {
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
   is_host_transfer = true
 } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
 ```
@@ -3823,32 +3796,33 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Semantics
 
-Sends data `inputs` from one partition to a [stablehlo.recv](#stablehlorecv)
-instruction, in another partition, that shares the same channel handle pair
-{`channel_id`, `channel_type`}.
+Sends `inputs` to a channel `channel_id`.
 
-If `is_host_transfer`, an optional input with default value as `fasle`, is
-`true`, then the operation transfers data to the host.
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
+
+If `is_host_transfer` is `true`, then the operation transfers data to the
+host. Otherwise, it transfers data to another device. What this means is
+implementation-defined.
 
 ### Inputs
 
-| Name               | Type                                                               |
-|--------------------|--------------------------------------------------------------------|
-| `inputs`           | variadic number of tensors of any supported type                   |
-| `token`            | `token`                                                            |
-| `channel_id`       | constant of type `si64`                                            |
-| `channel_type`     | enum of `DEVICE_TO_DEVICE`, `DEVICE_TO_HOST`, and `HOST_TO_DEVICE` |
-| `is_host_transfer` | constant of type `i1`                                              |
+| Name               | Type                                             |
+|--------------------|--------------------------------------------------|
+| `inputs`           | variadic number of tensors of any supported type |
+| `token`            | `token`                                          |
+| `channel_id`       | constant of type `si64`                          |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`  |
+| `is_host_transfer` | constant of type `i1`                            |
 
 ### Outputs
 
-| Name      | Type  |
-|-----------|-------|
-| `results` | token |
+| Name      | Type    |
+|-----------|---------|
+| `results` | `token` |
 
 ### Constraints
-  * (C1) size(`inputs`) $\gt$ 0 if `is_host_transfer` $=$ `true`
-  * (C2) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
     * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
     * `DEVICE_TO_DEVICE`, otherwise.
 
@@ -3856,7 +3830,9 @@ If `is_host_transfer`, an optional input with default value as `fasle`, is
 
 ```mlir
 %result = "stablehlo.send"(%operand, %token) {
-  channel_handle = #stablehlo.channel_handle< handle = 5, type = 2>,
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
   is_host_transfer = true
 } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```

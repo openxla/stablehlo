@@ -1028,8 +1028,7 @@ def StableHLO_SendOp : StableHLO_Op<"send",
   let summary = "Send operator";
 
   let description = [{
-    Sends data `inputs` from one partition to a stablehlo.recv instruction,
-    in another partition, that shares the same channel handle.
+    Sends `inputs` to a channel `channel_id`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosend
@@ -1037,6 +1036,8 @@ def StableHLO_SendOp : StableHLO_Op<"send",
     Example:
     ```mlir
     %result = "stablehlo.send"(%operand, %token) {
+      // channel_id = 5 : i64,
+      // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
       channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
       is_host_transfer = true
     } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
@@ -1058,18 +1059,20 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
   let summary = "Recv operator";
 
   let description = [{
-    Receives data to a partition from a stablehlo.send instruction, in another
-    partition, that shares the same channel handle `channel_handle`.
+    Receives data from a channel with `channel_id` and produces `results`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorecv
 
     Example:
     ```mlir
-    %result:2 = "stablehlo.recv"(%token) {
+    %results:2 = "stablehlo.recv"(%token) {
+      // channel_id = 5 : i64,
+      // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
       channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
       is_host_transfer = true
     } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+    ```
   }];
 
   let arguments = (ins
