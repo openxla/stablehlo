@@ -1825,7 +1825,7 @@ Performs an element-wise conversion of values similar to an element-wise
 `static_cast` in C++ from one element type to another on `operand` tensor and
 produces a `result` tensor.
 
-For conversions involving integer-to-integer, if there is an unsigned/signed
+For conversions involving **integer-to-integer**, if there is an unsigned/signed
 overflow, the result is implementation-defined and one of the following:
   * mathematical result modulo $2^n$, where n is the bit width of the result,
     for unsigned overflow. For signed integer overflow, wraps the result around
