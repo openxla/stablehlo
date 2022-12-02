@@ -1,4 +1,5 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
+// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-legalize-to-stablehlo stablehlo/tests/legalize_stablehlo_to_vhlo.mlir) <(stablehlo-opt stablehlo/tests/legalize_stablehlo_to_vhlo.mlir)
 
 // ============ ATTRIBUTES ============
 
@@ -171,9 +172,9 @@ func.func @attr_fft_type_ifft(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcompl
 // CHECK-LABEL: "attr_fft_type_ifft"
 
 func.func @attr_fft_type_rfft(%arg0: tensor<16xf32>) -> tensor<9xcomplex<f32>> {
-  %0 = "vhlo.fft"(%arg0) {
+  %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type RFFT>
-    fft_type = #vhlo<fft_type RFFT>,
+    fft_type = #stablehlo<fft_type RFFT>,
     fft_length = dense<16> : tensor<1xi64>
   } : (tensor<16xf32>) -> tensor<9xcomplex<f32>>
   func.return %0 : tensor<9xcomplex<f32>>
@@ -181,9 +182,9 @@ func.func @attr_fft_type_rfft(%arg0: tensor<16xf32>) -> tensor<9xcomplex<f32>> {
 // CHECK-LABEL: "attr_fft_type_rfft"
 
 func.func @attr_fft_type_irfft(%arg0: tensor<9xcomplex<f32>>) -> tensor<16xf32> {
-  %0 = "vhlo.fft"(%arg0) {
+  %0 = "stablehlo.fft"(%arg0) {
     // CHECK: fft_type = #vhlo<fft_type IRFFT>
-    fft_type = #vhlo<fft_type IRFFT>,
+    fft_type = #stablehlo<fft_type IRFFT>,
     fft_length = dense<16> : tensor<1xi64>
   } : (tensor<9xcomplex<f32>>) -> tensor<16xf32>
   func.return %0 : tensor<16xf32>
@@ -307,7 +308,7 @@ func.func @attr_transpose_adjoint(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16x
 func.func @attr_type_extensions_bounds(
     %arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [16, ?]>>)
     -> tensor<?x?xf32, #stablehlo.type_extensions<bounds = [16, ?]>> {
-  // CHECK: "func.return"(%arg0) : (tensor<?x?xf32, #vhlo<type_extensions bounds = [16, ?]>>) -> ()
+  // CHECK: "func.return"(%arg0) : (tensor<?x?xf32, #vhlo.type_extensions<bounds = [16, ?]>>) -> ()
   func.return %arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [16, ?]>>
 }
 
@@ -665,10 +666,10 @@ func.func @op_divide(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
 func.func @op_dot_general(%arg0: tensor<8x8x16xf32>, %arg1: tensor<8x16x8xf32>) -> tensor<8x8x8xf32> {
   //      CHECK: "vhlo.dot_general"(%arg0, %arg1) {
   // CHECK-SAME:   dot_dimension_numbers = #vhlo.dot<
-  // CHECK-SAME:     lhs_batching_dimensions = [0],
-  // CHECK-SAME:     rhs_batching_dimensions = [0],
-  // CHECK-SAME:     lhs_contracting_dimensions = [2],
-  // CHECK-SAME:     rhs_contracting_dimensions = [1]
+  // CHECK-SAME:     lhsBatchingDimensions = [0],
+  // CHECK-SAME:     rhsBatchingDimensions = [0],
+  // CHECK-SAME:     lhsContractingDimensions = [2],
+  // CHECK-SAME:     rhsContractingDimensions = [1]
   // CHECK-SAME:   >,
   // CHECK-SAME:   precision_config = []
   // CHECK-SAME: } : (tensor<8x8x16xf32>, tensor<8x16x8xf32>) -> tensor<8x8x8xf32>
@@ -741,10 +742,10 @@ func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x1
 func.func @op_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>, %arg2 : tensor<3xi32>) -> tensor<1x5x8xf32> {
   //      CHECK: "vhlo.dynamic_gather"(%arg0, %arg1, %arg2) {
   // CHECK-SAME:   dimension_numbers = #vhlo.gather<
-  // CHECK-SAME:     offset_dims = [2],
-  // CHECK-SAME:     collapsed_slice_dims = [0, 1],
-  // CHECK-SAME:     start_index_map = [0, 1],
-  // CHECK-SAME:     index_vector_dim = 2
+  // CHECK-SAME:     offsetDims = [2],
+  // CHECK-SAME:     collapsedSliceDims = [0, 1],
+  // CHECK-SAME:     startIndexMap = [0, 1],
+  // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
   // CHECK-SAME:   indices_are_sorted = false
   // CHECK-SAME: } : (tensor<2x4x9xf32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xf32>
@@ -852,10 +853,10 @@ func.func @op_floor(%arg0: tensor<f32>) -> tensor<f32> {
 func.func @op_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> tensor<1x5x1xf32> {
   //      CHECK: "vhlo.gather"(%arg0, %arg1) {
   // CHECK-SAME:   dimension_numbers = #vhlo.gather<
-  // CHECK-SAME:     offset_dims = [2],
-  // CHECK-SAME:     collapsed_slice_dims = [0, 1],
-  // CHECK-SAME:     start_index_map = [0, 1],
-  // CHECK-SAME:     index_vector_dim = 2
+  // CHECK-SAME:     offsetDims = [2],
+  // CHECK-SAME:     collapsedSliceDims = [0, 1],
+  // CHECK-SAME:     startIndexMap = [0, 1],
+  // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
   // CHECK-SAME:   indices_are_sorted = false,
   // CHECK-SAME:   slice_sizes = dense<1> : tensor<3xi64>
@@ -1274,10 +1275,10 @@ func.func @op_scatter(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi32>, %
   // CHECK-NEXT: }) {
   // CHECK-SAME:  indices_are_sorted = true,
   // CHECK-SAME:  scatter_dimension_numbers = #vhlo.scatter<
-  // CHECK-SAME:    update_window_dims = [1],
-  // CHECK-SAME:    inserted_window_dims = [0, 1],
-  // CHECK-SAME:    scatter_dims_to_operand_dims = [0, 1],
-  // CHECK-SAME:    index_vector_dim = 1
+  // CHECK-SAME:    updateWindowDims = [1],
+  // CHECK-SAME:    insertedWindowDims = [0, 1],
+  // CHECK-SAME:    scatterDimsToOperandDims = [0, 1],
+  // CHECK-SAME:    indexVectorDim = 1
   // CHECK-SAME:  >,
   // CHECK-SAME:  unique_indices = true
   // CHECK-SAME: } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xf32>) -> tensor<200x100x300xf32>

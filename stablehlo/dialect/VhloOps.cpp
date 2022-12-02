@@ -31,7 +31,8 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
-using mlir::hlo::printIntArray;
+using mlir::hlo::printDimSizes;
+using mlir::hlo::parseDimSizes;
 
 //===----------------------------------------------------------------------===//
 // StableHLO Dialect Constructor

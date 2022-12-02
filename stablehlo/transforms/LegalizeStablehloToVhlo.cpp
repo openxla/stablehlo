@@ -132,6 +132,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       StablehloOpTy stablehloOp, typename StablehloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> versionedTypes;
+    LLVM_DEBUG(llvm::dbgs() << "Converting types:\n");
     if (failed(this->getTypeConverter()->convertTypes(
             stablehloOp->getResultTypes(), versionedTypes))) {
       LLVM_DEBUG(llvm::dbgs() << "Failed type conversion\n");

@@ -119,7 +119,7 @@ struct VhloToVersionPass
           return false;
         });
 
-    vhlo::VersionedTypeConverterBase converter;
+    vhlo::VhloToVersionConverter converter;
     RewritePatternSet patterns(&getContext());
     vhlo::populateVhloToVersionPatterns(&patterns, &converter, &getContext());
 

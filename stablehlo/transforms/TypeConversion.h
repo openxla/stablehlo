@@ -38,19 +38,23 @@ class VersionedTypeConverterBase : public TypeConverter {
      addConversion([&](RankedTensorType type) -> Type {
        auto encoding = type.getEncoding();
        if (!encoding) return type;
-       auto convertedEncoding = convertEncoding(encoding);
-       if (!convertedEncoding) return {};
-       return RankedTensorType::get(type.getShape(), type.getElementType(),
-                                    convertedEncoding);
+       if (isSourceDialect(encoding.getDialect())) {
+         auto convertedEncoding = convertEncoding(encoding);
+         if (!convertedEncoding) return {};
+         return RankedTensorType::get(type.getShape(), type.getElementType(),
+                                      convertedEncoding);
+       }
        return type;
      });
   };
 
   virtual ~VersionedTypeConverterBase() = default;
 
-  virtual Attribute convertEncoding(Attribute attr) {
-    return attr;
-  }
+  // Checks whether the given dialect is the source dialect of the type
+  // conversion (e.g. StableHLO for StablehloToVhloTypeConverter).
+  virtual bool isSourceDialect(Dialect& dialect) = 0;
+
+  virtual Attribute convertEncoding(Attribute attr) = 0; 
 };
 
 class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
@@ -62,6 +66,11 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     });
   }
 
+  bool isSourceDialect(Dialect& dialect) final {
+    return dialect.getNamespace() ==
+           stablehlo::StablehloDialect::getDialectNamespace();
+  }
+
   Attribute convertEncoding(Attribute attr) final {
     LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n");
     LLVM_DEBUG(llvm::dbgs() << attr);
@@ -71,7 +80,7 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
                                            stablehloAttr.getBounds());
     }
     // All encodings should be supported.
-    return attr;
+    return {};
   }
 };
 
@@ -84,14 +93,34 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     });
   }
 
+  bool isSourceDialect(Dialect& dialect) final {
+    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
+  }
+
   Attribute convertEncoding(Attribute attr) final {
     if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsAttr>()) {
       return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
                                            vhloAttr.getBounds());
     }
     // All encodings should be supported.
-    return {};
+    return attr;
   }
+};
+
+class VhloToVersionConverter : public VersionedTypeConverterBase {
+ public:
+  VhloToVersionConverter() : VersionedTypeConverterBase() {
+    addConversion([](stablehlo::TokenType token) -> Type {
+      LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
+      return TokenType::get(token.getContext());
+    });
+  }
+
+  bool isSourceDialect(Dialect& dialect) final {
+    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
+  }
+
+  Attribute convertEncoding(Attribute attr) final { return attr; }
 };
 
 // Complements conversion patterns with boilerplate that makes sure `func.func`,
