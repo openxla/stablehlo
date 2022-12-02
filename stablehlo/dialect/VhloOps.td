@@ -66,8 +66,9 @@ def VHLO_ConstantOpV1 : VHLO_Op<"constant"> {
   let results = (outs VHLO_StaticShapeTensor:$output);
 }
 
-def VHLO_CreateTokenOpV1 : VHLO_Op<"create_token"> {
-  let results = (outs VHLO_Token:$output);
+def VHLO_IotaOpV1 : VHLO_Op<"iota"> {
+  let arguments = (ins I64Attr:$iota_dimension);
+  let results = (outs VHLO_IntFpOrComplexTensor:$output);
 }
 
 def VHLO_IotaOpV1 : VHLO_Op<"iota"> {
@@ -75,9 +76,8 @@ def VHLO_IotaOpV1 : VHLO_Op<"iota"> {
   let results = (outs VHLO_IntFpOrComplexTensor:$output);
 }
 
-def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota"> {
-  let arguments = (ins VHLO_DimensionTensor:$output_shape, I64Attr:$iota_dimension);
-  let results = (outs VHLO_Tensor:$result);
+def VHLO_CreateTokenOpV1 : VHLO_Op<"create_token"> {
+  let results = (outs VHLO_Token:$output);
 }
 
 def VHLO_AbsOpV1 : VHLO_Op<"abs"> {
