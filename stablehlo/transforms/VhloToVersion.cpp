@@ -186,9 +186,9 @@ struct CustomCallOpV2ToV1
     : public VersionConversionPattern<CustomCallOpV2, CustomCallOpV1> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
-    if (op.getResultLayouts().has_value()) {
-      return emitDowngradeError(op,
-                                "op has a non-empty result_layouts attribute");
+    if (op->hasAttr("output_operand_aliases")) {
+      return emitDowngradeError(
+          op, "op has a non-empty output_operand_aliases attribute");
     }
     return success();
   }

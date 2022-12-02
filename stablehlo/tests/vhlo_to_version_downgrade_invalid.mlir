@@ -1,13 +1,22 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.3.0' --verify-diagnostics --split-input-file %s
 
-func.func @custom_call_v2_with_result_layout(%arg0 : tensor<2xf32>) -> tensor<2xf32> {
-  // expected-error @+2 {{failed to downgrade vhlo.custom_call_v2, op has a non-empty result_layouts attribute}}
+func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> tensor<f32> {
+  // expected-error @+2 {{failed to downgrade vhlo.custom_call_v2, op has a non-empty output_operand_aliases attribute}}
   // expected-error @+1 {{failed to legalize operation 'vhlo.custom_call_v2' that was explicitly marked illegal}}
-  %0 = stablehlo.custom_call @foo(%arg0) {
-    operand_layouts = [dense<[0]> : tensor<1xindex>],
-    result_layouts = [dense<[0]> : tensor<1xindex>]
-  } : (tensor<2xf32>) -> tensor<2xf32>
-  func.return %0 : tensor<2xf32>
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "foo",
+    has_side_effect = false,
+    backend_config = "",
+    api_version = 1 : i32,
+    called_computations = [@foo],
+    operand_layouts = [dense<> : tensor<0xindex>],
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                 operand_index = 0,
+                                 operand_tuple_indices = []>],
+    result_layouts = [dense<> : tensor<0xindex>]
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
 }
 
 // -----

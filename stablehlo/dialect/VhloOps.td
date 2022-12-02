@@ -615,7 +615,8 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.3.0", "0.3.0"> {
         "::mlir::vhlo::CustomCallApiVersion::API_VERSION_ORIGINAL">:
         $api_version,
     DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
-    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$operand_layouts
+    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$operand_layouts,
+    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts
   );
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }
