@@ -26,6 +26,9 @@ Following are the supported element types in StableHLO:
     (represents a pair of `f64`). Exact representation of complex types
     (e.g. whether the real part or the imaginary part comes first in memory)
     is implementation-defined.
+  * **String type**  represent a sequence of bytes. Exact representation of
+    string type (e.g. null terminated or not, encoding etc.) is
+    implementation-defined.
 
 **Tensor types** are the cornerstone of the StableHLO type system. They model
 immutable n-dimensional arrays and are referred to in the document as
@@ -305,6 +308,19 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
+### Streaming communication
+
+Every StableHLO process has access to two streaming interfaces:
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
+
+Unlike channels, which are used to communicate between processes and therefore
+have processes at both of their ends, infeeds and outfeeds have their other
+end implementation-defined.
+
+Further formalization, e.g. how streaming communication influences execution
+order and what kind of synchronization is introduced by it, is TBD.
+
 ## Errors
 
 StableHLO programs are validated through an extensive set of constraints for
@@ -339,6 +355,9 @@ syntax.
   floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56.78)`,
   where the first constant is the real part, and the second constant is the
   imaginary part.
+  * **String constants** String constants are represented as a sequence of
+  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
+  encoding) or "\18\A3" (in hex encoding).
   * **Tensor constants** use NumPy notation. For example,
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
@@ -2331,21 +2350,20 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 ### Semantics
 
-Reads `results` from the infeed queue of the device.
+Reads data from the infeed and produces `results`.
 
-Not having a total order among the infeed operations in a program might lead to
-data races or even deadlocks.
+Semantics of `infeed_config` is implementation-defined.
 
-The infeed configuration string `infeed_config` includes target-dependent
-metadata.
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify the side effect of this operation
+as a value that other operations can take a data dependency on.
 
 ### Inputs
 
-| Name            | Type                                                                                     |
-|-----------------|------------------------------------------------------------------------------------------|
-| `token`         | `token`                                                                                  |
-| `infeed_config` | string                                                                                   |
-| `layout`        | array of array of type `integer` [todo](https://github.com/openxla/stablehlo/issues/629) |
+| Name            | Type              |
+|-----------------|-------------------|
+| `token`         | `token`           |
+| `infeed_config` | `string` constant |
 
 ### Outputs
 
@@ -2357,14 +2375,15 @@ metadata.
 
   * (C1) size(`results`) $\ge$ 1.
   * (C2) type(`results`[-1]) $=$ `token`.
-  * (C3) size(`layout`) $=$ size(`results`) - 1.
-  * (C4) size(`layout[i]`) $=$ rank(`results[i]`) for all i $\in$ [0,
-         size(`layout`)).
+  * -- [Verify layout in InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
 ### Examples
 
 ```mlir
-%results:2 = "stablehlo.infeed"(%token) { infeed_config = "", layout = [[2, 0, 1]] } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+%results:2 = "stablehlo.infeed"(%token) {
+  infeed_config = "",
+  layout = [[2, 0, 1]]
+} : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
 
 [Back to Ops](#index-of-ops)
@@ -2944,13 +2963,12 @@ operation.
 
 ### Semantics
 
-Writes `inputs` to the outfeed queue of the device.
+Writes `inputs` to the outfeed and produces `result`.
 
-Not having a total order among the outfeed operations in a program might lead to
-data races or even deadlocks.
+Semantics of `outfeed_config` is implementation-defined.
 
-The outfeed configuration string  `outfeed_config` includes target-dependent
-metadata.
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
 
 ### Inputs
 
@@ -2958,18 +2976,20 @@ metadata.
 |------------------|--------------------------------------------------|
 | `inputs`         | variadic number of tensors of any supported type |
 | `token`          | `token`                                          |
-| `outfeed_config` | string                                           |
+| `outfeed_config` | `string`  constant                               |
 
 ### Outputs
 
 | Name      | Type    |
 |-----------|---------|
-| `results` | `token` |
+| `result` | `token` |
 
 ### Examples
 
 ```mlir
-%results = "stablehlo.outfeed"(%input0, %token) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+%result = "stablehlo.outfeed"(%inputs0, %token) {
+  outfeed_config = ""
+} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

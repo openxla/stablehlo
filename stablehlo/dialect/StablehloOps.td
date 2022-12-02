@@ -978,14 +978,17 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
   let summary = "Infeed operator";
 
   let description = [{
-    Reads `results` from the infeed queue of the device.
+    Reads data from the infeed and produces `results`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloinfeed
 
     Example:
     ```mlir
-    %results:2 = "stablehlo.infeed"(%token) { infeed_config = "", layout = [[2, 0, 1] } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+    %results:2 = "stablehlo.infeed"(%token) {
+      infeed_config = "",
+      layout = [[2, 0, 1]]
+    } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
     ```
   }];
 
@@ -1005,14 +1008,16 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   let summary = "Outfeed operator";
 
   let description = [{
-    Writes `inputs` to the outfeed queue of the device.
+    Writes `inputs` to the outfeed and produces `result`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooutfeed
 
     Example:
     ```mlir
-    %results = "stablehlo.outfeed"(%input0, %token) {outfeed_config = ""} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+    %result = "stablehlo.outfeed"(%inputs0, %token) {
+      outfeed_config = ""
+    } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
 
