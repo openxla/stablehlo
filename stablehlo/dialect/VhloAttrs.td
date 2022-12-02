@@ -32,7 +32,7 @@ def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
 }
 
 def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumbers"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "scatter";
   let parameters = (ins
       VHLO_Dims:$updateWindowDims,
@@ -44,7 +44,7 @@ def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumber
 }
 
 def VHLO_GatherDimensionNumbers : AttrDef<VHLO_Dialect, "GatherDimensionNumbers"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "gather";
   let parameters = (ins
       VHLO_Dims:$offsetDims,
@@ -56,7 +56,7 @@ def VHLO_GatherDimensionNumbers : AttrDef<VHLO_Dialect, "GatherDimensionNumbers"
 }
 
 def VHLO_DotDimensionNumbers : AttrDef<VHLO_Dialect, "DotDimensionNumbers"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "dot";
   let parameters = (ins
       VHLO_Dims:$lhsBatchingDimensions,
@@ -67,8 +67,19 @@ def VHLO_DotDimensionNumbers : AttrDef<VHLO_Dialect, "DotDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
+def VHLO_OutputOperandAlias : AttrDef<VHLO_Dialect, "OutputOperandAlias"> {
+  let cppNamespace = "::mlir::vhlo";
+  let mnemonic = "output_operand_alias";
+  let parameters = (ins
+    VHLO_Dims:$outputTupleIndices,
+    "int64_t":$operandIndex,
+    VHLO_Dims:$operandTupleIndices
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
 def VHLO_ArgResultAlias : AttrDef<VHLO_Dialect, "ArgResultAlias"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "result_alias";
   let parameters = (ins
     VHLO_Dims:$argTupleIndices,
@@ -80,14 +91,14 @@ def VHLO_ArgResultAlias : AttrDef<VHLO_Dialect, "ArgResultAlias"> {
 }
 
 def VHLO_ChannelHandle : AttrDef<VHLO_Dialect, "ChannelHandle"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "channel_handle";
   let parameters = (ins "int64_t":$handle, "int64_t":$type);
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
 def VHLO_TypeExtensions : AttrDef<VHLO_Dialect, "TypeExtensions"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
@@ -126,7 +137,7 @@ def VHLO_BoolElementsAttr :
 }
 
 def VHLO_ConvDimensionNumbers : AttrDef<VHLO_Dialect, "ConvDimensionNumbers"> {
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "conv";
   let parameters = (ins
     "int64_t":$inputBatchDimension,

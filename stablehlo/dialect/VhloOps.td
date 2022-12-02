@@ -32,8 +32,8 @@ def VHLO_Dialect : Dialect {
     A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
     
     Version log:
-      0.0.0: Base release.
-      0.1.0: CustomCallOp add result aliasing.
+      0.0.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
+      0.1.0: Add CustomCallOp input output aliasing: https://github.com/openxla/stablehlo/pull/403
   }];
 
   let useDefaultAttributePrinterParser = 0;
@@ -615,7 +615,12 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.1.0"> {
         $api_version,
     DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
     OptionalAttr<VHLO_ArrayOfLayoutAttr>:$operand_layouts,
-    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts
+    OptionalAttr<VHLO_ArrayOfLayoutAttr>:$result_layouts,
+    DefaultValuedOptionalAttr<
+        TypedArrayAttrBase<
+            VHLO_OutputOperandAlias,
+            "Aliasing attribute for outputs and operands of CustomCall">,
+        "{}">:$output_operand_aliases
   );
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }

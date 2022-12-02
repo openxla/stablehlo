@@ -656,6 +656,38 @@ func.func @op_cstr_reshapable(%arg0: index, %arg1: tensor<1xindex>) -> !shape.wi
 
 func.func @called_computation() { func.return }
 
+func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
+  //      CHECK: "vhlo.custom_call_v2"(%arg0) {
+  // CHECK-SAME:   api_version = 1 : i32,
+  // CHECK-SAME:   backend_config = "",
+  // CHECK-SAME:   call_target_name = "foo",
+  // CHECK-SAME:   called_computations = [@foo],
+  // CHECK-SAME:   has_side_effect = false,
+  // CHECK-SAME:   operand_layouts = [dense<> : tensor<0xindex>],
+  // CHECK-SAME:   output_operand_aliases = [
+  // CHECK-SAME:     #vhlo.output_operand_alias<
+  // CHECK-SAME:       outputTupleIndices = [],
+  // CHECK-SAME:       operandIndex = 0,
+  // CHECK-SAME:       operandTupleIndices = []>]
+  // CHECK-SAME:   result_layouts = [dense<> : tensor<0xindex>]
+  // CHECK-SAME: } : (tensor<f32>) -> tensor<f32>
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "foo",
+    has_side_effect = false,
+    backend_config = "",
+    api_version = 1 : i32,
+    called_computations = [@foo],
+    operand_layouts = [dense<> : tensor<0xindex>],
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                 operand_index = 0,
+                                 operand_tuple_indices = []>],
+    result_layouts = [dense<> : tensor<0xindex>]
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+// CHECK-LABEL: "op_custom_call"
+
 func.func @op_divide(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
   // CHECK: "vhlo.divide"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
   %0 = "stablehlo.divide"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
