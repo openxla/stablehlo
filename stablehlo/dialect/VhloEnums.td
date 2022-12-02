@@ -143,7 +143,7 @@ def VHLO_ComparisonType : I32EnumAttr<"ComparisonType",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_ComparisonTypeAttr 
+def VHLO_ComparisonTypeAttr
   : EnumAttr<VHLO_Dialect, VHLO_ComparisonType, "comparison_type">;
 
 // These mirror the XLA Transpose enum in Triangular Solve options.

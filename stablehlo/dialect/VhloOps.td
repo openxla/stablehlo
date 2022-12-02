@@ -33,7 +33,7 @@ def VHLO_Dialect : Dialect {
 
     Version log:
       0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
-      0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272. 
+      0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272.
              Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
              Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
   }];
@@ -50,7 +50,7 @@ include "stablehlo/dialect/VhloAttrs.td"
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
 //   multiple variadic arguments.
 class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = "current", list<Trait> traits = []> :
-    Op<VHLO_Dialect, mnemonic, 
+    Op<VHLO_Dialect, mnemonic,
       [DeclareOpInterfaceMethods<VersionedInterface>] # traits> {
   let extraClassDefinition = [{
     mlir::vhlo::Version $cppClass::getMinVersion() {
