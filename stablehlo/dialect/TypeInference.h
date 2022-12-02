@@ -70,11 +70,12 @@ SmallVector<int64_t> inferWindowOutputShape(
 
 unsigned potentiallyComplexBitwidth(Type type);
 
-LogicalResult verifyReducerShape(
-    Optional<Location> loc, Block& block, ArrayRef<TensorType> inputArgTypes,
-    ArrayRef<TensorType> initValueTypes, int64_t numInputs,
-    ArrayRef<int64_t> allowedDimensions, bool allInputsUnranked,
-    SmallVectorImpl<TensorType>& accumulatorSubShapes);
+LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
+                                 ArrayRef<TensorType> inputArgTypes,
+                                 ArrayRef<TensorType> initValueTypes,
+                                 int64_t numInputs,
+                                 ArrayRef<int64_t> allowedDimensions,
+                                 bool allInputsUnranked);
 
 // Verifies replica groups attached to collective communication operations.
 // P1. 'replicaGroups' must be a 2-D tensor.
