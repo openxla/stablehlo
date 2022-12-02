@@ -1821,181 +1821,32 @@ Produces an `output` tensor from a constant `value`.
 
 ### Semantics
 
-Performs an element-wise conversion of values from one element type to another
-on `operand` tensor and produces a `result` tensor. The result is rounded using
-any normalizing rounding-direction attributes `round` from the IEEE-754
-specification (e.g. `roundTiesToEven`).
+Performs an element-wise conversion of values similar to an element-wise
+`static_cast` in C++ from one element type to another on `operand` tensor and
+produces a `result` tensor.
 
-More formally, conversion from element `A` of type `T` to element `B` of type
-`T'` is defined as follows:
-
-<table>
-    <thead>
-        <tr>
-            <th><code>operand</code> type <code>T</code></th>
-            <th><code>result</code> type <code>T'</code></th>
-            <th><code>B</code></th>
-            <th>Condition</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td rowspan=9>Signed/Unsigned Integer</td>
-            <td rowspan=3>Signed Integer<sup>*</sup></td>
-            <td><code></code>signed overflow of <code>A</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>A</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>A</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td rowspan=3>Unsigned Integer<sup>*</sup></td>
-            <td><code></code>unsigned overflow of <code>A</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>A</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>A</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td>Boolean</td>
-            <td><code>A != 0 ? true : false</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Floating-point</td>
-            <td><code>round((float) A)</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Complex</td>
-            <td><code>(round((float) A), 0.0)</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td rowspan=4>Boolean</td>
-            <td>Integer</td>
-            <td><code>A ? 1 : 0</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Boolean</td>
-            <td><code>A</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Floating-point</td>
-            <td><code>A ? 1.0 : 0.0</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Complex</td>
-            <td><code>A ? (1.0, 0.0) : (0.0, 0.0)</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td rowspan=11>Floating-point<sup>**</sup></td>
-            <td rowspan=3>Signed Integer<sup>*</sup></td>
-            <td>signed overflow of <code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td rowspan=3>Unsigned Integer<sup>*</sup></td>
-            <td>unsigned overflow of <code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td>Boolean</td>
-            <td><code>A != 0.0 ? true : false</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td rowspan=3>Floating-point</td>
-            <td><code>inf</code> if positive overflow or <code>-inf</code> otherwise</td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td>Complex</td>
-            <td><code>(round(A), 0.0)</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td rowspan=6>Complex<sup>**</sup></td>
-            <td rowspan=3>Integer<sup>*</sup></td>
-            <td><code>round(A.real)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> not in range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) >= bitwidth (T')</code> and <code>A</code> within range of <code>T'</code></td>
-        </tr>
-        <tr>
-            <td><code>round(A)</code></td>
-            <td><code>bitwidth(T) < bitwidth (T')</code></td>
-        </tr>
-        <tr>
-            <td>Boolean</td>
-            <td><code>A != (0.0, 0.0) ? true : false</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Floating-point</td>
-            <td><code>round(A.real)</code></td>
-            <td>N/A</td>
-        </tr>
-        <tr>
-            <td>Complex</td>
-            <td><code>(round(A.real), round(A.imag))</code></td>
-            <td>N/A</td>
-        </tr>
-    </tbody>
-</table>
-
-\* For conversions involving integer-to-integer, floating-point-to-integer, and
-complex-to-integer, if there is an unsigned/signed overflow, the result is
-implementation-defined and one of the following:
+For conversions involving integer-to-integer, if there is an unsigned/signed
+overflow, the result is implementation-defined and one of the following:
   * mathematical result modulo $2^n$, where n is the bit width of the result,
     for unsigned overflow. For signed integer overflow, wraps the result around
     the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
     saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
-\** For conversions involving floating-point-to-integer and complex-to-integer,
-if the source value is `NaN`, `inf`, or `-inf` equivalent, the result is
-undefined.
+For conversions involving floating-point-to-integer or complex-to-integer,
+the fractional part is truncated. The behavior is undefined if the truncated
+value cannot be represented in the destination type.
+
+For conversions involving integer-to-floating-point or integer-to-complex,
+the destination value is exact if possible and for conversions involving
+rounding, the result is rounded using any normalizing rounding-direction
+attributes `round` from the IEEE-754 specification (e.g. `roundTiesToEven`). If
+the value being converted is outside of the range of values destination type can
+represent, the result is undefined.
+
+For boolean-to-any-supported-type conversions, the value `false` is converted to
+zero-equivalent, and the value `true` is converted to one-equivalent and
+vice-versa.
 
 ### Inputs
 

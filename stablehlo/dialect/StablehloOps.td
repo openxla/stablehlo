@@ -254,8 +254,9 @@ def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
     [Pure, SameOperandsAndResultShape], HLO_Tensor> {
   let summary = "Convert operator";
   let description = [{
-    Performs an element-wise conversion of values from one element type to
-    another on `operand` tensor and produces a `result` tensor.
+    Performs an element-wise conversion of values similar to an element-wise
+    `static_cast` in C++ from one element type to another on `operand` tensor
+    and produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconvert
