@@ -12,8 +12,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/transforms/Passes.h"
-
 #include <climits>
 #include <memory>
 #include <utility>
@@ -26,6 +24,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/TypeConversion.h"
 
 #define DEBUG_TYPE "compat-passes"
@@ -59,7 +58,8 @@ struct VhloToVersionPass
     if (failed(failOrVersion)) {
       if (targetVersion.empty()) {
         return emitError(getOperation()->getLoc())
-               << "No target version specified. Specify target using: --vhlo-to-version='target=[targetVersion]'\n"
+               << "No target version specified. Specify target using: "
+                  "--vhlo-to-version='target=[targetVersion]'\n"
                << "Target version must be of the form #.#.# or 'current'.";
       }
       return emitError(getOperation()->getLoc())
@@ -67,7 +67,7 @@ struct VhloToVersionPass
              << "'\n"
              << "Target version must be of the form #.#.# or 'current'.";
     }
-    
+
     Version targetVersion = *failOrVersion;
     if (targetVersion < VhloDialect::getMinimumDialectVersion()) {
       return emitError(getOperation()->getLoc())

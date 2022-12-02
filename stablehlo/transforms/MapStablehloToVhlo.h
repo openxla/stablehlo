@@ -17,8 +17,8 @@ limitations under the License.
 
 #include <type_traits>
 
-#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {
 namespace vhlo {
@@ -37,7 +37,7 @@ struct StablehloToVhloOpImpl {
 template <typename StablehloOpTy>
 using StablehloToVhloOp = typename StablehloToVhloOpImpl<StablehloOpTy>::Type;
 
-#define MAP_STABLEHLO_TO_VHLO(OpName, OpVer)       \
+#define MAP_STABLEHLO_TO_VHLO(OpName, OpVer)          \
   template <>                                         \
   struct StablehloToVhloOpImpl<stablehlo::OpName> {   \
     using Type = vhlo::OpName##OpVer;                 \

@@ -46,9 +46,7 @@ class Version {
   Version(std::array<int64_t, 3> majorMinorPatch)
       : majorMinorPatch(majorMinorPatch) {}
 
-  std::array<int64_t, 3> getAsArray() const {
-    return majorMinorPatch;
-  }
+  std::array<int64_t, 3> getAsArray() const { return majorMinorPatch; }
 
   bool operator<(Version const& other) {
     // Uses lexicographical_compare
@@ -62,10 +60,11 @@ class Version {
   }
 
  private:
-  /// Validate version argument is `#.#.#` (ex: 0.1.0, 1.2.3, 0.123.0) 
+  /// Validate version argument is `#.#.#` (ex: 0.1.0, 1.2.3, 0.123.0)
   /// Returns the vector of 3 matches (major, minor, patch) if successful,
-  /// else returns failure.  
-  static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(llvm::StringRef versionRef) {
+  /// else returns failure.
+  static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(
+      llvm::StringRef versionRef) {
     llvm::Regex versionRegex("^([0-9]+)\\.([0-9]+)\\.([0-9]+)$");
     llvm::SmallVector<llvm::StringRef> matches;
     if (!versionRegex.match(versionRef, &matches)) {
@@ -84,7 +83,7 @@ class Version {
     return num;
   }
 
-  std::array<int64_t,3> majorMinorPatch;
+  std::array<int64_t, 3> majorMinorPatch;
 };
 
 }  // namespace vhlo

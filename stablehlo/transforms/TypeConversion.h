@@ -18,8 +18,8 @@ limitations under the License.
 
 #include "llvm/Support/Debug.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -28,24 +28,24 @@ namespace vhlo {
 
 class VersionedTypeConverterBase : public TypeConverter {
  public:
-   VersionedTypeConverterBase() : TypeConverter() {
-     addConversion([](Type t) -> Type { return t; });
-     addConversion([&](TupleType type) -> Type {
-       SmallVector<Type> convertedTypes;
-       if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-       return TupleType::get(type.getContext(), convertedTypes);
-     });
-     addConversion([&](RankedTensorType type) -> Type {
-       auto encoding = type.getEncoding();
-       if (!encoding) return type;
-       if (isSourceDialect(encoding.getDialect())) {
-         auto convertedEncoding = convertEncoding(encoding);
-         if (!convertedEncoding) return {};
-         return RankedTensorType::get(type.getShape(), type.getElementType(),
-                                      convertedEncoding);
-       }
-       return type;
-     });
+  VersionedTypeConverterBase() : TypeConverter() {
+    addConversion([](Type t) -> Type { return t; });
+    addConversion([&](TupleType type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return TupleType::get(type.getContext(), convertedTypes);
+    });
+    addConversion([&](RankedTensorType type) -> Type {
+      auto encoding = type.getEncoding();
+      if (!encoding) return type;
+      if (isSourceDialect(encoding.getDialect())) {
+        auto convertedEncoding = convertEncoding(encoding);
+        if (!convertedEncoding) return {};
+        return RankedTensorType::get(type.getShape(), type.getElementType(),
+                                     convertedEncoding);
+      }
+      return type;
+    });
   };
 
   virtual ~VersionedTypeConverterBase() = default;
@@ -54,7 +54,7 @@ class VersionedTypeConverterBase : public TypeConverter {
   // conversion (e.g. StableHLO for StablehloToVhloTypeConverter).
   virtual bool isSourceDialect(Dialect& dialect) = 0;
 
-  virtual Attribute convertEncoding(Attribute attr) = 0; 
+  virtual Attribute convertEncoding(Attribute attr) = 0;
 };
 
 class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
@@ -74,7 +74,8 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
   Attribute convertEncoding(Attribute attr) final {
     LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n");
     LLVM_DEBUG(llvm::dbgs() << attr);
-    if (auto stablehloAttr = attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
+    if (auto stablehloAttr =
+            attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
       LLVM_DEBUG(llvm::dbgs() << "Matched StableHLO encoding.\n");
       return vhlo::TypeExtensionsAttr::get(stablehloAttr.getContext(),
                                            stablehloAttr.getBounds());
@@ -100,7 +101,7 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
   Attribute convertEncoding(Attribute attr) final {
     if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsAttr>()) {
       return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
-                                           vhloAttr.getBounds());
+                                                vhloAttr.getBounds());
     }
     // All encodings should be supported.
     return attr;

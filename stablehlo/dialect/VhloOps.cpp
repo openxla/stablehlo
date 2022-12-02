@@ -31,8 +31,8 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
-using mlir::hlo::printDimSizes;
 using mlir::hlo::parseDimSizes;
+using mlir::hlo::printDimSizes;
 
 //===----------------------------------------------------------------------===//
 // StableHLO Dialect Constructor
@@ -57,8 +57,7 @@ Type VhloDialect::parseType(DialectAsmParser& parser) const {
   if (parser.parseKeyword(&dataType)) return Type();
 
   if (dataType == "token") return TokenType::get(getContext());
-  parser.emitError(parser.getNameLoc())
-      << "unknown vhlo type: " << dataType;
+  parser.emitError(parser.getNameLoc()) << "unknown vhlo type: " << dataType;
   return nullptr;
 }
 
