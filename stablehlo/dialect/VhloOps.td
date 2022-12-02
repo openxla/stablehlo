@@ -43,11 +43,11 @@ def VHLO_Dialect : Dialect {
 include "stablehlo/dialect/VhloEnums.td"
 include "stablehlo/dialect/VhloAttrs.td"
 
-// Only use this base class if necessary.
+// Most ops should not use traits. Exceptions are:
 // - ReturnOp needs a trait for Terminator.
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
 //   multiple variadic arguments.
-class VHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion = "0.0.0", string maxVersion = "current"> :
+class VHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = "current", list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic, 
       [DeclareOpInterfaceMethods<VersionedInterface>] # traits> {
   let extraClassDefinition = [{
@@ -60,9 +60,6 @@ class VHLO_OpWithTraits<string mnemonic, list<Trait> traits, string minVersion =
     }
   }];
 }
-
-class VHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = "current"> :
-    VHLO_OpWithTraits<mnemonic, [], minVersion, maxVersion>;
 
 def VHLO_ConstantOpV1 : VHLO_Op<"constant"> {
   let arguments = (ins ElementsAttr:$value);
@@ -275,7 +272,7 @@ def VHLO_XorOpV1 : VHLO_Op<"xor"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ReturnOpV1 : VHLO_OpWithTraits<"return", [Terminator]> {
+def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.0.0", "current", [Terminator]> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple >:$results
   );
@@ -395,7 +392,7 @@ def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ReduceOpV1 : VHLO_OpWithTraits<"reduce", [SameVariadicOperandSize]> {
+def VHLO_ReduceOpV1 : VHLO_Op<"reduce", "0.0.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,
@@ -708,7 +705,7 @@ def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_OpWithTraits<"scatter", [SameVariadicOperandSize]> {
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.0.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     TensorOf<[AnyInteger, Index]>:$scatter_indices,
@@ -808,7 +805,7 @@ def VHLO_TriangularSolveOpV1 : VHLO_Op<"triangular_solve"> {
   let results = (outs VHLO_FpOrComplexTensor);
 }
 
-def VHLO_ReduceWindowOpV1 : VHLO_OpWithTraits<"reduce_window", [SameVariadicOperandSize]> {
+def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.0.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,
