@@ -96,17 +96,15 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose);
   }
   if (vhloAttr.getDialect().getNamespace() ==
-      stablehlo::StablehloDialect::getDialectNamespace()) {
-    // Our guiding principle is to support all vhlo functionality in
-    // vhlo. This check is here only for exceptional situations, e.g.
-    // when we added a new vhlo attribute and forgot to update the code
-    // above.
+      vhlo::VhloDialect::getDialectNamespace()) {
+    // All VHLO attributes must have counterparts in StableHLO.
     return {};
   }
 
-  // Handle non-vhlo attributes.
+  // Handle non-VHLO attributes.
   // If an attribute is not defined in vhlo, then it is unchanged,
   // with the exception of ArrayAttr which is converted recursively.
+  // This will change once we fork necessary upstream types to VHLO.
   if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> hloAttrs;
     for (auto vhloAttr : vhloAttrs) {

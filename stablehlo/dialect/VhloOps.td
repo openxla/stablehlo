@@ -128,7 +128,7 @@ def VHLO_FloorOpV1 : VHLO_Op<"floor"> {
 }
 
 def VHLO_ImagOpV1 : VHLO_Op<"imag"> {
-  let arguments = (ins VHLO_FpTensor:$operand);
+  let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 
@@ -168,7 +168,7 @@ def VHLO_PopulationCountOpV1 : VHLO_Op<"popcnt">{
 }
 
 def VHLO_RealOpV1 : VHLO_Op<"real">{
-  let arguments = (ins VHLO_FpTensor:$operand);
+  let arguments = (ins VHLO_FpOrComplexTensor:$operand);
   let results = (outs VHLO_FpTensor:$result);
 }
 

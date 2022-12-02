@@ -28,8 +28,8 @@ def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp">
 def VhloToVersionPass : Pass<"vhlo-to-version"> {
   let summary = "Convert between versions of VHLO.";
   let options = [
-    Option<"targetVersion", "target", "std::string", "\"current\"",
-           "The target version for downgrade. (Defaults to minimum supported)">,
+    Option<"targetVersion", "target", "std::string", "",
+           "The target version. Must be a version of the form #.#.# or 'current'.">,
   ];
 
 }

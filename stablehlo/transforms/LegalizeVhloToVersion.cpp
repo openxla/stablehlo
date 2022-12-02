@@ -57,9 +57,15 @@ struct VhloToVersionPass
   FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef) {
     auto failOrVersion = parseTargetVersion(versionRef);
     if (failed(failOrVersion)) {
-      return emitError(
-          getOperation()->getLoc(),
-          "invalid target version number argument " + targetVersion);
+      if (targetVersion.empty()) {
+        return emitError(getOperation()->getLoc())
+               << "No target version specified. Specify target using: --vhlo-to-version='target=[targetVersion]'\n"
+               << "Target version must be of the form #.#.# or 'current'.";
+      }
+      return emitError(getOperation()->getLoc())
+             << "Invalid target version number argument '" << targetVersion
+             << "'\n"
+             << "Target version must be of the form #.#.# or 'current'.";
     }
     
     Version targetVersion = *failOrVersion;
@@ -129,7 +135,7 @@ struct VhloToVersionPass
 /// Upgrade and Downgrade Infrastructure ///
 ////////////////////////////////////////////
 
-LogicalResult emitToVersionError(Operation* op, llvm::StringRef message) {
+LogicalResult emitDowngradeError(Operation* op, llvm::StringRef message) {
   return op->emitError("failed to downgrade ")
          << op->getName() << ", " << message;
 }
@@ -165,23 +171,21 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /////////////////////////////////////////
 
 // vhlo.custom_call --> vhlo.custom_call_v2
-struct CustomCallOpV2Upgrade
+struct CustomCallOpV1ToV2
     : public VersionConversionPattern<CustomCallOpV1, CustomCallOpV2> {
-  using VersionConversionPattern<CustomCallOpV1,
-                                 CustomCallOpV2>::VersionConversionPattern;
+  using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOpV1) const final {
     return success();
   }
 };
 
 // vhlo.custom_call_v2 --> vhlo.custom_call
-struct CustomCallOpV1Downgrade
+struct CustomCallOpV2ToV1
     : public VersionConversionPattern<CustomCallOpV2, CustomCallOpV1> {
-  using VersionConversionPattern<CustomCallOpV2,
-                                 CustomCallOpV1>::VersionConversionPattern;
+  using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
     if (op.getResultLayouts().has_value()) {
-      return emitToVersionError(op,
+      return emitDowngradeError(op,
                                 "op has a non-empty result_layouts attribute");
     }
     return success();
@@ -193,8 +197,8 @@ struct CustomCallOpV1Downgrade
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  patterns->add<CustomCallOpV2Upgrade>(*converter, context);
-  patterns->add<CustomCallOpV1Downgrade>(*converter, context);
+  patterns->add<CustomCallOpV1ToV2>(*converter, context);
+  patterns->add<CustomCallOpV2ToV1>(*converter, context);
 }
 
 }  // namespace vhlo

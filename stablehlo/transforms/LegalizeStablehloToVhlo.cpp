@@ -102,16 +102,14 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
   }
   if (stablehloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {
-    // Our guiding principle is to support all StableHLO functionality in
-    // vhlo. This check is here only for exceptional situations, e.g.
-    // when we added a new StableHLO attribute and forgot to update the code
-    // above.
+    // All StableHLO attributes must have counterparts in VHLO.
     return {};
   }
 
   // Handle non-StableHLO attributes.
   // If an attribute is not defined in StableHLO, then it is unchanged,
   // with the exception of ArrayAttr which is converted recursively.
+  // This will change once we fork necessary upstream types to VHLO.
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> hloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {

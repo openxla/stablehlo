@@ -27,8 +27,8 @@ include "mlir/IR/AttrTypeBase.td"
 //===----------------------------------------------------------------------===//
 
 def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
-  let parser = "mlir::hlo::parseIntArray($_parser)";
-  let printer = "mlir::hlo::printIntArray($_printer, $_self)";
+  let parser = "mlir::hlo::parseDimSizes($_parser)";
+  let printer = "mlir::hlo::printDimSizes($_printer, $_self)";
 }
 
 def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumbers"> {
@@ -89,7 +89,7 @@ def VHLO_ChannelHandle : AttrDef<VHLO_Dialect, "ChannelHandle"> {
 def VHLO_TypeExtensions : AttrDef<VHLO_Dialect, "TypeExtensions"> {
   let cppNamespace = "::mlir::stablehlo";
   let mnemonic = "type_extensions";
-  let parameters = (ins ArrayRefParameter<"int64_t">:$bounds);
+  let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
