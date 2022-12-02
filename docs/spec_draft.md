@@ -179,7 +179,19 @@ particular process. (From that perspective, unqualified `name` can be viewed as
 a shorthand for `name@(replica_id(), partition_id())`).
 
 The execution order across processes is implementation-defined, except for the
-synchronization introduced by collective ops as described below.
+synchronization introduced by point-to-point communication and collective ops
+as described below.
+
+### Point-to-point communication
+
+StableHLO processes can communicate with each other through
+**StableHLO channels**. A channel is represented by a positive id of type
+`si64`. Through various ops, it is possible to send values to channels and
+receive them from channels.
+
+Further formalization, e.g. where these channel ids are coming from, how
+processes programs become aware of them and what kind of synchronization is
+introduced by them, is TBD.
 
 ### Collective ops
 
@@ -197,9 +209,8 @@ and what happens if they don't, is TBD.
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
 of the collective op needs a **StableHLO channel**, and the collective op must
-provide a positive `channel_id` of type `si64`. Further formalization, e.g.
-where these channel ids are coming from and how they are synchronized between
-programs, is TBD. Cross-replica communication doesn't need channels.
+provide a positive `channel_id` of type `si64`. Cross-replica communication
+doesn't need channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections below. However, the strategies by
@@ -385,6 +396,7 @@ syntax.
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
    * [real](#stablehloreal)
+   * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [replica_id](#stablehloreplica_id)
@@ -397,6 +409,7 @@ syntax.
    * [rsqrt](#stablehlorsqrt)
    * [scatter](#stablehloscatter)
    * [select](#stablehloselect)
+   * [send](#stablehlosend)
    * [shift_left](#stablehloshift_left)
    * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
    * [shift_right_logical](#stablehloshift_right_logical)
@@ -3080,6 +3093,55 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.recv
+
+### Semantics
+
+Receives data from a channel with `channel_id` and produces `results`.
+
+If `is_host_transfer` is `true`, then the operation transfers data from the
+host. Otherwise, it transfers data from another device. What this means is
+implementation-defined.
+
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify its side effects as a value that
+other operations can take a data dependency on.
+
+### Inputs
+
+| Name               | Type                                            |
+|--------------------|-------------------------------------------------|
+| `token`            | `token`                                         |
+| `channel_id`       | constant of type `si64`                         |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` |
+| `is_host_transfer` | constant of type `i1`                           |
+
+### Outputs
+
+| Name      | Type                                                      |
+|-----------|-----------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or token |
+
+### Constraints
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+    * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+  * (C2) size(`results`) $\ge$ 1.
+  * (C3) type(`results`[-1]) $=$ `token`.
+
+### Examples
+
+```mlir
+%results:2 = "stablehlo.recv"(%token) {
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+  is_host_transfer = true
+} : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.reduce
 
 ### Semantics
@@ -3727,6 +3789,53 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %on_false: [[5, 6], [7, 8]]
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.send
+
+### Semantics
+
+Sends `inputs` to a channel `channel_id`.
+
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
+
+If `is_host_transfer` is `true`, then the operation transfers data to the
+host. Otherwise, it transfers data to another device. What this means is
+implementation-defined.
+
+### Inputs
+
+| Name               | Type                                             |
+|--------------------|--------------------------------------------------|
+| `inputs`           | variadic number of tensors of any supported type |
+| `token`            | `token`                                          |
+| `channel_id`       | constant of type `si64`                          |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`  |
+| `is_host_transfer` | constant of type `i1`                            |
+
+### Outputs
+
+| Name      | Type    |
+|-----------|---------|
+| `result` | `token` |
+
+### Constraints
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+    * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+
+### Examples
+
+```mlir
+%result = "stablehlo.send"(%operand, %token) {
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+  is_host_transfer = true
+} : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

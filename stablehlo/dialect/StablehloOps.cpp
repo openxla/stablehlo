@@ -2851,6 +2851,17 @@ LogicalResult MapOp::reifyReturnTypeShapes(
 }
 
 //===----------------------------------------------------------------------===//
+// Send Op
+//===----------------------------------------------------------------------===//
+
+LogicalResult SendOp::inferReturnTypes(
+    MLIRContext* context, Optional<Location>, ValueRange operands,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(operands[operands.size() - 1].getType());
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // RecvOp
 //===----------------------------------------------------------------------===//
 
