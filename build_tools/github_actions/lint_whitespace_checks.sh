@@ -44,11 +44,11 @@ files_with_trailing_whitespace() {
 }
 
 fix_files_without_eof_newline() {
-  [ -z "$1" ] || sed -i -e '$a\' "$1"
+  echo $1 | xargs  --no-run-if-empty sed -i -e '$a\'
 }
 
 fix_files_with_trailing_whitespace() {
-  [ -z "$1" ] || sed -i 's/[ \t]*$//' "$1"
+  echo $1 | xargs --no-run-if-empty sed -i 's/[ \t]*$//'
 }
 
 EOF_NL=$(files_without_eof_newline)
