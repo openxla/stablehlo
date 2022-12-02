@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLHLO_REFERENCE_ELEMENT_H
-#define STABLHLO_REFERENCE_ELEMENT_H
+#ifndef STABLEHLO_REFERENCE_ELEMENT_H
+#define STABLEHLO_REFERENCE_ELEMENT_H
 
 #include <complex>
 #include <variant>
@@ -130,4 +130,4 @@ inline raw_ostream &operator<<(raw_ostream &os, Element element) {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLHLO_REFERENCE_ELEMENT_H
+#endif  // STABLEHLO_REFERENCE_ELEMENT_H
