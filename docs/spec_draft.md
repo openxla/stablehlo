@@ -1833,31 +1833,36 @@ overflow, the result is implementation-defined and one of the following:
   * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
     saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
-For conversions involving floating-point-to-floating-point or
-complex-to-complex, if the source value can be exactly represented in the
-destination type, the result value is that exact representation. If the source
-value is between two adjacent destination values, the result is
+For conversions involving **floating-point-to-floating-point** or
+**integer-to-floating-point**, if the source value can be exactly represented in
+the destination type, the result value is that exact representation. If the
+source value is between two adjacent destination values, the result is
 implementation-defined. Otherwise, the behavior is undefined.
 
-For conversions involving floating-point-to-complex or
-complex-to-floating-point, the imaginary value is zero or truncated,
-respectively. The conversion of inner representation of complex element type
-follows the floating-point-to-floating-point conversion.
+Conversion involving **complex-to-complex** follows the same behavior of
+**floating-point-to-floating-point** conversions for converting the inner
+representation.
 
-For conversions involving floating-point-to-integer or complex-to-integer,
-the fractional part is truncated. The behavior is undefined if the truncated
-value cannot be represented in the destination type.
+For conversions involving **floating-point-to-complex** or
+**complex-to-floating-point**, the destination imaginary value is zeroed or the
+source imaginary value is ignored, respectively. The conversion of inner
+representation of complex element type follows the
+**floating-point-to-floating-point** conversion.
 
-For conversions involving integer-to-floating-point or integer-to-complex,
-the destination value is exact if possible and for conversions involving
-rounding, the result is rounded using any normalizing rounding-direction
-attributes `round` from the IEEE-754 specification (e.g. `roundTiesToEven`). If
-the value being converted is outside of the range of values destination type can
-represent, the result is undefined.
+Conversions involving **integer-to-complex** follows the same behavior as
+**integer-to-floating-point** conversion while converting the source integer to
+destination real part. The destination imaginary part is zeroed.
 
-For boolean-to-any-supported-type conversions, the value `false` is converted to
-zero-equivalent, and the value `true` is converted to one-equivalent and
-vice-versa.
+For conversions involving **floating-point-to-integer**, the fractional part is
+truncated. The behavior is undefined if the truncated value cannot be
+represented in the destination type. Conversions involving
+**complex-to-integer** follows the same behavior while converting the source
+real part to destination integer. The source imaginary part is ignored.
+
+For **boolean-to-any-supported-type** conversions, the value `false` is
+converted to zero, and the value `true` is converted to one. For
+**any-supported-type-to-boolean** conversions, a zero value is converted to
+`false` and any non-zero value is converted to `true`.
 
 ### Inputs
 
