@@ -32,9 +32,9 @@ namespace {
 
 #define RETURN_CONVERTED_ENUM_ATTR(Name)                             \
   auto stablehloValue = stablehlo::stringify##Name(attr.getValue()); \
-  auto hloValue = vhlo::symbolize##Name(stablehloValue);             \
-  if (!hloValue.has_value()) return {};                              \
-  return vhlo::Name##Attr::get(attr.getContext(), hloValue.value())
+  auto vhloValue = vhlo::symbolize##Name(stablehloValue);            \
+  if (!vhloValue.has_value()) return {};                             \
+  return vhlo::Name##Attr::get(attr.getContext(), vhloValue.value())
 
 Attribute convertAttrToVhlo(Attribute stablehloAttr) {
   // Handle StableHLO attributes.
@@ -116,13 +116,13 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
   // with the exception of ArrayAttr which is converted recursively.
   // This will change once we fork necessary upstream types to VHLO.
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
-    SmallVector<Attribute> hloAttrs;
+    SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
-      auto hloAttr = convertAttrToVhlo(stablehloAttr);
-      if (!hloAttr) return {};
-      hloAttrs.push_back(hloAttr);
+      auto vhloAttr = convertAttrToVhlo(stablehloAttr);
+      if (!vhloAttr) return {};
+      vhloAttrs.push_back(vhloAttr);
     }
-    return ArrayAttr::get(stablehloAttrs.getContext(), hloAttrs);
+    return ArrayAttr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
   return stablehloAttr;
 }
@@ -169,10 +169,10 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
           stablehloOp, vhloTypes, vhloOperands, vhloAttrs);
     }
 
-    for (auto [hloRegion, stablehloRegion] :
+    for (auto [stablehloRegion, vhloRegion] :
          llvm::zip(stablehloOp->getRegions(), vhloOp->getRegions())) {
-      rewriter.inlineRegionBefore(hloRegion, stablehloRegion,
-                                  stablehloRegion.end());
+      rewriter.inlineRegionBefore(stablehloRegion, vhloRegion,
+                                  vhloRegion.end());
     }
     return success();
   }

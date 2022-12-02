@@ -40,7 +40,6 @@ namespace stablehlo {
 ///////////////////////
 namespace vhlo {
 namespace {
-using namespace vhlo;  // For VHLO Ops, Version, VhloDialect.
 
 FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
   if (versionRef == "current") {
@@ -160,11 +159,10 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
       return failure();
     }
     auto newOp = rewriter.replaceOpWithNewOp<TargetOp>(
-        op, op->getResultTypes(), op.getOperands(), op->getAttrs());
-    for (auto [hloRegion, stablehloRegion] :
+        op, op->getResultTypes(), op->getOperands(), op->getAttrs());
+    for (auto [oldRegion, newRegion] :
          llvm::zip(op->getRegions(), newOp->getRegions())) {
-      rewriter.inlineRegionBefore(hloRegion, stablehloRegion,
-                                  stablehloRegion.end());
+      rewriter.inlineRegionBefore(oldRegion, newRegion, newRegion.end());
     }
     return success();
   }
@@ -196,6 +194,52 @@ struct CustomCallOpV2ToV1
   }
 };
 
+// vhlo.collective_permute --> vhlo.collective_permute_v2
+struct CollectivePermuteOpV1ToV2
+    : public VersionConversionPattern<CollectivePermuteOpV1,
+                                      CollectivePermuteOpV2> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(CollectivePermuteOpV1) const final {
+    return success();
+  }
+};
+
+// vhlo.collective_permute_v2 --> vhlo.collective_permute
+struct CollectivePermuteOpV2ToV1
+    : public VersionConversionPattern<CollectivePermuteOpV2,
+                                      CollectivePermuteOpV1> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(CollectivePermuteOpV2 op) const final {
+    if (op.getChannelHandle().has_value()) {
+      return emitDowngradeError(op,
+                                "op has a non-empty channel_handle attribute");
+    }
+    return success();
+  }
+};
+
+// vhlo.all_gather--> vhlo.all_gather_v2
+struct AllGatherOpV1ToV2
+    : public VersionConversionPattern<AllGatherOpV1, AllGatherOpV2> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(AllGatherOpV1) const final {
+    return success();
+  }
+};
+
+// vhlo.all_gather_v2 --> vhlo.all_gather
+struct AllGatherOpV2ToV1
+    : public VersionConversionPattern<AllGatherOpV2, AllGatherOpV1> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(AllGatherOpV2 op) const final {
+    if (op.getUseGlobalDeviceIdsAttr()) {
+      return emitDowngradeError(
+          op, "op has a non-empty use_global_device_ids attribute");
+    }
+    return success();
+  }
+};
+
 }  // namespace
 }  // namespace vhlo
 
@@ -205,6 +249,10 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    MLIRContext* context) {
   patterns->add<vhlo::CustomCallOpV1ToV2>(*converter, context);
   patterns->add<vhlo::CustomCallOpV2ToV1>(*converter, context);
+  patterns->add<vhlo::CollectivePermuteOpV1ToV2>(*converter, context);
+  patterns->add<vhlo::CollectivePermuteOpV2ToV1>(*converter, context);
+  patterns->add<vhlo::AllGatherOpV1ToV2>(*converter, context);
+  patterns->add<vhlo::AllGatherOpV2ToV1>(*converter, context);
 }
 
 }  // namespace stablehlo

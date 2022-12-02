@@ -60,8 +60,8 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
-  return diag << version.getMajorVersion() << '.' << version.getMinorVersion()
-              << '.' << version.getPatchVersion();
+  return diag << version.getMajor() << '.' << version.getMinor() << '.'
+              << version.getPatch();
 }
 
 }  // namespace vhlo

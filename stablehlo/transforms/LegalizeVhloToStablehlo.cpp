@@ -33,11 +33,11 @@ namespace {
 //////////////////////////
 /// VHLO --> StableHLO ///
 //////////////////////////
-#define RETURN_CONVERTED_ENUM_ATTR(Name)                        \
-  auto stablehloValue = vhlo::stringify##Name(attr.getValue()); \
-  auto hloValue = stablehlo::symbolize##Name(stablehloValue);   \
-  if (!hloValue.has_value()) return {};                         \
-  return stablehlo::Name##Attr::get(attr.getContext(), hloValue.value())
+#define RETURN_CONVERTED_ENUM_ATTR(Name)                       \
+  auto vhloValue = vhlo::stringify##Name(attr.getValue());     \
+  auto stablehloValue = stablehlo::symbolize##Name(vhloValue); \
+  if (!stablehloValue.has_value()) return {};                  \
+  return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
 
 Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
@@ -111,13 +111,13 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   // with the exception of ArrayAttr which is converted recursively.
   // This will change once we fork necessary upstream types to VHLO.
   if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
-    SmallVector<Attribute> hloAttrs;
+    SmallVector<Attribute> stablehloAttrs;
     for (auto vhloAttr : vhloAttrs) {
-      auto hloAttr = convertAttrToStablehlo(vhloAttr);
-      if (!hloAttr) return {};
-      hloAttrs.push_back(hloAttr);
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
     }
-    return ArrayAttr::get(vhloAttrs.getContext(), hloAttrs);
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
   }
   return vhloAttr;
 }
@@ -183,9 +183,9 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
     }
 
-    for (auto [hloRegion, stablehloRegion] :
+    for (auto [vhloRegion, stablehloRegion] :
          llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {
-      rewriter.inlineRegionBefore(hloRegion, stablehloRegion,
+      rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
                                   stablehloRegion.end());
     }
     return success();

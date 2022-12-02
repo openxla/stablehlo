@@ -338,7 +338,7 @@ func.func @op_after_all(%arg0: !stablehlo.token) -> !stablehlo.token {
 // CHECK-LABEL: "op_after_all"
 
 func.func @op_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
-  //               CHECK: "vhlo.all_gather"(%arg0) {
+  //               CHECK: "vhlo.all_gather_v2"(%arg0) {
   //          CHECK-SAME:   all_gather_dim = 1 : i64,
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>,
@@ -527,7 +527,7 @@ func.func @op_count_leading_zeros(%arg0: tensor<i32>) -> tensor<i32> {
 // CHECK-LABEL: "op_count_leading_zeros"
 
 func.func @op_collective_permute(%arg0: tensor<16x8xf32>) -> tensor<16x8xf32> {
-  //               CHECK: "vhlo.collective_permute"(%arg0) {
+  //               CHECK: "vhlo.collective_permute_v2"(%arg0) {
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   source_target_pairs = dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>
   //          CHECK-SAME: } : (tensor<16x8xf32>) -> tensor<16x8xf32>

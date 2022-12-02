@@ -33,7 +33,9 @@ def VHLO_Dialect : Dialect {
 
     Version log:
       0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
-      0.4.0: Add CustomCallOp input output aliasing: https://github.com/openxla/stablehlo/pull/403
+      0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272. 
+             Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
+             Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
   }];
 
   let useDefaultAttributePrinterParser = 0;
@@ -347,7 +349,17 @@ def VHLO_WhileOpV1 : VHLO_Op<"while"> {
   let results = (outs Variadic<VHLO_TensorOrToken>);
 }
 
-def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather"> {
+def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather", "0.3.0", "0.3.0"> {
+  let arguments = (ins
+    VHLO_Tensor:$operand,
+    I64Attr:$all_gather_dim,
+    I64ElementsAttr:$replica_groups,
+    OptionalAttr<VHLO_ChannelHandle>:$channel_handle
+  );
+  let results = (outs VHLO_Tensor);
+}
+
+def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "0.4.0"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64Attr:$all_gather_dim,
@@ -558,7 +570,15 @@ def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute"> {
+def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute", "0.3.0", "0.3.0"> {
+  let arguments = (ins
+    VHLO_Tensor:$operand,
+    I64ElementsAttr:$source_target_pairs
+  );
+  let results = (outs VHLO_Tensor);
+}
+
+def VHLO_CollectivePermuteOpV2 : VHLO_Op<"collective_permute_v2", "0.4.0"> {
   let arguments = (ins
     VHLO_Tensor:$operand,
     I64ElementsAttr:$source_target_pairs,

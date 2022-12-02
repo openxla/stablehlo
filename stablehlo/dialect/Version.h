@@ -39,9 +39,9 @@ class Version {
   Version(int64_t major, int64_t minor, int64_t patch)
       : majorMinorPatch({major, minor, patch}) {}
 
-  int64_t getMajorVersion() const { return majorMinorPatch[0]; }
-  int64_t getMinorVersion() const { return majorMinorPatch[1]; }
-  int64_t getPatchVersion() const { return majorMinorPatch[2]; }
+  int64_t getMajor() const { return majorMinorPatch[0]; }
+  int64_t getMinor() const { return majorMinorPatch[1]; }
+  int64_t getPatch() const { return majorMinorPatch[2]; }
 
   bool operator<(Version const& other) {
     // Uses lexicographical_compare
