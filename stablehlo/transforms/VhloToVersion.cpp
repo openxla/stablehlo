@@ -30,63 +30,66 @@ limitations under the License.
 #define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
-namespace vhlo {
+namespace stablehlo {
 #define GEN_PASS_DEF_VHLOTOVERSIONPASS
 #include "stablehlo/transforms/Passes.h.inc"
+}  // namespace stablehlo
 
 ///////////////////////
 /// VHLO To Version ///
 ///////////////////////
-
+namespace vhlo {
 namespace {
+using namespace vhlo;  // For VHLO Ops, Version, VhloDialect.
 
-struct VhloToVersionPass
-    : public impl::VhloToVersionPassBase<VhloToVersionPass> {
-  VhloToVersionPass() : impl::VhloToVersionPassBase<VhloToVersionPass>() {}
-  VhloToVersionPass(VhloToVersionPassOptions const& opts)
-      : impl::VhloToVersionPassBase<VhloToVersionPass>(opts) {}
-
-  FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
-    if (versionRef == "current") {
-      return VhloDialect::getCurrentDialectVersion();
-    }
-    return Version::get(versionRef);
+FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
+  if (versionRef == "current") {
+    return VhloDialect::getCurrentVersion();
   }
+  return Version::fromString(versionRef);
+}
 
-  FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef) {
-    auto failOrVersion = parseTargetVersion(versionRef);
-    if (failed(failOrVersion)) {
-      if (targetVersion.empty()) {
-        return emitError(getOperation()->getLoc())
-               << "No target version specified. Specify target using: "
-                  "--vhlo-to-version='target=[targetVersion]'\n"
-               << "Target version must be of the form #.#.# or 'current'.";
-      }
-      return emitError(getOperation()->getLoc())
-             << "Invalid target version number argument '" << targetVersion
-             << "'\n"
+FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
+                                         Operation* op) {
+  auto failOrVersion = parseTargetVersion(versionRef);
+  if (failed(failOrVersion)) {
+    if (versionRef.empty()) {
+      return emitError(op->getLoc())
+             << "No target version specified. Specify target using: "
+                "--vhlo-to-version='target=[targetVersion]'\n"
              << "Target version must be of the form #.#.# or 'current'.";
     }
-
-    Version targetVersion = *failOrVersion;
-    if (targetVersion < VhloDialect::getMinimumDialectVersion()) {
-      return emitError(getOperation()->getLoc())
-             << "target version " << targetVersion.getAsArray()
-             << " is less than minimum supported";
-    }
-    if (VhloDialect::getCurrentDialectVersion() < targetVersion) {
-      return emitError(getOperation()->getLoc())
-             << "target version " << targetVersion.getAsArray()
-             << " is greater than current version";
-    }
-    return targetVersion;
+    return emitError(op->getLoc())
+           << "Invalid target version argument '" << versionRef << "'\n"
+           << "Target version must be of the form #.#.# or 'current'.";
   }
+
+  Version targetVersion = *failOrVersion;
+  if (targetVersion < VhloDialect::getMinimumVersion()) {
+    return emitError(op->getLoc()) << "target version " << targetVersion
+                                   << " is less than minimum supported "
+                                   << VhloDialect::getMinimumVersion();
+  }
+  if (VhloDialect::getCurrentVersion() < targetVersion) {
+    return emitError(op->getLoc()) << "target version " << targetVersion
+                                   << " is greater than current version "
+                                   << VhloDialect::getCurrentVersion();
+  }
+  return targetVersion;
+}
+
+using stablehlo::VhloToVersionPassOptions;
+using stablehlo::impl::VhloToVersionPassBase;
+struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
+  VhloToVersionPass() : VhloToVersionPassBase<VhloToVersionPass>() {}
+  VhloToVersionPass(VhloToVersionPassOptions const& opts)
+      : VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
   void runOnOperation() override {
     ConversionTarget target(getContext());
 
     // Validate version number
-    auto failOrVersion = validateTargetVersion(targetVersion);
+    auto failOrVersion = validateTargetVersion(targetVersion, getOperation());
     if (failed(failOrVersion)) {
       return signalPassFailure();
     }
@@ -95,21 +98,21 @@ struct VhloToVersionPass
     // An op is legal if the target version is in the ops `[min, max]`
     // supported version range.
     // Example:
-    //   CustomCallv1 0.0.0 -> 0.0.x
-    //   CustomCallv2 0.1.0 -> 0.4.x
-    //   CustomCallv3 0.5.0 -> Curr
+    //   CustomCallV1 0.0.0 -> 0.0.x
+    //   CustomCallV2 0.1.0 -> 0.4.x
+    //   CustomCallV3 0.5.0 -> Curr
     // Target Curr (0.5.0):
-    //   v3 legal    { Curr  in [0.5, Curr] }
-    //   v2 illegal  { Curr !in [0.1, 0.4] }
-    //   v1 illegal  { Curr !in [0.0, 0.0] }
+    //   V3 legal    { Curr  in [0.5, Curr] }
+    //   V2 illegal  { Curr !in [0.1, 0.4] }
+    //   V1 illegal  { Curr !in [0.0, 0.0] }
     // Target 0.4.0:
-    //   v3 illegal { 0.4 !in [0.5, Curr] }
-    //   v2 legal   { 0.4  in [0.1, 0.4] }
-    //   v1 illegal { 0.4 !in [0.0, 0.0] }
+    //   V3 illegal { 0.4 !in [0.5, Curr] }
+    //   V2 legal   { 0.4  in [0.1, 0.4] }
+    //   V1 illegal { 0.4 !in [0.0, 0.0] }
     // Target 0.0.0:
-    //   v3 illegal { 0.0 !in [0.5, Curr] }
-    //   v2 illegal { 0.1 !in [0.1, 0.4] }
-    //   v1 legal   { 0.0  in [0.0, 0.1] }
+    //   V3 illegal { 0.0 !in [0.5, Curr] }
+    //   V2 illegal { 0.1 !in [0.1, 0.4] }
+    //   V1 legal   { 0.0  in [0.0, 0.1] }
     target.addDynamicallyLegalDialect<VhloDialect>(
         [&targetVersion](Operation* op) {
           if (auto interface = dyn_cast<VersionedInterface>(op)) {
@@ -121,9 +124,10 @@ struct VhloToVersionPass
 
     vhlo::VhloToVersionConverter converter;
     RewritePatternSet patterns(&getContext());
-    vhlo::populateVhloToVersionPatterns(&patterns, &converter, &getContext());
+    stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
+                                             &getContext());
 
-    // Conversion from VHLO to StableHLO should never fail.
+    // Conversions within VHLO may fail if new features or ops are used.
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {
       return signalPassFailure();
@@ -193,13 +197,15 @@ struct CustomCallOpV2ToV1
 };
 
 }  // namespace
+}  // namespace vhlo
 
+namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  patterns->add<CustomCallOpV1ToV2>(*converter, context);
-  patterns->add<CustomCallOpV2ToV1>(*converter, context);
+  patterns->add<vhlo::CustomCallOpV1ToV2>(*converter, context);
+  patterns->add<vhlo::CustomCallOpV2ToV1>(*converter, context);
 }
 
-}  // namespace vhlo
+}  // namespace stablehlo
 }  // namespace mlir

@@ -40,10 +40,6 @@ namespace mlir {
 namespace vhlo {
 
 class VhloDialect : public Dialect {
-  // Update this value at every bump in Dialect Version.
-  static constexpr llvm::StringLiteral CURRENT_VERSION = "0.1.0";
-  static constexpr llvm::StringLiteral MINIMUM_VERSION = "0.0.0";
-
  public:
   explicit VhloDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "vhlo"; }
@@ -61,14 +57,10 @@ class VhloDialect : public Dialect {
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
 
   /// Return a Version representing the current dialect version.
-  static Version getCurrentDialectVersion() {
-    return *Version::get(CURRENT_VERSION);
-  }
+  static Version getCurrentVersion() { return Version(0, 4, 0); }
 
   /// Return a Version representing the minimum supported dialect version.
-  static Version getMinimumDialectVersion() {
-    return *Version::get(MINIMUM_VERSION);
-  }
+  static Version getMinimumVersion() { return Version(0, 3, 0); }
 };
 
 class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {

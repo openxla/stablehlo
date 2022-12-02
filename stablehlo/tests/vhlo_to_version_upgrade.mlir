@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --vhlo-to-version='target=0.1.0' %s | FileCheck %s
+// RUN: stablehlo-opt --vhlo-to-version='target=0.4.0' %s | FileCheck %s
 // RUN: stablehlo-opt --vhlo-to-version='target=current' %s | FileCheck %s
 
 // CHECK-LABEL: @test_upgrade

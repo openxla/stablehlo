@@ -21,7 +21,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {
-namespace vhlo {
+namespace stablehlo {
 
 template <typename VhloOpTy>
 struct VhloToStablehloOpImpl {
@@ -165,7 +165,7 @@ MAP_STABLEHLO_TO_VHLO(XorOp, V1)
 #undef MAP_STABLEHLO_TO_VHLO
 #undef MAP_STABLEHLO_TO_VHLO_V0
 
-}  // namespace vhlo
+}  // namespace stablehlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_TRANSFORMS_MAPSTABLEHLOTOVHLO_H

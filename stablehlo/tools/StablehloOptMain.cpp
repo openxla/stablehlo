@@ -23,7 +23,7 @@ limitations under the License.
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
-  mlir::vhlo::registerPasses();
+  mlir::stablehlo::registerPasses();
 
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);

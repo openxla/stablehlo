@@ -31,5 +31,4 @@ def VhloToVersionPass : Pass<"vhlo-to-version"> {
     Option<"targetVersion", "target", "std::string", "",
            "The target version. Must be a version of the form #.#.# or 'current'.">,
   ];
-
 }

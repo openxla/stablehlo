@@ -23,7 +23,7 @@ limitations under the License.
 #define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
-namespace vhlo {
+namespace stablehlo {
 
 #define GEN_PASS_DEF_VHLOLEGALIZETOSTABLEHLOPASS
 #include "stablehlo/transforms/Passes.h.inc"
@@ -134,7 +134,8 @@ struct VhloLegalizeToStablehloPass
 
     vhlo::VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
-    vhlo::populateVhloToStablehloPatterns(&patterns, &converter, &getContext());
+    stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
+                                               &getContext());
     registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // VHLO should always be convertible to StableHLO if upgraded.
@@ -150,11 +151,11 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
  public:
   using OpConversionPattern<VhloOpTy>::OpConversionPattern;
   LogicalResult matchAndRewrite(
-      VhloOpTy stablehloOp, typename VhloOpTy::Adaptor adaptor,
+      VhloOpTy vhloOp, typename VhloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
-    SmallVector<Type> versionedTypes;
-    if (failed(this->getTypeConverter()->convertTypes(
-            stablehloOp->getResultTypes(), versionedTypes)))
+    SmallVector<Type> stablehloTypes;
+    if (failed(this->getTypeConverter()->convertTypes(vhloOp->getResultTypes(),
+                                                      stablehloTypes)))
       return failure();
 
     // These operands have already been converted to StableHLO by
@@ -162,28 +163,28 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     ValueRange stablehloOperands = adaptor.getOperands();
 
     SmallVector<NamedAttribute> stablehloAttrs;
-    for (NamedAttribute hloAttr : stablehloOp->getAttrs()) {
-      auto stablehloAttr = convertAttrToStablehlo(hloAttr.getValue());
+    for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr.getValue());
       if (!stablehloAttr) return failure();
-      stablehloAttrs.push_back({hloAttr.getName(), stablehloAttr});
+      stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
     }
 
     // Convert the vhlo operation to a StableHLO equivalent.
     // This can almost be done in a generic fashion, except for
     // vhlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
-    VhloToStablehloOp<VhloOpTy> versionedOp;
+    VhloToStablehloOp<VhloOpTy> stablehloOp;
     if constexpr (std::is_same<VhloOpTy, vhlo::CaseOpV1>::value) {
-      versionedOp = rewriter.replaceOpWithNewOp<stablehlo::CaseOp>(
-          stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs,
-          stablehloOp.getBranches().size());
+      stablehloOp = rewriter.replaceOpWithNewOp<stablehlo::CaseOp>(
+          vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs,
+          vhloOp.getBranches().size());
     } else {
-      versionedOp = rewriter.replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
-          stablehloOp, versionedTypes, stablehloOperands, stablehloAttrs);
+      stablehloOp = rewriter.replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
+          vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
     }
 
     for (auto [hloRegion, stablehloRegion] :
-         llvm::zip(stablehloOp->getRegions(), versionedOp->getRegions())) {
+         llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {
       rewriter.inlineRegionBefore(hloRegion, stablehloRegion,
                                   stablehloRegion.end());
     }
@@ -211,5 +212,5 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
       >(patterns, converter, context);
 }
 
-}  // namespace vhlo
+}  // namespace stablehlo
 }  // namespace mlir

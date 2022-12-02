@@ -22,7 +22,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
-namespace vhlo {
+namespace stablehlo {
 #define GEN_PASS_DECL_STABLEHLOLEGALIZETOVHLOPASS
 #define GEN_PASS_DECL_VHLOLEGALIZETOSTABLEHLOPASS
 #define GEN_PASS_DECL_VHLOUPGRADEPASS
@@ -45,7 +45,7 @@ void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
 void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
-}  // namespace vhlo
+}  // namespace stablehlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_DIALECT_VHLO_OPS_H

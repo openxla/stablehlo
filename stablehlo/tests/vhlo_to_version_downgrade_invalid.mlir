@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.0.0' --verify-diagnostics --split-input-file %s 
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.3.0' --verify-diagnostics --split-input-file %s 
 
 func.func @custom_call_v2_with_result_layout(%arg0 : tensor<2xf32>) -> tensor<2xf32> {
   // expected-error @+2 {{failed to downgrade vhlo.custom_call_v2, op has a non-empty result_layouts attribute}}

@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Regex.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
@@ -31,22 +32,16 @@ namespace vhlo {
 class Version {
  public:
   /// Convenience method to extract major, minor, patch and create a Version
-  /// from a StringRef. Returns failure if invalid string.
-  static FailureOr<Version> get(llvm::StringRef versionRef) {
-    auto failOrVersionArray = Version::extractVersionNumbers(versionRef);
-    if (failed(failOrVersionArray)) {
-      return failure();
-    }
-
-    auto versionArr = *failOrVersionArray;
-    return Version(versionArr);
-  }
+  /// from a StringRef of the form `#.#.#`. Returns failure if invalid string.
+  static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
   /// Construct Version from major, minor, patch integers.
-  Version(std::array<int64_t, 3> majorMinorPatch)
-      : majorMinorPatch(majorMinorPatch) {}
+  Version(int64_t major, int64_t minor, int64_t patch)
+      : majorMinorPatch({major, minor, patch}) {}
 
-  std::array<int64_t, 3> getAsArray() const { return majorMinorPatch; }
+  int64_t getMajorVersion() const { return majorMinorPatch[0]; }
+  int64_t getMinorVersion() const { return majorMinorPatch[1]; }
+  int64_t getPatchVersion() const { return majorMinorPatch[2]; }
 
   bool operator<(Version const& other) {
     // Uses lexicographical_compare
@@ -60,31 +55,10 @@ class Version {
   }
 
  private:
-  /// Validate version argument is `#.#.#` (ex: 0.1.0, 1.2.3, 0.123.0)
-  /// Returns the vector of 3 matches (major, minor, patch) if successful,
-  /// else returns failure.
-  static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(
-      llvm::StringRef versionRef) {
-    llvm::Regex versionRegex("^([0-9]+)\\.([0-9]+)\\.([0-9]+)$");
-    llvm::SmallVector<llvm::StringRef> matches;
-    if (!versionRegex.match(versionRef, &matches)) {
-      return failure();
-    }
-    return std::array<int64_t, 3>{parseNumber(matches[1]),
-                                  parseNumber(matches[2]),
-                                  parseNumber(matches[3])};
-  }
-
-  static int64_t parseNumber(llvm::StringRef numRef) {
-    int64_t num;
-    if (numRef.getAsInteger(/*radix=*/10, num)) {
-      llvm_unreachable("failed to parse version number");
-    }
-    return num;
-  }
-
   std::array<int64_t, 3> majorMinorPatch;
 };
+
+mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version);
 
 }  // namespace vhlo
 }  // namespace mlir

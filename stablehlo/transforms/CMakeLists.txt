@@ -16,7 +16,7 @@ set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls)
 add_public_tablegen_target(PassesIncGen)
 
-add_mlir_dialect_library(VhloTypeConversion
+add_mlir_dialect_library(StablehloTypeConversion
   PARTIAL_SOURCES_INTENDED
   TypeConversion.cpp
 
@@ -26,11 +26,11 @@ add_mlir_dialect_library(VhloTypeConversion
   MLIRFuncDialect
 )
 
-add_mlir_dialect_library(VhloPasses
+add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
   LegalizeStablehloToVhlo.cpp
   LegalizeVhloToStablehlo.cpp
-  LegalizeVhloToVersion.cpp
+  VhloToVersion.cpp
 
   DEPENDS
   PassesIncGen
@@ -39,5 +39,5 @@ add_mlir_dialect_library(VhloPasses
   MLIRIR
   MLIRSupport
   MLIRQuantDialect
-  VhloTypeConversion
+  StablehloTypeConversion
 )

@@ -32,8 +32,8 @@ def VHLO_Dialect : Dialect {
     A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
 
     Version log:
-      0.0.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
-      0.1.0: Add CustomCallOp input output aliasing: https://github.com/openxla/stablehlo/pull/403
+      0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
+      0.4.0: Add CustomCallOp input output aliasing: https://github.com/openxla/stablehlo/pull/403
   }];
 
   let useDefaultAttributePrinterParser = 0;
@@ -47,16 +47,16 @@ include "stablehlo/dialect/VhloAttrs.td"
 // - ReturnOp needs a trait for Terminator.
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
 //   multiple variadic arguments.
-class VHLO_Op<string mnemonic, string minVersion = "0.0.0", string maxVersion = "current", list<Trait> traits = []> :
+class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = "current", list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic, 
       [DeclareOpInterfaceMethods<VersionedInterface>] # traits> {
   let extraClassDefinition = [{
     mlir::vhlo::Version $cppClass::getMinVersion() {
-      return *mlir::vhlo::Version::get("}] #  minVersion # [{");
+      return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
     }
     mlir::vhlo::Version $cppClass::getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentDialectVersion();
-      return *mlir::vhlo::Version::get("}] #  maxVersion # [{");
+      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
     }
   }];
 }
@@ -272,7 +272,7 @@ def VHLO_XorOpV1 : VHLO_Op<"xor"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.0.0", "current", [Terminator]> {
+def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.3.0", "current", [Terminator]> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple >:$results
   );
@@ -392,7 +392,7 @@ def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_ReduceOpV1 : VHLO_Op<"reduce", "0.0.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ReduceOpV1 : VHLO_Op<"reduce", "0.3.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,
@@ -584,7 +584,7 @@ def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum"> {
   let results = (outs VHLO_Tensor);
 }
 
-def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.0.0", "0.0.0"> {
+def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.3.0", "0.3.0"> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
@@ -600,7 +600,7 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.0.0", "0.0.0"> {
   let results = (outs Variadic<VHLO_TensorOrTokenOrTuple>);
 }
 
-def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.1.0"> {
+def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0"> {
   let arguments = (ins
     Variadic<VHLO_TensorOrTokenOrTuple>:$inputs,
     StrAttr:$call_target_name,
@@ -705,7 +705,7 @@ def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape"> {
   let results = (outs VHLO_Tensor:$result);
 }
 
-def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.0.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.3.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     TensorOf<[AnyInteger, Index]>:$scatter_indices,
@@ -805,7 +805,7 @@ def VHLO_TriangularSolveOpV1 : VHLO_Op<"triangular_solve"> {
   let results = (outs VHLO_FpOrComplexTensor);
 }
 
-def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.0.0", "current", [SameVariadicOperandSize]> {
+def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.3.0", "current", [SameVariadicOperandSize]> {
   let arguments = (ins
     Variadic<VHLO_Tensor>:$inputs,
     Variadic<VHLO_Tensor>:$init_values,

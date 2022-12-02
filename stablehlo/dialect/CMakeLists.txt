@@ -84,10 +84,12 @@ add_mlir_dialect_library(StablehloRegister
   DEPENDS
   ChloOpsIncGen
   StablehloOpsIncGen
+  VhloOpsIncGen
 
   LINK_LIBS PUBLIC
   ChloOps
   StablehloOps
+  VhloOps
 )
 
 add_mlir_dialect_library(StablehloAssemblyFormat
@@ -162,6 +164,7 @@ add_dependencies(mlir-headers VhloOpsIncGen)
 add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
   VhloOps.cpp
+  Version.cpp
 
   DEPENDS
   VhloOpsIncGen
