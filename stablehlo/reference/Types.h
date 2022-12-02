@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLHLO_REFERENCE_TYPES_H
-#define STABLHLO_REFERENCE_TYPES_H
+#ifndef STABLEHLO_REFERENCE_TYPES_H
+#define STABLEHLO_REFERENCE_TYPES_H
 
 #include "mlir/IR/Types.h"
 
@@ -49,4 +49,4 @@ bool isSupportedComplexType(Type type);
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLHLO_REFERENCE_TYPES_H
+#endif  // STABLEHLO_REFERENCE_TYPES_H

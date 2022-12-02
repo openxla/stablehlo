@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLHLO_REFERENCE_OPS_H
-#define STABLHLO_REFERENCE_OPS_H
+#ifndef STABLEHLO_REFERENCE_OPS_H
+#define STABLEHLO_REFERENCE_OPS_H
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -46,4 +46,4 @@ Tensor eval(XorOp op, const Tensor &lhs, const Tensor &rhs);
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLHLO_REFERENCE_OPS_H
+#endif  // STABLEHLO_REFERENCE_OPS_H
