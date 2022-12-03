@@ -238,7 +238,7 @@ func.func @reduce_precision_overflow_int32_m(%arg0: tensor<3x4xf32>) -> (tensor<
 
 func.func @variadic_with_attr_no_comma(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> () {
   // expected-error @+1 {{expected ','}}
-  %0 = stablehlo.concatenate %arg0, %arg1 dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  %0 = stablehlo.concatenate %arg0, %arg1 dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
   func.return
 }
 
@@ -246,7 +246,7 @@ func.func @variadic_with_attr_no_comma(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2
 
 func.func @variadic_with_attr_no_comma_no_dim(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> () {
   // expected-error @+1 {{expected ','}}
-  %0 = stablehlo.concatenate %arg0, %arg1: (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  %0 = stablehlo.concatenate %arg0, %arg1: (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
   func.return
 }
 
@@ -254,7 +254,7 @@ func.func @variadic_with_attr_no_comma_no_dim(%arg0: tensor<4x1xf32>, %arg1: ten
 
 func.func @variadic_with_attr_no_dim(%arg0: tensor<4x1xf32>, %arg1: tensor<4x2xf32>) -> (tensor<3x4xf32>) {
   // expected-error @+1 {{custom op 'stablehlo.concatenate' expected 'dim'}}
-  %0 = stablehlo.concatenate %arg0, %arg1, : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32> 
+  %0 = stablehlo.concatenate %arg0, %arg1, : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
   func.return
 }
 

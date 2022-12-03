@@ -7,7 +7,7 @@
 // trip of the a bytecoded version of this file. If the outputs do not match,
 // the test will fail.
 //
-// Additionally this test will fail if any ops are not implemented on read or 
+// Additionally this test will fail if any ops are not implemented on read or
 // write. This is accomplished by calling `stablehlo-opt` with the
 // `-debug-only=stablehlo-bytecode` trace enabled. If any type or attr is not
 // implemented, a message '***Not Implemented' is logged. If there are no logs
