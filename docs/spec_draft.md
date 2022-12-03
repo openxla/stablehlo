@@ -94,15 +94,15 @@ the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
-  * Input types and output types are one of tensor, token or tuple.
+  * Input types and output types are one of `tensor`, `token` or `tuple`.
 
 Function types are not first class, i.e. StableHLO doesn't support values of
 function types. Some StableHLO ops can take functions as inputs, but they are
 never produced as outputs.
 
-**String type** represent a sequence of bytes and is referred to in the document
-as `string`. Exact representation of string type (e.g. null terminated or not,
-encoding etc.) is implementation-defined.
+**String type** represents a sequence of bytes and is referred to in the
+document as `string`. Exact representation of string type (e.g. null terminated
+or not, encoding etc.) is implementation-defined.
 
 Strings types are not first class, i.e. StableHLO doesn't support values of
 string types. Some StableHLO ops can take strings as inputs, but they are never
@@ -216,9 +216,9 @@ and what happens if they don't, is TBD.
 
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
-of the collective op needs a **StableHLO channel**, and the collective op must
-provide a positive `channel_id` of type `si64`. Cross-replica communication
-doesn't need channels.
+of the collective op needs a channel, and the collective op must provide a
+positive `channel_id` of type `si64`. Cross-replica communication doesn't need
+channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections below. However, the strategies by
@@ -2365,10 +2365,10 @@ as a value that other operations can take a data dependency on.
 
 ### Inputs
 
-| Name            | Type              |
-|-----------------|-------------------|
-| `token`         | `token`           |
-| `infeed_config` | `string` constant |
+| Name            | Type                      |
+|-----------------|---------------------------|
+| `token`         | `token`                   |
+| `infeed_config` | constant of type `string` |
 
 ### Outputs
 
@@ -2980,13 +2980,13 @@ as a value that other operations can take a data dependency on.
 |------------------|--------------------------------------------------|
 | `inputs`         | variadic number of tensors of any supported type |
 | `token`          | `token`                                          |
-| `outfeed_config` | `string`  constant                               |
+| `outfeed_config` | constant of type `string`                        |
 
 ### Outputs
 
 | Name      | Type    |
 |-----------|---------|
-| `result` | `token` |
+| `result`  | `token` |
 
 ### Examples
 
