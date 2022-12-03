@@ -26,9 +26,6 @@ Following are the supported element types in StableHLO:
     (represents a pair of `f64`). Exact representation of complex types
     (e.g. whether the real part or the imaginary part comes first in memory)
     is implementation-defined.
-  * **String type**  represent a sequence of bytes. Exact representation of
-    string type (e.g. null terminated or not, encoding etc.) is
-    implementation-defined.
 
 **Tensor types** are the cornerstone of the StableHLO type system. They model
 immutable n-dimensional arrays and are referred to in the document as
@@ -97,11 +94,19 @@ the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
-  * Neither input nor output types can be function types themselves.
+  * Input types and output types are one of tensor, token or tuple.
 
 Function types are not first class, i.e. StableHLO doesn't support values of
 function types. Some StableHLO ops can take functions as inputs, but they are
 never produced as outputs.
+
+**String type** represent a sequence of bytes and is referred to in the document
+as `string`. Exact representation of string type (e.g. null terminated or not,
+encoding etc.) is implementation-defined.
+
+Strings types are not first class, i.e. StableHLO doesn't support values of
+string types. Some StableHLO ops can take strings as inputs, but they are never
+produced as outputs.
 
 ## Programs
 
@@ -355,13 +360,13 @@ syntax.
   floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56.78)`,
   where the first constant is the real part, and the second constant is the
   imaginary part.
-  * **String constants** String constants are represented as a sequence of
-  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
-  encoding) or "\18\A3" (in hex encoding).
   * **Tensor constants** use NumPy notation. For example,
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
   `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
+  * **String constants** String constants are represented as a sequence of
+  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
+  encoding) or "\18\A3" (in hex encoding).
 
 ## Index of Ops
    * [abs](#stablehloabs)
@@ -2381,8 +2386,7 @@ as a value that other operations can take a data dependency on.
 
 ```mlir
 %results:2 = "stablehlo.infeed"(%token) {
-  infeed_config = "",
-  layout = [[2, 0, 1]]
+  infeed_config = ""
 } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
 

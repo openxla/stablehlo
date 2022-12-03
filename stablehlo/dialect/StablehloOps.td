@@ -986,8 +986,7 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
     Example:
     ```mlir
     %results:2 = "stablehlo.infeed"(%token) {
-      infeed_config = "",
-      layout = [[2, 0, 1]]
+      infeed_config = ""
     } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
     ```
   }];
