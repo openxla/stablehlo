@@ -802,6 +802,49 @@ LogicalResult inferDotGeneralOp(
   return success();
 }
 
+LogicalResult inferDynamicUpdateSliceOp(
+    Optional<Location> location, Value operand, Value update,
+    ValueRange startIndices,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  ShapedType operandType = operand.getType().cast<ShapedType>();
+  ShapedType updateType = update.getType().cast<ShapedType>();
+  int64_t operandRank = operandType.getRank();
+  int64_t updateRank = updateType.getRank();
+  if (operandRank != updateRank)
+    return emitOptionalError(
+        location, "update rank does not match operand rank: ", updateRank,
+        " vs ", operandRank, ".");
+  auto idxTensor =
+      startIndices.take_front().front().getType().cast<ShapedType>();
+  Type firstElemTy = idxTensor.getElementType();
+  Type elemTy;
+  for (auto idx : llvm::drop_begin(startIndices, 1)) {
+    idxTensor = idx.getType().cast<ShapedType>();
+    elemTy = idxTensor.getElementType();
+    if (firstElemTy != elemTy)
+      return emitOptionalError(
+          location,
+          "start indices must have same element type (encountered mismatch: ",
+          firstElemTy, " vs ", elemTy, ")");
+  }
+  if ((int64_t)startIndices.size() != operandRank)
+    return emitOptionalError(
+        location, "expects number of start_indices to match operand rank: ",
+        startIndices.size(), " vs ", operandRank, ".");
+  for (auto it : llvm::enumerate(
+           llvm::zip(operandType.getShape(), updateType.getShape()))) {
+    auto operandDim = std::get<0>(it.value());
+    auto updateDim = std::get<1>(it.value());
+    if (updateDim < 0 || updateDim > operandDim)
+      return emitOptionalError(location, "expects size at dimension ",
+                               it.index(), " of update to be in range [0, ",
+                               operandDim, "]. Got: ", updateDim, ".");
+  }
+  inferredReturnShapes.emplace_back(operandType.getShape(),
+                                    operandType.getElementType());
+  return success();
+}
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);

@@ -1600,7 +1600,7 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
 
 def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
       [Pure, AllElementTypesMatch<["operand", "update", "result"]>,
-       AllShapesMatch<["operand", "result"]>]> {
+       AllShapesMatch<["operand", "result"]>, InferTensorType]> {
   let summary = "Dynamic Update Slice operator";
   let description = [{
     Produces a `result` tensor which is equal to the `operand` tensor except
@@ -1622,7 +1622,6 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
     Variadic<HLO_ScalarIntTensor>:$start_indices
   );
   let results = (outs HLO_Tensor:$result);
-  let hasVerifier = 1;
 
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
