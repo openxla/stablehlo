@@ -2101,7 +2101,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts,
     DefaultValuedOptionalAttr<
         TypedArrayAttrBase<
-            OutputOperandAlias,
+            StableHLO_OutputOperandAlias,
             "Aliasing attribute for outputs and operands of CustomCall">,
         "{}">:$output_operand_aliases
   );
