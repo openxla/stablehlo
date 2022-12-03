@@ -648,8 +648,8 @@ Afterwards, within each `process_group`:
 
 ### Semantics
 
-Within each process group in the StableHLO grid, performs reduction, using
-`computations`, over the  values of the `operand` tensor from each process and
+Within each process group in the StableHLO grid, applies a reduction function
+`computation` to the values of the `operand` tensor from each process and
 produces a `result` tensor.
 
 The operation splits the StableHLO grid into process groups as follows:
@@ -665,12 +665,14 @@ Afterwards, within each `process_group`:
     `receiver` in `process_group`.
   * ```
     result@process[i0, i1, ..., iR-1] =
-        reduce(
-          inputs=[operands@process[j][i0, i1, ..., iR-1] for j in range(size(operands@process))],
-          init_values=[I], # such that `computation` and `I` form a monoid]
+        reduce_without_init(
+          inputs=operands@process[:][i0, i1, ..., iR-1],
           dimensions=[0],
           body=computation
         )
+
+    where `reduce_without_init` works exactly like `reduce`, except that its
+    `schedule` doesn't include init values.
     ```
 
 ### Inputs
@@ -699,9 +701,9 @@ Afterwards, within each `process_group`:
   * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          from `indices(replica_groups)`.
   * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-  * (C5) type(`result`) $=$ type(`operand`).
-  * (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(`operand`).
+  * (C6) type(`result`) $=$ type(`operand`).
 
 ### Examples
 

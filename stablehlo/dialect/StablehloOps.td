@@ -1304,9 +1304,9 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
     [HLO_CompatibleOperandsAndResultType]> {
   let summary = "AllReduce operator";
   let description = [{
-    Within each process group in the StableHLO grid, performs reduction, using
-    `computations`, over the  values of the `operand` tensor from each process
-    and produces a `result` tensor.
+    Within each process group in the StableHLO grid, applies a reduction function
+    `computation` to the values of the `operand` tensor from each process and
+    produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_reduce
