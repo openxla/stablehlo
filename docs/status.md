@@ -46,7 +46,7 @@ one of the following tracking labels.
 | add                      | yes           | yes          | yes            | yes             | yes         |
 | after_all                | yes           | yes          | no             | yes             | no          |
 | all_gather               | yes           | resivit      | revisit        | no              | no          |
-| all_reduce               | no            | revisit      | revisit        | no              | no          |
+| all_reduce               | yes           | revisit      | yes            | no              | no          |
 | all_to_all               | yes           | revisit      | yes            | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | yes           | revisit      | yes            | yes             | no          |

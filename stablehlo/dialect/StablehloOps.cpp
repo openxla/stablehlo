@@ -255,7 +255,7 @@ LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
 LogicalResult ReduceScatterOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/true,
-                                      /*expectedGroupSize*/ llvm::None)))
+                                      /*expectedGroupSize=*/llvm::None)))
     return failure();
   auto operandType = getOperand().getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
@@ -1985,7 +1985,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 LogicalResult AllGatherOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/true,
-                                      /*expectedGroupSize*/ llvm::None)))
+                                      /*expectedGroupSize=*/llvm::None)))
     return failure();
 
   auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
@@ -2031,6 +2031,30 @@ LogicalResult AllGatherOp::verify() {
              << ", expected to be a multiple of operand gather dimension size "
              << operandType.getDimSize(allGatherDimIndex);
   }
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// AllReduceOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult AllReduceOp::verify() {
+  if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
+                                      /*allGroupsMustHaveSameSize=*/false,
+                                      /*expectedGroupSize=*/llvm::None)))
+    return failure();
+
+  auto operandType = getOperand().getType().cast<TensorType>();
+  bool operandTypeRanked = operandType.isa<RankedTensorType>();
+  Block& block = getComputation().front();
+  SmallVector<TensorType> accumulatorSubshapes;
+  if (failed(hlo::verifyReducerShape(
+          this->getLoc(), block, {operandType},
+          {RankedTensorType::get({}, operandType.getElementType())},
+          /*numInputs=*/1, /*allowedDimensions=*/{},
+          /*allInputsUnranked=*/!operandTypeRanked, accumulatorSubshapes)))
+    return failure();
 
   return success();
 }

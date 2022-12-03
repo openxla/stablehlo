@@ -373,6 +373,7 @@ syntax.
    * [add](#stablehloadd)
    * [after_all](#stablehloafter_all)
    * [all_gather](#stablehloall_gather)
+   * [all_reduce](#stablehloall_reduce)
    * [all_to_all](#stablehloall_to_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
@@ -642,6 +643,88 @@ Afterwards, within each `process_group`:
 ```
 
 [Back to Ops](#index-of-ops)
+
+## stablehlo.all_reduce
+
+### Semantics
+
+Within each process group in the StableHLO grid, applies a reduction function
+`computation` to the values of the `operand` tensor from each process and
+produces a `result` tensor.
+
+The operation splits the StableHLO grid into process groups as follows:
+  * `channel_id <= 0` and `use_global_device_ids = false`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = false`,
+    `cross_replica_and_partition(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = true`,
+    `flattened_ids(replica_groups)`.
+
+Afterwards, within each `process_group`:
+  * `operands@receiver = [operand@sender for sender in process_group]` for all
+    `receiver` in `process_group`.
+  * ```
+    result@process[i0, i1, ..., iR-1] =
+        reduce_without_init(
+          inputs=operands@process[:][i0, i1, ..., iR-1],
+          dimensions=[0],
+          body=computation
+        )
+
+    ```
+    where `reduce_without_init` works exactly like `reduce`, except that its
+    `schedule` doesn't include init values.
+
+### Inputs
+
+| Name                    | Type                                                             |
+|-------------------------|------------------------------------------------------------------|
+| `operand`               | tensor of any supported type                                     |
+| `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` |
+| `channel_id`            | constant of type `si64`                                          |
+| `use_global_device_ids` | constant of type `boolean`                                       |
+| `computation`           | `function`                                                       |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) All values in `replica_groups` are unique.
+  * (C2) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+         from `indices(replica_groups)`.
+  * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+         `E = element_type(`operand`).
+  * (C6) type(`result`) $=$ type(`operand`).
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [1.0, 2.0, 3.0, 4.0]
+// %operand@(1, 0): [5.0, 6.0, 7.0, 8.0]
+%result = "stablehlo.all_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+    "stablehlo.return"(%0) : (tensor<f32>) -> ()
+}) {
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+} : (tensor<4xf32>) -> tensor<4xf32>
+// %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
+// %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
+```
+
+[Back to Ops](#index-of-ops)
+
 
 ## stablehlo.all_to_all
 
