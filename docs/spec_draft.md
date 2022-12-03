@@ -1931,7 +1931,7 @@ More formally, `result[i0, ..., iR-1]` is defined as:
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
   * (C5) All `start_indices` have the same type.
-  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
+  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
     [0, rank(`operand`)).
 
 
@@ -3067,9 +3067,9 @@ as a value that other operations can take a data dependency on.
 
 ### Outputs
 
-| Name      | Type    |
-|-----------|---------|
-| `result`  | `token` |
+| Name     | Type    |
+|----------|---------|
+| `result` | `token` |
 
 ### Examples
 
@@ -4004,8 +4004,8 @@ implementation-defined.
 
 ### Outputs
 
-| Name      | Type    |
-|-----------|---------|
+| Name     | Type    |
+|----------|---------|
 | `result` | `token` |
 
 ### Constraints
