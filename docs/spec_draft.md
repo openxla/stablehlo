@@ -598,13 +598,13 @@ Afterwards, within each `process_group`:
 
 ### Inputs
 
-| Name                    | Type                                                             |
-|-------------------------|------------------------------------------------------------------|
-| `operand`               | tensor of any supported type                                     |
-| `all_gather_dim`        | constant of type `si64`                                          |
-| `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` |
-| `channel_id`            | constant of type `si64`                                          |
-| `use_global_device_ids` | constant of type `boolean`                                       |
+| Name                    | Type                                         |
+|-------------------------|----------------------------------------------|
+| `operand`               | tensor of any supported type                 |
+| `all_gather_dim`        | constant of type `si64`                      |
+| `replica_groups`        | 2-dimensional tensor constant of type `si64` |
+| `channel_id`            | constant of type `si64`                      |
+| `use_global_device_ids` | constant of type `boolean`                   |
 
 ### Outputs
 
@@ -764,13 +764,13 @@ Afterwards, within each `process_group`:
 
 ### Inputs
 
-| Name               | Type                                                             |
-|--------------------|------------------------------------------------------------------|
-| `operand`          | tensor of any supported type                                     |
-| `split_dimension`  | constant of type `si64`                                          |
-| `concat_dimension` | constant of type `si64`                                          |
-| `split_count`      | constant of type `si64`                                          |
-| `replica_groups`   | variadic number of 1-dimensional tensor constants of type `si64` |
+| Name               | Type                                         |
+|--------------------|----------------------------------------------|
+| `operand`          | tensor of any supported type                 |
+| `split_dimension`  | constant of type `si64`                      |
+| `concat_dimension` | constant of type `si64`                      |
+| `split_count`      | constant of type `si64`                      |
+| `replica_groups`   | 2-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
