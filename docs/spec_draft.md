@@ -201,6 +201,19 @@ Further formalization, e.g. where these channel ids are coming from, how
 processes programs become aware of them and what kind of synchronization is
 introduced by them, is TBD.
 
+### Streaming communication
+
+Every StableHLO process has access to two streaming interfaces:
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
+
+Unlike channels, which are used to communicate between processes and therefore
+have processes at both of their ends, infeeds and outfeeds have their other
+end implementation-defined.
+
+Further formalization, e.g. how streaming communication influences execution
+order and what kind of synchronization is introduced by it, is TBD.
+
 ### Collective ops
 
 There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
@@ -312,19 +325,6 @@ def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]
 For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
-
-### Streaming communication
-
-Every StableHLO process has access to two streaming interfaces:
-  * **Infeed** that can be read from.
-  * **Outfeed** that can be written to.
-
-Unlike channels, which are used to communicate between processes and therefore
-have processes at both of their ends, infeeds and outfeeds have their other
-end implementation-defined.
-
-Further formalization, e.g. how streaming communication influences execution
-order and what kind of synchronization is introduced by it, is TBD.
 
 ## Errors
 
