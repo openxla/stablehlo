@@ -94,11 +94,19 @@ the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
-  * Neither input nor output types can be function types themselves.
+  * Input types and output types are one of tensor, token or tuple.
 
 Function types are not first class, i.e. StableHLO doesn't support values of
 function types. Some StableHLO ops can take functions as inputs, but they are
 never produced as outputs.
+
+**String type** represent a sequence of bytes and is referred to in the document
+as `string`. Exact representation of string type (e.g. null terminated or not,
+encoding etc.) is implementation-defined.
+
+Strings types are not first class, i.e. StableHLO doesn't support values of
+string types. Some StableHLO ops can take strings as inputs, but they are never
+produced as outputs.
 
 ## Programs
 
@@ -305,6 +313,19 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
+### Streaming communication
+
+Every StableHLO process has access to two streaming interfaces:
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
+
+Unlike channels, which are used to communicate between processes and therefore
+have processes at both of their ends, infeeds and outfeeds have their other
+end implementation-defined.
+
+Further formalization, e.g. how streaming communication influences execution
+order and what kind of synchronization is introduced by it, is TBD.
+
 ## Errors
 
 StableHLO programs are validated through an extensive set of constraints for
@@ -343,6 +364,9 @@ syntax.
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
   `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
+  * **String constants** String constants are represented as a sequence of
+  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
+  encoding) or "\18\A3" (in hex encoding).
 
 ## Index of Ops
    * [abs](#stablehloabs)
@@ -379,6 +403,7 @@ syntax.
    * [get_tuple_element](#stablehloget_tuple_element)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
+   * [infeed](#stablehloinfeed)
    * [iota](#stablehloiota)
    * [is_finite](#stablehlois_finite)
    * [log](#stablehlolog)
@@ -392,6 +417,7 @@ syntax.
    * [not](#stablehlonot)
    * [optimization_barrier](#stablehlooptimization_barrier)
    * [or](#stablehloor)
+   * [outfeed](#stablehlooutfeed)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
@@ -2324,6 +2350,48 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 [Back to Ops](#index-of-ops)
 
+
+## stablehlo.infeed
+
+### Semantics
+
+Reads data from the infeed and produces `results`.
+
+Semantics of `infeed_config` is implementation-defined.
+
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify the side effect of this operation
+as a value that other operations can take a data dependency on.
+
+### Inputs
+
+| Name            | Type              |
+|-----------------|-------------------|
+| `token`         | `token`           |
+| `infeed_config` | `string` constant |
+
+### Outputs
+
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
+
+### Constraints
+
+  * (C1) size(`results`) $\ge$ 1.
+  * (C2) type(`results`[-1]) $=$ `token`.
+  * -- [Verify layout in InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
+
+### Examples
+
+```mlir
+%results:2 = "stablehlo.infeed"(%token) {
+  infeed_config = ""
+} : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.iota
 
 ### Semantics
@@ -2891,6 +2959,41 @@ operation.
 // %rhs: [[false, true], [false, true]]
 %result = "stablehlo.or"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, true]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.outfeed
+
+### Semantics
+
+Writes `inputs` to the outfeed and produces `result`.
+
+Semantics of `outfeed_config` is implementation-defined.
+
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
+
+### Inputs
+
+| Name             | Type                                             |
+|------------------|--------------------------------------------------|
+| `inputs`         | variadic number of tensors of any supported type |
+| `token`          | `token`                                          |
+| `outfeed_config` | `string`  constant                               |
+
+### Outputs
+
+| Name      | Type    |
+|-----------|---------|
+| `result` | `token` |
+
+### Examples
+
+```mlir
+%result = "stablehlo.outfeed"(%inputs0, %token) {
+  outfeed_config = ""
+} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

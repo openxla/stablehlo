@@ -978,17 +978,17 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
   let summary = "Infeed operator";
 
   let description = [{
-    Reads a single data item from the implicit Infeed streaming interface of
-    the device, interpreting the data as the given shape, and returns a XlaOp
-    of the data. Multiple Infeed operations are allowed in a computation, but
-    there must be a total order among the Infeed operations.
+    Reads data from the infeed and produces `results`.
 
-    Attributes:
-      layout:  Array attribute. Each element of the array is a minor_to_major
-               array corresponding to the shape of the data read from the infeed
-               interface.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloinfeed
 
-    See https://www.tensorflow.org/xla/operation_semantics#infeed.
+    Example:
+    ```mlir
+    %results:2 = "stablehlo.infeed"(%token) {
+      infeed_config = ""
+    } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+    ```
   }];
 
   let arguments = (ins
@@ -1007,11 +1007,17 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   let summary = "Outfeed operator";
 
   let description = [{
-    Generates outgoing data transfers for the given data. It takes data and a
-    token type operand and produces a token type value. Tokens are used for
-    ordering side-effecting operations.
+    Writes `inputs` to the outfeed and produces `result`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#outfeed.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooutfeed
+
+    Example:
+    ```mlir
+    %result = "stablehlo.outfeed"(%inputs0, %token) {
+      outfeed_config = ""
+    } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+    ```
   }];
 
   let arguments = (ins
