@@ -163,6 +163,10 @@ LogicalResult inferReduceWindowOp(
     Optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferSelectOp(
+    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,

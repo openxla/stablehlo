@@ -1166,6 +1166,57 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
+LogicalResult inferSelectOp(
+    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto predType = pred.getType().cast<ShapedType>();
+  auto trueType = onTrue.getType().cast<ShapedType>();
+  auto falseType = onFalse.getType().cast<ShapedType>();
+
+  // The operands 'on_true' and 'on_false' should have compatible types, i.e.,
+  //   (a) have the same element type, and
+  //   (b) have compatible shapes (i.e. the same shape and/or at least one
+  //       dynamic shape)
+  if (!hlo::compatibleShapeAndElementType(trueType, falseType))
+    return emitOptionalError(
+        location, "requires compatible types for non-predicate operands");
+
+  // The predicate, if not-scalar, should have the same shape as the remaining
+  // operands.
+  bool predCannotBeScalar = predType.hasRank() && predType.getRank() != 0;
+  if (predCannotBeScalar)
+    if (failed(verifyCompatibleShape(predType, trueType)))
+      return emitOptionalError(location,
+                               "requires the same shape for all operands");
+
+  // The output shape should be the most general of the operand shapes at each
+  // dimension.
+  ShapedTypeComponents& outputType = inferredReturnShapes.emplace_back();
+  if (trueType == falseType || !trueType.hasRank()) {
+    outputType = ShapedTypeComponents(trueType.cast<ShapedType>());
+  } else if (!falseType.hasRank()) {
+    outputType = ShapedTypeComponents(falseType.cast<ShapedType>());
+  } else {
+    assert(trueType.getRank() == falseType.getRank());
+    llvm::SmallVector<int64_t, 4> dims;
+    dims.reserve(trueType.getRank());
+    for (auto [trueDim, falseDim] :
+         llvm::zip(trueType.getShape(), falseType.getShape())) {
+      if (!hlo::isDynamicDimSize(trueDim)) {
+        dims.push_back(trueDim);
+        continue;
+      }
+      if (!hlo::isDynamicDimSize(falseDim)) {
+        dims.push_back(falseDim);
+        continue;
+      }
+      dims.push_back(ShapedType::kDynamic);
+    }
+    outputType = ShapedTypeComponents(dims, trueType.getElementType());
+  }
+  return success();
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:

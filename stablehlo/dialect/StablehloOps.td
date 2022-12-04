@@ -2469,8 +2469,6 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 
   let results = (outs HLO_Tensor:$result);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
     operands attr-dict `:`
       custom<SelectOpType>(type($pred), type($on_true), type($on_false), type($result))
