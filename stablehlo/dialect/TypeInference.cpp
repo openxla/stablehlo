@@ -1166,9 +1166,9 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferSelectOp(
-    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferSelectOp(Optional<Location> location, Value pred,
+                            Value onTrue, Value onFalse,
+                            SmallVectorImpl<Type>& inferredReturnTypes) {
   auto predType = pred.getType().cast<ShapedType>();
   auto trueType = onTrue.getType().cast<ShapedType>();
   auto falseType = onFalse.getType().cast<ShapedType>();
@@ -1191,30 +1191,8 @@ LogicalResult inferSelectOp(
 
   // The output shape should be the most general of the operand shapes at each
   // dimension.
-  ShapedTypeComponents& outputType = inferredReturnShapes.emplace_back();
-  if (trueType == falseType || !trueType.hasRank()) {
-    outputType = ShapedTypeComponents(trueType.cast<ShapedType>());
-  } else if (!falseType.hasRank()) {
-    outputType = ShapedTypeComponents(falseType.cast<ShapedType>());
-  } else {
-    assert(trueType.getRank() == falseType.getRank());
-    llvm::SmallVector<int64_t, 4> dims;
-    dims.reserve(trueType.getRank());
-    for (auto [trueDim, falseDim] :
-         llvm::zip(trueType.getShape(), falseType.getShape())) {
-      if (!hlo::isDynamicDimSize(trueDim)) {
-        dims.push_back(trueDim);
-        continue;
-      }
-      if (!hlo::isDynamicDimSize(falseDim)) {
-        dims.push_back(falseDim);
-        continue;
-      }
-      dims.push_back(ShapedType::kDynamic);
-    }
-    outputType = ShapedTypeComponents(dims, trueType.getElementType());
-  }
-  return success();
+  return hlo::inferMostSpecificType(location, {trueType, falseType},
+                                    inferredReturnTypes);
 }
 
 // The following properties are already enforced by the ODS:

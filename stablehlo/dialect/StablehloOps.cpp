@@ -3388,15 +3388,13 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 // SelectOp
 //===----------------------------------------------------------------------===//
 
-// Makes it such that a SelectOp that is a non-root operation in a DRR infers
-// the return type based on operand type.
-LogicalResult SelectOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult SelectOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   SelectOp::Adaptor op(operands, attributes);
   return hlo::inferSelectOp(location, op.getPred(), op.getOnTrue(),
-                            op.getOnFalse(), inferredReturnShapes);
+                            op.getOnFalse(), inferredReturnTypes);
 }
 
 LogicalResult SelectOp::reifyReturnTypeShapes(
