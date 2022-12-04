@@ -981,7 +981,8 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult inferOptimizationBarrierOp(
-    ValueRange operand, SmallVectorImpl<Type>& inferredReturnTypes) {
+    Optional<Location> location, ValueRange operand,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   for (auto inputArgType : operand.getTypes()) {
     inferredReturnTypes.emplace_back(inputArgType);
   }
@@ -1171,6 +1172,11 @@ LogicalResult inferReduceWindowOp(
           initValueTypes[i].getElementType());
   }
 
+  return success();
+}
+
+LogicalResult inferReturnOp(Optional<Location> location,
+                            SmallVectorImpl<Type>& inferredReturnTypes) {
   return success();
 }
 

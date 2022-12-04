@@ -148,7 +148,8 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
                          SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferOptimizationBarrierOp(
-    ValueRange operand, SmallVectorImpl<Type>& inferredReturnTypes);
+    Optional<Location> location, ValueRange operand,
+    SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
@@ -163,6 +164,9 @@ LogicalResult inferReduceWindowOp(
     Optional<DenseIntElementsAttr> windowDilations,
     Optional<DenseIntElementsAttr> padding, Region& body,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferReturnOp(Optional<Location> location,
+                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSelectOp(
     Optional<Location> location, Value pred, Value onTrue, Value onFalse,
