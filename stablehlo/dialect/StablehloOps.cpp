@@ -3334,7 +3334,7 @@ LogicalResult OptimizationBarrierOp::inferReturnTypes(
 }
 
 //===----------------------------------------------------------------------===//
-// OptimizationBarrierOp
+// ReturnOp
 //===----------------------------------------------------------------------===//
 LogicalResult ReturnOp::inferReturnTypes(
     MLIRContext*, Optional<Location> location, ValueRange operands,
