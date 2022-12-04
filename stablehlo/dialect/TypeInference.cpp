@@ -760,17 +760,24 @@ LogicalResult inferDotGeneralOp(
     auto rhsShape = rhsRankedType.getShape();
 
     for (auto [lhs, rhs] :
-         llvm::zip(lhsBatchingDimensions, rhsBatchingDimensions))
+         llvm::zip(lhsBatchingDimensions, rhsBatchingDimensions)) {
+      if (hlo::isDynamicDimSize(lhsShape[lhs])) continue;
+      if (hlo::isDynamicDimSize(rhsShape[rhs])) continue;
       if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "batching dimension sizes must "
                                  "match for lhs/rhs");
+    }
+
     for (auto [lhs, rhs] :
-         llvm::zip(lhsContractingDimensions, rhsContractingDimensions))
+         llvm::zip(lhsContractingDimensions, rhsContractingDimensions)) {
+      if (hlo::isDynamicDimSize(lhsShape[lhs])) continue;
+      if (hlo::isDynamicDimSize(rhsShape[rhs])) continue;
       if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "contracting dimension sizes must "
                                  "match for lhs/rhs");
+    }
   }
 
   auto lhsType = lhs.getType().cast<ShapedType>();
