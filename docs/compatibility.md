@@ -13,10 +13,7 @@ For the purposes of compatibility guarantees, we define StableHLO programs as pr
 These include:
 - Modularity ops: `ModuleOp`, `FuncOp`, `CallOp`.
 - Forks of types / attributes from Builtin and Quant dialect.
-- Global ops from ml_program dialect.
-- Additional new ops, attributes and types may be proposed and added by the Dynamism RFC*, Sparsity RFC or other RFCs in the future
-
-_*As a stop-gap provision, we propose adding `AddIOp`, `CmpIOp`, `ConstantIOp`, `DivSIOp`, `ExtSIOp`, `IndexCastOp`, `MaxSIOp`, `MinSIOp`, `MulIOp`, `SelectOp`, `SubIOp`, `TruncIOp`, `CastOp`, `DimOp`, `FromElementsOp` to the StableHLO opset to accommodate how MHLO programs look like today. These ops may be deprecated by the Dynamism RFC._
+- Additional new ops, attributes and types may be proposed and added by the Dynamism RFC, Sparsity RFC or other RFCs in the future.
 
 For all ops, attributes and types that are introduced in StableHLO but are not present in MHLO, a legalization to/from upstream dialects will be maintained. If incompatible changes are made upstream, legalization may fail, and the mismatch will need to be handled separately by the user (i.e. the producer will want to find a way to represent the upstream op in a different way using existing StableHLO ops, and the consumer will want to handle the StableHLO op directly).
 
@@ -71,4 +68,4 @@ The following demonstrates serialization on a `v0.5.0` producer that targets the
 
 A new op is added to the versioned dialect at every bump in minor version number to reflect the backward compatible change made. Additionally, if an attribute or type used by an op is changed and requires a version bump, the op using it will also require a new version. The process of upgrading/downgrading versioned IR and legalizing to/from StableHLO must always succeed if compatibility guarantees are applicable.
 
-**Proposal 4:** Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization. 
+**Proposal 4:** Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization.
