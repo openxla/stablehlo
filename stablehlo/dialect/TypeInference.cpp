@@ -458,8 +458,7 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
     // Check C4.1.
     if (!tensorsHaveSameElType(
             inputArgTypes[inputIdx],
-            block.getArgument(numInputs + inputIdx).getType(),
-            /*ignoreFpPrecision=*/true))
+            block.getArgument(numInputs + inputIdx).getType(), true))
       return emitOptionalError(
           loc, "The element-type of reduction-region's argument at index ",
           numInputs + inputIdx, " is expected to be ",
