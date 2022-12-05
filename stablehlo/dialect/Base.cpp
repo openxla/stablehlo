@@ -150,10 +150,26 @@ Type createRealType(TensorType type) {
   return hlo::getSameShapeTensorType(type, elementTy);
 }
 
-// TODO(hinsu): Add verification for bounds that it has the same size as rank
-// of the tensor and static dimensions don't have bounds.
-LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
+LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
                            function_ref<InFlightDiagnostic()> emitError) {
+  int64_t boundsLen = bounds.size();
+  int64_t rank = type.getRank();
+  if (boundsLen != rank) {
+    return emitError() << "Bounds length is " << boundsLen
+                       << ", expected to be equal to rank(" << rank
+                       << ") of the tensor";
+  }
+
+  for (int64_t dim = 0; dim < rank; ++dim) {
+    int64_t bound = bounds[dim];
+    int64_t dimSize = type.getDimSize(dim);
+    if (bound != ShapedType::kDynamic && dimSize != ShapedType::kDynamic) {
+      return emitError() << "Bound is " << bound << " for dimension " << dim
+                         << " with size " << dimSize
+                         << ", expected bound to be dynamic(?)";
+    }
+  }
+
   return success();
 }
 

@@ -100,9 +100,10 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType);
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
 Type createRealType(TensorType type);
 
-// Verify bounds expressed by HLO_BoundedInterface against the provided type.
-// See documentation for HLO_BoundedInterface for the list of checks.
-LogicalResult verifyBounds(ArrayRef<int64_t> bounds, ShapedType type,
+// Verify bounds expressed by HLOBoundedDialectInterface against the provided
+// type. See documentation for HLOBoundedDialectInterface for the list of
+// checks.
+LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
                            function_ref<InFlightDiagnostic()> emitError);
 
 // If an encoding attribute conforms to HLO_BoundedAttrInterface, return the
