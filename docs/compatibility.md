@@ -3,7 +3,7 @@
 Based on discussions held over the past two months, and new use cases and feedback left in comments on the first revision of this RFC, we propose the following path forward for compatibility guarantees for StableHLO programs:
 - Proposal 1: Add StableHLO forks of modularity ops, builtin/quant types and attributes, global ops, and additional upstream ops from future RFCs. Maintain conversion patterns to their upstream equivalents.
 - Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
-- Proposal 3: Provide forward / backward compatibility within a major release, with major releases spaced at least 6 months apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
+- Proposal 3: Provide forward / backward compatibility within a major release, with major releases spaced at least 5 years apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
 - Proposal 4: Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization.
 
 ## StableHLO Programs
@@ -45,7 +45,7 @@ StableHLO (opset, libStablehlo and serialization format) will version in complia
 
 _*StableHLO semantics is defined by the StableHLO specification and can be tested using the StableHLO interpreter. Refer to the [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md) for reference semantics._
 
-**Proposal 3:** Provide forward / backward compatibility within a major release, with major releases happening at least 6 months apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
+**Proposal 3:** Provide forward / backward compatibility within a major release, with major releases happening at least 5 years apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
 
 ## What's not covered?
 **Bugs:** We may make backward incompatible changes if the current implementation is clearly broken, that is, if it contradicts the Operation's spec.
