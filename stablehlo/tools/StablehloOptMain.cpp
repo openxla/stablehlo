@@ -18,10 +18,12 @@ limitations under the License.
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/tests/TestUtils.h"
+#include "stablehlo/transforms/Passes.h"
 
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   mlir::hlo::registerAllTestPasses();
+  mlir::stablehlo::registerPasses();
 
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);

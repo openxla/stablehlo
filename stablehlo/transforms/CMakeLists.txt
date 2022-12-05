@@ -12,9 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(tools)
-add_subdirectory(transforms)
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+mlir_tablegen(Passes.h.inc -gen-pass-decls)
+add_public_tablegen_target(PassesIncGen)
+
+add_mlir_dialect_library(StablehloTypeConversion
+  PARTIAL_SOURCES_INTENDED
+  TypeConversion.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+  MLIRFuncDialect
+)
+
+add_mlir_dialect_library(StablehloPasses
+  PARTIAL_SOURCES_INTENDED
+  LegalizeStablehloToVhlo.cpp
+  LegalizeVhloToStablehlo.cpp
+  VhloToVersion.cpp
+
+  DEPENDS
+  PassesIncGen
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+  MLIRQuantDialect
+  StablehloTypeConversion
+)

@@ -7,7 +7,7 @@
 // trip of the a bytecoded version of this file. If the outputs do not match,
 // the test will fail.
 //
-// Additionally this test will fail if any ops are not implemented on read or 
+// Additionally this test will fail if any ops are not implemented on read or
 // write. This is accomplished by calling `stablehlo-opt` with the
 // `-debug-only=stablehlo-bytecode` trace enabled. If any type or attr is not
 // implemented, a message '***Not Implemented' is logged. If there are no logs
@@ -60,7 +60,7 @@ func.func @test_all_reduce2(%arg0: tensor<10xf32>) -> tensor<10xf32> {
     "stablehlo.return"(%max) : (tensor<f32>) -> ()
   })
   {
-    replica_groups = dense<[[0, 2, 4, -1], [1, 3, 5, 7]]> : tensor<2x4xi64>,
+    replica_groups = dense<[[0, 2, 4, -1], [1, 3, 5, 6]]> : tensor<2x4xi64>,
     channel_handle = #stablehlo.channel_handle<
       handle = 5,
       type = 2

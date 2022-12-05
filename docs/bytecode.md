@@ -88,8 +88,8 @@ $ stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-
 Since attributes and types that don't get encoded are instead stored as strings,
 the `strings` command can be used to see what attributes were missed:
 
-_Note: Currently all types/attrs are implemented and log only shows 
-the dialect name `stablehlo` and the unregistered `stablehlo.frontend_attributes` 
+_Note: Currently all types/attrs are implemented and log only shows
+the dialect name `stablehlo` and the unregistered `stablehlo.frontend_attributes`
 and `stablehlo.sharding` attributes._
 
 ```
@@ -123,9 +123,9 @@ Called: readRngAlgorithmAttr(mlir::DialectBytecodeReader &) const
 
 ### Adding Bytecode for a New Type / Attribute
 
-Adding bytecode for a new type or attribute is simple. In the file 
+Adding bytecode for a new type or attribute is simple. In the file
 `StablehloBytecode.cpp` or `ChloBytecode.cpp` search for the term `TO ADD ATTRIBUTE` or `TO ADD TYPE`
-depending on the change. Ensure that each location tagged with `TO ADD` 
+depending on the change. Ensure that each location tagged with `TO ADD`
 instructions is addressed. If so, bytecode for the attr/type should be generated
 on next call to `stablehlo-opt -emit-bytecode`. This can be verified using the proper bytecode trace.
 

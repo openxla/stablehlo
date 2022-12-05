@@ -978,17 +978,17 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
   let summary = "Infeed operator";
 
   let description = [{
-    Reads a single data item from the implicit Infeed streaming interface of
-    the device, interpreting the data as the given shape, and returns a XlaOp
-    of the data. Multiple Infeed operations are allowed in a computation, but
-    there must be a total order among the Infeed operations.
+    Reads data from the infeed and produces `results`.
 
-    Attributes:
-      layout:  Array attribute. Each element of the array is a minor_to_major
-               array corresponding to the shape of the data read from the infeed
-               interface.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloinfeed
 
-    See https://www.tensorflow.org/xla/operation_semantics#infeed.
+    Example:
+    ```mlir
+    %results:2 = "stablehlo.infeed"(%token) {
+      infeed_config = ""
+    } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+    ```
   }];
 
   let arguments = (ins
@@ -1007,11 +1007,17 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   let summary = "Outfeed operator";
 
   let description = [{
-    Generates outgoing data transfers for the given data. It takes data and a
-    token type operand and produces a token type value. Tokens are used for
-    ordering side-effecting operations.
+    Writes `inputs` to the outfeed and produces `result`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#outfeed.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooutfeed
+
+    Example:
+    ```mlir
+    %result = "stablehlo.outfeed"(%inputs0, %token) {
+      outfeed_config = ""
+    } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+    ```
   }];
 
   let arguments = (ins
@@ -1022,18 +1028,26 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
   let results = (outs HLO_Token);
 }
 
-def StableHLO_SendOp : StableHLO_Op<"send", []> {
+def StableHLO_SendOp : StableHLO_Op<"send",
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
 
   let summary = "Send operator";
 
   let description = [{
-    Sends the given operand data to a Recv instruction in another computation
-    that shares the same channel handle. Does not return any data. Similar to
-    the Recv operation, Send operation represents synchronous communication,
-    and is internally decomposed into 2 HLO instructions (Send and SendDone) to
-    enable asynchronous data transfers.
+    Sends `inputs` to a channel `channel_id`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#send.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosend
+
+    Example:
+    ```mlir
+    %result = "stablehlo.send"(%operand, %token) {
+      // channel_id = 5 : i64,
+      // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
+      channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+      is_host_transfer = true
+    } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
+    ```
   }];
 
   let arguments = (ins
@@ -1051,14 +1065,20 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
   let summary = "Recv operator";
 
   let description = [{
-    Receives data of the given shape from a Send instruction in another
-    computation that shares the same channel handle. Returns a tuple containing
-    value for the received data and a token. Recv operation represents
-    synchronous communication. However, the instruction is internally decomposed
-    into 2 HLO instructions (Recv and RecvDone) to enable asynchronous data
-    transfers.
+    Receives data from a channel with `channel_id` and produces `results`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#recv.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlorecv
+
+    Example:
+    ```mlir
+    %results:2 = "stablehlo.recv"(%token) {
+      // channel_id = 5 : i64,
+      // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
+      channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+      is_host_transfer = true
+    } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+    ```
   }];
 
   let arguments = (ins
@@ -1284,9 +1304,23 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
     [HLO_CompatibleOperandsAndResultType]> {
   let summary = "AllReduce operator";
   let description = [{
-    Performs a custom reduction across replicas.
+    Within each process group in the StableHLO grid, applies a reduction function
+    `computation` to the values of the `operand` tensor from each process and
+    produces a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#allreduce.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloall_reduce
+
+    Example:
+    ```mlir
+    %result = "stablehlo.all_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+        %0 = stablehlo.add %arg1, %arg2 : tensor<f32>
+        stablehlo.return %0 : tensor<f32>
+    }) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<4xf32>) -> tensor<4xf32>
+    ```
   }];
 
   let arguments = (ins
@@ -1304,6 +1338,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
       "::mlir::Type":$result_type, "::mlir::Value":$operand,
       "::mlir::DenseIntElementsAttr":$replica_groups,
       "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
+  let hasVerifier = 1;
 }
 
 def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
@@ -2087,7 +2122,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     OptionalAttr<StableHLO_ArrayOfLayoutAttr>:$result_layouts,
     DefaultValuedOptionalAttr<
         TypedArrayAttrBase<
-            OutputOperandAlias,
+            StableHLO_OutputOperandAlias,
             "Aliasing attribute for outputs and operands of CustomCall">,
         "{}">:$output_operand_aliases
   );

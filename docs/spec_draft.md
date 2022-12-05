@@ -94,11 +94,19 @@ the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
-  * Neither input nor output types can be function types themselves.
+  * Input types and output types are one of `tensor`, `token` or `tuple`.
 
 Function types are not first class, i.e. StableHLO doesn't support values of
 function types. Some StableHLO ops can take functions as inputs, but they are
 never produced as outputs.
+
+**String type** represents a sequence of bytes and is referred to in the
+document as `string`. Exact representation of string type (e.g. null terminated
+or not, encoding etc.) is implementation-defined.
+
+Strings types are not first class, i.e. StableHLO doesn't support values of
+string types. Some StableHLO ops can take strings as inputs, but they are never
+produced as outputs.
 
 ## Programs
 
@@ -179,7 +187,32 @@ particular process. (From that perspective, unqualified `name` can be viewed as
 a shorthand for `name@(replica_id(), partition_id())`).
 
 The execution order across processes is implementation-defined, except for the
-synchronization introduced by collective ops as described below.
+synchronization introduced by point-to-point communication and collective ops
+as described below.
+
+### Point-to-point communication
+
+StableHLO processes can communicate with each other through
+**StableHLO channels**. A channel is represented by a positive id of type
+`si64`. Through various ops, it is possible to send values to channels and
+receive them from channels.
+
+Further formalization, e.g. where these channel ids are coming from, how
+processes programs become aware of them and what kind of synchronization is
+introduced by them, is TBD.
+
+### Streaming communication
+
+Every StableHLO process has access to two streaming interfaces:
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
+
+Unlike channels, which are used to communicate between processes and therefore
+have processes at both of their ends, infeeds and outfeeds have their other
+end implementation-defined.
+
+Further formalization, e.g. how streaming communication influences execution
+order and what kind of synchronization is introduced by it, is TBD.
 
 ### Collective ops
 
@@ -196,10 +229,9 @@ and what happens if they don't, is TBD.
 
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
-of the collective op needs a **StableHLO channel**, and the collective op must
-provide a positive `channel_id` of type `si64`. Further formalization, e.g.
-where these channel ids are coming from and how they are synchronized between
-programs, is TBD. Cross-replica communication doesn't need channels.
+of the collective op needs a channel, and the collective op must provide a
+positive `channel_id` of type `si64`. Cross-replica communication doesn't need
+channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections below. However, the strategies by
@@ -332,12 +364,16 @@ syntax.
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
   `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
+  * **String constants** String constants are represented as a sequence of
+  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
+  encoding) or "\18\A3" (in hex encoding).
 
 ## Index of Ops
    * [abs](#stablehloabs)
    * [add](#stablehloadd)
    * [after_all](#stablehloafter_all)
    * [all_gather](#stablehloall_gather)
+   * [all_reduce](#stablehloall_reduce)
    * [all_to_all](#stablehloall_to_all)
    * [and](#stablehloand)
    * [atan2](#stablehloatan2)
@@ -368,6 +404,7 @@ syntax.
    * [get_tuple_element](#stablehloget_tuple_element)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
+   * [infeed](#stablehloinfeed)
    * [iota](#stablehloiota)
    * [is_finite](#stablehlois_finite)
    * [log](#stablehlolog)
@@ -381,10 +418,12 @@ syntax.
    * [not](#stablehlonot)
    * [optimization_barrier](#stablehlooptimization_barrier)
    * [or](#stablehloor)
+   * [outfeed](#stablehlooutfeed)
    * [pad](#stablehlopad)
    * [popcnt](#stablehlopopcnt)
    * [power](#stablehlopower)
    * [real](#stablehloreal)
+   * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
    * [remainder](#stablehloremainder)
    * [replica_id](#stablehloreplica_id)
@@ -397,6 +436,7 @@ syntax.
    * [rsqrt](#stablehlorsqrt)
    * [scatter](#stablehloscatter)
    * [select](#stablehloselect)
+   * [send](#stablehlosend)
    * [shift_left](#stablehloshift_left)
    * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
    * [shift_right_logical](#stablehloshift_right_logical)
@@ -603,6 +643,88 @@ Afterwards, within each `process_group`:
 ```
 
 [Back to Ops](#index-of-ops)
+
+## stablehlo.all_reduce
+
+### Semantics
+
+Within each process group in the StableHLO grid, applies a reduction function
+`computation` to the values of the `operand` tensor from each process and
+produces a `result` tensor.
+
+The operation splits the StableHLO grid into process groups as follows:
+  * `channel_id <= 0` and `use_global_device_ids = false`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = false`,
+    `cross_replica_and_partition(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = true`,
+    `flattened_ids(replica_groups)`.
+
+Afterwards, within each `process_group`:
+  * `operands@receiver = [operand@sender for sender in process_group]` for all
+    `receiver` in `process_group`.
+  * ```
+    result@process[i0, i1, ..., iR-1] =
+        reduce_without_init(
+          inputs=operands@process[:][i0, i1, ..., iR-1],
+          dimensions=[0],
+          body=computation
+        )
+
+    ```
+    where `reduce_without_init` works exactly like `reduce`, except that its
+    `schedule` doesn't include init values.
+
+### Inputs
+
+| Name                    | Type                                                             |
+|-------------------------|------------------------------------------------------------------|
+| `operand`               | tensor of any supported type                                     |
+| `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` |
+| `channel_id`            | constant of type `si64`                                          |
+| `use_global_device_ids` | constant of type `boolean`                                       |
+| `computation`           | `function`                                                       |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) All values in `replica_groups` are unique.
+  * (C2) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+         from `indices(replica_groups)`.
+  * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+         `E = element_type(`operand`).
+  * (C6) type(`result`) $=$ type(`operand`).
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [1.0, 2.0, 3.0, 4.0]
+// %operand@(1, 0): [5.0, 6.0, 7.0, 8.0]
+%result = "stablehlo.all_reduce"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+    "stablehlo.return"(%0) : (tensor<f32>) -> ()
+}) {
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+} : (tensor<4xf32>) -> tensor<4xf32>
+// %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
+// %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
+```
+
+[Back to Ops](#index-of-ops)
+
 
 ## stablehlo.all_to_all
 
@@ -1809,7 +1931,7 @@ More formally, `result[i0, ..., iR-1]` is defined as:
   * (C3) rank(`update`) $=$ rank(`operand`).
   * (C4) size(`start_indices`) $=$ rank(`operand`).
   * (C5) All `start_indices` have the same type.
-  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$
+  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
     [0, rank(`operand`)).
 
 
@@ -2307,6 +2429,48 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 // %operand: [(1.0, 2.0), (3.0, 4.0)]
 %result = "stablehlo.imag"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
 // %result: [2.0, 4.0]
+```
+
+[Back to Ops](#index-of-ops)
+
+
+## stablehlo.infeed
+
+### Semantics
+
+Reads data from the infeed and produces `results`.
+
+Semantics of `infeed_config` is implementation-defined.
+
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify the side effect of this operation
+as a value that other operations can take a data dependency on.
+
+### Inputs
+
+| Name            | Type                      |
+|-----------------|---------------------------|
+| `token`         | `token`                   |
+| `infeed_config` | constant of type `string` |
+
+### Outputs
+
+| Name      | Type                                                       |
+|-----------|------------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or tokens |
+
+### Constraints
+
+  * (C1) size(`results`) $\ge$ 1.
+  * (C2) type(`results`[-1]) $=$ `token`.
+  * -- [Verify layout in InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
+
+### Examples
+
+```mlir
+%results:2 = "stablehlo.infeed"(%token) {
+  infeed_config = ""
+} : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
 
 [Back to Ops](#index-of-ops)
@@ -2882,6 +3046,41 @@ operation.
 
 [Back to Ops](#index-of-ops)
 
+## stablehlo.outfeed
+
+### Semantics
+
+Writes `inputs` to the outfeed and produces `result`.
+
+Semantics of `outfeed_config` is implementation-defined.
+
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
+
+### Inputs
+
+| Name             | Type                                             |
+|------------------|--------------------------------------------------|
+| `inputs`         | variadic number of tensors of any supported type |
+| `token`          | `token`                                          |
+| `outfeed_config` | constant of type `string`                        |
+
+### Outputs
+
+| Name     | Type    |
+|----------|---------|
+| `result` | `token` |
+
+### Examples
+
+```mlir
+%result = "stablehlo.outfeed"(%inputs0, %token) {
+  outfeed_config = ""
+} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+```
+
+[Back to Ops](#index-of-ops)
+
 ## stablehlo.pad
 
 ### Semantics
@@ -3076,6 +3275,55 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 // %operand: [(1.0, 2.0), (3.0, 4.0)]
 %result = "stablehlo.real"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
 // %result: [1.0, 3.0]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.recv
+
+### Semantics
+
+Receives data from a channel with `channel_id` and produces `results`.
+
+If `is_host_transfer` is `true`, then the operation transfers data from the
+host. Otherwise, it transfers data from another device. What this means is
+implementation-defined.
+
+`results` consist of payload values which come first and a token which comes
+last. The operation produces a token to reify its side effects as a value that
+other operations can take a data dependency on.
+
+### Inputs
+
+| Name               | Type                                            |
+|--------------------|-------------------------------------------------|
+| `token`            | `token`                                         |
+| `channel_id`       | constant of type `si64`                         |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` |
+| `is_host_transfer` | constant of type `i1`                           |
+
+### Outputs
+
+| Name      | Type                                                      |
+|-----------|-----------------------------------------------------------|
+| `results` | variadic number of tensors of any supported type or token |
+
+### Constraints
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+    * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+  * (C2) size(`results`) $\ge$ 1.
+  * (C3) type(`results`[-1]) $=$ `token`.
+
+### Examples
+
+```mlir
+%results:2 = "stablehlo.recv"(%token) {
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+  is_host_transfer = true
+} : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
 ```
 
 [Back to Ops](#index-of-ops)
@@ -3727,6 +3975,53 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %on_false: [[5, 6], [7, 8]]
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.send
+
+### Semantics
+
+Sends `inputs` to a channel `channel_id`.
+
+The operation takes a token and produces a token to reify its side effects
+as a value that other operations can take a data dependency on.
+
+If `is_host_transfer` is `true`, then the operation transfers data to the
+host. Otherwise, it transfers data to another device. What this means is
+implementation-defined.
+
+### Inputs
+
+| Name               | Type                                             |
+|--------------------|--------------------------------------------------|
+| `inputs`           | variadic number of tensors of any supported type |
+| `token`            | `token`                                          |
+| `channel_id`       | constant of type `si64`                          |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`  |
+| `is_host_transfer` | constant of type `i1`                            |
+
+### Outputs
+
+| Name     | Type    |
+|----------|---------|
+| `result` | `token` |
+
+### Constraints
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+    * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+
+### Examples
+
+```mlir
+%result = "stablehlo.send"(%operand, %token) {
+  // channel_id = 5 : i64,
+  // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
+  channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+  is_host_transfer = true
+} : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
 [Back to Ops](#index-of-ops)

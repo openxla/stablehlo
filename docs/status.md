@@ -45,8 +45,8 @@ one of the following tracking labels.
 | abs                      | yes           | yes          | yes            | yes             | no          |
 | add                      | yes           | yes          | yes            | yes             | yes         |
 | after_all                | yes           | yes          | no             | yes             | no          |
-| all_gather               | yes           | resivit      | revisit        | no              | no          |
-| all_reduce               | no            | revisit      | revisit        | no              | no          |
+| all_gather               | yes           | revisit      | no             | no              | no          |
+| all_reduce               | yes           | revisit      | yes            | no              | no          |
 | all_to_all               | yes           | revisit      | yes            | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | yes           | revisit      | yes            | yes             | no          |
@@ -96,7 +96,7 @@ one of the following tracking labels.
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |
 | imag                     | yes           | yes          | yes            | yes             | no          |
-| infeed                   | no            | revisit      | no             | no              | no          |
+| infeed                   | yes           | revisit      | infeasible     | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | no          |
 | log                      | yes           | yes          | yes            | yes             | no          |
@@ -110,13 +110,13 @@ one of the following tracking labels.
 | not                      | yes           | yes          | yes            | yes             | yes         |
 | optimization_barrier     | yes           | yes          | yes            | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
-| outfeed                  | no            | revisit      | no             | no              | no          |
+| outfeed                  | yes           | yes          | no             | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | yes           | revisit      | yes            | yes             | no          |
 | real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
-| recv                     | no            | revisit      | no             | no              | no          |
+| recv                     | yes           | revisit      | infeasible     | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | no          |
 | reduce_precision         | no            | yes*         | yes*           | yes             | no          |
 | reduce_scatter           | no            | revisit      | no             | no              | no          |
@@ -134,7 +134,7 @@ one of the following tracking labels.
 | scatter                  | yes           | revisit      | no             | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | no          |
 | select_and_scatter       | no            | revisit      | no             | no              | no          |
-| send                     | no            | revisit      | no             | no              | no          |
+| send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
 | shift_left               | yes           | revisit      | yes            | yes             | no          |
 | shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |

@@ -123,7 +123,7 @@ func.func @type_convert_ops(%arg0 : tensor<2xf32>) -> () {
   // CHECK-NEXT: %2 = stablehlo.bitcast_convert %arg0 : (tensor<2xf32>) -> tensor<2xi32>
   %0 = "stablehlo.convert"(%arg0) : (tensor<2xf32>) -> tensor<2xf64>
   %1 = "stablehlo.reshape"(%arg0) : (tensor<2xf32>) -> tensor<1x2xf32>
-  %2 = "stablehlo.bitcast_convert"(%arg0) : (tensor<2xf32>) -> tensor<2xi32> 
+  %2 = "stablehlo.bitcast_convert"(%arg0) : (tensor<2xf32>) -> tensor<2xi32>
   "stablehlo.return"() : () -> ()
 }
 

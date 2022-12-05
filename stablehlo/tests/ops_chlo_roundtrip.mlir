@@ -3,7 +3,6 @@
 // RUN: stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
-
 // CHECK-LABEL: func @chlo_acos(
 // CHECK-SAME:  %[[A:.*]]: tensor<8x8xf64>
 // CHECK:       %[[T:.*]] = chlo.acos %[[A]] : tensor<8x8xf64> -> tensor<8x8xf64>
