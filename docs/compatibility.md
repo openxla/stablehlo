@@ -65,7 +65,7 @@ To improve the experience of producers and consumers, we will keep the StableHLO
 ### The Versioned Dialect
 The versioned dialect is a shallow versioned copy of the StableHLO dialect which is used for upgrades, downgrades, and serialization/deserialization. Operations in this dialect use versioned attributes and types, equivalent to the op they are forked from, but do not have traits, custom verifiers, or prettyprinters, and they are unchanged after addition to the dialect. Upgrades and downgrades will be defined as conversion patterns on the versioned dialect. Serialization and deserialization of StableHLO dialect will involve legalization to and from the versioned dialect. Only the most recent version of an op is able to be legalized to the StableHLO dialect.
 
-The following demonstrates serialization on a `v1.5.x` producer that targets the `v1.3.x` opset, and is deserialized on a `v1.4.x` consumer:
+The following demonstrates serialization on a `v0.5.0` producer that targets the `v0.3.0` opset, and is deserialized on a `v0.4.0` consumer:
 
 ![Version Dialect Roundtrip. Use 'View File' feature to load image properly.](images/version_dialect.png)
 
