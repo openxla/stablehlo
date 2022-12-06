@@ -4068,113 +4068,74 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Semantics
 
-Runs a windowed selection `select` function over `operand` with shape
-`window_dimensions` and stride `window_strides` to produce an amount
-of selected locations whose shape matches `source`. The values in `source`
-are then scattered to the selected locations in output. Multiple scattered
-elements which land in the same output location are combined using the
-`scatter` function.
+Scatters the values from the `source` tensor using `scatter` based on the
+outcome of `reduce_window` of the `input` tensor using `select` and produces
+a `result` tensor.
 
-The following diagram shows how elements in `results` are computed from
+The following diagram shows how elements in `result` are computed from
 `operand` and `source` using a concrete example.
 
-<p align="center">
-  <img src="spec_draft/select_and_scatter.svg" />
-</p>
-
-Refer to [stablehlo.reduce_window](#stablehloreduce_window) to know more about
-the semantics of `padding`.
-
-The order of reductions is implementation-defined, which means that `scatter`
-and `init_value` must form a monoid to guarantee that the operation produces
-the same results for all inputs on all implementations.
+<img align="center" src="spec_draft/select_and_scatter.svg" />
 
 More formally,
- * Apply [stablehlo.reduce_window](#stablehloreduce_window) with the following
-   parameters to get `selected_values` as output.
-   * `inputs` $=$ { `operand` },
-   * `init_values` $=$ { identity value for `select` },
-   * `window_dimensions`, `window_strides`, and `padding` are used as is,
-   * `body` $=$ `reduce_with_select` defined as
+ * `selected_values = reduce_window(...)` with the following inputs:
+   * `inputs` $=$ [ `operand` ].
+   * `init_values` $=$ [ identity value for `select` ].
+   * `window_dimensions`, `window_strides`, and `padding` which are used as is.
+   * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
+   * `body` defined as:
 
      ```c++
-     reduce_with_select(tensor<E> arg0, tensor<E> arg1) -> tensor<E> {
+     (tensor<E> arg0, tensor<E> arg1) -> tensor<E> {
       return select(arg0, arg1) ? arg0 : arg1;
      }
      ```
-     where `E = element_type(operand)`. `select` is transitive, else the
-     behavior of the operation is undefined.
-
- * Let's define `selected_indices` such that `selected_indices[index]
-   = index-of(selected_values[index], operand)`, where `index` belongs to
-   the index space of `selected_values` and `index-of(a, t)` provides the index
-   of value `a` in tensor `t` as selected by `select` function.
-
- * `result[i0, i1, ..., iR-1] = reduce(source_values)` where:
-   * `source_values = { source[j0, j1,..., jR'-1]:
-     selected_indices[j0, j1, ..., jR-1] = {0, i1, ..., iR'-1}}`.
-
-   * `reduce(source_values)` = `eval(schedule)` for some binary tree `schedule`
-    where:
-     * `eval(node)` = `scatter(eval(node.left), eval(node.right))`.
-     * `eval(leaf)` = `leaf.value`.
-
-   * `schedule` is an implementation-defined full binary tree whose in-order
-     traversal consists of:
-     * `source_values[index]` values, for all `index` in the index space
-      of `source_values`, in the ascending lexicographic order of `index`.
-      * Interspersed with an implementation-defined amount of `init_value`
-      at implementation-defined positions.
+     where `E = element_type(operand)`.
+ * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
+   where:
+     * `source_values` $=$ [`source[source_index]` for `source_index` in
+       `source_indices`].
+     * `source_indices` $=$ [`source_index` for `source_index` in
+       `indices(source)` if `selected_index(source_index) = result_index`].
+     * `selected_index(source_index) = operand_index` if
+       `selected_values[source_index]` has the `operand` element
+       from `operand_index`.
 
 ### Inputs
 
-| Name                | Type                                       | Constraints      |
-|---------------------|--------------------------------------------|------------------|
-| `operand`           | tensor of any supported type               | (C1-C9)          |
-| `source`            | tensor of any supported type               | (C1-C3)          |
-| `init_value`        | 0-dimensional tensor of any supported type |                  |
-| `window_dimensions` | 1-dimensional tensor constant type `si64`  | (C1), (C3), (C4) |
-| `window_strides`    | 1-dimensional tensor constant type `si64`  | (C3), (C5)       |
-| `padding`           | 2-dimensional tensor constant type `si64`  | (C3), (C6)       |
-| `select`            | `function`                                 | (C7)             |
-| `scatter`           | `function`                                 | (C4), (C8)       |
+| Name                | Type                                       | Constraints                   |
+|---------------------|--------------------------------------------|-------------------------------|
+| `operand`           | tensor of any supported type               | (C1-C4), (C6), (C8), (C9-C11) |
+| `source`            | tensor of any supported type               | (C2), (C3)                    |
+| `init_value`        | 0-dimensional tensor of any supported type |                               |
+| `window_dimensions` | 1-dimensional tensor constant type `si64`  | (C1), (C3), (C4), (C5)        |
+| `window_strides`    | 1-dimensional tensor constant type `si64`  | (C3), (C6), (C7)              |
+| `padding`           | 2-dimensional tensor constant type `si64`  | (C3), (C8)                    |
+| `select`            | `function`                                 | (C9)                          |
+| `scatter`           | `function`                                 | (C10)                         |
 
 ### Outputs
 
 | Name     | Type                         | Constraints |
 |----------|------------------------------|-------------|
-| `result` | tensor of any supported type | (C9)        |
+| `result` | tensor of any supported type | (C11)       |
 
 ### Constraints
 
-  * (C1) rank(`operand`) $=$ rank(`source`) $=$ size(`window_dimensions`).
-
+  * (C1) rank(`operand`) $=$ size(`window_dimensions`).
   * (C2) `operand` and `source` have the same element type.
-
-  * (C3) `dim(source, i) = strided_bound[i]` for any i $\in$ axis(`source`)
-    * `strided_bound[i] = (padded_operand[i] == 0 || window_dimensions[i] > padded_operand[i]) ? 0 : floor((padded_operand[i] - window_dimensions[i]) / window_strides[i]) + 1`.
-    * `padded_operand[i] = padding[i][0] + dim(operand, i) + padding[i][1]`.
-
-  * (C4) On `window_dimensions`
-    * size(`window_dimensions`) $=$ rank(`operand`).
-    * `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
-
-  * (C5) On `window_strides` (optional)
-    * Default value of 1 for each dimension of `operand`.
-    * size(`window_strides`) $=$ rank(`operand`).
-    * `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
-
-  * (C6) On `padding`(optional)
-    * Default value of (0,0) for each dimension of `operand`.
-    * dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
-
-  * (C7) `select` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
+  * (C3) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
+    * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
+  * (C4) size(`window_dimensions`) $=$ rank(`operand`).
+  * (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
+  * (C6) size(`window_strides`) $=$ rank(`operand`).
+  * (C7) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
+  * (C8) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
+  * (C9) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
          `E = element_type(operand)`.
-
-  * (C8) The `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
+  * (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
          `E = element_type(operand)`.
-
-  * (C9) type(`operand`) $=$ type(`result`).
+  * (C11) type(`operand`) $=$ type(`result`).
 
 ### Examples
 
@@ -4183,20 +4144,18 @@ More formally,
 // %source: [[5, 6], [7, 8]]
 // %init_value: 0
 %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-    %0 = "stablehlo.compare"(%arg3, %arg4) {
-      comparison_direction = #stablehlo<comparison_direction GE>
-    } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
-    "stablehlo.return"(%0) : (tensor<i1>) -> ()
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = stablehlo.compare  GE, %arg0, %arg1 : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    stablehlo.return %0 : tensor<i1>
 }, {
-  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-    %0 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
-    "stablehlo.return"(%0) : (tensor<ui32>) -> ()
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = stablehlo.add %arg0, %arg1 : tensor<i32>
+    stablehlo.return %0 : tensor<i32>
 }) {
   window_dimensions = dense<[3, 1]> : tensor<2xi64>,
   window_strides = dense<[2, 1]> : tensor<2xi64>,
   padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-} : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
+} : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 ```
 
@@ -4405,29 +4364,6 @@ def sign(x):
 // %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
 %result = "stablehlo.sign"(%operand) : (tensor<7xf32>) -> tensor<7xf32>
 // %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
-=======
-// %operand: [[1, 5], [2, 6], [3, 5], [4, 4]]
-=======
->>>>>>> 49c5cf5 (Iteration 1 : Addressed review comments)
-// %source: [[5, 6], [7, 8]]
-// %init_value: 0
-%result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-    %0 = "stablehlo.compare"(%arg3, %arg4) {
-      comparison_direction = #stablehlo<comparison_direction GE>
-    } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
-    "stablehlo.return"(%0) : (tensor<i1>) -> ()
-}, {
-  ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-    %0 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
-    "stablehlo.return"(%0) : (tensor<ui32>) -> ()
-}) {
-  window_dimensions = dense<[3, 1]> : tensor<2xi64>,
-  window_strides = dense<[2, 1]> : tensor<2xi64>,
-  padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-} : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
-// %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
->>>>>>> d5d8398 (spec for select_and_scatter)
 ```
 
 [Back to Ops](#index-of-ops)

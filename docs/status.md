@@ -133,7 +133,7 @@ one of the following tracking labels.
 | rsqrt                    | yes           | yes          | yes            | yes             | no          |
 | scatter                  | yes           | revisit      | no             | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | no          |
-| select_and_scatter       | yes           | yes          | yes            | no              | no          |
+| select_and_scatter       | yes           | revisit      | no             | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
 | shift_left               | yes           | revisit      | yes            | yes             | no          |
