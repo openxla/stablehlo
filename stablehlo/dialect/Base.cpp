@@ -164,9 +164,9 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
     int64_t bound = bounds[dim];
     int64_t dimSize = type.getDimSize(dim);
     if (bound != ShapedType::kDynamic && dimSize != ShapedType::kDynamic) {
-      return emitError() << "Bound is " << bound << " for dimension " << dim
-                         << " with size " << dimSize
-                         << ", expected bound to be dynamic(?)";
+      return emitError() << "Static dimension " << dim
+                         << " cannot have a bound, use ShapedType::kDynamic to "
+                            "indicate a missing bound";
     }
   }
 

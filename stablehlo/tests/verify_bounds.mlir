@@ -7,7 +7,7 @@ func.func @incorrect_bounds_length(%arg0: tensor<?x?xf32, #stablehlo.type_extens
 
 // -----
 
-// expected-error@+1 {{Bound is 3 for dimension 0 with size 3, expected bound to be dynamic(?)}}
+// expected-error@+1 {{Static dimension 0 cannot have a bound, use ShapedType::kDynamic to indicate a missing bound}}
 func.func @static_dim_with_bound(%arg0: tensor<3xf32, #stablehlo.type_extensions<bounds = [3]>>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>> {
   func.return %arg0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
 }
