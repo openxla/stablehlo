@@ -484,8 +484,9 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
          outputShapeIdx < static_cast<int64_t>(allowedDimensions.size()) &&
          argShapeIdx < static_cast<int64_t>(argShape.size());
          outputShapeIdx++)
-      if (allowedDimensions[outputShapeIdx] == argShape[argShapeIdx] ||
-          argShape[argShapeIdx] == ShapedType::kDynamic)
+      if (allowedDimensions[outputShapeIdx] == ShapedType::kDynamic ||
+          argShape[argShapeIdx] == ShapedType::kDynamic ||
+          allowedDimensions[outputShapeIdx] == argShape[argShapeIdx])
         argShapeIdx++;
 
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
