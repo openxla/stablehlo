@@ -180,10 +180,10 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult TypeExtensionsAttr::verifyEncoding(
-    llvm::ArrayRef<int64_t> bounds, mlir::Type elementType,
+    llvm::ArrayRef<int64_t> shape, mlir::Type elementType,
     llvm::function_ref<mlir::InFlightDiagnostic()> emitError) const {
   return hlo::verifyBounds(
-      getBounds(), RankedTensorType::get(bounds, elementType), emitError);
+      getBounds(), RankedTensorType::get(shape, elementType), emitError);
 }
 
 //===----------------------------------------------------------------------===//

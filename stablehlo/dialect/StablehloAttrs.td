@@ -152,8 +152,6 @@ def StableHLO_ChannelHandle : AttrDef<StableHLO_Dialect, "ChannelHandle"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-// Note: This is an experimental attribute and shouldn't be relied upon for
-// production.
 def StableHLO_TypeExtensions : AttrDef<StableHLO_Dialect, "TypeExtensions", [
     DeclareAttrInterfaceMethods<VerifiableTensorEncoding>,
     DeclareAttrInterfaceMethods<HLO_BoundedAttrInterface>]> {
