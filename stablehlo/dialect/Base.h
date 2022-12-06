@@ -77,6 +77,10 @@ LogicalResult inferMostSpecificType(Optional<Location> location,
                                     TypeRange inputTypes,
                                     SmallVectorImpl<Type> &inferredReturnTypes);
 
+LogicalResult inferMostSpecificTypeComponents(
+    Optional<Location> location, TypeRange inputTypes,
+    SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form
 //

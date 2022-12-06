@@ -2446,9 +2446,8 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, Recur
   let hasVerifier = 1;
 }
 
-def StableHLO_SelectOp: StableHLO_ShapedInterfaceOp<"select",
-      [Pure, HLO_BroadcastingElementwise,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwise,
+    InferTensorTypeWithReify]> {
   let summary = "Select operator";
   let description = [{
     Produces a `result` tensor where each element is selected from `on_true` or

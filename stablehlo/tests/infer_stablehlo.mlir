@@ -19,9 +19,9 @@ func.func @select(%pred : tensor<i1>, %a : tensor<?x2x3xf32>, %b : tensor<1x?x3x
     -> tensor<1x2x3xindex> {
   %0 = "stablehlo.select"(%pred, %a, %b)
       : (tensor<i1>, tensor<?x2x3xf32>, tensor<1x?x3xf32>) -> tensor<*xf32>
-  %1 = "hlo_test_infer.get_return_types"(%0)
+  %1 = "hlo_test_infer.get_return_type_components"(%0)
       : (tensor<*xf32>) -> tensor<1x2x3xindex>
-  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<1x2x3xf32>} : (tensor<*xf32>) -> tensor<1x2x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 3]", element_type0 = f32} : (tensor<*xf32>) -> tensor<1x2x3xindex>
   func.return %1 : tensor<1x2x3xindex>
 }
 

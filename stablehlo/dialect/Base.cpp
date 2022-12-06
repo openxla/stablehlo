@@ -295,5 +295,19 @@ LogicalResult inferMostSpecificType(
   return success();
 }
 
+LogicalResult inferMostSpecificTypeComponents(
+    Optional<Location> location, TypeRange inputTypes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  SmallVector<Type> inferredReturnTypes;
+  if (failed(hlo::inferMostSpecificType(location, inputTypes,
+                                        inferredReturnTypes))) {
+    return failure();
+  }
+  for (auto inferredReturnType : inferredReturnTypes) {
+    inferredReturnShapes.emplace_back(inferredReturnType.cast<ShapedType>());
+  }
+  return success();
+}
+
 }  // namespace hlo
 }  // namespace mlir

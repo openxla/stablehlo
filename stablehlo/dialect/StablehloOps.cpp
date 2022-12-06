@@ -3388,13 +3388,13 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 // SelectOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult SelectOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+LogicalResult SelectOp::inferReturnTypeComponents(
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SelectOp::Adaptor op(operands, attributes);
   return hlo::inferSelectOp(location, op.getPred(), op.getOnTrue(),
-                            op.getOnFalse(), inferredReturnTypes);
+                            op.getOnFalse(), inferredReturnShapes);
 }
 
 LogicalResult SelectOp::reifyReturnTypeShapes(

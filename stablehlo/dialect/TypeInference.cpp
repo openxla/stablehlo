@@ -1166,9 +1166,9 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferSelectOp(Optional<Location> location, Value pred,
-                            Value onTrue, Value onFalse,
-                            SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferSelectOp(
+    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto predType = pred.getType().cast<ShapedType>();
   auto trueType = onTrue.getType().cast<ShapedType>();
   auto falseType = onFalse.getType().cast<ShapedType>();
@@ -1191,8 +1191,9 @@ LogicalResult inferSelectOp(Optional<Location> location, Value pred,
 
   // The output shape should be derived from the most specific parts of the
   // `onTrue` and `onFalse` (see documentation for details).
-  return hlo::inferMostSpecificType(location, {trueType, falseType},
-                                    inferredReturnTypes);
+  SmallVector<Type> inferredReturnTypes;
+  return hlo::inferMostSpecificTypeComponents(location, {trueType, falseType},
+                                              inferredReturnShapes);
 }
 
 // The following properties are already enforced by the ODS:
