@@ -2773,7 +2773,9 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   }];
 }
 
-def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
+def StableHLO_ReturnOp : StableHLO_Op<"return",
+      [Pure, Terminator,
+      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = [{
     The `hlo.return` operation terminates a region and returns values.
 
