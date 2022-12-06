@@ -1174,6 +1174,36 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
+LogicalResult inferSelectOp(
+    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto predType = pred.getType().cast<ShapedType>();
+  auto trueType = onTrue.getType().cast<ShapedType>();
+  auto falseType = onFalse.getType().cast<ShapedType>();
+
+  // The operands `onTrue` and `onFalse` should have compatible types, i.e.,
+  //   (a) have the same element type, and
+  //   (b) have compatible shapes (i.e. the same shape and/or at least one
+  //       dynamic shape)
+  if (!hlo::compatibleShapeAndElementType(trueType, falseType))
+    return emitOptionalError(
+        location, "requires compatible types for non-predicate operands");
+
+  // The predicate, if not-scalar, should have the same shape as the remaining
+  // operands.
+  bool predCannotBeScalar = predType.hasRank() && predType.getRank() != 0;
+  if (predCannotBeScalar)
+    if (failed(verifyCompatibleShape(predType, trueType)))
+      return emitOptionalError(location,
+                               "requires the same shape for all operands");
+
+  // The output shape should be derived from the most specific parts of the
+  // `onTrue` and `onFalse` (see documentation for details).
+  SmallVector<Type> inferredReturnTypes;
+  return hlo::inferMostSpecificTypeComponents(location, {trueType, falseType},
+                                              inferredReturnShapes);
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:
