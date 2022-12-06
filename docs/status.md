@@ -44,7 +44,7 @@ one of the following tracking labels.
 |:-------------------------|:--------------|:-------------|:---------------|:----------------|:------------|
 | abs                      | yes           | yes          | yes            | yes             | no          |
 | add                      | yes           | yes          | yes            | yes             | yes         |
-| after_all                | yes           | yes          | no             | yes             | no          |
+| after_all                | yes           | yes          | yes            | yes             | no          |
 | all_gather               | yes           | revisit      | no             | no              | no          |
 | all_reduce               | yes           | revisit      | yes            | no              | no          |
 | all_to_all               | yes           | revisit      | yes            | no              | no          |

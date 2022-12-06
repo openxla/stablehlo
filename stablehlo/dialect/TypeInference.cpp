@@ -506,6 +506,16 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
+                              ValueRange inputs,
+                              SmallVectorImpl<Type>& inferredReturnTypes) {
+  if (inputs.size() == 0)
+    inferredReturnTypes.emplace_back(stablehlo::TokenType::get(context));
+  else
+    inferredReturnTypes.emplace_back(inputs[0].getType());
+  return success();
+}
+
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
     uint64_t featureIndex,
