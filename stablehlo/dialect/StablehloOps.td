@@ -2479,12 +2479,9 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
       [RecursiveMemoryEffects]> {
   let summary = "SelectAndScatter operator";
   let description = [{
-    Runs a windowed selection `select` function over `operand` with shape
-    `window_dimensions` and stride `window_strides` to produce an amount
-    of selected locations whose shape matches `source`. The values in `source`
-    are then scattered to the selected locations in output. Multiple scattered
-    elements which land in the same output location are combined using the
-    `scatter` function.
+    Scatters the values from the `source` tensor using `scatter` based on the
+    outcome of `reduce_window` of the `input` tensor using `select` and produces
+    a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect_and_scatter
@@ -2492,20 +2489,20 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     Example:
     ```mlir
     %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %0 = "stablehlo.compare"(%arg3, %arg4) {
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.compare"(%arg0, %arg1) {
           comparison_direction = #stablehlo<comparison_direction GE>
-        } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
+        } : (tensor<i32>, tensor<i32>) -> tensor<i1>
         "stablehlo.return"(%0) : (tensor<i1>) -> ()
     }, {
-      ^bb0(%arg3: tensor<ui32>, %arg4: tensor<ui32>):
-        %0 = "stablehlo.add"(%arg3, %arg4) : (tensor<ui32>, tensor<ui32>) -> tensor<ui32>
-        "stablehlo.return"(%0) : (tensor<ui32>) -> ()
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0) : (tensor<i32>) -> ()
     }) {
       window_dimensions = dense<[3, 1]> : tensor<2xi64>,
       window_strides = dense<[2, 1]> : tensor<2xi64>,
       padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-    } : (tensor<4x2xui32>, tensor<2x2xui32>, tensor<ui32>) -> tensor<4x2xui32>
+    } : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
     ```
   }];
   let arguments = (ins
