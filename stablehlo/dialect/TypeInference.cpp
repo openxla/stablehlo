@@ -1173,7 +1173,7 @@ LogicalResult inferSelectOp(Optional<Location> location, Value pred,
   auto trueType = onTrue.getType().cast<ShapedType>();
   auto falseType = onFalse.getType().cast<ShapedType>();
 
-  // The operands 'on_true' and 'on_false' should have compatible types, i.e.,
+  // The operands `onTrue` and `onFalse` should have compatible types, i.e.,
   //   (a) have the same element type, and
   //   (b) have compatible shapes (i.e. the same shape and/or at least one
   //       dynamic shape)
@@ -1189,8 +1189,8 @@ LogicalResult inferSelectOp(Optional<Location> location, Value pred,
       return emitOptionalError(location,
                                "requires the same shape for all operands");
 
-  // The output shape should be the most general of the operand shapes at each
-  // dimension.
+  // The output shape should be derived from the most specific parts of the
+  // `onTrue` and `onFalse` (see documentation for details).
   return hlo::inferMostSpecificType(location, {trueType, falseType},
                                     inferredReturnTypes);
 }
