@@ -2047,12 +2047,11 @@ LogicalResult AllReduceOp::verify() {
   auto operandType = getOperand().getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
   Block& block = getComputation().front();
-  SmallVector<TensorType> accumulatorSubshapes;
   if (failed(hlo::verifyReducerShape(
           this->getLoc(), block, {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},
           /*numInputs=*/1, /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/!operandTypeRanked, accumulatorSubshapes)))
+          /*allInputsUnranked=*/!operandTypeRanked)))
     return failure();
 
   return success();
