@@ -1082,7 +1082,6 @@ LogicalResult inferReduceOp(
 //  P3. size-of(window_dimension) == rank-of(input),
 //        where input is an element of 'inputs'.
 //  P4. Verify and collect the window atributes.
-//  P5. Verify the inner block defining the reducer function.
 LogicalResult inferReduceWindowOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
@@ -1154,13 +1153,6 @@ LogicalResult inferReduceWindowOp(
       /*lhsDilation=*/*baseDilationsOrErr,
       /*rhsDilation=*/*windowDilationsOrErr, location);
   if (failed(windowOrErr)) return failure();
-
-  // P5.
-  Block& block = body.front();
-  if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
-                                numInputs, *windowDimsOrErr,
-                                allInputsUnranked)))
-    return failure();
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
     if (!inputArgTypes[i].hasRank())
