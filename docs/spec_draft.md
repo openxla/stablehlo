@@ -3419,15 +3419,6 @@ The following diagram shows how elements in `results[k]` are computed from
 
 <img align="center" src="spec_draft/reduce_window.svg" />
 
-The kth dimension of `inputs[k]` is dilated by placing `base_dilations[k] - 1`
-holes between each of the entries in that dimension.  `padding[k][0]` and
-`padding[k][1]` specify the amount of padding added at the low-end (next to
-index 0) and the high-end (next to the highest index) of dimension `k`
-respectively. The amount of padding can be negative, where the absolute value of
-negative padding indicates the number of elements to remove from the specified
-dimension. Dilation of `inputs[k]` occurs logically before padding, so in the
-case of negative padding, elements are removed from the dilated `inputs[k]`.
-
 More formally, `results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)` where:
   * `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
   * `window_start = result_index * window_strides`.
