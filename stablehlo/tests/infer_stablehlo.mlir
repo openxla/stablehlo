@@ -413,6 +413,16 @@ func.func @dynamic_update_slice(%arg0: tensor<4x4xi32>, %arg1: tensor<2x2xi32>, 
 
 // -----
 
+// CHECK-LABEL: func @create_token
+func.func @create_token() -> !stablehlo.token {
+  %0 = "stablehlo.create_token"() : () -> !stablehlo.token
+  %1 = "hlo_test_infer.get_return_types"(%0) : (!stablehlo.token) -> !stablehlo.token
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = !stablehlo.token} : (!stablehlo.token) -> !stablehlo.token
+  func.return %1 : !stablehlo.token
+}
+
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//

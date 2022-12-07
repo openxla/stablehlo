@@ -56,6 +56,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
+#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
@@ -682,6 +683,13 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type
           anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({}))));
+  return success();
+}
+
+LogicalResult inferCreateTokenOp(MLIRContext* context,
+                                 Optional<Location> location,
+                                 SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
   return success();
 }
 
