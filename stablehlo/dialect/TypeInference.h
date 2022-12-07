@@ -103,7 +103,6 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 // order in which they are declared in the ODS.
 
 LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
-                              ValueRange inputs,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferBatchNormGradOp(

@@ -340,8 +340,7 @@ LogicalResult AfterAllOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   AfterAllOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferAfterAllOp(context, location, adaptor.getInputs(),
-                              inferredReturnTypes);
+  return hlo::inferAfterAllOp(context, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

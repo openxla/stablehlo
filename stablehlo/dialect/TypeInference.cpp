@@ -507,12 +507,8 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 //===----------------------------------------------------------------------===//
 
 LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
-                              ValueRange inputs,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
-  if (inputs.size() == 0)
-    inferredReturnTypes.emplace_back(stablehlo::TokenType::get(context));
-  else
-    inferredReturnTypes.emplace_back(inputs[0].getType());
+  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
   return success();
 }
 
