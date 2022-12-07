@@ -314,7 +314,6 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readTransposeAttr(reader);
     case vhlo_encoding::kTypeExtensionsAttr:
       return readTypeExtensionsAttr(reader);
-
     default:
       reader.emitError() << "unknown vhlo attribute code: " << code;
       return Attribute();
