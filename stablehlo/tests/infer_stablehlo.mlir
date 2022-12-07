@@ -418,6 +418,16 @@ func.func @convolution(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3x3x1x32
 
 // -----
 
+// CHECK-LABEL: @dynamic_update_slice
+func.func @dynamic_update_slice(%arg0: tensor<4x4xi32>, %arg1: tensor<2x2xi32>, %arg2: tensor<i64>, %arg3: tensor<i64>) -> tensor<4x4xindex> {
+  %0 = "stablehlo.dynamic_update_slice"(%arg0, %arg1, %arg2, %arg3) : (tensor<4x4xi32>, tensor<2x2xi32>, tensor<i64>, tensor<i64>) -> tensor<4x4xi32>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<4x4xi32>) -> tensor<4x4xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[4, 4]", element_type0 = i32}  : (tensor<4x4xi32>) -> tensor<4x4xindex>
+  func.return %1 : tensor<4x4xindex>
+}
+
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//

@@ -2302,6 +2302,7 @@ func.func @dynamic_update_slice(%input: tensor<3x4xi64>, %update: tensor<1x4xi64
 
 // -----
 
+// CHECK-LABEL: @dynamic_update_slice_invalid_start
 func.func @dynamic_update_slice_invalid_start(%input: tensor<3x4xi64>, %update: tensor<1x2xi64>, %start: tensor<2xi64>) -> tensor<3x4xi64> {
   // expected-error@+1 {{operand #2 must be 0D tensor of 4/8/16/32/64-bit signless integer or 4/8/16/32/64-bit unsigned integer values, but got 'tensor<2xi64>'}}
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start) : (tensor<3x4xi64>, tensor<1x2xi64>, tensor<2xi64>) -> tensor<3x4xi64>
@@ -2310,6 +2311,7 @@ func.func @dynamic_update_slice_invalid_start(%input: tensor<3x4xi64>, %update: 
 
 // -----
 
+// CHECK-LABEL: @dynamic_update_slice_invalid_update
 func.func @dynamic_update_slice_invalid_update(%input: tensor<3x4xi64>, %update: tensor<2xi64>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<3x4xi64> {
   // expected-error@+1 {{update rank does not match operand rank: 1 vs 2.}}
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2) : (tensor<3x4xi64>, tensor<2xi64>, tensor<i64>, tensor<i64>) -> tensor<3x4xi64>
@@ -2318,14 +2320,7 @@ func.func @dynamic_update_slice_invalid_update(%input: tensor<3x4xi64>, %update:
 
 // -----
 
-func.func @dynamic_update_slice_mismatched_start(%input: tensor<11x3x4xi32>, %update: tensor<1x3x4xi32>, %start1: tensor<i32>, %start2: tensor<i64>, %start3: tensor<i64>) -> tensor<11x3x4xi32> {
-  // expected-error@+1 {{start indices must have same element type (encountered mismatch: 'i32' vs 'i64')}}
-  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2, %start3) : (tensor<11x3x4xi32>, tensor<1x3x4xi32>, tensor<i32>, tensor<i64>, tensor<i64>) -> tensor<11x3x4xi32>
-  func.return %0 : tensor<11x3x4xi32>
-}
-
-// -----
-
+// CHECK-LABEL: @dynamic_update_slice_invalid_start_size
 func.func @dynamic_update_slice_invalid_start_size(%input: tensor<3x4xi64>, %update: tensor<1x2xi64>, %start: tensor<i64>) -> tensor<3x4xi64> {
   // expected-error@+1 {{expects number of start_indices to match operand rank: 1 vs 2.}}
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start) : (tensor<3x4xi64>, tensor<1x2xi64>, tensor<i64>) -> tensor<3x4xi64>
@@ -2334,6 +2329,16 @@ func.func @dynamic_update_slice_invalid_start_size(%input: tensor<3x4xi64>, %upd
 
 // -----
 
+// CHECK-LABEL: @dynamic_update_slice_mismatched_start
+func.func @dynamic_update_slice_mismatched_start(%input: tensor<11x3x4xi32>, %update: tensor<1x3x4xi32>, %start1: tensor<i32>, %start2: tensor<i64>, %start3: tensor<i64>) -> tensor<11x3x4xi32> {
+  // expected-error@+1 {{start indices must have same element type (encountered mismatch: 'i32' vs 'i64')}}
+  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2, %start3) : (tensor<11x3x4xi32>, tensor<1x3x4xi32>, tensor<i32>, tensor<i64>, tensor<i64>) -> tensor<11x3x4xi32>
+  func.return %0 : tensor<11x3x4xi32>
+}
+
+// -----
+
+// CHECK-LABEL: @dynamic_update_slice_invalid_start_size
 func.func @dynamic_update_slice_invalid_start_size(%input: tensor<3x4xi64>, %update: tensor<1x5xi64>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<3x4xi64> {
   // expected-error@+1 {{expects size at dimension 1 of update to be in range [0, 4]. Got: 5.}}
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2) : (tensor<3x4xi64>, tensor<1x5xi64>, tensor<i64>, tensor<i64>) -> tensor<3x4xi64>
