@@ -124,6 +124,10 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferCreateTokenOp(MLIRContext* context,
+                                 Optional<Location> location,
+                                 SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferDotGeneralOp(
     Optional<Location> location, Value lhs, Value rhs,
     ArrayRef<int64_t> lhsBatchingDimensions,

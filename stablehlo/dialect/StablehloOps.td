@@ -147,7 +147,8 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
   }];
 }
 
-def StableHLO_CreateTokenOp : StableHLO_Op<"create_token", [Pure]> {
+def StableHLO_CreateTokenOp : StableHLO_Op<"create_token", [Pure,
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Create Token operator";
 
   let description = [{

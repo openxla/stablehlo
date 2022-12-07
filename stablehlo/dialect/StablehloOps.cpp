@@ -438,6 +438,17 @@ void ConstantOp::print(::mlir::OpAsmPrinter& p) {
 }
 
 //===----------------------------------------------------------------------===//
+// CreateTokenOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult CreateTokenOp::inferReturnTypes(MLIRContext* context,
+    Optional<Location> location, ValueRange operands, DictionaryAttr attributes,
+    RegionRange regions, SmallVectorImpl<Type>& inferredReturnTypes) {
+  CreateTokenOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferCreateTokenOp(context, location, inferredReturnTypes);
+}
+
+//===----------------------------------------------------------------------===//
 // CustomCallOp
 //===----------------------------------------------------------------------===//
 
