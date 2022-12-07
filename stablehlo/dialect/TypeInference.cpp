@@ -812,6 +812,57 @@ LogicalResult inferDotGeneralOp(
   return success();
 }
 
+LogicalResult inferDynamicUpdateSliceOp(
+    Optional<Location> location, Value operand, Value update,
+    ValueRange startIndices,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto operandType = operand.getType().cast<ShapedType>();
+  auto updateType = update.getType().cast<ShapedType>();
+
+  // (C3)
+  int64_t operandRank = operandType.getRank();
+  int64_t updateRank = updateType.getRank();
+  if (updateRank != operandRank)
+    return emitOptionalError(
+        location, "update rank does not match operand rank: ", updateRank,
+        " vs ", operandRank, ".");
+
+  // (C4)
+  if ((int64_t)startIndices.size() != operandRank)
+    return emitOptionalError(
+        location, "expects number of start_indices to match operand rank: ",
+        startIndices.size(), " vs ", operandRank, ".");
+
+  // (C5)
+  if (!startIndices.empty()) {
+    auto firstIndexType = startIndices[0].getType().cast<ShapedType>();
+    Type firstIndexElement = firstIndexType.getElementType();
+    for (auto otherIndex : llvm::drop_begin(startIndices, 1)) {
+      auto otherIndexType = otherIndex.getType().cast<ShapedType>();
+      Type otherIndexElement = otherIndexType.getElementType();
+      if (firstIndexElement != otherIndexElement)
+        return emitOptionalError(
+            location,
+            "start indices must have same element type (encountered mismatch: ",
+            firstIndexElement, " vs ", otherIndexElement, ")");
+    }
+  }
+
+  // (C6)
+  for (auto [index, dims] : llvm::enumerate(
+           llvm::zip(operandType.getShape(), updateType.getShape()))) {
+    auto [operandDim, updateDim] = dims;
+    if (updateDim < 0 || updateDim > operandDim)
+      return emitOptionalError(location, "expects size at dimension ", index,
+                               " of update to be in range [0, ", operandDim,
+                               "]. Got: ", updateDim, ".");
+  }
+
+  inferredReturnShapes.emplace_back(operandType.getShape(),
+                                    operandType.getElementType());
+  return success();
+}
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);

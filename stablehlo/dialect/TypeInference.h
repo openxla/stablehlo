@@ -132,6 +132,11 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> rhsContractingDimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferDynamicUpdateSliceOp(
+    Optional<Location> location, Value operand, Value update,
+    ValueRange startIndices,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 
