@@ -689,7 +689,7 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
 LogicalResult inferCreateTokenOp(MLIRContext* context,
                                  Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.emplace_back(stablehlo::TokenType::get(context));
+  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
   return success();
 }
 
