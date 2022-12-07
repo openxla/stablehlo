@@ -1055,10 +1055,9 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
-LogicalResult inferOutfeedOp(Optional<Location> location, ValueRange inputs,
-                             Value token, StringAttr outfeed_config,
+LogicalResult inferOutfeedOp(Optional<Location> location, Value token,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.emplace_back(token.getType());
+  inferredReturnTypes.push_back(token.getType());
   return success();
 }
 

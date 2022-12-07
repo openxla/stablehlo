@@ -2892,9 +2892,7 @@ LogicalResult OutfeedOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   OutfeedOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferOutfeedOp(location, adaptor.getInputs(), adaptor.getToken(),
-                             adaptor.getOutfeedConfigAttr(),
-                             inferredReturnTypes);
+  return hlo::inferOutfeedOp(location, adaptor.getToken(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

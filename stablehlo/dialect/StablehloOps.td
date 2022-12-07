@@ -1036,7 +1036,7 @@ def StableHLO_SendOp : StableHLO_Op<"send",
   let summary = "Send operator";
 
   let description = [{
-    Sends `inputs` to a channel `channel_id`.
+    Sends `inputs` to a channel `channel_id` and produces a `result` token.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlosend
