@@ -809,12 +809,6 @@ LogicalResult inferDynamicUpdateSliceOp(
   auto operandType = operand.getType().cast<ShapedType>();
   auto updateType = update.getType().cast<ShapedType>();
 
-  // (C2)
-  if (updateType.getElementType() != operandType.getElementType())
-    return emitOptionalError(
-        location, "update element type does not match operand element type: ",
-        updateType.getElementType(), " vs ", operandType.getElementType(), ".");
-
   // (C3)
   int64_t operandRank = operandType.getRank();
   int64_t updateRank = updateType.getRank();
