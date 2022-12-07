@@ -1055,9 +1055,9 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
-LogicalResult inferOutfeedOp(Optional<Location> location, Value token,
+LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(token.getType());
+  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
   return success();
 }
 

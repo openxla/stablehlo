@@ -339,7 +339,6 @@ LogicalResult AfterAllOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  AfterAllOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferAfterAllOp(context, location, inferredReturnTypes);
 }
 
@@ -457,7 +456,6 @@ LogicalResult CreateTokenOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  CreateTokenOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferCreateTokenOp(context, location, inferredReturnTypes);
 }
 
@@ -2891,8 +2889,7 @@ LogicalResult OutfeedOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  OutfeedOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferOutfeedOp(location, adaptor.getToken(), inferredReturnTypes);
+  return hlo::inferOutfeedOp(context, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
