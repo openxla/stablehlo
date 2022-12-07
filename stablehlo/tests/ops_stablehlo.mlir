@@ -1765,6 +1765,16 @@ func.func @map_mismatch_arguments_and_dimensions(%arg0: tensor<4x5xf32>, %arg1: 
 
 // -----
 
+// CHECK-LABEL: func @outfeed
+func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  %0 = "stablehlo.outfeed"(%arg0, %arg1) {
+    outfeed_config = ""
+  } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+// -----
+
 // CHECK-LABEL: func @real_fp_input
 func.func @real_fp_input(%arg0: tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.real"(%arg0) : (tensor<*xf32>) -> tensor<*xf32>

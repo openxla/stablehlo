@@ -2884,6 +2884,20 @@ LogicalResult MapOp::reifyReturnTypeShapes(
 }
 
 //===----------------------------------------------------------------------===//
+// OutfeedOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult OutfeedOp::inferReturnTypes(
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  OutfeedOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferOutfeedOp(location, adaptor.getInputs(), adaptor.getToken(),
+                             adaptor.getOutfeedConfigAttr(),
+                             inferredReturnTypes);
+}
+
+//===----------------------------------------------------------------------===//
 // Send Op
 //===----------------------------------------------------------------------===//
 

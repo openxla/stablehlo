@@ -1055,6 +1055,13 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
+LogicalResult inferOutfeedOp(Optional<Location> location, ValueRange inputs,
+                             Value token, StringAttr outfeed_config,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.emplace_back(token.getType());
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that

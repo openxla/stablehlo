@@ -347,6 +347,18 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
 
 // -----
 
+// CHECK-LABEL: func @outfeed
+func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  %0 = "stablehlo.outfeed"(%arg0, %arg1) {
+    outfeed_config = ""
+  } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+  %1 = "hlo_test_infer.get_return_types"(%0) : (!stablehlo.token) -> !stablehlo.token
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = !stablehlo.token} : (!stablehlo.token) -> !stablehlo.token
+  func.return %1 : !stablehlo.token
+}
+
+// -----
+
 // CHECK-LABEL: func @while
 func.func @while(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<4xf32>, %arg4: tensor<f32>, %arg5: tensor<f32>, %arg6: tensor<f32>, %arg7: tensor<f32>, %arg8: tensor<i32>) -> tensor<index> {
   %cst = arith.constant dense<-1> : tensor<i32>

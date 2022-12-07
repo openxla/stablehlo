@@ -163,6 +163,10 @@ LogicalResult inferOptimizationBarrierOp(
     Optional<Location> location, ValueRange operand,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferOutfeedOp(Optional<Location> location, ValueRange inputs,
+                             Value token, StringAttr outfeed_config,
+                             SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions, Region& body,

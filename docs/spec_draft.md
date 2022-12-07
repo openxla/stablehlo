@@ -3051,7 +3051,7 @@ operation.
 
 ### Semantics
 
-Writes `inputs` to the outfeed and produces `result`.
+Writes `inputs` to the outfeed and produces a `result` token.
 
 Semantics of `outfeed_config` is implementation-defined.
 

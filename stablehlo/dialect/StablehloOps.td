@@ -1003,12 +1003,13 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
 
 // OutfeedOp corresponds to 'OutfeedWithToken' xla client API and not 'Outfeed'.
 // OutfeedWithToken allows ordering of outfeed HLO instructions using tokens.
-def StableHLO_OutfeedOp : StableHLO_Op<"outfeed", []> {
+def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
 
   let summary = "Outfeed operator";
 
   let description = [{
-    Writes `inputs` to the outfeed and produces `result`.
+    Writes `inputs` to the outfeed and produces a `result` token.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlooutfeed
