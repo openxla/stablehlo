@@ -102,6 +102,9 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 // These parameters have the same names as in the ODS and come in the same
 // order in which they are declared in the ODS.
 
+LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
     uint64_t featureIndex,

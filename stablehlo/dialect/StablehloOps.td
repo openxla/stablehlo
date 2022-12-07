@@ -1119,7 +1119,8 @@ def StableHLO_ReplicaIdOp : StableHLO_Op<"replica_id", [Pure,
 // StableHLO control flow op definitions.
 //===----------------------------------------------------------------------===//
 
-def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure]> {
+def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure,
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
 
   let summary = "AfterAll operator";
 
