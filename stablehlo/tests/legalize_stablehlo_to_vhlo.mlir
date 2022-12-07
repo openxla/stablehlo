@@ -197,8 +197,8 @@ func.func @attr_fft_type_irfft(%arg0: tensor<9xcomplex<f32>>) -> tensor<16xf32> 
 
 func.func @attr_precision_config_default(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
   %0 = "stablehlo.dot"(%arg0, %arg1) {
-    // CHECK: precision_config = [#vhlo<precision DEFAULT>]
-    precision_config = [#stablehlo<precision DEFAULT>]
+    // CHECK: precision_config = [#vhlo<precision DEFAULT>, #vhlo<precision DEFAULT>]
+    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
   } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   func.return %0 : tensor<8x8xf32>
 }
@@ -206,8 +206,8 @@ func.func @attr_precision_config_default(%arg0: tensor<8x16xf32>, %arg1: tensor<
 
 func.func @attr_precision_config_high(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
   %0 = "stablehlo.dot"(%arg0, %arg1) {
-    // CHECK: precision_config = [#vhlo<precision HIGH>]
-    precision_config = [#stablehlo<precision HIGH>]
+    // CHECK: precision_config = [#vhlo<precision HIGH>, #vhlo<precision HIGH>]
+    precision_config = [#stablehlo<precision HIGH>, #stablehlo<precision HIGH>]
   } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   func.return %0 : tensor<8x8xf32>
 }
@@ -215,8 +215,8 @@ func.func @attr_precision_config_high(%arg0: tensor<8x16xf32>, %arg1: tensor<16x
 
 func.func @attr_precision_config_highest(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
   %0 = "stablehlo.dot"(%arg0, %arg1) {
-    // CHECK: precision_config = [#vhlo<precision HIGHEST>]
-    precision_config = [#stablehlo<precision HIGHEST>]
+    // CHECK: precision_config = [#vhlo<precision HIGHEST>, #vhlo<precision HIGHEST>]
+    precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]
   } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   func.return %0 : tensor<8x8xf32>
 }

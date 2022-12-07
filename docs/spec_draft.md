@@ -1819,200 +1819,151 @@ Produces an `output` tensor from a constant `value`.
 
 ### Semantics
 
-Computes a convolution of input `lhs` tensor using kernel `rhs` tensor and
-produces `result` tensor. Informally, the operation "slides" the kernel `rhs`
-over input `lhs`, performing an elementwise multiplication with the part of the
-input it is currently on, and then summing up the results into a single output
-`result`.
+Computes dot products between windows of `lhs` and slices of `rhs` and produces
+`result`. The following diagram shows how elements in `result` are computed from
+`lhs` and `rhs` using a concrete example.
 
-<img align="center" src="spec_draft/convolution1.svg" />
+<img align="center" src="spec_draft/convolution.svg" />
 
-The following diagram exemplifies a case when
-dim(`lhs`, `input_batch_dimension`), dim(`rhs`, `input_feature_dimension`), and
-dim(`rhs`, `kernel_output_feature_dimension`) are all greater than one.
+More formally, we start with reframing the inputs to the operation in terms
+of `lhs` in order to be able to express windows of `lhs`:
 
-<img align="center" src="spec_draft/convolution2.svg" />
+  * `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
+  * `lhs_window_strides = lhs_shape(1, window_strides, 1)`.
+  * `lhs_padding = lhs_shape([0, 0], padding, [0, 0])`.
+  * `lhs_base_dilations = lhs_shape(1, lhs_dilation, 1)`.
+  * `lhs_window_dilations = lhs_shape(1, rhs_dilation, 1)`.
 
-Given a `result` index `result_index`, the following pseudo-code finds all the
-`lhs` and `rhs` index pairs, `lhs_full_index` and `rhs_full_index` resp.,
-responsible in computing the value at `result_index` using dot product.
+This reframing uses the following helper functions:
 
-```python
-value = 0;
-foreach rhs spatial index [k0, k1, ...]
-  ##
-  ## Compute the components in lhs_full_index at spatial dimensions.
-  ##
-  i0' = result_index[output_spatial_dimension[0]] * window_strides[0] - padding[0][0] + k0 * rhs_dilation[0]
-  i0 = base_dilations[0] > 1 ? i0' / base_dilations[0] : i0'
+  *  `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
+  *  `rhs_shape(hw, i, o) = permute(hw + [i, o], kernel_spatial_dimensions, [kernel_input_feature_dimension, kernel_output_feature_dimension])`.
+  *  `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
+  *  `source_to_target(hw)` transposes a list that is ordered according to
+     `source_spatial_dimensions`, so that it becomes ordered according to
+     `target_spatial_dimensions`.
 
-  i1' = result_index[output_spatial_dimension[1]] * window_strides[1] - padding[1][0] + k1 * rhs_dilation[1]
-  i1 = base_dilations[1] > 1 ? i1' / base_dilations[1] : i1'
-  ... omiting similar logic for other spatial dimensions ...
+If `feature_group_count = 1` and `batch_group_count = 1`, then for all
+`output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
+`result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-  if i0' % lhs_dilation[0] != 0 or i0 not in bounds of dim(lhs, 0), then skip [k0, k1]
-  if i1' % lhs_dilation[1] != 0 or i1 not in bounds of dim(lhs, 1), then skip [k0, k1]
-  ... omiting similar logic for other spatial dimensions ...
+  * `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations)`.
+  * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
+  * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
+  * `dot_product = dot_general(lhs_window, rhs,
+      lhs_batching_dimensions=[],
+      lhs_contracting_dimensions=input_spatial_dimensions + [input_feature_dimension],
+      rhs_batching_dimensions=[],
+      rhs_contracting_dimensions=kernel_spatial_dimensions + [kernel_input_feature_dimension])`.
 
-  lhs_full_index[input_spatial_dimension] = [i0, i1, ...]
+If `feature_group_count > 1`:
 
-  ##
-  ## Compute the components in rhs_full_index at spatial dimensions.
-  ##
-  rhs_full_index[kernel_spatial_dimension] = [
-    window_reversal[0] ? dim(rhs, kernel_spatial_dimension[0]) - 1 - k0 : k0,
-    window_reversal[1] ? dim(rhs, kernel_spatial_dimension[1]) - 1 - k1 : k1
-    ... omiting similar logic for other spatial dimensions ...
-  ]
+  * `lhses = split(lhs, feature_group_count, input_feature_dimension)`.
+  * `rhses = split(rhs, feature_group_count, kernel_output_feature_dimension)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., feature_group_count=1)`.
+  * `result = concatenate(results, output_feature_dimension)`.
 
-  input_feature_group_size = dim(lhs, input_feature_dimension) / feature_group_count.
-  foreach rhs_iz in [0, input_feature_group_size)
-    ##
-    ## Compute the components in lhs_full_index at input_batch_dimension  and input_feature_dimension.
-    ##
-    lhs_full_index[input_batch_dimension] = result_index[output_batch_dimension] + ((batch_group_index * batch_group_size) % input_batch_size)
-      where
-        batch_group_size = input_batch_size / batch_group_count
-        input_batch_size = dim(lhs, input_batch_dimension)
-        batch_group_index = result_index[output_feature_dimension] / depthwise_multiplier
-        depthwise_multiplier = batch_group_count > 1 ? dim(rhs, kernel_output_feature_dimension) / batch_group_count : 1
+If `batch_group_count > 1`:
 
-    lhs_full_index[input_feature_dimension] = rhs_iz + feature_group_index * input_feature_group_size
-      where
-        feature_group_index = result_index[output_feature_dimension] / output_feature_group_size
-        output_feature_group_size = dim(rhs, kernel_output_feature_dimension) / feature_group_count
+  * `lhses = split(lhs, batch_group_count, input_batch_dimension)`.
+  * `rhses = split(rhs, batch_group_count, kernel_output_feature_dimension)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1)`.
+  * `result = concatenate(results, output_feature_dimension)`.
 
-    ##
-    ## Compute the components in rhs_full_index at kernel_input_feature_dimension and kernel_output_feature_dimension.
-    ##
-    rhs_full_index[kernel_input_feature_dimension] = rhs_iz
-
-    rhs_full_index[kernel_output_feature_dimension] = result_index[output_feature_dimension]
-
-    ##
-    ## Accumulate value to be stored in result at 'result_index'.
-    ##
-    value += rhs[rhs_full_index] * lhs[lhs_full_index]
-
-  result[result_index] = value
-```
+Where `split(tensor, num_splits, dimension)` splits a `tensor` into `num_splits`
+tensors of the same shape, so that `concatenate(results, dimension)` produces
+back the same `tensor`.
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. The values can be one of the followings:
-  * `DEFAULT`: Fastest mode, but least accurate (default value).
-  * `HIGH`: Slower, but more accurate.
-  * `HIGHEST`: Slowest, but most accurate.
+  * `DEFAULT`: Fastest mode, but least accurate by performing computations in
+               `bf16`.
+  * `HIGH`: Slower, but more accurate by performing computations in `bf16` or
+            `f32` as applicable.
+
+  * `HIGHEST`: Slowest, but most accurate by performing computations in `f32`
+               or `f64` as applicable.
 
 ### Inputs
 
-| Name                              | Type                                              | Constraints                                        |
-|-----------------------------------|---------------------------------------------------|----------------------------------------------------|
-| `lhs`                             | tensor of any supported type                      | (C1), (C6), (C7), (C11), (C14), (C15)              |
-| `rhs`                             | tensor of any supported type                      | (C1), (C7), (C8), (C9), (C10), (C12), (C13), (C14) |
-| `window_strides`                  | 1-dimensional tensor constant of type `si64`      | (C9), (C14)                                        |
-| `padding`                         | 2-dimensional tensor constant of type `si64`      | (C10), (C14)                                       |
-| `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`      | (C11), (C14)                                       |
-| `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`      | (C12), (C14)                                       |
-| `window_reversal`                 | 1-dimensional tensor constant of type `boolean`   | (C13)                                              |
-| `input_batch_dimension`           | constant of type `si64`                           | (C2), (C6), (C14)                                  |
-| `input_feature_dimension`         | constant of type `si64`                           | (C2), (C7)                                         |
-| `input_spatial_dimension`         | 1-dimensional tensor constant of type `si64`      | (C1), (C2), (C14)                                  |
-| `kernel_input_feature_dimension`  | constant of type `si64`                           | (C3)                                               |
-| `kernel_output_feature_dimension` | constant of type `si64`                           | (C3), (C8), (C14)                                  |
-| `kernel_spatial_dimension`        | 1-dimensional tensor constant of type `si64`      | (C1), (C3), (C14)                                  |
-| `output_batch_dimension`          | constant of type `si64`                           | (C4), (C6), (C14)                                  |
-| `output_feature_dimension`        | constant of type `si64`                           | (C4),  (C14)                                       |
-| `output_spatial_dimension`        | 1-dimensional tensor constant of type `si64`      | (C1), (C4), (C14)                                  |
-| `feature_group_count`             | constant of type `si64`                           | (C5), (C6), (C8)                                   |
-| `batch_group_count`               | constant of type `si64`                           | (C5), (C6), (C8), (C14)                            |
-| `precision_config`                | array of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C16)                                              |
+| Name                              | Type                                                        | Constraints                            |
+|-----------------------------------|-------------------------------------------------------------|----------------------------------------|
+| `lhs`                             | tensor of any supported type                                | (C1), (C2), (C11), (C12), (C26), (C27) |
+| `rhs`                             | tensor of any supported type                                | (C1), (C2), (C15), (C16), (C17), (C26) |
+| `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                      |
+| `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                            |
+| `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                      |
+| `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                      |
+| `window_reversal`                 | 1-dimensional tensor constant of type `boolean`             | (C10)                                  |
+| `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                    |
+| `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14)                           |
+| `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                    |
+| `kernel_input_feature_dimension`  | constant of type `si64`                                     | (C15), (C19)                           |
+| `kernel_output_feature_dimension` | constant of type `si64`                                     | (C16), (C17), (C19), (C26)             |
+| `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C18), (C19), (C26)                    |
+| `output_batch_dimension`          | constant of type `si64`                                     | (C21), (C26)                           |
+| `output_feature_dimension`        | constant of type `si64`                                     | (C21),  (C26)                          |
+| `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C20), (C21), (C26)                    |
+| `feature_group_count`             | constant of type `si64`                                     | (C12), (C15), (C17), (C22), (C24)      |
+| `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)      |
+| `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                  |
 
 
 ### Outputs
 
-| Name     | Type                         |      Constraints         |
-|----------|------------------------------|--------------------------|
-| `result` | tensor of any supported type | (C1), (C6), (C14), (C15) |
+| Name     | Type                         | Constraints         |
+|----------|------------------------------|---------------------|
+| `result` | tensor of any supported type | (C26), (C27), (C28) |
 
 ### Constraints
 
-  * (C1) N $=$ rank(`lhs`) $=$ rank(`rhs`) $=$ rank(`result` ) and N $=$ S + 2,
-    where S $=$ size(`input_spatial_dimension`) $=$
-    size(`kernel_spatial_dimension`) $=$ size(`output_spatial_dimension`).
-
-  * (C2) Given `input_dimensions = {input_batch_dimension} +
-    input_spatial_dimension + {input_feature_dimension}`, where `+` is list
-    concatenation.
+  * (C1) $N =$ rank(`lhs`) $=$ rank(`rhs`).
+  * (C2) element_type(`lhs`) $=$ element_type(`rhs`).
+  * (C3) size(`window_strides`) $= N - 2$ .
+  * (C4) `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
+  * (C5) dim(`padding`, 0) $=$ S and dim(`padding`, 1) = 2.
+  * (C6) size(`lhs_dilation`) $= N - 2$.
+  * (C7) `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
+  * (C8) size(`rhs_dilation`) $= N - 2$.
+  * (C9) `rhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`rhs_dilation`)).
+  * (C10) size(`window_reversal`) $= N - 2$.
+  * (C11) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
+  * (C12) `dim(lhs, input_feature_dimension) % feature_group_count = 0.
+  * (C13) size(`input_spatial_dimensions`) $= N - 2$.
+  * (C14) Given `input_dimensions = [input_batch_dimension] +
+         input_spatial_dimensions + [input_feature_dimension]`.
     * All dimensions in `input_dimensions` are unique.
     * For any i $\in$ `input_dimensions`, 0 $\le$ i $\lt$ N.
-
-  * (C3) Given `kernel_dimensions = {kernel_input_feature_dimension} +
-    kernel_spatial_dimension + {kernel_output_feature_dimension}`, where `+`
-    is list concatenation.
+  * (C15) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
+  * (C16) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
+  * (C17) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
+  * (C18) size(`kernel_spatial_dimensions`) $= N - 2$.
+  * (C19) Given `kernel_dimensions = kernel_spatial_dimensions +
+          [kernel_input_feature_dimension] + [kernel_output_feature_dimension]`.
     * All dimensions in `kernel_dimensions` are unique.
     * For any i $\in$ `kernel_dimensions`, 0 $\le$ i $\lt$ N.
-
-  * (C4) Given `output_dimensions = {output_batch_dimension} +
-    output_spatial_dimension + {output_feature_dimension}`, where `+`
-    is list concatenation.
+  * (C20) size(`output_spatial_dimensions`) $= N - 2$.
+  * (C21) Given `output_dimensions = [output_batch_dimension] +
+          output_spatial_dimensions + [output_feature_dimension]`.
     * All dimensions in `output_dimensions` are unique.
     * For any i $\in$ `output_dimensions`, 0 $\le$ i $\lt$ N.
-
-  * (C5) `feature_group_count > 0 and batch_group_count > 0 and
-    not(feature_group_count > 1 && batch_group_count > 1)`.
-
-  * (C6) `dim(lhs, input_batch_dimension) % batch_group_count = 0` and
-    `dim(lhs, input_batch_dimension) / batch_group_count = dim(result, output_batch_dimension)`.
-
-  * (C7) `dim(lhs, input_feature_dimension) % feature_group_count = 0 and
-    dim(lhs, input_feature_dimension) / feature_group_count = dim(rhs, kernel_input_feature_dimension)`.
-
-  * (C8) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0
-    and dim(rhs, kernel_output_feature_dimension) % feature_group_count
-    = 0`.
-
-  * (C9) On `window_strides` (optional)
-    * Default value of 1 for each dimension of `rhs`.
-    * size(`window_strides`) $=$ S.
-    * `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
-
-  * (C10) On `padding`(optional)
-    * Default value of (0,0) for each dimension of `rhs`.
-    * dim(`padding`, 0) $=$ S and dim(`padding`, 1) = 2.
-
-  * (C11) On `lhs_dilation` (optional)
-    * Default value of 1 for each spatial dimension of `lhs`.
-    * size(`lhs_dilation`) $=$ S.
-    * `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
-
-  * (C12) On `rhs_dilation` (optional)
-    * Default value of 1 for each spatial dimension of `rhs`.
-      [0, N).
-    * size(`rhs_dilation`) $=$ S.
-    * `rhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`rhs_dilation`)).
-
-  * (C13) On `window_reversal` (optional)
-    * Default value of false for each dimension of `rhs`.
-    * size(`window_reversal`) $=$ S.
-
-  * (C14) Shape of `result`
-    * For k $\in$ [0, N), `dim(result, k)` is given by
-      * `dim(lhs, input_batch_dimension) / batch_group_count`, if `k =  output_batch_dimension`.
-      * `dim(rhs, kernel_output_feature_dimension)`, if `k =  output_feature_dimension`.
-      * `strided_bound[i]`, otherwise,
-          * `output_spatial_dimension[i] = k`.
-          * `strided_bound[i] = (padded_dilated_base[i] == 0 || dilated_window[i] > padded_dilated_base[i]) ? 0 : floor((padded_dilated_base[i] - dilated_window[i]) / window_strides[i]) + 1`.
-          * `padded_dilated_base[i] = padding[i][0] + dilated_base[i] + padding[i][1]`.
-          * `dilated_base[i] = base[i] = 0 ? 0 : (base[i] - 1) * lhs_dilation[i] + 1`.
-          * `base[i] = dim(lhs, input_spatial_dimension[i])`.
-          * `dilated_window[i] = window[i] = 0 ? 0 : (window[i] - 1) * rhs_dilation[i] + 1`.
-          * `window[i] = dim(rhs, kernel_spatial_dimension[i])`.
-
-  * (C15) element-type(`lhs`) $=$ element-type(`result`).
-
-  * C(16) size(`precision_config`) $=$ 0 or $=$ 2.
-
-
+  * (C22) `feature_group_count > 0`.
+  * (C23) `batch_group_count > 0`.
+  * (C24) `feature_group_count` $= 1$ OR  `batch_group_count` $= 1$.
+  * (C25) size(`precision_config`) $=$ 2.
+  * (C26) For result_dim $\in$ [0, N), `dim(result, result_dim)` is given by
+    * `dim(lhs, input_batch_dimension) / batch_group_count`, if `result_dim = output_batch_dimension`.
+    * `dim(rhs, kernel_output_feature_dimension)`, if `result_dim = output_feature_dimension`.
+    * `num_windows` otherwise, where:
+        * `output_spatial_dimensions[num_spatial_dim] = result_dim`.
+        * `lhs_dim = input_spatial_dimensions[num_spatial_dim]`.
+        * `rhs_dim = kernel_spatial_dimensions[num_spatial_dim]`.
+        * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[num_spatial_dim] + 1`.
+        * `padded_input_shape[lhs_dim] = padding[num_spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[num_spatial_dim, 1]`.
+        * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[num_spatial_dim] + 1`.
+        * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[num_spatial_dim]) + 1`.
+  * (C27) element_type(`result`) $=$ element_type(`lhs`).
+  * (C28) rank(`result`) $= N$.
 
 ### Examples
 
@@ -2043,13 +1994,18 @@ computations on accelerator backends. The values can be one of the followings:
   lhs_dilation = dense<2> : tensor<2xi64>,
   rhs_dilation = dense<1> : tensor<2xi64>,
   window_reversal = dense<false> : tensor<2xi1>,
+  // In the StableHLO dialect, dimension numbers are encoded via:
+  // `[<input dimensions>]x[<kernel dimensions>]->[output dimensions]`.
+  // "b" is batch dimenion, "f" is feature dimension,
+  // "i" is input feature dimension, "o" is output feature dimension,
+  // "0/1/etc" are spatial dimensions.
   dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
   feature_group_count = 1 : i64,
   batch_group_count = 1 : i64,
   precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-} : (tensor<1x4x4x1xui8>, tensor<3x3x1x1xui8>) -> tensor<1x2x2x1xui8>
+} : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>) -> tensor<1x2x2x1xi32>
 // %result: [[
-//            [[[10]], [26]],
+//            [[10], [26]],
 //            [[46], [62]]
 //          ]]
 ```
@@ -4099,10 +4055,11 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
   * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
           where `Ek = element_type(inputs[0])`.
   * (C14) All `results` have the same shape.
-  * (C15) `shape(results[0]) = (padded_input_shape == 0 || window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - window_shape) / window_strides) + 1:`
+  * (C15) `shape(results[0]) = num_windows`
     * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
     * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
-    * `window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
+    * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
+    * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
   * (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
       $\in$ [0, N).
 

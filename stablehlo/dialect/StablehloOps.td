@@ -2060,11 +2060,8 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
 def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType]> {
   let summary = "Convolution operator";
   let description = [{
-    Computes a convolution of input `lhs` tensor using kernel `rhs` tensor and
-    produces `result` tensor. Informally, the operation "slides" the kernel
-    `rhs` over input `lhs`, performing an elementwise multiplication with the
-    part of the input it is currently on, and then summing up the results into a
-    single output `result`.
+    Computes dot products between windows of `lhs` and slices of `rhs` and
+    produces `result`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconvolution
@@ -2081,7 +2078,7 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType
       feature_group_count = 1 : i64,
       batch_group_count = 1 : i64,
       precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-    } : (tensor<1x4x4x1xui8>, tensor<3x3x1x1xui8>) -> tensor<1x2x2x1xui8>
+    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>) -> tensor<1x2x2x1xi32>
     ```
   }];
   let arguments = !con(
