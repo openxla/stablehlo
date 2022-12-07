@@ -909,8 +909,8 @@ def CHLO_RankSpecializationClusterOp
     ```
   }];
 
-  let arguments = (ins Variadic<HLO_Tensor>:$operands);
-  let results = (outs Variadic<HLO_Tensor>:$results);
+  let arguments = (ins Variadic<HLO_Tensor>);
+  let results = (outs Variadic<HLO_Tensor>);
   let regions = (region SizedRegion<1>:$body);
 
   let hasVerifier = 1;
