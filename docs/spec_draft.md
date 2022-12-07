@@ -3051,7 +3051,7 @@ operation.
 
 ### Semantics
 
-Writes `inputs` to the outfeed and produces `result`.
+Writes `inputs` to the outfeed and produces a `result` token.
 
 Semantics of `outfeed_config` is implementation-defined.
 
@@ -3426,16 +3426,16 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
 
 ### Inputs
 
-| Name                | Type                                                           | Constraints                                    |
-|---------------------|----------------------------------------------------------------|------------------------------------------------|
+| Name                | Type                                                           | Constraints                                     |
+|---------------------|----------------------------------------------------------------|-------------------------------------------------|
 | `inputs`            | variadic number of tensors of any supported type               | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
-| `init_values`       | variadic number of 0-dimensional tensors of any supported type | (C1), (C13), (C16)                             |
-| `window_dimensions` | 1-dimensional tensor constant of type `si64`                   | (C4), (C5), (C15)                              |
-| `window_strides`    | 1-dimensional tensor constant of type `si64`                   | (C6), (C7), (C15)                              |
-| `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C8), (C9), (C15)                              |
-| `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C10), (C11), (C15)                            |
-| `padding`           | 2-dimensional tensor constant of type `si64`                   | (C12), (C15)                                   |
-| `body`              | `function`                                                     | (C13)                                          |
+| `init_values`       | variadic number of 0-dimensional tensors of any supported type | (C1), (C13), (C16)                              |
+| `window_dimensions` | 1-dimensional tensor constant of type `si64`                   | (C4), (C5), (C15)                               |
+| `window_strides`    | 1-dimensional tensor constant of type `si64`                   | (C6), (C7), (C15)                               |
+| `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C8), (C9), (C15)                               |
+| `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C10), (C11), (C15)                             |
+| `padding`           | 2-dimensional tensor constant of type `si64`                   | (C12), (C15)                                    |
+| `body`              | `function`                                                     | (C13)                                           |
 
 ### Outputs
 
@@ -4067,7 +4067,7 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Semantics
 
-Sends `inputs` to a channel `channel_id`.
+Sends `inputs` to a channel `channel_id` and produces a `result` token.
 
 The operation takes a token and produces a token to reify its side effects
 as a value that other operations can take a data dependency on.

@@ -1055,6 +1055,12 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
+LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that

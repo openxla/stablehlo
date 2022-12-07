@@ -110,7 +110,7 @@ one of the following tracking labels.
 | not                      | yes           | yes          | yes            | yes             | yes         |
 | optimization_barrier     | yes           | yes          | yes            | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
-| outfeed                  | yes           | yes          | no             | no              | no          |
+| outfeed                  | yes           | yes          | yes            | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | yes           | revisit      | yes            | yes             | no          |
