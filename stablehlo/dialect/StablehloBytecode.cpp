@@ -155,6 +155,13 @@ enum AttributeCode {
   ///     bounds : svarint[]
   ///   }
   kTypeExtensionsAttr = 13,
+
+  ///   OutputOperandAliasAttr {
+  ///     outputTupleIndices: svarint[]
+  ///     operandIndex : svarint
+  ///     operandTupleIndices: svarint[]
+  ///   }
+  kOutputOperandAlias = 14,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -214,6 +221,8 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   FftTypeAttr readFftTypeAttr(DialectBytecodeReader &reader) const;
   GatherDimensionNumbersAttr readGatherDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
+  OutputOperandAliasAttr readOutputOperandAliasAttr(
+      DialectBytecodeReader &reader) const;
   PrecisionAttr readPrecisionAttr(DialectBytecodeReader &reader) const;
   RngAlgorithmAttr readRngAlgorithmAttr(DialectBytecodeReader &reader) const;
   RngDistributionAttr readRngDistributionAttr(
@@ -236,6 +245,7 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
   void write(FftTypeAttr attr, DialectBytecodeWriter &writer) const;
   void write(GatherDimensionNumbersAttr attr,
              DialectBytecodeWriter &writer) const;
+  void write(OutputOperandAliasAttr attr, DialectBytecodeWriter &writer) const;
   void write(PrecisionAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngAlgorithmAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngDistributionAttr attr, DialectBytecodeWriter &writer) const;
@@ -290,6 +300,8 @@ Attribute StablehloBytecodeInterface::readAttribute(
       return readFftTypeAttr(reader);
     case stablehlo_encoding::kGatherDimensionNumbers:
       return readGatherDimensionNumbersAttr(reader);
+    case stablehlo_encoding::kOutputOperandAlias:
+      return readOutputOperandAliasAttr(reader);
     case stablehlo_encoding::kPrecisionAttr:
       return readPrecisionAttr(reader);
     case stablehlo_encoding::kRngAlgorithmAttr:
@@ -432,6 +444,21 @@ StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
                                          indexVectorDim);
 }
 
+OutputOperandAliasAttr StablehloBytecodeInterface::readOutputOperandAliasAttr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  llvm::SmallVector<int64_t> outputTupleIndices, operandTupleIndices;
+  int64_t operandIndex;
+
+  if (failed(reader.readSignedVarInts(outputTupleIndices)) ||
+      failed(reader.readSignedVarInt(operandIndex)) ||
+      failed(reader.readSignedVarInts(operandTupleIndices))) {
+    return OutputOperandAliasAttr();
+  }
+  return OutputOperandAliasAttr::get(getContext(), outputTupleIndices,
+                                     operandIndex, operandTupleIndices);
+}
+
 PrecisionAttr StablehloBytecodeInterface::readPrecisionAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
@@ -506,13 +533,13 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
       .Case<ArgResultAliasAttr, ComparisonDirectionAttr, ComparisonTypeAttr,
             ConvDimensionNumbersAttr, ChannelHandleAttr,
             DotDimensionNumbersAttr, FftTypeAttr, GatherDimensionNumbersAttr,
-            PrecisionAttr, RngAlgorithmAttr, RngDistributionAttr,
-            ScatterDimensionNumbersAttr, TransposeAttr, TypeExtensionsAttr>(
-          [&](auto attr) {
-            LOG_WRITE_CALL;
-            write(attr, writer);
-            return success();
-          })
+            OutputOperandAliasAttr, PrecisionAttr, RngAlgorithmAttr,
+            RngDistributionAttr, ScatterDimensionNumbersAttr, TransposeAttr,
+            TypeExtensionsAttr>([&](auto attr) {
+        LOG_WRITE_CALL;
+        write(attr, writer);
+        return success();
+      })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -583,6 +610,14 @@ void StablehloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
   writer.writeSignedVarInts(attr.getCollapsedSliceDims());
   writer.writeSignedVarInts(attr.getStartIndexMap());
   writer.writeSignedVarInt(attr.getIndexVectorDim());
+}
+
+void StablehloBytecodeInterface::write(OutputOperandAliasAttr attr,
+                                       DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(stablehlo_encoding::kOutputOperandAlias);
+  writer.writeSignedVarInts(attr.getOutputTupleIndices());
+  writer.writeSignedVarInt(attr.getOperandIndex());
+  writer.writeSignedVarInts(attr.getOperandTupleIndices());
 }
 
 void StablehloBytecodeInterface::write(PrecisionAttr attr,
