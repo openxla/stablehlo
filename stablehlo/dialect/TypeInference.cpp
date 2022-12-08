@@ -877,6 +877,14 @@ LogicalResult inferDynamicUpdateSliceOp(
   return success();
 }
 
+LogicalResult inferGetDimensionSizeOp(
+    MLIRContext* context, Optional<Location> location,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(
+      RankedTensorType::get({}, IntegerType::get(context, 32)));
+  return success();
+}
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
