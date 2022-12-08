@@ -1282,13 +1282,13 @@ LogicalResult inferSelectOp(
 }
 
 LogicalResult inferSelectAndScatterOp(
-    Value operend, SmallVectorImpl<Type>& inferredReturnTypes) {
-  Type elementTy = getElementTypeOrSelf(operend.getType());
-  auto rankedTy = operend.getType().dyn_cast<RankedTensorType>();
+    Value operand, SmallVectorImpl<Type>& inferredReturnTypes) {
+  Type elementTy = getElementTypeOrSelf(operand.getType());
+  auto rankedTy = operand.getType().dyn_cast<RankedTensorType>();
   if (rankedTy)
-    inferredReturnTypes.emplace_back(operend.getType());
+    inferredReturnTypes.push_back(operand.getType());
   else
-    inferredReturnTypes.emplace_back(UnrankedTensorType::get(elementTy));
+    inferredReturnTypes.push_back(UnrankedTensorType::get(elementTy));
   return success();
 }
 
