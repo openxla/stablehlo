@@ -324,6 +324,10 @@ def VHLO_ReplicaIdOpV1 : VHLO_Op<"replica_id"> {
   let results = (outs TensorOf<[UI32]>);
 }
 
+def VHLO_PartitionIdOpV1 : VHLO_Op<"partition_id"> {
+  let results = (outs TensorOf<[UI32]>);
+}
+
 // Control flow op definitions.
 def VHLO_AfterAllOpV1 : VHLO_Op<"after_all"> {
   let arguments = (ins Variadic<VHLO_Token>:$inputs);
