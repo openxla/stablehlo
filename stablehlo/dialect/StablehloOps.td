@@ -2221,6 +2221,10 @@ def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]>, BASE_EinsumOp {
 
   // TODO(hinsu): Canonicalize to lower this client side HLO op to server
   // side HLO ops.
+
+  let assemblyFormat = [{
+    $lhs `,` $rhs `,` `config` `=` $einsum_config attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp {
@@ -2230,6 +2234,10 @@ def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp
   );
 
   let results = (outs HLO_Tensor);
+
+  let assemblyFormat = [{
+    $operand `,` `config` `=` $einsum_config attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
