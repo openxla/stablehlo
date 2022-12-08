@@ -164,6 +164,7 @@ add_dependencies(mlir-headers VhloOpsIncGen)
 
 add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
+  VhloBytecode.cpp
   VhloOps.cpp
   Version.cpp
 
@@ -172,18 +173,8 @@ add_mlir_dialect_library(VhloOps
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
-  VhloBytecode
-  MLIRIR
-  MLIRSupport
-  MLIRQuantDialect
-)
-
-add_mlir_dialect_library(VhloBytecode
-  PARTIAL_SOURCES_INTENDED
-  VhloBytecode.cpp
-
-  LINK_LIBS PUBLIC
   StablehloBase
   MLIRIR
   MLIRSupport
+  MLIRQuantDialect
 )
