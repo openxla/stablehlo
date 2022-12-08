@@ -762,12 +762,12 @@ Afterwards, within each `process_group`:
           start_indices=[s0, s1, ..., sR-1],
             # where
             #  - sj = 0 if j != split_dimension
-            #  - sj = i * dim(operand) // split_count, if j == split_dimension
+            #  - sj = i * dim(operand, j) / split_count, if j == split_dimension
             #  - R = rank(operand)
           limit_indices=[l0, l1, ..., lR-1],
             # where
             #   - lj = dim(operand, j) if j != split_dimension
-            #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
+            #   - lj = (i + 1) * dim(operand, j) / split_count, if j == split_dimension
           strides=[1, ..., 1]
         ) for i in range(split_count)
      ]
@@ -3489,12 +3489,12 @@ Within each `process_group`:
           start_indices=[s0, s1, ..., sR-1],
             # where
             #  - sj = 0 if j != split_dimension
-            #  - sj = i * dim(operand, j) // split_count, if j == split_dimension
+            #  - sj = i * dim(operand, j) / split_count, if j == split_dimension
             #  - R = rank(operand)
           limit_indices=[l0, l1, ..., lR-1],
             # where
             #   - lj = dim(operand, j) if j != split_dimension
-            #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
+            #   - lj = (i + 1) * dim(operand, j) / split_count, if j == split_dimension
           strides=[1, ..., 1]
         ) for i in range(split_count)
     ]
@@ -3521,18 +3521,19 @@ Within each `process_group`:
 
 ### Constraints
 
-  * (C1) `scatter_dimension` $\in$ [0, rank(`operand`)).
-  * (C2) All values in `replica_groups` are unique.
-  * (C3) `size(replica_groups)` depends on the process grouping strategy:
+  * (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
+  * (C2) `scatter_dimension` $\in$ [0, rank(`operand`)).
+  * (C3) All values in `replica_groups` are unique.
+  * (C4) `size(replica_groups)` depends on the process grouping strategy:
     * If `cross_replica`, `num_replicas`.
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
-  * (C4) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
+  * (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-  * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-  * (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
-  * (C7) `type(result) = type(operand)` except:
+  * (C8) `type(result) = type(operand)` except:
     * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
 
 ### Examples
