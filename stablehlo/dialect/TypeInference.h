@@ -181,7 +181,7 @@ LogicalResult inferReduceWindowOp(
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
     Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding, Region& body,
+    Optional<DenseIntElementsAttr> padding,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReturnOp(Optional<Location> location,
@@ -218,15 +218,25 @@ LogicalResult inferTriangularSolveOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
-                           Region& cond, Region& body,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);
 
+LogicalResult verifyReduceWindowOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr windowDimensions,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> baseDilations,
+    Optional<DenseIntElementsAttr> windowDilations,
+    Optional<DenseIntElementsAttr> padding, Region& body);
+
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            uint64_t dimension, Region& comparator);
+
+LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
+                            Region& cond, Region& body);
 }  // end namespace hlo
 }  // end namespace mlir
 

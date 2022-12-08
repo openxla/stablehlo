@@ -1092,19 +1092,13 @@ LogicalResult inferReduceOp(
   return success();
 }
 
-// We intend to verify the following properties
-//  P2. All `inputs` need to have compatible shapes.
-//  P3. size-of(window_dimension) == rank-of(input),
-//        where input is an element of 'inputs'.
-//  P4. Verify and collect the window atributes.
-//  P5. Verify the inner block defining the reducer function.
 LogicalResult inferReduceWindowOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
     Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding, Region& body,
+    Optional<DenseIntElementsAttr> padding,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
@@ -1112,55 +1106,14 @@ LogicalResult inferReduceWindowOp(
   SmallVector<TensorType> initValueTypes{llvm::map_range(
       initValues.getTypes(),
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
-  uint64_t numInputs = inputs.size();
 
-  // Check for unranked tensors in input operands.
-  int64_t rankedInputIdx = -1;
-  for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    if (inputArgTypes[inputIdx].hasRank()) {
-      rankedInputIdx = inputIdx;
-      break;
-    }
-  }
-
-  bool allInputsUnranked = (rankedInputIdx == -1);
-
-  // P2.
-  if (!allInputsUnranked) {
-    for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-      if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
-                                             inputArgTypes[inputIdx]))) {
-        return emitOptionalError(
-            location, "expects all inputs to have compatible shapes. Shape at",
-            " input-index ", inputIdx,
-            " is not compatible with shape at input-index ", rankedInputIdx);
-      }
-    }
-  }
-
-  // P3.
   auto windowDimsOrErr =
       convert1DAttribute(windowDimensions, location, "window_dimensions");
-  if (failed(windowDimsOrErr)) return failure();
-  for (const auto inputType : inputArgTypes) {
-    if (!inputType.hasRank()) continue;
-    if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
-      return emitOptionalError(
-          location, "expects window-dimensions size == input rank, but got ",
-          "window-dimensions size: ", (*windowDimsOrErr).size(),
-          " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
-  }
-
-  // P4.
   auto paddingOrErr = convertPaddingAttribute(padding, location);
-  if (failed(paddingOrErr)) return failure();
-
   auto windowStridesOrErr =
       convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
   auto baseDilationsOrErr =
       convert1DAttribute(baseDilations, location, "base_dilations");
-  if (failed(baseDilationsOrErr)) return failure();
   auto windowDilationsOrErr =
       convert1DAttribute(windowDilations, location, "window_dilations");
   if (failed(windowDilationsOrErr)) return failure();
@@ -1168,14 +1121,6 @@ LogicalResult inferReduceWindowOp(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/*baseDilationsOrErr,
       /*rhsDilation=*/*windowDilationsOrErr, location);
-  if (failed(windowOrErr)) return failure();
-
-  // P5.
-  Block& block = body.front();
-  if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
-                                numInputs, *windowDimsOrErr,
-                                allInputsUnranked)))
-    return failure();
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
     if (!inputArgTypes[i].hasRank())
@@ -1439,43 +1384,8 @@ LogicalResult inferTriangularSolveOp(
   return success();
 }
 
-LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
-                           Region& cond, Region& body,
+LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto operandTypes = operand.getTypes();
-  auto condArgsTypes = cond.front().getArgumentTypes();
-  auto bodyArgsTypes = body.front().getArgumentTypes();
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
-    return emitOptionalError(location,
-                             "expect operands are compatible with condition "
-                             "block arguments but got ",
-                             operandTypes, " vs ", condArgsTypes);
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
-    return emitOptionalError(
-        location,
-        "expect operands are compatible with body block arguments but got ",
-        operandTypes, " vs ", bodyArgsTypes);
-
-  auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
-    return emitOptionalError(
-        location,
-        "expect operands are compatible with body block return types but got ",
-        operandTypes, " vs ", bodyReturnTypes);
-
-  auto condReturnTypes = cond.front().back().getOperandTypes();
-  if (condReturnTypes.size() != 1)
-    return emitOptionalError(
-        location, "expect condition body returns a single value but got ",
-        condReturnTypes.size());
-  auto operandType = condReturnTypes[0].cast<TensorType>();
-  if ((operandType.hasRank() && operandType.getRank() != 0) ||
-      !operandType.getElementType().isInteger(1))
-    return emitOptionalError(
-        location,
-        "expect condition block return a zero-ranked tensor of i1 but got ",
-        condReturnTypes[0]);
-
   for (const auto& resultType : operand.getType())
     inferredReturnTypes.push_back(resultType);
   return success();
@@ -1558,6 +1468,93 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
+// We intend to verify the following properties
+//  P2. All `inputs` need to have compatible shapes.
+//  P3. size-of(window_dimension) == rank-of(input),
+//        where input is an element of 'inputs'.
+//  P4. Verify and collect the window atributes.
+//  P5. Verify the inner block defining the reducer function.
+LogicalResult verifyReduceWindowOp(
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    DenseIntElementsAttr windowDimensions,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> baseDilations,
+    Optional<DenseIntElementsAttr> windowDilations,
+    Optional<DenseIntElementsAttr> padding, Region& body) {
+  SmallVector<TensorType> inputArgTypes{llvm::map_range(
+      inputs.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  SmallVector<TensorType> initValueTypes{llvm::map_range(
+      initValues.getTypes(),
+      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  uint64_t numInputs = inputs.size();
+
+  // Check for unranked tensors in input operands.
+  int64_t rankedInputIdx = -1;
+  for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+    if (inputArgTypes[inputIdx].hasRank()) {
+      rankedInputIdx = inputIdx;
+      break;
+    }
+  }
+
+  bool allInputsUnranked = (rankedInputIdx == -1);
+
+  // P2.
+  if (!allInputsUnranked) {
+    for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
+      if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
+                                             inputArgTypes[inputIdx]))) {
+        return emitOptionalError(
+            location, "expects all inputs to have compatible shapes. Shape at",
+            " input-index ", inputIdx,
+            " is not compatible with shape at input-index ", rankedInputIdx);
+      }
+    }
+  }
+
+  // P3.
+  auto windowDimsOrErr =
+      convert1DAttribute(windowDimensions, location, "window_dimensions");
+  if (failed(windowDimsOrErr)) return failure();
+  for (const auto inputType : inputArgTypes) {
+    if (!inputType.hasRank()) continue;
+    if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
+      return emitOptionalError(
+          location, "expects window-dimensions size == input rank, but got ",
+          "window-dimensions size: ", (*windowDimsOrErr).size(),
+          " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
+  }
+
+  // P4.
+  auto paddingOrErr = convertPaddingAttribute(padding, location);
+  if (failed(paddingOrErr)) return failure();
+
+  auto windowStridesOrErr =
+      convert1DAttribute(windowStrides, location, "window_strides");
+  if (failed(windowStridesOrErr)) return failure();
+  auto baseDilationsOrErr =
+      convert1DAttribute(baseDilations, location, "base_dilations");
+  if (failed(baseDilationsOrErr)) return failure();
+  auto windowDilationsOrErr =
+      convert1DAttribute(windowDilations, location, "window_dilations");
+  if (failed(windowDilationsOrErr)) return failure();
+  auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
+      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
+      /*lhsDilation=*/*baseDilationsOrErr,
+      /*rhsDilation=*/*windowDilationsOrErr, location);
+  if (failed(windowOrErr)) return failure();
+
+  // P5.
+  Block& block = body.front();
+  if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
+                                numInputs, *windowDimsOrErr,
+                                allInputsUnranked)))
+    return failure();
+
+  return success();
+}
+
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            uint64_t dimension, Region& comparator) {
   auto operandTypes = inputs.getTypes();
@@ -1607,6 +1604,45 @@ LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
     return emitOptionalError(location,
                              "comparator must return tensor<i1> but got ",
                              comparatorResult[0].getType());
+  return success();
+}
+
+LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
+                            Region& cond, Region& body) {
+  auto operandTypes = operand.getTypes();
+  auto condArgsTypes = cond.front().getArgumentTypes();
+  auto bodyArgsTypes = body.front().getArgumentTypes();
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
+    return emitOptionalError(location,
+                             "expect operands are compatible with condition "
+                             "block arguments but got ",
+                             operandTypes, " vs ", condArgsTypes);
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
+    return emitOptionalError(
+        location,
+        "expect operands are compatible with body block arguments but got ",
+        operandTypes, " vs ", bodyArgsTypes);
+
+  auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
+  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
+    return emitOptionalError(
+        location,
+        "expect operands are compatible with body block return types but got ",
+        operandTypes, " vs ", bodyReturnTypes);
+
+  auto condReturnTypes = cond.front().back().getOperandTypes();
+  if (condReturnTypes.size() != 1)
+    return emitOptionalError(
+        location, "expect condition body returns a single value but got ",
+        condReturnTypes.size());
+  auto operandType = condReturnTypes[0].cast<TensorType>();
+  if ((operandType.hasRank() && operandType.getRank() != 0) ||
+      !operandType.getElementType().isInteger(1))
+    return emitOptionalError(
+        location,
+        "expect condition block return a zero-ranked tensor of i1 but got ",
+        condReturnTypes[0]);
+
   return success();
 }
 

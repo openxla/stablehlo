@@ -1251,6 +1251,8 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 
+  let hasVerifier = 1;
+
   let extraClassDeclaration = [{
     // Method of OpAsmOpInterface used during custom printing to name the block
     // arguments in the nested regions. We name both the condition and the body
@@ -2785,6 +2787,8 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   let results = (outs Variadic<HLO_Tensor>);
 
   let regions = (region SizedRegion<1>:$body);
+
+  let hasVerifier = 1;
 
   // Builder for non-variadic version of the operation.
   let builders = [
