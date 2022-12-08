@@ -631,9 +631,9 @@ Afterwards, within each `process_group`:
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
   * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
+         in `indices(replica_groups)`.
   * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-  * (C6)`type(result) = type(operand)` except that
+  * (C6)`type(result) = type(operand)` except:
     * `dim(result, all_gather_dim)` = `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
 ### Examples
@@ -711,7 +711,7 @@ Afterwards, within each `process_group`:
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
   * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
+         in `indices(replica_groups)`.
   * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
   * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
@@ -802,8 +802,8 @@ Afterwards, within each `process_group`:
   * (C5) All values in `replica_groups` are unique.
   * (C6) `size(replica_groups)` = `num_replicas`.
   * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
-  * (C8) `type(result) = type(operand)` except that
+         in `indices(replica_groups)`.
+  * (C8) `type(result) = type(operand)` except:
     * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
     * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
 
@@ -3527,12 +3527,12 @@ Within each `process_group`:
     * If `cross_replica`, `num_replicas`.
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
-  * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
+  * (C4) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
+         in `indices(replica_groups)`.
   * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
   * (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-         `E = element_type(`operand`).
-  * (C7)`type(result) = type(operand)` except that
+         `E = element_type(operand)`.
+  * (C7) `type(result) = type(operand)` except:
     * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
 
 ### Examples
@@ -3565,7 +3565,6 @@ Within each `process_group`:
 //                  [14.0, 16.0],
 //                  [22.0, 24.0]
 //                 ]
-<<<<<<< HEAD
 ```
 
 [Back to Ops](#index-of-ops)
@@ -3650,8 +3649,6 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
   padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
 } : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
 // %result = [[0, 0], [3, 4]]
-=======
->>>>>>> 3e18a8a (Iter1: address review comments)
 ```
 
 [Back to Ops](#index-of-ops)
