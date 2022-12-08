@@ -339,7 +339,8 @@ LogicalResult AfterAllOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferAfterAllOp(context, location, inferredReturnTypes);
+  auto dialect = context->getLoadedDialect<StablehloDialect>();
+  return hlo::inferAfterAllOp(dialect, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -456,7 +457,8 @@ LogicalResult CreateTokenOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferCreateTokenOp(context, location, inferredReturnTypes);
+  auto dialect = context->getLoadedDialect<StablehloDialect>();
+  return hlo::inferCreateTokenOp(dialect, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2896,7 +2898,8 @@ LogicalResult OutfeedOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferOutfeedOp(context, location, inferredReturnTypes);
+  auto dialect = context->getLoadedDialect<StablehloDialect>();
+  return hlo::inferOutfeedOp(dialect, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4482,7 +4485,7 @@ namespace stablehlo {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct HLOInlinerInterface : public DialectInlinerInterface {
+struct StablehloDialectInlinerInterface : public DialectInlinerInterface {
   using DialectInlinerInterface::DialectInlinerInterface;
 
   // Allow all call operations to be inlined.
@@ -4504,10 +4507,14 @@ struct HLOInlinerInterface : public DialectInlinerInterface {
   }
 };
 
-struct HLOBoundedDialectInterface : public hlo::BoundedDialectInterface {
-  using BoundedDialectInterface::BoundedDialectInterface;
+struct StablehloHloDialectInterface : public hlo::HloDialectInterface {
+  using HloDialectInterface::HloDialectInterface;
 
-  Attribute createBoundedAttr(ArrayRef<int64_t> bounds) const override {
+  Type createTokenType() const override {
+    return TokenType::get(getDialect()->getContext());
+  }
+
+  Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const override {
     return TypeExtensionsAttr::get(getDialect()->getContext(), bounds);
   }
 };
@@ -4523,8 +4530,8 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       >();
-  addInterfaces<HLOInlinerInterface>();
-  addInterfaces<HLOBoundedDialectInterface>();
+  addInterfaces<StablehloDialectInlinerInterface>();
+  addInterfaces<StablehloHloDialectInterface>();
   addBytecodeInterface(this);
   addTypes<TokenType>();
   addAttributes<

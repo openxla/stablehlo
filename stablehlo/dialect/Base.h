@@ -118,14 +118,20 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding);
 // the underlying dialect that knows how to create these attributes.
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 
-// This interface is used for HLO dialects that have accompanying
-// BoundedAttrInterface attributes which can carry bounds for dimension sizes
-// of accompanying shaped types.
-class BoundedDialectInterface
-    : public DialectInterface::Base<BoundedDialectInterface> {
+// This interface is implemented by both StableHLO and MHLO dialects
+// and is used as the foundation for sharing verification, type inference and
+// prettyprinting logic between them.
+class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
  public:
-  BoundedDialectInterface(Dialect *dialect) : Base(dialect) {}
-  virtual Attribute createBoundedAttr(ArrayRef<int64_t> bounds) const = 0;
+  HloDialectInterface(Dialect *dialect) : Base(dialect) {}
+
+  // Creates a TokenType type, specific to this dialect.
+  // See docs for the particular type in the corresponding dialect.
+  virtual Type createTokenType() const = 0;
+
+  // Creates a TypeExtensions attribute, specific to this dialect.
+  // See docs for the particular attribute in the corresponding dialect.
+  virtual Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const = 0;
 };
 
 namespace bytecode {

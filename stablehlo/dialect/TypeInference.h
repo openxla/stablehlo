@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Dialect.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
@@ -102,7 +103,7 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 // These parameters have the same names as in the ODS and come in the same
 // order in which they are declared in the ODS.
 
-LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
+LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferBatchNormGradOp(
@@ -127,8 +128,7 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferCreateTokenOp(MLIRContext* context,
-                                 Optional<Location> location,
+LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferDotGeneralOp(
@@ -167,7 +167,7 @@ LogicalResult inferOptimizationBarrierOp(
     Optional<Location> location, ValueRange operand,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
+LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(

@@ -56,7 +56,6 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/Base.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace hlo {
@@ -506,9 +505,10 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult inferAfterAllOp(MLIRContext* context, Optional<Location> location,
+LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  inferredReturnTypes.push_back(hloDialect->createTokenType());
   return success();
 }
 
@@ -692,10 +692,10 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-LogicalResult inferCreateTokenOp(MLIRContext* context,
-                                 Optional<Location> location,
+LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  inferredReturnTypes.push_back(hloDialect->createTokenType());
   return success();
 }
 
@@ -1063,9 +1063,10 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
-LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
+LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(stablehlo::TokenType::get(context));
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  inferredReturnTypes.push_back(hloDialect->createTokenType());
   return success();
 }
 
