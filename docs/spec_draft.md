@@ -108,12 +108,6 @@ Strings types are not first class, i.e. StableHLO doesn't support values of
 string types. Some StableHLO ops can take strings as inputs, but they are never
 produced as outputs.
 
-**Custom Types** model structs and are represented using: 1) the full form:
-`$type_name$<$arg0_name$ : $arg0_type$, ....>`, where `type_name` is the name of
-the custom type, `arg$i$_name` is the name of the `i`th argument of the custom
-type, and `arg$i$_type` is the type of the `i`th argument of the custom type, 2)
-the short form: `$type_name$`.
-
 ## Programs
 
 **StableHLO programs** consist of **StableHLO functions**. Each function has
@@ -373,37 +367,6 @@ syntax.
   * **String constants** String constants are represented as a sequence of
   bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
   encoding) or "\18\A3" (in hex encoding).
-
-## Index of Custom Types
-  * [output_operand_alias](#stablehlooutput_operand_alias)
-
-## stablehlo.output_operand_alias
-
-Captures the alias relationship of the output to one of the operands for a
-[custom_call](#stablehlocustom_call) op, denoted by `operand_index`. The
-`output_tuple_indices` and `operand_tuple_indices` are used to index into
-output and operand types.
-
-### Members
-
-| Name                    | Type                                         |
-|-------------------------|----------------------------------------------|
-| `output_tuple_indices`  | 1-dimensional tensor constant of type `si64` |
-| `operand_index`         | `si64`                                       |
-| `operand_tuple_indices` | 1-dimensional tensor constant of type `si64` |
-
-### Examples
-
-```mlir
-%0 = "stablehlo.custom_call"(%arg0, %arg1) {
-  // other attributes
-  output_operand_alias = [
-    #stablehlo.output_operand_alias<output_tuple_indices = [0],
-                                operand_index = 0,
-                                operand_tuple_indices = [1]>
-  ]
-} : (tuple<tensor<1x1xf32>, tensor<2x3xf32>>, tensor<5x5xf32>) -> tuple<tensor<2x3xf32>>
-```
 
 ## Index of Ops
    * [abs](#stablehloabs)
@@ -1843,30 +1806,36 @@ tensor and produces a `result` tensor.
 Invokes exteral code with `inputs` as arguments and produces `results`. The
 exact mechanism is backend-specific. The inputs are described as follows:
   * `inputs` are passed as agruments to the external API.
-  * `call_target_name` may used as an identifier for the external code.
+  * `call_target_name` may be used as an identifier for the external code.
   * `has_side_effect` is true if the custom call has side-effects.
-  * `backend_config` can be used to encode additional information.
+  * `backend_config` may be used to encode additional backend-specific
+    information.
   * `api_version` specifies the version of the custom call API.
   * `called_computations` used to apply functions within the scope of the parent
     module.
   * `operand_layouts` specifies the layout of the operand.
   * `result_layouts` specifies the layout of the result.
-  * `output_operand_aliases` asiases attributes for results and operands.
+  * `output_operand_aliases` captures the alias relationship of `results` to one of the operands.
+    * `operand_index` denotes the index of the operand `inputs` that relates to `results`.
+    * `operand_tuple_indices` are used to index into the operand at `operand_index`, if it is a tuple/nested tuple.
+    * `output_tuple_indices` are used to index into `results`, if it is a tuple/nested tuple.
 
 ### Inputs
 
-| Name                     | Type                                                                |
-|--------------------------|---------------------------------------------------------------------|
-| `inputs`                 | variadic number of tensors of any supported type, tokens, or tuples |
-| `call_target_name`       | `string`                                                            |
-| `has_side_effect`        | `i1`                                                                |
-| `backend_config`         | `string`                                                            |
-| `api_version`            | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`,     |
-|                          | and `API_VERSION_STATUS_RETURNING_UNIFIED`                          |
-| `called_computations`    | array of `function` references                                      |
-| `operand_layouts`        | array of 1-dimensional tensor constants of type `index`             |
-| `result_layouts`         | array of 1-dimensional tensor constants of type `index`             |
-| `output_operand_aliases` | [`OutputOperandAlias`](#stablehlooutput_operand_alias)              |
+| Name                    | Type                                                                |
+|-------------------------|---------------------------------------------------------------------|
+| `inputs`                | variadic number of tensors of any supported type, tokens, or tuples |
+| `call_target_name`      | constant of type `string`                                           |
+| `has_side_effect`       | constant of type `i1`                                               |
+| `backend_config`        | constant of type `string`                                           |
+| `api_version`           | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`,     |
+|                         | and `API_VERSION_STATUS_RETURNING_UNIFIED`                          |
+| `called_computations`   | variadic number of `function` references                            |
+| `operand_layouts`       | variadic number of 1-dimensional tensor constants of type `si64`    |
+| `result_layouts`        | variadic number of 1-dimensional tensor constants of type `si64`    |
+| `output_tuple_indices`  | 1-dimensional tensor constant of type `si64`                        |
+| `operand_index`         | constant of type `si64`                                             |
+| `operand_tuple_indices` | 1-dimensional tensor constant of type `si64`                        |
 
 ### Outputs
 
@@ -1884,12 +1853,17 @@ exact mechanism is backend-specific. The inputs are described as follows:
       tuple result packing non-tuple values is allowed.
     * `operand_layouts[i]` = `layout(inputs[i])`, for all `i`.
     * `result_layouts[i]` = `layout(results[i])`, for all `i`.
+    * Only tensor types can have non-empty layout.
+    * Layout of an `N`-ranked tensor must be a permutation of `[0, N)`.
   * (C2) `output_operand_aliases` can be specified under the following
          constraints:
+    * 0 $\le$ `operand_index` $\lt$ `size(inputs)`.
     * `type(inputs[operand_index])` = `tuple`.
-    * `shape(inputs[operand_index][operand_tuple_indices[0]]..[operand_tuple_indices[N-1]])` =
-      `shape(results[output_tuple_indices[0]]..[output_tuple_indices[M-1]])`,
-      where `size(operand_tuple_indices) = N`, `size(output_tuple_indices) = M`.
+    * `shape(inputs[operand_index][i0][i1]..[iN-1])` =
+      `shape(results[j0][j1]..[jM-1]])`, where,
+      `i0, i1, ..` = `operand_tuple_indices[0], operand_tuple_indices[1], ..`,
+      `j0, j1, ..` = `operand_tuple_indices[0], operand_tuple_indices[1], ..`,
+      `size(operand_tuple_indices) = N`, and `size(output_tuple_indices) = M`.
 
 ### Examples
 
