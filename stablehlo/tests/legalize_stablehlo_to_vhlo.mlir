@@ -1,5 +1,7 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
 // RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-legalize-to-stablehlo stablehlo/tests/legalize_stablehlo_to_vhlo.mlir) <(stablehlo-opt stablehlo/tests/legalize_stablehlo_to_vhlo.mlir)
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
 // ============ ATTRIBUTES ============
 
