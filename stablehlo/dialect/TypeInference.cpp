@@ -1294,6 +1294,12 @@ LogicalResult inferSelectOp(
                                               inferredReturnShapes);
 }
 
+LogicalResult inferSelectAndScatterOp(
+    Value operand, SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(operand.getType());
+  return success();
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:

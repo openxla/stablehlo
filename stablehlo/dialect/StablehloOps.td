@@ -2481,7 +2481,7 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 }
 
 def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
-      [RecursiveMemoryEffects]> {
+      [RecursiveMemoryEffects, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "SelectAndScatter operator";
   let description = [{
     Scatters the values from the `source` tensor using `scatter` based on the
