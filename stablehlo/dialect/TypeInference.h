@@ -144,6 +144,10 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferGetDimensionSizeOp(
+    MLIRContext* context, Optional<Location> location,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 

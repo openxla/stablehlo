@@ -1359,8 +1359,15 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 // GetDimensionSizeOp
 //===----------------------------------------------------------------------===//
-//
+
 LogicalResult GetDimensionSizeOp::verify() { return verifyDimAttr(*this); }
+
+LogicalResult GetDimensionSizeOp::inferReturnTypes(
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  return hlo::inferGetDimensionSizeOp(context, location, inferredReturnTypes);
+}
 
 //===----------------------------------------------------------------------===//
 // IotaOp

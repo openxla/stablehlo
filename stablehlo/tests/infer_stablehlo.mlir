@@ -455,6 +455,16 @@ func.func @after_all(%arg0: !stablehlo.token, %arg1: !stablehlo.token) -> !stabl
 
 // -----
 
+// CHECK-LABEL: func @get_dimension_size
+func.func @get_dimension_size(%arg0: tensor<4x2xf32>) -> tensor<index> {
+  %0 = "stablehlo.get_dimension_size"(%arg0) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<i32>) -> tensor<index>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<i32>} : (tensor<i32>) -> tensor<index>
+  func.return %1 : tensor<index>
+}
+
+// -----
+
 //===----------------------------------------------------------------------===//
 // Sparsity
 //===----------------------------------------------------------------------===//
