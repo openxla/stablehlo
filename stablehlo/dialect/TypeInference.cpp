@@ -1070,8 +1070,8 @@ LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
 }
 
 LogicalResult inferReduceOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr dimensions, Region& body,
+    Optional<Location>, ValueRange inputs,
+    DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   for (auto input : inputs) {
     Type elementTy = getElementTypeOrSelf(input.getType());
@@ -1093,7 +1093,7 @@ LogicalResult inferReduceOp(
 }
 
 LogicalResult inferReduceWindowOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    Optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr windowDimensions,
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
@@ -1102,9 +1102,6 @@ LogicalResult inferReduceWindowOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
-      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
-  SmallVector<TensorType> initValueTypes{llvm::map_range(
-      initValues.getTypes(),
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
 
   auto windowDimsOrErr =
@@ -1124,11 +1121,11 @@ LogicalResult inferReduceWindowOp(
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
     if (!inputArgTypes[i].hasRank())
-      inferredReturnShapes.emplace_back(initValueTypes[i].getElementType());
+      inferredReturnShapes.emplace_back(inputArgTypes[i].getElementType());
     else
       inferredReturnShapes.emplace_back(
           inferWindowOutputShape(inputArgTypes[i].getShape(), *windowOrErr),
-          initValueTypes[i].getElementType());
+          inputArgTypes[i].getElementType());
   }
 
   return success();
@@ -1270,11 +1267,9 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult inferSortOp(
-    Optional<Location> location, ValueRange inputs, uint64_t dimension,
-    Region& comparator,
+    Optional<Location>, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandTypes = inputs.getTypes();
-  for (auto resultType : operandTypes)
+  for (auto resultType : inputs.getTypes())
     inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
   return success();
 }

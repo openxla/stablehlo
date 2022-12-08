@@ -2939,10 +2939,9 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceWindowOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferReduceWindowOp(
-      location, adaptor.getInputs(), adaptor.getInitValues(),
-      adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
-      adaptor.getBaseDilations(), adaptor.getWindowDilations(),
-      adaptor.getPadding(), inferredReturnShapes);
+      location, adaptor.getInputs(), adaptor.getWindowDimensions(),
+      adaptor.getWindowStrides(), adaptor.getBaseDilations(),
+      adaptor.getWindowDilations(), adaptor.getPadding(), inferredReturnShapes);
 }
 
 LogicalResult ReduceWindowOp::verify() {
@@ -3308,8 +3307,7 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferReduceOp(location, adaptor.getInputs(),
-                            adaptor.getInitValues(), adaptor.getDimensions(),
-                            adaptor.getBody(), inferredReturnShapes);
+                            adaptor.getDimensions(), inferredReturnShapes);
 }
 
 LogicalResult ReduceOp::verify() {
@@ -3804,8 +3802,7 @@ LogicalResult SortOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
-                          adaptor.getComparator(), inferredReturnShapes);
+  return hlo::inferSortOp(location, adaptor.getInputs(), inferredReturnShapes);
 }
 
 LogicalResult SortOp::verify() {

@@ -1434,6 +1434,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
   let results = (outs Variadic<HLO_Tensor>);
 
   let hasCustomAssemblyFormat = 1;
+
   let hasVerifier = 1;
 
   // TODO(hinsu): Verify that the attached body arguments and results are
