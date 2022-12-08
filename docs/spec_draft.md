@@ -1555,9 +1555,9 @@ The operation splits the StableHLO grid into `process_groups` as follows:
   * `channel_id > 0`,
     `cross_partition(replica_groups)`.
 
-Afterwards, `result@receiver` is given by
- * `operand@process_groups[i][0]`, if there exist an `i` such that  `process_groups[i][1] = receiver`.
- * `result@receiver = T, otherwise, # where T is a zero valued tensor constant with type(T) = type(operand)`, otherwise.
+Afterwards, `result@target` is given by
+ * `operand@process_groups[i][0]`, if there exist an `i` such that  `process_groups[i][1] = target`.
+ * `result@target = T, otherwise, # where T is a zero valued tensor constant with type(T) = type(operand)`, otherwise.
 
 ### Inputs
 
@@ -1576,8 +1576,8 @@ Afterwards, `result@receiver` is given by
 ### Constraints
 
   * (C1) dim(`source_target_pairs`, 1) $=$ 2.
-  * (C2) All memmbers of { `source_target_pairs`[i][0] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
-  * (C3) All memmbers of { `source_target_pairs`[i][1] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
+  * (C2) All members of { `source_target_pairs`[i][0] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
+  * (C3) All members of { `source_target_pairs`[i][1] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
   * (C4) $0 \gt$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
          where $N$ is given by
     * `num_replicas`, if `cross_replica`.
