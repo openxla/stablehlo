@@ -86,7 +86,7 @@ one of the following tracking labels.
 | dynamic_reshape          | no            | revisit      | infeasible     | yes             | no          |
 | dynamic_slice            | yes           | revisit      | yes            | yes             | no          |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | no          |
-| einsum                   | no            | revisit      | no             | no              | no          |
+| einsum                   | no            | revisit      | no             | yes             | no          |
 | exponential              | yes           | yes          | yes            | yes             | no          |
 | exponential_minus_one    | yes           | yes          | yes            | yes             | no          |
 | fft                      | yes           | revisit      | yes            | yes             | no          |
@@ -151,7 +151,7 @@ one of the following tracking labels.
 | transpose                | yes           | yes          | yes            | yes             | yes         |
 | triangular_solve         | yes           | revisit      | yes            | no              | no          |
 | tuple                    | yes           | yes          | yes            | yes             | no          |
-| unary_einsum             | no            | revisit      | no             | no              | no          |
+| unary_einsum             | no            | revisit      | no             | yes             | no          |
 | uniform_dequantize       | no            | yes*         | yes*           | yes             | no          |
 | uniform_quantize         | no            | yes*         | infeasible     | yes             | no          |
 | while                    | yes           | revisit      | yes            | revisit         | no          |
