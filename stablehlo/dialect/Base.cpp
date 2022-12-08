@@ -187,8 +187,8 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds) {
     llvm::report_fatal_error(
         "Expect an prototype attribute to obtain the underlying dialect but "
         "got none");
-  auto dialect = cast<BoundedDialectInterface>(&prototype.getDialect());
-  return dialect->createBoundedAttr(bounds);
+  auto dialect = cast<HloDialectInterface>(&prototype.getDialect());
+  return dialect->createTypeExtensions(bounds);
 }
 
 // Inference rules to concat dimensions with bounds (lhs/rhs are commutative):
