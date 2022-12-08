@@ -144,6 +144,10 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferGetDimensionSizeOp(
+    MLIRContext* context, Optional<Location> location,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -182,6 +186,9 @@ LogicalResult inferReduceWindowOp(
 
 LogicalResult inferReturnOp(Optional<Location> location,
                             SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferScatterOp(Optional<Location> location, ValueRange inputs,
+                             SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSelectOp(
     Optional<Location> location, Value pred, Value onTrue, Value onFalse,

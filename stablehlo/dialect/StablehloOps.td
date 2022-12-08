@@ -2294,7 +2294,8 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
   let results = (outs HLO_Tensor);
 }
 
-def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure]> {
+def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure,
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "GetDimensionSize operator";
   let description = [{
     Returns the size of the given dimension of the operand.
@@ -2403,7 +2404,9 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
   let assemblyFormat = "operands attr-dict `:` functional-type(operands, results)";
 }
 
-def StableHLO_ScatterOp: StableHLO_Op<"scatter", [SameVariadicOperandSize, RecursiveMemoryEffects]> {
+def StableHLO_ScatterOp: StableHLO_Op<"scatter",
+      [SameVariadicOperandSize, RecursiveMemoryEffects,
+      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Scatter operator";
   let description = [{
     Produces `results` tensors which are equal to `inputs` tensors except that
@@ -2481,14 +2484,31 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
       [RecursiveMemoryEffects, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "SelectAndScatter operator";
   let description = [{
-    Runs a windowed selection `select` function over `operand` with shape
-    `window_dimensions` and stride `window_strides`. This will produce an amount
-    of selected locations whose shape matches `source`. These are then scattered
-    to the output which is initialized with `init_value`.
-    Multiple scattered elements which land in the same output location are
-    combined using the `scatter` function.
+    Scatters the values from the `source` tensor using `scatter` based on the
+    outcome of `reduce_window` of the `input` tensor using `select` and produces
+    a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#selectandscatter.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloselect_and_scatter
+
+    Example:
+    ```mlir
+    %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.compare"(%arg0, %arg1) {
+          comparison_direction = #stablehlo<comparison_direction GE>
+        } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+        "stablehlo.return"(%0) : (tensor<i1>) -> ()
+    }, {
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+    }) {
+      window_dimensions = dense<[3, 1]> : tensor<2xi64>,
+      window_strides = dense<[2, 1]> : tensor<2xi64>,
+      padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
+    } : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
+    ```
   }];
   let arguments = (ins
     HLO_Tensor:$operand,

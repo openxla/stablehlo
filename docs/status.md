@@ -92,7 +92,7 @@ one of the following tracking labels.
 | fft                      | yes           | revisit      | yes            | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
 | gather                   | yes           | yes          | yes            | no              | no          |
-| get_dimension_size       | no            | revisit      | no             | yes             | no          |
+| get_dimension_size       | no            | yes*         | yes*           | yes             | no          |
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |
 | imag                     | yes           | yes          | yes            | yes             | no          |
@@ -131,9 +131,9 @@ one of the following tracking labels.
 | round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
 | round_nearest_even       | yes           | yes          | yes            | yes             | no          |
 | rsqrt                    | yes           | yes          | yes            | yes             | no          |
-| scatter                  | yes           | revisit      | no             | no              | no          |
+| scatter                  | yes           | revisit      | yes            | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | no          |
-| select_and_scatter       | no            | revisit      | yes            | no              | no          |
+| select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes*         | yes*           | yes             | no          |
 | shift_left               | yes           | revisit      | yes            | yes             | no          |

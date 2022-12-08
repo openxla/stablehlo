@@ -274,9 +274,21 @@ func.func @test_cross_replica_sum(%arg0: tensor<10xf32>) -> tensor<10xf32> {
   func.return %1 : tensor<10xf32>
 }
 
-func.func @test_custom_call(%arg0: tensor<2x3xf32>, %arg1: tensor<5x5xf32>) -> tensor<1x2x3xf32> {
-  %0 = "stablehlo.custom_call"(%arg0, %arg1) {api_version = 2 : i32, backend_config = "bar", call_target_name = "foo", has_side_effect = true} : (tensor<2x3xf32>, tensor<5x5xf32>) -> tensor<1x2x3xf32>
-  func.return %0 : tensor<1x2x3xf32>
+func.func @test_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
+    %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "foo",
+    has_side_effect = false,
+    backend_config = "",
+    api_version = 2 : i32,
+    called_computations = [@foo],
+    operand_layouts = [dense<> : tensor<0xindex>],
+    output_operand_aliases = [
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                 operand_index = 0,
+                                 operand_tuple_indices = []>],
+    result_layouts = [dense<> : tensor<0xindex>]
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
 }
 
 // The following op sharding is used:

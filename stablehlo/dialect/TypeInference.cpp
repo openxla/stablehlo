@@ -877,6 +877,14 @@ LogicalResult inferDynamicUpdateSliceOp(
   return success();
 }
 
+LogicalResult inferGetDimensionSizeOp(
+    MLIRContext* context, Optional<Location> location,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(
+      RankedTensorType::get({}, IntegerType::get(context, 32)));
+  return success();
+}
+
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
@@ -1246,8 +1254,13 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferReturnOp(Optional<Location> location,
-                            SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
+  return success();
+}
+
+LogicalResult inferScatterOp(Optional<Location>, ValueRange inputs,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
+  llvm::append_range(inferredReturnTypes, inputs.getTypes());
   return success();
 }
 
