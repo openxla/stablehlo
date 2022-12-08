@@ -1868,12 +1868,19 @@ exact mechanism is backend-specific. The inputs are described as follows:
 ### Examples
 
 ```mlir
-%results:3 = "stablehlo.custom_call"(%inputs0, %inputs1) {
+%results = "stablehlo.custom_call"(%inputs0) {
   call_target_name = "foo",
+  has_side_effect = false,
   backend_config = "bar",
-  operand_layouts = [dense<[0]> : tensor<1xindex>, dense<> : tensor<0xindex>],
-  result_layouts = [dense<> : tensor<0xindex>, dense<[0]> : tensor<1xindex>, dense<> : tensor<0xindex>]
-} : (tensor<2xf32>, !mhlo.token) -> (tensor<f32>, tensor<2xf32>, !mhlo.token)
+  api_version = 1 : i32,
+  called_computations = [@foo],
+  operand_layouts = [dense<> : tensor<0xindex>],
+  output_operand_aliases = [
+    #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                    operand_index = 0,
+                                    operand_tuple_indices = []>],
+  result_layouts = [dense<> : tensor<0xindex>]
+} : (tensor<f32>) -> tensor<f32>
 ```
 
 [Back to Ops](#index-of-ops)
