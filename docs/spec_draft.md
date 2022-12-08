@@ -3489,7 +3489,7 @@ Within each `process_group`:
           start_indices=[s0, s1, ..., sR-1],
             # where
             #  - sj = 0 if j != split_dimension
-            #  - sj = i * dim(operand) // split_count, if j == split_dimension
+            #  - sj = i * dim(operand, j) // split_count, if j == split_dimension
             #  - R = rank(operand)
           limit_indices=[l0, l1, ..., lR-1],
             # where
@@ -3497,8 +3497,8 @@ Within each `process_group`:
             #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
           strides=[1, ..., 1]
         ) for i in range(split_count)
-     ]
-     ``` for all `sender` in `process_group`.
+    ]
+    ``` for all `sender` in `process_group`.
   * `result@receiver = split_parts@sender[receiver_index]` for any sender in process_group,
       where `receiver_index = index_of(receiver, process_group)`.
 
