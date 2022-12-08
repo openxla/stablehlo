@@ -1116,6 +1116,25 @@ def StableHLO_ReplicaIdOp : StableHLO_Op<"replica_id", [Pure,
   let assemblyFormat = "attr-dict `:` type(results)";
 }
 
+def StableHLO_PartitionIdOp : StableHLO_Op<"partition_id", [Pure,
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+  let summary = "PartitionId operator";
+  let description = [{
+    Produces `partition_id` of the current process.
+
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlopartition_id
+
+    Example:
+    ```mlir
+    %result = stablehlo.partition_id : tensor<ui32>
+    ```
+  }];
+  let results = (outs TensorOf<[UI32]>);
+
+  let assemblyFormat = "attr-dict `:` type(results)";
+}
+
 //===----------------------------------------------------------------------===//
 // StableHLO control flow op definitions.
 //===----------------------------------------------------------------------===//

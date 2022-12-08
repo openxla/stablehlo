@@ -1838,6 +1838,30 @@ func.func @replica_id() -> tensor<ui32> {
 
 // -----
 
+func.func @replica_id() -> tensor<ui64> {
+  // expected-error@+1 {{result #0 must be tensor of 32-bit unsigned integer values, but got 'tensor<ui64>'}}
+  %0 = "stablehlo.replica_id"() : () -> tensor<ui64>
+  func.return %0 : tensor<ui64>
+}
+
+// -----
+
+// CHECK-LABEL: func @partition_id
+func.func @partition_id() -> tensor<ui32> {
+  %0 = "stablehlo.partition_id"() : () -> tensor<ui32>
+  func.return %0 : tensor<ui32>
+}
+
+// -----
+
+func.func @partition_id() -> tensor<ui64> {
+  // expected-error@+1 {{result #0 must be tensor of 32-bit unsigned integer values, but got 'tensor<ui64>'}}
+  %0 = "stablehlo.partition_id"() : () -> tensor<ui64>
+  func.return %0 : tensor<ui64>
+}
+
+// -----
+
 // CHECK-LABEL: func @rng_bit_generator
 func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>) {
   %4 = stablehlo.constant dense<[10, 12]> : tensor<2xui64>

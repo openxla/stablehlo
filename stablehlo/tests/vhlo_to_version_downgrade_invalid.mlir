@@ -47,6 +47,14 @@ func.func @op_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
 
 // -----
 
+func.func @op_partition_id() -> tensor<ui32> {
+  // expected-error @+1 {{failed to legalize operation 'vhlo.partition_id' that was explicitly marked illegal}}
+  %0 = "stablehlo.partition_id"() : () -> tensor<ui32>
+  func.return %0 : tensor<ui32>
+}
+
+// -----
+
 // This test emulates two things:
 //   1. A file that is too old and no longer supported on consumer.
 //   2. A file that is too new and not yet supported on consumer.

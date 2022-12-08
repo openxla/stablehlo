@@ -3738,6 +3738,18 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 }
 
 //===----------------------------------------------------------------------===//
+// PartitionId Op
+//===----------------------------------------------------------------------===//
+
+LogicalResult PartitionIdOp::inferReturnTypes(
+    MLIRContext* context, Optional<Location>, ValueRange /*operands*/,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // If Op
 //===----------------------------------------------------------------------===//
 

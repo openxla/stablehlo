@@ -36,6 +36,7 @@ def VHLO_Dialect : Dialect {
       0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272.
              Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
              Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
+             Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
   }];
 
   let useDefaultAttributePrinterParser = 0;
@@ -321,6 +322,10 @@ def VHLO_RecvOpV1 : VHLO_Op<"recv"> {
 
 // Parallelism related op definitions.
 def VHLO_ReplicaIdOpV1 : VHLO_Op<"replica_id"> {
+  let results = (outs TensorOf<[UI32]>);
+}
+
+def VHLO_PartitionIdOpV1 : VHLO_Op<"partition_id", "0.4.0"> {
   let results = (outs TensorOf<[UI32]>);
 }
 

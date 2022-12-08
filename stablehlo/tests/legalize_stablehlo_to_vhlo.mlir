@@ -1229,6 +1229,13 @@ func.func @op_replica_id() -> tensor<ui32> {
 }
 // CHECK-LABEL: "op_replica_id"
 
+func.func @op_partition_id() -> tensor<ui32> {
+  // CHECK: "vhlo.partition_id"() : () -> tensor<ui32>
+  %0 = "stablehlo.partition_id"() : () -> tensor<ui32>
+  func.return %0 : tensor<ui32>
+}
+// CHECK-LABEL: "op_partition_id"
+
 func.func @op_reshape(%arg0: tensor<16xf32>) -> tensor<4x4xf32> {
   // CHECK: "vhlo.reshape"(%arg0) : (tensor<16xf32>) -> tensor<4x4xf32>
   %0 = "stablehlo.reshape"(%arg0) : (tensor<16xf32>) -> tensor<4x4xf32>
