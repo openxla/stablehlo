@@ -72,7 +72,7 @@ one of the following tracking labels.
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
 | create_token             | no            | yes*         | yes*           | yes             | no          |
-| cross-replica-sum        | no            | revisit      | revisit        | no              | no          |
+| cross-replica-sum        | no            | revisit      | yes*           | no              | no          |
 | cstr_reshapable          | no            | revisit      | no             | yes             | no          |
 | custom_call              | no            | revisit      | infeasible     | yes             | no          |
 | divide                   | yes           | yes          | yes            | yes             | no          |
