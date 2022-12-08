@@ -125,11 +125,11 @@ class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
  public:
   HloDialectInterface(Dialect *dialect) : Base(dialect) {}
 
-  // Creates a TokenType type, specific this dialect.
+  // Creates a TokenType type, specific to this dialect.
   // See docs for the particular type in the corresponding dialect.
   virtual Type createTokenType() const = 0;
 
-  // Creates a TypeExtensions attribute, specific this dialect.
+  // Creates a TypeExtensions attribute, specific to this dialect.
   // See docs for the particular attribute in the corresponding dialect.
   virtual Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const = 0;
 };
