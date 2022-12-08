@@ -1254,8 +1254,13 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferReturnOp(Optional<Location> location,
-                            SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
+  return success();
+}
+
+LogicalResult inferScatterOp(Optional<Location>, ValueRange inputs,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
+  llvm::append_range(inferredReturnTypes, inputs.getTypes());
   return success();
 }
 
