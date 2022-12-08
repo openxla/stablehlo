@@ -8,7 +8,7 @@ git repository:
 You need to make sure you have the right commit checked out in
 the LLVM repository (you need to do this every time you pull from this repo):
 
-`$ (cd llvm-project && git checkout $(cat ../build_tools/llvm_version.txt))`
+`$ (cd llvm-project && git fetch && git checkout $(cat ../build_tools/llvm_version.txt))`
 
 We provide a script to configure and build LLVM/MLIR:
 
