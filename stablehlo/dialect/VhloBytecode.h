@@ -1,4 +1,4 @@
-/* Copyright 2022 The vhlo Authors.
+/* Copyright 2022 The StableHLO Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -19,7 +19,7 @@ namespace mlir {
 namespace vhlo {
 class VhloDialect;
 
-// Add the interface necessary for encoding and decoding vhlo dialect
+// Add the interface necessary for encoding and decoding VHLO dialect
 // components in bytecode.
 void addBytecodeInterface(VhloDialect *dialect);
 }  // namespace vhlo
