@@ -1252,16 +1252,7 @@ LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
 
 LogicalResult inferScatterOp(Optional<Location>, ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  for (auto input : inputs) {
-    Type elementTy = getElementTypeOrSelf(input.getType());
-    auto rankedTy = input.getType().dyn_cast<RankedTensorType>();
-    if (!rankedTy) {
-      inferredReturnTypes.emplace_back(UnrankedTensorType::get(elementTy));
-      continue;
-    }
-
-    inferredReturnTypes.emplace_back(input.getType());
-  }
+  llvm::append_range(inferredReturnTypes, inputs.getTypes());
   return success();
 }
 
