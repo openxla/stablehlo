@@ -192,6 +192,67 @@ and JAX teams believe that this hypothesis should be correct based on their
 experiences so far. Dynamic operations `real_dynamic_slice` and `dynamic_pad`
 can be used instead.
 
+The following example demonstrates the differences between programs using
+unbounded dynamism and bounded dynamism.
+
+```
+func.func @slice_with_unbounded_dynamism(%data: tensor<7xf32>, %start: tensor<1xi32>, %limit: tensor<1xi32>) -> tensor<?xf32> {
+  %strides = stablehlo.constant dense<1> : tensor<1xi32>
+  %result =  stablehlo.real_dynamic_slice %data, %start, %limit, %strides
+    : (tensor<7xf32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>)
+      -> tensor<?xf32>
+  func.return %result : tensor<?xf32>
+}
+```
+
+```
+func.func @slice_with_bounded_dynamism(%data: tensor<7xf32>, %start: tensor<1xi32>, %limit: tensor<1xi32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [7]>> {
+  %zero = stablehlo.constant dense<0> : tensor<1xi32>
+  %size = stablehlo.constant dense<7> : tensor<1xi32>
+
+  // Conditionally add size of the input data if the indices are negative.
+  %is_start_neg = stablehlo.compare LT, %start, %zero
+    : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
+  %non_negative_start = "stablehlo.if"(%is_start_neg) ({
+      %1 = stablehlo.add %start, %size : tensor<1xi32>
+      "stablehlo.return"(%1) : (tensor<1xi32>) -> ()
+    }, {
+      "stablehlo.return"(%start) : (tensor<1xi32>) -> ()
+    }) : (tensor<1xi1>) -> tensor<1xi32>
+
+  %is_limit_neg = stablehlo.compare LT, %limit, %zero
+    : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
+  %non_negative_limit = "stablehlo.if"(%is_limit_neg) ({
+      %1 = stablehlo.add %limit, %size : tensor<1xi32>
+      "stablehlo.return"(%1) : (tensor<1xi32>) -> ()
+    }, {
+      "stablehlo.return"(%limit) : (tensor<1xi32>) -> ()
+    }) : (tensor<1xi1>) -> tensor<1xi32>
+
+  // Add padding to avoid OOM access in the following slice op.
+  %pad_value = stablehlo.constant dense<0.0> : tensor<f32>
+  %padded_data = stablehlo.pad %data, %pad_value, low = [0], high = [7], interior = [0]
+    : (tensor<7xf32>, tensor<f32>) -> tensor<14xf32>
+
+  // Extract the largest possible slice starting at the start index.
+  %scalar_start = stablehlo.reshape %non_negative_start
+    : (tensor<1xi32>) -> tensor<i32>
+  %padded_result = stablehlo.dynamic_slice %padded_data, %scalar_start, sizes = [7]
+    : (tensor<14xf32>, tensor<i32>) -> tensor<7xf32>
+
+  // Remove the extra elements extracted beyond the limit.
+  %slice_size = stablehlo.subtract %non_negative_limit, %non_negative_start
+    : tensor<1xi32>
+  %scalar_size = stablehlo.reshape %slice_size : (tensor<1xi32>) -> tensor<i32>
+  %result = stablehlo.set_dimension_size %padded_result, %scalar_size, dim = 0
+    : (tensor<7xf32>, tensor<i32>)
+      -> tensor<?xf32, #stablehlo.type_extensions<bounds = [7]>>
+
+  func.return %result : tensor<?xf32, #stablehlo.type_extensions<bounds = [7]>>
+}
+
+```
+
 Use of dynamic ops over `set_dimension_size` op has various benefits:
 
 * Greatly simplifies the lowering from higher level frameworks to StableHLO as
