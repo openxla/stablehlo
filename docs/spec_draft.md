@@ -54,6 +54,7 @@ by the corresponding dimension. The size of the index array is equal to `R`.
 At the moment, StableHLO only supports dense tensors, so each tensor has
 `1*(d0)*(d1)*...*(dR-1)` elements whose indices are drawn from an
 **index space** which is a Cartesian product of its dimensions. For example:
+
   * `tensor<2x3xf32>` has 6 elements whose indices are
     `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
   * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
@@ -80,6 +81,7 @@ side-effecting operations using data dependencies.
 **Tuple types** model heterogeneous lists and are referred to in the document
 using: 1) the full form: `tuple<T0, ... TN-1>`, 2) the short form: `tuple`,
 where:
+
   * `N` is the tuple size.
   * `Ti` are types of tuple elements.
   * Element types are one of `tensor`, `token` or `tuple`.
@@ -92,6 +94,7 @@ types are used to model HLO-compatible ABI of custom calls.
 **Function types** model functions and are referred to in the document using: 1)
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
+
   * `Ii` are types of inputs of the corresponding function.
   * `Oj` are types of outputs of the corresponding function.
   * Input types and output types are one of `tensor`, `token` or `tuple`.
@@ -204,6 +207,7 @@ introduced by them, is TBD.
 ### Streaming communication
 
 Every StableHLO process has access to two streaming interfaces:
+
   * **Infeed** that can be read from.
   * **Outfeed** that can be written to.
 
@@ -549,7 +553,7 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 
 [Back to Ops](#index-of-ops)
 
-# stablehlo.after_all
+## stablehlo.after_all
 
 ### Semantics
 
@@ -586,6 +590,7 @@ Within each process group in the StableHLO grid, concatenates the values of the
 `result` tensor.
 
 The operation splits the StableHLO grid into `process_groups` as follows:
+
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
   * `channel_id > 0` and `use_global_device_ids = false`,
@@ -594,6 +599,7 @@ The operation splits the StableHLO grid into `process_groups` as follows:
     `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
+
   * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
   * `result@process = concatenate(operands@process, all_gather_dim)` for all
@@ -656,6 +662,7 @@ Within each process group in the StableHLO grid, applies a reduction function
 produces a `result` tensor.
 
 The operation splits the StableHLO grid into process groups as follows:
+
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
   * `channel_id > 0` and `use_global_device_ids = false`,
@@ -664,16 +671,17 @@ The operation splits the StableHLO grid into process groups as follows:
     `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
+
   * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
-  * ```
+  * &#32;
+    ```
     result@process[i0, i1, ..., iR-1] =
         reduce_without_init(
           inputs=operands@process[:][i0, i1, ..., iR-1],
           dimensions=[0],
           body=computation
         )
-
     ```
     where `reduce_without_init` works exactly like `reduce`, except that its
     `schedule` doesn't include init values.
@@ -733,7 +741,7 @@ Afterwards, within each `process_group`:
 
 ### Semantics
 
-<img align="center" src="spec_draft/all_to_all.svg" />
+![](images/spec_draft/all_to_all.svg)
 
 Within each process group in the StableHLO grid, splits the values of the
 `operand` tensor along `split_dimension` into parts, scatters the split parts
@@ -744,7 +752,9 @@ The operation splits the StableHLO grid into process groups using the
 `cross_replica(replica_groups)` strategy.
 
 Afterwards, within each `process_group`:
-  * ```
+
+  * &#32;
+    ```
     split_parts@sender = [
         slice(
           operand=operand@sender,
@@ -760,7 +770,8 @@ Afterwards, within each `process_group`:
           strides=[1, ..., 1]
         ) for i in range(split_count)
      ]
-     ``` for all `sender` in `process_group`.
+    ```
+    for all `sender` in `process_group`.
   * `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in process_group]`
     where `receiver_index = index_of(receiver, process_group)`.
   * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
@@ -1203,6 +1214,7 @@ type of the `result` tensor.
 
 Let `E` and `E'` be the `operand` and `result` element type respectively, and
 `R = rank(operand)`:
+
   * If `num_bits(E')` $=$ `num_bits(E)`,
     `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
   * If `num_bits(E')` $\lt$ `num_bits(E)`,
@@ -1540,6 +1552,7 @@ The values of `comparison_direction` and `compare_type` have the following
 semantics:
 
 For integer and boolean element types:
+
   * `EQ`: `lhs` $=$ `rhs`.
   * `NE`: `lhs` $\ne$ `rhs`.
   * `GE`: `lhs` $\ge$ `rhs`.
@@ -1549,6 +1562,7 @@ For integer and boolean element types:
 
 For floating-point element types and `compare_type = FLOAT`, the op implements
 the following IEEE-754 operations:
+
   * `EQ`: `compareQuietEqual`.
   * `NE`: `compareQuietNotEqual`.
   * `GE`: `compareQuietGreaterEqual`.
@@ -1649,6 +1663,7 @@ Concatenates a variadic number of tensors in `inputs` along `dimension`
 dimension in the same order as the given arguments and produces a `result`
 tensor. More formally,
 `result[i0, ..., id, ..., iR-1] = inputs[k][i0, ..., kd, ..., iR-1]`, where:
+
   1. `id = d0 + ... + dk-1 + kd`.
   1. `d` is equal to `dimension`, and `d0`, ... are `d`th dimension sizes
      of `inputs`.
@@ -1852,6 +1867,7 @@ the slice for each dimension subject to potential adjustment, and `slice_sizes`
 contain the sizes of the slice for each dimension.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
+
   * `jd = adjusted_start_indices[d][] + id`.
   * `adjusted_start_indices = clamp(0, start_indices, shape(operand) - `
     `slice_sizes)`.
@@ -1909,6 +1925,7 @@ Produces a `result` tensor which is equal to the `operand` tensor except that
 the slice starting at `start_indices` is updated with the values in `update`.
 
 More formally, `result[i0, ..., iR-1]` is defined as:
+
   * `update[j0, ..., jR-1]` if `jd = adjusted_start_indices[d][] + id` where
     `adjusted_start_indices = clamp(0, start_indices, shape(operand) - update)`.
   * `operand[i0, ..., iR-1]` otherwise.
@@ -2049,6 +2066,7 @@ Performs the forward and inverse Fourier transforms for real and complex
 inputs/outputs.
 
 `fft_type` is one of the following:
+
   * `FFT`: Forward complex-to-complex FFT.
   * `IFFT`: Inverse complex-to-complex FFT.
   * `RFFT`: Forward real-to-complex FFT.
@@ -2060,6 +2078,7 @@ output and computes the discrete Fourier transform:
 
 For `fft_type = FFT`, `result` is defined as the final result of a series of L
 computations where `L = size(fft_length)`. For example, for `L = 3`:
+
   * `result1[i0, ..., :]` = `fft(operand[i0, ..., :])` for all `i`.
   * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
   * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
@@ -2070,6 +2089,7 @@ computes the inverse of `fft`:
 
 For `fft_type = IFFT`, `result` is defined as the inverse of the computations
 for `fft_type = FFT`. For example, for `L = 3`:
+
   * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
     for all `i`.
   * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
@@ -2078,6 +2098,7 @@ for `fft_type = FFT`. For example, for `L = 3`:
 Furthermore, given the function `rfft` which takes 1-dimensional tensors of
 floating-point types, produces 1-dimensional tensors of complex types of the
 same floating-point semantics and works as follows:
+
   * `rfft(real_operand) = truncated_result` where
   * `complex_operand[i] = (real_operand, 0)` for all `i`.
   * `complex_result = fft(complex_operand)`.
@@ -2089,6 +2110,7 @@ so the result of `rfft` is truncated to avoid computing redundant elements).
 
 For `fft_type = RFFT`, `result` is defined as the final result of a series of L
 computations where `L = size(fft_length)`. For example, for `L = 3`:
+
   * `result1[i0, ..., :]` = `rfft(operand[i0, ..., :])` for all `i`.
   * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
   * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
@@ -2099,6 +2121,7 @@ computes the inverse of `rfft`:
 
 For `fft_type = IRFFT`, `result` is defined as the inverse of the computations
 for `fft_type = RFFT`. For example, for `L = 3`:
+
   * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
     for all `i`.
   * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
@@ -2201,9 +2224,10 @@ The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
 indices and explains in detail which `operand` indices they correspond to.
 
-<img align="center" src="spec_draft/gather.svg" />
+![](images/spec_draft/gather.svg)
 
 More formally, `result[result_index] = operand[operand_index]` where:
+
   * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
   * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
   * `start_index` =
@@ -3103,6 +3127,7 @@ before edge padding such that negative edge padding will remove elements from
 the interior-padded operand.
 
 More formally, `result[i0, ..., iR-1]` is equal to:
+
   * `operand[j0, ..., jR-1]` if `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
   * `padding_value[]` otherwise.
 
@@ -3227,6 +3252,7 @@ overflow, the result is implementation-defined and one of the following:
 
 For an integer, `x`, raised to a negative power, `y`, the behaviour is as
 follows:
+
   * If `abs(x)` $\gt$ 1, then result is 0.
   * If `abs(x)` $=$ 1, then result is equivalent to `x^abs(y)`.
   * If `abs(x)` $=$ 0, then behaviour is implementation-defined.
@@ -3332,6 +3358,7 @@ other operations can take a data dependency on.
 | `results` | variadic number of tensors of any supported type or token |
 
 ### Constraints
+
   * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
     * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
     * `DEVICE_TO_DEVICE`, otherwise.
@@ -3368,6 +3395,7 @@ form a monoid because floating-point addition is not associative. What this
 means for numeric precision is implementation-defined.
 
 More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
+
   * `input_slices` = `inputs[:][j0, ..., :, ..., jR-1]`, where `:` are inserted
     at `dimensions`.
   * `reduce(input_slices)` = `exec(schedule)` for some binary tree `schedule`
@@ -3439,9 +3467,10 @@ and produces `results`.
 The following diagram shows how elements in `results[k]` are computed from
 `inputs[k]` using a concrete example.
 
-<img align="center" src="spec_draft/reduce_window.svg" />
+![](images/spec_draft/reduce_window.svg)
 
 More formally, `results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)` where:
+
   * `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
   * `window_start = result_index * window_strides`.
   * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
@@ -3741,6 +3770,7 @@ deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between implementations.
 
 `rng_algorithm` is one of the following:
+
   * `DEFAULT`: Implementation-defined algorithm.
   * `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
   * `PHILOX`: Implementation-defined variant of the Philox algorithm.*
@@ -3906,9 +3936,10 @@ The following diagram shows how elements in `updates[k]` map on elements in
 `updates[k]` indices and explains in detail which `results[k]` indices they
 correspond to.
 
-<img align="center" src="spec_draft/scatter.svg" />
+![](images/spec_draft/scatter.svg)
 
-More formally, for all `update_index` from the index space of `updates[0]`,
+More formally, for all `update_index` from the index space of `updates[0]`:
+
   * `update_scatter_dims` = [`d` for `d` in `axes(updates[0])` and `d` not in
     `update_window_dims`].
   * `update_scatter_index` = [`update_index[d]` for `d` in
@@ -3931,6 +3962,7 @@ More formally, for all `update_index` from the index space of `updates[0]`,
 
 Using this mapping between `update_index` and `result_index`, we define
 `results = exec(schedule, inputs)`, where:
+
   * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
   * `exec([update_index, ...], results) = exec([...], updated_results)` where:
@@ -4096,9 +4128,10 @@ a `result` tensor.
 The following diagram shows how elements in `result` are computed from
 `operand` and `source` using a concrete example.
 
-<img align="center" src="spec_draft/select_and_scatter.svg" />
+![](images/spec_draft/select_and_scatter.svg)
 
-More formally,
+More formally:
+
  * `selected_values = reduce_window_without_init(...)` with the following inputs:
    * `inputs` $=$ [ `operand` ].
    * `window_dimensions`, `window_strides`, and `padding` which are used as is.
@@ -4214,6 +4247,7 @@ implementation-defined.
 | `result` | `token` |
 
 ### Constraints
+
   * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
     * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
     * `DEVICE_TO_DEVICE`, otherwise.
@@ -4516,6 +4550,7 @@ comparator if and only if `comparator(e1, e2) = comparator(e2, e1) = false`.
 
 More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 `compare_i_j = compare_j_i = false` or `compare_i_j = true`, where:
+
   1. `compare_i_j` $=$ `comparator(inputs[0][i], inputs[0][j], inputs[1][i], inputs[1][j], ...)`.
   1. For all indices `i = [i0, ..., iR-1]` and `j = [j0, ..., jR-1]`.
   1. Where `i` $=$ `j` everywhere except for the `d`th dimension.
@@ -4770,6 +4805,7 @@ to `op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` when `left_side` is
 `true` or `x * op(a[i0, ..., iR-3, :, :]) = b[i0, ..., iR-3, :, :]` when
 `left_side` is `false`, solving for the variable `x` where `op(a)` is determined
 by `transpose_a`, which can be one of the following:
+
   * `NO_TRANSPOSE`: Perform operation using `a` as-is.
   * `TRANSPOSE`: Perform operation on transpose of `a`.
   * `ADJOINT`: Perform operation on conjugate transpose of `a`.
