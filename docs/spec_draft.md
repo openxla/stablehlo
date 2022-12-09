@@ -1,8 +1,3 @@
----
-hide:
-  - navigation
----
-
 # StableHLO Specification Draft
 
 ## Types
