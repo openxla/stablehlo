@@ -674,7 +674,7 @@ Afterwards, within each `process_group`:
 
   * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
-  *  &nbsp;
+  * &#32;
     ```
     result@process[i0, i1, ..., iR-1] =
         reduce_without_init(
@@ -753,7 +753,7 @@ The operation splits the StableHLO grid into process groups using the
 
 Afterwards, within each `process_group`:
 
-  * &nbsp;
+  * &#32;
     ```
     split_parts@sender = [
         slice(
