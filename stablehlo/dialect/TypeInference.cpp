@@ -1070,8 +1070,7 @@ LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
 }
 
 LogicalResult inferReduceOp(
-    Optional<Location>, ValueRange inputs,
-    DenseIntElementsAttr dimensions,
+    Optional<Location>, ValueRange inputs, DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   for (auto input : inputs) {
     Type elementTy = getElementTypeOrSelf(input.getType());
