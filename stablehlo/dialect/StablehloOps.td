@@ -2100,11 +2100,11 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
       api_version = 1 : i32,
       called_computations = [@foo],
       operand_layouts = [dense<> : tensor<0xindex>],
+      result_layouts = [dense<> : tensor<0xindex>],
       output_operand_aliases = [
         #stablehlo.output_operand_alias<output_tuple_indices = [],
                                         operand_index = 0,
-                                        operand_tuple_indices = []>],
-      result_layouts = [dense<> : tensor<0xindex>]
+                                        operand_tuple_indices = []>]
     } : (tensor<f32>) -> tensor<f32>
     ```
   }];
