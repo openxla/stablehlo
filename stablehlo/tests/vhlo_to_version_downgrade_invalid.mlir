@@ -21,6 +21,18 @@ func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> ten
 
 // -----
 
+func.func @op_with_output_operand_alises(%arg0 : tensor<f32>) -> () {
+  // expected-error @+1 {{failed to legalize operation 'vhlo.add' that was explicitly marked illegal}}
+  stablehlo.add %arg0, %arg0 {
+    op_alias_attr = #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                                    operand_index = 0,
+                                                    operand_tuple_indices = []>
+  } : tensor<f32>
+  func.return
+}
+
+// -----
+
 func.func @op_collective_permute(%arg0: tensor<16x8xf32>) -> tensor<16x8xf32> {
   // expected-error @+2 {{failed to downgrade vhlo.collective_permute_v2, op has a non-empty channel_handle attribute}}
   // expected-error @+1 {{failed to legalize operation 'vhlo.collective_permute_v2' that was explicitly marked illegal}}

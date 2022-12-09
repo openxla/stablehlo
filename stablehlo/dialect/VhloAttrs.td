@@ -23,6 +23,25 @@ include "stablehlo/dialect/VhloEnums.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
+// Attribute Versioning
+//===----------------------------------------------------------------------===//
+
+class VHLO_AttrDef<string name,
+                   string minVersion = "0.3.0",
+                   string maxVersion = "current">
+  : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
+  let extraClassDeclaration = [{
+    mlir::vhlo::Version getMinVersion() {
+      return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+    }
+    mlir::vhlo::Version getMaxVersion() {
+      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+    }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // Attributes
 //===----------------------------------------------------------------------===//
 
@@ -31,7 +50,7 @@ def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
   let printer = "mlir::hlo::printDimSizes($_printer, $_self)";
 }
 
-def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumbers"> {
+def VHLO_ScatterDimensionNumbers: VHLO_AttrDef<"ScatterDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "scatter";
   let parameters = (ins
@@ -43,7 +62,7 @@ def VHLO_ScatterDimensionNumbers : AttrDef<VHLO_Dialect, "ScatterDimensionNumber
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_GatherDimensionNumbers : AttrDef<VHLO_Dialect, "GatherDimensionNumbers"> {
+def VHLO_GatherDimensionNumbers : VHLO_AttrDef<"GatherDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "gather";
   let parameters = (ins
@@ -55,7 +74,7 @@ def VHLO_GatherDimensionNumbers : AttrDef<VHLO_Dialect, "GatherDimensionNumbers"
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_DotDimensionNumbers : AttrDef<VHLO_Dialect, "DotDimensionNumbers"> {
+def VHLO_DotDimensionNumbers : VHLO_AttrDef<"DotDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "dot";
   let parameters = (ins
@@ -67,7 +86,7 @@ def VHLO_DotDimensionNumbers : AttrDef<VHLO_Dialect, "DotDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_OutputOperandAlias : AttrDef<VHLO_Dialect, "OutputOperandAlias"> {
+def VHLO_OutputOperandAlias : VHLO_AttrDef<"OutputOperandAlias", "0.4.0"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "output_operand_alias";
   let parameters = (ins
@@ -78,7 +97,7 @@ def VHLO_OutputOperandAlias : AttrDef<VHLO_Dialect, "OutputOperandAlias"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ArgResultAlias : AttrDef<VHLO_Dialect, "ArgResultAlias"> {
+def VHLO_ArgResultAlias : VHLO_AttrDef<"ArgResultAlias"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "result_alias";
   let parameters = (ins
@@ -90,14 +109,14 @@ def VHLO_ArgResultAlias : AttrDef<VHLO_Dialect, "ArgResultAlias"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ChannelHandle : AttrDef<VHLO_Dialect, "ChannelHandle"> {
+def VHLO_ChannelHandle : VHLO_AttrDef<"ChannelHandle"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "channel_handle";
   let parameters = (ins "int64_t":$handle, "int64_t":$type);
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_TypeExtensions : AttrDef<VHLO_Dialect, "TypeExtensions"> {
+def VHLO_TypeExtensions : VHLO_AttrDef<"TypeExtensions"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
@@ -136,7 +155,7 @@ def VHLO_BoolElementsAttr :
   let convertFromStorage = "$_self";
 }
 
-def VHLO_ConvDimensionNumbers : AttrDef<VHLO_Dialect, "ConvDimensionNumbers"> {
+def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "conv";
   let parameters = (ins

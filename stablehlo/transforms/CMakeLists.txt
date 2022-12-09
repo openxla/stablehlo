@@ -24,6 +24,8 @@ add_mlir_dialect_library(StablehloTypeConversion
   MLIRIR
   MLIRSupport
   MLIRFuncDialect
+  StablehloOps
+  VhloOps
 )
 
 add_mlir_dialect_library(StablehloPasses
@@ -40,4 +42,6 @@ add_mlir_dialect_library(StablehloPasses
   MLIRSupport
   MLIRQuantDialect
   StablehloTypeConversion
+  StablehloOps
+  VhloOps
 )
