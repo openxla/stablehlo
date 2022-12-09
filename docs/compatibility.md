@@ -1,10 +1,10 @@
 # StableHLO Compatibility RFC v2
 
 Based on discussions held over the past two months, and new use cases and feedback left in comments on the first revision of this RFC, we propose the following path forward for compatibility guarantees for StableHLO programs:
-- Proposal 1: Add StableHLO forks of modularity ops, builtin/quant types and attributes, global ops, and additional upstream ops from future RFCs. Maintain conversion patterns to their upstream equivalents.
+- Proposal 1: Add StableHLO forks of modularity ops, as well as builtin/quant types and attributes. Maintain conversion patterns to their upstream equivalents.
 - Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
 - Proposal 3: Provide forward / backward compatibility within a major release, with major releases spaced at least 5 years apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
-- Proposal 4: Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization.
+- Proposal 4: Maintain a shallow versioned copy of StableHLO (VHLO) which is used for serialization/deserialization, and upgrade/downgrades. Keep the StableHLO opset at the latest version of VHLO.
 
 ## StableHLO Programs
 
@@ -17,7 +17,7 @@ These include:
 
 For all ops, attributes and types that are introduced in StableHLO but are not present in MHLO, a legalization to/from upstream dialects will be maintained. If incompatible changes are made upstream, legalization may fail, and the mismatch will need to be handled separately by the user (i.e. the producer will want to find a way to represent the upstream op in a different way using existing StableHLO ops, and the consumer will want to handle the StableHLO op directly).
 
-**Proposal 1:** Add StableHLO forks of modularity ops, builtin/quant types and attributes, global ops, and additional upstream ops from future RFCs. Maintain conversion patterns to their upstream equivalents.
+**Proposal 1:** Add StableHLO forks of modularity ops, as well as builtin/quant types and attributes. Maintain conversion patterns to their upstream equivalents.
 
 ## StableHLO Versioning
 StableHLO (opset, libStablehlo and serialization format) will version in compliance with [semver](https://semver.org/) (Semantic Versioning 2.0.0), with additions and modifications described in this section. Serialization format will be described in a future Serialization RFC in Q4 2022.
@@ -68,4 +68,4 @@ The following demonstrates serialization on a `v0.5.0` producer that targets the
 
 A new op is added to the versioned dialect at every bump in minor version number to reflect the backward compatible change made. Additionally, if an attribute or type used by an op is changed and requires a version bump, the op using it will also require a new version. The process of upgrading/downgrading versioned IR and legalizing to/from StableHLO must always succeed if compatibility guarantees are applicable.
 
-**Proposal 4:** Keep StableHLO dialect at the latest version of the opset. Maintain a shallow versioned copy of the StableHLO dialect for serialization/deserialization.
+**Proposal 4:** Maintain a shallow versioned copy of StableHLO (VHLO) which is used for serialization/deserialization, and upgrade/downgrades. Keep the StableHLO opset at the latest version of VHLO.
