@@ -28,6 +28,41 @@ def VHLO_AnyType : AnyTypeOf<[AnyType]>;
 def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
 def VHLO_AnyRegion : Region<CPred<"true">, "any region">;
 
+def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an op is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an op is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
+def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
+def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
 //===----------------------------------------------------------------------===//
 // VHLO traits
 //===----------------------------------------------------------------------===//
