@@ -169,7 +169,7 @@ can be performed by using the `real_dynamic_slice` op instead of the
 func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor<i32> {
   %start = stablehlo.constant dense<0> : tensor<1xi32>
   %limit = stablehlo.reshape %batch_size : (tensor<i32>) -> tensor<1xi32>
-  %strides = stablehlo.constant dense<0> : tensor<1xi32>
+  %strides = stablehlo.constant dense<1> : tensor<1xi32>
   %dynamic_data =  stablehlo.real_dynamic_slice %data, %start, %limit, %strides
     : (tensor<4xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>)
       -> tensor<?xi32>
