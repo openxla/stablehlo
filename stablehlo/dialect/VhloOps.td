@@ -52,7 +52,7 @@ include "stablehlo/dialect/VhloAttrs.td"
 //   multiple variadic arguments.
 class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = "current", list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic,
-      [DeclareOpInterfaceMethods<VersionedInterface>] # traits> {
+      [DeclareOpInterfaceMethods<VersionedOpInterface>] # traits> {
   let extraClassDefinition = [{
     mlir::vhlo::Version $cppClass::getMinVersion() {
       return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");

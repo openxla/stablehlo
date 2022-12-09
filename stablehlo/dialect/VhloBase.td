@@ -23,7 +23,7 @@ include "mlir/IR/OpBase.td"
 // VHLO Versioning Interfaces
 //===----------------------------------------------------------------------===//
 
-def VersionedInterface : OpInterface<"VersionedInterface"> {
+def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   let methods = [
     InterfaceMethod<
       "Returns the minimum version an op is supported in.",

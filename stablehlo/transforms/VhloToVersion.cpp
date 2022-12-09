@@ -121,7 +121,7 @@ LogicalResult isLegalType(Operation* op, Type const& type,
 
 bool isLegalOpInTargetVersion(Operation* op, Version const& targetVersion) {
   // Validate op
-  auto opInterface = dyn_cast<VersionedInterface>(op);
+  auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersionForTarget(opInterface, targetVersion)) return false;
 
