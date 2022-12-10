@@ -1258,12 +1258,15 @@ LogicalResult inferReduceOp(
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
     TensorType inputType = inputArgTypes[inputIdx];
     Type elementType = inputType.getElementType();
-    if (inputType.hasRank())
-      inferredReturnShapes.emplace_back(
-          newDimensions, elementType,
-          boundsToEncoding(firstRankedInput.getEncoding(), newBounds));
-    else
+    if (inputType.hasRank()) {
+      Attribute encoding;
+      if (!newBounds.empty()) {
+        encoding = boundsToEncoding(firstRankedInput.getEncoding(), newBounds);
+      }
+      inferredReturnShapes.emplace_back(newDimensions, elementType, encoding);
+    } else {
       inferredReturnShapes.emplace_back(elementType);
+    }
   }
 
   return success();
