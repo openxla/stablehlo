@@ -90,10 +90,6 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
     Operation *op, DenseIntElementsAttr attr);
 
-LogicalResult verifyReduceScatter(Operation *op, TypeRange operandTypes,
-                                  TypeRange resultTypes,
-                                  uint64_t scatterDimension);
-
 void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums);
 void printConvolutionDimensions(AsmPrinter &p, Operation *,
                                 ConvDimensionNumbersAttr dnums);

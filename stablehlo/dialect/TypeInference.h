@@ -83,6 +83,10 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions,
                                  bool allInputsUnranked);
 
+LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
+                                  TypeRange resultTypes,
+                                  uint64_t scatterDimension);
+
 // Verifies replica groups attached to collective communication operations.
 // P1. 'replicaGroups' must be a 2-D tensor.
 // P2. replicaGroups' cannot be empty.
@@ -231,6 +235,11 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);
+
+LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
+                                    uint64_t scatterDimension,
+                                    DenseIntElementsAttr replicaGroups,
+                                    Region& computation, TypeRange resultTypes);
 
 LogicalResult verifyReduceWindowOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
