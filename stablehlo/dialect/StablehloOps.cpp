@@ -2945,7 +2945,14 @@ LogicalResult ReduceWindowOp::inferReturnTypeComponents(
       location, adaptor.getInputs(), adaptor.getInitValues(),
       adaptor.getWindowDimensions(), adaptor.getWindowStrides(),
       adaptor.getBaseDilations(), adaptor.getWindowDilations(),
-      adaptor.getPadding(), adaptor.getBody(), inferredReturnShapes);
+      adaptor.getPadding(), inferredReturnShapes);
+}
+
+LogicalResult ReduceWindowOp::verify() {
+  return hlo::verifyReduceWindowOp(getLoc(), getInputs(), getInitValues(),
+                                   getWindowDimensions(), getWindowStrides(),
+                                   getBaseDilations(), getWindowDilations(),
+                                   getPadding(), getBody());
 }
 
 // Get the operation used for reduction applied to `result_index`th result. Its
@@ -3305,7 +3312,12 @@ LogicalResult ReduceOp::inferReturnTypeComponents(
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferReduceOp(location, adaptor.getInputs(),
                             adaptor.getInitValues(), adaptor.getDimensions(),
-                            adaptor.getBody(), inferredReturnShapes);
+                            inferredReturnShapes);
+}
+
+LogicalResult ReduceOp::verify() {
+  return hlo::verifyReduceOp(getLoc(), getInputs(), getInitValues(),
+                             getDimensions(), getBody());
 }
 
 LogicalResult ReduceOp::reifyReturnTypeShapes(
@@ -3807,8 +3819,12 @@ LogicalResult SortOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferSortOp(location, adaptor.getInputs(), adaptor.getDimension(),
-                          adaptor.getComparator(), inferredReturnShapes);
+  return hlo::inferSortOp(location, adaptor.getInputs(), inferredReturnShapes);
+}
+
+LogicalResult SortOp::verify() {
+  return hlo::verifySortOp(getLoc(), getInputs(), getDimension(),
+                           getComparator());
 }
 
 //===----------------------------------------------------------------------===//
@@ -4377,8 +4393,11 @@ LogicalResult WhileOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferWhileOp(location, adaptor.getOperand(), adaptor.getCond(),
-                           adaptor.getBody(), inferredReturnTypes);
+  return hlo::inferWhileOp(location, adaptor.getOperand(), inferredReturnTypes);
+}
+
+LogicalResult WhileOp::verify() {
+  return hlo::verifyWhileOp(getLoc(), getOperand(), getCond(), getBody());
 }
 
 /// Print a `while` op.
