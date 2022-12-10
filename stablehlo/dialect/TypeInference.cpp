@@ -419,24 +419,21 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     }
   }
 
-  SmallVector<int64_t> newBounds;
   if (!allInputsUnranked) {
-    RankedTensorType firstRankedInput =
-        inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
-    ArrayRef<int64_t> inputBounds =
-        encodingToBounds(firstRankedInput.getEncoding());
-    for (int inputIdx = 0; inputIdx < inputArgTypes[rankedInputIdx].getRank();
-         ++inputIdx) {
+    auto rankedInput = inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
+
+    ArrayRef<int64_t> inputBounds = encodingToBounds(rankedInput.getEncoding());
+    SmallVector<int64_t> newBounds;
+    for (int inputIdx = 0; inputIdx < rankedInput.getRank(); ++inputIdx) {
       if (!dimensionsToReduceSet.count(inputIdx)) {
-        newDimensions.push_back(
-            inputArgTypes[rankedInputIdx].getDimSize(inputIdx));
+        newDimensions.push_back(rankedInput.getDimSize(inputIdx));
         if (!inputBounds.empty()) {
           newBounds.push_back(inputBounds[inputIdx]);
         }
       }
     }
     if (!inputBounds.empty()) {
-      encoding = boundsToEncoding(firstRankedInput.getEncoding(), newBounds);
+      encoding = boundsToEncoding(rankedInput.getEncoding(), newBounds);
     }
   }
   return success();
@@ -1271,11 +1268,10 @@ LogicalResult inferReduceOp(
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
     TensorType inputType = inputArgTypes[inputIdx];
     Type elementType = inputType.getElementType();
-    if (inputType.hasRank()) {
+    if (inputType.hasRank())
       inferredReturnShapes.emplace_back(newDimensions, elementType, encoding);
-    } else {
+    else
       inferredReturnShapes.emplace_back(elementType);
-    }
   }
 
   return success();
