@@ -53,6 +53,10 @@ inline static bool isStaticDimSize(int64_t val) {
   return !isDynamicDimSize(val);
 }
 
+//  Verifies that the two types have compatible shape with bounds but allows
+//  different element types.
+LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);
+
 // Returns true if the given types are the same for the purposes of HLO type
 // inference, accounting for special properties of quantization and sparsity.
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);

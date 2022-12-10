@@ -600,21 +600,63 @@ func.func @complex_sparsity(%arg0: tensor<10x10xf32, #CSR>, %arg1: tensor<10x10x
 // -----
 
 // CHECK-LABEL: func @reduce
-func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)
-    -> (tensor<4xindex>) {
+func.func @reduce(%arg0: tensor<7x5xf32>, %arg1 : tensor<5xf32>)
+    -> (tensor<5xindex>) {
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
-  ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
-    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
-    "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
+  ^bb0(%arg2: tensor<5xf32>, %arg3: tensor<5xf32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<5xf32>, tensor<5xf32>) -> tensor<5xf32>
+    "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
 
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<7x5xf32>, tensor<5xf32>) -> tensor<5xf32>
 
-  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[4]", element_type0 = f32} : (tensor<4xf32>) -> tensor<4xindex>
+  // CHECK: {dims0 = "[5]", element_type0 = f32}
   %2 = "hlo_test_infer.get_return_type_components"(%0)
-      : (tensor<4xf32>) -> tensor<4xindex>
+      : (tensor<5xf32>) -> tensor<5xindex>
 
-  func.return %2: tensor<4xindex>
+  func.return %2: tensor<5xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce_with_bounds
+func.func @reduce_with_bounds(%arg0: tensor<?x?x5xf32, #stablehlo.type_extensions<bounds = [3, 7, ?]>>, %arg1 : tensor<5xf32>)
+    -> (tensor<*xindex>) {
+  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
+
+  ^bb0(%arg2: tensor<5xf32>, %arg3: tensor<5xf32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<5xf32>, tensor<5xf32>) -> tensor<5xf32>
+    "stablehlo.return"(%1) : (tensor<5xf32>) -> ()
+
+  }) {dimensions = dense<[0]> : tensor<1xi64>}
+      : (tensor<?x?x5xf32, #stablehlo.type_extensions<bounds = [3, 7, ?]>>, tensor<5xf32>)
+          -> tensor<?x5xf32, #stablehlo.type_extensions<bounds = [7, ?]>>
+
+  // CHECK: types0 = tensor<?x5xf32, #stablehlo.type_extensions<bounds = [7, ?]>>
+  %2 = "hlo_test_infer.get_return_types"(%0)
+      : (tensor<?x5xf32, #stablehlo.type_extensions<bounds = [7, ?]>>) -> tensor<*xindex>
+
+  func.return %2: tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @unranked_reduce
+func.func @unranked_reduce(%arg0: tensor<*xf32>, %arg1 : tensor<f32>)
+    -> (tensor<*xindex>) {
+  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
+
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+
+  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<*xf32>, tensor<f32>) -> tensor<*xf32>
+
+  // CHECK: {element_type0 = f32}
+  %2 = "hlo_test_infer.get_return_type_components"(%0)
+      : (tensor<*xf32>) -> tensor<*xindex>
+
+  func.return %2: tensor<*xindex>
 }
 
 // -----

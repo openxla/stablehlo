@@ -1259,7 +1259,9 @@ LogicalResult inferReduceOp(
     TensorType inputType = inputArgTypes[inputIdx];
     Type elementType = inputType.getElementType();
     if (inputType.hasRank())
-      inferredReturnShapes.emplace_back(newDimensions, elementType);
+      inferredReturnShapes.emplace_back(
+          newDimensions, elementType,
+          boundsToEncoding(firstRankedInput.getEncoding(), newBounds));
     else
       inferredReturnShapes.emplace_back(elementType);
   }
