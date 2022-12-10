@@ -1823,7 +1823,7 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 `result`. The following diagram shows how elements in `result` are computed from
 `lhs` and `rhs` using a concrete example.
 
-<img align="center" src="spec_draft/convolution.svg" />
+<img align="center" src="images/spec_draft/convolution.svg" />
 
 More formally, we start with reframing the inputs to the operation in terms
 of `lhs` in order to be able to express windows of `lhs`:
