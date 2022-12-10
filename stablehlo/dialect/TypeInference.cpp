@@ -379,7 +379,7 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 LogicalResult verifyReduceOpInputsAndInferShape(
     Optional<Location> location, SmallVector<TensorType> inputArgTypes,
     SmallVector<TensorType> initValueTypes, DenseIntElementsAttr dimensions,
-    SmallVector<int64_t>& newDimensions) {
+    SmallVector<int64_t>& newDimensions, Attribute& encoding) {
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputArgTypes.size();
   int64_t rankedInputIdx = -1;
@@ -419,13 +419,24 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     }
   }
 
+  SmallVector<int64_t> newBounds;
   if (!allInputsUnranked) {
+    RankedTensorType firstRankedInput =
+        inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
+    ArrayRef<int64_t> inputBounds =
+        encodingToBounds(firstRankedInput.getEncoding());
     for (int inputIdx = 0; inputIdx < inputArgTypes[rankedInputIdx].getRank();
          ++inputIdx) {
       if (!dimensionsToReduceSet.count(inputIdx)) {
         newDimensions.push_back(
             inputArgTypes[rankedInputIdx].getDimSize(inputIdx));
+        if (!inputBounds.empty()) {
+          newBounds.push_back(inputBounds[inputIdx]);
+        }
       }
+    }
+    if (!inputBounds.empty()) {
+      encoding = boundsToEncoding(firstRankedInput.getEncoding(), newBounds);
     }
   }
   return success();
@@ -1251,18 +1262,16 @@ LogicalResult inferReduceOp(
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
 
   SmallVector<int64_t> newDimensions;
-  if (failed(verifyReduceOpInputsAndInferShape(
-          location, inputArgTypes, initValueTypes, dimensions, newDimensions)))
+  Attribute encoding;
+  if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
+                                               initValueTypes, dimensions,
+                                               newDimensions, encoding)))
     return failure();
 
   for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
     TensorType inputType = inputArgTypes[inputIdx];
     Type elementType = inputType.getElementType();
     if (inputType.hasRank()) {
-      Attribute encoding;
-      if (!newBounds.empty()) {
-        encoding = boundsToEncoding(firstRankedInput.getEncoding(), newBounds);
-      }
       inferredReturnShapes.emplace_back(newDimensions, elementType, encoding);
     } else {
       inferredReturnShapes.emplace_back(elementType);
@@ -1587,8 +1596,10 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
 
   // P1. & P2.
   SmallVector<int64_t> newDimensions;
-  if (failed(verifyReduceOpInputsAndInferShape(
-          location, inputArgTypes, initValueTypes, dimensions, newDimensions)))
+  Attribute encoding;
+  if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
+                                               initValueTypes, dimensions,
+                                               newDimensions, encoding)))
     return failure();
 
   // P3.
