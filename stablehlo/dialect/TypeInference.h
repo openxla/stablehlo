@@ -171,12 +171,12 @@ LogicalResult inferOutfeedOp(MLIRContext* context, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
-    Optional<Location> location, ValueRange inputs,
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
-    Optional<Location> location, ValueRange inputs,
+    Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
     Optional<DenseIntElementsAttr> windowStrides,
     Optional<DenseIntElementsAttr> baseDilations,
