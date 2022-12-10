@@ -262,6 +262,15 @@ func.func @dimension_attr(%arg0 : tensor<1x2xf32>, %arg1 : tensor<3xi32>, %arg2 
   "stablehlo.return"() : () -> ()
 }
 
+// CHECK-LABEL: func @op_einsum
+func.func @op_einsum(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8xf32> {
+  // CHECK:      %0 = stablehlo.einsum %arg0, %arg1, config = "ab,bc->ac" : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
+  // CHECK-NEXT: %1 = stablehlo.unary_einsum %arg0, config = "ab->a" : (tensor<8x16xf32>) -> tensor<8xf32>
+  %0 = "stablehlo.einsum"(%arg0, %arg1) { einsum_config = "ab,bc->ac" } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
+  %1 = "stablehlo.unary_einsum"(%arg0) { einsum_config = "ab->a" } : (tensor<8x16xf32>) -> tensor<8xf32>
+  func.return %1 : tensor<8xf32>
+}
+
 // CHECK-LABEL: func @fft_op
 func.func @fft_op(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
   // CHECK: %0 = stablehlo.fft %arg0, type = FFT, length = [16] : (tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>>
