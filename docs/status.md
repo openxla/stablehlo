@@ -77,7 +77,7 @@ one of the following tracking labels.
 | custom_call              | no            | revisit      | infeasible     | yes             | no          |
 | divide                   | yes           | yes          | yes            | yes             | no          |
 | dot                      | no            | revisit      | revisit        | yes             | no          |
-| dot_general              | yes           | no           | yes            | no              | yes         |
+| dot_general              | yes           | revisit      | revisit        | no              | yes         |
 | dynamic_broadcast_in_dim | no            | revisit      | infeasible     | no              | no          |
 | dynamic_conv             | no            | revisit      | no             | no              | no          |
 | dynamic_gather           | no            | revisit      | revisit        | no              | no          |

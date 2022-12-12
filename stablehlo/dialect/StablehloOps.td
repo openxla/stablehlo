@@ -2241,14 +2241,14 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
     Example:
     ```mlir
     %result = "stablehlo.dot_general"(%lhs, %rhs) {
-      precision_config = [#stablehlo<precision DEFAULT>],
       dot_dimension_numbers = #stablehlo.dot<
-        lhs_batching_dimensions = [],
-        rhs_batching_dimensions = [],
-        lhs_contracting_dimensions = [1],
+        lhs_batching_dimensions = [0],
+        rhs_batching_dimensions = [0],
+        lhs_contracting_dimensions = [2],
         rhs_contracting_dimensions = [1]
-      >
-    } : (tensor<2x3xi32>, tensor<2x3xi32>) -> tensor<2x2xi32>
+      >,
+      precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+    } : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
     ```
   }];
   let arguments = (ins
