@@ -173,6 +173,10 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
          llvm::zip(stablehloOp->getRegions(), vhloOp->getRegions())) {
       rewriter.inlineRegionBefore(stablehloRegion, vhloRegion,
                                   vhloRegion.end());
+      if (failed(rewriter.convertRegionTypes(&vhloRegion,
+                                             *this->getTypeConverter(),
+                                             /*entryConversion=*/nullptr)))
+        return failure();
     }
     return success();
   }
