@@ -3070,7 +3070,7 @@ def StableHLO_ReducePrecisionOp :
 
     Example:
     ```mlir
-    %result = stablehlo.reduce_precision %operand, format = e5m2 : tensor<3xf32>
+    %result = stablehlo.reduce_precision %operand, format = e5m2 : tensor<6xf32>
     ```
   }];
   let arguments = (ins
