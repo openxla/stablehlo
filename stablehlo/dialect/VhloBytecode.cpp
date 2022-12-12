@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/Support/Debug.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"  // for readEnumAttribute
 #include "stablehlo/dialect/VhloOps.h"
 
@@ -178,6 +179,27 @@ enum TypeCode {
   ///   TokenType {
   ///   }
   kTokenType = 0,
+
+  ///   RankedTensorType {
+  ///     shape: svarint[],
+  ///     elementType: Type,
+  ///   }
+  ///
+  kRankedTensorType = 13,
+
+  ///   RankedTensorTypeWithEncoding {
+  ///     encoding: Attribute,
+  ///     shape: svarint[],
+  ///     elementType: Type
+  ///   }
+  /// Variant of RankedTensorType with an encoding.
+  kRankedTensorTypeWithEncoding = 14,
+
+  ///   UnrankedTensorType {
+  ///     elementType: Type
+  ///   }
+  ///
+  kUnrankedTensorType = 18,
 };
 
 }  // namespace vhlo_encoding
@@ -266,10 +288,20 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // TO ADD TYPE: Include a read method for each type in VHLO
   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
   TokenType readTokenType(DialectBytecodeReader &reader) const;
+  WrappedType readRankedTensorType(DialectBytecodeReader &reader,
+                                   bool hasEncoding) const;
+  WrappedType readUnrankedTensorType(DialectBytecodeReader &reader) const;
 
   // TO ADD TYPE: Include a write method for each type in VHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
   void write(TokenType type, DialectBytecodeWriter &writer) const;
+
+  // Wrapped types are upstream datatypes with serialization controlled by
+  // VHLO. All types below are wrapped types.
+  LogicalResult writeWrappedType(WrappedType type,
+                                 DialectBytecodeWriter &writer) const;
+  void write(RankedTensorType type, DialectBytecodeWriter &writer) const;
+  void write(UnrankedTensorType type, DialectBytecodeWriter &writer) const;
 };
 
 //===----------------------------------------------------------------------===//
@@ -709,12 +741,45 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
     case vhlo_encoding::kTokenType:
       return readTokenType(reader);
 
+    case vhlo_encoding::kRankedTensorType:
+      return readRankedTensorType(reader, /*hasEncoding=*/false);
+    case vhlo_encoding::kRankedTensorTypeWithEncoding:
+      return readRankedTensorType(reader, /*hasEncoding=*/true);
+    case vhlo_encoding::kUnrankedTensorType:
+      return readUnrankedTensorType(reader);
+
     default:
       reader.emitError() << "unknown builtin type code: " << code;
       return Type();
   }
 }
 
+
+WrappedType VhloBytecodeInterface::readRankedTensorType(
+    DialectBytecodeReader &reader, bool hasEncoding) const {
+  Attribute encoding;
+  if (hasEncoding && failed(reader.readAttribute(encoding)))
+    return WrappedType();
+  SmallVector<int64_t> shape;
+  Type elementType;
+  if (failed(reader.readSignedVarInts(shape)) ||
+      failed(reader.readType(elementType)))
+    return WrappedType();
+  return WrappedType::get(getContext(),
+                          RankedTensorType::get(shape, elementType, encoding));
+}
+
+WrappedType VhloBytecodeInterface::readUnrankedTensorType(
+    DialectBytecodeReader &reader) const {
+  Type elementType;
+  if (failed(reader.readType(elementType))) return WrappedType();
+  return WrappedType::get(getContext(), UnrankedTensorType::get(elementType));
+}
+
+//===----------------------------------------------------------------------===//
+// Types: Writer
+
+// TO ADD TYPE: Update the case selection to include the new type.
 LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
@@ -722,6 +787,10 @@ LogicalResult VhloBytecodeInterface::writeType(
         LOG_WRITE_CALL;
         write(type, writer);
         return success();
+      })
+      .Case<WrappedType>([&](WrappedType type) {
+        LOG_WRITE_CALL;
+        return writeWrappedType(type, writer);
       })
       .Default([&](Type) {
         LOG_NOT_IMPLEMENTED;
@@ -740,6 +809,41 @@ TokenType VhloBytecodeInterface::readTokenType(DialectBytecodeReader &) const {
 void VhloBytecodeInterface::write(TokenType type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTokenType);
+}
+
+///////////////////
+// Wrapped Types //
+///////////////////
+LogicalResult VhloBytecodeInterface::writeWrappedType(
+    WrappedType type, DialectBytecodeWriter &writer) const {
+  return TypeSwitch<Type, LogicalResult>(type.getData())
+      .Case<RankedTensorType, UnrankedTensorType>([&](auto type) {
+        LOG_WRITE_CALL;
+        write(type, writer);
+        return success();
+      })
+      .Default([&](Type) {
+        LOG_NOT_IMPLEMENTED;
+        return failure();
+      });
+}
+
+void VhloBytecodeInterface::write(RankedTensorType type,
+                                  DialectBytecodeWriter &writer) const {
+  if (Attribute encoding = type.getEncoding()) {
+    writer.writeVarInt(vhlo_encoding::kRankedTensorTypeWithEncoding);
+    writer.writeAttribute(encoding);
+  } else {
+    writer.writeVarInt(vhlo_encoding::kRankedTensorType);
+  }
+  writer.writeSignedVarInts(type.getShape());
+  writer.writeType(type.getElementType());  // This is a VHLO Type
+}
+
+void VhloBytecodeInterface::write(UnrankedTensorType type,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kUnrankedTensorType);
+  writer.writeType(type.getElementType());
 }
 
 }  // namespace

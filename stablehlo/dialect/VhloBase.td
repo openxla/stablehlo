@@ -64,6 +64,50 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
 }
 
 //===----------------------------------------------------------------------===//
+// VHLO Type Versioning
+//===----------------------------------------------------------------------===//
+
+class VHLO_TypeDef<string name,
+                   string minVersion = "0.3.0",
+                   string maxVersion = "current">
+  : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
+  let extraClassDeclaration = [{
+    mlir::vhlo::Version getMinVersion() {
+      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # name # [{");
+      return *version;
+    }
+    mlir::vhlo::Version getMaxVersion() {
+      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
+      return *version;
+    }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// VHLO Type Definitions.
+//===----------------------------------------------------------------------===//
+
+// VHLO is intended to represent the layout only, as such uses AnyType everywhere.
+def VHLO_AnyType : AnyTypeOf<[AnyType]>;
+def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
+def VHLO_AnyRegion : Region<CPred<"true">, "any region">;
+
+// Token type.
+def VHLO_Token : VHLO_TypeDef<"Token"> {
+  let mnemonic = "token";
+}
+
+// A type wrapper to conrtol serialization and deserialization
+def VHLO_Wrapped : VHLO_TypeDef<"Wrapped"> {
+  let mnemonic = "wrapped";
+  let parameters = (ins "mlir::Type":$data);
+  let assemblyFormat = "`<` $data `>`";
+}
+
+//===----------------------------------------------------------------------===//
 // VHLO traits
 //===----------------------------------------------------------------------===//
 

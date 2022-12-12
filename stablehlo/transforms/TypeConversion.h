@@ -17,6 +17,7 @@ limitations under the License.
 #define STABLEHLO_TRANSFORMS_TYPECONVERSION_H
 
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -64,6 +65,21 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
+    addConversion([&](RankedTensorType t) -> WrappedType {
+      auto encoding = t.getEncoding();
+      if (encoding) {
+        auto convertedEncoding = convertEncoding(encoding);
+        if (!convertedEncoding) return {};
+        encoding = std::move(convertedEncoding);
+      }
+      return WrappedType::get(
+          t.getContext(),
+          RankedTensorType::get(t.getShape(), t.getElementType(), encoding));
+    });
+    addConversion([&](UnrankedTensorType t) -> WrappedType {
+      return WrappedType::get(t.getContext(), t);
+    });
+    // TODO: TupleType, Integer/Float types.
   }
 
   bool isSourceDialect(Dialect& dialect) final {
@@ -91,6 +107,9 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     addConversion([](vhlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
+    });
+    addConversion([&](vhlo::WrappedType wrapped) {
+      return convertType(wrapped.getData());
     });
   }
 
