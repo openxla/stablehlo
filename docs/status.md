@@ -119,7 +119,7 @@ one of the following tracking labels.
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | no          |
-| reduce_precision         | no            | yes*         | yes*           | yes             | no          |
+| reduce_precision         | yes           | yes          | yes            | yes             | no          |
 | reduce_scatter           | yes           | revisit      | no             | no              | no          |
 | reduce_window            | yes           | revisit      | yes            | no              | no          |
 | remainder                | yes           | yes          | yes            | yes             | no          |

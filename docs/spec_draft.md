@@ -431,6 +431,7 @@ syntax.
    * [real](#stablehloreal)
    * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
+   * [reduce_precision](#stablehloreduce_precision)
    * [reduce_scatter](#stablehloreduce_scatter)
    * [reduce_window](#stablehloreduce_window)
    * [remainder](#stablehloremainder)
@@ -3524,6 +3525,60 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
   dimensions = dense<1> : tensor<1xi64>
 } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
 // %result = [15]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce_precision
+
+### Semantics
+
+Performs element-wise conversion of `operand` to another floating-point type
+that uses `exponent_bits` and `mantissa_bits` and back to the original
+floating-point type and produces a `result` tensor.
+
+More formally:
+  * The mantissa bits of the original value are updated to round the original
+    value to the nearest value representable with `mantissa_bits` using
+    `roundToIntegralTiesToEven` semantics.
+  * Then, if `mantissa_bits` are smaller than the number of mantissa bits of
+    the original value, the mantissa bits are truncated to `mantissa_bits`.
+  * Then, if the exponent bits of the intermediate result don't fit into the
+    range provided by `exponent_bits`, the intermediate result overflows to
+    infinity using the original sign or underflows to zero using the
+    original sign.
+
+### Inputs
+
+| Name            | Type                          |
+|-----------------|-------------------------------|
+| `operand`       | tensor of floating-point type |
+| `exponent_bits` | constant of type `si32`       |
+| `mantissa_bits` | constant of type `si32`       |
+
+### Outputs
+
+| Name     | Type                          |
+|----------|-------------------------------|
+| `result` | tensor of floating-point type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same type.
+  * (C2) `exponent_bits` $\ge$ 1.
+  * (C3) `mantissa_bits` $\ge$ 0.
+
+### Examples
+
+```mlir
+// Logical values: -Inf, +Inf, NaN, ...
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
+%result = "stablehlo.reduce_precision"(%operand) {
+  exponent_bits = 5 : i32,
+  mantissa_bits = 2 : i32
+} : (tensor<6xf32>) -> tensor<6xf32>
+// Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
+// %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
 
 [Back to Ops](#index-of-ops)
