@@ -645,7 +645,9 @@ Afterwards, within each `process_group`:
 // %operand@(1, 0): [[5.0, 6.0], [7.0, 8.0]]
 %result = "stablehlo.all_gather"(%operand) {
   all_gather_dim = 1 : i64,
-  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
   // use_global_device_ids = false
 } : (tensor<2x2xf32>) -> tensor<2x4xf32>
 // %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
@@ -729,7 +731,10 @@ Afterwards, within each `process_group`:
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%0) : (tensor<f32>) -> ()
 }) {
-  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  // use_global_device_ids = false
 } : (tensor<4xf32>) -> tensor<4xf32>
 // %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
 // %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
@@ -1546,18 +1551,22 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 
 ### Semantics
 
-Within each process group in the StableHLO grid, sends and receives data between
-processes in the group.
+Within each process group in the StableHLO grid, sends the value of the
+`operand` tensor from the source process to the target process and produces a
+`result` tensor.
 
 The operation splits the StableHLO grid into `process_groups` as follows:
+
   * `channel_id <= 0`,
     `cross_replica(replica_groups)`.
   * `channel_id > 0`,
     `cross_partition(replica_groups)`.
 
-Afterwards, `result@target` is given by
- * `operand@process_groups[i][0]`, if there exist an `i` such that  `process_groups[i][1] = target`.
- * `result@target = T, otherwise, # where T is a zero valued tensor constant with type(T) = type(operand)`, otherwise.
+Afterwards, `result@process` is given by:
+
+ * `operand@process_groups[i, 0]`, if there exists an `i` such that `process_groups[i, 1] = process`.
+ * `[0, ..., 0]`, otherwise.
+ * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
 ### Inputs
 
@@ -1576,12 +1585,12 @@ Afterwards, `result@target` is given by
 ### Constraints
 
   * (C1) dim(`source_target_pairs`, 1) $=$ 2.
-  * (C2) All members of { `source_target_pairs`[i][0] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
-  * (C3) All members of { `source_target_pairs`[i][1] : i $\in$ [0, dim(`source_target_pairs`, 0)) } are unique.
-  * (C4) $0 \gt$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
+  * (C2) All values in `source_target_pairs[:, 0]` are unique.
+  * (C3) All values in `source_target_pairs[:, 1]` are unique.
+  * (C4) $0 \ge$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
          where $N$ is given by
-    * `num_replicas`, if `cross_replica`.
-    * `num_partitions`, if `cross_partition`.
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_partition`, `num_partitions`.
   * (C5) type(`result`) $=$ type(`operand`).
 
 ### Examples
@@ -1589,13 +1598,16 @@ Afterwards, `result@target` is given by
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [[1, 2], [5, 6]]
+// %operand@(0, 0): [[1, 2], [3, 4]]
+// %operand@(1, 0): [[5, 6], [7, 8]]
 %result = "stablehlo.collective_permute"(%operand) {
   source_target_pairs = dense<[[0, 1]]> : tensor<2x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
 } : (tensor<2x2xf32>) -> tensor<2x2xf32>
 //
 // %result@(0, 0): [[0, 0], [0, 0]]
-// %result@(1, 0): [[1, 2], [5, 6]]
+// %result@(1, 0): [[1, 2], [3, 4]]
 ```
 
 [Back to Ops](#index-of-ops)
