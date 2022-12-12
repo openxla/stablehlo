@@ -1874,16 +1874,6 @@ Where `split(tensor, num_splits, dimension)` splits a `tensor` into `num_splits`
 tensors of the same shape, so that `concatenate(results, dimension)` produces
 back the same `tensor`.
 
-`precision_config` controls the tradeoff between speed and accuracy for
-computations on accelerator backends. The values can be one of the followings:
-  * `DEFAULT`: Fastest mode, but least accurate by performing computations in
-               `bf16`.
-  * `HIGH`: Slower, but more accurate by performing computations in `bf16` or
-            `f32` as applicable.
-
-  * `HIGHEST`: Slowest, but most accurate by performing computations in `f32`
-               or `f64` as applicable.
-
 ### Inputs
 
 | Name                              | Type                                                        | Constraints                            |

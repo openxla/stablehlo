@@ -1282,8 +1282,8 @@ LogicalResult inferReduceWindowOp(
   SmallVector<WindowDimension> inferredWindow;
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
-          windowStrides, baseDilations, windowDilations, padding, windowDims,
-          inferredWindow)))
+          windowStrides, baseDilations, windowDilations, padding,
+          /*windowReversal=*/llvm::None, windowDims, inferredWindow)))
     return failure();
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
