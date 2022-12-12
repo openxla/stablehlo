@@ -1384,8 +1384,11 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
       %0 = stablehlo.add %arg0, %arg1 : tensor<f32>
       stablehlo.return %0 : tensor<f32>
     }) {
+      scatter_dimension = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-      scatter_dimension = 1 : i64
+      // channel_id = 0
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+      // use_global_device_ids = false
     } : (tensor<2x4xf32>) -> tensor<2x2xf32>
     ```
   }];
