@@ -430,6 +430,7 @@ syntax.
    * [real](#stablehloreal)
    * [recv](#stablehlorecv)
    * [reduce](#stablehloreduce)
+   * [reduce_scatter](#stablehloreduce_scatter)
    * [reduce_window](#stablehloreduce_window)
    * [remainder](#stablehloremainder)
    * [replica_id](#stablehloreplica_id)
@@ -630,9 +631,9 @@ Afterwards, within each `process_group`:
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
   * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
+         in `indices(replica_groups)`.
   * (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-  * (C6)`type(result) = type(operand)` except that
+  * (C6)`type(result) = type(operand)` except:
     * `dim(result, all_gather_dim)` = `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
 ### Examples
@@ -710,7 +711,7 @@ Afterwards, within each `process_group`:
     * If `cross_replica_and_partition`, `num_replicas`.
     * If `flattened_ids`, `num_processes`.
   * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
+         in `indices(replica_groups)`.
   * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
   * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
@@ -761,12 +762,12 @@ Afterwards, within each `process_group`:
           start_indices=[s0, s1, ..., sR-1],
             # where
             #  - sj = 0 if j != split_dimension
-            #  - sj = i * dim(operand) // split_count, if j == split_dimension
+            #  - sj = i * dim(operand, j) / split_count, if j == split_dimension
             #  - R = rank(operand)
           limit_indices=[l0, l1, ..., lR-1],
             # where
             #   - lj = dim(operand, j) if j != split_dimension
-            #   - lj = (i + 1) * dim(operand, split_dimension) // split_count, if j == split_dimension
+            #   - lj = (i + 1) * dim(operand, j) / split_count, if j == split_dimension
           strides=[1, ..., 1]
         ) for i in range(split_count)
      ]
@@ -801,8 +802,8 @@ Afterwards, within each `process_group`:
   * (C5) All values in `replica_groups` are unique.
   * (C6) `size(replica_groups)` = `num_replicas`.
   * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
-         from `indices(replica_groups)`.
-  * (C8) `type(result) = type(operand)` except that
+         in `indices(replica_groups)`.
+  * (C8) `type(result) = type(operand)` except:
     * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
     * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
 
@@ -3453,6 +3454,104 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
   dimensions = dense<1> : tensor<1xi64>
 } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
 // %result = [15]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.reduce_scatter
+
+### Semantics
+
+![](images/spec_draft/reduce_scatter.svg)
+
+Within each process group in the StableHLO grid, performs reduction, using
+`computations`, over the values of the `operand` tensor from each process,
+splits the reduction result along `scatter_dimension` into parts, and scatters
+the split parts between the processes to produce the `result`.
+
+The operation splits the StableHLO grid into `process_groups` as follows:
+
+  * `channel_id <= 0` and `use_global_device_ids = false`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = false`,
+    `cross_replica_and_partition(replica_groups)`.
+  * `channel_id > 0` and `use_global_device_ids = true`,
+    `flattened_ids(replica_groups)`.
+
+Afterwards, within each `process_group`:
+
+  * `reduced_value = all_reduce(operand, replica_groups, channel_id, use_global_device_ids, computation)`.
+  * `parts@sender = split(reduced_value@sender, dim(process_groups, 1), split_dimension)`.
+  * `result@receiver = parts@sender[receiver_index]` for any sender in process_group,
+      where `receiver_index = index_of(receiver, process_group)`.
+
+### Inputs
+
+| Name                    | Type                                         |
+|-------------------------|----------------------------------------------|
+| `operand`               | tensor of any supported type                 |
+| `scatter_dimension`     | constant of type `si64`                      |
+| `replica_groups`        | 2-dimensional tensor constant of type `si64` |
+| `channel_id`            | constant of type `si64`                      |
+| `use_global_device_ids` | constant of type `boolean`                   |
+| `computation`           | `function`                                   |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
+  * (C2) `scatter_dimension` $\in$ [0, rank(`operand`)).
+  * (C3) All values in `replica_groups` are unique.
+  * (C4) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
+         in `indices(replica_groups)`.
+  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+         `E = element_type(operand)`.
+  * (C8) `type(result) = type(operand)` except:
+    * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [
+//                   [1.0, 2.0, 3.0, 4.0],
+//                   [5.0, 6.0, 7.0, 8.0]
+//                  ]
+// %operand@(1, 0): [
+//                   [9.0, 10.0, 11.0, 12.0],
+//                   [13.0, 14.0, 15.0, 16.0]
+//                  ]
+%result = "stablehlo.reduce_scatter"(%operand) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+  "stablehlo.return"(%0) : (tensor<f32>) -> ()
+}) {
+  scatter_dimension = 1 : i64,
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  // use_global_device_ids = false
+} : (tensor<2x4xf32>) -> tensor<2x2xf32>
+//
+// %result@(0, 0): [
+//                  [10.0, 12.0],
+//                  [18.0, 20.0]
+//                 ]
+// %result@(1, 0): [
+//                  [14.0, 16.0],
+//                  [22.0, 24.0]
+//                 ]
 ```
 
 [Back to Ops](#index-of-ops)
