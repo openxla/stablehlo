@@ -713,7 +713,7 @@ Afterwards, within each `process_group`:
          from `indices(replica_groups)`.
   * (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
   * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-         `E = element_type(`operand`).
+         `E = element_type(operand)`.
   * (C6) type(`result`) $=$ type(`operand`).
 
 ### Examples
