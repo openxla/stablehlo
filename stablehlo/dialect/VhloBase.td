@@ -95,6 +95,13 @@ def VHLO_Token : VHLO_TypeDef<"Token"> {
   let mnemonic = "token";
 }
 
+// A type wrapper to conrtol serialization and deserialization
+def VHLO_Wrapped : VHLO_TypeDef<"Wrapped"> {
+  let mnemonic = "wrapped";
+  let parameters = (ins "mlir::Type":$data);
+  let assemblyFormat = "`<` $data `>`";
+}
+
 //===----------------------------------------------------------------------===//
 // VHLO traits
 //===----------------------------------------------------------------------===//
