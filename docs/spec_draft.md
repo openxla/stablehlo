@@ -1565,7 +1565,6 @@ The operation splits the StableHLO grid into `process_groups` as follows:
 Afterwards, `result@process` is given by:
 
  * `operand@process_groups[i, 0]`, if there exists an `i` such that `process_groups[i, 1] = process`.
- * `[0, ..., 0]`, otherwise.
  * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
 ### Inputs
@@ -1587,8 +1586,8 @@ Afterwards, `result@process` is given by:
   * (C1) dim(`source_target_pairs`, 1) $=$ 2.
   * (C2) All values in `source_target_pairs[:, 0]` are unique.
   * (C3) All values in `source_target_pairs[:, 1]` are unique.
-  * (C4) $0 \ge$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
-         where $N$ is given by
+  * (C4) $0 \le$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
+         where $N$ depends on the process grouping strategy:
     * If `cross_replica`, `num_replicas`.
     * If `cross_partition`, `num_partitions`.
   * (C5) type(`result`) $=$ type(`operand`).
