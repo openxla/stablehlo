@@ -4106,11 +4106,11 @@ The following diagram shows how elements in `results[k]` are computed from
 
 ![](images/spec/reduce_window.svg)
 
-More formally, `results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)` where:
+More formally, `results[:][result_index] = reduce(window, init_values, axes(inputs[:]), body)` where:
 
   * `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
   * `window_start = result_index * window_strides`.
-  * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
+  * `window = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
 
 ### Inputs
 
@@ -4770,10 +4770,14 @@ The following diagram shows how elements in `result` are computed from
 
 More formally:
 
- * `selected_values = reduce_window_without_init(...)` with the following inputs:
-   * `inputs` $=$ [ `operand` ].
-   * `window_dimensions`, `window_strides`, and `padding` which are used as is.
-   * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
+ * `selected_values[index] = reduce_without_init(window, axes(operand), body)` where:
+
+   * &#32;
+     ```
+     window = [ operand[operand_index] for window_dimensions_index in indices(window_dimensions) ]:
+      * operand_index = index * window_strides - padding[:, 0] + window_dimensions_index
+      * operand_index in bound of operand
+     ```
    * `body` defined as:
      ```C++
      (tensor<E> arg0, tensor<E> arg1) -> tensor<E> {
@@ -4781,11 +4785,12 @@ More formally:
      }
      ```
      where `E = element_type(operand)`.
-   where `reduce_window_without_init` works exactly like `reduce_window`,
-   except that the `schedule` of the underlying `reduce` doesn't include
-   init values.
+   where `reduce_without_init` works exactly like `reduce`, except that its
+   `schedule` doesn't include init values.
+
  * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
    where:
+
    * `source_values` $=$ [`source[source_index]` for `source_index` in
      `source_indices`].
    * `source_indices` $=$ [`source_index` for `source_index` in
