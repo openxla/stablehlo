@@ -3462,7 +3462,7 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 ### Semantics
 
-<img align="center" src="images/spec_draft/reduce_scatter.svg" />
+![](images/spec_draft/reduce_scatter.svg)
 
 Within each process group in the StableHLO grid, performs reduction, using
 `computations`, over the values of the `operand` tensor from each process,
