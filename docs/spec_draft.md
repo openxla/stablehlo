@@ -3462,7 +3462,7 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 ### Semantics
 
-<img align="center" src="spec_draft/reduce_scatter.svg" />
+<img align="center" src="images/spec_draft/reduce_scatter.svg" />
 
 Within each process group in the StableHLO grid, performs reduction, using
 `computations`, over the values of the `operand` tensor from each process,
@@ -3470,6 +3470,7 @@ splits the reduction result along `scatter_dimension` into parts, and scatters
 the split parts between the processes to produce the `result`.
 
 The operation splits the StableHLO grid into `process_groups` as follows:
+
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
   * `channel_id > 0` and `use_global_device_ids = false`,
@@ -3477,29 +3478,11 @@ The operation splits the StableHLO grid into `process_groups` as follows:
   * `channel_id > 0` and `use_global_device_ids = true`,
     `flattened_ids(replica_groups)`.
 
-Within each `process_group`:
-  * ```
-    reduced_value@process = reduce-all(operand, replica_groups, channel_handle, use_global_device_ids, computation) for each process in process_group
-    ```
-  * ```
-    split_count = dim(process_groups, 1)
-    split_parts@sender = [
-        slice(
-          operand=operand@sender,
-          start_indices=[s0, s1, ..., sR-1],
-            # where
-            #  - sj = 0 if j != split_dimension
-            #  - sj = i * dim(operand, j) / split_count, if j == split_dimension
-            #  - R = rank(operand)
-          limit_indices=[l0, l1, ..., lR-1],
-            # where
-            #   - lj = dim(operand, j) if j != split_dimension
-            #   - lj = (i + 1) * dim(operand, j) / split_count, if j == split_dimension
-          strides=[1, ..., 1]
-        ) for i in range(split_count)
-    ]
-    ``` for all `sender` in `process_group`.
-  * `result@receiver = split_parts@sender[receiver_index]` for any sender in process_group,
+Afterwards, within each `process_group`:
+
+  * `reduced_value = all_reduce(operand, replica_groups, channel_id, use_global_device_ids, computation)`.
+  * `parts@sender = split(reduced_value@sender, dim(process_groups, 1), split_dimension)`.
+  * `result@receiver = parts@sender[receiver_index]` for any sender in process_group,
       where `receiver_index = index_of(receiver, process_group)`.
 
 ### Inputs
@@ -3515,8 +3498,8 @@ Within each `process_group`:
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
+| Name     | Type                         |
+|----------|------------------------------|
 | `result` | tensor of any supported type |
 
 ### Constraints
