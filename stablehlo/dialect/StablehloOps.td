@@ -1308,6 +1308,8 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
     %result = "stablehlo.all_gather"(%operand) {
       all_gather_dim = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+      // channel_id = 0
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
       // use_global_device_ids = false
     } : (tensor<2x2xf32>) -> tensor<2x4xf32>
     ```
@@ -1343,6 +1345,9 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
         stablehlo.return %0 : tensor<f32>
     }) {
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+      // channel_id = 0
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+      // use_global_device_ids = false
     } : (tensor<4xf32>) -> tensor<4xf32>
     ```
   }];
@@ -2016,18 +2021,24 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
-    [Pure, HLO_CompatibleOperandsAndResultType]> {
+    [HLO_CompatibleOperandsAndResultType]> {
   let summary = "CollectivePermute operator";
   let description = [{
-    CollectivePermute is a collective operation that sends and receives data
-    cross replicas.
-    Note that there are the following restrictions on the source_target_pair:
-    - Any two pairs should not have the same target replica id, and they should
-    not have the same source replica id.
-    - If a replica id is not a target in any pair, then the output on that
-    replica is a tensor consists of 0(s) with the same shape as the input.
+    Within each process group in the StableHLO grid, sends the value of the
+    `operand` tensor from the source process to the target process and produces
+    a `result` tensor.
 
-    See https://www.tensorflow.org/xla/operation_semantics#collectivepermute.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocollective_permute
+
+    Example:
+    ```mlir
+    %result = "stablehlo.collective_permute"(%operand) {
+      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+      // channel_id = 0
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    } : (tensor<4x2xf32>) -> tensor<4x2xf32>
+    ```
 
   }];
 

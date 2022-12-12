@@ -391,6 +391,7 @@ syntax.
    * [ceil](#stablehloceil)
    * [cholesky](#stablehlocholesky)
    * [clamp](#stablehloclamp)
+   * [collective_permute](#stablehlocollective_permute)
    * [compare](#stablehlocompare)
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
@@ -645,7 +646,9 @@ Afterwards, within each `process_group`:
 // %operand@(1, 0): [[5.0, 6.0], [7.0, 8.0]]
 %result = "stablehlo.all_gather"(%operand) {
   all_gather_dim = 1 : i64,
-  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
   // use_global_device_ids = false
 } : (tensor<2x2xf32>) -> tensor<2x4xf32>
 // %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
@@ -729,7 +732,10 @@ Afterwards, within each `process_group`:
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%0) : (tensor<f32>) -> ()
 }) {
-  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+  replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  // use_global_device_ids = false
 } : (tensor<4xf32>) -> tensor<4xf32>
 // %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
 // %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
@@ -1538,6 +1544,70 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 // %max: [10, 15, 20]
 %result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
 // %result: [5, 13, 20]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.collective_permute
+
+### Semantics
+
+Within each process group in the StableHLO grid, sends the value of the
+`operand` tensor from the source process to the target process and produces a
+`result` tensor.
+
+The operation splits the StableHLO grid into `process_groups` as follows:
+
+  * `channel_id <= 0`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0`,
+    `cross_partition(replica_groups)`.
+
+Afterwards, `result@process` is given by:
+
+ * `operand@process_groups[i, 0]`, if there exists an `i` such that `process_groups[i, 1] = process`.
+ * `broadcast_in_dim(0, [], shape(result))`, otherwise.
+
+### Inputs
+
+| Name                  | Type                                         |
+|-----------------------|----------------------------------------------|
+| `operand`             | tensor of any supported type                 |
+| `source_target_pairs` | 2-dimensional tensor constant of type `si64` |
+| `channel_id`          | constant of type `si64`                      |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) dim(`source_target_pairs`, 1) $=$ 2.
+  * (C2) All values in `source_target_pairs[:, 0]` are unique.
+  * (C3) All values in `source_target_pairs[:, 1]` are unique.
+  * (C4) $0 \le$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
+         where $N$ depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_partition`, `num_partitions`.
+  * (C5) type(`result`) $=$ type(`operand`).
+
+### Examples
+
+```mlir
+// num_replicas: 2
+// num_partitions: 1
+// %operand@(0, 0): [[1, 2], [3, 4]]
+// %operand@(1, 0): [[5, 6], [7, 8]]
+%result = "stablehlo.collective_permute"(%operand) {
+  source_target_pairs = dense<[[0, 1]]> : tensor<2x2xi64>,
+  // channel_id = 0
+  channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+} : (tensor<2x2xf32>) -> tensor<2x2xf32>
+//
+// %result@(0, 0): [[0, 0], [0, 0]]
+// %result@(1, 0): [[1, 2], [3, 4]]
 ```
 
 [Back to Ops](#index-of-ops)
