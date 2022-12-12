@@ -3533,17 +3533,20 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 ### Semantics
 
-Reduces floating-point precision element-wise by modeling the effect of
-converting a floating-point value to a lower precision format using
-`exponent_bits` and `mantissa_bits` and back to the original precision format of
-`operand` tensor and produces a `result` tensor. When the number of exponent
-bits or mantissa bits exceed that of the operand's, those relevant conversions
-are skipped.
+Performs element-wise conversion of `operand` to another floating-point type
+that uses `exponent_bits` and `mantissa_bits` and back to the original
+floating-point type and produces a `result` tensor.
 
-The input values are rounded to the nearest value representable with the given
-number of mantissa bits (using "ties to even" semantics), and any values that
-exceed the range specified by the number of exponent bits are clamped to
-positive or negative infinity.
+More formally:
+  * The mantissa bits of the original value are updated to round the original
+    value to the nearest value representable with `mantissa_bits` using
+    `roundToIntegralTiesToEven` semantics.
+  * Then, if `mantissa_bits` are smaller than the number of mantissa bits of
+    the original value, the mantissa bits are truncated to `mantissa_bits`.
+  * Then, if the exponent bits of the intermediate result don't fit into the
+    range provided by `exponent_bits`, the intermediate result overflows to
+    infinity using the original sign or underflows to zero using the
+    original sign.
 
 ### Inputs
 
@@ -3568,12 +3571,14 @@ positive or negative infinity.
 ### Examples
 
 ```mlir
-// %operand: [0.0, NaN, 3.40282347e+38]
+// Logical values: -Inf, +Inf, NaN, ...
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
 %result = "stablehlo.reduce_precision"(%operand) {
-  exponent_bits = 5,
-  mantissa_bits = 2
-} : (tensor<3xf32>) -> tensor<3xf32>
-// %result: [0.0, NaN, inf]
+  exponent_bits = 5 : i32,
+  mantissa_bits = 2 : i32
+} : (tensor<6xf32>) -> tensor<6xf32>
+// Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
+// %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
 
 [Back to Ops](#index-of-ops)
