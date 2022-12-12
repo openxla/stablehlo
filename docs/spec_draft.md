@@ -1988,23 +1988,23 @@ computations on accelerator backends. This can be one of the following:
   * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
   * (C3) size(`lhs_contracting_dimensions`) $=$ size(`rhs_contracting_dimensions`).
   * (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
-  unique.
+    unique.
   * (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
-  unique.
+    unique.
   * (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
-  $\in$ [0, size(`lhs_batching_dimensions`)).
+    $\in$ [0, size(`lhs_batching_dimensions`)).
   * (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
-  $\in$ [0, size(`lhs_contracting_dimensions`)).
+    $\in$ [0, size(`lhs_contracting_dimensions`)).
   * (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
-  $\in$ [0, size(`rhs_batching_dimensions`)).
+    $\in$ [0, size(`rhs_batching_dimensions`)).
   * (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
-  $\in$ [0, size(`rhs_contracting_dimensions`)).
+    $\in$ [0, size(`rhs_contracting_dimensions`)).
   * (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
-  dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
-  size(`lhs_batching_dimensions`)).
+    dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
+    size(`lhs_batching_dimensions`)).
   * (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
-  dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
-  size(`lhs_contracting_dimensions`)).
+    dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
+    size(`lhs_contracting_dimensions`)).
   * (C12) size(`precision_config`) $=$ 2.
   * (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
     dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
