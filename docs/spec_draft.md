@@ -1986,7 +1986,8 @@ computations on accelerator backends. This can be one of the following:
 
   * (C1) `lhs` and `rhs` have the same element type.
   * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
-  * (C3) size(`lhs_contracting_dimensions`) $=$ size(`rhs_contracting_dimensions`).
+  * (C3) size(`lhs_contracting_dimensions`) $=$
+    size(`rhs_contracting_dimensions`).
   * (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
     unique.
   * (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
