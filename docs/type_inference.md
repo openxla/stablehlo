@@ -52,15 +52,14 @@ But stay careful about the missing pieces: for example, if the op contains the t
 
 **Where do we put tests for verifiers and type inference?**
 
-[ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) contains the positive cases of ops, and (at least) 1 negative test for every verification error. It is also able to check the inferred type is **compatiable** (not same!) as the real result type.
+[ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) contains the positive cases of ops, and (at least) 1 negative test for every verification error. It is also able to check the inferred return type is **compatible** (not the same!) as the real result type.
 
-[infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) verifies the existance of the shape function of an op by line with `hlo_test_infer.get_return_type_components"(%0) : ...` and the inferred type matches exactly as expected. One positive per op.
+[infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) verifies the existence of the shape function of an op by line with `hlo_test_infer.get_return_type_components"(%x):...` and the inferred type matches exactly as expected. One positive test per op in general.
 
 ### What to do
-When implement or revisit the verifier and/or shape functions of an op:
-1. Put all positive tests and negative tests in [ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) 
-2. Add a single positive test in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) to verify the interface 
+When implement or revisit the verifier and/or shape function of an op:
+1. Put all positive cases and negative cases in [ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) 
+2. Add a single positive test in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) to test the interface 
 3. (Optional) If an op is complicated and could contain a lot of tests, consider adding a separate test file named `verify_<op_name>.mlir` or` verify_<your_topic>.mlir` within the same folder.
 
-
-Note: As a temparary solution, now the tests for **bounded dynamism / sparsity** are also put in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) 
+Note: For now, the tests for new **bounded dynamism / sparsity** are also put in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).
