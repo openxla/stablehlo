@@ -2231,9 +2231,8 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
     [Pure, InferTensorTypeWithReify]> {
   let summary = "General Dot operator";
   let description = [{
-    Performs general dot product between `lhs` and `rhs` over dimensions
-    specified in lhs/rhs batching and contracting dimensions and produces a
-    `result` tensor.
+    Computes dot products between slices of `lhs` and slices of `rhs` and
+    produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlodot_general
