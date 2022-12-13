@@ -1937,6 +1937,7 @@ Computes dot products between slices of `lhs` and slices of `rhs` and produces a
 `result` tensor.
 
 More formally, `result[result_index] = dot_product`, where:
+
   * `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
   * `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
   * `result_batching_index + result_lhs_index + result_rhs_index = result_index`
@@ -1957,6 +1958,7 @@ More formally, `result[result_index] = dot_product`, where:
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
+
   * `DEFAULT`: Fastest calculation, but least accurate approximation to the
     original number.
   * `HIGH`: Slower calculation, but more accurate approximation to the
