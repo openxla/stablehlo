@@ -2878,6 +2878,12 @@ LogicalResult MapOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // This function can be called directly from auto-gen builder(), and does not 
+  // guarantee its arg `odsState.regions` to be non-empty. Need check it here to
+  // avoid `adaptor.getComputation()` crash.
+  if (regions.empty())
+    return emitOptionalError(location, "expect non-empty computation region");
+
   MapOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferMapOp(location, adaptor.getInputs(), adaptor.getDimensions(),
                          adaptor.getComputation(), inferredReturnShapes);
