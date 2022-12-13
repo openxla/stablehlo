@@ -2086,7 +2086,8 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
     [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let summary = "CustomCall operator";
   let description = [{
-    Invokes exteral code with `inputs` as arguments and produces `results`.
+    Encapsulates an implementation-defined operation `call_target_name` that
+    takes `inputs` and `called_computations` and produces `results`.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehlocustom_call
@@ -2098,13 +2099,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
       has_side_effect = false,
       backend_config = "bar",
       api_version = 1 : i32,
-      called_computations = [@foo],
-      operand_layouts = [dense<> : tensor<0xindex>],
-      result_layouts = [dense<> : tensor<0xindex>],
-      output_operand_aliases = [
-        #stablehlo.output_operand_alias<output_tuple_indices = [],
-                                        operand_index = 0,
-                                        operand_tuple_indices = []>]
+      called_computations = [@foo]
     } : (tensor<f32>) -> tensor<f32>
     ```
   }];

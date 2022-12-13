@@ -1803,67 +1803,28 @@ tensor and produces a `result` tensor.
 
 ### Semantics
 
-Invokes exteral code with `inputs` as arguments and produces `results`. The
-exact mechanism is backend-specific. The inputs are described as follows:
-  * `inputs` are passed as agruments to the external API.
-  * `call_target_name` may be used as an identifier for the external code.
-  * `has_side_effect` is true if the custom call has side-effects.
-  * `backend_config` may be used to encode additional backend-specific
-    information.
-  * `api_version` specifies the version of the custom call API.
-  * `called_computations` used to apply functions within the scope of the parent
-    module.
-  * `operand_layouts` specifies the layout of the operand.
-  * `result_layouts` specifies the layout of the result.
-  * `output_operand_aliases` captures the alias relationship of `results` to one of the operands.
-    * `operand_index` denotes the index of the operand `inputs` that relates to `results`.
-    * `operand_tuple_indices` are used to index into the operand at `operand_index`, if it is a tuple/nested tuple.
-    * `output_tuple_indices` are used to index into `results`, if it is a tuple/nested tuple.
+Encapsulates an implementation-defined operation `call_target_name` that takes
+`inputs` and `called_computations` and produces `results`. `has_side_effect`,
+`backend_config` and `api_version` may be used to provide additional
+implementation-defined metadata.
 
 ### Inputs
 
-| Name                    | Type                                                                |
-|-------------------------|---------------------------------------------------------------------|
-| `inputs`                | variadic number of tensors of any supported type, tokens, or tuples |
-| `call_target_name`      | constant of type `string`                                           |
-| `has_side_effect`       | constant of type `i1`                                               |
-| `backend_config`        | constant of type `string`                                           |
-| `api_version`           | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`,     |
-|                         | and `API_VERSION_STATUS_RETURNING_UNIFIED`                          |
-| `called_computations`   | variadic number of `function` references                            |
-| `operand_layouts`       | variadic number of 1-dimensional tensor constants of type `si64`    |
-| `result_layouts`        | variadic number of 1-dimensional tensor constants of type `si64`    |
-| `output_tuple_indices`  | 1-dimensional tensor constant of type `si64`                        |
-| `operand_index`         | constant of type `si64`                                             |
-| `operand_tuple_indices` | 1-dimensional tensor constant of type `si64`                        |
+| Name                  | Type                                                            |
+|-----------------------|-----------------------------------------------------------------|
+| `inputs`              | variadic number of values of any supported type                 |
+| `call_target_name`    | constant of type `string`                                       |
+| `has_side_effect`     | constant of type `i1`                                           |
+| `backend_config`      | constant of type `string`                                       |
+| `api_version`         | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`, |
+|                       | and `API_VERSION_STATUS_RETURNING_UNIFIED`                      |
+| `called_computations` | variadic number of `function`                                   |
 
 ### Outputs
 
-| Name      | Type                                                                |
-|-----------|---------------------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type, tokens, or tuples |
-
-### Constraints
-
-  * (C1) `operand_layouts` & `result_layouts` attributes can be specified under
-          the following constraints:
-    * Either both `operand_layouts` and `result_layouts` are specified or none.
-    * None of the `inputs` are of tuple type.
-    * None of the `results` are of tuple type except the common case of single
-      tuple result packing non-tuple values is allowed.
-    * `operand_layouts[i]` = `layout(inputs[i])`, for all `i`.
-    * `result_layouts[i]` = `layout(results[i])`, for all `i`.
-    * Only tensor types can have non-empty layout.
-    * Layout of an `N`-ranked tensor must be a permutation of `[0, N)`.
-  * (C2) `output_operand_aliases` can be specified under the following
-         constraints:
-    * 0 $\le$ `operand_index` $\lt$ `size(inputs)`.
-    * `type(inputs[operand_index])` = `tuple`.
-    * `shape(inputs[operand_index][i0][i1]..[iN-1])` =
-      `shape(results[j0][j1]..[jM-1]])`, where,
-      `i0, i1, ..` = `operand_tuple_indices[0], operand_tuple_indices[1], ..`,
-      `j0, j1, ..` = `operand_tuple_indices[0], operand_tuple_indices[1], ..`,
-      `size(operand_tuple_indices) = N`, and `size(output_tuple_indices) = M`.
+| Name      | Type                                            |
+|-----------|-------------------------------------------------|
+| `results` | variadic number of values of any supported type |
 
 ### Examples
 
@@ -1873,13 +1834,7 @@ exact mechanism is backend-specific. The inputs are described as follows:
   has_side_effect = false,
   backend_config = "bar",
   api_version = 1 : i32,
-  called_computations = [@foo],
-  operand_layouts = [dense<> : tensor<0xindex>],
-  result_layouts = [dense<> : tensor<0xindex>],
-  output_operand_aliases = [
-    #stablehlo.output_operand_alias<output_tuple_indices = [],
-                                    operand_index = 0,
-                                    operand_tuple_indices = []>]
+  called_computations = [@foo]
 } : (tensor<f32>) -> tensor<f32>
 ```
 
