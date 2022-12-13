@@ -1016,7 +1016,7 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
 
     Example:
     ```mlir
-    %result = "stablehlo.outfeed"(%inputs0, %token) {
+    %result = "stablehlo.outfeed"(%input0, %token) {
       outfeed_config = ""
     } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
     ```
@@ -2145,7 +2145,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
 
     Example:
     ```mlir
-    %results = "stablehlo.custom_call"(%inputs0) {
+    %results = "stablehlo.custom_call"(%input0) {
       call_target_name = "foo",
       has_side_effect = false,
       backend_config = "bar",
