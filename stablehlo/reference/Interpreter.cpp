@@ -87,11 +87,6 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(cosineOp.getOperand());
       Tensor runtimeResult = eval(cosineOp, runtimeOperand);
       populateResults({runtimeResult});
-    } else if (auto dotGeneralOp = dyn_cast<DotGeneralOp>(op)) {
-      Tensor runtimeLhs = fetchOperand(dotGeneralOp.getLhs());
-      Tensor runtimeRhs = fetchOperand(dotGeneralOp.getRhs());
-      Tensor runtimeResult = eval(dotGeneralOp, runtimeLhs, runtimeRhs);
-      populateResults({runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = fetchOperand(floorOp.getOperand());
       Tensor runtimeResult = eval(floorOp, runtimeOperand);
