@@ -2393,6 +2393,30 @@ func.func @dynamic_update_slice_invalid_update_size(%input: tensor<3x4xi64>, %up
 
 // -----
 
+// CHECK-LABEL: func @dynamic_update_slice_dynamic_rank_input
+func.func @dynamic_update_slice_dynamic_rank_input(%input: tensor<*xi64>, %update: tensor<1x4xi64>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<*xi64> {
+  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2) : (tensor<*xi64>, tensor<1x4xi64>, tensor<i64>, tensor<i64>) -> tensor<*xi64>
+  func.return %0 : tensor<*xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_update_slice_dynamic_rank_update
+func.func @dynamic_update_slice_dynamic_rank_update(%input: tensor<3x4xi64>, %update: tensor<*xi64>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<3x4xi64> {
+  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2) : (tensor<3x4xi64>, tensor<*xi64>, tensor<i64>, tensor<i64>) -> tensor<3x4xi64>
+  func.return %0 : tensor<3x4xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_update_slice_dynamic_sizes
+func.func @dynamic_update_slice_dynamic_sizes(%input: tensor<?x4xi64>, %update: tensor<1x?xi64>, %start1: tensor<i64>, %start2: tensor<i64>) -> tensor<?x4xi64> {
+  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2) : (tensor<?x4xi64>, tensor<1x?xi64>, tensor<i64>, tensor<i64>) -> tensor<?x4xi64>
+  func.return %0 : tensor<?x4xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @transpose
 func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
   %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>

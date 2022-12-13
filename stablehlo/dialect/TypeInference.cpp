@@ -960,18 +960,19 @@ LogicalResult inferDynamicUpdateSliceOp(
   auto updateType = update.getType().cast<ShapedType>();
 
   // (C3)
-  int64_t operandRank = operandType.getRank();
-  int64_t updateRank = updateType.getRank();
-  if (updateRank != operandRank)
+  if (updateType.hasRank() && operandType.hasRank() &&
+      updateType.getRank() != operandType.getRank())
     return emitOptionalError(
-        location, "update rank does not match operand rank: ", updateRank,
-        " vs ", operandRank, ".");
+        location,
+        "update rank does not match operand rank: ", updateType.getRank(),
+        " vs ", operandType.getRank(), ".");
 
   // (C4)
-  if ((int64_t)startIndices.size() != operandRank)
+  if (operandType.hasRank() &&
+      (int64_t)startIndices.size() != operandType.getRank())
     return emitOptionalError(
         location, "expects number of start_indices to match operand rank: ",
-        startIndices.size(), " vs ", operandRank, ".");
+        startIndices.size(), " vs ", operandType.getRank(), ".");
 
   // (C5)
   if (!startIndices.empty()) {
@@ -989,17 +990,31 @@ LogicalResult inferDynamicUpdateSliceOp(
   }
 
   // (C6)
-  for (auto [index, dims] : llvm::enumerate(
-           llvm::zip(operandType.getShape(), updateType.getShape()))) {
-    auto [operandDim, updateDim] = dims;
-    if (updateDim < 0 || updateDim > operandDim)
-      return emitOptionalError(location, "expects size at dimension ", index,
-                               " of update to be in range [0, ", operandDim,
-                               "]. Got: ", updateDim, ".");
-  }
+  if (operandType.hasRank() && updateType.hasRank())
+    for (auto [index, dims] : llvm::enumerate(
+             llvm::zip(operandType.getShape(), updateType.getShape()))) {
+      auto [operandDim, updateDim] = dims;
+      if (hlo::isDynamicDimSize(updateDim)) continue;
+      if (hlo::isStaticDimSize(operandDim)) {
+        if (updateDim < 0 || updateDim > operandDim)
+          return emitOptionalError(location, "expects size at dimension ",
+                                   index, " of update to be in range [0, ",
+                                   operandDim, "]. Got: ", updateDim, ".");
+      } else {
+        if (updateDim < 0)
+          return emitOptionalError(
+              location, "expects size at dimension ", index,
+              " of update to be non-negative. Got: ", updateDim, ".");
+      }
+    }
 
-  inferredReturnShapes.emplace_back(operandType.getShape(),
-                                    operandType.getElementType());
+  // (C1)
+  if (operandType.hasRank()) {
+    inferredReturnShapes.emplace_back(operandType.getShape(),
+                                      operandType.getElementType());
+  } else {
+    inferredReturnShapes.emplace_back(operandType.getElementType());
+  }
   return success();
 }
 
