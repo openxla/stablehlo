@@ -1,5 +1,9 @@
 # StableHLO Compatibility RFC v2
 
+Status: Approved
+Initial version: 9/12/2022
+Last updated: 12/13/2022
+
 Based on discussions held over the past two months, and new use cases and feedback left in comments on the first revision of this RFC, we propose the following path forward for compatibility guarantees for StableHLO programs:
 - Proposal 1: Add StableHLO forks of modularity ops, as well as builtin/quant types and attributes. Maintain conversion patterns to their upstream equivalents.
 - Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
