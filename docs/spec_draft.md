@@ -399,6 +399,7 @@ syntax.
    * [convolution](#stablehloconvolution)
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
+   * [custom_call](#stablehlocustom_call)
    * [divide](#stablehlodivide)
    * [dot_general](#stablehlodot_general)
    * [dynamic_slice](#stablehlodynamic_slice)
@@ -2062,6 +2063,47 @@ tensor and produces a `result` tensor.
 // %operand: [[0, 1], [127, -1]]
 %result = "stablehlo.count_leading_zeros"(%operand) : (tensor<2x2xi8>) -> tensor<2x2xi8>
 // %result: [[8, 7], [1, 0]]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.custom_call
+
+### Semantics
+
+Encapsulates an implementation-defined operation `call_target_name` that takes
+`inputs` and `called_computations` and produces `results`. `has_side_effect`,
+`backend_config` and `api_version` may be used to provide additional
+implementation-defined metadata.
+
+### Inputs
+
+| Name                  | Type                                                            |
+|-----------------------|-----------------------------------------------------------------|
+| `inputs`              | variadic number of values of any supported type                 |
+| `call_target_name`    | constant of type `string`                                       |
+| `has_side_effect`     | constant of type `i1`                                           |
+| `backend_config`      | constant of type `string`                                       |
+| `api_version`         | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`, |
+|                       | and `API_VERSION_STATUS_RETURNING_UNIFIED`                      |
+| `called_computations` | variadic number of `function`                                   |
+
+### Outputs
+
+| Name      | Type                                            |
+|-----------|-------------------------------------------------|
+| `results` | variadic number of values of any supported type |
+
+### Examples
+
+```mlir
+%results = "stablehlo.custom_call"(%inputs0) {
+  call_target_name = "foo",
+  has_side_effect = false,
+  backend_config = "bar",
+  api_version = 1 : i32,
+  called_computations = [@foo]
+} : (tensor<f32>) -> tensor<f32>
 ```
 
 [Back to Ops](#index-of-ops)
