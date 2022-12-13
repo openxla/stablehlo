@@ -1823,7 +1823,7 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 `result`. The following diagram shows how elements in `result` are computed from
 `lhs` and `rhs` using a concrete example.
 
-<img align="center" src="images/spec_draft/convolution.svg" />
+![](images/spec_draft/convolution.svg)
 
 More formally, we start with reframing the inputs to the operation in terms
 of `lhs` in order to be able to express windows of `lhs`:
@@ -1837,11 +1837,7 @@ of `lhs` in order to be able to express windows of `lhs`:
 This reframing uses the following helper functions:
 
   *  `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
-  *  `rhs_shape(hw, i, o) = permute(hw + [i, o], kernel_spatial_dimensions, [kernel_input_feature_dimension, kernel_output_feature_dimension])`.
   *  `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
-  *  `source_to_target(hw)` transposes a list that is ordered according to
-     `source_spatial_dimensions`, so that it becomes ordered according to
-     `target_spatial_dimensions`.
 
 If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
@@ -1860,14 +1856,14 @@ If `feature_group_count > 1`:
 
   * `lhses = split(lhs, feature_group_count, input_feature_dimension)`.
   * `rhses = split(rhs, feature_group_count, kernel_output_feature_dimension)`.
-  * `results[:] = convolution(lhses[:], rhses[:], ..., feature_group_count=1)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., feature_group_count=1, ...)`.
   * `result = concatenate(results, output_feature_dimension)`.
 
 If `batch_group_count > 1`:
 
   * `lhses = split(lhs, batch_group_count, input_batch_dimension)`.
   * `rhses = split(rhs, batch_group_count, kernel_output_feature_dimension)`.
-  * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1, ...)`.
   * `result = concatenate(results, output_feature_dimension)`.
 
 Where `split(tensor, num_splits, dimension)` splits a `tensor` into `num_splits`
