@@ -1866,10 +1866,6 @@ If `batch_group_count > 1`:
   * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1, ...)`.
   * `result = concatenate(results, output_feature_dimension)`.
 
-Where `split(tensor, num_splits, dimension)` splits a `tensor` into `num_splits`
-tensors of the same shape, so that `concatenate(results, dimension)` produces
-back the same `tensor`.
-
 ### Inputs
 
 | Name                              | Type                                                        | Constraints                            |
@@ -1907,7 +1903,7 @@ back the same `tensor`.
   * (C2) element_type(`lhs`) $=$ element_type(`rhs`).
   * (C3) size(`window_strides`) $= N - 2$ .
   * (C4) `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
-  * (C5) dim(`padding`, 0) $=$ S and dim(`padding`, 1) = 2.
+  * (C5) dim(`padding`, 0) $= N - 2$ and dim(`padding`, 1) = 2.
   * (C6) size(`lhs_dilation`) $= N - 2$.
   * (C7) `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
   * (C8) size(`rhs_dilation`) $= N - 2$.
@@ -1941,13 +1937,13 @@ back the same `tensor`.
     * `dim(lhs, input_batch_dimension) / batch_group_count`, if `result_dim = output_batch_dimension`.
     * `dim(rhs, kernel_output_feature_dimension)`, if `result_dim = output_feature_dimension`.
     * `num_windows` otherwise, where:
-        * `output_spatial_dimensions[num_spatial_dim] = result_dim`.
-        * `lhs_dim = input_spatial_dimensions[num_spatial_dim]`.
-        * `rhs_dim = kernel_spatial_dimensions[num_spatial_dim]`.
-        * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[num_spatial_dim] + 1`.
-        * `padded_input_shape[lhs_dim] = padding[num_spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[num_spatial_dim, 1]`.
-        * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[num_spatial_dim] + 1`.
-        * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[num_spatial_dim]) + 1`.
+        * `output_spatial_dimensions[spatial_dim] = result_dim`.
+        * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
+        * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
+        * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
+        * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
+        * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
+        * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
   * (C27) element_type(`result`) $=$ element_type(`lhs`).
   * (C28) rank(`result`) $= N$.
 
