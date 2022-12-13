@@ -37,9 +37,9 @@ The solution is as follows:
 1. **For most ops w/o regions** (like PadOp):
 Put all the verification code into the shape functions, and discard verifiers totally.
 
-2. **For ops w/ regions** (like ReduceOp/IfOp): the `builder()` of the op can be created before all the components are in place, for [example](https://github.com/tensorflow/mlir-hlo/blob/master/lib/Dialect/mhlo/transforms/mhlo_canonicalize_reduction.cc#L222), the ReduceOp is created without regions and soon the shape functions are used.  
-    1. If the regions are not needed for type inference (like [ReduceOp](https://github.com/openxla/stablehlo/pull/401)), put the region related verification logic in verifiers. Duplicate some code if it is inevitable.
-    2. If the regions are needed for type inference (like IfOp/CaseOp/MapOp), the shape function must verify the regions are not empty explicitly, even though the ODS may already guarantee its existence in the Op definition.
+2. **For ops w/ regions** (like `ReduceOp/IfOp`, a full list is [here](https://github.com/openxla/stablehlo/pull/401)): the `builder()` of the op can be created before all the components are in place, for [example](https://github.com/tensorflow/mlir-hlo/blob/master/mhlo/transforms/mhlo_canonicalize_reduction/mhlo_canonicalize_reduction.cc#L221), the `ReduceOp` is created without regions and soon the shape functions are used.  
+    1. If the regions are not needed for type inference (like `ReduceOp`), put the region related verification logic in verifiers. Duplicate some code if it is inevitable.
+    2. If the regions are needed for type inference (`IfOp/CaseOp/MapOp`), the shape function must verify the regions are not empty explicitly, even though the ODS may already guarantee its existence in the Op definition.
 
 
 ## (P4) Establish testing guidelines
