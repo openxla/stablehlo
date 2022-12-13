@@ -26,12 +26,21 @@ Both
 - **verifiers**: implemented by `Op::verify()`, and
 - **shape functions**: implemented by `InferTypeOpInterface` like `Op::inferReturnTypes()` or `Op::inferReturnTypeComponents`
 
-may have verification code to check operands/attributes/results. An ideal split would be that: let the verifiers check the operands/attributes, then let shape functions to calculate inferred result types and check the compatibility against the real result types. However, in reality this split has a few problems:
+may have verification code to check operands/attributes/results. An initial split would be that: let the verifiers check the operands/attributes, then let shape functions only calculate inferred result types and check the compatibility against the real result types. However, in reality this split has a few problems:
 
-1. Duplicated code: for example in verifiers we do some processing on the operands then verify some intermediate results, then in shape functions these intermediate results are useful to infer the final results. These intermediate results have to be calculated twice.
-2. Maintenance burden: as verifications of an op are contained in two different methods.
+- The shape function can be called by the auto-gen `builder()` alone, without calling the verifier first. So the related inputs must be verified in shape function as well.
+- Duplicated code: for example in verifiers we do some processing on the operands then verify some intermediate results, then in shape functions these intermediate results are useful to infer the final results. These intermediate results have to be calculated twice.
+- Maintenance burden: as verifications of an op are contained in two different methods.
 
-One solution is to discard verifiers totally and move all the verification code into the shape functions [example](https://github.com/openxla/stablehlo/pull/135)). However, there are user cases that the op is created before all the components are in place, for [example](https://github.com/tensorflow/mlir-hlo/blob/master/lib/Dialect/mhlo/transforms/mhlo_canonicalize_reduction.cc#L222), the ReduceOp is created without regions and soon the shape functions are used. Involving verifications in shape functions would break the use cases like this. Thus, the most practical solution is to include as much as possible verifications in verifiers and leave the shape function as thin as possible.
+The solution is as follows:
+
+1. **For most ops w/o regions** (like PadOp):
+Put all the verification code into the shape functions, and discard verifiers totally.
+
+2. **For ops w/ regions** (like ReduceOp/IfOp): the `builder()` of the op can be created before all the components are in place, for [example](https://github.com/tensorflow/mlir-hlo/blob/master/lib/Dialect/mhlo/transforms/mhlo_canonicalize_reduction.cc#L222), the ReduceOp is created without regions and soon the shape functions are used.  
+    1. If the regions are not needed for type inference (like [ReduceOp](https://github.com/openxla/stablehlo/pull/401)), put the region related verification logic in verifiers. Duplicate some code if it is inevitable.
+    2. If the regions are needed for type inference (like IfOp/CaseOp/MapOp), the shape function must verify the regions are not empty explicitly, even though the ODS may already guarantee its existence in the Op definition.
+
 
 ## (P4) Establish testing guidelines
 
@@ -43,4 +52,15 @@ But stay careful about the missing pieces: for example, if the op contains the t
 
 **Where do we put tests for verifiers and type inference?**
 
-Verifications are kept in [ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) and [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir). If an op is complicated and could contain a lot of tests, consider adding a separate test file named `verify_<op_name>.mlir` or` verify_<your_topic>.mlir` within the same folder.
+[ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) contains the positive cases of ops, and (at least) 1 negative test for every verification error. It is also able to check the inferred type is **compatiable** (not same!) as the real result type.
+
+[infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) verifies the existance of the shape function of an op by line with `hlo_test_infer.get_return_type_components"(%0) : ...` and the inferred type matches exactly as expected. One positive per op.
+
+### What to do
+When implement or revisit the verifier and/or shape functions of an op:
+1. Put all positive tests and negative tests in [ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir) 
+2. Add a single positive test in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) to verify the interface 
+3. (Optional) If an op is complicated and could contain a lot of tests, consider adding a separate test file named `verify_<op_name>.mlir` or` verify_<your_topic>.mlir` within the same folder.
+
+
+Note: As a temparary solution, now the tests for **bounded dynamism / sparsity** are also put in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) 
