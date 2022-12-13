@@ -399,6 +399,7 @@ syntax.
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
    * [divide](#stablehlodivide)
+   * [dot_general](#stablehlodot_general)
    * [dynamic_slice](#stablehlodynamic_slice)
    * [dynamic_update_slice](#stablehlodynamic_update_slice)
    * [exponential](#stablehloexponential)
@@ -1926,6 +1927,125 @@ produces an implementation-defined value.
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [5, -5, -5, 5]
 ```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.dot_general
+
+### Semantics
+
+Computes dot products between slices of `lhs` and slices of `rhs` and produces a
+`result` tensor.
+
+More formally, `result[result_index] = dot_product`, where:
+
+  * `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
+  * `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
+  * `result_batching_index + result_lhs_index + result_rhs_index = result_index`
+    where `size(result_batching_index) = size(lhs_batching_dimensions)`,
+    `size(result_lhs_index) = size(lhs_result_dimensions)` and
+    `size(result_rhs_index) = size(rhs_result_dimensions)`.
+  * `transposed_lhs = transpose(lhs, lhs_batching_dimensions + lhs_result_dimensions + lhs_contracting_dimensions)`.
+  * `transposed_lhs_slice = slice(result_batching_index + result_lhs_index + [:, ..., :])`.
+  * `reshaped_lhs_slice = reshape(transposed_lhs_slice, dims(lhs, lhs_contracting_dimensions))`.
+  * `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
+  * `transposed_rhs_slice = slice(result_batching_index + result_rhs_index + [:, ..., :])`.
+  * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
+  * `dot_product = reduce(
+    inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
+    init_values=[0],
+    dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+    body=lambda x, y: add(x, y))`.
+
+`precision_config` controls the tradeoff between speed and accuracy for
+computations on accelerator backends. This can be one of the following:
+
+  * `DEFAULT`: Fastest calculation, but least accurate approximation to the
+    original number.
+  * `HIGH`: Slower calculation, but more accurate approximation to the
+    original number.
+  * `HIGHEST`: Slowest calculation, but most accurate approximation to the
+    original number.
+
+### Inputs
+
+| Name                         | Type                                                        |
+|------------------------------|-------------------------------------------------------------|
+| `lhs`                        | tensor of any supported type                                |
+| `rhs`                        | tensor of any supported type                                |
+| `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                |
+| `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                |
+| `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                |
+| `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                |
+| `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `lhs` and `rhs` have the same element type.
+  * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
+  * (C3) size(`lhs_contracting_dimensions`) $=$
+    size(`rhs_contracting_dimensions`).
+  * (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
+    unique.
+  * (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
+    unique.
+  * (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+    $\in$ [0, size(`lhs_batching_dimensions`)).
+  * (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+    $\in$ [0, size(`lhs_contracting_dimensions`)).
+  * (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+    $\in$ [0, size(`rhs_batching_dimensions`)).
+  * (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+    $\in$ [0, size(`rhs_contracting_dimensions`)).
+  * (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
+    dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
+    size(`lhs_batching_dimensions`)).
+  * (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
+    dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
+    size(`lhs_contracting_dimensions`)).
+  * (C12) size(`precision_config`) $=$ 2.
+  * (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
+    dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
+
+### Examples
+
+```mlir
+// %lhs: [
+//        [[1, 2],
+//         [3, 4]],
+//        [[5, 6],
+//         [7, 8]]
+//       ]
+// %rhs: [
+//        [[1, 0],
+//         [0, 1]],
+//        [[1, 0],
+//         [0, 1]]
+//       ]
+%result = "stablehlo.dot_general"(%lhs, %rhs) {
+  dot_dimension_numbers = #stablehlo.dot<
+    lhs_batching_dimensions = [0],
+    rhs_batching_dimensions = [0],
+    lhs_contracting_dimensions = [2],
+    rhs_contracting_dimensions = [1]
+  >,
+  precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+} : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
+// %result: [
+//           [[1, 2],
+//            [3, 4]],
+//           [[5, 6],
+//            [7, 8]]
+//          ]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_dot_general.mlir)
 
 [Back to Ops](#index-of-ops)
 
