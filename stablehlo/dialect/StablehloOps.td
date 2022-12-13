@@ -2060,9 +2060,26 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
 def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType]> {
   let summary = "Convolution operator";
   let description = [{
-    Computes a convolution of the kind used in neural networks.
+    Computes dot products between windows of `lhs` and slices of `rhs` and
+    produces `result`.
 
-    See https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md#stablehloconvolution
+
+    Example:
+    ```mlir
+    %result = "stablehlo.convolution"(%lhs, %rhs) {
+      window_strides = dense<4> : tensor<2xi64>,
+      padding = dense<0> : tensor<2x2xi64>,
+      lhs_dilation = dense<2> : tensor<2xi64>,
+      rhs_dilation = dense<1> : tensor<2xi64>,
+      window_reversal = dense<false> : tensor<2xi1>,
+      dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+      feature_group_count = 1 : i64,
+      batch_group_count = 1 : i64,
+      precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>) -> tensor<1x2x2x1xi32>
+    ```
   }];
   let arguments = !con(
     (ins

@@ -173,6 +173,14 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   return b.create<arith::IndexCastOp>(loc, type, value);
 }
 
+// Checks if the precision config has a valid size, if provided.
+LogicalResult verifyPrecisionConfig(Optional<Location> loc,
+                                    ::mlir::ArrayAttr attrArr) {
+  return !attrArr || attrArr.size() == 2 || attrArr.size() == 0
+             ? success()
+             : emitOptionalError(
+                   loc, "expects precision config to be null or of size 2.");
+}
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -722,7 +730,8 @@ LogicalResult DotOp::verify() {
                          << " from operands " << lhsType << " and " << rhsType;
     }
   }
-  return success();
+
+  return verifyPrecisionConfig(getLoc(), getPrecisionConfigAttr());
 }
 
 // PrecisionConfig - Optional attribute, print the array as raw enums
@@ -772,6 +781,9 @@ LogicalResult DotGeneralOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
+  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
+    return failure();
+
   return hlo::inferDotGeneralOp(
       location, adaptor.getLhs(), adaptor.getRhs(),
       adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
@@ -1505,18 +1517,11 @@ namespace {
 //  dimensions in the range [0,num) because of the presence of 'unknown'
 //  dimensions (ref. `printConvolutionDimensions()`)
 LogicalResult isSpatialDimensionsValid(
-    Value lhs,
-    // clang-format off
-    int64_t inputBatchDimension,
-    int64_t inputFeatureDimension,
+    Value lhs, int64_t inputBatchDimension, int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension,
-    int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions,
-    int64_t outputBatchDimension,
-    int64_t outputFeatureDimension,
-    ArrayRef<int64_t> outputSpatialDimensions,
-    // clang-format on
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     Optional<Location> location) {
   uint64_t spatialDimNum = inputSpatialDimensions.size();
   // P1.
@@ -1583,50 +1588,35 @@ LogicalResult isSpatialDimensionsValid(
 //          input-dimensions: b * input-spatial-dims * f
 //          kernel-dimensions: kernel-spatial-dims * i * o
 //          output-dimensions: b' * out-spatial-dims * f'
-//            where b = input-batch-dims
-//            where f = input-feature-dims
-//            where i = kernel-input-feature-dims
-//            where o = kernel-output-feature-dims
-//            where b' = output-batch-dims
-//            where f' = output-feature-dims
+//            where b = input-batch-dim
+//            where f = input-feature-dim
+//            where i = kernel-input-feature-dim
+//            where o = kernel-output-feature-dim
+//            where b' = output-batch-dim
+//            where f' = output-feature-dim
 //      Check the following properties w.r.t feature_group_count (fgc) and
 //      batch_group_count (bgc).
-//        fgc > 0, bgc > 1 and !(fgc > 1 && bgc > 1)
-//        b % bgc == 0
-//        f % fgc == 0 and i = f / fgc
-//        o (or f') % bgc == 0 and o (or f') % fgc == 0
+//        * fgc > 0, bgc > 0 and !(fgc > 1 && bgc > 1)
+//        * dim(lhs, b) % bgc == 0
+//        * dim(lhs, f) % fgc == 0 and
+//          dim(lhs, f) / fgc = dim(rhs, i)
+//        * dim(rhs, o) (or dim(output, f')) % bgc == 0 and
+//          dim(rhs, o) (or dim(output, f')) % fgc == 0
 LogicalResult verifyConvolutionAttributes(
-    // clang-format off
-    Value lhs, Value rhs,
-    int64_t inputBatchDimension,
-    int64_t inputFeatureDimension,
-    ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension,
-    int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions,
-    int64_t outputBatchDimension,
-    int64_t outputFeatureDimension,
-    ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t featureGroupCount,
-    int64_t batchGroupCount,
-    // clang-format on
+    Value lhs, Value rhs, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
     Optional<Location> location) {
   // P1.
   if (failed(isSpatialDimensionsValid(
-          lhs,
-          // clang-format off
-          inputBatchDimension,
-          inputFeatureDimension,
-          inputSpatialDimensions,
-          kernelInputFeatureDimension,
-          kernelOutputFeatureDimension,
-          kernelSpatialDimensions,
-          outputBatchDimension,
-          outputFeatureDimension,
-          outputSpatialDimensions,
-          location
-          // clang-format on
-          )))
+          lhs, inputBatchDimension, inputFeatureDimension,
+          inputSpatialDimensions, kernelInputFeatureDimension,
+          kernelOutputFeatureDimension, kernelSpatialDimensions,
+          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
+          location)))
     return failure();
 
   // P2.
@@ -1707,17 +1697,11 @@ LogicalResult verifyConvolutionAttributes(
 //  1. Input args to ConvolutionOp 'op' are RankedTypes.
 //  2. rank-of(input-type) == rank-of(output-type)
 SmallVector<int64_t> inferConvolutionOpReturnShape(
-    // clang-format off
-    Value lhs, Value rhs,
-    int64_t inputBatchDimension,
+    Value lhs, Value rhs, int64_t inputBatchDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelOutputFeatureDimension,
-    int64_t outputBatchDimension,
-    int64_t outputFeatureDimension,
-    ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t batchGroupCount,
-    // clang-format on
-    const ArrayRef<hlo::WindowDimension> window) {
+    int64_t kernelOutputFeatureDimension, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t batchGroupCount, const ArrayRef<hlo::WindowDimension> window) {
   auto lhsType = lhs.getType().cast<RankedTensorType>();
   SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
                                         ShapedType::kDynamic);
@@ -1755,7 +1739,8 @@ SmallVector<int64_t> inferConvolutionOpReturnShape(
  *  P1. Verify the input, kernel types.
  *  P2. Verify the convolution atributes.
  *  P3. Verify and collect the window atributes.
- *  P4. Verify the return shape.
+ *  P4. Verify precision_config attribute.
+ *  P5. Verify the return shape.
  *      TODO(b/232574102): Verify the element-type of return-value.
  */
 LogicalResult ConvolutionOp::inferReturnTypeComponents(
@@ -1770,6 +1755,7 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
   Optional<DenseIntElementsAttr> padding = adaptor.getPadding();
   Optional<DenseIntElementsAttr> lhsDilation = adaptor.getLhsDilation();
   Optional<DenseIntElementsAttr> rhsDilation = adaptor.getRhsDilation();
+  Optional<DenseElementsAttr> windowReversal = adaptor.getWindowReversal();
 
   int64_t inputBatchDimension =
       adaptor.getDimensionNumbers().getInputBatchDimension();
@@ -1817,21 +1803,11 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
 
   // P2.
   if (failed(verifyConvolutionAttributes(
-          lhs, rhs,
-          // clang-format off
-          inputBatchDimension,
-          inputFeatureDimension,
-          inputSpatialDimensions,
-          kernelInputFeatureDimension,
-          kernelOutputFeatureDimension,
-          kernelSpatialDimensions,
-          outputBatchDimension,
-          outputFeatureDimension,
-          outputSpatialDimensions,
-          featureGroupCount,
-          batchGroupCount,
-          // clang-format on
-          location)))
+          lhs, rhs, inputBatchDimension, inputFeatureDimension,
+          inputSpatialDimensions, kernelInputFeatureDimension,
+          kernelOutputFeatureDimension, kernelSpatialDimensions,
+          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
+          featureGroupCount, batchGroupCount, location)))
     return failure();
 
   if ((size_t)numDims != inputSpatialDimensions.size() + 2)
@@ -1857,12 +1833,20 @@ LogicalResult ConvolutionOp::inferReturnTypeComponents(
   auto rhsDilationOrErr =
       hlo::convert1DAttribute(rhsDilation, location, "rhs_dilation");
   if (failed(rhsDilationOrErr)) return failure();
+  auto windowReversalOrErr = hlo::convertWindowReversalAttribute(
+      windowReversal, location, "window_reversal");
+  if (failed(windowReversalOrErr)) return failure();
+
   auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
-      *rhsDilationOrErr, location);
+      *rhsDilationOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
 
-  // P4.
+  // P3.
+  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
+    return failure();
+
+  // P5.
   auto expectedReturnShape = inferConvolutionOpReturnShape(
       lhs, rhs, inputBatchDimension, inputSpatialDimensions,
       kernelOutputFeatureDimension, outputBatchDimension,
@@ -3878,9 +3862,8 @@ LogicalResult TransposeOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TransposeOp::Adaptor adaptor(operands, attributes, regions);
-  LogicalResult result = hlo::inferTransposeOp(
-      loc, adaptor.getOperand(), adaptor.getPermutation(), inferredReturnTypes);
-  return result;
+  return hlo::inferTransposeOp(loc, adaptor.getOperand(),
+                               adaptor.getPermutation(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -4071,7 +4054,7 @@ LogicalResult SelectAndScatterOp::verify() {
   if (failed(windowStridesOrErr)) return failure();
   auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhsDilation=*/{}, /*rhsDilation=*/{}, getLoc());
+      /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, getLoc());
   if (failed(windowOrErr)) return failure();
 
   // P5.
@@ -4486,28 +4469,26 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 }  // namespace stablehlo
 }  // namespace mlir
 
-// clang-format off
-using mlir::hlo::printSameOperandsAndResultType;
-using mlir::hlo::parseSameOperandsAndResultType;
-using mlir::hlo::printVariadicSameOperandsAndResultType;
-using mlir::hlo::parseVariadicSameOperandsAndResultType;
-using mlir::hlo::printVariadicOperandWithAttribute;
-using mlir::hlo::parseVariadicOperandWithAttribute;
-using mlir::hlo::printComplexOpType;
 using mlir::hlo::parseComplexOpType;
-using mlir::hlo::printPairwiseOpType;
-using mlir::hlo::parsePairwiseOpType;
-using mlir::hlo::printSelectOpType;
-using mlir::hlo::parseSelectOpType;
-using mlir::hlo::printTupleOpType;
-using mlir::hlo::parseTupleOpType;
-using mlir::hlo::printCustomCallTarget;
 using mlir::hlo::parseCustomCallTarget;
-using mlir::hlo::printDenseI64Array;
 using mlir::hlo::parseDenseI64Array;
-using mlir::hlo::printExponentMantissa;
 using mlir::hlo::parseExponentMantissa;
-// clang-format on
+using mlir::hlo::parsePairwiseOpType;
+using mlir::hlo::parseSameOperandsAndResultType;
+using mlir::hlo::parseSelectOpType;
+using mlir::hlo::parseTupleOpType;
+using mlir::hlo::parseVariadicOperandWithAttribute;
+using mlir::hlo::parseVariadicSameOperandsAndResultType;
+using mlir::hlo::printComplexOpType;
+using mlir::hlo::printCustomCallTarget;
+using mlir::hlo::printDenseI64Array;
+using mlir::hlo::printExponentMantissa;
+using mlir::hlo::printPairwiseOpType;
+using mlir::hlo::printSameOperandsAndResultType;
+using mlir::hlo::printSelectOpType;
+using mlir::hlo::printTupleOpType;
+using mlir::hlo::printVariadicOperandWithAttribute;
+using mlir::hlo::printVariadicSameOperandsAndResultType;
 
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/StablehloOps.cpp.inc"

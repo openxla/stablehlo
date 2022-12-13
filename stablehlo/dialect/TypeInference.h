@@ -43,6 +43,11 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
 FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc);
 
+// Convert a 1D dense bool attribute to a list of values.
+FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
+    Optional<DenseElementsAttr> optionalAttr, Optional<Location> loc,
+    StringRef attrName);
+
 // WindowDimension described how the kernel window moves across the base area
 // in a particular dimension.
 // Describes the windowing in an operation such as convolution.
@@ -64,7 +69,7 @@ verifyWindowAttributesAndInferWindowDimensions(
     ArrayRef<int64_t> windowDimensions, ArrayRef<int64_t> windowStrides,
     ArrayRef<std::pair<int64_t, int64_t>> padding,
     ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
-    Optional<Location> loc);
+    ArrayRef<bool> windowReversal, Optional<Location> loc);
 
 SmallVector<int64_t> inferWindowOutputShape(
     const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window);
