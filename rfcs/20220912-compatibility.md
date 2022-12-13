@@ -64,7 +64,7 @@ The versioned dialect is a shallow versioned copy of the StableHLO dialect which
 
 The following demonstrates serialization on a `v0.5.0` producer that targets the `v0.3.0` opset, and is deserialized on a `v0.4.0` consumer:
 
-![Version Dialect Roundtrip. Use 'View File' feature to load image properly.](images/version_dialect.png)
+![Version Dialect Roundtrip. Use 'View File' feature to load image properly.](images/20220912-compatibility/version_dialect.png)
 
 A new op is added to the versioned dialect at every bump in minor version number to reflect the backward compatible change made. Additionally, if an attribute or type used by an op is changed and requires a version bump, the op using it will also require a new version. The process of upgrading/downgrading versioned IR and legalizing to/from StableHLO must always succeed if compatibility guarantees are applicable.
 
