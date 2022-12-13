@@ -50,6 +50,10 @@ inline static bool isDynamicDimSize(int64_t val) {
   return ShapedType::isDynamic(val);
 }
 
+inline static bool isStaticDimSize(int64_t val) {
+  return !isDynamicDimSize(val);
+}
+
 // Returns true if the given types are the same for the purposes of HLO type
 // inference, accounting for special properties of quantization and sparsity.
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
