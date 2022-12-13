@@ -1,7 +1,7 @@
 # StableHLO Compatibility RFC v2
 
-Status: Approved
-Initial version: 9/12/2022
+Status: Approved<br/>
+Initial version: 9/12/2022<br/>
 Last updated: 12/13/2022
 
 Based on discussions held over the past two months, and new use cases and feedback left in comments on the first revision of this RFC, we propose the following path forward for compatibility guarantees for StableHLO programs:
