@@ -24,7 +24,7 @@ one of the following tracking labels.
       implements some verification.
  - Customized labels for Verifier and Type Inference
     - **yes**: there is an implementation, and it's in sync with
-      [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md).
+      [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
     - **yes\***: there is an implementation, and it's in sync with
       [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
       Since XLA semantics is oftentimes underdocumented, we are using
