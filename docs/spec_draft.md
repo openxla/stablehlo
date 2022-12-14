@@ -396,6 +396,7 @@ syntax.
    * [complex](#stablehlocomplex)
    * [concatenate](#stablehloconcatenate)
    * [constant](#stablehloconstant)
+   * [convert](#stablehloconvert)
    * [convolution](#stablehloconvolution)
    * [cosine](#stablehlocosine)
    * [count_leading_zeros](#stablehlocount_leading_zeros)
@@ -1813,6 +1814,76 @@ Produces an `output` tensor from a constant `value`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.convert
+
+### Semantics
+
+Performs an element-wise conversion from one element type to another on
+`operand` tensor and produces a `result` tensor.
+
+For conversions involving **integer-to-integer**, if there is an unsigned/signed
+overflow, the result is implementation-defined and one of the following:
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
+    for unsigned overflow. For signed integer overflow, wraps the result around
+    the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+    saturation to $2^n - 1$ (or $0$) for unsigned overflow.
+
+For conversions involving **floating-point-to-floating-point** or
+**integer-to-floating-point**, if the source value can be exactly represented in
+the destination type, the result value is that exact representation. Otherwise,
+the behavior is TBD.
+
+Conversion involving **complex-to-complex** follows the same behavior of
+**floating-point-to-floating-point** conversions for converting real and
+imaginary parts.
+
+For conversions involving **floating-point-to-complex** or
+**complex-to-floating-point**, the destination imaginary value is zeroed or the
+source imaginary value is ignored, respectively. The conversion of the real part
+follows the **floating-point-to-floating-point** conversion.
+
+Conversions involving **integer-to-complex** follows the same behavior as
+**integer-to-floating-point** conversion while converting the source integer to
+destination real part. The destination imaginary part is zeroed.
+
+For conversions involving **floating-point-to-integer**, the fractional part is
+truncated. If the truncated value cannot be represented in the destination type,
+the behavior is TBD. Conversions involving **complex-to-integer** follows the
+same behavior while converting the source real part to destination integer. The
+source imaginary part is ignored.
+
+For **boolean-to-any-supported-type** conversions, the value `false` is
+converted to zero, and the value `true` is converted to one. For
+**any-supported-type-to-boolean** conversions, a zero value is converted to
+`false` and any non-zero value is converted to `true`.
+
+### Inputs
+
+| Name      | Type                         |
+|-----------|------------------------------|
+| `operand` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `operand` and `result` have the same shape.
+
+### Examples
+
+```mlir
+// %operand: [1, 2, 3]
+%result = "stablehlo.convert"(%operand) : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
+// %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
+```
 
 [Back to Ops](#index-of-ops)
 
