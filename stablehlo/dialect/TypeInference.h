@@ -203,6 +203,9 @@ LogicalResult inferSelectOp(
 LogicalResult inferSelectAndScatterOp(
     Value operand, SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferSendOp(Dialect* dialect, Optional<Location> location,
+                          SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,

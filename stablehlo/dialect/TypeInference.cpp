@@ -1348,6 +1348,13 @@ LogicalResult inferSelectAndScatterOp(
   return success();
 }
 
+LogicalResult inferSendOp(Dialect* dialect, Optional<Location> location,
+                          SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  inferredReturnTypes.push_back(hloDialect->createTokenType());
+  return success();
+}
+
 // The following properties are already enforced by the ODS:
 //  type(start_indices) == type(limit_indices) == type(strides).
 // Verify the following properties:
