@@ -263,6 +263,7 @@ LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
 LogicalResult ReduceScatterOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/true,
+                                      getUseGlobalDeviceIds(),
                                       /*expectedGroupSize=*/llvm::None)))
     return failure();
   auto operandType = getOperand().getType().cast<TensorType>();
@@ -1932,6 +1933,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 
   if (failed(hlo::verifyReplicaGroups(location, adaptor.getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/true,
+                                      /*useGlobalDeviceIds=*/false,
                                       splitCount)))
     return failure();
 
@@ -1989,6 +1991,7 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
 LogicalResult AllGatherOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/true,
+                                      getUseGlobalDeviceIds(),
                                       /*expectedGroupSize=*/llvm::None)))
     return failure();
 
@@ -2046,6 +2049,7 @@ LogicalResult AllGatherOp::verify() {
 LogicalResult AllReduceOp::verify() {
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/false,
+                                      getUseGlobalDeviceIds(),
                                       /*expectedGroupSize=*/llvm::None)))
     return failure();
 

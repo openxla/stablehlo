@@ -326,6 +326,7 @@ unsigned potentiallyComplexBitwidth(Type type) {
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
                                   bool allGroupsMustHaveSameSize,
+                                  bool useGlobalDeviceIds,
                                   Optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
@@ -334,8 +335,11 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
                              "replica groups should be a rank 2 tensor");
 
   // Revisit the following check in light of #498.
-  if (replicaGroupType.getShape()[0] * replicaGroupType.getShape()[1] == 0) {
-    return emitOptionalError(location, "replica groups cannot be empty");
+  if (useGlobalDeviceIds &&
+      (replicaGroupType.getShape()[0] * replicaGroupType.getShape()[1] == 0)) {
+    return emitOptionalError(location,
+                             "if `use_global_device_ids` is set, the replica "
+                             "groups cannot be empty");
   }
 
   auto replicaIds = replicaGroups.getValues<int64_t>();

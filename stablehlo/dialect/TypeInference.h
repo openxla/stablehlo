@@ -94,6 +94,7 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
                                   bool allGroupsMustHaveSameSize,
+                                  bool useGlobalDeviceIds,
                                   Optional<size_t> expectedGroupSize);
 
 //===----------------------------------------------------------------------===//
