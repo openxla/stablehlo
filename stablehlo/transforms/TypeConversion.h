@@ -66,6 +66,8 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
+
+    // Wrapped Types
     addConversion([&](RankedTensorType t) -> WrappedType {
       auto encoding = t.getEncoding();
       if (encoding) {
@@ -76,6 +78,12 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       return WrappedType::get(
           t.getContext(),
           RankedTensorType::get(t.getShape(), t.getElementType(), encoding));
+    });
+    addConversion([&](TupleType type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return WrappedType::get(
+          type.getContext(), TupleType::get(type.getContext(), convertedTypes));
     });
     addConversion([](UnrankedTensorType t) -> WrappedType {
       return WrappedType::get(t.getContext(), t);

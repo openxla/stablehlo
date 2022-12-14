@@ -925,7 +925,7 @@ func.func @op_get_dimension_size(%arg0: tensor<?xf32>) -> tensor<i32> {
 func.func @op_get_tuple_element(%arg0: tuple<tensor<f32>>) -> tensor<f32> {
   //      CHECK: "vhlo.get_tuple_element"(%arg0) {
   // CHECK-SAME:   index = 0 : i32
-  // CHECK-SAME: } : (tuple<!vhlo.wrapped<tensor<f32>>>) -> !vhlo.wrapped<tensor<f32>>
+  // CHECK-SAME: } : (!vhlo.wrapped<tuple<!vhlo.wrapped<tensor<f32>>>>) -> !vhlo.wrapped<tensor<f32>>
   %0 = "stablehlo.get_tuple_element"(%arg0) {
     index = 0 : i32
   } : (tuple<tensor<f32>>) -> tensor<f32>
@@ -1550,7 +1550,7 @@ func.func @op_triangular_solve(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32
 // CHECK-LABEL: "op_triangular_solve"
 
 func.func @op_tuple(%arg0: tensor<f32>) -> tuple<tensor<f32>> {
-  // CHECK: "vhlo.tuple"(%arg0) : (!vhlo.wrapped<tensor<f32>>) -> tuple<!vhlo.wrapped<tensor<f32>>>
+  // CHECK: "vhlo.tuple"(%arg0) : (!vhlo.wrapped<tensor<f32>>) -> !vhlo.wrapped<tuple<!vhlo.wrapped<tensor<f32>>>>
   %0 = "stablehlo.tuple"(%arg0) : (tensor<f32>) -> tuple<tensor<f32>>
   func.return %0 : tuple<tensor<f32>>
 }
@@ -1767,7 +1767,7 @@ func.func @type_token_caller(%arg0: !stablehlo.token) -> !stablehlo.token {
 func.func @type_tuple(%arg0: tuple<tensor<f32>>) -> tuple<!stablehlo.token> {
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo"
-  // CHECK: (tuple<!vhlo.wrapped<tensor<f32>>>) -> tuple<!vhlo.token>
+  // CHECK: (!vhlo.wrapped<tuple<!vhlo.wrapped<tensor<f32>>>>) -> !vhlo.wrapped<tuple<!vhlo.token>>
   } : (tuple<tensor<f32>>) -> tuple<!stablehlo.token>
   return %0 : tuple<!stablehlo.token>
 }
