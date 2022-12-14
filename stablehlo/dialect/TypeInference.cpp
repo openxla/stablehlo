@@ -1287,7 +1287,7 @@ LogicalResult inferReduceWindowOp(
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
           windowStrides, baseDilations, windowDilations, padding,
-          /*windowReversal=*/llvm::None, windowDims, inferredWindow)))
+          /*windowReversal=*/std::nullopt, windowDims, inferredWindow)))
     return failure();
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
@@ -1624,7 +1624,7 @@ LogicalResult verifyReduceWindowOp(
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
           windowStrides, baseDilations, windowDilations, padding,
-          /*windowReversal=*/llvm::None, windowDims, inferredWindow)))
+          /*windowReversal=*/std::nullopt, windowDims, inferredWindow)))
     return failure();
 
   // P4.
