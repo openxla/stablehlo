@@ -47,14 +47,14 @@ StableHLO (opset, libStablehlo and serialization format) will version in complia
 
 **(G4) Version 0.x.x:** There will be some stability guarantees while in major version 0. There is not stability guaranteed within the major version, but we will provide 1 month of forward and backward compatibility between minor versions. This approach is chosen to allow dialect evolution and cleanup in the early days, as well as refine compatibility procedures while meeting the requirements of early adopters. Stability within major version will begin with version `1.x.x` and will happen in 2023.
 
-_*StableHLO semantics is defined by the StableHLO specification and can be tested using the StableHLO interpreter. Refer to the [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md) for reference semantics._
+_*StableHLO semantics is defined by the StableHLO specification and can be tested using the StableHLO interpreter. Refer to the [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md) for reference semantics._
 
 **Proposal 3:** Provide forward / backward compatibility within a major release, with major releases happening at least 5 years apart. Additionally provide backward compatibility for serialized artifacts across 1 major release.
 
 ## What's not covered?
 **Bugs:** We may make backward incompatible changes if the current implementation is clearly broken, that is, if it contradicts the Operation's spec.
 
-**Unspecced features:** We may make backward incompatible changes to features which haven't been specced (see [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec_draft.md)).
+**Unspecced features:** We may make backward incompatible changes to features which haven't been specced (see [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)).
 
 **Numerical accuracy:** StableHLO has multiple ops that have implementation-defined accuracy across consumers and even within the same consumer across versions. As a result, StableHLO doesn't aim to make any guarantees about numerical accuracy, although this may change in a future RFC.
 

@@ -1,4 +1,4 @@
-# StableHLO Specification Draft
+# StableHLO Specification
 
 ## Types
 
@@ -753,7 +753,7 @@ Afterwards, within each `process_group`:
 
 ### Semantics
 
-![](images/spec_draft/all_to_all.svg)
+![](images/spec/all_to_all.svg)
 
 Within each process group in the StableHLO grid, splits the values of the
 `operand` tensor along `split_dimension` into parts, scatters the split parts
@@ -1895,7 +1895,7 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 `result`. The following diagram shows how elements in `result` are computed from
 `lhs` and `rhs` using a concrete example.
 
-![](images/spec_draft/convolution.svg)
+![](images/spec/convolution.svg)
 
 More formally, we start with reframing the inputs to the operation in terms
 of `lhs` in order to be able to express windows of `lhs`:
@@ -2709,7 +2709,7 @@ The following diagram shows how elements in `result` map on elements in
 `operand` using a concrete example. The diagram picks a few example `result`
 indices and explains in detail which `operand` indices they correspond to.
 
-![](images/spec_draft/gather.svg)
+![](images/spec/gather.svg)
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
@@ -4000,7 +4000,7 @@ More formally:
 
 ### Semantics
 
-![](images/spec_draft/reduce_scatter.svg)
+![](images/spec/reduce_scatter.svg)
 
 Within each process group in the StableHLO grid, performs reduction, using
 `computations`, over the values of the `operand` tensor from each process,
@@ -4104,7 +4104,7 @@ and produces `results`.
 The following diagram shows how elements in `results[k]` are computed from
 `inputs[k]` using a concrete example.
 
-![](images/spec_draft/reduce_window.svg)
+![](images/spec/reduce_window.svg)
 
 More formally, `results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)` where:
 
@@ -4574,7 +4574,7 @@ The following diagram shows how elements in `updates[k]` map on elements in
 `updates[k]` indices and explains in detail which `results[k]` indices they
 correspond to.
 
-![](images/spec_draft/scatter.svg)
+![](images/spec/scatter.svg)
 
 More formally, for all `update_index` from the index space of `updates[0]`:
 
@@ -4766,7 +4766,7 @@ a `result` tensor.
 The following diagram shows how elements in `result` are computed from
 `operand` and `source` using a concrete example.
 
-![](images/spec_draft/select_and_scatter.svg)
+![](images/spec/select_and_scatter.svg)
 
 More formally:
 

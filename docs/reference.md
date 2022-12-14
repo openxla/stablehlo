@@ -3,7 +3,7 @@
 
 ## Data Model
 
-[StableHLO programs](spec_draft.md#programs) are computations over tensors
+[StableHLO programs](spec.md#programs) are computations over tensors
 (n-dimensional arrays), which, in the current model, are implemented using class
 `Tensor`. The underlying storage class for a `Tensor` object, `detail::Buffer`,
 stores the `mlir::ShapedType` of the tensor along with a
