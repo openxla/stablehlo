@@ -5117,12 +5117,12 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 ### Inputs
 
-| Name            | Type                          |
-|-----------------|-------------------------------|
-| `operand`       | tensor of any supported type  |
-| `start_indices` | 1-dimensional array of `si64` |
-| `limit_indices` | 1-dimensional array of `si64` |
-| `strides`       | 1-dimensional array of `si64` |
+| Name            | Type                                         |
+|-----------------|----------------------------------------------|
+| `operand`       | tensor of any supported type                 |
+| `start_indices` | 1-dimensional tensor constant of type `si64` |
+| `limit_indices` | 1-dimensional tensor constant of type `si64` |
+| `strides`       | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
