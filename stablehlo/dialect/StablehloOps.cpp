@@ -2898,10 +2898,10 @@ LogicalResult OutfeedOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SendOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location>, ValueRange operands,
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(operands[operands.size() - 1].getType());
-  return success();
+  auto dialect = context->getLoadedDialect<StablehloDialect>();
+  return hlo::inferSendOp(dialect, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
