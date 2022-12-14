@@ -183,4 +183,5 @@ add_mlir_dialect_library(VhloOps
   MLIRIR
   MLIRSupport
   MLIRQuantDialect
+  MLIRShapeDialect
 )
