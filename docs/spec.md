@@ -3201,46 +3201,6 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 
 [Back to Ops](#index-of-ops)
 
-## stablehlo.maximum
-
-### Semantics
-
-Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element types, it implements the `maximum`
-operation from the IEEE-754 specification. For complex element types, it performs
-lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
-
-### Inputs
-
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
-
-### Outputs
-
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
-
-### Constraints
-
-  * (C1) `lhs`, `rhs` and `result` have the same type.
-
-### Examples
-
-```mlir
-// %lhs: [[1, 2], [7, 8]]
-// %rhs: [[5, 6], [3, 4]]
-%result = "stablehlo.maximum"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
-// %result: [[5, 6], [7, 8]]
-```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
-
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.map
 
 ### Semantics
@@ -3288,6 +3248,46 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
 } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[0, 5], [12, 21]]
 ```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.maximum
+
+### Semantics
+
+Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
+`result` tensor. For floating-point element types, it implements the `maximum`
+operation from the IEEE-754 specification. For complex element types, it performs
+lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
+For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
+
+### Inputs
+
+| Name  | Type                         |
+|-------|------------------------------|
+| `lhs` | tensor of any supported type |
+| `rhs` | tensor of any supported type |
+
+### Outputs
+
+| Name     | Type                         |
+|----------|------------------------------|
+| `result` | tensor of any supported type |
+
+### Constraints
+
+  * (C1) `lhs`, `rhs` and `result` have the same type.
+
+### Examples
+
+```mlir
+// %lhs: [[1, 2], [7, 8]]
+// %rhs: [[5, 6], [3, 4]]
+%result = "stablehlo.maximum"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+// %result: [[5, 6], [7, 8]]
+```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
 
 [Back to Ops](#index-of-ops)
 
