@@ -1821,9 +1821,8 @@ Produces an `output` tensor from a constant `value`.
 
 ### Semantics
 
-Performs an element-wise conversion of values similar to an element-wise
-`static_cast` in C++ from one element type to another on `operand` tensor and
-produces a `result` tensor.
+Performs an element-wise conversion from one element type to another on
+`operand` tensor and produces a `result` tensor.
 
 For conversions involving **integer-to-integer**, if there is an unsigned/signed
 overflow, the result is implementation-defined and one of the following:
@@ -1835,19 +1834,17 @@ overflow, the result is implementation-defined and one of the following:
 
 For conversions involving **floating-point-to-floating-point** or
 **integer-to-floating-point**, if the source value can be exactly represented in
-the destination type, the result value is that exact representation. If the
-source value is between two adjacent destination values, the result is
-implementation-defined. Otherwise, the behavior is undefined.
+the destination type, the result value is that exact representation. Otherwise,
+the behavior is TBD.
 
 Conversion involving **complex-to-complex** follows the same behavior of
-**floating-point-to-floating-point** conversions for converting the inner
-representation.
+**floating-point-to-floating-point** conversions for converting real and
+imaginary parts.
 
 For conversions involving **floating-point-to-complex** or
 **complex-to-floating-point**, the destination imaginary value is zeroed or the
-source imaginary value is ignored, respectively. The conversion of inner
-representation of complex element type follows the
-**floating-point-to-floating-point** conversion.
+source imaginary value is ignored, respectively. The conversion of the real part
+follows the **floating-point-to-floating-point** conversion.
 
 Conversions involving **integer-to-complex** follows the same behavior as
 **integer-to-floating-point** conversion while converting the source integer to
