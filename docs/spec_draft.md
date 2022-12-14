@@ -1851,10 +1851,10 @@ Conversions involving **integer-to-complex** follows the same behavior as
 destination real part. The destination imaginary part is zeroed.
 
 For conversions involving **floating-point-to-integer**, the fractional part is
-truncated. The behavior is undefined if the truncated value cannot be
-represented in the destination type. Conversions involving
-**complex-to-integer** follows the same behavior while converting the source
-real part to destination integer. The source imaginary part is ignored.
+truncated. If the truncated value cannot be represented in the destination type,
+the behavior is TBD. Conversions involving **complex-to-integer** follows the
+same behavior while converting the source real part to destination integer. The
+source imaginary part is ignored.
 
 For **boolean-to-any-supported-type** conversions, the value `false` is
 converted to zero, and the value `true` is converted to one. For
