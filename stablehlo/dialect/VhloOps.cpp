@@ -17,6 +17,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloOps.h"
 
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
@@ -56,6 +57,7 @@ VhloDialect::VhloDialect(MLIRContext* context)
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
       >();
+  context->loadDialect<shape::ShapeDialect>();
 }
 
 Type VhloDialect::parseType(DialectAsmParser& parser) const {

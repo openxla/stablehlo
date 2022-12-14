@@ -110,7 +110,7 @@ LogicalResult isLegalAttribute(NamedAttribute attr,
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // TODO: Remove once builtin types are forked.
-  if (isFromDialect(type, "builtin") || isFromDialect(type, "shape")) {
+  if (isFromDialect(type, "builtin")) {
     return success();
   }
 

@@ -17,6 +17,7 @@ limitations under the License.
 #define STABLEHLO_TRANSFORMS_TYPECONVERSION_H
 
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -76,7 +77,10 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
           t.getContext(),
           RankedTensorType::get(t.getShape(), t.getElementType(), encoding));
     });
-    addConversion([&](UnrankedTensorType t) -> WrappedType {
+    addConversion([](UnrankedTensorType t) -> WrappedType {
+      return WrappedType::get(t.getContext(), t);
+    });
+    addConversion([](shape::WitnessType t) {
       return WrappedType::get(t.getContext(), t);
     });
     // TODO: TupleType, Integer/Float types.

@@ -460,7 +460,7 @@ func.func @op_bitcast_convert(%arg0: tensor<i32>) -> tensor<f32> {
 
 func.func @op_broadcast_in_dim(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   //      CHECK: "vhlo.broadcast_in_dim"(%arg0) {
-  // CHECK-SAME:   broadcast_dimensions = dense<1> : tensor<1xi64> 
+  // CHECK-SAME:   broadcast_dimensions = dense<1> : tensor<1xi64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16xf32>>) -> !vhlo.wrapped<tensor<16x16xf32>>
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {
     broadcast_dimensions = dense<1> : tensor<1xi64>
@@ -471,7 +471,7 @@ func.func @op_broadcast_in_dim(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
 
 func.func @op_broadcast(%arg0: tensor<16xf32>) -> tensor<16x16xf32> {
   //      CHECK: "vhlo.broadcast"(%arg0) {
-  // CHECK-SAME:   broadcast_sizes = dense<16> : tensor<1xi64> 
+  // CHECK-SAME:   broadcast_sizes = dense<16> : tensor<1xi64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16xf32>>) -> !vhlo.wrapped<tensor<16x16xf32>>
   %0 = "stablehlo.broadcast"(%arg0) {
     broadcast_sizes = dense<16> : tensor<1xi64>
@@ -652,7 +652,7 @@ func.func @op_cross_replica_sum(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_cross_replica_sum"
 
 func.func @op_cstr_reshapable(%arg0: index, %arg1: tensor<1xindex>) -> !shape.witness {
-  // CHECK: "vhlo.cstr_reshapable"(%arg0, %arg1) : (index, !vhlo.wrapped<tensor<1xindex>>) -> !shape.witness
+  // CHECK: "vhlo.cstr_reshapable"(%arg0, %arg1) : (index, !vhlo.wrapped<tensor<1xindex>>) -> !vhlo.wrapped<!shape.witness>
   %0 = "stablehlo.cstr_reshapable"(%arg0, %arg1) : (index, tensor<1xindex>) -> !shape.witness
   func.return %0 : !shape.witness
 }
