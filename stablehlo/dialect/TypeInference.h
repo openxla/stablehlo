@@ -138,6 +138,9 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -231,6 +234,10 @@ LogicalResult inferTriangularSolveOp(
 
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes);
+
+//===----------------------------------------------------------------------===//
+// Verifiers for ops.
+//===----------------------------------------------------------------------===//                    
 
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,

@@ -325,13 +325,12 @@ void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
 }
 
 LogicalResult ConstantOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands,
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ConstantOpAdaptor adaptor(operands, attributes);
-  Type type = adaptor.getValue().getType();
-  inferredReturnTypes.push_back(type);
-  return success();
+  return hlo::inferConstantOp(location, adaptor.getValue(),
+                              inferredReturnTypes);
 }
 
 bool ConstantOp::isCompatibleReturnTypes(TypeRange l, TypeRange r) {

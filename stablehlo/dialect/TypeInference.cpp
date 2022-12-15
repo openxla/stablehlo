@@ -921,6 +921,12 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
+LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
+                              SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(value.getType());
+  return success();
+}
+
 LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
@@ -1642,6 +1648,10 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
     inferredReturnTypes.push_back(resultType);
   return success();
 }
+
+//===----------------------------------------------------------------------===//
+// Verifiers for ops.
+//===----------------------------------------------------------------------===//
 
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
