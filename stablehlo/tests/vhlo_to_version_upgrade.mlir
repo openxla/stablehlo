@@ -14,31 +14,31 @@ func.func @all_to_all_to_v2(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
 }
 
 // CHECK-LABEL: @all_gather_to_v2
-func.func @all_gather_to_v2(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
+func.func @all_gather_to_v2(%arg0: !vhlo.wrapped<tensor<16x8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x16x!vhlo.f32>> {
   // CHECK-NEXT: %0 = "vhlo.all_gather_v2"(%arg0)
   %0 = "vhlo.all_gather"(%arg0) {
-    all_gather_dim = 1 : i64,
-    replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>,
-    channel_handle = #vhlo.channel_handle<handle = 0, type = 0>
-  } : (tensor<16x8xf32>) -> tensor<16x16xf32>
-  return %0 : tensor<16x16xf32>
+    all_gather_dim = #vhlo.wrapped<1 : i64>, 
+    channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
+    replica_groups = #vhlo.wrapped<dense<[[0], [1]]> : tensor<2x1xi64>>
+  } : (!vhlo.wrapped<tensor<16x8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x16x!vhlo.f32>>
+  return %0 : !vhlo.wrapped<tensor<16x16x!vhlo.f32>>
 }
 
 // CHECK-LABEL: @collective_permute_to_v2
-func.func @collective_permute_to_v2(%arg0: tensor<16x8xf32>) -> tensor<16x8xf32> {
+func.func @collective_permute_to_v2(%arg0: !vhlo.wrapped<tensor<16x8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x8x!vhlo.f32>> {
   // CHECK-NEXT: %0 = "vhlo.collective_permute_v2"(%arg0)
   %0 = "vhlo.collective_permute"(%arg0) {
-    source_target_pairs = dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>
-  } : (tensor<16x8xf32>) -> tensor<16x8xf32>
-  return %0 : tensor<16x8xf32>
+    source_target_pairs = #vhlo.wrapped<dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>>
+  } : (!vhlo.wrapped<tensor<16x8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x8x!vhlo.f32>>
+  return %0 : !vhlo.wrapped<tensor<16x8x!vhlo.f32>>
 }
 
 // CHECK-LABEL: @custom_call_to_v2
-func.func @custom_call_to_v2(%arg0: tensor<2xi1>) -> tensor<2xi1> {
+func.func @custom_call_to_v2(%arg0: !vhlo.wrapped<tensor<2x!vhlo.integer<i1>>>) -> !vhlo.wrapped<tensor<2x!vhlo.integer<i1>>> {
   // CHECK-NEXT: %0 = "vhlo.custom_call_v2"(%arg0)
   %0 = "vhlo.custom_call"(%arg0) {
-    call_target_name = "foo",
-    backend_config = ""
-  } : (tensor<2xi1>) -> tensor<2xi1>
-  return %0 : tensor<2xi1>
+    backend_config = #vhlo.wrapped<"">,
+    call_target_name = #vhlo.wrapped<"foo">
+  } : (!vhlo.wrapped<tensor<2x!vhlo.integer<i1>>>) -> !vhlo.wrapped<tensor<2x!vhlo.integer<i1>>>
+  return %0 : !vhlo.wrapped<tensor<2x!vhlo.integer<i1>>>
 }

@@ -67,10 +67,13 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
 // VHLO Type Versioning
 //===----------------------------------------------------------------------===//
 
-class VHLO_TypeDef<string name,
+class VHLO_TypeDef<string cppName,
+                   string name,
+                   string cppBaseClass = "::mlir::Type",
                    string minVersion = "0.3.0",
                    string maxVersion = "current">
-  : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
+  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface], cppBaseClass> {
+  let mnemonic = name;
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
@@ -96,16 +99,30 @@ def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
 def VHLO_AnyRegion : Region<CPred<"true">, "any region">;
 
 // Token type.
-def VHLO_Token : VHLO_TypeDef<"Token"> {
-  let mnemonic = "token";
-}
+def VHLO_Token : VHLO_TypeDef<"Token", "token">;
 
 // A type wrapper to conrtol serialization and deserialization
-def VHLO_Wrapped : VHLO_TypeDef<"Wrapped"> {
+def VHLO_Wrapped : VHLO_TypeDef<"Wrapped", "wrapped"> {
   let mnemonic = "wrapped";
   let parameters = (ins "mlir::Type":$data);
   let assemblyFormat = "`<` $data `>`";
 }
+
+// Element Types
+def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
+  let parameters = (ins "::mlir::IntegerType":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
+  let parameters = (ins "Type":$elementType);
+  let assemblyFormat = "`<` $elementType `>`";
+}
+def VHLO_Integer4V1 : VHLO_TypeDef<"Integer4V1", "i4", "::mlir::IntegerType">;
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::FloatType">;
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::FloatType">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::FloatType">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::FloatType">;
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::FloatType">;
 
 //===----------------------------------------------------------------------===//
 // VHLO traits

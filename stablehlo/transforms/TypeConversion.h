@@ -31,30 +31,38 @@ namespace vhlo {
 class VersionedTypeConverterBase : public TypeConverter {
  public:
   VersionedTypeConverterBase() : TypeConverter() {
-    addConversion([](Type t) -> Type { return t; });
+    // TODO: Remove the default conversion. Should only be supported types.
+    addConversion([](Type type) -> Type { return type; });
+
+    // Supported upstream types. Might return a wrapped version.
+    addConversion([&](RankedTensorType type) -> Type {
+      auto encoding = type.getEncoding();
+      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
+      auto convertedElementType = convertType(type.getElementType());
+      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
+      return maybeWrap(RankedTensorType::get(
+          type.getShape(), convertedElementType, convertedEncoding));
+    });
     addConversion([&](TupleType type) -> Type {
       SmallVector<Type> convertedTypes;
       if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-      return TupleType::get(type.getContext(), convertedTypes);
+      return maybeWrap(TupleType::get(type.getContext(), convertedTypes));
     });
-    addConversion([&](RankedTensorType type) -> Type {
-      auto encoding = type.getEncoding();
-      if (!encoding) return type;
-      if (isSourceDialect(encoding.getDialect())) {
-        auto convertedEncoding = convertEncoding(encoding);
-        if (!convertedEncoding) return {};
-        return RankedTensorType::get(type.getShape(), type.getElementType(),
-                                     convertedEncoding);
-      }
-      return type;
+    addConversion([&](UnrankedTensorType type) -> Type {
+      auto convertedElementType = convertType(type.getElementType());
+      if (!convertedElementType) return {};  // unsupported element type
+      return maybeWrap(UnrankedTensorType::get(convertedElementType));
     });
+    addConversion([&](shape::WitnessType type) -> Type {
+      return maybeWrap(std::move(type));
+    });
+
+    // TODO: Add explicit type conversions.
   };
 
   virtual ~VersionedTypeConverterBase() = default;
 
-  // Checks whether the given dialect is the source dialect of the type
-  // conversion (e.g. StableHLO for StablehloToVhloTypeConverter).
-  virtual bool isSourceDialect(Dialect& dialect) = 0;
+  virtual Type maybeWrap(Type&& type) = 0;
 
   virtual Attribute convertEncoding(Attribute attr) = 0;
 };
@@ -66,49 +74,52 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
+    // TODO: Integer/Float types.
 
-    // Wrapped Types
-    addConversion([&](RankedTensorType t) -> WrappedType {
-      auto encoding = t.getEncoding();
-      if (encoding) {
-        auto convertedEncoding = convertEncoding(encoding);
-        if (!convertedEncoding) return {};
-        encoding = std::move(convertedEncoding);
-      }
-      return WrappedType::get(
-          t.getContext(),
-          RankedTensorType::get(t.getShape(), t.getElementType(), encoding));
+    // Element Types
+    addConversion([&](ComplexType type) {
+      return ComplexV1Type::get(type.getContext(),
+                                convertType(type.getElementType()));
     });
-    addConversion([&](TupleType type) -> Type {
-      SmallVector<Type> convertedTypes;
-      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-      return WrappedType::get(
-          type.getContext(), TupleType::get(type.getContext(), convertedTypes));
+    addConversion([&](IntegerType type) {
+      return IntegerV1Type::get(type.getContext(), type);
     });
-    addConversion([](UnrankedTensorType t) -> WrappedType {
-      return WrappedType::get(t.getContext(), t);
+    addConversion(
+        [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
+    addConversion([&](BFloat16Type type) {
+      return BFloat16V1Type::get(type.getContext());
     });
-    addConversion([](shape::WitnessType t) {
-      return WrappedType::get(t.getContext(), t);
+    addConversion([&](Float16Type type) {
+      return Float16V1Type::get(type.getContext());
     });
-    // TODO: TupleType, Integer/Float types.
+    addConversion([&](Float32Type type) {
+      return Float32V1Type::get(type.getContext());
+    });
+    addConversion([&](Float64Type type) {
+      return Float64V1Type::get(type.getContext());
+    });
   }
 
-  bool isSourceDialect(Dialect& dialect) final {
-    return dialect.getNamespace() ==
-           stablehlo::StablehloDialect::getDialectNamespace();
+  bool isTargetDialect(Dialect& dialect) {
+    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
+  }
+
+  Type maybeWrap(Type&& type) final {
+    return WrappedType::get(type.getContext(), type);
   }
 
   Attribute convertEncoding(Attribute attr) final {
-    LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n");
-    LLVM_DEBUG(llvm::dbgs() << attr);
+    LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n" << attr << '\n');
+
+    // Must be VHLO encoding, or convertible to VHLO encoding.
+    if (isTargetDialect(attr.getDialect())) return attr;
     if (auto stablehloAttr =
             attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
-      LLVM_DEBUG(llvm::dbgs() << "Matched StableHLO encoding.\n");
       return vhlo::TypeExtensionsAttr::get(stablehloAttr.getContext(),
                                            stablehloAttr.getBounds());
     }
-    // All encodings should be supported.
+
+    // Was not VHLO encoding, or convertible.
     return {};
   }
 };
@@ -120,21 +131,41 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
     });
+
+    // Unwrap VHLO wrapped types.
     addConversion([&](vhlo::WrappedType wrapped) {
       return convertType(wrapped.getData());
     });
+
+    // Element Types
+    addConversion([&](ComplexV1Type type) {
+      return ComplexType::get(convertType(type.getElementType()));
+    });
+    addConversion([&](IntegerV1Type type) { return type.getValue(); });
+    addConversion(
+        [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
+    addConversion([&](BFloat16V1Type type) {
+      return BFloat16Type::get(type.getContext());
+    });
+    addConversion([&](Float16V1Type type) {
+      return Float16Type::get(type.getContext());
+    });
+    addConversion([&](Float32V1Type type) {
+      return Float32Type::get(type.getContext());
+    });
+    addConversion([&](Float64V1Type type) {
+      return Float64Type::get(type.getContext());
+    });
   }
 
-  bool isSourceDialect(Dialect& dialect) final {
-    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
-  }
+  Type maybeWrap(Type&& type) final { return type; }
 
   Attribute convertEncoding(Attribute attr) final {
     if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsAttr>()) {
       return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
                                                 vhloAttr.getBounds());
     }
-    // All encodings should be supported.
+    // All encodings supported in StableHLO.
     return attr;
   }
 };
@@ -148,10 +179,10 @@ class VhloToVersionConverter : public VersionedTypeConverterBase {
     });
   }
 
-  bool isSourceDialect(Dialect& dialect) final {
-    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
-  }
+  // Don't wrap in VHLO -> VHLO
+  Type maybeWrap(Type&& type) final { return type; }
 
+  // All encodings from VHLO -> VHLO are valid.
   Attribute convertEncoding(Attribute attr) final { return attr; }
 };
 

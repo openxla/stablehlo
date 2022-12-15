@@ -20,9 +20,13 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/Version.h"
@@ -91,37 +95,69 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
          target <= interface.getMaxVersion();
 }
 
-LogicalResult isLegalAttribute(NamedAttribute attr,
-                               const Version& targetVersion) {
+LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   // TODO: Remove once builtin types are forked.
-  if (isFromDialect(attr.getValue(), "builtin")) {
+  if (isFromDialect(attr, "builtin")) {
     return success();
   }
 
-  auto attrInterface = dyn_cast<VersionedAttrInterface>(attr.getValue());
+  auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
   if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
     return success();
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr.getName()
+  LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
                           << " to version " << targetVersion);
   return failure();
 }
 
-LogicalResult isLegalType(Type type, const Version& targetVersion) {
-  // TODO: Remove once builtin types are forked.
-  if (isFromDialect(type, "builtin")) {
+LogicalResult isLegalElementType(Type type, const Version& targetVersion) {
+  if (type.isa<quant::UniformQuantizedType>() || isFromDialect(type, "vhlo")) {
+    LLVM_DEBUG(llvm::dbgs() << "Supported element type: " << type << '\n');
     return success();
   }
-
-  auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
-  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
-    return success();
-  }
-
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
-                          << " to version " << targetVersion << '\n');
+  LLVM_DEBUG(llvm::dbgs() << "Unspported element type: " << type << '\n');
   return failure();
+}
+
+LogicalResult isLegalType(Type type, const Version& targetVersion) {
+  // All valid VHLO types must have versioned type interface.
+  auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
+  if (!typeInterface) {
+    LLVM_DEBUG(llvm::dbgs() << "Unsupported type " << type << '\n');
+    return failure();
+  }
+
+  // All valid VHLO types must satisfy the target version.
+  if (!isLegalVersion(typeInterface, targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
+                            << " to version " << targetVersion << '\n');
+    return failure();
+  }
+
+  // Recursively check wrapped types.
+  if (auto wrapped = type.dyn_cast<WrappedType>()) {
+    Type data = wrapped.getData();
+    if (auto ranked = data.dyn_cast<RankedTensorType>()) {
+      auto encoding = ranked.getEncoding();
+      if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
+        return failure();
+      return isLegalElementType(ranked.getElementType(), targetVersion);
+    }
+    if (auto unranked = data.dyn_cast<UnrankedTensorType>()) {
+      return isLegalElementType(unranked.getElementType(), targetVersion);
+    }
+    if (auto tuple = data.dyn_cast<TupleType>()) {
+      return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
+        return succeeded(isLegalType(ele, targetVersion));
+      }));
+    }
+    // WitnessType
+    LLVM_DEBUG(llvm::dbgs() << "Maybe wrapped/index " << type << '\n');
+    return success(/*isSuccess=*/ data.isa<shape::WitnessType>());
+  }
+
+  return success();
 }
 
 bool isLegalOperation(Operation* op, const Version& targetVersion) {
@@ -129,10 +165,11 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
+  LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
 
   // Validate attributes
-  auto isLegalAttrFn = [&](NamedAttribute attr) {
-    return succeeded(isLegalAttribute(attr, targetVersion));
+  auto isLegalAttrFn = [&](NamedAttribute const& attr) {
+    return succeeded(isLegalAttribute(attr.getValue(), targetVersion));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
 
