@@ -2155,8 +2155,7 @@ implementation-defined metadata.
 | `call_target_name`    | constant of type `string`                                       |
 | `has_side_effect`     | constant of type `i1`                                           |
 | `backend_config`      | constant of type `string`                                       |
-| `api_version`         | enum of `API_VERSION_ORIGINAL`, `API_VERSION_STATUS_RETURNING`, |
-|                       | and `API_VERSION_STATUS_RETURNING_UNIFIED`                      |
+| `api_version`         | constant of type `si32`                                         |
 | `called_computations` | variadic number of `function`                                   |
 
 ### Outputs
@@ -2168,7 +2167,7 @@ implementation-defined metadata.
 ### Examples
 
 ```mlir
-%results = "stablehlo.custom_call"(%inputs0) {
+%results = "stablehlo.custom_call"(%input0) {
   call_target_name = "foo",
   has_side_effect = false,
   backend_config = "bar",
@@ -3586,7 +3585,7 @@ as a value that other operations can take a data dependency on.
 ### Examples
 
 ```mlir
-%result = "stablehlo.outfeed"(%inputs0, %token) {
+%result = "stablehlo.outfeed"(%input0, %token) {
   outfeed_config = ""
 } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
