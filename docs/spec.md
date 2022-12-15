@@ -21,8 +21,8 @@ Following are the supported element types in StableHLO:
     dynamic range, but with greatly reduced precision. This also ensures
     identical behavior for underflows, overflows, and NaNs. However, `bf16`
     handles denormals differently from `f32`: it flushes them to zero.
-    * FP8 `f8E5M2` and `f8E4M3FN` types corresponding to the the `E5M2` and
-    `E4M3` types from the whitepaper
+    * FP8 `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
+    `E4M3` and `E5M2` types from the whitepaper
     [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
   * **Complex types** represent a pair of floating-point types. Supported ones
     are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
