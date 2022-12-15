@@ -882,7 +882,7 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
 
 // -----
 
-// Alse see this in Base.cpp
+// Also see this in Base.cpp
 // Inference rules to concat dimensions with bounds (lhs/rhs are commutative):
 //       Dim of lhs     Dim of rhs      Infer
 //  c0:  X              Y               X+Y
@@ -1026,4 +1026,120 @@ func.func @concat_bounds_unranked_c1(
   // CHECK: types0 = tensor<5x?xi32>
   %1 = "hlo_test_infer.get_return_types"(%result) : (tensor<5x?xi32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @gather
+func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<3xi32> {
+  %result = "stablehlo.gather"(%operand, %start_indices) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >,
+    indices_are_sorted = false,
+    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
+  } : (tensor<*xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<1x5x8xi32>) -> tensor<3xi32>
+  func.return %1 : tensor<3xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @pad
+func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
+  %0 = "stablehlo.constant"() {value = dense<0.000000e+00> : tensor<f32>} : () -> tensor<f32>
+  %result = "stablehlo.pad"(%arg0, %0) {
+    edge_padding_high = dense<[0, 0, 0, 16]> : tensor<4xi64>,
+    edge_padding_low = dense<0> : tensor<4xi64>,
+    interior_padding = dense<0> : tensor<4xi64>
+  } : (tensor<?x48x48x32xf32>, tensor<f32>) -> tensor<?x48x48x48xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x48x48x48xf32>) -> tensor<4xindex>
+  func.return %1 : tensor<4xindex>
+}
+
+// -----
+
+func.func @concatenate(%arg0: tensor<1xi32>, %arg1: tensor<*xi32>)  -> tensor<1xi32> {
+  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1xi32>, tensor<*xi32>) -> tensor<3xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<3xi32>) -> tensor<1xi32>
+  func.return %1 : tensor<1xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @reduce
+func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xindex>) {
+  %result = "stablehlo.reduce"(%arg0, %arg1) ({
+  ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
+    "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
+  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<4xf32>) -> tensor<1xindex>
+  func.return %1: tensor<1xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @real_dynamic_slice
+func.func @real_dynamic_slice(%arg0: tensor<?xf32>, %arg1: tensor<1xindex>, %arg2: tensor<1xindex>, %arg3: tensor<1xindex>) -> tensor<1xindex> {
+  %result = "stablehlo.real_dynamic_slice"(%arg0, %arg1, %arg2, %arg3) : (tensor<?xf32>, tensor<1xindex>, tensor<1xindex>, tensor<1xindex>) -> tensor<?xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
+  func.return %1: tensor<1xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<3xindex> {
+  %result = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?x?x?xf32>) -> tensor<3xindex>
+  func.return %1: tensor<3xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_pad
+func.func @dynamic_pad(%arg0: tensor<?xf32>, %arg1: tensor<f32>, %arg2: tensor<1xindex>, %arg3: tensor<1xindex>, %arg4: tensor<1xindex>) -> tensor<1xindex> {
+  %result = "stablehlo.dynamic_pad"(%arg0, %arg1, %arg2, %arg3, %arg4) : (tensor<?xf32>, tensor<f32>, tensor<1xindex>, tensor<1xindex>, tensor<1xindex>) -> tensor<?xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
+  func.return %1: tensor<1xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @broadcast
+func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<3xindex> {
+  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x3xi32>) -> tensor<3xindex>
+  func.return %1: tensor<3xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @transpose
+func.func @transpose(%arg0: tensor<?x?x?x?xi32>) ->  tensor<4xindex> {
+  %result = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?x?x?x?xi32>) -> tensor<4xindex>
+  func.return %1: tensor<4xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @dynamic_iota
+func.func @dynamic_iota(%arg0: tensor<1xindex>) -> tensor<1xindex> {
+  %result = "stablehlo.dynamic_iota"(%arg0) {
+    iota_dimension = 0 : i64
+  } : (tensor<1xindex>) -> tensor<?xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
+  func.return %1: tensor<1xindex>
 }
