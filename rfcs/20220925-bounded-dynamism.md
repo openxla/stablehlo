@@ -8,7 +8,7 @@ current status and rationale for bounded dynamism constructs in StableHLO and
 provides recommendations to StableHLO producers and consumers. In particular,
 this RFC doesn’t propose any further changes to the current state but this RFC
 should still be used to revisit those decisions given that those weren't
-discussed publically.
+discussed publicly.
 
 Bounded dynamism allows programs to represent the maximum runtime size that a
 particular dynamic dimension of a tensor can have. This makes it possible to run
@@ -290,7 +290,7 @@ mix of StableHLO and MHLO programs.
 
 It is true that having the bounded type and `set_dimension_size` op introduces
 some complexity but given that the bounds are optional, users that don't care
-about bounded dynamism don't encounter the complexity. All the code complexity
-is limited to the StableHLO shape functions. These also affects the op
+about bounded dynamism don't encounter complexity. All the code complexity is
+limited to the StableHLO shape functions. These also affects the op
 specifications but these should be intuitive to users based on the op semantics
 and making use of StableHLO shape functions should hide that as well.
