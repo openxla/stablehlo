@@ -138,9 +138,11 @@ In the following example, `set_dimension_size` op is used to set the logical
 size of the first dimension so that it performs a sum reduction on the first
 `batch_size` elements in the input. With data argument `[1, 2, 3, 4]` and
 batch\_size argument `2`, the following function returns `3` but it returns `6`
-for the same data argument when the batch\_size is `3`. Operand static dimension
-or bound becomes bound of the `set_dimension_size` op's result. It is `4` in
-this example.
+for the same data argument when the batch\_size is `3`. The `set_dimension_size`
+op also sets the bound on the returned tensor. This bound depends on operand's
+static size if the operand shape is static. It is `4` in this example. If the
+operand dimension is not static, then the returned tensor has same type as the
+operand.
 
 ```
 func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor<i32> {
