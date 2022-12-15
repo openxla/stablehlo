@@ -177,7 +177,7 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
 // Checks if the precision config has a valid size, if provided.
 LogicalResult verifyPrecisionConfig(Optional<Location> loc,
                                     ::mlir::ArrayAttr attrArr) {
-  return !attrArr || attrArr.size() == 2 || attrArr.size() == 0
+  return !attrArr || attrArr.size() == 2 || attrArr.empty()
              ? success()
              : emitOptionalError(
                    loc, "expects precision config to be null or of size 2.");
