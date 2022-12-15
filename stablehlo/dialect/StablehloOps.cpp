@@ -563,41 +563,12 @@ void CustomCallOp::getEffects(
 // CholeskyOp
 //===----------------------------------------------------------------------===//
 
-// The following properties are already enforced by the ODS:
-//   P0. a.element_type is floating or complex
-// We intend to verify the following properties
-//   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
-//   P2. The two minor dimensions of 'a' must have equal size, got %s.
 LogicalResult CholeskyOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CholeskyOp::Adaptor adaptor(operands, attributes, regions);
-  Type aType = adaptor.getA().getType();
-  RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
-  if (!aRankedType) {
-    inferredReturnShapes.emplace_back(
-        aType.cast<TensorType>().getElementType());
-    return success();
-  }
-
-  ArrayRef<int64_t> aShape = aRankedType.getShape();
-  if (aShape.size() < 2) {
-    return emitOptionalError(
-        location, "argument 'a' must have rank >= 2, got shape ", aShape, ".");
-  }
-
-  int64_t lastDim = aShape[aShape.size() - 1];
-  int64_t penultimateDim = aShape[aShape.size() - 2];
-  if (!hlo::isDynamicDimSize(lastDim) &&
-      !hlo::isDynamicDimSize(penultimateDim) && lastDim != penultimateDim) {
-    return emitOptionalError(
-        location, "minor dimensions of 'a' must have equal size, got shape ",
-        aShape, ".");
-  }
-  inferredReturnShapes.emplace_back(aRankedType.getShape(),
-                                    aRankedType.getElementType());
-  return success();
+  return hlo::inferCholeskyOp(location, adaptor.getA(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

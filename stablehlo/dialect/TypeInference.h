@@ -134,6 +134,10 @@ LogicalResult inferBatchNormTrainingOp(
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferCholeskyOp(
+    Optional<Location> location, Value a,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
@@ -237,7 +241,7 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 
 //===----------------------------------------------------------------------===//
 // Verifiers for ops.
-//===----------------------------------------------------------------------===//                    
+//===----------------------------------------------------------------------===//
 
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
