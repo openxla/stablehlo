@@ -5474,11 +5474,12 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.
   llvm::Optional<StringRef> compareType = std::nullopt;
-  for (const auto& elementType : elementTypes)
+  for (const auto& elementType : elementTypes) {
     if (elementType.isa<FloatType>()) {
       compareType.emplace("TOTALORDER");
       break;
     }
+  }
   buildSortComparisonBody(elementTypes, direction, compareType,
                           &sortOp.getComparator(), rewriter);
   return sortOp;
