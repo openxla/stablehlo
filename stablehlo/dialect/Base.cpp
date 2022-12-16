@@ -34,6 +34,7 @@ Type getExpressedTypeOrSelf(Type type) {
   auto quantType = type.dyn_cast<quant::QuantizedType>();
   return quantType ? quantType.getExpressedType() : type;
 }
+}  // namespace
 
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   if (failed(verifyCompatibleShape(type1, type2))) return failure();
@@ -61,7 +62,6 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   }
   return success();
 }
-}  // namespace
 
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   // Dynamism: We don't require shapes to be the same, we only require them
