@@ -243,6 +243,9 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
+                           Type resultType); 
+
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);

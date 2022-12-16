@@ -1273,16 +1273,7 @@ LogicalResult GetDimensionSizeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IotaOp::verify() {
-  auto shape = getType().cast<ShapedType>();
-  if (!shape.hasRank()) return success();
-
-  if (shape.getRank() == 0) return emitOpError() << "does not support scalars.";
-
-  auto iotaDimension = static_cast<int64_t>(this->getIotaDimension());
-  if (iotaDimension >= shape.getRank() || iotaDimension < 0)
-    return emitOpError()
-           << "iota dimension cannot go beyond the output rank or be negative.";
-  return success();
+  return hlo::verifyIotaOp(getLoc(), getIotaDimension(), getType());
 }
 
 //===----------------------------------------------------------------------===//

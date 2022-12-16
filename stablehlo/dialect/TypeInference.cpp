@@ -1688,6 +1688,21 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
+                           Type resultType) {
+  auto shape = resultType.cast<ShapedType>();
+  if (!shape.hasRank()) return success();
+  if (shape.getRank() == 0)
+    return emitOptionalError(location, "does not support scalars.");
+
+  if (static_cast<int64_t>(iotaDimension) >= shape.getRank() ||
+      static_cast<int64_t>(iotaDimension) < 0)
+    return emitOptionalError(
+        location,
+        "iota dimension cannot go beyond the output rank or be negative.");
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that
