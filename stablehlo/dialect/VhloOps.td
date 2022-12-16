@@ -55,11 +55,15 @@ class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = 
       [DeclareOpInterfaceMethods<VersionedOpInterface>] # traits> {
   let extraClassDefinition = [{
     mlir::vhlo::Version $cppClass::getMinVersion() {
-      return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # mnemonic # [{");
+      return *version;
     }
     mlir::vhlo::Version $cppClass::getMaxVersion() {
       if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
-      return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # mnemonic # [{");
+      return *version;
     }
   }];
 }

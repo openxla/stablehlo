@@ -21,7 +21,9 @@ func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> ten
 
 // -----
 
-func.func @op_with_output_operand_alises(%arg0 : tensor<f32>) -> () {
+// Unregistered attributes are permitted so long as their value is
+// representable and valid in VHLO in the target version.
+func.func @op_with_unregistered_attr_output_operand_alises(%arg0 : tensor<f32>) -> () {
   // expected-error @+1 {{failed to legalize operation 'vhlo.add' that was explicitly marked illegal}}
   stablehlo.add %arg0, %arg0 {
     op_alias_attr = #stablehlo.output_operand_alias<output_tuple_indices = [],

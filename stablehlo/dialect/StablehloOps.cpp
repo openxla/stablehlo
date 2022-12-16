@@ -747,7 +747,7 @@ void printPrecisionConfig(OpAsmPrinter& p, Operation*,
   if (!attrArr) return;
 
   p << ", precision = [";
-  llvm::interleaveComma(attrArr, p, [&](Attribute const& attr) {
+  llvm::interleaveComma(attrArr, p, [&](Attribute attr) {
     p << stringifyPrecision(attr.cast<PrecisionAttr>().getValue());
   });
   p << ']';
@@ -5474,7 +5474,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.
   llvm::Optional<StringRef> compareType = std::nullopt;
-  for (auto const& elementType : elementTypes)
+  for (const auto& elementType : elementTypes)
     if (elementType.isa<FloatType>()) {
       compareType.emplace("TOTALORDER");
       break;

@@ -26,10 +26,10 @@ include "mlir/IR/OpBase.td"
 def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   let methods = [
     InterfaceMethod<
-      "Returns the minimum version an op is supported in.",
+      "Returns the minimum version of the VHLO dialect an op is supported in.",
       "mlir::vhlo::Version", "getMinVersion">,
     InterfaceMethod<
-      "Returns the maximum verison an op is supported in.",
+      "Returns the maximum version (inclusive) of the VHLO dialect an op is supported in.",
       "mlir::vhlo::Version", "getMaxVersion">,
   ];
 }
@@ -38,10 +38,10 @@ def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
   let cppNamespace = "::mlir::vhlo";
   let methods = [
     InterfaceMethod<
-      "Returns the minimum version an attribute is supported in.",
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
       "mlir::vhlo::Version", "getMinVersion">,
     InterfaceMethod<
-      "Returns the maximum verison an attribute is supported in.",
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
       "mlir::vhlo::Version", "getMaxVersion">,
   ];
 }
@@ -50,10 +50,10 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   let cppNamespace = "::mlir::vhlo";
   let methods = [
     InterfaceMethod<
-      "Returns the minimum version an attribute is supported in.",
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
       "mlir::vhlo::Version", "getMinVersion">,
     InterfaceMethod<
-      "Returns the maximum verison an attribute is supported in.",
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
       "mlir::vhlo::Version", "getMaxVersion">,
   ];
 }
@@ -68,11 +68,15 @@ class VHLO_TypeDef<string name,
   : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
-      return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # name # [{");
+      return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
       if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
-      return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
+      return *version;
     }
   }];
 }

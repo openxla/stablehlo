@@ -83,15 +83,21 @@ bool isDialect(AttrOrType at, llvm::StringRef dialectName) {
   return (at.getDialect().getNamespace() == dialectName);
 }
 
-LogicalResult isLegalAttribute(Operation* op, NamedAttribute const& attr,
-                               Version targetVersion) {
+template <typename VersionedInterface>
+bool isLegalVersion(VersionedInterface& interface, const Version& target) {
+  return interface.getMinVersion() <= target &&
+         target <= interface.getMaxVersion();
+}
+
+LogicalResult isLegalAttribute(NamedAttribute attr,
+                               const Version& targetVersion) {
   // TODO: Remove once builtin types are forked.
   if (isDialect(attr.getValue(), "builtin")) {
     return success();
   }
 
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr.getValue());
-  if (attrInterface && isLegalVersionForTarget(attrInterface, targetVersion)) {
+  if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
     return success();
   }
 
@@ -100,15 +106,14 @@ LogicalResult isLegalAttribute(Operation* op, NamedAttribute const& attr,
   return failure();
 }
 
-LogicalResult isLegalType(Operation* op, Type const& type,
-                          Version const& targetVersion) {
+LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // TODO: Remove once builtin types are forked.
   if (isDialect(type, "builtin") || isDialect(type, "shape")) {
     return success();
   }
 
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
-  if (typeInterface && isLegalVersionForTarget(typeInterface, targetVersion)) {
+  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
     return success();
   }
 
@@ -117,21 +122,21 @@ LogicalResult isLegalType(Operation* op, Type const& type,
   return failure();
 }
 
-bool isLegalOpInTargetVersion(Operation* op, Version const& targetVersion) {
+bool isLegalOperation(Operation* op, const Version& targetVersion) {
   // Validate op
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
-  if (!isLegalVersionForTarget(opInterface, targetVersion)) return false;
+  if (!isLegalVersion(opInterface, targetVersion)) return false;
 
   // Validate attributes
-  auto isLegalAttrFn = [&](NamedAttribute const& attr) {
-    return succeeded(isLegalAttribute(op, attr, targetVersion));
+  auto isLegalAttrFn = [&](NamedAttribute attr) {
+    return succeeded(isLegalAttribute(attr, targetVersion));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
 
   // Validate types
-  auto isLegalTypeFn = [&](Type const& t) {
-    return succeeded(isLegalType(op, t, targetVersion));
+  auto isLegalTypeFn = [&](Type t) {
+    return succeeded(isLegalType(t, targetVersion));
   };
   if (!llvm::all_of(op->getOperandTypes(), isLegalTypeFn) ||
       !llvm::all_of(op->getResultTypes(), isLegalTypeFn)) {
@@ -145,7 +150,7 @@ using stablehlo::VhloToVersionPassOptions;
 using stablehlo::impl::VhloToVersionPassBase;
 struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   VhloToVersionPass() : VhloToVersionPassBase<VhloToVersionPass>() {}
-  VhloToVersionPass(VhloToVersionPassOptions const& opts)
+  VhloToVersionPass(const VhloToVersionPassOptions& opts)
       : VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
   void runOnOperation() override {
@@ -153,7 +158,7 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
 
     // Validate version number
     auto failOrVersion =
-        validateTargetVersion(targetVersionClopt, getOperation());
+        validateTargetVersion(targetVersionOption, getOperation());
     if (failed(failOrVersion)) {
       return signalPassFailure();
     }
@@ -179,7 +184,7 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
     //   V1 legal   { 0.0  in [0.0, 0.1] }
     target.addDynamicallyLegalDialect<VhloDialect>(
         [&targetVersion](Operation* op) {
-          return isLegalOpInTargetVersion(op, targetVersion);
+          return isLegalOperation(op, targetVersion);
         });
 
     vhlo::VhloToVersionConverter converter;

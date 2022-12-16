@@ -32,11 +32,15 @@ class VHLO_AttrDef<string name,
   : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
-      return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # name # [{");
+      return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
       if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
-      return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
+      return *version;
     }
   }];
 }
