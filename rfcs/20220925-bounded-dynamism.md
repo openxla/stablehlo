@@ -28,8 +28,10 @@ performance optimizations opportunities.
 ## StableHLO Producers
 
 * Producers should use bounded tensor type representation as described in P1.
+  Function arguments of public functions must be bounded.
 * Producers are encouraged to use unbounded dynamic operations for reasons
-  described in P4.
+  described in P4. Result types of these ops aren't required to have a bounded
+  type.
 * Producers can still use `get_dimension_size` and `set_dimension_size` ops
   described in P3 for the ease of transition to StableHLO and faster adoption of
   StableHLO.
