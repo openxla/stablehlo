@@ -87,6 +87,8 @@ class VHLO_TypeDef<string name,
 
 // VHLO is intended to represent the layout only, as such uses AnyType everywhere.
 def VHLO_AnyType : AnyTypeOf<[AnyType]>;
+def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
+def VHLO_AnyRegion : Region<CPred<"true">, "any region">;
 
 // Token type.
 def VHLO_Token : VHLO_TypeDef<"Token"> {

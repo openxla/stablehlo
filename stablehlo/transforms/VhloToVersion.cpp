@@ -253,12 +253,16 @@ struct CustomCallOpV2ToV1
     : public VersionConversionPattern<CustomCallOpV2, CustomCallOpV1> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
-    if (!op.getOutputOperandAliases().empty()) {
-      return emitDowngradeError(
-          op, "op has a non-empty output_operand_aliases attribute");
-    }
-    if (op->hasAttr("output_operand_aliases"))
+    if (op.getOutputOperandAliases()) {
+      auto aliases =
+          op.getOutputOperandAliases()->dyn_cast<::mlir::ArrayAttr>();
+      if (!aliases || !aliases.empty()) {
+        return emitDowngradeError(
+            op, "op has a non-empty output_operand_aliases attribute");
+      }
+      // Safe to downgrade.
       op->removeAttr("output_operand_aliases");
+    }
     return success();
   }
 };

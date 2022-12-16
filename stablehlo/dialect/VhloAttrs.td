@@ -49,8 +49,6 @@ class VHLO_AttrDef<string name,
 // Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
-
 def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
   let parser = "mlir::hlo::parseDimSizes($_parser)";
   let printer = "mlir::hlo::printDimSizes($_printer, $_self)";

@@ -290,8 +290,8 @@ def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.3.0", "current", [Terminator]> {
 def VHLO_InfeedOpV1 : VHLO_Op<"infeed"> {
   let arguments = (ins
     VHLO_AnyType:$token,
-    DefaultValuedStrAttr<StrAttr, "">:$infeed_config,
-    OptionalAttr<ArrayAttr>:$layout
+    OptionalAttr<VHLO_AnyAttr>:$infeed_config,
+    OptionalAttr<VHLO_AnyAttr>:$layout
   );
   let results = (outs Variadic<VHLO_AnyType>);
 }
@@ -300,26 +300,26 @@ def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
-    DefaultValuedStrAttr<StrAttr, "">:$outfeed_config
+    OptionalAttr<VHLO_AnyAttr>:$outfeed_config
   );
-  let results = (outs VHLO_Token);
+  let results = (outs VHLO_AnyType);
 }
 
 def VHLO_SendOpV1 : VHLO_Op<"send"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
-    VHLO_ChannelHandle:$channel_handle,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
+    VHLO_AnyAttr:$channel_handle,
+    OptionalAttr<VHLO_AnyAttr>:$is_host_transfer
   );
-  let results = (outs VHLO_Token);
+  let results = (outs VHLO_AnyType);
 }
 
 def VHLO_RecvOpV1 : VHLO_Op<"recv"> {
   let arguments = (ins
-    VHLO_Token:$token,
-    VHLO_ChannelHandle:$channel_handle,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
+    VHLO_AnyType:$token,
+    VHLO_AnyAttr:$channel_handle,
+    OptionalAttr<VHLO_AnyAttr>:$is_host_transfer
   );
   let results = (outs Variadic<VHLO_AnyType>);
 }
@@ -335,26 +335,26 @@ def VHLO_PartitionIdOpV1 : VHLO_Op<"partition_id", "0.4.0"> {
 
 // Control flow op definitions.
 def VHLO_AfterAllOpV1 : VHLO_Op<"after_all"> {
-  let arguments = (ins Variadic<VHLO_Token>:$inputs);
-  let results = (outs VHLO_Token:$result);
+  let arguments = (ins Variadic<VHLO_AnyType>:$inputs);
+  let results = (outs VHLO_AnyType:$result);
 }
 
 def VHLO_IfOpV1 : VHLO_Op<"if"> {
   let arguments = (ins VHLO_AnyType:$pred);
-  let regions = (region SizedRegion<1>:$true_branch,
-                        SizedRegion<1>:$false_branch);
+  let regions = (region VHLO_AnyRegion:$true_branch,
+                        VHLO_AnyRegion:$false_branch);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
 def VHLO_CaseOpV1 : VHLO_Op<"case"> {
   let arguments = (ins VHLO_AnyType:$index);
-  let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
+  let regions = (region VariadicRegion<VHLO_AnyRegion>:$branches);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
 def VHLO_WhileOpV1 : VHLO_Op<"while"> {
   let arguments = (ins Variadic<VHLO_AnyType>:$operand);
-  let regions = (region SizedRegion<1>:$cond, SizedRegion<1>:$body);
+  let regions = (region VHLO_AnyRegion:$cond, VHLO_AnyRegion:$body);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
@@ -386,7 +386,7 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce"> {
     OptionalAttr<VHLO_AnyAttr>:$channel_handle,
     UnitAttr:$use_global_device_ids
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType);
 }
 
@@ -398,7 +398,7 @@ def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter"> {
     OptionalAttr<VHLO_AnyAttr>:$channel_handle,
     UnitAttr:$use_global_device_ids
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType);
 }
 
@@ -420,7 +420,7 @@ def VHLO_ReduceOpV1 : VHLO_Op<"reduce", "0.3.0", "current", [SameVariadicOperand
     VHLO_AnyAttr:$dimensions
   );
   let results = (outs Variadic<VHLO_AnyType>);
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region VHLO_AnyRegion:$body);
 }
 
 //===----------------------------------------------------------------------===//
@@ -557,7 +557,7 @@ def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim"> {
 def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky"> {
   let arguments = (ins
     VHLO_AnyType:$a,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$lower
+    OptionalAttr<VHLO_AnyAttr>:$lower
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -616,14 +616,11 @@ def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum"> {
 def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.3.0", "0.3.0"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
-    StrAttr:$call_target_name,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
-    DefaultValuedStrAttr<StrAttr, "">:$backend_config,
-    DefaultValuedOptionalAttr<
-        VHLO_CustomCallApiVersionAttr,
-        "::mlir::vhlo::CustomCallApiVersion::API_VERSION_ORIGINAL">:
-        $api_version,
-    DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
+    VHLO_AnyAttr:$call_target_name,
+    OptionalAttr<VHLO_AnyAttr>:$has_side_effect,
+    OptionalAttr<VHLO_AnyAttr>:$backend_config,
+    OptionalAttr<VHLO_AnyAttr>:$api_version,
+    OptionalAttr<VHLO_AnyAttr>:$called_computations,
     OptionalAttr<VHLO_AnyAttr>:$operand_layouts,
     OptionalAttr<VHLO_AnyAttr>:$result_layouts
   );
@@ -634,20 +631,13 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$has_side_effect,
-    DefaultValuedStrAttr<StrAttr, "">:$backend_config,
-    DefaultValuedOptionalAttr<
-        VHLO_CustomCallApiVersionAttr,
-        "::mlir::vhlo::CustomCallApiVersion::API_VERSION_ORIGINAL">:
-        $api_version,
-    DefaultValuedOptionalAttr<VHLO_FlatSymbolRefArrayAttr, "{}">:$called_computations,
+    OptionalAttr<VHLO_AnyAttr>:$has_side_effect,
+    OptionalAttr<VHLO_AnyAttr>:$backend_config,
+    OptionalAttr<VHLO_AnyAttr>:$api_version,
+    OptionalAttr<VHLO_AnyAttr>:$called_computations,
     OptionalAttr<VHLO_AnyAttr>:$operand_layouts,
     OptionalAttr<VHLO_AnyAttr>:$result_layouts,
-    DefaultValuedOptionalAttr<
-        TypedArrayAttrBase<
-            VHLO_OutputOperandAlias,
-            "Aliasing attribute for outputs and operands of CustomCall">,
-        "{}">:$output_operand_aliases
+    OptionalAttr<VHLO_AnyAttr>:$output_operand_aliases
   );
   let results = (outs Variadic<VHLO_AnyType>);
 }
@@ -703,7 +693,7 @@ def VHLO_GatherOpV1 : VHLO_Op<"gather"> {
     VHLO_AnyType:$start_indices,
     VHLO_AnyAttr:$dimension_numbers,
     VHLO_AnyAttr:$slice_sizes,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
+    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted
   );
   let results = (outs VHLO_AnyType);
 }
@@ -721,7 +711,7 @@ def VHLO_MapOpV1 : VHLO_Op<"map"> {
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$dimensions
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType);
 }
 
@@ -741,10 +731,10 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.3.0", "current", [SameVariadicOpera
     VHLO_AnyType:$scatter_indices,
     Variadic<VHLO_AnyType>:$updates,
     VHLO_AnyAttr:$scatter_dimension_numbers,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$unique_indices
+    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted,
+    OptionalAttr<VHLO_AnyAttr>:$unique_indices
   );
-  let regions = (region SizedRegion<1>:$update_computation);
+  let regions = (region VHLO_AnyRegion:$update_computation);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
@@ -766,7 +756,7 @@ def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter"> {
     OptionalAttr<VHLO_AnyAttr>:$window_strides,
     OptionalAttr<VHLO_AnyAttr>:$padding
   );
-  let regions = (region SizedRegion<1>:$select, SizedRegion<1>:$scatter);
+  let regions = (region VHLO_AnyRegion:$select, VHLO_AnyRegion:$scatter);
   let results = (outs VHLO_AnyType);
 }
 
@@ -782,10 +772,10 @@ def VHLO_SetDimensionSizeOpV1 : VHLO_Op<"set_dimension_size"> {
 def VHLO_SortOpV1 : VHLO_Op<"sort"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
-    DefaultValuedOptionalAttr<I64Attr, "-1">:$dimension,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_stable
+    OptionalAttr<VHLO_AnyAttr>:$dimension,
+    OptionalAttr<VHLO_AnyAttr>:$is_stable
   );
-  let regions = (region SizedRegion<1>:$comparator);
+  let regions = (region VHLO_AnyRegion:$comparator);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
@@ -840,16 +830,13 @@ def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.3.0", "current", [SameVa
     Variadic<VHLO_AnyType>:$inputs,
     Variadic<VHLO_AnyType>:$init_values,
     VHLO_AnyAttr:$window_dimensions,
-    // If strides or dilations attributes are missing then the default value is
-    // one for each of the operand dimensions. Similarly, padding values are zero
-    // for both low and high in each of the dimensions, if not specified.
     OptionalAttr<VHLO_AnyAttr>:$window_strides,
     OptionalAttr<VHLO_AnyAttr>:$base_dilations,
     OptionalAttr<VHLO_AnyAttr>:$window_dilations,
     OptionalAttr<VHLO_AnyAttr>:$padding
   );
   let results = (outs Variadic<VHLO_AnyType>);
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region VHLO_AnyRegion:$body);
 }
 
 def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select"> {
@@ -939,7 +926,7 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather"> {
     VHLO_AnyType:$start_indices,
     VHLO_AnyType:$slice_sizes,
     VHLO_AnyAttr:$dimension_numbers,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
+    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted
   );
   let results = (outs VHLO_AnyType);
 }
@@ -960,7 +947,7 @@ def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape"> {
 }
 
 def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
-  let results = (outs Shape_WitnessType:$result);
+  let results = (outs VHLO_AnyType:$result);
   let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
 }
 
