@@ -113,6 +113,9 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 // These parameters have the same names as in the ODS and come in the same
 // order in which they are declared in the ODS.
 
+LogicalResult inferAbsOp(Optional<Location>, Value operand,
+                         SmallVectorImpl<Type>& inferredReturnTypes); 
+
 LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -244,7 +247,7 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 //===----------------------------------------------------------------------===//
 
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
-                           Type resultType); 
+                           Type resultType);
 
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,

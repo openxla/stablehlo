@@ -732,6 +732,27 @@ LogicalResult verifyRegionNotEmpty(Optional<Location> location,
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult inferAbsOp(Optional<Location>, Value operand,
+                         SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto operandTy = operand.getType().cast<ShapedType>();
+  Type elementTy = operandTy.getElementType();
+  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
+    elementTy = complexTy.getElementType();
+  }
+
+  Type resultTy;
+  if (auto rankedOperandTy = operandTy.dyn_cast<RankedTensorType>()) {
+    resultTy = RankedTensorType::get(operandTy.getShape(), elementTy,
+                                     rankedOperandTy.getEncoding());
+  } else if (operandTy.hasRank()) {
+    resultTy = RankedTensorType::get(operandTy.getShape(), elementTy);
+  } else {
+    resultTy = UnrankedTensorType::get(elementTy);
+  }
+  inferredReturnTypes.push_back(resultTy);
+  return success();
+}
+
 LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
