@@ -5557,6 +5557,7 @@ func.func @invalid_dimension_attr(%arg0: tensor<?x?xf32, #stablehlo.type_extensi
 
 // -----
 
+// CHECK-LABEL: func @f8e4m3fn
 func.func @f8e4m3fn(%arg0: tensor<f16>) -> tensor<f8E4M3FN> {
   %0 = "stablehlo.convert"(%arg0) : (tensor<f16>) -> tensor<f8E4M3FN>
   func.return %0 : tensor<f8E4M3FN>
@@ -5564,6 +5565,7 @@ func.func @f8e4m3fn(%arg0: tensor<f16>) -> tensor<f8E4M3FN> {
 
 // -----
 
+// CHECK-LABEL: func @f8e5m2
 func.func @f8e5m2(%arg0: tensor<f16>) -> tensor<f8E5M2> {
   %0 = "stablehlo.convert"(%arg0) : (tensor<f16>) -> tensor<f8E5M2>
   func.return %0 : tensor<f8E5M2>
