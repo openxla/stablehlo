@@ -2206,7 +2206,6 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
     StableHLO_PrecisionConfigAttr:$precision_config
   );
   let results = (outs HLO_Tensor);
-  let hasVerifier = 1;
 
   let extraClassDeclaration = [{
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
