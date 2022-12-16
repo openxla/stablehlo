@@ -1709,6 +1709,43 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult verifyCollectivePermuteOp(
+    Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
+  // Verifies the source target pairs attached to collective permute.
+  auto type = sourceTargetPairs.getType().dyn_cast<RankedTensorType>();
+  if (type.getRank() != 2)
+    return emitOptionalError(location,
+                             "expect source_target_pairs attribute to be of "
+                             "rank 2, but got rank ",
+                             type.getRank());
+  if (type.getShape()[1] != 2)
+    return emitOptionalError(
+        location,
+        "expect source_target_pairs attribute of shape (N, 2), but got (",
+        type.getShape(), ")");
+  // Check source target pairs for duplicate sources or targets.
+  llvm::DenseSet<int64_t> sources;
+  llvm::DenseSet<int64_t> targets;
+  for (auto i = sourceTargetPairs.begin(), e = sourceTargetPairs.end(); i != e;
+       ++i) {
+    auto val = (*i).getSExtValue();
+    if (val < 0)
+      return emitOptionalError(
+          location, "replica ids in source_target_pairs must be >= 0.");
+
+    if (i.getIndex() % 2 == 0) {
+      bool isUnique = sources.insert(val).second;
+      if (!isUnique)
+        return emitOptionalError(location, "duplicate sources not allowed.");
+    } else {
+      bool isUnique = targets.insert(val).second;
+      if (!isUnique)
+        return emitOptionalError(location, "duplicate targets not allowed.");
+    }
+  }
+  return success();
+}
+
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
                            Type resultType) {
   auto shape = resultType.cast<ShapedType>();
