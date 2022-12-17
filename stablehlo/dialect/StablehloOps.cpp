@@ -1718,20 +1718,7 @@ LogicalResult GetTupleElementOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult TupleOp::verify() {
-  auto opType = getType().dyn_cast<TupleType>();
-  if (!opType) return emitOpError("tuple op with non-tuple result");
-  if (getNumOperands() != opType.size())
-    return emitOpError(
-        "number of operands to tuple expected to match number of types in "
-        "resultant tuple type");
-  for (const auto& it :
-       llvm::enumerate(llvm::zip_first(getOperandTypes(), opType.getTypes()))) {
-    if (std::get<0>(it.value()) != std::get<1>(it.value()))
-      return emitOpError("has return type mismatch at ")
-             << it.index() << "th value (" << std::get<0>(it.value())
-             << " != " << std::get<1>(it.value()) << ")";
-  }
-  return success();
+  return hlo::verifyTupleOp(getLoc(), getOperandTypes(), getType());
 }
 
 //===----------------------------------------------------------------------===//

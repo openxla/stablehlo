@@ -1944,6 +1944,26 @@ LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
+LogicalResult verifyTupleOp(Optional<Location> location, TypeRange operandTypes,
+                            Type resultType) {
+  auto opType = resultType.dyn_cast<TupleType>();
+  if (!opType)
+    return emitOptionalError(location, "tuple op with non-tuple result");
+  if (operandTypes.size() != opType.size())
+    return emitOptionalError(
+        location,
+        "number of operands to tuple expected to match number of types in "
+        "resultant tuple type");
+  for (const auto& it :
+       llvm::enumerate(llvm::zip_first(operandTypes, opType.getTypes()))) {
+    if (std::get<0>(it.value()) != std::get<1>(it.value()))
+      return emitOptionalError(
+          location, "has return type mismatch at ", it.index(), "th value (",
+          std::get<0>(it.value()), " != ", std::get<1>(it.value()), ")");
+  }
+  return success();
+}
+
 LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
                             Region& cond, Region& body) {
   auto operandTypes = operand.getTypes();

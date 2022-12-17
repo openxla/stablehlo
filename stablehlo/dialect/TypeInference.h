@@ -276,6 +276,9 @@ LogicalResult verifyReduceWindowOp(
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            uint64_t dimension, Region& comparator);
 
+LogicalResult verifyTupleOp(Optional<Location> location, TypeRange operandTypes,
+                            Type resultType);
+
 LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
                             Region& cond, Region& body);
 }  // end namespace hlo
