@@ -1746,6 +1746,22 @@ LogicalResult verifyCollectivePermuteOp(
   return success();
 }
 
+LogicalResult verifyGetTupleElementOp(Optional<Location> location,
+                                      Value operand, uint32_t indexVal,
+                                      Type resultType) {
+  auto operandType = operand.getType().cast<TupleType>();
+  if (indexVal >= operandType.size())
+    return emitOptionalError(location, "index ", indexVal,
+                             " is out of bounds of operand with size ",
+                             operandType.size());
+
+  auto expectedType = operandType.getType(indexVal);
+  if (resultType != expectedType)
+    return emitOptionalError(location, "has return type ", resultType,
+                             ", but expected ", expectedType);
+  return success();
+}
+
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
                            Type resultType) {
   auto shape = resultType.cast<ShapedType>();

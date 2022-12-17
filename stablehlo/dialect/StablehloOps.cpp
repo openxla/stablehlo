@@ -1709,20 +1709,8 @@ void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
 //===----------------------------------------------------------------------===//
 
 LogicalResult GetTupleElementOp::verify() {
-  auto indexVal = getIndex();
-  auto operandType = getOperand().getType().cast<TupleType>();
-  if (indexVal >= operandType.size()) {
-    return emitOpError(
-        llvm::formatv("index {0} is out of bounds of operand with size {1}",
-                      indexVal, operandType.size()));
-  }
-
-  auto expectedType = operandType.getType(indexVal);
-  if (getType() != expectedType) {
-    return emitOpError(llvm::formatv("has return type {0}, but expected {1}",
-                                     getType(), expectedType));
-  }
-  return success();
+  return hlo::verifyGetTupleElementOp(getLoc(), getOperand(), getIndex(),
+                                      getType());
 }
 
 //===----------------------------------------------------------------------===//

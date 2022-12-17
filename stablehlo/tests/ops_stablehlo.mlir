@@ -2620,7 +2620,7 @@ func.func @get_tuple_element_token(%arg0: tuple<tensor<f32>, !stablehlo.token>) 
 // -----
 
 func.func @get_tuple_element_bad_type(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<i32> {
-  // expected-error@+1 {{has return type tensor<i32>, but expected tensor<f32>}}
+  // expected-error@+1 {{has return type 'tensor<i32>', but expected 'tensor<f32>'}}
   %0 = "stablehlo.get_tuple_element"(%arg0) {index = 0 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<i32>
   func.return %0 : tensor<i32>
 }

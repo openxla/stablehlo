@@ -249,6 +249,10 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 
+LogicalResult verifyGetTupleElementOp(Optional<Location> location,
+                                      Value operand, uint32_t indexVal,
+                                      Type resultType);
+
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
                            Type resultType);
 
