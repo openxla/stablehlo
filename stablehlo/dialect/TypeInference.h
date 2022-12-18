@@ -274,6 +274,12 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 
+LogicalResult verifyDynamicBroadcastInDimOp(
+    Optional<Location> location, Value operand, Value outputDimensions,
+    DenseIntElementsAttr broadcastDimensions,
+    Optional<DenseIntElementsAttr> knownExpandingDimensions,
+    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result) ;
+
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
                                       Type resultType);

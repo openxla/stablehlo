@@ -1962,101 +1962,10 @@ LogicalResult BroadcastInDimOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicBroadcastInDimOp::verify() {
-  auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
-  auto resultType = getResult().getType().dyn_cast<RankedTensorType>();
-
-  // If either the operand or result are unranked, there is very little
-  // to verify statically.
-  if (!operandType || !resultType) {
-    return success();
-  }
-
-  auto outputDimensionsType =
-      getOutputDimensions().getType().cast<RankedTensorType>();
-  auto outputDimensionsSize = outputDimensionsType.getDimSize(0);
-  auto operandRank = operandType.getRank();
-  auto resultRank = resultType.getRank();
-
-  // Verify broadcast_dimensions.
-  auto bcastDimensions = getBroadcastDimensions();
-  auto bcastDimensionsType = getBroadcastDimensions().getType();
-  auto bcastDimensionsRank = bcastDimensionsType.getRank();
-  // TODO(laurenzo): Update the BroadcastDimAttr to constrain its rank to 1.
-  if (bcastDimensionsRank != 1) {
-    return emitOpError(
-        llvm::formatv("broadcast_dimensions has rank {0} instead of rank 1",
-                      bcastDimensionsRank));
-  }
-
-  auto bcastDimensionsSize = bcastDimensionsType.getNumElements();
-  if (bcastDimensionsSize != operandRank) {
-    return emitOpError(llvm::formatv(
-        "broadcast_dimensions size ({0}) does not match operand rank ({1})",
-        bcastDimensionsSize, operandRank));
-  }
-
-  if (resultRank < operandRank) {
-    return emitOpError(
-        llvm::formatv("result rank ({0}) is less than operand rank ({1})",
-                      resultRank, operandRank));
-  }
-
-  for (int i = 0; i != bcastDimensionsSize; ++i) {
-    auto dimIndex = bcastDimensions.getValues<int64_t>()[i];
-    if (dimIndex >= resultRank) {
-      return emitOpError(
-          llvm::formatv("broadcast_dimensions contains invalid value {0} for "
-                        "result with rank {1}",
-                        dimIndex, resultRank));
-    }
-
-    auto dimSize = operandType.getDimSize(i);
-    auto resultDimSize = resultType.getDimSize(dimIndex);
-    // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so we
-    // add a manual check for this.
-    if (dimSize != 1 && failed(verifyCompatibleShape(dimSize, resultDimSize))) {
-      return emitOpError(
-          llvm::formatv("size of operand dimension {0} ({1}) is not compatible "
-                        "with size of result dimension {2} ({3})",
-                        i, dimSize, dimIndex, resultDimSize));
-    }
-  }
-
-  if (outputDimensionsSize != resultRank) {
-    return emitOpError(
-        llvm::formatv("result rank ({0}) is not equal to number of output "
-                      "dimensions ({1})",
-                      resultRank, outputDimensionsSize));
-  }
-
-  // Verify that the known expanding and non-expanding dimensions are a subset
-  // of the operand's dimensions.
-  int64_t numKnownExpansionBehavior = 0;
-  DenseSet<int64_t> knownExpansionBehavior;
-  auto collectExpansionBehaviorDims =
-      [&](const Optional<DenseIntElementsAttr>& attr) {
-        if (!attr) return;
-        for (const APInt& it : *attr) {
-          numKnownExpansionBehavior++;
-          knownExpansionBehavior.insert(it.getLimitedValue());
-        }
-      };
-  collectExpansionBehaviorDims(getKnownExpandingDimensions());
-  collectExpansionBehaviorDims(getKnownNonexpandingDimensions());
-  if (knownExpansionBehavior.size() != numKnownExpansionBehavior) {
-    return emitOpError(
-        "duplicate expansion hint for at least one operand dimension");
-  }
-  for (int64_t i : knownExpansionBehavior) {
-    if (i < 0 || i >= operandRank) {
-      return emitOpError(
-          llvm::formatv("hint for expanding dimension {0} does not refer to a "
-                        "valid operand dimension",
-                        i));
-    }
-  }
-
-  return success();
+  return hlo::verifyDynamicBroadcastInDimOp(
+      getLoc(), getOperand(), getOutputDimensions(), getBroadcastDimensions(),
+      getKnownExpandingDimensions(), getKnownNonexpandingDimensions(),
+      getResult());
 }
 
 LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(

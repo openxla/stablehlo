@@ -2006,6 +2006,94 @@ LogicalResult verifyCollectivePermuteOp(
   return success();
 }
 
+LogicalResult verifyDynamicBroadcastInDimOp(
+    Optional<Location> location, Value operand, Value outputDimensions,
+    DenseIntElementsAttr broadcastDimensions,
+    Optional<DenseIntElementsAttr> knownExpandingDimensions,
+    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result) {
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto resultType = result.getType().dyn_cast<RankedTensorType>();
+
+  // If either the operand or result are unranked, there is very little
+  // to verify statically.
+  if (!operandType || !resultType) return success();
+
+  auto outputDimensionsType =
+      outputDimensions.getType().cast<RankedTensorType>();
+  auto outputDimensionsSize = outputDimensionsType.getDimSize(0);
+  auto operandRank = operandType.getRank();
+  auto resultRank = resultType.getRank();
+
+  // Verify broadcast_dimensions.
+  auto bcastDimensions = broadcastDimensions;
+  auto bcastDimensionsType = broadcastDimensions.getType();
+  auto bcastDimensionsRank = bcastDimensionsType.getRank();
+  // TODO(laurenzo): Update the BroadcastDimAttr to constrain its rank to 1.
+  if (bcastDimensionsRank != 1)
+    return emitOptionalError(location, "broadcast_dimensions has rank ",
+                             bcastDimensionsRank, " instead of rank 1");
+
+  auto bcastDimensionsSize = bcastDimensionsType.getNumElements();
+  if (bcastDimensionsSize != operandRank)
+    return emitOptionalError(
+        location, "broadcast_dimensions size (", bcastDimensionsSize,
+        ") does not match operand rank (", operandRank, ")");
+
+  if (resultRank < operandRank)
+    return emitOptionalError(location, "result rank (", resultRank,
+                             ") is less than operand rank (", operandRank, ")");
+
+  for (int i = 0; i != bcastDimensionsSize; ++i) {
+    auto dimIndex = bcastDimensions.getValues<int64_t>()[i];
+    if (dimIndex >= resultRank)
+      return emitOptionalError(location,
+                               "broadcast_dimensions contains invalid value ",
+                               dimIndex, " for result with rank ", resultRank);
+
+    auto dimSize = operandType.getDimSize(i);
+    auto resultDimSize = resultType.getDimSize(dimIndex);
+    // Note: verifyCompatibleShapes doesn't consider size-1 broadcasting, so
+    // we add a manual check for this.
+    if (dimSize != 1 && failed(verifyCompatibleShape(dimSize, resultDimSize)))
+      return emitOptionalError(location, "size of operand dimension ", i, " (",
+                               dimSize,
+                               ") is not compatible "
+                               "with size of result dimension ",
+                               dimIndex, " (", resultDimSize, ")");
+  }
+
+  if (outputDimensionsSize != resultRank)
+    return emitOptionalError(location, "result rank (", resultRank,
+                             ") is not equal to number of output dimensions (",
+                             outputDimensionsSize, ")");
+
+  // Verify that the known expanding and non-expanding dimensions are a subset
+  // of the operand's dimensions.
+  int64_t numKnownExpansionBehavior = 0;
+  DenseSet<int64_t> knownExpansionBehavior;
+  auto collectExpansionBehaviorDims =
+      [&](const Optional<DenseIntElementsAttr>& attr) {
+        if (!attr) return;
+        for (const APInt& it : *attr) {
+          numKnownExpansionBehavior++;
+          knownExpansionBehavior.insert(it.getLimitedValue());
+        }
+      };
+  collectExpansionBehaviorDims(knownExpandingDimensions);
+  collectExpansionBehaviorDims(knownNonexpandingDimensions);
+  if (knownExpansionBehavior.size() != numKnownExpansionBehavior)
+    return emitOptionalError(
+        location,
+        "duplicate expansion hint for at least one operand dimension");
+  for (int64_t i : knownExpansionBehavior)
+    if (i < 0 || i >= operandRank)
+      return emitOptionalError(location, "hint for expanding dimension ", i,
+                               " does not refer to a "
+                               "valid operand dimension");
+
+  return success();
+}
+
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
                                       Type resultType) {
