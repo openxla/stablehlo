@@ -267,6 +267,10 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
 LogicalResult verifyBroadcastOp(Optional<Location> location,
                                 DenseIntElementsAttr sizes);
 
+LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
+                                     DenseIntElementsAttr broadcastDimensions,
+                                     Value result);
+
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 

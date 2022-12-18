@@ -64,6 +64,12 @@ namespace hlo {
 // Utils for shape functions.
 //===----------------------------------------------------------------------===//
 
+// Checks if the vector `nums` has duplicates.
+const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
+  llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
+  return set.size() != nums.size();
+};
+
 // Return true if type1 and type2 are tensors and have the same
 // element-type, else return false. With float element-types, ignore comparing
 // floating-point precision if ignoreFpPrecision is True.
@@ -1901,6 +1907,65 @@ LogicalResult verifyBroadcastOp(Optional<Location> location,
   if (sizesRank != 1)
     return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
                              " instead of rank 1");
+  return success();
+}
+
+LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
+                                     DenseIntElementsAttr broadcastDimensions,
+                                     Value result) {
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) {
+    // The following verification checks all depend on knowing the rank of
+    // the operand. Bail out now if we don't know the rank of the operand.
+    return success();
+  }
+
+  auto operandRank = operandType.getRank();
+  if (!broadcastDimensions) {
+    if (operandRank == 0) return success();
+    return emitOptionalError(location,
+                             "broadcast_dimensions is absent, but required "
+                             "because operand has non-zero rank (",
+                             operandRank, ")");
+  }
+
+  auto dimensionsType = broadcastDimensions.getType();
+  auto dimensionsRank = dimensionsType.getRank();
+  if (dimensionsRank != 1)
+    return emitOptionalError(location, "broadcast_dimensions has rank ",
+                             dimensionsRank, " instead of rank 1");
+
+  auto dimensionsSize = dimensionsType.getNumElements();
+  if (dimensionsSize != operandRank)
+    return emitOptionalError(location, "broadcast_dimensions size (",
+                             dimensionsSize, ") does not match operand rank (",
+                             operandRank, ")");
+
+  auto dimensions = llvm::to_vector(broadcastDimensions.getValues<int64_t>());
+  if (hasDuplicates(dimensions))
+    return emitOptionalError(location,
+                             "broadcast_dimensions should not have duplicates");
+
+  auto resultType = result.getType().cast<RankedTensorType>();
+  auto resultRank = resultType.getRank();
+  for (int i = 0; i != dimensionsSize; ++i) {
+    auto dimIndex = dimensions[i];
+    if (dimIndex >= resultRank)
+      return emitOptionalError(location,
+                               "broadcast_dimensions contains invalid value ",
+                               dimIndex, " for result with rank ", resultRank);
+
+    if (!operandType.isDynamicDim(i)) {
+      auto dimSize = operandType.getDimSize(i);
+      auto resultDimSize = resultType.getDimSize(dimIndex);
+      if (dimSize != 1 && dimSize != resultDimSize)
+        return emitOptionalError(
+            location, "size of operand dimension ", i, " (", dimSize,
+            ") is not equal to 1 or size of result dimension ", dimIndex, " (",
+            resultDimSize, ")");
+    }
+  }
+
   return success();
 }
 

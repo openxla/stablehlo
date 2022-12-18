@@ -1953,67 +1953,8 @@ LogicalResult BroadcastOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult BroadcastInDimOp::verify() {
-  auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
-  if (!operandType) {
-    // The following verification checks all depend on knowing the rank of
-    // the operand. Bail out now if we don't know the rank of the operand.
-    return success();
-  }
-
-  auto operandRank = operandType.getRank();
-  if (!getBroadcastDimensions()) {
-    if (operandRank == 0) {
-      return success();
-    }
-    return emitOpError(
-        llvm::formatv("broadcast_dimensions is absent, but required because "
-                      "operand has non-zero rank ({0})",
-                      operandRank));
-  }
-
-  auto dimensionsType = getBroadcastDimensions().getType();
-  auto dimensionsRank = dimensionsType.getRank();
-  if (dimensionsRank != 1) {
-    return emitOpError(llvm::formatv(
-        "broadcast_dimensions has rank {0} instead of rank 1", dimensionsRank));
-  }
-
-  auto dimensionsSize = dimensionsType.getNumElements();
-  if (dimensionsSize != operandRank) {
-    return emitOpError(llvm::formatv(
-        "broadcast_dimensions size ({0}) does not match operand rank ({1})",
-        dimensionsSize, operandRank));
-  }
-
-  auto dimensions =
-      llvm::to_vector(getBroadcastDimensions().getValues<int64_t>());
-  if (hasDuplicates(dimensions))
-    return emitOpError("broadcast_dimensions should not have duplicates");
-
-  auto resultType = getResult().getType().cast<RankedTensorType>();
-  auto resultRank = resultType.getRank();
-  for (int i = 0; i != dimensionsSize; ++i) {
-    auto dimIndex = dimensions[i];
-    if (dimIndex >= resultRank) {
-      return emitOpError(
-          llvm::formatv("broadcast_dimensions contains invalid value {0} for "
-                        "result with rank {1}",
-                        dimIndex, resultRank));
-    }
-
-    if (!operandType.isDynamicDim(i)) {
-      auto dimSize = operandType.getDimSize(i);
-      auto resultDimSize = resultType.getDimSize(dimIndex);
-      if (dimSize != 1 && dimSize != resultDimSize) {
-        return emitOpError(
-            llvm::formatv("size of operand dimension {0} ({1}) is not equal to "
-                          "1 or size of result dimension {2} ({3})",
-                          i, dimSize, dimIndex, resultDimSize));
-      }
-    }
-  }
-
-  return success();
+  return hlo::verifyBroadcastInDimOp(getLoc(), getOperand(),
+                                     getBroadcastDimensions(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
