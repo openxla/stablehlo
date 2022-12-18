@@ -958,9 +958,18 @@ LogicalResult inferCholeskyOp(
 LogicalResult inferClampOp(
     Optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  RankedTensorType operandType =
-      operand.getType().cast<RankedTensorType>();
+  RankedTensorType operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
+  return success();
+}
+
+LogicalResult inferComplexOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  TensorType operandType = operand.getType().cast<TensorType>();
+  ComplexType elementTy = ComplexType::get(operandType.getElementType());
+  inferredReturnTypes.push_back(
+      hlo::getSameShapeTensorType(operandType, elementTy));
   return success();
 }
 

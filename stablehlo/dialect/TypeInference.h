@@ -156,6 +156,10 @@ LogicalResult inferClampOp(
     Optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferComplexOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
