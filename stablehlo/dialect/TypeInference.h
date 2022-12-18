@@ -119,6 +119,12 @@ LogicalResult inferAbsOp(Optional<Location>, Value operand,
 LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferAllToAllOp(
+    Optional<Location> location, Value operand, int64_t splitDimension,
+    int64_t concatDimension, int64_t splitCount,
+    DenseIntElementsAttr replicaGroups,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
     uint64_t featureIndex,

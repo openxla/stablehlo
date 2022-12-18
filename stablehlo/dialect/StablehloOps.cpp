@@ -1730,62 +1730,10 @@ LogicalResult AllToAllOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllToAllOp::Adaptor adaptor(operands, attributes, regions);
-
-  int64_t splitCount = adaptor.getSplitCount();
-  if (splitCount <= 0)
-    return emitOptionalError(location, "AllToAll split_count must be > 0");
-
-  if (failed(hlo::verifyReplicaGroups(location, adaptor.getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      /*useGlobalDeviceIds=*/false,
-                                      splitCount)))
-    return failure();
-
-  int64_t splitDimension = static_cast<int64_t>(adaptor.getSplitDimension());
-  if (splitDimension < 0)
-    return emitOptionalError(location,
-                             "AllToAll split_dimension cannot be negative");
-
-  int64_t concatDimension = static_cast<int64_t>(adaptor.getConcatDimension());
-  if (concatDimension < 0)
-    return emitOptionalError(location,
-                             "AllToAll concat_dimension cannot be negative");
-
-  Type operandType = adaptor.getOperand().getType();
-  RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
-  if (!operandRankedType) {
-    inferredReturnShapes.emplace_back(
-        operandType.cast<TensorType>().getElementType());
-    return success();
-  }
-
-  int64_t inputRank = operandRankedType.getRank();
-  if (splitDimension >= inputRank) {
-    return emitOptionalError(location, "AllToAll split_dimension ",
-                             splitDimension,
-                             " is out-of-bounds for input rank ", inputRank);
-  }
-  if (concatDimension >= inputRank) {
-    return emitOptionalError(location, "AllToAll concat_dimension ",
-                             concatDimension,
-                             " is out-of-bounds for input rank ", inputRank);
-  }
-
-  // If operand is ranked, size of split dimension should be a multiple of split
-  // count.
-  auto splitDimSize = operandRankedType.getDimSize(splitDimension);
-  if (splitDimSize % splitCount != 0) {
-    return emitOptionalError(
-        location, "split dimension has size ", splitDimSize,
-        ", expected to be a multiple of split_count ", splitCount);
-  }
-  SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
-                                   operandRankedType.getShape().end());
-  resultShape[splitDimension] /= splitCount;
-  resultShape[concatDimension] *= splitCount;
-  inferredReturnShapes.emplace_back(resultShape,
-                                    operandRankedType.getElementType());
-  return success();
+  return hlo::inferAllToAllOp(
+      location, adaptor.getOperand(), adaptor.getSplitDimension(),
+      adaptor.getConcatDimension(), adaptor.getSplitCount(),
+      adaptor.getReplicaGroups(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

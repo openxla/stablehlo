@@ -760,6 +760,62 @@ LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
   return success();
 }
 
+LogicalResult inferAllToAllOp(
+    Optional<Location> location, Value operand, int64_t splitDimension,
+    int64_t concatDimension, int64_t splitCount,
+    DenseIntElementsAttr replicaGroups,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (splitCount <= 0)
+    return emitOptionalError(location, "AllToAll split_count must be > 0");
+
+  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
+                                      /*allGroupsMustHaveSameSize=*/true,
+                                      /*useGlobalDeviceIds=*/false,
+                                      splitCount)))
+    return failure();
+
+  if (splitDimension < 0)
+    return emitOptionalError(location,
+                             "AllToAll split_dimension cannot be negative");
+
+  if (concatDimension < 0)
+    return emitOptionalError(location,
+                             "AllToAll concat_dimension cannot be negative");
+
+  Type operandType = operand.getType();
+  RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
+  if (!operandRankedType) {
+    inferredReturnShapes.emplace_back(
+        operandType.cast<TensorType>().getElementType());
+    return success();
+  }
+
+  int64_t inputRank = operandRankedType.getRank();
+  if (splitDimension >= inputRank)
+    return emitOptionalError(location, "AllToAll split_dimension ",
+                             splitDimension,
+                             " is out-of-bounds for input rank ", inputRank);
+  if (concatDimension >= inputRank)
+    return emitOptionalError(location, "AllToAll concat_dimension ",
+                             concatDimension,
+                             " is out-of-bounds for input rank ", inputRank);
+
+  // If operand is ranked, size of split dimension should be a multiple of split
+  // count.
+  auto splitDimSize = operandRankedType.getDimSize(splitDimension);
+  if (splitDimSize % splitCount != 0)
+    return emitOptionalError(
+        location, "split dimension has size ", splitDimSize,
+        ", expected to be a multiple of split_count ", splitCount);
+  SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
+                                   operandRankedType.getShape().end());
+  resultShape[splitDimension] /= splitCount;
+  resultShape[concatDimension] *= splitCount;
+  inferredReturnShapes.emplace_back(resultShape,
+                                    operandRankedType.getElementType());
+  return success();
+}
+
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
     uint64_t featureIndex,
