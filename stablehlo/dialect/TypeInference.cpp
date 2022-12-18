@@ -1969,6 +1969,36 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
   return success();
 }
 
+LogicalResult verifyClampOp(Optional<Location> location, Value min,
+                            Value operand, Value max) {
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  auto operandShape = operandType.getShape();
+  auto minType = min.getType().cast<RankedTensorType>();
+
+  auto minShape = minType.getShape();
+  if (failed(verifyCompatibleShape(minType, operandType)) &&
+      minType.getRank() != 0) {
+    return emitOptionalError(
+        location, "min shape [",
+        llvm::make_range(minShape.begin(), minShape.end()),
+        "] is not scalar and is not compatible to operand shape [",
+        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
+  }
+
+  auto maxType = max.getType().cast<RankedTensorType>();
+  auto maxShape = maxType.getShape();
+  if (failed(verifyCompatibleShape(maxType, operandType)) &&
+      maxType.getRank() != 0) {
+    return emitOptionalError(
+        location, "max shape [",
+        llvm::make_range(maxShape.begin(), maxShape.end()),
+        "] is not scalar and is not compatible to operand shape [",
+        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
+  }
+
+  return success();
+}
+
 LogicalResult verifyCollectivePermuteOp(
     Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   // Verifies the source target pairs attached to collective permute.

@@ -271,6 +271,9 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
                                      DenseIntElementsAttr broadcastDimensions,
                                      Value result);
 
+LogicalResult verifyClampOp(Optional<Location> location, Value min,
+                            Value operand, Value max);
+
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 

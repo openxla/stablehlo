@@ -1982,32 +1982,7 @@ LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ClampOp::verify() {
-  auto operandType = getOperand().getType().cast<RankedTensorType>();
-  auto operandShape = operandType.getShape();
-  auto minType = getMin().getType().cast<RankedTensorType>();
-
-  auto minShape = minType.getShape();
-  if (failed(verifyCompatibleShape(minType, operandType)) &&
-      minType.getRank() != 0) {
-    return emitOpError(llvm::formatv(
-        "min shape [{0}] is not scalar and is not compatible to operand shape "
-        "[{1}]",
-        llvm::make_range(minShape.begin(), minShape.end()),
-        llvm::make_range(operandShape.begin(), operandShape.end())));
-  }
-
-  auto maxType = getMax().getType().cast<RankedTensorType>();
-  auto maxShape = maxType.getShape();
-  if (failed(verifyCompatibleShape(maxType, operandType)) &&
-      maxType.getRank() != 0) {
-    return emitOpError(llvm::formatv(
-        "max shape [{0}] is not scalar and is not compatible to operand shape "
-        "[{1}]",
-        llvm::make_range(maxShape.begin(), maxShape.end()),
-        llvm::make_range(operandShape.begin(), operandShape.end())));
-  }
-
-  return success();
+  return hlo::verifyClampOp(getLoc(), getMin(), getOperand(), getMax());
 }
 
 LogicalResult ClampOp::inferReturnTypeComponents(
