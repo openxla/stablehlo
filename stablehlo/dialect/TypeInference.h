@@ -256,6 +256,9 @@ LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
                                 bool useGlobalDeviceIds, Region& computation);
 
+LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
+                                     Value result);
+
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 

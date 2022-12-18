@@ -3415,7 +3415,7 @@ func.func @bitcast_convert_width_mismatch(%arg: tensor<f32>) -> tensor<f64> {
 // -----
 
 func.func @bitcast_convert_empty_target(%arg: tensor<1xf64>) -> tensor<f32> {
-  // expected-error@+1 {{op does not allow the smaller element type to be part of a 0d tensor, but got: 'tensor<1xf64>' and 'tensor<f32>'.}}
+  // expected-error@+1 {{does not allow the smaller element type to be part of a 0d tensor, but got: 'tensor<1xf64>' and 'tensor<f32>'.}}
   %0 = "stablehlo.bitcast_convert"(%arg) : (tensor<1xf64>) -> tensor<f32>
   return %0 : tensor<f32>
 }
@@ -3423,7 +3423,7 @@ func.func @bitcast_convert_empty_target(%arg: tensor<1xf64>) -> tensor<f32> {
 // -----
 
 func.func @bitcast_convert_empty_operand(%arg: tensor<f32>) -> tensor<1xf64> {
-  // expected-error@+1 {{op does not allow the smaller element type to be part of a 0d tensor, but got: 'tensor<f32>' and 'tensor<1xf64>'.}}
+  // expected-error@+1 {{does not allow the smaller element type to be part of a 0d tensor, but got: 'tensor<f32>' and 'tensor<1xf64>'.}}
   %0 = "stablehlo.bitcast_convert"(%arg) : (tensor<f32>) -> tensor<1xf64>
   return %0 : tensor<1xf64>
 }

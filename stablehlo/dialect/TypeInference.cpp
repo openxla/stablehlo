@@ -1787,6 +1787,94 @@ LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
   return success();
 }
 
+/*
+ * We intend to verify the following properties
+ * P1. We cannot convert between complex and real types (cf xla)
+ * P3. The dimensions of the operand and the target
+ * shape must match, except that the shape with the smaller element bitwidth has
+ * an appropriately-sized additional innermost dimension, e.g.
+ * ... x f32 => [bitcast_convert] => ... x 4 x i8
+ * ... x 4 x i8 => [bitcast_convert] => ... x f32
+ */
+LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
+                                     Value result) {
+  auto operandTensorType = operand.getType().cast<TensorType>();
+  auto targetTensorType = result.getType().cast<TensorType>();
+
+  // P1.
+  auto targetElt = targetTensorType.getElementType();
+  auto operandElt = operandTensorType.getElementType();
+  if (targetElt.isa<ComplexType>() != operandElt.isa<ComplexType>()) {
+    return emitOptionalError(
+        location, "cannot convert between real and complex types, but got: ",
+        operandTensorType, " and ", targetTensorType);
+  }
+
+  auto targetEltBitwidth = hlo::potentiallyComplexBitwidth(targetElt);
+  auto operandEltBitwidth = hlo::potentiallyComplexBitwidth(operandElt);
+
+  // P2.
+  auto operandType = operandTensorType.dyn_cast<RankedTensorType>();
+  auto targetType = targetTensorType.dyn_cast<RankedTensorType>();
+  if (!operandType || !targetType) return success();
+
+  auto targetShape = targetType.getShape();
+  auto operandShape = operandType.getShape();
+  ArrayRef<int64_t> smallerEltShape, biggerEltShape;
+  Type smallerElt, biggerElt;
+  if (operandEltBitwidth < targetEltBitwidth) {
+    smallerEltShape = operandShape;
+    smallerElt = operandElt;
+    biggerEltShape = targetShape;
+    biggerElt = targetElt;
+  } else {
+    smallerEltShape = targetShape;
+    smallerElt = targetElt;
+    biggerEltShape = operandShape;
+    biggerElt = operandElt;
+  }
+
+  ArrayRef<int64_t> smallerEltPrefix;
+  auto smallerEltBitwidth = std::min(targetEltBitwidth, operandEltBitwidth);
+  auto biggerEltBitwidth = std::max(targetEltBitwidth, operandEltBitwidth);
+  if (operandEltBitwidth != targetEltBitwidth) {
+    if (smallerEltShape.empty()) {
+      return emitOptionalError(location,
+                               "does not allow the smaller element type to be "
+                               "part of a 0d tensor, but got: ",
+                               operandType, " and ", targetType, ".");
+    }
+    smallerEltPrefix = smallerEltShape.drop_back();
+    if (!hlo::isDynamicDimSize(smallerEltShape.back()) &&
+        smallerEltShape.back() * smallerEltBitwidth != biggerEltBitwidth) {
+      return emitOptionalError(
+          location, "requires compatible bitwidths. ", "Got: ", operandType,
+          " and ", targetType, ", but ", smallerEltBitwidth, " * ",
+          smallerEltShape.back(), " != ", biggerEltBitwidth, ".");
+    }
+  } else {
+    smallerEltPrefix = smallerEltShape;
+  }
+
+  for (auto it : llvm::zip(smallerEltPrefix, biggerEltShape)) {
+    auto targetDim = std::get<0>(it);
+    auto operandDim = std::get<1>(it);
+    if (!hlo::isDynamicDimSize(targetDim) &&
+        !hlo::isDynamicDimSize(operandDim)) {
+      if (targetDim != operandDim) {
+        return emitOptionalError(
+            location,
+            "operand and result shapes must match except "
+            "for the innermost dimension of the shape with "
+            "the smaller element type. Got: ",
+            operandType, " and ", targetType, ".");
+      }
+    }
+  }
+
+  return success();
+}
+
 LogicalResult verifyCollectivePermuteOp(
     Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   // Verifies the source target pairs attached to collective permute.
