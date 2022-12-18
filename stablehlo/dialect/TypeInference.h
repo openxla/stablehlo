@@ -252,6 +252,10 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
+                                DenseIntElementsAttr replicaGroups,
+                                bool useGlobalDeviceIds, Region& computation);
+
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 
@@ -269,6 +273,7 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
 LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
                                     uint64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
+                                    bool useGlobalDeviceIds,
                                     Region& computation, TypeRange resultTypes);
 
 LogicalResult verifyReduceWindowOp(

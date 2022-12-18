@@ -1765,6 +1765,28 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
+LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
+                                DenseIntElementsAttr replicaGroups,
+                                bool useGlobalDeviceIds, Region& computation) {
+  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
+                                      /*allGroupsMustHaveSameSize=*/false,
+                                      useGlobalDeviceIds,
+                                      /*expectedGroupSize=*/std::nullopt)))
+    return failure();
+
+  auto operandType = operand.getType().cast<TensorType>();
+  bool operandTypeRanked = operandType.isa<RankedTensorType>();
+  Block& block = computation.front();
+  if (failed(hlo::verifyReducerShape(
+          location, block, {operandType},
+          {RankedTensorType::get({}, operandType.getElementType())},
+          /*numInputs=*/1, /*allowedDimensions=*/{},
+          /*allInputsUnranked=*/!operandTypeRanked)))
+    return failure();
+
+  return success();
+}
+
 LogicalResult verifyCollectivePermuteOp(
     Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   // Verifies the source target pairs attached to collective permute.

@@ -1799,6 +1799,7 @@ LogicalResult AllGatherOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllReduceOp::verify() {
+<<<<<<< HEAD
   if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
                                       /*allGroupsMustHaveSameSize=*/false,
                                       getUseGlobalDeviceIds(),
@@ -1816,6 +1817,10 @@ LogicalResult AllReduceOp::verify() {
     return failure();
 
   return success();
+=======
+  return hlo::verifyAllReduceOp(getLoc(), getOperand(), getReplicaGroups(),
+                                getComputation());
+>>>>>>> 3bc4b6a (Move verifyAllReduceOp)
 }
 
 //===----------------------------------------------------------------------===//
