@@ -2117,15 +2117,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicReshapeOp::verify() {
-  auto resultType = getResult().getType().dyn_cast<RankedTensorType>();
-  auto outputShapeType =
-      getOutputShape().getType().dyn_cast<RankedTensorType>();
-  if (resultType && outputShapeType && outputShapeType.hasStaticShape() &&
-      outputShapeType.getDimSize(0) != resultType.getRank()) {
-    return emitError() << "output should have a rank equal to the number of "
-                          "elements in output_shape";
-  }
-  return success();
+  return hlo::verifyDynamicReshapeOp(getLoc(), getOutputShape(),  getResult());
 }
 
 LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(

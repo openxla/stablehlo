@@ -297,6 +297,9 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Optional<DenseIntElementsAttr> knownExpandingDimensions,
     Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result);
 
+LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
+                                     Value outputShape, Value result); 
+
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
                                       Type resultType);

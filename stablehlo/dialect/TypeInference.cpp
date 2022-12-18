@@ -2158,6 +2158,19 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   return success();
 }
 
+LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
+                                     Value outputShape, Value result) {
+  auto resultType = result.getType().dyn_cast<RankedTensorType>();
+  auto outputShapeType = outputShape.getType().dyn_cast<RankedTensorType>();
+  if (resultType && outputShapeType && outputShapeType.hasStaticShape() &&
+      outputShapeType.getDimSize(0) != resultType.getRank()) {
+    return emitOptionalError(location,
+                             "output should have a rank equal to the number of "
+                             "elements in output_shape");
+  }
+  return success();
+}
+
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
                                       Type resultType) {
