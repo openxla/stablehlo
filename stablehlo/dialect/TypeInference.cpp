@@ -1875,6 +1875,16 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
   return success();
 }
 
+LogicalResult verifyBroadcastOp(Optional<Location> location,
+                                DenseIntElementsAttr sizes) {
+  auto sizesType = sizes.getType();
+  auto sizesRank = sizesType.getRank();
+  if (sizesRank != 1)
+    return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
+                             " instead of rank 1");
+  return success();
+}
+
 LogicalResult verifyCollectivePermuteOp(
     Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   // Verifies the source target pairs attached to collective permute.

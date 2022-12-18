@@ -1902,15 +1902,7 @@ LogicalResult BitcastConvertOp::verify() {
 
 // TODO(b/129012527) These should be expressed as type constraints.
 LogicalResult BroadcastOp::verify() {
-  auto sizes = getBroadcastSizes();
-  auto sizesType = sizes.getType();
-  auto sizesRank = sizesType.getRank();
-  if (sizesRank != 1) {
-    return emitOpError(llvm::formatv(
-        "broadcast_sizes has rank {0} instead of rank 1", sizesRank));
-  }
-
-  return success();
+  return hlo::verifyBroadcastOp(getLoc(), getBroadcastSizes());
 }
 
 LogicalResult BroadcastOp::inferReturnTypeComponents(

@@ -259,6 +259,9 @@ LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
 LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
                                      Value result);
 
+LogicalResult verifyBroadcastOp(Optional<Location> location,
+                                DenseIntElementsAttr sizes);
+
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 
