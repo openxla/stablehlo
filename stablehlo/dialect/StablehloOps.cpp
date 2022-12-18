@@ -2040,11 +2040,9 @@ LogicalResult IsFiniteOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult RealOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(
-      hlo::createRealType(operands[0].getType().cast<TensorType>()));
-  return success();
+    MLIRContext*, Optional<Location> location, ValueRange operands,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+  return hlo::inferRealOp(location, operands[0], inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

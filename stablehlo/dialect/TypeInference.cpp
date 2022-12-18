@@ -1486,6 +1486,13 @@ LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
   return success();
 }
 
+LogicalResult inferRealOp(Optional<Location>, Value operand,
+                          SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(
+      createRealType(operand.getType().cast<TensorType>()));
+  return success();
+}
+
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions,

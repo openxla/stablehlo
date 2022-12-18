@@ -212,6 +212,9 @@ LogicalResult inferOptimizationBarrierOp(
 LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferRealOp(Optional<Location> location, Value operand,
+                          SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions,
