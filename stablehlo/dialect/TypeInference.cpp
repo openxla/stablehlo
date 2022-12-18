@@ -955,6 +955,15 @@ LogicalResult inferCholeskyOp(
   return success();
 }
 
+LogicalResult inferClampOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  RankedTensorType operandType =
+      operand.getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
+  return success();
+}
+
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {

@@ -152,6 +152,10 @@ LogicalResult inferCholeskyOp(
     Optional<Location> location, Value a,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferClampOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
