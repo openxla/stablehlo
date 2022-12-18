@@ -2029,13 +2029,10 @@ LogicalResult ImagOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IsFiniteOp::inferReturnTypes(
-    MLIRContext* ctx, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto argTy = operands.front().getType().cast<TensorType>();
-  Builder b(ctx);
-  inferredReturnTypes.push_back(
-      hlo::getSameShapeTensorType(argTy, b.getI1Type()));
-  return success();
+    MLIRContext* ctx, Optional<Location> location, ValueRange operands,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+  return hlo::inferFiniteOp(ctx, location, operands.front(),
+                            inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

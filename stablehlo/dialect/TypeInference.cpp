@@ -963,9 +963,8 @@ LogicalResult inferClampOp(
   return success();
 }
 
-LogicalResult inferComplexOp(
-    Optional<Location> location, Value operand,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferComplexOp(Optional<Location> location, Value operand,
+                             SmallVectorImpl<Type>& inferredReturnTypes) {
   TensorType operandType = operand.getType().cast<TensorType>();
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
   inferredReturnTypes.push_back(
@@ -1279,6 +1278,16 @@ LogicalResult inferDynamicUpdateSliceOp(
   } else {
     inferredReturnShapes.emplace_back(operandType.getElementType());
   }
+  return success();
+}
+
+LogicalResult inferFiniteOp(MLIRContext* context, Optional<Location>,
+                            Value operand,
+                            SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto argTy = operand.getType().cast<TensorType>();
+  Builder b(context);
+  inferredReturnTypes.push_back(
+      hlo::getSameShapeTensorType(argTy, b.getI1Type()));
   return success();
 }
 

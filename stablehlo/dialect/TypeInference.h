@@ -156,9 +156,8 @@ LogicalResult inferClampOp(
     Optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferComplexOp(
-    Optional<Location> location, Value operand,
-    SmallVectorImpl<Type>& inferredReturnTypes);
+LogicalResult inferComplexOp(Optional<Location> location, Value operand,
+                             SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
@@ -182,6 +181,10 @@ LogicalResult inferDynamicUpdateSliceOp(
     Optional<Location> location, Value operand, Value update,
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferFiniteOp(MLIRContext* context, Optional<Location>,
+                            Value operand,
+                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferGetDimensionSizeOp(
     MLIRContext* context, Optional<Location> location,
@@ -289,7 +292,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Optional<Location> location, Value operand, Value outputDimensions,
     DenseIntElementsAttr broadcastDimensions,
     Optional<DenseIntElementsAttr> knownExpandingDimensions,
-    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result) ;
+    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result);
 
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
