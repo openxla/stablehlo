@@ -140,6 +140,11 @@ LogicalResult inferBatchNormTrainingOp(
     uint64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferBroadcastOp(
+    Optional<Location> location, Value operand,
+    DenseIntElementsAttr dimensionAttr,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 

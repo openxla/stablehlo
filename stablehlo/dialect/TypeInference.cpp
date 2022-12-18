@@ -859,6 +859,25 @@ LogicalResult inferBatchNormTrainingOp(
   return success();
 }
 
+LogicalResult inferBroadcastOp(
+    Optional<Location> location, Value operand,
+    DenseIntElementsAttr dimensionAttr,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) return failure();
+
+  Type elementTy = operandType.getElementType();
+  for (int64_t size : dimensionAttr.getValues<int64_t>())
+    if (size < 0)
+      return emitOptionalError(location,
+                               "Broadcast with negative dimension size ", size);
+  SmallVector<int64_t> shapeValues(dimensionAttr.getValues<int64_t>());
+  llvm::append_range(shapeValues, operandType.getShape());
+
+  inferredReturnShapes.emplace_back(shapeValues, elementTy);
+  return success();
+}
+
 // Used by IfOp and CaseOp
 LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,

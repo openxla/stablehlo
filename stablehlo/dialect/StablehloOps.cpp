@@ -1891,9 +1891,8 @@ LogicalResult BitcastConvertOp::reifyReturnTypeShapes(
                                      &reifiedReturnShapes);
 }
 
-
 LogicalResult BitcastConvertOp::verify() {
-   return hlo::verifyBitcastConvertOp(getLoc(), getOperand(), getResult());
+  return hlo::verifyBitcastConvertOp(getLoc(), getOperand(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1910,22 +1909,9 @@ LogicalResult BroadcastOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastOp::Adaptor adaptor(operands, attributes, regions);
-  Value operand = adaptor.getOperand();
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandType) return failure();
-
-  Type elementTy = operandType.getElementType();
-  auto dimensionAttr = adaptor.getBroadcastSizes();
-  for (int64_t size : dimensionAttr.getValues<int64_t>()) {
-    if (size < 0)
-      return emitOptionalError(location,
-                               "Broadcast with negative dimension size ", size);
-  }
-  SmallVector<int64_t> shapeValues(dimensionAttr.getValues<int64_t>());
-  llvm::append_range(shapeValues, operandType.getShape());
-
-  inferredReturnShapes.emplace_back(shapeValues, elementTy);
-  return success();
+  return hlo::inferBroadcastOp(location, adaptor.getOperand(),
+                               adaptor.getBroadcastSizes(),
+                               inferredReturnShapes);
 }
 
 LogicalResult BroadcastOp::reifyReturnTypeShapes(
