@@ -1921,7 +1921,8 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
   * `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations)`.
   * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
   * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
-  * `dot_product = dot_general(lhs_window, rhs,
+  * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
+  * `dot_product = dot_general(reversed_lhs_window, rhs,
       lhs_batching_dimensions=[],
       lhs_contracting_dimensions=input_spatial_dimensions + [input_feature_dimension],
       rhs_batching_dimensions=[],
