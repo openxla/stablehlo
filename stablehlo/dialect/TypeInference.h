@@ -142,7 +142,7 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     Optional<Location> location, Value operand,
-    DenseIntElementsAttr dimensionAttr,
+    DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
@@ -156,7 +156,7 @@ LogicalResult inferClampOp(
     Optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferComplexOp(Optional<Location> location, Value operand,
+LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
@@ -186,9 +186,8 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferFiniteOp(MLIRContext* context, Optional<Location>,
-                            Value operand,
-                            SmallVectorImpl<Type>& inferredReturnTypes);
+LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferGetDimensionSizeOp(
     MLIRContext* context, Optional<Location> location,

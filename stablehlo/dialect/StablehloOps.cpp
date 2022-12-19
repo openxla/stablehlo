@@ -2008,8 +2008,10 @@ LogicalResult ClampOp::reifyReturnTypeShapes(
 
 LogicalResult ComplexOp::inferReturnTypes(
     MLIRContext*, Optional<Location> location, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferComplexOp(location, operands[0], inferredReturnTypes);
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  ComplexOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferComplexOp(location, adaptor.getLhs(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2030,9 +2032,11 @@ LogicalResult ImagOp::inferReturnTypes(
 
 LogicalResult IsFiniteOp::inferReturnTypes(
     MLIRContext* ctx, Optional<Location> location, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferFiniteOp(ctx, location, operands.front(),
-                            inferredReturnTypes);
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  IsFiniteOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferIsFiniteOp(ctx, location, adaptor.getX(),
+                              inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2041,8 +2045,10 @@ LogicalResult IsFiniteOp::inferReturnTypes(
 
 LogicalResult RealOp::inferReturnTypes(
     MLIRContext*, Optional<Location> location, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferRealOp(location, operands[0], inferredReturnTypes);
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  RealOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferRealOp(location, adaptor.getOperand(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

@@ -867,17 +867,17 @@ LogicalResult inferBatchNormTrainingOp(
 
 LogicalResult inferBroadcastOp(
     Optional<Location> location, Value operand,
-    DenseIntElementsAttr dimensionAttr,
+    DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
   Type elementTy = operandType.getElementType();
-  for (int64_t size : dimensionAttr.getValues<int64_t>())
+  for (int64_t size : broadcastSizes.getValues<int64_t>())
     if (size < 0)
       return emitOptionalError(location,
                                "Broadcast with negative dimension size ", size);
-  SmallVector<int64_t> shapeValues(dimensionAttr.getValues<int64_t>());
+  SmallVector<int64_t> shapeValues(broadcastSizes.getValues<int64_t>());
   llvm::append_range(shapeValues, operandType.getShape());
 
   inferredReturnShapes.emplace_back(shapeValues, elementTy);
@@ -963,9 +963,9 @@ LogicalResult inferClampOp(
   return success();
 }
 
-LogicalResult inferComplexOp(Optional<Location> location, Value operand,
+LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  TensorType operandType = operand.getType().cast<TensorType>();
+  TensorType operandType = lhs.getType().cast<TensorType>();
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
   inferredReturnTypes.push_back(
       hlo::getSameShapeTensorType(operandType, elementTy));
@@ -1292,10 +1292,9 @@ LogicalResult inferDynamicUpdateSliceOp(
   return success();
 }
 
-LogicalResult inferFiniteOp(MLIRContext* context, Optional<Location>,
-                            Value operand,
-                            SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto argTy = operand.getType().cast<TensorType>();
+LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
+                              SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto argTy = x.getType().cast<TensorType>();
   Builder b(context);
   inferredReturnTypes.push_back(
       hlo::getSameShapeTensorType(argTy, b.getI1Type()));
@@ -1946,8 +1945,8 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult verifyBroadcastOp(Optional<Location> location,
-                                DenseIntElementsAttr sizes) {
-  auto sizesType = sizes.getType();
+                                DenseIntElementsAttr broadcastSizes) {
+  auto sizesType = broadcastSizes.getType();
   auto sizesRank = sizesType.getRank();
   if (sizesRank != 1)
     return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
@@ -2217,15 +2216,15 @@ LogicalResult verifyDynamicSliceOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
-                                      Value operand, uint32_t indexVal,
+                                      Value operand, uint32_t index,
                                       Type resultType) {
   auto operandType = operand.getType().cast<TupleType>();
-  if (indexVal >= operandType.size())
-    return emitOptionalError(location, "index ", indexVal,
+  if (index >= operandType.size())
+    return emitOptionalError(location, "index ", index,
                              " is out of bounds of operand with size ",
                              operandType.size());
 
-  auto expectedType = operandType.getType(indexVal);
+  auto expectedType = operandType.getType(index);
   if (resultType != expectedType)
     return emitOptionalError(location, "has return type ", resultType,
                              ", but expected ", expectedType);
