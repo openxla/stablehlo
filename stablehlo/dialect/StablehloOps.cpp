@@ -2130,19 +2130,14 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
 // DynamicSliceOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult DynamicSliceOp::verify() {
-  return hlo::verifyDynamicSliceOp(getLoc(), getOperand(), getStartIndices(),
-                                   getSliceSizes());
-}
-
 LogicalResult DynamicSliceOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicSliceOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferDynamicSliceOp(location, adaptor.getOperand(),
-                                  adaptor.getSliceSizes(),
-                                  inferredReturnShapes);
+  return hlo::inferDynamicSliceOp(
+      location, adaptor.getOperand(), adaptor.getStartIndices(),
+      adaptor.getSliceSizes(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

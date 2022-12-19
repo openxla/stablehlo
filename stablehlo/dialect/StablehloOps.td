@@ -1639,7 +1639,6 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   );
 
   let results = (outs HLO_Tensor:$result);
-  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $operand `,` custom<VariadicOperandWithAttribute>($start_indices)

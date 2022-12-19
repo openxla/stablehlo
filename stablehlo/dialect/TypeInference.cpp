@@ -986,7 +986,7 @@ LogicalResult inferClampOp(
         llvm::make_range(maxShape.begin(), maxShape.end()),
         "] is not scalar and is not compatible to operand shape [",
         llvm::make_range(operandShape.begin(), operandShape.end()), "]");
-  }  
+  }
 
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
@@ -1245,13 +1245,39 @@ LogicalResult inferDotGeneralOp(
 }
 
 LogicalResult inferDynamicSliceOp(
-    Optional<Location> location, Value operand, DenseIntElementsAttr sliceSizes,
+    Optional<Location> location, Value operand, ValueRange startIndices,
+    DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  int numSliceSizes = sliceSizes.getNumElements();
+  int numStartIndices = startIndices.size();
+  if (numStartIndices != numSliceSizes)
+    return emitOptionalError(location, "has mismatched number of slice sizes (",
+                             numSliceSizes, ") and number of start indices (",
+                             numStartIndices, ")");
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
-  Type elementTy = operandType.getElementType();
-  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(), elementTy);
+  if (operandType.getRank() != numStartIndices)
+    return emitOptionalError(
+        location, "has mismatched number of start indices (", numStartIndices,
+        ") and the rank of operand (", operandType.getRank(), ")");
+
+  for (int i = 0; i < numSliceSizes; ++i) {
+    int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
+    if (sliceSize < 0)
+      return emitOptionalError(
+          location, "has negative size index to dynamic slice: ", sliceSize);
+    if (!operandType.isDynamicDim(i)) {
+      int64_t dimSize = operandType.getDimSize(i);
+      if (sliceSize > dimSize)
+        return emitOptionalError(location, "has slice size ", sliceSize,
+                                 " greater than dimension size ", dimSize,
+                                 " in dimension ", i, " of operand");
+    }
+  }
+
+  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
+                                    operandType.getElementType());
   return success();
 }
 
@@ -2166,40 +2192,6 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
-  }
-  return success();
-}
-
-// Verifies that the number of slice sizes and the number of start indices match
-LogicalResult verifyDynamicSliceOp(Optional<Location> location, Value operand,
-                                   ValueRange startIndices,
-                                   DenseIntElementsAttr sliceSizes) {
-  int numSliceSizes = sliceSizes.getNumElements();
-  int numStartIndices = startIndices.size();
-  if (numStartIndices != numSliceSizes)
-    return emitOptionalError(location, "has mismatched number of slice sizes (",
-                             numSliceSizes, ") and number of start indices (",
-                             numStartIndices, ")");
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandType) return failure();
-
-  if (operandType.getRank() != numStartIndices)
-    return emitOptionalError(
-        location, "has mismatched number of start indices (", numStartIndices,
-        ") and the rank of operand (", operandType.getRank(), ")");
-
-  for (int i = 0; i < numSliceSizes; ++i) {
-    int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
-    if (sliceSize < 0)
-      return emitOptionalError(
-          location, "has negative size index to dynamic slice: ", sliceSize);
-    if (!operandType.isDynamicDim(i)) {
-      int64_t dimSize = operandType.getDimSize(i);
-      if (sliceSize > dimSize)
-        return emitOptionalError(location, "has slice size ", sliceSize,
-                                 " greater than dimension size ", dimSize,
-                                 " in dimension ", i, " of operand");
-    }
   }
   return success();
 }

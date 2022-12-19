@@ -178,7 +178,8 @@ LogicalResult inferDotGeneralOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicSliceOp(
-    Optional<Location> location, Value operand, DenseIntElementsAttr sliceSizes,
+    Optional<Location> location, Value operand, ValueRange startIndices,
+    DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicUpdateSliceOp(
@@ -299,10 +300,6 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
-
-LogicalResult verifyDynamicSliceOp(Optional<Location> location, Value operand,
-                                   ValueRange startIndices,
-                                   DenseIntElementsAttr sliceSizes);
 
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
