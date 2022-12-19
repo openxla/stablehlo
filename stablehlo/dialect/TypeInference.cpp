@@ -1215,6 +1215,17 @@ LogicalResult inferDotGeneralOp(
   return success();
 }
 
+LogicalResult inferDynamicSliceOp(
+    Optional<Location> location, Value operand, DenseIntElementsAttr sliceSizes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) return failure();
+
+  Type elementTy = operandType.getElementType();
+  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(), elementTy);
+  return success();
+}
+
 LogicalResult inferDynamicUpdateSliceOp(
     Optional<Location> location, Value operand, Value update,
     ValueRange startIndices,

@@ -2143,14 +2143,9 @@ LogicalResult DynamicSliceOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicSliceOp::Adaptor adaptor(operands, attributes, regions);
-  Value operand = adaptor.getOperand();
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandType) return failure();
-
-  auto sliceSizes = adaptor.getSliceSizes();
-  Type elementTy = operandType.getElementType();
-  inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(), elementTy);
-  return success();
+  return hlo::inferDynamicSliceOp(location, adaptor.getOperand(),
+                                  adaptor.getSliceSizes(),
+                                  inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

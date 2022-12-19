@@ -177,6 +177,10 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> rhsContractingDimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferDynamicSliceOp(
+    Optional<Location> location, Value operand, DenseIntElementsAttr sliceSizes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferDynamicUpdateSliceOp(
     Optional<Location> location, Value operand, Value update,
     ValueRange startIndices,
