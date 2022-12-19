@@ -117,12 +117,37 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType">
   let parameters = (ins "Type":$elementType);
   let assemblyFormat = "`<` $elementType `>`";
 }
-def VHLO_Integer4V1 : VHLO_TypeDef<"Integer4V1", "i4", "::mlir::IntegerType">;
 def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::FloatType">;
 def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::FloatType">;
 def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::FloatType">;
 def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::FloatType">;
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::FloatType">;
+
+// Quantized Type
+def VHLO_Double : APFloatParameter<""> {
+  let parser = [{
+    [&]() -> FailureOr<llvm::APFloat> {
+      double value;
+      if (failed($_parser.parseFloat(value))) {
+        return failure();
+      }
+      return APFloat(value);
+    }()
+  }];
+  let printer = "$_printer << $_self;";
+}
+def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
+  let parameters = (ins
+    "unsigned":$flags, 
+    "::mlir::Type":$storageType,
+    "::mlir::Type":$expressedType,
+    VHLO_Double:$scale,
+    "int64_t":$zeroPoint,
+    "int64_t":$storageTypeMin,
+    "int64_t":$storageTypeMax
+  );
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
+}
 
 //===----------------------------------------------------------------------===//
 // VHLO traits

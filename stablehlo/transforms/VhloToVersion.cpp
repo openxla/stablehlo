@@ -154,7 +154,7 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
     }
     // WitnessType
     LLVM_DEBUG(llvm::dbgs() << "Maybe wrapped/index " << type << '\n');
-    return success(/*isSuccess=*/ data.isa<shape::WitnessType>());
+    return success(/*isSuccess=*/data.isa<shape::WitnessType>());
   }
 
   return success();

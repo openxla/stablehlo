@@ -382,13 +382,12 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // Element Types
   ComplexV1Type readComplexType(DialectBytecodeReader &reader) const;
   IntegerV1Type readIntegerType(DialectBytecodeReader &reader) const;
-  quant::UniformQuantizedType readUniformQuantizedType(
+  UniformQuantizedV1Type readUniformQuantizedType(
       DialectBytecodeReader &reader) const;
 
   void write(ComplexV1Type type, DialectBytecodeWriter &writer) const;
   void write(IntegerV1Type type, DialectBytecodeWriter &writer) const;
-  void write(quant::UniformQuantizedType type,
-             DialectBytecodeWriter &writer) const;
+  void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
 };
 
 //===----------------------------------------------------------------------===//
@@ -918,7 +917,7 @@ IntegerV1Type VhloBytecodeInterface::readIntegerType(
           static_cast<IntegerType::SignednessSemantics>(encoding & 0x3)));
 }
 
-quant::UniformQuantizedType VhloBytecodeInterface::readUniformQuantizedType(
+UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedType(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   uint64_t flags;
@@ -934,10 +933,10 @@ quant::UniformQuantizedType VhloBytecodeInterface::readUniformQuantizedType(
       failed(reader.readSignedVarInt(storageTypeMin)) ||
       failed(reader.readSignedVarInt(storageTypeMax)))
     return reader.emitError("invalid UniformQuantizedType"),
-           quant::UniformQuantizedType();
-  return quant::UniformQuantizedType::get(
-      flags, storageType, expressedType, scale.value().convertToDouble(),
-      zeroPoint, storageTypeMin, storageTypeMax);
+           UniformQuantizedV1Type();
+  return UniformQuantizedV1Type::get(getContext(), flags, storageType,
+                                     expressedType, scale.value(), zeroPoint,
+                                     storageTypeMin, storageTypeMax);
 }
 
 //===----------------------------------------------------------------------===//
@@ -956,7 +955,7 @@ LogicalResult VhloBytecodeInterface::writeType(
         LOG_WRITE_CALL;
         return writeWrappedType(type, writer);
       })
-      .Case<ComplexV1Type, IntegerV1Type>(
+      .Case<ComplexV1Type, IntegerV1Type, UniformQuantizedV1Type>(
           [&](auto type) { return write(type, writer), success(); })
       .Case([&](IndexV1Type) {
         return writer.writeVarInt(vhlo_encoding::kIndexType), success();
@@ -997,8 +996,7 @@ void VhloBytecodeInterface::write(TokenType type,
 ///////////////////
 namespace {
 bool isSupportedElementType(Type type) {
-  return type.isa<quant::UniformQuantizedType>() ||
-         type.getDialect().getNamespace() == "vhlo";
+  return type.getDialect().getNamespace() == "vhlo";
 }
 }  // namespace
 
@@ -1017,10 +1015,6 @@ LogicalResult VhloBytecodeInterface::writeWrappedType(
       })
       .Case<shape::WitnessType, TupleType>([&](auto type) {
         LOG_WRITE_CALL;
-        write(type, writer);
-        return success();
-      })
-      .Case<quant::UniformQuantizedType>([&](auto type) {
         write(type, writer);
         return success();
       })
@@ -1073,13 +1067,12 @@ void VhloBytecodeInterface::write(IntegerV1Type type,
                      type.getValue().getSignedness());
 }
 
-void VhloBytecodeInterface::write(quant::UniformQuantizedType type,
+void VhloBytecodeInterface::write(UniformQuantizedV1Type type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kUniformQuantizedType);
   writer.writeVarInt(type.getFlags());
-  // FIXME:
-  writer.writeType(WrappedType::get(getContext(), type.getStorageType()));
-  writer.writeType(WrappedType::get(getContext(), type.getExpressedType()));
+  writer.writeType(type.getStorageType());
+  writer.writeType(type.getExpressedType());
   writer.writeAPFloatWithKnownSemantics(APFloat(type.getScale()));
   writer.writeSignedVarInt(type.getZeroPoint());
   writer.writeSignedVarInt(type.getStorageTypeMin());
