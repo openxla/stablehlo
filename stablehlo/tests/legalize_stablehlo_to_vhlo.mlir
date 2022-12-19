@@ -1568,14 +1568,14 @@ func.func @op_unary_einsum(%arg0: tensor<8x16xf32>) -> tensor<8xf32> {
 // CHECK-LABEL: "op_unary_einsum"
 
 func.func @op_uniform_dequantize(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<f32> {
-  // CHECK: "vhlo.uniform_dequantize"(%arg0) : (!vhlo.wrapped<tensor<!quant.uniform<i8:f32, 3.400000e+01:16>>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
+  // CHECK: "vhlo.uniform_dequantize"(%arg0) : (!vhlo.wrapped<tensor<!vhlo.quant<!vhlo.integer<i8>:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
   %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<!quant.uniform<i8:f32, 34.0:16>>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 // CHECK-LABEL: "op_uniform_dequantize"
 
 func.func @op_uniform_quantize(%arg0: tensor<f32>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
-  // CHECK: "vhlo.uniform_quantize"(%arg0) : (!vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!quant.uniform<i8:f32, 3.400000e+01:16>>>
+  // CHECK: "vhlo.uniform_quantize"(%arg0) : (!vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.quant<!vhlo.integer<i8>:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>>
   %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
   func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
 }
@@ -1743,7 +1743,7 @@ func.func @type_dynamism_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
 // CHECK-LABEL: "type_dynamism_unranked"
 
 func.func @type_quantization(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>, %arg1: tensor<f32>) -> tensor<f32> {
-  // CHECK: "vhlo.add"(%arg0, %arg1) : (!vhlo.wrapped<tensor<!quant.uniform<i8:f32, 3.400000e+01:16>>>, !vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
+  // CHECK: "vhlo.add"(%arg0, %arg1) : (!vhlo.wrapped<tensor<!vhlo.quant<!vhlo.integer<i8>:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>>, !vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
   %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<!quant.uniform<i8:f32, 34.0:16>>, tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }

@@ -1,5 +1,4 @@
-- VHLO Attributes should only use VHLO types.
-
+- Sparse tensor
 
 func.func @type_sparsity(%arg0: tensor<16xf32, #sparse_tensor.encoding<{ dimLevelType = [ "compressed" ] }>>) -> tensor<16xf32> {
   // CHECK: "vhlo.abs"(%arg0) : (tensor<16xf32, #sparse_tensor.encoding<{ dimLevelType = [ "compressed" ] }>>) -> !vhlo.tensor<tensor<16xf32>>

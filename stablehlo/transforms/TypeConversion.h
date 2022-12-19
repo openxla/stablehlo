@@ -16,7 +16,9 @@ limitations under the License.
 #ifndef STABLEHLO_TRANSFORMS_TYPECONVERSION_H
 #define STABLEHLO_TRANSFORMS_TYPECONVERSION_H
 
+#include "llvm/ADT/APFloat.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -30,10 +32,12 @@ namespace vhlo {
 
 class VersionedTypeConverterBase : public TypeConverter {
  public:
-  VersionedTypeConverterBase() : TypeConverter() {
-    // TODO: Remove the default conversion. Should only be supported types.
-    addConversion([](Type type) -> Type { return type; });
+  VersionedTypeConverterBase() : TypeConverter(){};
 
+  // This is placed in a separate methods since type conversions ar applied in a
+  // last-to-first registered order. So these must be applied after the generic
+  // `Type -> Type` transformations.
+  void addWrapConversions() {
     // Supported upstream types. Might return a wrapped version.
     addConversion([&](RankedTensorType type) -> Type {
       auto encoding = type.getEncoding();
@@ -56,9 +60,7 @@ class VersionedTypeConverterBase : public TypeConverter {
     addConversion([&](shape::WitnessType type) -> Type {
       return maybeWrap(std::move(type));
     });
-
-    // TODO: Add explicit type conversions.
-  };
+  }
 
   virtual ~VersionedTypeConverterBase() = default;
 
@@ -70,6 +72,14 @@ class VersionedTypeConverterBase : public TypeConverter {
 class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
  public:
   StablehloToVhloTypeConverter() : VersionedTypeConverterBase() {
+    addConversion([](Type type) -> Type {
+      if (type.getDialect().getNamespace() == "vhlo") {
+        return type;
+      }
+      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
+      return Type();
+    });
+
     addConversion([](stablehlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
@@ -98,6 +108,16 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](Float64Type type) {
       return Float64V1Type::get(type.getContext());
     });
+    addConversion([&](quant::UniformQuantizedType type) -> Type {
+      Type storage = convertType(type.getStorageType());
+      Type expressed = convertType(type.getExpressedType());
+      if (!storage || !expressed) return {};
+      return vhlo::UniformQuantizedV1Type::get(
+          type.getContext(), type.getFlags(), storage, expressed,
+          APFloat(type.getScale()), type.getZeroPoint(),
+          type.getStorageTypeMin(), type.getStorageTypeMax());
+    });
+    addWrapConversions();
   }
 
   bool isTargetDialect(Dialect& dialect) {
@@ -127,6 +147,8 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
 class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
  public:
   VhloToStablehloTypeConverter() : VersionedTypeConverterBase() {
+    addConversion([](Type type) -> Type { return type; });
+
     addConversion([](vhlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
@@ -156,6 +178,17 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](Float64V1Type type) {
       return Float64Type::get(type.getContext());
     });
+    addConversion([&](UniformQuantizedV1Type type) -> Type {
+      Type storage = convertType(type.getStorageType());
+      Type expressed = convertType(type.getExpressedType());
+      if (!storage || !expressed) return {};
+      return quant::UniformQuantizedType::get(
+          type.getFlags(), storage, expressed,
+          type.getScale().convertToDouble(), type.getZeroPoint(),
+          type.getStorageTypeMin(), type.getStorageTypeMax());
+    });
+
+    addWrapConversions();
   }
 
   Type maybeWrap(Type&& type) final { return type; }
@@ -173,10 +206,20 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
 class VhloToVersionConverter : public VersionedTypeConverterBase {
  public:
   VhloToVersionConverter() : VersionedTypeConverterBase() {
+    addConversion([](Type type) -> Type {
+      if (type.getDialect().getNamespace() == "vhlo") {
+        return type;
+      }
+      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
+      return Type();
+    });
+
     addConversion([](stablehlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
+
+    addWrapConversions();
   }
 
   // Don't wrap in VHLO -> VHLO
