@@ -111,7 +111,7 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
 }
 
 LogicalResult isLegalElementType(Type type, const Version& targetVersion) {
-  if (type.isa<quant::UniformQuantizedType>() || type.getDialect().getNamespace() == "vhlo") {
+  if (type.getDialect().getNamespace() == "vhlo") {
     LLVM_DEBUG(llvm::dbgs() << "Supported element type: " << type << '\n');
     return success();
   }
@@ -153,7 +153,7 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
     }
     // WitnessType
     LLVM_DEBUG(llvm::dbgs() << "Maybe wrapped/index " << type << '\n');
-    return success(/*isSuccess=*/ data.isa<shape::WitnessType>());
+    return success(/*isSuccess=*/data.isa<shape::WitnessType>());
   }
 
   return success();
