@@ -1899,11 +1899,6 @@ LogicalResult BitcastConvertOp::verify() {
 // BroadcastOp
 //===----------------------------------------------------------------------===//
 
-// TODO(b/129012527) These should be expressed as type constraints.
-LogicalResult BroadcastOp::verify() {
-  return hlo::verifyBroadcastOp(getLoc(), getBroadcastSizes());
-}
-
 LogicalResult BroadcastOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
@@ -1981,17 +1976,13 @@ LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(
 // ClampOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult ClampOp::verify() {
-  return hlo::verifyClampOp(getLoc(), getMin(), getOperand(), getMax());
-}
-
 LogicalResult ClampOp::inferReturnTypeComponents(
     MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ClampOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferClampOp(location, adaptor.getOperand(),
-                           inferredReturnShapes);
+  return hlo::inferClampOp(location, adaptor.getMin(), adaptor.getOperand(),
+                           adaptor.getMax(), inferredReturnShapes);
 }
 
 LogicalResult ClampOp::reifyReturnTypeShapes(

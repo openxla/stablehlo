@@ -153,7 +153,7 @@ LogicalResult inferCholeskyOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferClampOp(
-    Optional<Location> location, Value operand,
+    Optional<Location> location, Value min, Value operand, Value max,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
@@ -287,9 +287,6 @@ LogicalResult verifyBroadcastOp(Optional<Location> location,
 LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
                                      DenseIntElementsAttr broadcastDimensions,
                                      Value result);
-
-LogicalResult verifyClampOp(Optional<Location> location, Value min,
-                            Value operand, Value max);
 
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);

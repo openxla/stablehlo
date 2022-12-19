@@ -1846,8 +1846,6 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
 
   let results = (outs HLO_Tensor);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
     $operand `,` `sizes` `=` custom<DenseI64Array>($broadcast_sizes)
       attr-dict `:` functional-type(operands, results)
@@ -1981,8 +1979,6 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
     HLO_Tensor:$max
   );
   let results = (outs HLO_Tensor:$result);
-
-  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $min `,` $operand `,` $max attr-dict

@@ -872,7 +872,12 @@ LogicalResult inferBroadcastOp(
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
-  Type elementTy = operandType.getElementType();
+  // TODO: These should be expressed as type constraints.
+  auto sizesRank = broadcastSizes.getType().getRank();
+  if (sizesRank != 1)
+    return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
+                             " instead of rank 1");
+
   for (int64_t size : broadcastSizes.getValues<int64_t>())
     if (size < 0)
       return emitOptionalError(location,
@@ -880,7 +885,7 @@ LogicalResult inferBroadcastOp(
   SmallVector<int64_t> shapeValues(broadcastSizes.getValues<int64_t>());
   llvm::append_range(shapeValues, operandType.getShape());
 
-  inferredReturnShapes.emplace_back(shapeValues, elementTy);
+  inferredReturnShapes.emplace_back(shapeValues, operandType.getElementType());
   return success();
 }
 
@@ -956,9 +961,33 @@ LogicalResult inferCholeskyOp(
 }
 
 LogicalResult inferClampOp(
-    Optional<Location> location, Value operand,
+    Optional<Location> location, Value min, Value operand, Value max,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  RankedTensorType operandType = operand.getType().cast<RankedTensorType>();
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  auto operandShape = operandType.getShape();
+  auto minType = min.getType().cast<RankedTensorType>();
+
+  auto minShape = minType.getShape();
+  if (failed(verifyCompatibleShape(minType, operandType)) &&
+      minType.getRank() != 0) {
+    return emitOptionalError(
+        location, "min shape [",
+        llvm::make_range(minShape.begin(), minShape.end()),
+        "] is not scalar and is not compatible to operand shape [",
+        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
+  }
+
+  auto maxType = max.getType().cast<RankedTensorType>();
+  auto maxShape = maxType.getShape();
+  if (failed(verifyCompatibleShape(maxType, operandType)) &&
+      maxType.getRank() != 0) {
+    return emitOptionalError(
+        location, "max shape [",
+        llvm::make_range(maxShape.begin(), maxShape.end()),
+        "] is not scalar and is not compatible to operand shape [",
+        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
+  }  
+
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
@@ -1944,16 +1973,6 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyBroadcastOp(Optional<Location> location,
-                                DenseIntElementsAttr broadcastSizes) {
-  auto sizesType = broadcastSizes.getType();
-  auto sizesRank = sizesType.getRank();
-  if (sizesRank != 1)
-    return emitOptionalError(location, "broadcast_sizes has rank ", sizesRank,
-                             " instead of rank 1");
-  return success();
-}
-
 LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
                                      DenseIntElementsAttr broadcastDimensions,
                                      Value result) {
@@ -2008,36 +2027,6 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
             ") is not equal to 1 or size of result dimension ", dimIndex, " (",
             resultDimSize, ")");
     }
-  }
-
-  return success();
-}
-
-LogicalResult verifyClampOp(Optional<Location> location, Value min,
-                            Value operand, Value max) {
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  auto operandShape = operandType.getShape();
-  auto minType = min.getType().cast<RankedTensorType>();
-
-  auto minShape = minType.getShape();
-  if (failed(verifyCompatibleShape(minType, operandType)) &&
-      minType.getRank() != 0) {
-    return emitOptionalError(
-        location, "min shape [",
-        llvm::make_range(minShape.begin(), minShape.end()),
-        "] is not scalar and is not compatible to operand shape [",
-        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
-  }
-
-  auto maxType = max.getType().cast<RankedTensorType>();
-  auto maxShape = maxType.getShape();
-  if (failed(verifyCompatibleShape(maxType, operandType)) &&
-      maxType.getRank() != 0) {
-    return emitOptionalError(
-        location, "max shape [",
-        llvm::make_range(maxShape.begin(), maxShape.end()),
-        "] is not scalar and is not compatible to operand shape [",
-        llvm::make_range(operandShape.begin(), operandShape.end()), "]");
   }
 
   return success();
