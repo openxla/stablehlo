@@ -1070,10 +1070,24 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
 
 // -----
 
-func.func @concatenate(%arg0: tensor<1xi32>, %arg1: tensor<*xi32>)  -> tensor<1xi32> {
-  %result = "stablehlo.concatenate"(%arg0, %arg1) { dimension = 0 : i64 } : (tensor<1xi32>, tensor<*xi32>) -> tensor<3xi32>
-  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<3xi32>) -> tensor<1xi32>
-  func.return %1 : tensor<1xi32>
+// CHECK-LABEL: func @concatenate
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?xi32>, %[[ARG1:.*]]: tensor<?x?xi32>, %[[ARG2:.*]]: tensor<?x?xi32>
+func.func @concatenate(%arg0: tensor<?x?xi32>, %arg1: tensor<?x?xi32>, %arg2: tensor<?x?xi32>) -> tensor<2xindex> {
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?x?xi32>
+  // CHECK: %[[DIM0:.*]] = tensor.dim %[[ARG0]], %[[C1]] : tensor<?x?xi32>
+  // CHECK: %[[DIM1:.*]] = tensor.dim %[[ARG1]], %[[C0]] : tensor<?x?xi32>
+  // CHECK: %[[DIM2:.*]] = tensor.dim %[[ARG2]], %[[C0]] : tensor<?x?xi32>
+  // CHECK: %[[V0:.*]] = arith.addi %[[DIM]], %[[DIM1]] : index
+  // CHECK: %[[V1:.*]] = arith.addi %[[V0]], %[[DIM2]] : index
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[V1]], %[[DIM0]] : tensor<2xindex>
+  // CHECK: return %[[RES]] : tensor<2xindex>
+  %result = "stablehlo.concatenate"(%arg0, %arg1, %arg2) {
+    dimension = 0 : i64
+  } : (tensor<?x?xi32>, tensor<?x?xi32>, tensor<?x?xi32>) -> tensor<?x?xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x?xi32>) -> tensor<2xindex>
+  func.return %1 : tensor<2xindex>
 }
 
 // -----
