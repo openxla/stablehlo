@@ -6,36 +6,34 @@ dialect](https://github.com/tensorflow/mlir-hlo#meta-hlo-dialect-mhlo),
 including inheriting the type and some ops. This RFC aims to describe the
 current status and rationale for bounded dynamism constructs in StableHLO and
 provides recommendations to StableHLO producers and consumers. In particular,
-this RFC doesn’t propose any further changes to the current state but this RFC
-should still be used to revisit those decisions given that those weren't
-discussed publicly.
+this RFC doesn’t propose any further changes to the current state.
 
 Bounded dynamism allows programs to represent the maximum runtime size that a
 particular dynamic dimension of a tensor can have. This makes it possible to run
-such programs on hardware that don't support dynamic tensors but could support
+such programs on hardware that doesn't support dynamic tensors but could support
 it if the upper bounds of tensor dimensions are known at the compilation time.
-With bounded dynamism, real time inference systems don't need to wait for
-accumulation up to a particular batch size on such hardware. Bounded dynamism
-also makes it possible to support programs whose intermediate tensor shapes
-depend on the inputs. For example,
-[`stablehlo.dynamic_broadcast_in_dim`](https://github.com/openxla/stablehlo/blob/ff55f9346d54e9e38de807a79f8ae03faffda274/stablehlo/dialect/StablehloOps.td#L1838)
-op but with statically known upper bounds of `output_dimensions` operand. Even
-on hardware that supports dynamic tensors, bounded dynamism can open up
-performance optimizations opportunities.
+Applications include:
 
-# Recommendations
+* Real time inference without having to wait for accumulation up to a particular
+  batch size.
+* Programs whose intermediate tensor shapes depend on the operands. For example,
+  [`stablehlo.dynamic_broadcast_in_dim`](https://github.com/openxla/stablehlo/blob/ff55f9346d54e9e38de807a79f8ae03faffda274/stablehlo/dialect/StablehloOps.td#L1838)
+  op but with statically known upper bounds of `output_dimensions` operand.
+* Bounded dynamism can also open up performance optimizations opportunities.
 
-## StableHLO Producers
+## Recommendations
 
-* Producers should use the bounded tensor type representation as described in
-  P1. Function arguments of public functions should be bounded.
+### StableHLO Producers
+
+* Producers can use the bounded tensor type representation as described in
+  P1.
 * Producers are encouraged to use the unbounded dynamic operations as described
   in P4. Result types of these ops aren't required to have a bounded type.
-* Proucers can still use `get_dimension_size` and `set_dimension_size` ops
+* Producers can still use `get_dimension_size` and `set_dimension_size` ops
   described in P3 for the ease of transition to StableHLO and faster adoption of
   StableHLO.
 
-## StableHLO Consumers
+### StableHLO Consumers
 
 * Consumers should aim to support unbounded programs and can optionally make use
   of bounds on tensors for optimizations.
@@ -46,23 +44,22 @@ performance optimizations opportunities.
 * Consumers can choose to not support `get_dimension_size` and
   `set_dimension_size` ops until they have a motivating use-case.
 
-# Non Goals
+## Non Goals
 
 * Provide [value inference](https://github.com/openxla/xla/blob/9e05932a2ceadea080dc9494cfe9d735f94c4e68/xla/client/value_inference.h)
   like utility for producers that want to generate the `set_dimension_size` ops.
   Value inference depends on constant folding for StableHLO ops which is a work
-  in progress currently. Value inference will be designed separately in the
-  future. Note that producers that generate unbounded programs don't need this
+  in progress currently. There will be separate RFC for value inference subject
+  to separate approval. Note that producers that generate unbounded programs
+  don't need this
   in StableHLO.
 * Provide a transformation that converts StableHLO programs to bounded StableHLO
-  programs. There is a plan to have such a conversion in MHLO and StableHLO
-  users can utilize that by round tripping to MHLO. Details of this are outside
-  the scope of this RFC.
+  programs. However, there is a plan to have such a conversion in MHLO, although
+  the details of this are out of scope of this RFC.
 
-# Detailed Proposal
+## Detailed Proposal
 
-
-## (P1) Bounded tensor type using the encoding field in the RankedTensorType
+### (P1) Bounded tensor type using the encoding field in the RankedTensorType
 
 Bounds of a dynamic tensor are represented using the `TypeExtensionsAttr` in the
 `RankedTensorType` encoding field. Bounds in `TypeExtensionsAttr` is an
@@ -72,36 +69,33 @@ the IR. Disallowing a static bound value for static dimensions makes the IR
 canonical and makes it possible to infer that the dimension is dynamic if the
 bound value is static.
 
-The following type represents a 2D tensor with up to `3` rows and exactly `5`
-columns.
+The following type represents a 2D tensor, with the size of the 0th dimension
+being up to 3 and the size of the 1th dimension being exactly 5
 
 ```mlir
-tensor<?x5xf32, #stable_hlo.type_extensions<bounds = [3, ?]>>
+tensor<?x5xf32, #stablehlo.type_extensions<bounds = [3, ?]>>
 ```
 
-Type compatibility in StableHLO also checks for compatibility of the bounds. Two
-types are compatible if there exists a runtime tensor that could match both the
-types. So, two types with different bounds are compatible but a type with bounds
-that is lower than the static size in the other type are not compatible. The
-above example type is compatible with `tensor<2x5xf32>` but not with
+Type compatibility in StableHLO also checks for compatibility of the bounds.
+The example type above is compatible with `tensor<2x5xf32>` but not with
 `tensor<7x5xf32>` as it doesn’t respect the bound `3` on the first dimension.
 
 ```mlir
-func.func @bounds_compatability(%arg0: tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>,
-                                %arg1: tensor<?xf32, #stable_hlo.type_extensions<bounds = [2]>>,
-                                %arg2: tensor<?xf32, #stable_hlo.type_extensions<bounds = [4]>>,
+func.func @bounds_compatibility(%arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>,
+                                %arg1: tensor<?xf32, #stablehlo.type_extensions<bounds = [2]>>,
+                                %arg2: tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>,
                                 %arg3: tensor<2xf32>,
                                 %arg4: tensor<4xf32>) {
   // %arg0 is compatible with %arg1, %arg2 and %arg3 as bounded types could have
   // tensor<2xf32> type during runtime.
-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stable_hlo.type_extensions<bounds = [2]>>) -> tensor<?xf32, #stable_hlo.type_extensions<bounds = [2]>>
-  %1 = "stablehlo.add"(%arg0, %arg2) : (tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stable_hlo.type_extensions<bounds = [4]>>) -> tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>
-  %2 = "stablehlo.add"(%arg0, %arg3) : (tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>, tensor<2xf32>) -> tensor<2xf32>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [2]>>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [2]>>
+  %1 = "stablehlo.add"(%arg0, %arg2) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+  %2 = "stablehlo.add"(%arg0, %arg3) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<2xf32>) -> tensor<2xf32>
 
   // This is illegal as operands have incompatible types. %arg0 can either be
   // tensor<0xf32>, tensor<1xf32>, tensor<2xf32> or tensor<3xf32> at runtime,
   // none of these are compatible with tensor<4xf32>
-  %3 = "stablehlo.add"(%arg0, %arg4) : (tensor<?xf32, #stable_hlo.type_extensions<bounds = [3]>>, tensor<4xf32>) -> tensor<*xf32>
+  %3 = "stablehlo.add"(%arg0, %arg4) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<4xf32>) -> tensor<*xf32>
   func.return
 }
 ```
@@ -110,10 +104,9 @@ Currently, the StableHLO dialect uses the MLIR ranked tensor type to represent
 bounds. In the future we plan to introduce StableHLO type which supports bounds,
 along with a custom pretty printing format.  There will be a separate RFC on
 this. Also, the proposal will follow StableHLO backward compatibility policies
-so it is safe to use this type currently.
+so it is safe to use `TypeExtensionsAttr` currently.
 
-
-## (P2) StableHLO op semantics with bounded operands or results
+### (P2) StableHLO op semantics with bounded operands or results
 
 All ops that support dynamic operands or results can have bounds specified for
 them. However, the result types need to be compatible with the inferred result
@@ -123,14 +116,14 @@ compatible with the inferred type.
 Separately, the StableHLO specification will be updated to cover bounded types
 for all the relevant ops.
 
-## (P3) get\_dimension\_size / set\_dimension\_size ops
+### (P3) get\_dimension\_size / set\_dimension\_size ops
 
 The `get_dimension_size` op takes a tensor and a dimension index and returns the
-actual size of the dimension at runtime as an `i32` type scalar.
+runtime size as `tensor<i32>`.
 
 The following example returns the size of the result after concatenating input
-that has up to `16` elements with self and returns the actual runtime size of
-the concatenation result.
+that has up to `16` elements with self and returns the runtime size of the
+concatenation result.
 
 ```mlir
 func.func @self_concat_size(%data: tensor<?xi32, #stablehlo.type_extensions<bounds = [16]>>) -> tensor<i32> {
@@ -146,23 +139,22 @@ func.func @self_concat_size(%data: tensor<?xi32, #stablehlo.type_extensions<boun
 }
 ```
 
-The `set_dimension_size` op takes a bounded tensor, runtime size and a dimension
-index and returns a tensor whose logical size of the particular dimension is set
-to the specified size. This size needs to be less than or equal to the static
-size or bound for the dimension. This operation can be thought as either a slice
-or pad operation depending on if the earlier logical dimension size is larger or
+The `set_dimension_size` op takes a static or bounded tensor, runtime size and a
+dimension index and returns a tensor whose size of the particular dimension is
+set to the specified size. This size needs to be less than or equal to the
+static size or bound for the dimension. This operation can be thought as either
+a slice or pad operation depending on if the earlier dimension size is larger or
 smaller, respectively. In case the dimension size is increased, the padded
 values are undefined.
 
-In the following example, `set_dimension_size` op is used to set the logical
-size of the first dimension so that it performs a sum reduction on the first
-`batch_size` elements in the input. With data argument `[1, 2, 3, 4]` and
-batch\_size argument `2`, the following function returns `3` but it returns `6`
-for the same data argument when the batch\_size is `3`. The `set_dimension_size`
-op also sets the bound on the returned tensor. This bound depends on operand's
-static size if the operand shape is static. It is `4` in this example. If the
-operand dimension is not static, then the returned tensor has same type as the
-operand.
+In the following example, `set_dimension_size` op is used to set the size of the
+first dimension so that it performs a sum reduction on the first `batch_size`
+elements in the input. With data argument `[1, 2, 3, 4]` and batch\_size
+argument `2`, the following function returns `3` but it returns `6` for the same
+data argument when the batch\_size is `3`. The `set_dimension_size` op also sets
+the bound on the returned tensor. This bound depends on operand's static size if
+the operand shape is static. It is `4` in this example. If the operand dimension
+is not static, then the returned tensor has same type as the operand.
 
 ```mlir
 func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor<i32> {
@@ -173,7 +165,7 @@ func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor
   %sum = "stablehlo.reduce"(%dynamic_data, %zero) ({
    ^bb0(%arg1: tensor<i32>, %arg2: tensor<i32>):
     %add = stablehlo.add %arg1, %arg2 : tensor<i32>
-    "stablehlo.return"(%add) : (tensor<i32>) -> ()
+    stablehlo.return %add : tensor<i32>
   }) {dimensions = dense<[0]> : tensor<1xi64>}
     : (tensor<?xi32, #stablehlo.type_extensions<bounds = [4]>>,
        tensor<i32>) -> tensor<i32>
@@ -181,7 +173,7 @@ func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor
 }
 ```
 
-## (P4) Comparison with unbounded dynamic ops
+### (P4) Aspirational: Migration to unbounded dynamism
 
 In addition to `set_dimension_size` and `get_dimension_size` ops, StableHLO
 producers may also use unbounded dynamic ops like `real_dynamic_slice` and
@@ -203,19 +195,19 @@ func.func @dynamic_sum(%data: tensor<4xi32>, %batch_size: tensor<i32>) -> tensor
   %sum = "stablehlo.reduce"(%dynamic_data, %zero) ({
    ^bb0(%arg1: tensor<i32>, %arg2: tensor<i32>):
     %add = stablehlo.add %arg1, %arg2 : tensor<i32>
-    "stablehlo.return"(%add) : (tensor<i32>) -> ()
+    stablehlo.return %add : tensor<i32>
   }) {dimensions = dense<[0]> : tensor<1xi64>}
     : (tensor<?xi32>, tensor<i32>) -> tensor<i32>
   func.return %sum : tensor<i32>
 }
 ```
 
-Originally, XLA HLO introduced `set_dimension_size` op as it neither had dynamic
+Originally, HLO introduced `set_dimension_size` op as it neither had dynamic
 types nor dynamic ops. StableHLO dialect doesn't have these limitations and
-therefore new users don't need to make use of this low level op. The TensorFlow
-and JAX teams believe that this hypothesis should be correct based on their
-experiences so far. Dynamic operations `real_dynamic_slice` and `dynamic_pad`
-can be used instead.
+therefore new users don't need to make use of this low level op unless they are
+moving from HLO or MHLO to StableHLO. The TensorFlow and JAX teams believe that
+this hypothesis should be correct based on their experiences so far. Dynamic
+operations `real_dynamic_slice` and `dynamic_pad` can be used instead.
 
 The following example demonstrates the differences between programs using
 unbounded dynamism and bounded dynamism.
@@ -232,42 +224,18 @@ func.func @slice_with_unbounded_dynamism(%data: tensor<7xf32>, %start: tensor<1x
 
 ```mlir
 func.func @slice_with_bounded_dynamism(%data: tensor<7xf32>, %start: tensor<1xi32>, %limit: tensor<1xi32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [7]>> {
-  %zero = stablehlo.constant dense<0> : tensor<1xi32>
-  %size = stablehlo.constant dense<7> : tensor<1xi32>
-
-  // Conditionally add size of the input data if the indices are negative.
-  %is_start_neg = stablehlo.compare LT, %start, %zero
-    : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
-  %non_negative_start = "stablehlo.if"(%is_start_neg) ({
-      %1 = stablehlo.add %start, %size : tensor<1xi32>
-      "stablehlo.return"(%1) : (tensor<1xi32>) -> ()
-    }, {
-      "stablehlo.return"(%start) : (tensor<1xi32>) -> ()
-    }) : (tensor<1xi1>) -> tensor<1xi32>
-
-  %is_limit_neg = stablehlo.compare LT, %limit, %zero
-    : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
-  %non_negative_limit = "stablehlo.if"(%is_limit_neg) ({
-      %1 = stablehlo.add %limit, %size : tensor<1xi32>
-      "stablehlo.return"(%1) : (tensor<1xi32>) -> ()
-    }, {
-      "stablehlo.return"(%limit) : (tensor<1xi32>) -> ()
-    }) : (tensor<1xi1>) -> tensor<1xi32>
-
   // Add padding to avoid OOM access in the following slice op.
   %pad_value = stablehlo.constant dense<0.0> : tensor<f32>
   %padded_data = stablehlo.pad %data, %pad_value, low = [0], high = [7], interior = [0]
     : (tensor<7xf32>, tensor<f32>) -> tensor<14xf32>
 
   // Extract the largest possible slice starting at the start index.
-  %scalar_start = stablehlo.reshape %non_negative_start
-    : (tensor<1xi32>) -> tensor<i32>
+  %scalar_start = stablehlo.reshape %start : (tensor<1xi32>) -> tensor<i32>
   %padded_result = stablehlo.dynamic_slice %padded_data, %scalar_start, sizes = [7]
     : (tensor<14xf32>, tensor<i32>) -> tensor<7xf32>
 
   // Remove the extra elements extracted beyond the limit.
-  %slice_size = stablehlo.subtract %non_negative_limit, %non_negative_start
-    : tensor<1xi32>
+  %slice_size = stablehlo.subtract %limit, %start : tensor<1xi32>
   %scalar_size = stablehlo.reshape %slice_size : (tensor<1xi32>) -> tensor<i32>
   %result = stablehlo.set_dimension_size %padded_result, %scalar_size, dim = 0
     : (tensor<7xf32>, tensor<i32>)
@@ -281,13 +249,7 @@ func.func @slice_with_bounded_dynamism(%data: tensor<7xf32>, %start: tensor<1xi3
 Use of dynamic ops over `set_dimension_size` op has various benefits:
 
 * Greatly simplifies the lowering from higher level frameworks to StableHLO as
-  they don't need to make use of the value inference to compute bounds or
-  generate low level ops.
-* Opens up the opportunity to share conversion to bounded programs between
-  frameworks and compilers. Therefore, frameworks can immediately target new
-  hardware requiring bounded programs even if they didn't already support that.
-  Data dependent bounded dynamism won't require any changes and input dependent
-  bounded dynamism can be supported by just specifying the bounds on the inputs.
+  they don't need to compute upper bounds of dynamic dimensions.
 * Makes lowerings to StableHLO hardware agnostic as they don't depend on if the
   hardware requires unbounded or bounded programs.
 * Reduces the potential confusion in making use of `set_dimension_size` as the
@@ -299,11 +261,11 @@ updates. However, compilers should be making the trade-off between copy and
 additional memory based on the hardware capabilities and not the frameworks. It
 is possible to lower slice op to `set_dimension_size` op easily but going in the
 other direction is tricky. That would require program analysis to make sure that
-the logical size of the buffer is not increased later on.
+the size of the buffer is not increased later on.
 
-# Alternatives Considered
+## Alternatives Considered
 
-## Not having bounded type and/or set\_dimension\_size op
+### Not having bounded type and/or set\_dimension\_size op
 
 Given the recommendation of using unbounded dynamism, could StableHLO just have
 a function attribute to store the input bounds instead of having bounded type
