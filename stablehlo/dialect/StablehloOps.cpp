@@ -2117,7 +2117,7 @@ LogicalResult ConcatenateOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicReshapeOp::verify() {
-  return hlo::verifyDynamicReshapeOp(getLoc(), getOutputShape(),  getResult());
+  return hlo::verifyDynamicReshapeOp(getLoc(), getOutputShape(), getResult());
 }
 
 LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
@@ -2133,40 +2133,9 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
 // DynamicSliceOp
 //===----------------------------------------------------------------------===//
 
-// Verifies that the number of slice sizes and the number of start indices match
 LogicalResult DynamicSliceOp::verify() {
-  int numSliceSizes = getSliceSizes().getNumElements();
-  int numStartIndices = getStartIndices().size();
-  if (numStartIndices != numSliceSizes) {
-    return emitOpError() << "has mismatched number of slice sizes ("
-                         << numSliceSizes << ") and number of start indices ("
-                         << numStartIndices << ")";
-  }
-  auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
-  if (!operandType) return failure();
-
-  if (operandType.getRank() != numStartIndices) {
-    return emitOpError() << "has mismatched number of start indices ("
-                         << numStartIndices << ") and the rank of operand ("
-                         << operandType.getRank() << ")";
-  }
-
-  for (int i = 0; i < numSliceSizes; ++i) {
-    int64_t sliceSize = getSliceSizes().getValues<int64_t>()[i];
-    if (sliceSize < 0) {
-      return emitOpError() << "has negative size index to dynamic slice: "
-                           << sliceSize;
-    }
-    if (!operandType.isDynamicDim(i)) {
-      int64_t dimSize = operandType.getDimSize(i);
-      if (sliceSize > dimSize) {
-        return emitOpError() << "has slice size " << sliceSize
-                             << " greater than dimension size " << dimSize
-                             << " in dimension " << i << " of operand";
-      }
-    }
-  }
-  return success();
+  return hlo::verifyDynamicSliceOp(getLoc(), getOperand(), getStartIndices(),
+                                   getSliceSizes());
 }
 
 LogicalResult DynamicSliceOp::inferReturnTypeComponents(

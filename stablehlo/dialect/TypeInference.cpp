@@ -2171,6 +2171,40 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
   return success();
 }
 
+// Verifies that the number of slice sizes and the number of start indices match
+LogicalResult verifyDynamicSliceOp(Optional<Location> location, Value operand,
+                                   ValueRange startIndices,
+                                   DenseIntElementsAttr sliceSizes) {
+  int numSliceSizes = sliceSizes.getNumElements();
+  int numStartIndices = startIndices.size();
+  if (numStartIndices != numSliceSizes)
+    return emitOptionalError(location, "has mismatched number of slice sizes (",
+                             numSliceSizes, ") and number of start indices (",
+                             numStartIndices, ")");
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) return failure();
+
+  if (operandType.getRank() != numStartIndices)
+    return emitOptionalError(
+        location, "has mismatched number of start indices (", numStartIndices,
+        ") and the rank of operand (", operandType.getRank(), ")");
+
+  for (int i = 0; i < numSliceSizes; ++i) {
+    int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
+    if (sliceSize < 0)
+      return emitOptionalError(
+          location, "has negative size index to dynamic slice: ", sliceSize);
+    if (!operandType.isDynamicDim(i)) {
+      int64_t dimSize = operandType.getDimSize(i);
+      if (sliceSize > dimSize)
+        return emitOptionalError(location, "has slice size ", sliceSize,
+                                 " greater than dimension size ", dimSize,
+                                 " in dimension ", i, " of operand");
+    }
+  }
+  return success();
+}
+
 LogicalResult verifyGetTupleElementOp(Optional<Location> location,
                                       Value operand, uint32_t indexVal,
                                       Type resultType) {
