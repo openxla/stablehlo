@@ -23,7 +23,7 @@ func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> ten
 
 /// Unregistered attributes are permitted so long as their value is
 // representable and valid in VHLO in the target version.
-func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> tensor<f32> {
+func.func @custom_call_v2_with_output_operand_alises_unregistered(%arg0 : tensor<f32>) -> tensor<f32> {
   // expected-error @+1 {{failed to legalize operation 'vhlo.custom_call_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo",

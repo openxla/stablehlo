@@ -96,7 +96,6 @@ LogicalResult isLegalAttribute(NamedAttribute attr,
     return success();
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Checking version " << attr.getName() << '\n');
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr.getValue());
   if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
     return success();
