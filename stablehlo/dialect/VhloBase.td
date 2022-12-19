@@ -112,16 +112,31 @@ def VHLO_Wrapped : VHLO_TypeDef<"Wrapped", "wrapped"> {
 def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
   let parameters = (ins "::mlir::IntegerType":$value);
   let assemblyFormat = "`<` $value `>`";
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    ::mlir::LogicalResult IntegerV1Type::verify(::llvm::function_ref<InFlightDiagnostic()> emitError,
+                     ::mlir::IntegerType value) {
+      llvm::SmallVector<unsigned> validWidths{4, 8, 16, 32, 64};
+      bool isPred = (value.getWidth() == 1 && value.isSignless());
+      if (!isPred && !llvm::is_contained(validWidths, value.getWidth())) {
+        return emitError() << "invalid integer width " << value;
+      }
+      //if (!value.isSignless() && !value.isUnsigned()) {
+      //  return emitError() << "invalid integer signedness " << value;
+      //}
+      return success();
+    }
+  }];
 }
 def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
   let parameters = (ins "Type":$elementType);
   let assemblyFormat = "`<` $elementType `>`";
 }
-def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::FloatType">;
-def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::FloatType">;
-def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::FloatType">;
-def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::FloatType">;
-def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::FloatType">;
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::BFloat16Type">;
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::Float16Type">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::Float32Type">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::Float64Type">;
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::IndexType">;
 
 // Quantized Type
 def VHLO_Double : APFloatParameter<""> {
@@ -138,7 +153,7 @@ def VHLO_Double : APFloatParameter<""> {
 }
 def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let parameters = (ins
-    "unsigned":$flags, 
+    "unsigned":$flags,
     "::mlir::Type":$storageType,
     "::mlir::Type":$expressedType,
     VHLO_Double:$scale,

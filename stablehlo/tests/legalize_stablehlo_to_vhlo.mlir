@@ -341,7 +341,7 @@ func.func @op_after_all(%arg0: !stablehlo.token) -> !stablehlo.token {
 
 func.func @op_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
   //               CHECK: "vhlo.all_gather_v2"(%arg0) {
-  //          CHECK-SAME:   all_gather_dim = 1 : i64,
+  //          CHECK-SAME:   all_gather_dim = #vhlo.wrapped<1 : i64>
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>,
   //          CHECK-SAME:   use_global_device_ids
@@ -380,12 +380,17 @@ func.func @op_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_all_reduce"
 
 func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
+<<<<<<< HEAD
   //               CHECK: "vhlo.all_to_all_v2"(%arg0) {
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 1, type = 0>
   //          CHECK-SAME:   concat_dimension = 0 : i64,
+=======
+  //               CHECK: "vhlo.all_to_all"(%arg0) {
+  //          CHECK-SAME:   concat_dimension = #vhlo.wrapped<0 : i64>
+>>>>>>> 55f0609 (Wrap IntegertAttr, FloatAttr, StringAttr, FlatSymbolRefAttr.)
   // CHECK-SAME{LITERAL}:   replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
-  //          CHECK-SAME:   split_count = 4 : i64,
-  //          CHECK-SAME:   split_dimension = 1 : i64
+  //          CHECK-SAME:   split_count = #vhlo.wrapped<4 : i64>
+  //          CHECK-SAME:   split_dimension = #vhlo.wrapped<1 : i64>
   //          CHECK-SAME: } : (!vhlo.wrapped<tensor<4x16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x4x!vhlo.f32>>
   %0 = "stablehlo.all_to_all"(%arg0) {
     split_dimension = 1 : i64,
@@ -414,8 +419,8 @@ func.func @op_atan2(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
 
 func.func @op_batch_norm_grad(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>, %arg3: tensor<16xf32>, %arg4: tensor<16x16x16x16xf32>) -> (tensor<16x16x16x16xf32>, tensor<16xf32>, tensor<16xf32>) {
   //      CHECK: "vhlo.batch_norm_grad"(%arg0, %arg1, %arg2, %arg3, %arg4) {
-  // CHECK-SAME:   epsilon = 1.000000e-03 : f32,
-  // CHECK-SAME:   feature_index = 0 : i64
+  // CHECK-SAME:   epsilon = #vhlo.wrapped<1.000000e-03 : f32>,
+  // CHECK-SAME:   feature_index = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>) -> (!vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>)
   %0:3 = "stablehlo.batch_norm_grad"(%arg0, %arg1, %arg2, %arg3, %arg4) {
     epsilon = 0.001 : f32,
@@ -427,8 +432,8 @@ func.func @op_batch_norm_grad(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf
 
 func.func @op_batch_norm_inference(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>, %arg3: tensor<16xf32>, %arg4: tensor<16xf32>) -> tensor<16x16x16x16xf32> {
   //      CHECK: "vhlo.batch_norm_inference"(%arg0, %arg1, %arg2, %arg3, %arg4) {
-  // CHECK-SAME:   epsilon = 1.000000e-03 : f32,
-  // CHECK-SAME:   feature_index = 0 : i64
+  // CHECK-SAME:   epsilon = #vhlo.wrapped<1.000000e-03 : f32>,
+  // CHECK-SAME:   feature_index = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>
   %0 = "stablehlo.batch_norm_inference"(%arg0, %arg1, %arg2, %arg3, %arg4) {
     epsilon = 0.001 : f32,
@@ -440,8 +445,8 @@ func.func @op_batch_norm_inference(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor
 
 func.func @op_batch_norm_training(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>) -> (tensor<16x16x16x16xf32>, tensor<16xf32>, tensor<16xf32>) {
   //      CHECK: "vhlo.batch_norm_training"(%arg0, %arg1, %arg2) {
-  // CHECK-SAME:   epsilon = 1.000000e-03 : f32,
-  // CHECK-SAME:   feature_index = 0 : i64
+  // CHECK-SAME:   epsilon = #vhlo.wrapped<1.000000e-03 : f32>,
+  // CHECK-SAME:   feature_index = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>) -> (!vhlo.wrapped<tensor<16x16x16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x!vhlo.f32>>)
   %0:3 = "stablehlo.batch_norm_training"(%arg0, %arg1, %arg2) {
     epsilon = 0.001 : f32,
@@ -507,7 +512,7 @@ func.func @op_ceil(%arg0: tensor<f32>) -> tensor<f32> {
 
 func.func @op_cholesky(%arg0: tensor<1x16x16xf32>) -> tensor<1x16x16xf32> {
   //      CHECK: "vhlo.cholesky"(%arg0) {
-  // CHECK-SAME:   lower = true
+  // CHECK-SAME:   lower = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<1x16x16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<1x16x16x!vhlo.f32>>
   %0 = "stablehlo.cholesky"(%arg0) {
     lower = true
@@ -572,7 +577,7 @@ func.func @op_compute_reshape_shape(%arg0: index, %arg1: tensor<1xindex>) -> ten
 
 func.func @op_concatenate(%arg0: tensor<8xf32>, %arg1: tensor<8xf32>) -> tensor<16xf32> {
   //      CHECK: "vhlo.concatenate"(%arg0, %arg1) {
-  // CHECK-SAME:   dimension = 0 : i64
+  // CHECK-SAME:   dimension = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<8x!vhlo.f32>>, !vhlo.wrapped<tensor<8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x!vhlo.f32>>
   %0 = "stablehlo.concatenate"(%arg0, %arg1) {
     dimension = 0 : i64
@@ -601,9 +606,9 @@ func.func @op_convert(%arg0: tensor<i32>) -> tensor<f32> {
 
 func.func @op_convolution(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x16xf32> {
   //      CHECK: "vhlo.convolution"(%arg0, %arg1) {
-  // CHECK-SAME:   batch_group_count = 1 : i64,
+  // CHECK-SAME:   batch_group_count = #vhlo.wrapped<1 : i64>
   // CHECK-SAME:   dimension_numbers = #vhlo.conv<inputBatchDimension = 0, inputFeatureDimension = 3, inputSpatialDimensions = [1, 2], kernelInputFeatureDimension = 2, kernelOutputFeatureDimension = 3, kernelSpatialDimensions = [0, 1], outputBatchDimension = 0, outputFeatureDimension = 3, outputSpatialDimensions = [1, 2]>,
-  // CHECK-SAME:   feature_group_count = 1 : i64,
+  // CHECK-SAME:   feature_group_count = #vhlo.wrapped<1 : i64>
   // CHECK-SAME:   lhs_dilation = dense<1> : tensor<2xi64>,
   // CHECK-SAME:   padding = dense<1> : tensor<2x2xi64>,
   // CHECK-SAME:   precision_config = [#vhlo<precision DEFAULT>, #vhlo<precision DEFAULT>],
@@ -663,10 +668,10 @@ func.func @called_computation() { func.return }
 func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   //      CHECK: "vhlo.custom_call_v2"(%arg0) {
   // CHECK-SAME:   api_version = 1 : i32,
-  // CHECK-SAME:   backend_config = "",
-  // CHECK-SAME:   call_target_name = "foo",
-  // CHECK-SAME:   called_computations = [@foo],
-  // CHECK-SAME:   has_side_effect = false,
+  // CHECK-SAME:   backend_config = #vhlo.wrapped<"">,
+  // CHECK-SAME:   call_target_name = #vhlo.wrapped<"foo">,
+  // CHECK-SAME:   called_computations = [#vhlo.wrapped<@foo>],
+  // CHECK-SAME:   has_side_effect = #vhlo.wrapped<false>,
   // CHECK-SAME:   operand_layouts = [dense<> : tensor<0xindex>],
   // CHECK-SAME:   output_operand_aliases = [
   // CHECK-SAME:     #vhlo.output_operand_alias<
@@ -750,9 +755,9 @@ func.func @op_dynamic_broadcast_in_dim(%arg0: tensor<?xf32>, %arg1: tensor<2xind
 
 func.func @op_dynamic_conv(%arg0: tensor<1x8x8x207xf32>, %arg1: tensor<3x3x207x16xf32>, %arg2: tensor<4xi32>) -> tensor<1x?x?x16xf32> {
   //      CHECK: "vhlo.dynamic_conv"(%arg0, %arg1, %arg2) {
-  // CHECK-SAME:   batch_group_count = 1 : i64,
+  // CHECK-SAME:   batch_group_count = #vhlo.wrapped<1 : i64>
   // CHECK-SAME:   dimension_numbers = #vhlo.conv<inputBatchDimension = 0, inputFeatureDimension = 3, inputSpatialDimensions = [1, 2], kernelInputFeatureDimension = 2, kernelOutputFeatureDimension = 3, kernelSpatialDimensions = [0, 1], outputBatchDimension = 0, outputFeatureDimension = 3, outputSpatialDimensions = [1, 2]>,
-  // CHECK-SAME:   feature_group_count = 1 : i64,
+  // CHECK-SAME:   feature_group_count = #vhlo.wrapped<1 : i64>
   // CHECK-SAME:   lhs_dilation = dense<1> : tensor<2xi64>,
   // CHECK-SAME:   padding = dense<1> : tensor<2x2xi64>,
   // CHECK-SAME:   precision_config = [#vhlo<precision DEFAULT>, #vhlo<precision DEFAULT>],
@@ -783,7 +788,7 @@ func.func @op_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32
   // CHECK-SAME:     startIndexMap = [0, 1],
   // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   indices_are_sorted = false
+  // CHECK-SAME:   indices_are_sorted = #vhlo.wrapped<false>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<2x4x9x!vhlo.f32>>, !vhlo.wrapped<tensor<1x5x2x!vhlo.integer<i32>>>, !vhlo.wrapped<tensor<3x!vhlo.integer<i32>>>) -> !vhlo.wrapped<tensor<1x5x8x!vhlo.f32>>
   %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.gather<
@@ -800,7 +805,7 @@ func.func @op_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32
 
 func.func @op_dynamic_iota(%arg0: tensor<1xindex>) -> tensor<?xf32> {
   //      CHECK: "vhlo.dynamic_iota"(%arg0) {
-  // CHECK-SAME:   iota_dimension = 0 : i64
+  // CHECK-SAME:   iota_dimension = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<1x!vhlo.index>>) -> !vhlo.wrapped<tensor<?x!vhlo.f32>>
   %0 = "stablehlo.dynamic_iota"(%arg0) {
     iota_dimension = 0 : i64
@@ -843,7 +848,7 @@ func.func @op_dynamic_update_slice(%arg0: tensor<16xf32>, %arg1: tensor<4xf32>, 
 
 func.func @op_einsum(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
   //      CHECK: "vhlo.einsum"(%arg0, %arg1) {
-  // CHECK-SAME:   einsum_config = "ab,bc->ac"
+  // CHECK-SAME:   einsum_config = #vhlo.wrapped<"ab,bc->ac">
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<8x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x8x!vhlo.f32>>) -> !vhlo.wrapped<tensor<8x8x!vhlo.f32>>
   %0 = "stablehlo.einsum"(%arg0, %arg1) {
     einsum_config = "ab,bc->ac"
@@ -894,7 +899,7 @@ func.func @op_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> te
   // CHECK-SAME:     startIndexMap = [0, 1],
   // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   indices_are_sorted = false,
+  // CHECK-SAME:   indices_are_sorted = #vhlo.wrapped<false>,
   // CHECK-SAME:   slice_sizes = dense<1> : tensor<3xi64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<2x4x9x!vhlo.f32>>, !vhlo.wrapped<tensor<1x5x2x!vhlo.integer<i32>>>) -> !vhlo.wrapped<tensor<1x5x1x!vhlo.f32>>
   %0 = "stablehlo.gather"(%arg0, %arg1) {
@@ -913,7 +918,7 @@ func.func @op_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> te
 
 func.func @op_get_dimension_size(%arg0: tensor<?xf32>) -> tensor<i32> {
   //      CHECK: "vhlo.get_dimension_size"(%arg0) {
-  // CHECK-SAME:   dimension = 0 : i64
+  // CHECK-SAME:   dimension = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<?x!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.integer<i32>>>
   %0 = "stablehlo.get_dimension_size"(%arg0) {
     dimension = 0 : i64
@@ -957,7 +962,7 @@ func.func @op_imag(%arg0: tensor<complex<f32>>) -> tensor<f32> {
 
 func.func @op_infeed(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token) {
   //               CHECK: "vhlo.infeed"(%arg0) {
-  //          CHECK-SAME:   infeed_config = "",
+  //          CHECK-SAME:   infeed_config = #vhlo.wrapped<"">,
   // CHECK-SAME{LITERAL}:   layout = [[]]
   //          CHECK-SAME: } : (!vhlo.token) -> (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.token)
   %0:2 = "stablehlo.infeed"(%arg0) {
@@ -970,7 +975,7 @@ func.func @op_infeed(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token)
 
 func.func @op_iota() -> tensor<16xf32> {
   //      CHECK: "vhlo.iota"() {
-  // CHECK-SAME:   iota_dimension = 0 : i64
+  // CHECK-SAME:   iota_dimension = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : () -> !vhlo.wrapped<tensor<16x!vhlo.f32>>
   %0 = "stablehlo.iota"() {
     iota_dimension = 0 : i64
@@ -1077,7 +1082,7 @@ func.func @op_or(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
 
 func.func @op_outfeed(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   //      CHECK: "vhlo.outfeed"(%arg0, %arg1) {
-  // CHECK-SAME:   outfeed_config = ""
+  // CHECK-SAME:   outfeed_config = #vhlo.wrapped<"">
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.token) -> !vhlo.token
   %0 = "stablehlo.outfeed"(%arg0, %arg1) {
     outfeed_config = ""
@@ -1132,7 +1137,7 @@ func.func @op_real(%arg0: tensor<complex<f32>>) -> tensor<f32> {
 func.func @op_recv(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token) {
   //      CHECK: "vhlo.recv"(%arg0) {
   // CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
-  // CHECK-SAME:   is_host_transfer = true
+  // CHECK-SAME:   is_host_transfer = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.token) -> (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.token)
   %0:2 = "stablehlo.recv"(%arg0) {
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
@@ -1156,8 +1161,8 @@ func.func @op_reduce(%arg0: tensor<16xf32>, %arg1: tensor<f32>) -> tensor<f32> {
 
 func.func @op_reduce_precision(%arg0: tensor<f32>) -> tensor<f32> {
   //      CHECK: "vhlo.reduce_precision"(%arg0) {
-  // CHECK-SAME:   exponent_bits = 8 : i32,
-  // CHECK-SAME:   mantissa_bits = 10 : i32
+  // CHECK-SAME:   exponent_bits = #vhlo.wrapped<8 : i32>
+  // CHECK-SAME:   mantissa_bits = #vhlo.wrapped<10 : i32>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
   %0 = "stablehlo.reduce_precision"(%arg0) {
     exponent_bits = 8 : i32,
@@ -1175,7 +1180,7 @@ func.func @op_reduce_scatter(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   //          CHECK-NEXT: }) {
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   replica_groups = dense<[[0], [1]]> : tensor<2x1xi64>,
-  //          CHECK-SAME:   scatter_dimension = 0 : i64
+  //          CHECK-SAME:   scatter_dimension = #vhlo.wrapped<0 : i64>
   //          CHECK-SAME: } : (!vhlo.wrapped<tensor<16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x!vhlo.f32>>
   %0 = "stablehlo.reduce_scatter"(%arg0) ({
     ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
@@ -1316,14 +1321,14 @@ func.func @op_scatter(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi32>, %
   // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.add"(%[[ARG3]], %[[ARG4]]) : (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.f32>>
   // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.wrapped<tensor<!vhlo.f32>>) -> ()
   // CHECK-NEXT: }) {
-  // CHECK-SAME:  indices_are_sorted = true,
+  // CHECK-SAME:  indices_are_sorted = #vhlo.wrapped<true>,
   // CHECK-SAME:  scatter_dimension_numbers = #vhlo.scatter<
   // CHECK-SAME:    updateWindowDims = [1],
   // CHECK-SAME:    insertedWindowDims = [0, 1],
   // CHECK-SAME:    scatterDimsToOperandDims = [0, 1],
   // CHECK-SAME:    indexVectorDim = 1
   // CHECK-SAME:  >,
-  // CHECK-SAME:  unique_indices = true
+  // CHECK-SAME:  unique_indices = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<200x100x300x!vhlo.f32>>, !vhlo.wrapped<tensor<10x2x!vhlo.integer<i32>>>, !vhlo.wrapped<tensor<10x300x!vhlo.f32>>) -> !vhlo.wrapped<tensor<200x100x300x!vhlo.f32>>
   %0 = "stablehlo.scatter"(%arg0, %arg1, %arg2) ({
     ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
@@ -1384,7 +1389,7 @@ func.func @op_select(%arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) 
 func.func @op_send(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   //      CHECK: "vhlo.send"(%arg0, %arg1) {
   // CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
-  // CHECK-SAME:   is_host_transfer = true
+  // CHECK-SAME:   is_host_transfer = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.token) -> !vhlo.token
   %0 = "stablehlo.send"(%arg0, %arg1) {
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
@@ -1396,7 +1401,7 @@ func.func @op_send(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.to
 
 func.func @op_set_dimension_size(%arg0: tensor<?xf32>, %arg1: tensor<i32>) -> tensor<16xf32> {
   //      CHECK: "vhlo.set_dimension_size"(%arg0, %arg1) {
-  // CHECK-SAME:   dimension = 0 : i64
+  // CHECK-SAME:   dimension = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<?x!vhlo.f32>>, !vhlo.wrapped<tensor<!vhlo.integer<i32>>>) -> !vhlo.wrapped<tensor<16x!vhlo.f32>>
   %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {
     dimension = 0 : i64
@@ -1461,8 +1466,8 @@ func.func @op_sort(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.compare"(%[[ARG1]], %[[ARG2]]) {compare_type = #vhlo<comparison_type FLOAT>, comparison_direction = #vhlo<comparison_direction GT>} : (!vhlo.wrapped<tensor<!vhlo.f32>>, !vhlo.wrapped<tensor<!vhlo.f32>>) -> !vhlo.wrapped<tensor<!vhlo.integer<i1>>>
   // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.wrapped<tensor<!vhlo.integer<i1>>>) -> ()
   // CHECK-NEXT: }) {
-  // CHECK-SAME:   dimension = 0 : i64,
-  // CHECK-SAME:   is_stable = true
+  // CHECK-SAME:   dimension = #vhlo.wrapped<0 : i64>
+  // CHECK-SAME:   is_stable = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x!vhlo.f32>>
   %0 = "stablehlo.sort"(%arg0) ({
     ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
@@ -1499,8 +1504,8 @@ func.func @op_tanh(%arg0: tensor<f32>) -> tensor<f32> {
 
 func.func @op_torch_index_select(%arg0: tensor<5x1x5xf32>, %arg1: tensor<2xi32>) ->  tensor<2x1x5xf32> {
   //      CHECK: "vhlo.torch_index_select"(%arg0, %arg1) {
-  // CHECK-SAME:   batch_dims = 0 : i64,
-  // CHECK-SAME:   dim = 0 : i64
+  // CHECK-SAME:   batch_dims = #vhlo.wrapped<0 : i64>
+  // CHECK-SAME:   dim = #vhlo.wrapped<0 : i64>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<5x1x5x!vhlo.f32>>, !vhlo.wrapped<tensor<2x!vhlo.integer<i32>>>) -> !vhlo.wrapped<tensor<2x1x5x!vhlo.f32>>
   %0 = "stablehlo.torch_index_select"(%arg0, %arg1) {
     dim = 0 : i64,
@@ -1512,7 +1517,7 @@ func.func @op_torch_index_select(%arg0: tensor<5x1x5xf32>, %arg1: tensor<2xi32>)
 
 func.func @op_trace(%arg0: tensor<f32>) {
   //      CHECK: "vhlo.trace"(%arg0) {
-  // CHECK-SAME:   tag = "foo"
+  // CHECK-SAME:   tag = #vhlo.wrapped<"foo">
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<!vhlo.f32>>) -> ()
   "stablehlo.trace"(%arg0) {
     tag = "foo"
@@ -1534,10 +1539,10 @@ func.func @op_transpose(%arg0: tensor<16x8xf32>) ->  tensor<8x16xf32> {
 
 func.func @op_triangular_solve(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32>) ->  tensor<16x16xf32> {
   //      CHECK: "vhlo.triangular_solve"(%arg0, %arg1) {
-  // CHECK-SAME:   left_side = true,
-  // CHECK-SAME:   lower = true,
+  // CHECK-SAME:   left_side = #vhlo.wrapped<true>,
+  // CHECK-SAME:   lower = #vhlo.wrapped<true>,
   // CHECK-SAME:   transpose_a = #vhlo<transpose NO_TRANSPOSE>,
-  // CHECK-SAME:   unit_diagonal = true
+  // CHECK-SAME:   unit_diagonal = #vhlo.wrapped<true>
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<16x16x!vhlo.f32>>, !vhlo.wrapped<tensor<16x16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<16x16x!vhlo.f32>>
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {
     left_side = true,
@@ -1558,7 +1563,7 @@ func.func @op_tuple(%arg0: tensor<f32>) -> tuple<tensor<f32>> {
 
 func.func @op_unary_einsum(%arg0: tensor<8x16xf32>) -> tensor<8xf32> {
   //      CHECK: "vhlo.unary_einsum"(%arg0) {
-  // CHECK-SAME:   einsum_config = "ab->a"
+  // CHECK-SAME:   einsum_config = #vhlo.wrapped<"ab->a">
   // CHECK-SAME: } : (!vhlo.wrapped<tensor<8x16x!vhlo.f32>>) -> !vhlo.wrapped<tensor<8x!vhlo.f32>>
   %0 = "stablehlo.unary_einsum"(%arg0) {
     einsum_config = "ab->a"

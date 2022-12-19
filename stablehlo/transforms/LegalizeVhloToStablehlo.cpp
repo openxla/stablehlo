@@ -40,7 +40,7 @@ namespace {
   return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
 
 Attribute convertAttrToStablehlo(Attribute vhloAttr) {
-  LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
+  LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
   if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
@@ -100,6 +100,11 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose);
   }
+  if (vhloAttr.isa<vhlo::AttrWrapAttr>()) {
+    return convertAttrToStablehlo(
+        vhloAttr.cast<vhlo::AttrWrapAttr>().getData());
+  }
+
   if (vhloAttr.getDialect().getNamespace() ==
       vhlo::VhloDialect::getDialectNamespace()) {
     // All VHLO attributes must have counterparts in StableHLO.

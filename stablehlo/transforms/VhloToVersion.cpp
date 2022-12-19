@@ -23,6 +23,8 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -97,7 +99,24 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
 
 LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   // TODO: Remove once builtin types are forked.
-  if (isFromDialect(attr, "builtin")) {
+  // I64Attr
+  // I32Attr
+  // F32Attr
+  // BoolAttr is IntegerAttr
+  // I64ElementsAttr is DenseElementsAttr?
+  // BroadcastDimAttr ?
+  // DefaultValuedOptionalAttr
+  // OptionalAttr
+  // TypedArrayAttrBase
+  // kDictionaryAttr = 1,
+  // kFlatSymbolRefAttr = 4,
+  // kFileLineColLoc = 11,
+  // kFusedLoc = 12,
+  // kFusedLocWithMetadata = 13,
+  // kNameLoc = 14,
+  // kUnknownLoc = 15,
+  // kDenseIntOrFPElementsAttr = 18,
+  if (attr.isa<ArrayAttr, DenseElementsAttr, UnitAttr, FlatSymbolRefAttr>()) {
     return success();
   }
 
@@ -107,7 +126,7 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   }
 
   LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
-                          << " to version " << targetVersion);
+                          << " to version " << targetVersion << '\n');
   return failure();
 }
 

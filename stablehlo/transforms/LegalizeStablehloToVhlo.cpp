@@ -12,7 +12,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -111,10 +113,22 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
     return {};
   }
 
-  // Handle non-StableHLO attributes.
-  // If an attribute is not defined in StableHLO, then it is unchanged,
-  // with the exception of ArrayAttr which is converted recursively.
-  // This will change once we fork necessary upstream types to VHLO.
+  // Handle builtin attributes.
+  // Supported attributes are wrapped or converted to VHLO.
+
+  // Don't support string attr with type.
+  if (stablehloAttr.isa<StringAttr>() &&
+      !stablehloAttr.cast<StringAttr>().getType().isa<NoneType>()) {
+    LLVM_DEBUG(llvm::dbgs() << "Failed to convert string with type: "
+                            << stablehloAttr << '\n');
+    return {};
+  }
+
+  if (stablehloAttr
+          .isa<IntegerAttr, FloatAttr, StringAttr, FlatSymbolRefAttr>()) {
+    return vhlo::AttrWrapAttr::get(stablehloAttr.getContext(), stablehloAttr);
+  }
+
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
@@ -124,7 +138,14 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
     }
     return ArrayAttr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  return stablehloAttr;
+
+  // TODO: Remove after these are wrapped.
+  if (stablehloAttr.isa<DenseElementsAttr, UnitAttr, FlatSymbolRefAttr>()) {
+    return stablehloAttr;
+  }
+
+  LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
+  return {};  // Failed to convert attribute.
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
@@ -137,10 +158,9 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       StablehloOpTy stablehloOp, typename StablehloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> vhloTypes;
-    LLVM_DEBUG(llvm::dbgs() << "Converting types:\n");
     if (failed(this->getTypeConverter()->convertTypes(
             stablehloOp->getResultTypes(), vhloTypes))) {
-      LLVM_DEBUG(llvm::dbgs() << "Failed type conversion\n");
+      LLVM_DEBUG(llvm::dbgs() << "Failed StableHLO -> VHLO type conversion\n");
       return failure();
     }
 
