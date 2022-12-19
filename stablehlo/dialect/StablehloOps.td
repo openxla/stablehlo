@@ -1510,8 +1510,6 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
 
   let results = (outs HLO_TensorOrTokenOrTuple);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
     $operand `[` $index `]` attr-dict `:` functional-type(operands, results)
   }];

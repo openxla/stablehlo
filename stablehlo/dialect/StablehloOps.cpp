@@ -1705,15 +1705,6 @@ void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
 }
 
 //===----------------------------------------------------------------------===//
-// GetTupleElementOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult GetTupleElementOp::verify() {
-  return hlo::verifyGetTupleElementOp(getLoc(), getOperand(), getIndex(),
-                                      getType());
-}
-
-//===----------------------------------------------------------------------===//
 // TupleOp
 //===----------------------------------------------------------------------===//
 
@@ -3281,19 +3272,12 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult GetTupleElementOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands,
-    DictionaryAttr attributes, RegionRange,
+    MLIRContext*, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto tupleType = operands[0].getType().dyn_cast<TupleType>();
-  if (!tupleType) return failure();
-
-  auto indexAttr = attributes.get("index").cast<IntegerAttr>();
-  auto index = indexAttr.getInt();
-  if (index < 0 || index >= static_cast<int64_t>(tupleType.size()))
-    return failure();
-
-  inferredReturnTypes.push_back(tupleType.getType(index));
-  return success();
+  GetTupleElementOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferGetTupleElementOp(location, adaptor.getOperand(),
+                                     adaptor.getIndex(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

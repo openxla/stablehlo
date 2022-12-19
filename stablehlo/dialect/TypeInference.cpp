@@ -1347,6 +1347,23 @@ LogicalResult inferDynamicUpdateSliceOp(
   return success();
 }
 
+LogicalResult inferGetTupleElementOp(
+    Optional<Location> location, Value operand, int32_t index,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  auto operandType = operand.getType().dyn_cast<TupleType>();
+  if (!operandType) return failure();
+  if (index >= static_cast<int64_t>(operandType.size()))
+    return emitOptionalError(location, "index ", index,
+                             " is out of bounds of operand with size ",
+                             operandType.size());
+
+  if (index < 0 || index >= static_cast<int64_t>(operandType.size()))
+    return failure();
+
+  inferredReturnTypes.push_back(operandType.getType(index));
+  return success();
+}
+
 LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto argTy = x.getType().cast<TensorType>();
@@ -2193,22 +2210,6 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
   }
-  return success();
-}
-
-LogicalResult verifyGetTupleElementOp(Optional<Location> location,
-                                      Value operand, uint32_t index,
-                                      Type resultType) {
-  auto operandType = operand.getType().cast<TupleType>();
-  if (index >= operandType.size())
-    return emitOptionalError(location, "index ", index,
-                             " is out of bounds of operand with size ",
-                             operandType.size());
-
-  auto expectedType = operandType.getType(index);
-  if (resultType != expectedType)
-    return emitOptionalError(location, "has return type ", resultType,
-                             ", but expected ", expectedType);
   return success();
 }
 

@@ -187,6 +187,10 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferGetTupleElementOp(
+    Optional<Location> location, Value operand, int32_t index,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -300,10 +304,6 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
-
-LogicalResult verifyGetTupleElementOp(Optional<Location> location,
-                                      Value operand, uint32_t indexVal,
-                                      Type resultType);
 
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
                            Type resultType);
