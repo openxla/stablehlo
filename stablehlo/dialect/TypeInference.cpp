@@ -2247,6 +2247,36 @@ LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
   return success();
 }
 
+// Verifies that operand rank matches start_indices/limit_indices/strides size
+LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
+                                       Value operand, Value startIndices,
+                                       Value limitIndices, Value strides) {
+  auto inputType = operand.getType().dyn_cast<RankedTensorType>();
+  // If operand is unranked, there is very little to verify statically.
+  if (!inputType) return success();
+  int inputRank = inputType.getRank();
+
+  auto startType = startIndices.getType().cast<RankedTensorType>();
+  auto limitType = limitIndices.getType().cast<RankedTensorType>();
+  auto stridesType = strides.getType().cast<RankedTensorType>();
+
+  if (inputRank != startType.getNumElements())
+    return emitOptionalError(
+        location, "has mismatched number of operand rank (", inputRank,
+        ") and start_indices size (", startType.getNumElements(), ")");
+
+  if (inputRank != limitType.getNumElements())
+    return emitOptionalError(
+        location, "has mismatched number of operand rank (", inputRank,
+        ") and limit_indices size (", limitType.getNumElements(), ")");
+
+  if (inputRank != stridesType.getNumElements())
+    return emitOptionalError(
+        location, "has mismatched number of operand rank (", inputRank,
+        ") and strides size (", stridesType.getNumElements(), ")");
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that

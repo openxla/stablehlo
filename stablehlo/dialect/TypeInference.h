@@ -315,6 +315,10 @@ LogicalResult verifyGetTupleElementOp(Optional<Location> location,
 LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
                            Type resultType);
 
+LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
+                                       Value operand, Value startIndices,
+                                       Value limitIndices, Value strides);
+
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);

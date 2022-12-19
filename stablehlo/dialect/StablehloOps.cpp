@@ -2151,36 +2151,10 @@ LogicalResult DynamicSliceOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 // RealDynamicSliceOp
 //===----------------------------------------------------------------------===//
-// Verifies that operand rank matches start_indices/limit_indices/strides size
 LogicalResult RealDynamicSliceOp::verify() {
-  auto inputType = getOperand().getType().dyn_cast<RankedTensorType>();
-  // If operand is unranked, there is very little to verify statically.
-  if (!inputType) return success();
-  int inputRank = inputType.getRank();
-
-  auto startType = getStartIndices().getType().cast<RankedTensorType>();
-  auto limitType = getLimitIndices().getType().cast<RankedTensorType>();
-  auto stridesType = getStrides().getType().cast<RankedTensorType>();
-
-  if (inputRank != startType.getNumElements()) {
-    return emitOpError() << "has mismatched number of operand rank ("
-                         << inputRank << ") and start_indices size ("
-                         << startType.getNumElements() << ")";
-  }
-
-  if (inputRank != limitType.getNumElements()) {
-    return emitOpError() << "has mismatched number of operand rank ("
-                         << inputRank << ") and limit_indices size ("
-                         << limitType.getNumElements() << ")";
-  }
-
-  if (inputRank != stridesType.getNumElements()) {
-    return emitOpError() << "has mismatched number of operand rank ("
-                         << inputRank << ") and strides size ("
-                         << stridesType.getNumElements() << ")";
-  }
-
-  return success();
+  return hlo::verifyRealDynamicSliceOp(getLoc(), getOperand(),
+                                       getStartIndices(), getLimitIndices(),
+                                       getStrides());
 }
 
 LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
