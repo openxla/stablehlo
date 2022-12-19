@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloOps.h"
 
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"

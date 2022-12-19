@@ -21,6 +21,7 @@ limitations under the License.
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"  // for readEnumAttribute
@@ -168,6 +169,29 @@ enum AttributeCode {
   ///     operandTupleIndices: svarint[]
   ///   }
   kOutputOperandAlias = 14,
+
+  ///   StringAttr {
+  ///     value: string
+  ///   }
+  kStringAttr = 20,
+
+  ///   FlatSymbolRefAttr {
+  ///     rootReference: StringAttr
+  ///   }
+  /// A variant of SymbolRefAttr with no leaf references.
+  kFlatSymbolRefAttr = 21,
+
+  ///   IntegerAttr {
+  ///     type: Type
+  ///     value: APInt,
+  ///   }
+  kIntegerAttr = 22,
+
+  ///   FloatAttr {
+  ///     type: FloatType
+  ///     value: APFloat
+  ///   }
+  kFloatAttr = 23,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -346,6 +370,20 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(TypeExtensionsAttr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
+  // Wrapped Attributes
+  LogicalResult writeWrappedAttribute(AttrWrapAttr attr,
+                                      DialectBytecodeWriter &writer) const;
+  AttrWrapAttr readStringAttr(DialectBytecodeReader &reader) const;
+  AttrWrapAttr readFloatAttr(DialectBytecodeReader &reader) const;
+  AttrWrapAttr readIntegerAttr(DialectBytecodeReader &reader) const;
+  AttrWrapAttr readFlatSymbolRefAttr(DialectBytecodeReader &reader) const;
+
+  void write(FlatSymbolRefAttr attr, DialectBytecodeWriter &writer) const;
+  void write(FloatAttr attr, DialectBytecodeWriter &writer) const;
+  void write(IntegerAttr attr, DialectBytecodeWriter &writer) const;
+  void write(StringAttr attr, DialectBytecodeWriter &writer) const;
+
+  //===--------------------------------------------------------------------===//
   // Types
 
   // These methods are invoked by superclass when a type from VHLO dialect
@@ -416,8 +454,14 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readDotDimensionNumbersAttr(reader);
     case vhlo_encoding::kFftTypeAttr:
       return readFftTypeAttr(reader);
+    case vhlo_encoding::kFlatSymbolRefAttr:
+      return readFlatSymbolRefAttr(reader);
+    case vhlo_encoding::kFloatAttr:
+      return readFloatAttr(reader);
     case vhlo_encoding::kGatherDimensionNumbers:
       return readGatherDimensionNumbersAttr(reader);
+    case vhlo_encoding::kIntegerAttr:
+      return readIntegerAttr(reader);
     case vhlo_encoding::kOutputOperandAlias:
       return readOutputOperandAliasAttr(reader);
     case vhlo_encoding::kPrecisionAttr:
@@ -428,6 +472,8 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readRngDistributionAttr(reader);
     case vhlo_encoding::kScatterDimensionNumbersAttr:
       return readScatterDimensionNumbersAttr(reader);
+    case vhlo_encoding::kStringAttr:
+      return readStringAttr(reader);
     case vhlo_encoding::kTransposeAttr:
       return readTransposeAttr(reader);
     case vhlo_encoding::kTypeExtensionsAttr:
@@ -656,6 +702,10 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
         write(attr, writer);
         return success();
       })
+      .Case<AttrWrapAttr>([&](AttrWrapAttr attr) {
+        LOG_WRITE_CALL;
+        return writeWrappedAttribute(attr, writer);
+      })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -773,6 +823,104 @@ void VhloBytecodeInterface::write(TypeExtensionsAttr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTypeExtensionsAttr);
   writer.writeSignedVarInts(attr.getBounds());
+}
+
+//===----------------------------------------------------------------------===//
+// Attributes: Wrapped
+
+LogicalResult VhloBytecodeInterface::writeWrappedAttribute(
+    AttrWrapAttr attr, DialectBytecodeWriter &writer) const {
+  return TypeSwitch<Attribute, LogicalResult>(attr.getData())
+      .Case<IntegerAttr, FloatAttr, StringAttr, FlatSymbolRefAttr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;
+            write(attr, writer);
+            return success();
+          })
+      .Default([&](Attribute) {
+        LOG_NOT_IMPLEMENTED;
+        return failure();
+      });
+}
+
+AttrWrapAttr VhloBytecodeInterface::readIntegerAttr(
+    DialectBytecodeReader &reader) const {
+  Type type;
+  if (failed(reader.readType(type))) return AttrWrapAttr();
+
+  // FIXME: Wrap the integer attr internals.
+  // Can be an integer or index attr.
+
+  // Extract the value storage width from the type.
+  unsigned bitWidth;
+  if (auto intType = type.dyn_cast<IntegerType>()) {
+    bitWidth = intType.getWidth();
+  } else if (type.isa<IndexType>()) {
+    bitWidth = IndexType::kInternalStorageBitWidth;
+  } else {
+    reader.emitError()
+        << "expected integer or index type for IntegerAttr, but got: " << type;
+    return AttrWrapAttr();
+  }
+
+  FailureOr<APInt> value = reader.readAPIntWithKnownWidth(bitWidth);
+  if (failed(value)) return AttrWrapAttr();
+  return AttrWrapAttr::get(getContext(), IntegerAttr::get(type, *value));
+}
+
+AttrWrapAttr VhloBytecodeInterface::readFloatAttr(
+    DialectBytecodeReader &reader) const {
+  FloatType type;
+  // FIXME: This should call into a FloatV1Type.
+  if (failed(reader.readType(type))) return AttrWrapAttr();
+  FailureOr<APFloat> value =
+      reader.readAPFloatWithKnownSemantics(type.getFloatSemantics());
+  if (failed(value)) return AttrWrapAttr();
+  return AttrWrapAttr::get(getContext(), FloatAttr::get(type, *value));
+}
+
+AttrWrapAttr VhloBytecodeInterface::readFlatSymbolRefAttr(
+    DialectBytecodeReader &reader) const {
+  StringAttr rootReference;
+  if (failed(reader.readAttribute(rootReference)))
+    return AttrWrapAttr();
+  return AttrWrapAttr::get(getContext(), FlatSymbolRefAttr::get(rootReference));
+}
+
+AttrWrapAttr VhloBytecodeInterface::readStringAttr(
+    DialectBytecodeReader &reader) const {
+  StringRef string;
+  if (failed(reader.readString(string)))
+    return AttrWrapAttr();
+  return AttrWrapAttr::get(
+      getContext(), StringAttr::get(string, NoneType::get(getContext())));
+}
+
+void VhloBytecodeInterface::write(IntegerAttr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kIntegerAttr);
+  writer.writeType(attr.getType());
+  writer.writeAPIntWithKnownWidth(attr.getValue());
+}
+
+void VhloBytecodeInterface::write(FloatAttr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kFloatAttr);
+  writer.writeType(attr.getType());
+  writer.writeAPFloatWithKnownSemantics(attr.getValue());
+}
+
+void VhloBytecodeInterface::write(FlatSymbolRefAttr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kFlatSymbolRefAttr);
+
+  writer.writeAttribute(attr.getRootReference());
+}
+
+void VhloBytecodeInterface::write(StringAttr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kStringAttr);
+  writer.writeOwnedString(attr.getValue());
 }
 
 //===----------------------------------------------------------------------===//
