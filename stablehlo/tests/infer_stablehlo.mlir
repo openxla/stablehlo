@@ -1032,6 +1032,8 @@ func.func @concat_bounds_unranked_c1(
 
 // CHECK-LABEL: @gather
 func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<3xi32> {
+  // CHECK: %[[CST:.*]] = arith.constant dense<[1, 5, 8]> : tensor<3xi32>
+  // CHECK: return %[[CST]] : tensor<3xi32>
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],
@@ -1049,7 +1051,13 @@ func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<1x5x2xi32>) 
 // -----
 
 // CHECK-LABEL: func @pad
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?x48x48x32xf32>
 func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
+  // CHECK: %[[CST0:.*]] = arith.constant 0 : index
+  // CHECK: %[[CST1:.*]] = arith.constant 48 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[CST0]] : tensor<?x48x48x32xf32>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM]], %[[CST1]], %[[CST1]], %[[CST1]] : tensor<4xindex>
+  // CHECK: return %[[RES]] : tensor<4xindex>
   %0 = "stablehlo.constant"() {value = dense<0.000000e+00> : tensor<f32>} : () -> tensor<f32>
   %result = "stablehlo.pad"(%arg0, %0) {
     edge_padding_high = dense<[0, 0, 0, 16]> : tensor<4xi64>,
@@ -1072,6 +1080,8 @@ func.func @concatenate(%arg0: tensor<1xi32>, %arg1: tensor<*xi32>)  -> tensor<1x
 
 // CHECK-LABEL: func @reduce
 func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xindex>) {
+  // CHECK: %[[CST:.*]] = arith.constant dense<4> : tensor<1xindex>
+  // CHECK: return %[[CST]] : tensor<1xindex>
   %result = "stablehlo.reduce"(%arg0, %arg1) ({
   ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
@@ -1084,7 +1094,19 @@ func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xind
 // -----
 
 // CHECK-LABEL: func @real_dynamic_slice
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?xf32>, %[[ARG1:.*]]: tensor<1xindex>, %[[ARG2:.*]]: tensor<1xindex>, %[[ARG3:.*]]: tensor<1xindex>
 func.func @real_dynamic_slice(%arg0: tensor<?xf32>, %arg1: tensor<1xindex>, %arg2: tensor<1xindex>, %arg3: tensor<1xindex>) -> tensor<1xindex> {
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[EXTD:.*]] = tensor.extract %[[ARG1]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[EXTD0:.*]] = tensor.extract %[[ARG2]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[EXTD1:.*]] = tensor.extract %[[ARG3]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[V0:.*]] = arith.subi %[[EXTD0]], %[[EXTD]] : index
+  // CHECK: %[[V1:.*]] = arith.addi %[[EXTD1]], %[[V0]] : index
+  // CHECK: %[[V2:.*]] = arith.subi %[[V1]], %[[C1]] : index
+  // CHECK: %[[V3:.*]] = arith.divsi %[[V2]], %[[EXTD1]] : index
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[V3]] : tensor<1xindex>
+  // CHECK: return %[[RES]] : tensor<1xindex>
   %result = "stablehlo.real_dynamic_slice"(%arg0, %arg1, %arg2, %arg3) : (tensor<?xf32>, tensor<1xindex>, tensor<1xindex>, tensor<1xindex>) -> tensor<?xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
   func.return %1: tensor<1xindex>
@@ -1093,7 +1115,15 @@ func.func @real_dynamic_slice(%arg0: tensor<?xf32>, %arg1: tensor<1xindex>, %arg
 // -----
 
 // CHECK-LABEL: func @dot_general
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?x?xf32>, %[[ARG1:.*]]: tensor<?x?x?xf32>
 func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<3xindex> {
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[C2:.*]] = arith.constant 2 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?x?x?xf32>
+  // CHECK: %[[DIM0:.*]] = tensor.dim %[[ARG0]], %[[C2]] : tensor<?x?x?xf32>
+  // CHECK: %[[DIM1:.*]] = tensor.dim %[[ARG1]], %[[C2]] : tensor<?x?x?xf32>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM]], %[[DIM0]], %[[DIM1]] : tensor<3xindex>
+  // CHECK: return %[[RES]] : tensor<3xindex>
   %result = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -1109,7 +1139,23 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> te
 // -----
 
 // CHECK-LABEL: func @dynamic_pad
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?xf32>, %[[ARG1:.*]]: tensor<f32>, %[[ARG2:.*]]: tensor<1xindex>, %[[ARG3:.*]]: tensor<1xindex>, %[[ARG4:.*]]: tensor<1xindex>
 func.func @dynamic_pad(%arg0: tensor<?xf32>, %arg1: tensor<f32>, %arg2: tensor<1xindex>, %arg3: tensor<1xindex>, %arg4: tensor<1xindex>) -> tensor<1xindex> {
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?xf32>
+  // CHECK: %[[EXTD:.*]] = tensor.extract %[[ARG2]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[EXTD0:.*]] = tensor.extract %[[ARG3]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[EXTD1:.*]] = tensor.extract %[[ARG4]][%[[C0]]] : tensor<1xindex>
+  // CHECK: %[[V0:.*]] = arith.cmpi slt, %[[DIM]], %[[C1]] : index
+  // CHECK: %[[V1:.*]] = arith.subi %[[DIM]], %[[C1]] : index
+  // CHECK: %[[V2:.*]] = arith.select %[[V0]], %[[C0]], %[[V1]] : index
+  // CHECK: %[[V3:.*]] = arith.muli %[[EXTD1]], %[[V2]] : index
+  // CHECK: %[[V4:.*]] = arith.addi %[[V3]], %[[DIM]] : index
+  // CHECK: %[[V5:.*]] = arith.addi %[[V4]], %[[EXTD]] : index
+  // CHECK: %[[V6:.*]] = arith.addi %[[V5]], %[[EXTD0]] : index
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[V6]] : tensor<1xindex>
+  // CHECK: return %[[RES]] : tensor<1xindex>
   %result = "stablehlo.dynamic_pad"(%arg0, %arg1, %arg2, %arg3, %arg4) : (tensor<?xf32>, tensor<f32>, tensor<1xindex>, tensor<1xindex>, tensor<1xindex>) -> tensor<?xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
   func.return %1: tensor<1xindex>
@@ -1119,6 +1165,8 @@ func.func @dynamic_pad(%arg0: tensor<?xf32>, %arg1: tensor<f32>, %arg2: tensor<1
 
 // CHECK-LABEL: func @broadcast
 func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<3xindex> {
+  // CHECK: %[[CST:.*]] = arith.constant dense<[1, 2, 3]> : tensor<3xindex>
+  // CHECK: return %[[CST]] : tensor<3xindex>
   %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x3xi32>) -> tensor<3xindex>
   func.return %1: tensor<3xindex>
@@ -1127,7 +1175,18 @@ func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<3xindex> {
 // -----
 
 // CHECK-LABEL: func @transpose
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?x?x?xi32>
 func.func @transpose(%arg0: tensor<?x?x?x?xi32>) ->  tensor<4xindex> {
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[C2:.*]] = arith.constant 2 : index
+  // CHECK: %[[C3:.*]] = arith.constant 3 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?x?x?x?xi32>
+  // CHECK: %[[DIM0:.*]] = tensor.dim %[[ARG0]], %[[C1]] : tensor<?x?x?x?xi32>
+  // CHECK: %[[DIM1:.*]] = tensor.dim %[[ARG0]], %[[C2]] : tensor<?x?x?x?xi32>
+  // CHECK: %[[DIM2:.*]] = tensor.dim %[[ARG0]], %[[C3]] : tensor<?x?x?x?xi32>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM0]], %[[DIM]], %[[DIM2]], %[[DIM1]] : tensor<4xindex>
+  // CHECK: return %[[RES]] : tensor<4xindex>
   %result = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?x?x?x?xi32>) -> tensor<4xindex>
   func.return %1: tensor<4xindex>
@@ -1136,7 +1195,9 @@ func.func @transpose(%arg0: tensor<?x?x?x?xi32>) ->  tensor<4xindex> {
 // -----
 
 // CHECK-LABEL: func @dynamic_iota
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<1xindex>
 func.func @dynamic_iota(%arg0: tensor<1xindex>) -> tensor<1xindex> {
+  // CHECK: return %[[ARG0]] : tensor<1xindex>
   %result = "stablehlo.dynamic_iota"(%arg0) {
     iota_dimension = 0 : i64
   } : (tensor<1xindex>) -> tensor<?xf32>
