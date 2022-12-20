@@ -80,3 +80,18 @@ func.func @invalid_program_unknown_op(%arg0 : tensor<f32>) -> (tensor<f32>) {
   %0 = "vhlo.unknown_op"(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return
 }
+
+// -----
+
+func.func @all_to_all_to_v1(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error @+2 {{failed to downgrade vhlo.all_to_all_v2, op has a non-empty channel_handle attribute}}
+  // expected-error @+1 {{failed to legalize operation 'vhlo.all_to_all_v2' that was explicitly marked illegal}}
+  %0 = "stablehlo.all_to_all"(%arg0) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
