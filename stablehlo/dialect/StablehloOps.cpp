@@ -211,14 +211,9 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReduceScatterOp::verify() {
-  return hlo::verifyReduceScatterOp(getLoc(), getOperand(),
-                                    getScatterDimension(), getReplicaGroups(),
-<<<<<<< HEAD
-                                    getUseGlobalDeviceIds(),
-                                    getComputation(), getType());
-=======
-                                    getComputation(), getResult());
->>>>>>> 8892b74 (Address 3nd round comments)
+  return hlo::verifyReduceScatterOp(
+      getLoc(), getOperand(), getScatterDimension(), getReplicaGroups(),
+      getUseGlobalDeviceIds(), getComputation(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1786,28 +1781,8 @@ LogicalResult AllGatherOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllReduceOp::verify() {
-<<<<<<< HEAD
-  if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/false,
-                                      getUseGlobalDeviceIds(),
-                                      /*expectedGroupSize=*/std::nullopt)))
-    return failure();
-
-  auto operandType = getOperand().getType().cast<TensorType>();
-  bool operandTypeRanked = operandType.isa<RankedTensorType>();
-  Block& block = getComputation().front();
-  if (failed(hlo::verifyReducerShape(
-          this->getLoc(), block, {operandType},
-          {RankedTensorType::get({}, operandType.getElementType())},
-          /*numInputs=*/1, /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/!operandTypeRanked)))
-    return failure();
-
-  return success();
-=======
   return hlo::verifyAllReduceOp(getLoc(), getOperand(), getReplicaGroups(),
-                                getComputation());
->>>>>>> 3bc4b6a (Move verifyAllReduceOp)
+                                getUseGlobalDeviceIds(), getComputation());
 }
 
 //===----------------------------------------------------------------------===//
