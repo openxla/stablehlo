@@ -79,7 +79,7 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
 }
 
 template <typename AttrOrType>
-bool isDialect(AttrOrType at, llvm::StringRef dialectName) {
+bool isFromDialect(AttrOrType at, llvm::StringRef dialectName) {
   return (at.getDialect().getNamespace() == dialectName);
 }
 
@@ -92,7 +92,7 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
 LogicalResult isLegalAttribute(NamedAttribute attr,
                                const Version& targetVersion) {
   // TODO: Remove once builtin types are forked.
-  if (isDialect(attr.getValue(), "builtin")) {
+  if (isFromDialect(attr.getValue(), "builtin")) {
     return success();
   }
 
@@ -108,7 +108,7 @@ LogicalResult isLegalAttribute(NamedAttribute attr,
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // TODO: Remove once builtin types are forked.
-  if (isDialect(type, "builtin") || isDialect(type, "shape")) {
+  if (isFromDialect(type, "builtin") || isFromDialect(type, "shape")) {
     return success();
   }
 
