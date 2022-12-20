@@ -85,7 +85,7 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 
 LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
                                   TypeRange resultTypes,
-                                  uint64_t scatterDimension);
+                                  int64_t scatterDimension);
 
 // Verifies replica groups attached to collective communication operations.
 // P1. 'replicaGroups' must be a 2-D tensor.
@@ -127,17 +127,17 @@ LogicalResult inferAllToAllOp(
 
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormInferenceOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormTrainingOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBroadcastOp(
@@ -309,7 +309,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
 
-LogicalResult verifyIotaOp(Optional<Location> location, uint64_t iotaDimension,
+LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
                            Type resultType);
 
 LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
@@ -321,7 +321,7 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              DenseIntElementsAttr dimensions, Region& body);
 
 LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
-                                    uint64_t scatterDimension,
+                                    int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
                                     bool useGlobalDeviceIds,
                                     Region& computation, TypeRange resultTypes);
@@ -335,7 +335,7 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> padding, Region& body);
 
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
-                           uint64_t dimension, Region& comparator);
+                           int64_t dimension, Region& comparator);
 
 LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
                             Region& cond, Region& body);
