@@ -1351,10 +1351,10 @@ returned.
 
 ### Inputs
 
-| Name       | Type                                         |
-|------------|----------------------------------------------|
-| `index`    | 1-dimensional tensor constant of type `si32` |
-| `branches` | variadic number of `function`                |
+| Name       | Type                                |
+|------------|-------------------------------------|
+| `index`    | 1-dimensional tensor of type `si32` |
+| `branches` | variadic number of `function`       |
 
 ### Outputs
 
