@@ -36,7 +36,7 @@ def VHLO_Dialect : Dialect {
              Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
              Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
              Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
-             Add AllToAllOp::channel_handle: TBD.
+             Add AllToAllOp::channel_handle: https://github.com/openxla/stablehlo/pull/794.
   }];
 
   let useDefaultAttributePrinterParser = 0;
