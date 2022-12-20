@@ -23,15 +23,62 @@ include "mlir/IR/OpBase.td"
 // VHLO Versioning Interfaces
 //===----------------------------------------------------------------------===//
 
-def VersionedInterface : OpInterface<"VersionedInterface"> {
+def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   let methods = [
     InterfaceMethod<
-      "Returns the minimum version an op is supported in.",
+      "Returns the minimum version of the VHLO dialect an op is supported in.",
       "mlir::vhlo::Version", "getMinVersion">,
     InterfaceMethod<
-      "Returns the maximum verison an op is supported in.",
+      "Returns the maximum version (inclusive) of the VHLO dialect an op is supported in.",
       "mlir::vhlo::Version", "getMaxVersion">,
   ];
+}
+
+def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
+def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// VHLO Type Versioning
+//===----------------------------------------------------------------------===//
+
+class VHLO_TypeDef<string name,
+                   string minVersion = "0.3.0",
+                   string maxVersion = "current">
+  : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
+  let extraClassDeclaration = [{
+    mlir::vhlo::Version getMinVersion() {
+      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # name # [{");
+      return *version;
+    }
+    mlir::vhlo::Version getMaxVersion() {
+      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
+      return *version;
+    }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -114,7 +161,9 @@ def VHLO_QuantizedInt :
 defvar BroadcastDimAttr = I64ElementsAttr;
 
 // Token type.
-def VHLO_Token : Type<CPred<"$_self.isa<TokenType>()">, "token">;
+def VHLO_Token : VHLO_TypeDef<"Token"> {
+  let mnemonic = "token";
+}
 
 // Any integer tensor types
 def VHLO_IntTensor : TensorOf<[VHLO_Int]>;

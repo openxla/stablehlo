@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Regex.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Support/LogicalResult.h"
 
@@ -43,14 +44,14 @@ class Version {
   int64_t getMinor() const { return majorMinorPatch[1]; }
   int64_t getPatch() const { return majorMinorPatch[2]; }
 
-  bool operator<(Version const& other) {
+  bool operator<(const Version& other) const {
     // Uses lexicographical_compare
     return majorMinorPatch < other.majorMinorPatch;
   }
-  bool operator==(Version const& other) {
+  bool operator==(const Version& other) const {
     return majorMinorPatch == other.majorMinorPatch;
   }
-  bool operator<=(Version const& other) {
+  bool operator<=(const Version& other) const {
     return majorMinorPatch <= other.majorMinorPatch;
   }
 
@@ -59,6 +60,7 @@ class Version {
 };
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const Version& version);
 
 }  // namespace vhlo
 }  // namespace mlir

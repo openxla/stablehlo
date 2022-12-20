@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Support/LogicalResult.h"
@@ -77,18 +78,87 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   return targetVersion;
 }
 
+template <typename AttrOrType>
+bool isFromDialect(AttrOrType at, llvm::StringRef dialectName) {
+  return (at.getDialect().getNamespace() == dialectName);
+}
+
+template <typename VersionedInterface>
+bool isLegalVersion(VersionedInterface& interface, const Version& target) {
+  return interface.getMinVersion() <= target &&
+         target <= interface.getMaxVersion();
+}
+
+LogicalResult isLegalAttribute(NamedAttribute attr,
+                               const Version& targetVersion) {
+  // TODO: Remove once builtin types are forked.
+  if (isFromDialect(attr.getValue(), "builtin")) {
+    return success();
+  }
+
+  auto attrInterface = dyn_cast<VersionedAttrInterface>(attr.getValue());
+  if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
+    return success();
+  }
+
+  LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr.getName()
+                          << " to version " << targetVersion);
+  return failure();
+}
+
+LogicalResult isLegalType(Type type, const Version& targetVersion) {
+  // TODO: Remove once builtin types are forked.
+  if (isFromDialect(type, "builtin") || isFromDialect(type, "shape")) {
+    return success();
+  }
+
+  auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
+  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
+    return success();
+  }
+
+  LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
+                          << " to version " << targetVersion << '\n');
+  return failure();
+}
+
+bool isLegalOperation(Operation* op, const Version& targetVersion) {
+  // Validate op
+  auto opInterface = dyn_cast<VersionedOpInterface>(op);
+  if (!opInterface) return false;
+  if (!isLegalVersion(opInterface, targetVersion)) return false;
+
+  // Validate attributes
+  auto isLegalAttrFn = [&](NamedAttribute attr) {
+    return succeeded(isLegalAttribute(attr, targetVersion));
+  };
+  if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
+
+  // Validate types
+  auto isLegalTypeFn = [&](Type t) {
+    return succeeded(isLegalType(t, targetVersion));
+  };
+  if (!llvm::all_of(op->getOperandTypes(), isLegalTypeFn) ||
+      !llvm::all_of(op->getResultTypes(), isLegalTypeFn)) {
+    return false;
+  }
+
+  return true;
+}
+
 using stablehlo::VhloToVersionPassOptions;
 using stablehlo::impl::VhloToVersionPassBase;
 struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
   VhloToVersionPass() : VhloToVersionPassBase<VhloToVersionPass>() {}
-  VhloToVersionPass(VhloToVersionPassOptions const& opts)
+  VhloToVersionPass(const VhloToVersionPassOptions& opts)
       : VhloToVersionPassBase<VhloToVersionPass>(opts) {}
 
   void runOnOperation() override {
     ConversionTarget target(getContext());
 
     // Validate version number
-    auto failOrVersion = validateTargetVersion(targetVersion, getOperation());
+    auto failOrVersion =
+        validateTargetVersion(targetVersionOption, getOperation());
     if (failed(failOrVersion)) {
       return signalPassFailure();
     }
@@ -114,17 +184,14 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
     //   V1 legal   { 0.0  in [0.0, 0.1] }
     target.addDynamicallyLegalDialect<VhloDialect>(
         [&targetVersion](Operation* op) {
-          if (auto interface = dyn_cast<VersionedInterface>(op)) {
-            return (interface.getMinVersion() <= targetVersion &&
-                    targetVersion <= interface.getMaxVersion());
-          }
-          return false;
+          return isLegalOperation(op, targetVersion);
         });
 
     vhlo::VhloToVersionConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
                                              &getContext());
+    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // Conversions within VHLO may fail if new features or ops are used.
     if (failed(applyPartialConversion(getOperation(), target,
