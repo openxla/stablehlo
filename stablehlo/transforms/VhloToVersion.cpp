@@ -313,6 +313,30 @@ struct AllGatherOpV2ToV1
   }
 };
 
+// vhlo.all_to_all --> vhlo.all_to_all_v2
+struct AllToAllOpV1ToV2
+    : public VersionConversionPattern<AllToAllOpV1,
+                                      AllToAllOpV2> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(AllToAllOpV1) const final {
+    return success();
+  }
+};
+
+// vhlo.all_to_all_v2 --> vhlo.all_to_all
+struct AllToAllOpV2ToV1
+    : public VersionConversionPattern<AllToAllOpV2,
+                                      AllToAllOpV1> {
+  using VersionConversionPattern::VersionConversionPattern;
+  LogicalResult prepareOpForConversion(AllToAllOpV2 op) const final {
+    if (op.getChannelHandle().has_value()) {
+      return emitDowngradeError(op,
+                                "op has a non-empty channel_handle attribute");
+    }
+    return success();
+  }
+};
+
 }  // namespace
 }  // namespace vhlo
 
@@ -326,6 +350,8 @@ void populateVhloToVersionPatterns(RewritePatternSet* patterns,
   patterns->add<vhlo::CollectivePermuteOpV2ToV1>(*converter, context);
   patterns->add<vhlo::AllGatherOpV1ToV2>(*converter, context);
   patterns->add<vhlo::AllGatherOpV2ToV1>(*converter, context);
+  patterns->add<vhlo::AllToAllOpV1ToV2>(*converter, context);
+  patterns->add<vhlo::AllToAllOpV2ToV1>(*converter, context);
 }
 
 }  // namespace stablehlo

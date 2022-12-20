@@ -36,6 +36,7 @@ def VHLO_Dialect : Dialect {
              Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
              Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
              Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
+             Add AllToAllOp::channel_handle: TBD.
   }];
 
   let useDefaultAttributePrinterParser = 0;
@@ -401,13 +402,25 @@ def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all"> {
+def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all", "0.3.0", "0.3.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$split_dimension,
     VHLO_AnyAttr:$concat_dimension,
     VHLO_AnyAttr:$split_count,
     VHLO_AnyAttr:$replica_groups
+  );
+  let results = (outs VHLO_AnyType);
+}
+
+def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "0.4.0"> {
+  let arguments = (ins
+    VHLO_AnyType:$operand,
+    VHLO_AnyAttr:$split_dimension,
+    VHLO_AnyAttr:$concat_dimension,
+    VHLO_AnyAttr:$split_count,
+    VHLO_AnyAttr:$replica_groups,
+    OptionalAttr<VHLO_AnyAttr>:$channel_handle
   );
   let results = (outs VHLO_AnyType);
 }
