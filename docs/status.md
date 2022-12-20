@@ -1,4 +1,4 @@
-# StableHLO progress
+# StableHLO status
 
 When bootstrapping StableHLO from MHLO, we have inherited MHLO's implementation
 of many things, including prettyprinting, verification and shape inference.
