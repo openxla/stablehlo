@@ -25,7 +25,8 @@ following code comments:
 **Types:** See `chlo_encoding::TypeCode` in `ChloBytecode.cpp`
 [[link](https://github.com/openxla/stablehlo/search?q=filename%3AChloBytecode+TypeCode)]
 
-### Not Included:
+### Not Included
+
 The following attributes / types are subclasses of builtin machinery and call
 into the bytecode implementations in the Builtin Dialect.
 
@@ -64,6 +65,7 @@ into the bytecode implementations in the Builtin Dialect.
 - `HLO_UInt`
 
 **Special Cases:**
+
 - `StableHLO_ConvolutionAttributes`
   + Despite its name,  is not an attribute and is not encoded.
     Rather, it is a dag which gets expanded into several attributes
@@ -77,14 +79,16 @@ into the bytecode implementations in the Builtin Dialect.
 ## Other Notes
 
 ### Testing Bytecode with Round Trips
+
 Testing that the round-trip of an MLIR file produces the same results is a good
 way to test that the bytecode is implemented properly.
 
 ```
-$ stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-opt
+stablehlo-opt -emit-bytecode stablehlo/tests/print_stablehlo.mlir | stablehlo-opt
 ```
 
-### Find out what attributes or types are not encoded:
+### Find out what attributes or types are not encoded
+
 Since attributes and types that don't get encoded are instead stored as strings,
 the `strings` command can be used to see what attributes were missed:
 
@@ -130,4 +134,5 @@ instructions is addressed. If so, bytecode for the attr/type should be generated
 on next call to `stablehlo-opt -emit-bytecode`. This can be verified using the proper bytecode trace.
 
 ### Encoding `enum class` values
+
 Enum class values can be encoded as their underlying numeric types using `varint`. Currently all enums in StableHLO use `uint32_t` as the underlying value.
