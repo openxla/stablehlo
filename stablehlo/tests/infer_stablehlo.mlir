@@ -1031,21 +1031,26 @@ func.func @concat_bounds_unranked_c1(
 // -----
 
 // CHECK-LABEL: @gather
-func.func @gather(%operand : tensor<*xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<3xi32> {
-  // CHECK: %[[CST:.*]] = arith.constant dense<[1, 5, 8]> : tensor<3xi32>
-  // CHECK: return %[[CST]] : tensor<3xi32>
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<3x4x2xi32>, %[[ARG1:.*]]: tensor<?x3x2xi64>
+func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xi64> {
+  // CHECK: %[[C2:.*]] = arith.constant 2 : i64
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[C3:.*]] = arith.constant 3 : i64
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG1]], %[[C0]] : tensor<?x3x2xi64>
+  // CHECK: %[[V0:.*]] = arith.index_cast %[[DIM]] : index to i64
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[V0]], %[[C3]], %[[C2]], %[[C2]] : tensor<4xi64>
+  // CHECK: return %[[RES]] : tensor<4xi64>
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
-      collapsed_slice_dims = [0, 1],
-      index_vector_dim = 2,
-      offset_dims = [2],
-      start_index_map = [0, 1]
-    >,
-    indices_are_sorted = false,
-    slice_sizes = dense<[1, 1, 8]> : tensor<3xi64>
-  } : (tensor<*xi32>, tensor<1x5x2xi32>) -> tensor<1x5x8xi32>
-  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<1x5x8xi32>) -> tensor<3xi32>
-  func.return %1 : tensor<3xi32>
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
+      start_index_map = [1, 0],
+      index_vector_dim = 2>,
+      slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
+      indices_are_sorted = false
+  } : (tensor<3x4x2xi32>, tensor<?x3x2xi64>) -> tensor<?x3x2x2xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x3x2x2xi32>) -> tensor<4xi64>
+  func.return %1 : tensor<4xi64>
 }
 
 // -----
@@ -1093,15 +1098,18 @@ func.func @concatenate(%arg0: tensor<?x?xi32>, %arg1: tensor<?x?xi32>, %arg2: te
 // -----
 
 // CHECK-LABEL: func @reduce
-func.func @reduce(%arg0: tensor<4x4xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xindex>) {
-  // CHECK: %[[CST:.*]] = arith.constant dense<4> : tensor<1xindex>
-  // CHECK: return %[[CST]] : tensor<1xindex>
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<4x?xf32>,
+func.func @reduce(%arg0: tensor<4x?xf32>, %arg1 : tensor<4xf32>)-> (tensor<1xindex>) {
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C1]] : tensor<4x?xf32>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM]] : tensor<1xindex>
+  // CHECK: return %[[RES]] : tensor<1xindex>
   %result = "stablehlo.reduce"(%arg0, %arg1) ({
   ^bb0(%arg2: tensor<4xf32>, %arg3: tensor<4xf32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
     "stablehlo.return"(%1) : (tensor<4xf32>) -> ()
-  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x4xf32>, tensor<4xf32>) -> tensor<4xf32>
-  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<4xf32>) -> tensor<1xindex>
+  }) {dimensions = dense<[0]> : tensor<1xi64>} : (tensor<4x?xf32>, tensor<4xf32>) -> tensor<?xf32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
   func.return %1: tensor<1xindex>
 }
 
@@ -1178,11 +1186,16 @@ func.func @dynamic_pad(%arg0: tensor<?xf32>, %arg1: tensor<f32>, %arg2: tensor<1
 // -----
 
 // CHECK-LABEL: func @broadcast
-func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<3xindex> {
-  // CHECK: %[[CST:.*]] = arith.constant dense<[1, 2, 3]> : tensor<3xindex>
-  // CHECK: return %[[CST]] : tensor<3xindex>
-  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
-  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x3xi32>) -> tensor<3xindex>
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<?xi32>
+func.func @broadcast(%arg0: tensor<?xi32>) -> tensor<3xindex> {
+  // CHECK: %[[C1:.*]] = arith.constant 1 : index
+  // CHECK: %[[C2:.*]] = arith.constant 2 : index
+  // CHECK: %[[C0:.*]] = arith.constant 0 : index
+  // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG0]], %[[C0]] : tensor<?xi32>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[C1]], %[[C2]], %[[DIM]] : tensor<3xindex>
+  // CHECK: return %[[RES]] : tensor<3xindex>
+  %result = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<?xi32>) -> tensor<1x2x?xi32>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<1x2x?xi32>) -> tensor<3xindex>
   func.return %1: tensor<3xindex>
 }
 
