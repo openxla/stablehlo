@@ -223,15 +223,12 @@ func.func @slice_with_bounded_dynamism(%data: tensor<7xf32>, %start: tensor<1xi3
 
 ```
 
-Use of dynamic ops over `set_dimension_size` op has various benefits:
+Use of dynamic ops over `set_dimension_size` op has a couple of benefits:
 
 * Greatly simplifies the lowering from higher level frameworks to StableHLO as
   they don't need to compute upper bounds of dynamic dimensions.
 * Makes lowerings to StableHLO hardware agnostic as they don't depend on if the
   hardware requires unbounded or bounded programs.
-* Reduces the potential confusion in making use of `set_dimension_size` as the
-  users are generally not familiar with this op and also the semantics are not
-  intuitive.
 
 Benefit of the `set_dimension_size` op:
 
