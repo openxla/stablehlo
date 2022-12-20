@@ -1705,14 +1705,6 @@ void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
 }
 
 //===----------------------------------------------------------------------===//
-// TupleOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult TupleOp::verify() {
-  return hlo::verifyTupleOp(getLoc(), getOperandTypes(), getType());
-}
-
-//===----------------------------------------------------------------------===//
 // AllToAllOp
 //===----------------------------------------------------------------------===//
 
@@ -3285,11 +3277,10 @@ LogicalResult GetTupleElementOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult TupleOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location>, ValueRange operands,
-    DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(TupleType::get(context, TypeRange(operands)));
-  return success();
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+  return hlo::inferTupleOp(context, location, TypeRange(operands),
+                           inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

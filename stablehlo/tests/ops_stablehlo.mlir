@@ -2590,7 +2590,7 @@ func.func @tuple_token(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> tuple<ten
 // -----
 
 func.func @tuple_arg_size_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>> {
-  // expected-error@+1 {{number of operands to tuple expected to match number of types}}
+  // expected-error@+1 {{'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<f32>, tensor<f32>>'}}
   %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>>
   func.return %0 : tuple<tensor<f32>, tensor<f32>, tensor<f32>>
 }
@@ -2598,7 +2598,7 @@ func.func @tuple_arg_size_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tu
 // -----
 
 func.func @tuple_type_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<i32>> {
-  // expected-error@+1 {{has return type mismatch at 1th value}}
+  // expected-error@+1 {{inferred type(s) 'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<i32>>'}}
   %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<i32>>
   func.return %0 : tuple<tensor<f32>, tensor<i32>>
 }

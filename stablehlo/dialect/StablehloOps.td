@@ -1533,8 +1533,6 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
   let arguments = (ins Variadic<HLO_TensorOrTokenOrTuple>:$val);
   let results = (outs HLO_Tuple:$result);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
     $val attr-dict `:` custom<TupleOpType>(type($val), type($result))
   }];

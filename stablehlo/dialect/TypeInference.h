@@ -272,6 +272,10 @@ LogicalResult inferTriangularSolveOp(
     bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferTupleOp(MLIRContext* context, Optional<Location> location,
+                           TypeRange operandTypes,
+                           SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -332,9 +336,6 @@ LogicalResult verifyReduceWindowOp(
 
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            uint64_t dimension, Region& comparator);
-
-LogicalResult verifyTupleOp(Optional<Location> location, TypeRange operandTypes,
-                            Type resultType);
 
 LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
                             Region& cond, Region& body);
