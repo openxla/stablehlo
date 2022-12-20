@@ -180,15 +180,15 @@ def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
 
 def VHLO_ConvolutionAttributes {
   dag attributes = (ins
-    OptionalAttr<I64ElementsAttr>:$window_strides,
-    OptionalAttr<I64ElementsAttr>:$padding,
-    OptionalAttr<I64ElementsAttr>:$lhs_dilation,
-    OptionalAttr<I64ElementsAttr>:$rhs_dilation,
-    OptionalAttr<VHLO_BoolElementsAttr>:$window_reversal,
-    VHLO_ConvDimensionNumbers:$dimension_numbers,
-    I64Attr:$feature_group_count,
-    I64Attr:$batch_group_count,
-    VHLO_PrecisionConfigAttr:$precision_config
+    OptionalAttr<VHLO_AnyAttr>:$window_strides,
+    OptionalAttr<VHLO_AnyAttr>:$padding,
+    OptionalAttr<VHLO_AnyAttr>:$lhs_dilation,
+    OptionalAttr<VHLO_AnyAttr>:$rhs_dilation,
+    OptionalAttr<VHLO_AnyAttr>:$window_reversal,
+    VHLO_AnyAttr:$dimension_numbers,
+    VHLO_AnyAttr:$feature_group_count,
+    VHLO_AnyAttr:$batch_group_count,
+    VHLO_AnyAttr:$precision_config
   );
 }
 
