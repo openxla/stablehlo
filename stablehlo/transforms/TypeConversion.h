@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -84,7 +85,6 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
-    // TODO: Integer/Float types.
 
     // Element Types
     addConversion([&](ComplexType type) {

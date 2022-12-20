@@ -57,6 +57,7 @@ FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
   return Version::fromString(versionRef);
 }
 
+// Check user-specified target version. Emit error if invalid.
 FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
                                          Operation* op) {
   auto failOrVersion = parseTargetVersion(versionRef);
@@ -86,11 +87,6 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   return targetVersion;
 }
 
-template <typename AttrOrType>
-bool isFromDialect(AttrOrType at, llvm::StringRef dialectName) {
-  return (at.getDialect().getNamespace() == dialectName);
-}
-
 template <typename VersionedInterface>
 bool isLegalVersion(VersionedInterface& interface, const Version& target) {
   return interface.getMinVersion() <= target &&
@@ -98,28 +94,6 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
 }
 
 LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
-  // TODO: Remove once builtin types are forked.
-  // I64Attr
-  // I32Attr
-  // F32Attr
-  // BoolAttr is IntegerAttr
-  // I64ElementsAttr is DenseElementsAttr?
-  // BroadcastDimAttr ?
-  // DefaultValuedOptionalAttr
-  // OptionalAttr
-  // TypedArrayAttrBase
-  // kDictionaryAttr = 1,
-  // kFlatSymbolRefAttr = 4,
-  // kFileLineColLoc = 11,
-  // kFusedLoc = 12,
-  // kFusedLocWithMetadata = 13,
-  // kNameLoc = 14,
-  // kUnknownLoc = 15,
-  // kDenseIntOrFPElementsAttr = 18,
-  if (attr.isa<ArrayAttr, DenseElementsAttr, UnitAttr, FlatSymbolRefAttr>()) {
-    return success();
-  }
-
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
   if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
     return success();
@@ -131,11 +105,14 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
 }
 
 LogicalResult isLegalElementType(Type type, const Version& targetVersion) {
-  if (type.isa<quant::UniformQuantizedType>() || isFromDialect(type, "vhlo")) {
-    LLVM_DEBUG(llvm::dbgs() << "Supported element type: " << type << '\n');
+  auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
+  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs() << "Unsupported type " << type << '\n');
     return success();
   }
-  LLVM_DEBUG(llvm::dbgs() << "Unspported element type: " << type << '\n');
+
+  LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
+                          << " to version " << targetVersion << '\n');
   return failure();
 }
 
@@ -171,11 +148,11 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
         return succeeded(isLegalType(ele, targetVersion));
       }));
     }
-    // WitnessType
-    LLVM_DEBUG(llvm::dbgs() << "Maybe wrapped/index " << type << '\n');
+    // Only valid wrapped if witness type
     return success(/*isSuccess=*/data.isa<shape::WitnessType>());
   }
 
+  // Not wrapped, success.
   return success();
 }
 
@@ -297,6 +274,15 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
+template <typename WrappedDataType>
+WrappedDataType unwrap(Attribute attr) {
+  auto wrapped = attr.dyn_cast<WrappedAttr>();
+  if (!wrapped) return WrappedDataType();
+  auto unwrapped = wrapped.getData().dyn_cast<WrappedDataType>();
+  if (!unwrapped) return WrappedDataType();
+  return unwrapped;
+}
+
 // vhlo.custom_call --> vhlo.custom_call_v2
 struct CustomCallOpV1ToV2
     : public VersionConversionPattern<CustomCallOpV1, CustomCallOpV2> {
@@ -313,7 +299,7 @@ struct CustomCallOpV2ToV1
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
     if (op.getOutputOperandAliases()) {
       auto aliases =
-          op.getOutputOperandAliases()->dyn_cast<::mlir::ArrayAttr>();
+          unwrap<mlir::ArrayAttr>(op.getOutputOperandAliases().value());
       if (!aliases || !aliases.empty()) {
         return emitDowngradeError(
             op, "op has a non-empty output_operand_aliases attribute");
