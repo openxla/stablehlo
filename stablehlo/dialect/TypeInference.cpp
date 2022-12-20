@@ -1352,13 +1352,10 @@ LogicalResult inferGetTupleElementOp(
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandType = operand.getType().dyn_cast<TupleType>();
   if (!operandType) return failure();
-  if (index >= static_cast<int64_t>(operandType.size()))
+  if (index < 0 || index >= static_cast<int64_t>(operandType.size()))
     return emitOptionalError(location, "index ", index,
                              " is out of bounds of operand with size ",
                              operandType.size());
-
-  if (index < 0 || index >= static_cast<int64_t>(operandType.size()))
-    return failure();
 
   inferredReturnTypes.push_back(operandType.getType(index));
   return success();
