@@ -2837,10 +2837,10 @@ Returns the size of the given `dimension` of the `operand`.
 
 ### Inputs
 
-| Name      | Type                         |
-|-----------|------------------------------|
-| `operand` | tensor of any supported type |
-| `index`   | constant of type `si64`      |
+| Name          | Type                         |
+|---------------|------------------------------|
+| `operand`     | tensor of any supported type |
+| `dimension`   | constant of type `si64`      |
 
 ### Outputs
 
@@ -2852,7 +2852,6 @@ Returns the size of the given `dimension` of the `operand`.
 
   * (C1) 0 $\le$ `dimension` $\lt$ rank of `operand`. [todo](https://github.com/openxla/stablehlo/issues/790)
   * (C2) dim(operand, dimension) $\le$ std::numeric_limits<int32_t>::max(). [todo](https://github.com/openxla/stablehlo/issues/790)
-  * (C3) `result` is of type `tensor<i32>`
 
 ### Examples
 
