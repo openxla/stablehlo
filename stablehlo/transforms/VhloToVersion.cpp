@@ -315,8 +315,7 @@ struct AllGatherOpV2ToV1
 
 // vhlo.all_to_all --> vhlo.all_to_all_v2
 struct AllToAllOpV1ToV2
-    : public VersionConversionPattern<AllToAllOpV1,
-                                      AllToAllOpV2> {
+    : public VersionConversionPattern<AllToAllOpV1, AllToAllOpV2> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(AllToAllOpV1) const final {
     return success();
@@ -325,8 +324,7 @@ struct AllToAllOpV1ToV2
 
 // vhlo.all_to_all_v2 --> vhlo.all_to_all
 struct AllToAllOpV2ToV1
-    : public VersionConversionPattern<AllToAllOpV2,
-                                      AllToAllOpV1> {
+    : public VersionConversionPattern<AllToAllOpV2, AllToAllOpV1> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(AllToAllOpV2 op) const final {
     if (op.getChannelHandle().has_value()) {
