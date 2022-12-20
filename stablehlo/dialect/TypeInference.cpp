@@ -593,60 +593,6 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
   return success();
 }
 
-LogicalResult verifyReduceScatter(Optional<Location> location,
-                                  TypeRange operandTypes, TypeRange resultTypes,
-                                  int64_t scatterDimension) {
-  // If operand and result are both ranked, then the size of the scatter
-  // dimension in the operand should be a multiple of the size of the scatter
-  // dimension in the result.
-
-  // TODO(zhouxin) Change the ODS definition to return int64_t.
-  if (scatterDimension < 0) {
-    return emitOptionalError(location, "expects scatter_dimension >= 0");
-  }
-
-  for (auto it : llvm::zip(operandTypes, resultTypes)) {
-    auto operandType = std::get<0>(it).cast<ShapedType>();
-    auto resultType = std::get<1>(it).cast<ShapedType>();
-    if (!operandType.hasRank() || !resultType.hasRank()) continue;
-    if (operandType.getRank() != resultType.getRank())
-      return emitOptionalError(location,
-                               "operand and result should have same rank");
-    if (scatterDimension >= operandType.getRank())
-      return emitOptionalError(
-          location, "scatter dim should be less than operand/result rank");
-    if (operandType.isDynamicDim(scatterDimension) ||
-        resultType.isDynamicDim(scatterDimension))
-      continue;
-    if (operandType.getDimSize(scatterDimension) == 0)
-      return emitOptionalError(location,
-                               "operand scatter dimension cannot be zero");
-    if (resultType.getDimSize(scatterDimension) == 0)
-      return emitOptionalError(location,
-                               "result scatter dimension cannot be zero");
-    if ((operandType.getDimSize(scatterDimension) %
-         resultType.getDimSize(scatterDimension)) != 0)
-      return emitOptionalError(
-          location, "operand scatter dimension has size ",
-          operandType.getDimSize(scatterDimension),
-          ", expected to be a multiple of result scatter dimension size ",
-          resultType.getDimSize(scatterDimension));
-
-    // Non scatter dimensions should be equal.
-    for (uint64_t index : llvm::seq<uint64_t>(0, operandType.getRank())) {
-      if (static_cast<int64_t>(index) == scatterDimension ||
-          operandType.isDynamicDim(index) || resultType.isDynamicDim(index))
-        continue;
-      if (operandType.getDimSize(index) != resultType.getDimSize(index))
-        return emitOptionalError(
-            location, "non scatter dimensions should be same for operand (",
-            operandType.getDimSize(index), ") and result (",
-            resultType.getDimSize(index), ")");
-    }
-  }
-  return success();
-}
-
 LogicalResult verifyReduceWindowOpInputsAndInferWindow(
     Optional<Location> location, SmallVector<TensorType> inputArgTypes,
     SmallVector<TensorType> initValueTypes,
@@ -1893,9 +1839,9 @@ LogicalResult inferTriangularSolveOp(
 }
 
 LogicalResult inferTupleOp(MLIRContext* context, Optional<Location>,
-                           TypeRange operandTypes,
+                           ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(TupleType::get(context, operandTypes));
+  inferredReturnTypes.push_back(TupleType::get(context, val.getTypes()));
   return success();
 }
 
@@ -2218,8 +2164,8 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
 }
 
 LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
-                           Type resultType) {
-  auto shape = resultType.cast<ShapedType>();
+                           Value result) {
+  auto shape = result.getType().cast<ShapedType>();
   if (!shape.hasRank()) return success();
   if (shape.getRank() == 0)
     return emitOptionalError(location, "does not support scalars.");
@@ -2307,8 +2253,7 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
                                     int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
                                     bool useGlobalDeviceIds,
-                                    Region& computation,
-                                    TypeRange resultTypes) {
+                                    Region& computation, Value result) {
   if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
                                       /*allGroupsMustHaveSameSize=*/true,
                                       useGlobalDeviceIds,
@@ -2324,8 +2269,51 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
           /*allInputsUnranked=*/!operandTypeRanked)))
     return failure();
 
-  return verifyReduceScatter(location, operand.getType(), resultTypes,
-                             scatterDimension);
+  auto resultType = result.getType().cast<ShapedType>();
+  if (!operandType.hasRank() || !resultType.hasRank()) return success();
+  if (operandType.getRank() != resultType.getRank())
+    return emitOptionalError(location,
+                             "operand and result should have same rank");
+  if (scatterDimension < 0) {
+    return emitOptionalError(location, "expects scatter_dimension >= 0");
+  }
+  if (scatterDimension >= operandType.getRank())
+    return emitOptionalError(
+        location, "scatter dim should be less than operand/result rank");
+  if (operandType.isDynamicDim(scatterDimension) ||
+      resultType.isDynamicDim(scatterDimension))
+    return success();
+
+  if (operandType.getDimSize(scatterDimension) == 0)
+    return emitOptionalError(location,
+                             "operand scatter dimension cannot be zero");
+  if (resultType.getDimSize(scatterDimension) == 0)
+    return emitOptionalError(location,
+                             "result scatter dimension cannot be zero");
+
+  // If operand and result are both ranked, then the size of the scatter
+  // dimension in the operand should be a multiple of the size of the scatter
+  // dimension in the result.
+  if ((operandType.getDimSize(scatterDimension) %
+       resultType.getDimSize(scatterDimension)) != 0)
+    return emitOptionalError(
+        location, "operand scatter dimension has size ",
+        operandType.getDimSize(scatterDimension),
+        ", expected to be a multiple of result scatter dimension size ",
+        resultType.getDimSize(scatterDimension));
+
+  // Non scatter dimensions should be equal.
+  for (uint64_t index : llvm::seq<uint64_t>(0, operandType.getRank())) {
+    if (static_cast<int64_t>(index) == scatterDimension ||
+        operandType.isDynamicDim(index) || resultType.isDynamicDim(index))
+      continue;
+    if (operandType.getDimSize(index) != resultType.getDimSize(index))
+      return emitOptionalError(
+          location, "non scatter dimensions should be same for operand (",
+          operandType.getDimSize(index), ") and result (",
+          resultType.getDimSize(index), ")");
+  }
+  return success();
 }
 
 // We intend to verify the following properties

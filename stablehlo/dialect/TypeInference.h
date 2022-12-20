@@ -83,10 +83,6 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions,
                                  bool allInputsUnranked);
 
-LogicalResult verifyReduceScatter(Operation* op, TypeRange operandTypes,
-                                  TypeRange resultTypes,
-                                  int64_t scatterDimension);
-
 // Verifies replica groups attached to collective communication operations.
 // P1. 'replicaGroups' must be a 2-D tensor.
 // P2. replicaGroups' cannot be empty.
@@ -273,7 +269,7 @@ LogicalResult inferTriangularSolveOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferTupleOp(MLIRContext* context, Optional<Location> location,
-                           TypeRange operandTypes,
+                           ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
@@ -307,7 +303,7 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
 
 LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
-                           Type resultType);
+                           Value result);
 
 LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
                                        Value operand, Value startIndices,
@@ -321,7 +317,7 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
                                     int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
                                     bool useGlobalDeviceIds,
-                                    Region& computation, TypeRange resultTypes);
+                                    Region& computation, Value result);
 
 LogicalResult verifyReduceWindowOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,

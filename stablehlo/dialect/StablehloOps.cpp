@@ -213,8 +213,12 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 LogicalResult ReduceScatterOp::verify() {
   return hlo::verifyReduceScatterOp(getLoc(), getOperand(),
                                     getScatterDimension(), getReplicaGroups(),
+<<<<<<< HEAD
                                     getUseGlobalDeviceIds(),
                                     getComputation(), getType());
+=======
+                                    getComputation(), getResult());
+>>>>>>> 8892b74 (Address 3nd round comments)
 }
 
 //===----------------------------------------------------------------------===//
@@ -1273,7 +1277,7 @@ LogicalResult GetDimensionSizeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IotaOp::verify() {
-  return hlo::verifyIotaOp(getLoc(), getIotaDimension(), getType());
+  return hlo::verifyIotaOp(getLoc(), getIotaDimension(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3278,8 +3282,10 @@ LogicalResult GetTupleElementOp::inferReturnTypes(
 
 LogicalResult TupleOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferTupleOp(context, location, TypeRange(operands),
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  TupleOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferTupleOp(context, location, adaptor.getVal(),
                            inferredReturnTypes);
 }
 
