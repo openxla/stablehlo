@@ -4,9 +4,8 @@
 expresses ML computations. It has been originally bootstrapped from the [MHLO
 dialect](https://github.com/tensorflow/mlir-hlo#meta-hlo-dialect-mhlo),
 including inheriting the type and some ops. This RFC aims to describe the
-current status and rationale for bounded dynamism constructs in StableHLO and
-provides recommendations to StableHLO producers and consumers. In particular,
-this RFC doesn’t propose any further changes to the current state.
+current status and rationale for bounded dynamism constructs in StableHLO.  In
+particular, this RFC doesn’t propose any further changes to the current state.
 
 Bounded dynamism allows programs to represent the maximum runtime size that a
 particular dynamic dimension of a tensor can have. This makes it possible to run
@@ -20,29 +19,6 @@ Applications include:
   [`stablehlo.dynamic_broadcast_in_dim`](https://github.com/openxla/stablehlo/blob/ff55f9346d54e9e38de807a79f8ae03faffda274/stablehlo/dialect/StablehloOps.td#L1838)
   op but with statically known upper bounds of `output_dimensions` operand.
 * Bounded dynamism can also open up performance optimizations opportunities.
-
-## Recommendations
-
-### StableHLO Producers
-
-* Producers can use the bounded tensor type representation as described in
-  P1.
-* Producers are encouraged to use the unbounded dynamic operations as described
-  in P4. Result types of these ops aren't required to have a bounded type.
-* Producers can still use `get_dimension_size` and `set_dimension_size` ops
-  described in P3 for the ease of transition to StableHLO and faster adoption of
-  StableHLO.
-
-### StableHLO Consumers
-
-* Consumers should aim to support unbounded programs and can optionally make use
-  of bounds on tensors for optimizations.
-* Consumers that support unbounded programs can safely ignore the bounds
-  completely without affecting the correctness.
-* Consumers that only support bounded programs could first transform the given
-  program to a bounded one through program analysis.
-* Consumers can choose to not support `get_dimension_size` and
-  `set_dimension_size` ops until they have a motivating use-case.
 
 ## Non Goals
 
@@ -70,15 +46,16 @@ canonical and makes it possible to infer that the dimension is dynamic if the
 bound value is static.
 
 The following type represents a 2D tensor, with the size of the 0th dimension
-being up to 3 and the size of the 1th dimension being exactly 5
+being up to 3 and the size of the 1st dimension being exactly 5:
 
 ```mlir
 tensor<?x5xf32, #stablehlo.type_extensions<bounds = [3, ?]>>
 ```
 
 Type compatibility in StableHLO also checks for compatibility of the bounds.
-The example type above is compatible with `tensor<2x5xf32>` but not with
-`tensor<7x5xf32>` as it doesn’t respect the bound `3` on the first dimension.
+For example, the example type above is compatible with `tensor<2x5xf32>` but not
+with `tensor<7x5xf32>` as it doesn’t respect the bound `3` on the first
+dimension.
 
 ```mlir
 func.func @bounds_compatibility(%arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>,
@@ -256,28 +233,26 @@ Use of dynamic ops over `set_dimension_size` op has various benefits:
   users are generally not familiar with this op and also the semantics are not
   intuitive.
 
-It is true that the `set_dimension_size` semantics allows making in-place
-updates. However, compilers should be making the trade-off between copy and
-additional memory based on the hardware capabilities and not the frameworks. It
-is possible to lower slice op to `set_dimension_size` op easily but going in the
-other direction is tricky. That would require program analysis to make sure that
-the size of the buffer is not increased later on.
+Benefit of the `set_dimension_size` op:
+
+Given that the runtime size argument of `set_dimension_size` op is required to
+be less than or equal to the static size or bound, compiler could separately
+track runtime size of the tensor and keep a buffer of fixed size according to
+the bound. This helps avoid any data movements for the `set_dimension_size` op
+at the cost of extra memory. However, compilers should be making the trade-off
+between copy and additional memory based on the hardware capabilities and not
+the frameworks. It is possible to lower slice op to `set_dimension_size` op
+easily but going in the other direction is tricky. That would require program
+analysis to make sure that the size of the buffer is not increased later on.
 
 ## Alternatives Considered
 
 ### Not having bounded type and/or set\_dimension\_size op
 
-Given the recommendation of using unbounded dynamism, could StableHLO just have
-a function attribute to store the input bounds instead of having bounded type
-and `set_dimension_size` op? This might be possible but this will pose
-significant challenges for existing users generating bounded programs. Current
-proposal allows users to incrementally move to the recommended approach for new
-implementations while immediately making use of StableHLO without generating a
-mix of StableHLO and MHLO programs.
-
-It is true that having the bounded type and `set_dimension_size` op introduces
-some complexity but given that the bounds are optional, users that don't care
-about bounded dynamism don't encounter complexity. All the code complexity is
-limited to the StableHLO shape functions. These also affects the op
-specifications but these should be intuitive to users based on the op semantics
-and making use of StableHLO shape functions should hide that as well.
+Given the use of unbounded dynamism, could StableHLO just have a function
+attribute to store the input bounds instead of having bounded type and
+`set_dimension_size` op? This might be possible but this will pose significant
+challenges for existing users generating bounded programs. Current proposal
+allows users to incrementally move to unbounded dynamism for new implementations
+while immediately making use of StableHLO without generating a mix of StableHLO
+and MHLO programs.
