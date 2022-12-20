@@ -37,10 +37,13 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   ];
 }
 
-class VHLO_TypeDef<string name,
+class VHLO_TypeDef<string cppName,
+                   string name,
+                   string cppBaseClass = "::mlir::Type",
                    string minVersion = "0.3.0",
                    string maxVersion = "current">
-  : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
+  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface], cppBaseClass> {
+  let mnemonic = name;
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
@@ -61,8 +64,71 @@ class VHLO_TypeDef<string name,
 //===----------------------------------------------------------------------===//
 
 // Token type.
-def VHLO_Token : VHLO_TypeDef<"Token"> {
-  let mnemonic = "token";
+def VHLO_Token : VHLO_TypeDef<"Token", "token">;
+
+// A type wrapper to conrtol serialization and deserialization
+def VHLO_Wrapped : VHLO_TypeDef<"Wrapped", "wrapped"> {
+  let mnemonic = "wrapped";
+  let parameters = (ins "mlir::Type":$data);
+  let assemblyFormat = "`<` $data `>`";
+}
+
+// Element Types
+def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
+  let parameters = (ins "::mlir::IntegerType":$value);
+  let assemblyFormat = "`<` $value `>`";
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    ::mlir::LogicalResult IntegerV1Type::verify(::llvm::function_ref<InFlightDiagnostic()> emitError,
+                     ::mlir::IntegerType value) {
+      llvm::SmallVector<unsigned> validWidths{4, 8, 16, 32, 64};
+      bool isPred = (value.getWidth() == 1 && value.isSignless());
+      if (!isPred && !llvm::is_contained(validWidths, value.getWidth())) {
+        // return emitError() << "invalid integer width " << value;
+      }
+      //if (!value.isSignless() && !value.isUnsigned()) {
+      //  return emitError() << "invalid integer signedness " << value;
+      //}
+      return success();
+    }
+  }];
+}
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
+  let parameters = (ins "Type":$elementType);
+  let assemblyFormat = "`<` $elementType `>`";
+}
+
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::BFloat16Type">;
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::Float16Type">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::Float32Type">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::Float64Type">;
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::IndexType">;
+
+// Quantized Type
+def VHLO_Double : APFloatParameter<""> {
+  let parser = [{
+    [&]() -> FailureOr<llvm::APFloat> {
+      double value;
+      if (failed($_parser.parseFloat(value))) {
+        return failure();
+      }
+      return APFloat(value);
+    }()
+  }];
+  let printer = "printFloatValue($_self, $_printer)";
+}
+
+def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
+  let parameters = (ins
+    "unsigned":$flags,
+    "::mlir::Type":$storageType,
+    "::mlir::Type":$expressedType,
+    VHLO_Double:$scale,
+    "int64_t":$zeroPoint,
+    "int64_t":$storageTypeMin,
+    "int64_t":$storageTypeMax
+  );
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_TYPES

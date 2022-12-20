@@ -60,10 +60,28 @@ class VHLO_AttrDef<string name,
 // Wrapped Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_AttrWrap : VHLO_AttrDef<"AttrWrap"> {
+def VHLO_AttrWrap : VHLO_AttrDef<"Wrapped"> {
   let mnemonic = "wrapped";
   let parameters = (ins "mlir::Attribute":$data);
   let assemblyFormat = "`<` $data `>`";
+}
+
+def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
+  let mnemonic = "float";
+  let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
+  let assemblyFormat = "`<` $value `:` $type `>`";
+}
+
+def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
+  let mnemonic = "dense";
+  let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
+  let hasCustomAssemblyFormat = 1;
+}
+
+def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
+  let mnemonic = "sym";
+  let parameters = (ins "::mlir::Attribute":$root_reference);
+  let assemblyFormat = "`<` $root_reference `>`";
 }
 
 //===----------------------------------------------------------------------===//
