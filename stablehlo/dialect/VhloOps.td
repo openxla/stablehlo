@@ -17,7 +17,6 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_OPS
 #define STABLEHLO_DIALECT_VHLO_OPS
 
-include "mlir/Dialect/Shape/IR/ShapeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -290,7 +289,7 @@ def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.3.0", "current", [Terminator]> {
 def VHLO_InfeedOpV1 : VHLO_Op<"infeed"> {
   let arguments = (ins
     VHLO_AnyType:$token,
-    OptionalAttr<VHLO_AnyAttr>:$infeed_config,
+    VHLO_AnyAttr:$infeed_config,
     OptionalAttr<VHLO_AnyAttr>:$layout
   );
   let results = (outs Variadic<VHLO_AnyType>);
@@ -300,7 +299,7 @@ def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
-    OptionalAttr<VHLO_AnyAttr>:$outfeed_config
+    VHLO_AnyAttr:$outfeed_config
   );
   let results = (outs VHLO_AnyType);
 }
@@ -374,7 +373,7 @@ def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "0.4.0"> {
     VHLO_AnyAttr:$all_gather_dim,
     VHLO_AnyAttr:$replica_groups,
     OptionalAttr<VHLO_AnyAttr>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
   );
   let results = (outs VHLO_AnyType);
 }
@@ -384,7 +383,7 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce"> {
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$replica_groups,
     OptionalAttr<VHLO_AnyAttr>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
   );
   let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType);
@@ -396,7 +395,7 @@ def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter"> {
     VHLO_AnyAttr:$scatter_dimension,
     VHLO_AnyAttr:$replica_groups,
     OptionalAttr<VHLO_AnyAttr>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
   );
   let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType);
@@ -618,7 +617,7 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.3.0", "0.3.0"> {
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
     OptionalAttr<VHLO_AnyAttr>:$has_side_effect,
-    OptionalAttr<VHLO_AnyAttr>:$backend_config,
+    VHLO_AnyAttr:$backend_config,
     OptionalAttr<VHLO_AnyAttr>:$api_version,
     OptionalAttr<VHLO_AnyAttr>:$called_computations,
     OptionalAttr<VHLO_AnyAttr>:$operand_layouts,
@@ -632,7 +631,7 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0"> {
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
     OptionalAttr<VHLO_AnyAttr>:$has_side_effect,
-    OptionalAttr<VHLO_AnyAttr>:$backend_config,
+    VHLO_AnyAttr:$backend_config,
     OptionalAttr<VHLO_AnyAttr>:$api_version,
     OptionalAttr<VHLO_AnyAttr>:$called_computations,
     OptionalAttr<VHLO_AnyAttr>:$operand_layouts,

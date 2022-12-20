@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_BASE
 #define STABLEHLO_DIALECT_VHLO_BASE
 
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
