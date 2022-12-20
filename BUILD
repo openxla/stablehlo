@@ -24,7 +24,6 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Base.h",
     ],
-    includes = ["."],
     deps = [
         ":base_attr_interfaces_inc_gen",
         "@llvm-project//llvm:Support",
@@ -60,7 +59,6 @@ td_library(
     srcs = [
         "stablehlo/dialect/Base.td",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
         "@llvm-project//mlir:OpBaseTdFiles",
@@ -76,7 +74,6 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/BroadcastUtils.h",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -127,7 +124,6 @@ cc_library(
 cc_library(
     name = "chlo_capi_headers",
     hdrs = CHLO_CAPI_HEADERS,
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -227,7 +223,6 @@ td_library(
         "stablehlo/dialect/ChloEnums.td",
         "stablehlo/dialect/ChloOps.td",
     ],
-    includes = ["."],
     deps = [
         ":base_td_files",
         "@llvm-project//mlir:BuiltinDialectTdFiles",
@@ -246,7 +241,6 @@ cc_library(
         "stablehlo/dialect/ChloBytecode.h",
         "stablehlo/dialect/ChloOps.h",
     ],
-    includes = ["."],
     deps = [
         ":base",
         ":broadcast_utils",
@@ -273,7 +267,6 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/Version.h",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -348,7 +341,6 @@ cc_library(
         "stablehlo/dialect/VhloBytecode.h",
         "stablehlo/dialect/VhloOps.h",
     ],
-    includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -391,7 +383,6 @@ td_library(
         "stablehlo/dialect/VhloEnums.td",
         "stablehlo/dialect/VhloOps.td",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:BuiltinDialectTdFiles",
         "@llvm-project//mlir:OpBaseTdFiles",
@@ -426,7 +417,6 @@ cc_library(
         "stablehlo/transforms/MapStablehloToVhlo.h",
         "stablehlo/transforms/Passes.h",
     ],
-    includes = ["."],
     deps = [
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
@@ -446,7 +436,6 @@ cc_library(
     name = "stablehlo_type_conversion",
     srcs = ["stablehlo/transforms/TypeConversion.cpp"],
     hdrs = ["stablehlo/transforms/TypeConversion.h"],
-    includes = ["."],
     deps = [
         ":stablehlo_ops",
         ":vhlo_ops",
@@ -465,7 +454,6 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Element.h",
     ],
-    includes = ["."],
     deps = [
         ":reference_errors",
         ":reference_types",
@@ -494,7 +482,6 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Interpreter.h",
     ],
-    includes = ["."],
     deps = [
         ":reference_errors",
         ":reference_ops",
@@ -515,7 +502,6 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Ops.h",
     ],
-    includes = ["."],
     deps = [
         ":reference_element",
         ":reference_errors",
@@ -536,7 +522,6 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Tensor.h",
     ],
-    includes = ["."],
     deps = [
         ":reference_element",
         ":reference_errors",
@@ -555,7 +540,6 @@ cc_library(
     hdrs = [
         "stablehlo/reference/Types.h",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:IR",
     ],
@@ -586,7 +570,6 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/AssemblyFormat.h",
     ],
-    includes = ["."],
     deps = [
         ":base",
         "@llvm-project//llvm:Support",
@@ -640,7 +623,6 @@ cc_library(
 cc_library(
     name = "stablehlo_capi_headers",
     hdrs = STABLEHLO_CAPI_HEADERS,
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:CAPIIRHeaders",
     ],
@@ -727,7 +709,6 @@ td_library(
     srcs = [
         "@llvm-project//mlir:include/mlir/Bindings/Python/Attributes.td",
     ],
-    includes = ["."],
     deps = [
         ":stablehlo_ops_td_files",
         "@llvm-project//mlir:OpBaseTdFiles",
@@ -742,7 +723,6 @@ td_library(
         "stablehlo/dialect/StablehloEnums.td",
         "stablehlo/dialect/StablehloOps.td",
     ],
-    includes = ["."],
     deps = [
         ":base_td_files",
         "@llvm-project//mlir:BuiltinDialectTdFiles",
@@ -759,7 +739,6 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/TypeInference.h",
     ],
-    includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -780,7 +759,6 @@ cc_library(
         "stablehlo/dialect/StablehloBytecode.h",
         "stablehlo/dialect/StablehloOps.h",
     ],
-    includes = ["."],
     deps = [
         ":base",
         ":stablehlo_assembly_format",
@@ -857,7 +835,6 @@ td_library(
     srcs = [
         "stablehlo/tests/TestUtils.td",
     ],
-    includes = ["."],
     deps = [
         "@llvm-project//mlir:PassBaseTdFiles",
     ],
@@ -871,7 +848,6 @@ cc_library(
     hdrs = [
         "stablehlo/tests/TestUtils.h",
     ],
-    includes = ["."],
     deps = [
         ":stablehlo_assembly_format",
         ":test_utils_inc_gen",
