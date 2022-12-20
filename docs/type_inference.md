@@ -8,7 +8,7 @@ To implement high-quality verifiers and shape functions for StableHLO ops, these
 
 These proposals apply to both revisiting existing implementations, and achieving new ops until a comprehensive coverage.
 
-## (P1) Use the StableHLO spec as the source of truth.
+## (P1) Use the StableHLO spec as the source of truth
 
 The [spec](https://github.com/openxla/stablehlo/blob/main/docs/spec.md) is the source of truth for all verifiers and shape functions of the StableHLO ops. The existing verifiers and shape functions of every op need revisited to be fully aligned with the specification. Note that the specification document keeps evolving, in cases that the spec for an op is not available, the XLA implementation should be used as the source of truth instead: including [xla/service/shape\_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc) and [xla/service/hlo\_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc). XLA implementation doesn't cover unbounded dynamism, so for unbounded dynamism we'll apply common sense until the dynamism RFC is available.
 
@@ -22,7 +22,8 @@ Do we need adding tests for the constraints from the ODS? Please see “Establis
 
 ## (P3) Maintain verification code in verifiers and shape functions
 
-Both
+Both:
+
 - **verifiers**: implemented by `Op::verify()`, and
 - **shape functions**: implemented by `InferTypeOpInterface` like `Op::inferReturnTypes()` or `Op::inferReturnTypeComponents`
 
@@ -59,8 +60,9 @@ But stay careful about the missing pieces: for example, if the op contains the t
 ### What to do
 
 When implementing or revisiting the verifier and/or shape function of an op:
+
 1. Put all positive cases and negative cases in [ops\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir).
 2. Add a single positive test in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir) to test the interface.
-3. (Optional) If an op is complicated and could contain a lot of tests, consider adding a separate test file named `verify_<op_name>.mlir` or` verify_<your_topic>.mlir` within the same folder.
+3. (Optional) If an op is complicated and could contain a lot of tests, consider adding a separate test file named `verify_<op_name>.mlir` or `verify_<your_topic>.mlir` within the same folder.
 
 Note: For now, the tests for new **bounded dynamism / sparsity** are also put in [infer\_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).

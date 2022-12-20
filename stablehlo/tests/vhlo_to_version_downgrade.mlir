@@ -1,5 +1,16 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.3.0' %s | FileCheck %s
 
+// CHECK-LABEL: @all_to_all_to_v1
+func.func @all_to_all_to_v1(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // CHECK-NEXT: %0 = "vhlo.all_to_all"(%arg0)
+  %0 = "stablehlo.all_to_all"(%arg0) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
 
 // CHECK-LABEL: @all_gather_to_v1
 func.func @all_gather_to_v1(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {

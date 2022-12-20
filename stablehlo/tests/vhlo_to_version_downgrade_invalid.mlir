@@ -1,6 +1,6 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.3.0' --verify-diagnostics --split-input-file %s
 
-func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> tensor<f32> {
+func.func @custom_call_v2_with_output_operand_aliases(%arg0 : tensor<f32>) -> tensor<f32> {
   // expected-error @+2 {{failed to downgrade vhlo.custom_call_v2, op has a non-empty output_operand_aliases attribute}}
   // expected-error @+1 {{failed to legalize operation 'vhlo.custom_call_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.custom_call"(%arg0) {
@@ -15,6 +15,22 @@ func.func @custom_call_v2_with_output_operand_alises(%arg0 : tensor<f32>) -> ten
                                  operand_index = 0,
                                  operand_tuple_indices = []>],
     result_layouts = [dense<> : tensor<0xindex>]
+  } : (tensor<f32>) -> tensor<f32>
+  func.return %0 : tensor<f32>
+}
+
+// -----
+
+// Unregistered attributes are permitted so long as their value is
+// representable and valid in VHLO in the target version.
+func.func @custom_call_v2_with_output_operand_aliases_unregistered(%arg0 : tensor<f32>) -> tensor<f32> {
+  // expected-error @+1 {{failed to legalize operation 'vhlo.custom_call_v2' that was explicitly marked illegal}}
+  %0 = "stablehlo.custom_call"(%arg0) {
+    call_target_name = "foo",
+    output_operand_aliases_unregistered =
+      #stablehlo.output_operand_alias<output_tuple_indices = [],
+                                 operand_index = 0,
+                                 operand_tuple_indices = []>
   } : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
@@ -63,4 +79,19 @@ func.func @invalid_program_unknown_op(%arg0 : tensor<f32>) -> (tensor<f32>) {
   // expected-error @+1 {{unregistered operation 'vhlo.unknown_op' found in dialect ('vhlo') that does not allow unknown operations}}
   %0 = "vhlo.unknown_op"(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return
+}
+
+// -----
+
+func.func @all_to_all_to_v1(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error @+2 {{failed to downgrade vhlo.all_to_all_v2, op has a non-empty channel_handle attribute}}
+  // expected-error @+1 {{failed to legalize operation 'vhlo.all_to_all_v2' that was explicitly marked illegal}}
+  %0 = "stablehlo.all_to_all"(%arg0) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
 }

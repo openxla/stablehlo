@@ -1,5 +1,5 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo --vhlo-legalize-to-stablehlo stablehlo/tests/legalize_stablehlo_to_vhlo.mlir) <(stablehlo-opt stablehlo/tests/legalize_stablehlo_to_vhlo.mlir)
+// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo %s | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
@@ -380,7 +380,8 @@ func.func @op_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_all_reduce"
 
 func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  //               CHECK: "vhlo.all_to_all"(%arg0) {
+  //               CHECK: "vhlo.all_to_all_v2"(%arg0) {
+  //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 1, type = 0>
   //          CHECK-SAME:   concat_dimension = 0 : i64,
   // CHECK-SAME{LITERAL}:   replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
   //          CHECK-SAME:   split_count = 4 : i64,
@@ -390,7 +391,8 @@ func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
     split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }

@@ -31,11 +31,6 @@ limitations under the License.
 #include "mlir/IR/OpDefinition.h"
 #include "stablehlo/dialect/Version.h"
 
-// Include order matters.
-#include "stablehlo/dialect/VhloEnums.h.inc"
-#define GET_ATTRDEF_CLASSES
-#include "stablehlo/dialect/VhloAttrs.h.inc"
-
 namespace mlir {
 namespace vhlo {
 
@@ -63,14 +58,21 @@ class VhloDialect : public Dialect {
   static Version getMinimumVersion() { return Version(0, 3, 0); }
 };
 
-class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
- public:
-  using Base::Base;
-};
-
 }  // namespace vhlo
 }  // end namespace mlir
 
+// Types
+#include "stablehlo/dialect/VhloTypeInterfaces.h.inc"
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/VhloTypeDefs.h.inc"
+
+// Attrs and Enums
+#include "stablehlo/dialect/VhloAttrInterfaces.h.inc"
+#include "stablehlo/dialect/VhloEnums.h.inc"
+#define GET_ATTRDEF_CLASSES
+#include "stablehlo/dialect/VhloAttrs.h.inc"
+
+// Ops
 #include "stablehlo/dialect/VhloOpInterfaces.h.inc"
 #define GET_OP_CLASSES
 #include "stablehlo/dialect/VhloOps.h.inc"

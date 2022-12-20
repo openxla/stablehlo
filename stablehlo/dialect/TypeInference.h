@@ -109,30 +109,58 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 // These parameters have the same names as in the ODS and come in the same
 // order in which they are declared in the ODS.
 
+LogicalResult inferAbsOp(Optional<Location>, Value operand,
+                         SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferAllToAllOp(
+    Optional<Location> location, Value operand, int64_t splitDimension,
+    int64_t concatDimension, int64_t splitCount,
+    DenseIntElementsAttr replicaGroups,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormInferenceOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormTrainingOp(
     Optional<Location> location, Value operand, Value scale,
-    uint64_t featureIndex,
+    int64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferBroadcastOp(
+    Optional<Location> location, Value operand,
+    DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferCholeskyOp(
+    Optional<Location> location, Value a,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferClampOp(
+    Optional<Location> location, Value min, Value operand, Value max,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
+                             SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
                                  int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
@@ -145,10 +173,22 @@ LogicalResult inferDotGeneralOp(
     ArrayRef<int64_t> rhsContractingDimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferDynamicSliceOp(
+    Optional<Location> location, Value operand, ValueRange startIndices,
+    DenseIntElementsAttr sliceSizes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferDynamicUpdateSliceOp(
     Optional<Location> location, Value operand, Value update,
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferGetTupleElementOp(
+    Optional<Location> location, Value operand, int32_t index,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferGetDimensionSizeOp(
     MLIRContext* context, Optional<Location> location,
@@ -175,6 +215,9 @@ LogicalResult inferOptimizationBarrierOp(
 
 LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferRealOp(Optional<Location> location, Value operand,
+                          SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
@@ -225,12 +268,56 @@ LogicalResult inferTriangularSolveOp(
     bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferTupleOp(MLIRContext* context, Optional<Location> location,
+                           ValueRange val,
+                           SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes);
+
+//===----------------------------------------------------------------------===//
+// Verifiers for ops.
+//===----------------------------------------------------------------------===//
+
+LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
+                                DenseIntElementsAttr replicaGroups,
+                                bool useGlobalDeviceIds, Region& computation);
+
+LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
+                                     Value result);
+
+LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
+                                     DenseIntElementsAttr broadcastDimensions,
+                                     Value result);
+
+LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
+                                        DenseIntElementsAttr sourceTargetPairs);
+
+LogicalResult verifyDynamicBroadcastInDimOp(
+    Optional<Location> location, Value operand, Value outputDimensions,
+    DenseIntElementsAttr broadcastDimensions,
+    Optional<DenseIntElementsAttr> knownExpandingDimensions,
+    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result);
+
+LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
+                                     Value outputShape, Value result);
+
+LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
+                           Value result);
+
+LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
+                                       Value operand, Value startIndices,
+                                       Value limitIndices, Value strides);
 
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);
+
+LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
+                                    int64_t scatterDimension,
+                                    DenseIntElementsAttr replicaGroups,
+                                    bool useGlobalDeviceIds,
+                                    Region& computation, Value result);
 
 LogicalResult verifyReduceWindowOp(
     Optional<Location> location, ValueRange inputs, ValueRange initValues,
@@ -241,7 +328,7 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> padding, Region& body);
 
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
-                           uint64_t dimension, Region& comparator);
+                           int64_t dimension, Region& comparator);
 
 LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
                             Region& cond, Region& body);

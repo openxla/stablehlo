@@ -28,7 +28,7 @@ def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp">
 def VhloToVersionPass : Pass<"vhlo-to-version"> {
   let summary = "Convert between versions of VHLO.";
   let options = [
-    Option<"targetVersion", "target", "std::string", "",
+    Option<"targetVersionOption", "target", "std::string", "",
            "The target version. Must be a version of the form #.#.# or 'current'.">,
   ];
 }

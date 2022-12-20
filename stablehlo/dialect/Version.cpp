@@ -47,6 +47,12 @@ static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(
                                 parseNumber(matches[2]),
                                 parseNumber(matches[3])};
 }
+
+template <typename OutputT>
+OutputT& dump(OutputT& out, const Version& version) {
+  return out << version.getMajor() << '.' << version.getMinor() << '.'
+             << version.getPatch();
+}
 }  // namespace
 
 FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
@@ -60,8 +66,10 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
-  return diag << version.getMajor() << '.' << version.getMinor() << '.'
-              << version.getPatch();
+  return dump<mlir::Diagnostic>(diag, version);
+}
+llvm::raw_ostream& operator<<(llvm::raw_ostream& diag, const Version& version) {
+  return dump<llvm::raw_ostream>(diag, version);
 }
 
 }  // namespace vhlo

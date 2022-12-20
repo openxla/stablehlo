@@ -18,11 +18,16 @@ limitations under the License.
 
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
 
 // Include order matters
+#include "stablehlo/dialect/VhloTypeInterfaces.cpp.inc"
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/VhloAttrInterfaces.cpp.inc"
 #include "stablehlo/dialect/VhloEnums.cpp.inc"
+#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
 #include "stablehlo/dialect/VhloOpInterfaces.cpp.inc"
@@ -43,7 +48,10 @@ VhloDialect::VhloDialect(MLIRContext* context)
 #include "stablehlo/dialect/VhloOps.cpp.inc"
       >();
   addBytecodeInterface(this);
-  addTypes<TokenType>();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
+      >();
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
@@ -52,16 +60,17 @@ VhloDialect::VhloDialect(MLIRContext* context)
 
 Type VhloDialect::parseType(DialectAsmParser& parser) const {
   StringRef dataType;
-  if (parser.parseKeyword(&dataType)) return Type();
-
-  if (dataType == "token") return TokenType::get(getContext());
+  Type type;
+  auto parseResultOpt = generatedTypeParser(parser, &dataType, type);
+  if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) {
+    return type;
+  }
   parser.emitError(parser.getNameLoc()) << "unknown vhlo type: " << dataType;
   return nullptr;
 }
 
 void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
-  if (type.isa<TokenType>()) {
-    os << "token";
+  if (succeeded(generatedTypePrinter(type, os))) {
     return;
   }
   os << "<unknown vhlo type>";
