@@ -1,7 +1,11 @@
-# Disables some markdownlint rules.
-# See https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md#rules
+# Enable all rules by default
 default: true
-line-length: false
-fenced-code-language: false
+
+# Limit to 80-char line length, except for tables and code blocks
+line-length:
+  line_length: 80
+  tables: false
+  code_blocks: false
+
+# Allow inline HTML
 no-inline-html: false
-reference-links-images: false
