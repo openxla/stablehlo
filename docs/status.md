@@ -1,4 +1,4 @@
-## About
+# StableHLO progress
 
 When bootstrapping StableHLO from MHLO, we have inherited MHLO's implementation
 of many things, including prettyprinting, verification and shape inference.
@@ -10,7 +10,7 @@ This live document is for the developers and the users to track the progress on
 various aspects of the opset - specification, verification, type inference,
 pretty printing, interpreter, etc.
 
-### How to use it
+## How to use it
 
 The progress of a StableHLO op, as mentioned in the corresponding row, on a
 particular aspect, as mentioned in the corresponding column, is tracked using
