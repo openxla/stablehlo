@@ -1,0 +1,7 @@
+# Disables some markdownlint rules.
+# See https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md#rules
+default: true
+line-length: false
+fenced-code-language: false
+no-inline-html: false
+reference-links-images: false
