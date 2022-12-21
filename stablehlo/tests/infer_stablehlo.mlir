@@ -983,6 +983,20 @@ func.func @concat_bounds_unranked_c1(
 
 // -----
 
+// CHECK-LABEL: func @if_bounds
+func.func @if_bounds(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xindex>
+  func.return
+}
+
+// -----
+
 // CHECK-LABEL: @gather
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<3x4x2xi32>, %[[ARG1:.*]]: tensor<?x3x2xi64>
 func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xi64> {

@@ -77,12 +77,18 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound);
 
+FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
+    Optional<Location> location, int64_t dim, int64_t leftSize,
+    int64_t rightSize, int64_t leftBound, int64_t rightBound);
+
 // Infer single most specific return type from inputTypes with support for
 // bounds. (Size, bound) of each dimension of the return type will be merged
 // from corresponding dimensions of every inputType by merging them.
-LogicalResult inferMostSpecificType(Optional<Location> location,
-                                    TypeRange inputTypes,
-                                    SmallVectorImpl<Type> &inferredReturnTypes);
+FailureOr<Type> inferMostSpecificType(
+    Optional<Location> location, TypeRange inputTypes,
+    std::function<FailureOr<std::pair<int64_t, int64_t>>(
+        Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
+        mergeFunc);
 
 LogicalResult inferMostSpecificTypeComponents(
     Optional<Location> location, TypeRange inputTypes,
@@ -237,9 +243,15 @@ class CompatibleOperandsAndResultType
           location,
           "Expected non-empty operands for [CompatibleOperandsAndResultType]");
 
-    if (failed(inferMostSpecificType(location, operands.getTypes(),
-                                     inferredReturnTypes)))
-      return failure();
+    // if (failed(inferMostSpecificType(location, operands.getTypes(),
+    //                                  inferredReturnTypes,
+    //                                  inferMergedDimAndBound)))
+    //   return failure();
+
+    auto inferredTypeOrErr = inferMostSpecificType(
+        location, operands.getTypes(), inferMergedDimAndBound);
+    if (failed(inferredTypeOrErr)) return failure();
+    inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
     return success();
   }
 

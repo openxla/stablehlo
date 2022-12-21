@@ -261,28 +261,60 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
   return std::make_pair(size, bound);
 }
 
-// TODO(zhouxin) Refactor to better handle errors and return single type
-LogicalResult inferMostSpecificType(
+// Inference rules for conditional branches (lhs/rhs are commutative):
+//       Dim of lhs     Dim of rhs      Infer
+//  c0:  X              X               X
+//  c1:  X              ?               ?
+//  c2:  X              ?, B(>=X)       ?, B(>=X)
+//  c3:  X              ?, B(<X)        ?, B(<X)
+//  c4:  ?              ?               ?
+//  c5:  ?              ?, B            ?, B
+//  c6:  ?, B           ?, C            ?, max(B, C)
+FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
+    Optional<Location> location, int64_t dim, int64_t leftSize,
+    int64_t rightSize, int64_t leftBound, int64_t rightBound) {
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  // TODO
+  return std::make_pair(leftSize, ShapedType::kDynamic);
+}
+
+FailureOr<Type> inferMostSpecificType(
     Optional<Location> location, TypeRange inputTypes,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
+    std::function<FailureOr<std::pair<int64_t, int64_t>>(
+        Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
+        mergeFunc) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
-  if (rankedTypes.empty()) {
-    inferredReturnTypes.push_back(inputTypes[0]);
-    return success();
-  }
+  if (rankedTypes.empty()) return inputTypes[0];
 
   auto rank = rankedTypes[0].getRank();
-  SmallVector<int64_t> inferredSizes(rank, ShapedType::kDynamic);
+  SmallVector<int64_t> inferredSizes;
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
   bool anyInputHaveBounds = false;
 
-  for (const auto& it : llvm::enumerate(rankedTypes)) {
-    RankedTensorType rankedType = it.value();
+  for (unsigned i = 0; i < rankedTypes.size(); ++i) {
+    RankedTensorType rankedType = rankedTypes[i];
     ArrayRef<int64_t> bounds = encodingToBounds(rankedType.getEncoding());
     if (!bounds.empty()) anyInputHaveBounds = true;
+
+    if (i == 0) {
+      inferredSizes = to_vector(rankedType.getShape());
+      if (!bounds.empty()) inferredBounds = to_vector(bounds);
+      continue;
+    }
+    llvm::errs() << "rank ====== : " << rank << "\n";
+    llvm::errs() << "inferredSizes.size(): " << inferredSizes.size() << "\n";
+    llvm::errs() << "inferredBounds.size(): " << inferredBounds.size() << "\n";
 
     for (int dim = 0; dim < rank; ++dim) {
       std::pair<int64_t, int64_t> inferredDimAndBound;
@@ -291,37 +323,34 @@ LogicalResult inferMostSpecificType(
       int64_t leftBound = inferredBounds[dim];
       int64_t rightBound = bounds.empty() ? ShapedType::kDynamic : bounds[dim];
 
-      auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
-          location, dim, leftSize, rightSize, leftBound, rightBound);
+      auto inferredDimAndBoundOrErr =
+          mergeFunc(location, dim, leftSize, rightSize, leftBound, rightBound);
       if (failed(inferredDimAndBoundOrErr)) return failure();
       inferredDimAndBound = *inferredDimAndBoundOrErr;
       inferredSizes[dim] = inferredDimAndBound.first;
       inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
+  llvm::errs() << "rank: " << rank << "\n";
+  llvm::errs() << "inferredSizes.size(): " << inferredSizes.size() << "\n";
 
-  inferredReturnTypes.push_back(RankedTensorType::get(
+  return RankedTensorType::get(
       inferredSizes, rankedTypes[0].getElementType(),
       boundsToEncoding(
           rankedTypes[0].getEncoding(),
           // Empty array as argument is an indicator to boundsToEncoding() that
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type
-          anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({}))));
-  return success();
+          anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({})));
 }
 
 LogicalResult inferMostSpecificTypeComponents(
     Optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<Type> inferredReturnTypes;
-  if (failed(hlo::inferMostSpecificType(location, inputTypes,
-                                        inferredReturnTypes))) {
-    return failure();
-  }
-  for (auto inferredReturnType : inferredReturnTypes) {
-    inferredReturnShapes.emplace_back(inferredReturnType.cast<ShapedType>());
-  }
+  auto inferredTypeOrErr =
+      inferMostSpecificType(location, inputTypes, inferMergedDimAndBound);
+  if (failed(inferredTypeOrErr)) return failure();
+  inferredReturnShapes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
   return success();
 }
 

@@ -1091,8 +1091,19 @@ LogicalResult inferConditionalOp(Optional<Location> location,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-  for (auto resultType : branch0ResultTypes)
-    inferredReturnTypes.push_back(resultType);
+  // for (auto resultType : branch0ResultTypes)
+  //   inferredReturnTypes.push_back(resultType);
+
+  for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
+    SmallVector<Type> inputTypes;
+    for (unsigned j = 0; j < branches.size(); ++j)
+      inputTypes.push_back(
+          branches[j]->front().getTerminator()->getOperandTypes()[i]);
+    auto inferredTypeOrErr =
+        inferMostSpecificType(location, inputTypes, inferBranchedDimAndBound);
+    if (failed(inferredTypeOrErr)) return failure();
+    inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
+  }
   return success();
 }
 
