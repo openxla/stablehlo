@@ -1,0 +1,14 @@
+# Enable all rules by default
+default: true
+
+# Limit to 80-char line length, except for tables and code blocks
+line-length:
+  line_length: 80
+  tables: false
+  code_blocks: false
+
+# Allow inline HTML
+no-inline-html: false
+
+# TODO(smain): Remove this once error is resolved
+reference-links-images: false
