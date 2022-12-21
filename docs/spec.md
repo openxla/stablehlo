@@ -1766,7 +1766,7 @@ tensor. More formally,
   * (C2) All tensors in `inputs` have the same shape except for the size of the
   `dimension`th dimension.
   * (C3) `inputs` have N tensors where N >= 1.
-  * (C4) 0 $\le$ `dimension` $\lt$ rank of `inputs[0]`.
+  * (C4) 0 $\le$ `dimension` $\lt$ `rank(inputs[0])`.
   * (C5) `result` has the same element type as the tensors in `inputs`.
   * (C6) `result` has the same shape as the tensors in `inputs` except for the
   size of the `dimension`th dimension, which is calculated as a sum of the size
@@ -3021,8 +3021,7 @@ defined and one of the following:
 
 ### Constraints
 
-  * (C1) 0 $\le$ `iota_dimension` $\lt$ `R`, where `R` is the rank of the
-  `output`.
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `rank(output)`.
 
 ### Examples
 
@@ -4317,7 +4316,7 @@ and produces a `result` tensor. More formally,
   * (C1) `operand` and `result` have the same type.
   * (C2) All dimensions in `dimensions` are unique.
   * (C3) For all dimensions `k` in `dimensions`, 0 $\le$ `dimensions[k]` $\lt$
-  `R`, where `R` is the rank of the `result`.
+  `rank(result)`.
 
 ### Examples
 
