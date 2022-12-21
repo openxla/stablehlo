@@ -152,6 +152,10 @@ LogicalResult inferClampOp(
     Optional<Location> location, Value min, Value operand, Value max,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferCompareOp(
+    MLIRContext* context, Optional<Location>, Value lhs,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 

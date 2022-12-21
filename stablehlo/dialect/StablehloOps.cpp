@@ -2893,17 +2893,12 @@ void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
 }
 
 LogicalResult CompareOp::inferReturnTypeComponents(
-    mlir::MLIRContext* ctx, llvm::Optional<mlir::Location>,
-    ValueShapeRange operands, mlir::DictionaryAttr, mlir::RegionRange,
-    llvm::SmallVectorImpl<mlir::ShapedTypeComponents>& inferredReturnTypes) {
-  ShapedTypeComponents& components =
-      inferredReturnTypes.emplace_back(IntegerType::get(ctx, /*width=*/1));
-  auto argTy = operands.front().getType().cast<TensorType>();
-  if (argTy.hasRank()) {
-    components =
-        ShapedTypeComponents(argTy.getShape(), components.getElementType());
-  }
-  return success();
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CompareOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
+                             inferredReturnShapes);
 }
 
 LogicalResult CompareOp::reifyReturnTypeShapes(

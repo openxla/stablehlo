@@ -1168,6 +1168,19 @@ LogicalResult inferClampOp(
   return success();
 }
 
+LogicalResult inferCompareOp(
+    MLIRContext* context, Optional<Location>, Value lhs,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  ShapedTypeComponents& components =
+      inferredReturnShapes.emplace_back(IntegerType::get(context, /*width=*/1));
+  auto argTy = lhs.getType().cast<TensorType>();
+  if (argTy.hasRank()) {
+    components =
+        ShapedTypeComponents(argTy.getShape(), components.getElementType());
+  }
+  return success();
+}
+
 LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   TensorType operandType = lhs.getType().cast<TensorType>();
