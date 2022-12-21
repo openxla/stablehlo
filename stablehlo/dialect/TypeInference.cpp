@@ -1511,6 +1511,13 @@ LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
   return success();
 }
 
+LogicalResult inferPartitionIdOp(MLIRContext* context, Optional<Location>,
+                                 SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
+  return success();
+}
+
 LogicalResult inferRealOp(Optional<Location>, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
