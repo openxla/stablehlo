@@ -2368,15 +2368,15 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "GetDimensionSize operator";
   let description = [{
-    Returns the size of the given dimension of the operand.
+    Produces the size of the given `dimension` of the `operand`.
 
     See
-    https://www.tensorflow.org/xla/operation_semantics#getdimensionsize.
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#stablehloget_dimension_size
 
     Example:
 
     ```mlir
-    %0 = stablehlo.get_dimension_size %arg0, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
+    %result = stablehlo.get_dimension_size %operand, dim = 1 : (tensor<2x3xf32>) -> tensor<i32>
     ```
   }];
   let arguments = (ins

@@ -413,6 +413,7 @@ syntax.
    * [fft](#stablehlofft)
    * [floor](#stablehlofloor)
    * [gather](#stablehlogather)
+   * [get_dimension_size](#stablehloget_dimension_size)
    * [get_tuple_element](#stablehloget_tuple_element)
    * [if](#stablehloif)
    * [imag](#stablehloimag)
@@ -2824,6 +2825,41 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //              [[17, 18], [19, 20]]
 //            ]
 //          ]
+```
+
+[Back to Ops](#index-of-ops)
+
+## stablehlo.get_dimension_size
+
+### Semantics
+
+Produces the size of the given `dimension` of the `operand`.
+
+### Inputs
+
+| Name          | Type                         |
+|---------------|------------------------------|
+| `operand`     | tensor of any supported type |
+| `dimension`   | constant of type `si64`      |
+
+### Outputs
+
+| Name     | Type                                |
+|----------|-------------------------------------|
+| `result` | 0-dimensional tensor of type `si32` |
+
+### Constraints
+
+  * (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`. [todo](https://github.com/openxla/stablehlo/issues/790)
+
+### Examples
+
+```mlir
+// %operand: [[1, 2, 3], [4, 5, 6]]
+%result = "stablehlo.get_dimension_size"(%operand) {
+  dimension = 1 : i64
+} : (tensor<2x3xf32>) -> tensor<i32>
+// %result: 3
 ```
 
 [Back to Ops](#index-of-ops)
