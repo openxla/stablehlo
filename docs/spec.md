@@ -644,9 +644,11 @@ Afterwards, within each `process_group`:
   * If `flattened_ids`, `num_processes`.
 * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C5) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
+  [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C6)`type(result) = type(operand)` except:
-  * `dim(result, all_gather_dim)` = `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
+  * `dim(result, all_gather_dim)` =
+    `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
 ### Examples
 
@@ -691,7 +693,7 @@ Afterwards, within each `process_group`:
     `receiver` in `process_group`.
 * &#32;
 
-    ```
+    ```mlir
     result@process[i0, i1, ..., iR-1] =
         reduce_without_init(
           inputs=operands@process[:][i0, i1, ..., iR-1],
@@ -728,7 +730,8 @@ Afterwards, within each `process_group`:
   * If `flattened_ids`, `num_processes`.
 * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C4) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
+* (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
+  [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
 * (C6) type(`result`) $=$ type(`operand`).
@@ -774,7 +777,7 @@ Afterwards, within each `process_group`:
 
 * &#32;
 
-    ```
+    ```mlir
     split_parts@sender = [
         slice(
           operand=operand@sender,
@@ -793,8 +796,8 @@ Afterwards, within each `process_group`:
     ```
 
     for all `sender` in `process_group`.
-* `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in process_group]`
-    where `receiver_index = index_of(receiver, process_group)`.
+* `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in
+  process_group]` where `receiver_index = index_of(receiver, process_group)`.
 * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
 
 ### Inputs
@@ -824,8 +827,10 @@ Afterwards, within each `process_group`:
 * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
 * (C8) `type(result) = type(operand)` except:
-  * `dim(result, split_dimension) = dim(operand, split_dimension) / split_count`.
-  * `dim(result, concat_dimension) = dim(operand, concat_dimension) * split_count`.
+  * `dim(result, split_dimension) =
+    dim(operand, split_dimension) / split_count`.
+  * `dim(result, concat_dimension) =
+    dim(operand, concat_dimension) * split_count`.
 
 ### Examples
 
@@ -1579,7 +1584,8 @@ The operation splits the StableHLO grid into `process_groups` as follows:
 
 Afterwards, `result@process` is given by:
 
-* `operand@process_groups[i, 0]`, if there exists an `i` such that `process_groups[i, 1] = process`.
+* `operand@process_groups[i, 0]`, if there exists an `i` such that
+  `process_groups[i, 1] = process`.
 * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
 ### Inputs
@@ -1910,6 +1916,7 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 More formally, we start with reframing the inputs to the operation in terms
 of `lhs` in order to be able to express windows of `lhs`:
 
+<!-- markdownlint-disable line-length -->
 * `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
 * `lhs_window_strides = lhs_shape(1, window_strides, 1)`.
 * `lhs_padding = lhs_shape([0, 0], padding, [0, 0])`.
@@ -1948,6 +1955,7 @@ If `batch_group_count > 1`:
 * `rhses = split(rhs, batch_group_count, kernel_output_feature_dimension)`.
 * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1, ...)`.
 * `result = concatenate(results, output_feature_dimension)`.
+<!-- markdownlint-enable line-length -->
 
 ### Inputs
 
@@ -1981,6 +1989,7 @@ If `batch_group_count > 1`:
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) $N =$ rank(`lhs`) $=$ rank(`rhs`).
 * (C2) element_type(`lhs`) $=$ element_type(`rhs`).
 * (C3) size(`window_strides`) $= N - 2$ .
@@ -2028,6 +2037,7 @@ If `batch_group_count > 1`:
     * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C27) element_type(`result`) $=$ element_type(`lhs`).
 * (C28) rank(`result`) $= N$.
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -2241,6 +2251,7 @@ Computes dot products between slices of `lhs` and slices of `rhs` and produces a
 
 More formally, `result[result_index] = dot_product`, where:
 
+<!-- markdownlint-disable line-length -->
 * `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
 * `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
 * `result_batching_index + result_lhs_index + result_rhs_index = result_index`
@@ -2258,6 +2269,7 @@ More formally, `result[result_index] = dot_product`, where:
     init_values=[0],
     dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
     body=lambda x, y: add(x, y))`.
+<!-- markdownlint-enable line-length -->
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
@@ -2855,7 +2867,8 @@ Produces the size of the given `dimension` of the `operand`.
 
 ### Constraints
 
-* (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`. [todo](https://github.com/openxla/stablehlo/issues/790)
+* (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`.
+  [todo](https://github.com/openxla/stablehlo/issues/790)
 
 ### Examples
 
@@ -3018,7 +3031,8 @@ as a value that other operations can take a data dependency on.
 
 * (C1) size(`results`) $\ge$ 1.
 * (C2) type(`results`[-1]) $=$ `token`.
-* -- [Verify layout in InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
+* -- [Verify layout in
+  InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
 ### Examples
 
@@ -3655,7 +3669,8 @@ the interior-padded operand.
 
 More formally, `result[i0, ..., iR-1]` is equal to:
 
-* `operand[j0, ..., jR-1]` if `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
+* `operand[j0, ..., jR-1]` if
+  `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
 * `padding_value[]` otherwise.
 
 ### Inputs
@@ -3676,6 +3691,7 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) `operand`, `padding_value`, `result` have the same element type.
 * (C2) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
   size equal to `operand`'s rank.
@@ -3683,6 +3699,7 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 * (C4) 0 $\le$ `dim(result, i)` for all `i`th dimension of `operand`, where
   `dim(result, i) = di + max(di - 1, 0) * interior_padding[i] + edge_padding_low[i] + edge_padding_high[i]`
   and `di = dim(operand, i)`.
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -3886,7 +3903,8 @@ other operations can take a data dependency on.
 
 ### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
+  must be
   * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 * (C2) size(`results`) $\ge$ 1.
@@ -4061,10 +4079,12 @@ The operation splits the StableHLO grid into `process_groups` as follows:
 
 Afterwards, within each `process_group`:
 
+<!-- markdownlint-disable line-length -->
 * `reduced_value = all_reduce(operand, replica_groups, channel_id, use_global_device_ids, computation)`.
 * `parts@sender = split(reduced_value@sender, dim(process_groups, 1), split_dimension)`.
 * `result@receiver = parts@sender[receiver_index]` for any sender in process_group,
       where `receiver_index = index_of(receiver, process_group)`.
+<!-- markdownlint-enable line-length -->
 
 ### Inputs
 
@@ -4085,6 +4105,7 @@ Afterwards, within each `process_group`:
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
 * (C2) `scatter_dimension` $\in$ [0, rank(`operand`)).
 * (C3) All values in `replica_groups` are unique.
@@ -4099,6 +4120,7 @@ Afterwards, within each `process_group`:
          `E = element_type(operand)`.
 * (C8) `type(result) = type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -4149,11 +4171,15 @@ The following diagram shows how elements in `results[k]` are computed from
 
 ![](images/spec/reduce_window.svg)
 
-More formally, `results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)` where:
+More formally,
+`results[:][result_index] = reduce(windows, init_values, axes(inputs[:]), body)`
+where:
 
+<!-- markdownlint-disable line-length -->
 * `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
 * `window_start = result_index * window_strides`.
 * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
+<!-- markdownlint-enable line-length -->
 
 ### Inputs
 
@@ -4176,6 +4202,7 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
          N $\ge$ 1.
 * (C2) All `inputs` have the same shape.
@@ -4200,6 +4227,7 @@ More formally, `results[:][result_index] = reduce(windows, init_values, axes(inp
   * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
 * (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
       $\in$ [0, N).
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -4645,6 +4673,7 @@ More formally, for all `update_index` from the index space of `updates[0]`:
 Using this mapping between `update_index` and `result_index`, we define
 `results = exec(schedule, inputs)`, where:
 
+<!-- markdownlint-disable line-length -->
 * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
 * `exec([update_index, ...], results) = exec([...], updated_results)` where:
@@ -4654,6 +4683,7 @@ Using this mapping between `update_index` and `result_index`, we define
   * If `result_index` is out of bounds for `shape(results[:])`, the behavior
       is implementation-defined.
 * `exec([], results) = results`.
+<!-- markdownlint-enable line-length -->
 
 If `indices_are_sorted` is `true` then the implementation can assume that
 `scatter_indices` are sorted with respect to `scatter_dims_to_operand_dims`,
@@ -4688,6 +4718,7 @@ is undefined.
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) All `inputs` have the same shape.
 * (C2) rank(`inputs`[0]) = size(`update_window_dims`) +
          size(`inserted_window_dims`).
@@ -4719,9 +4750,11 @@ is undefined.
 * (C13) For all i $\in$ [0, size(`scatter_dims_to_operand_dims`)), $0 \le$
         `scatter_dims_to_operand_dims`[i] $\lt$ rank(`inputs`[0]).
 * (C14) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
-* (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+* (C15) `update_computation` has type
+  `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
           where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
 * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -4762,11 +4795,13 @@ is undefined.
 
 ### Semantics
 
+<!-- markdownlint-disable line-length -->
 Produces a `result` tensor where each element is selected from `on_true` or
 `on_false` tensor based on the value of the corresponding element of `pred`.
 More formally,
 `result[i0, ..., iR-1] = pred_val ? on_true[i0, ..., iR-1] : on_false[i0, ..., iR-1]`,
 where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
+<!-- markdownlint-enable line-length -->
 
 ### Inputs
 
@@ -4861,6 +4896,7 @@ More formally:
 
 ### Constraints
 
+<!-- markdownlint-disable line-length -->
 * (C1) rank(`operand`) $=$ size(`window_dimensions`).
 * (C2) `operand` and `source` have the same element type.
 * (C3) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
@@ -4876,6 +4912,7 @@ More formally:
 * (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
          `E = element_type(operand)`.
 * (C12) type(`operand`) $=$ type(`result`).
+<!-- markdownlint-enable line-length -->
 
 ### Examples
 
@@ -4932,7 +4969,8 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type` must be
+* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
+  must be
   * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 
@@ -5236,7 +5274,8 @@ comparator if and only if `comparator(e1, e2) = comparator(e2, e1) = false`.
 More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 `compare_i_j = compare_j_i = false` or `compare_i_j = true`, where:
 
-  1. `compare_i_j` $=$ `comparator(inputs[0][i], inputs[0][j], inputs[1][i], inputs[1][j], ...)`.
+  1. `compare_i_j` $=$
+     `comparator(inputs[0][i], inputs[0][j], inputs[1][i], inputs[1][j], ...)`.
   1. For all indices `i = [i0, ..., iR-1]` and `j = [j0, ..., jR-1]`.
   1. Where `i` $=$ `j` everywhere except for the `d`th dimension.
   1. Where `d` $=$ `dimension >= 0 ? dimension : rank(inputs[0]) + dimension`.
@@ -5263,8 +5302,8 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 * (C3) All tensors in `inputs` and `results` have the same shape.
 * (C4) `-R` $\le$ `dimension` $\lt$ `R`, where `R` is rank of `inputs[0]`.
 * (C5) `comparator` has type
-         `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
-         where `Ei` is element type of `inputs[i]`.
+  `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
+  where `Ei` is element type of `inputs[i]`.
 
 ### Examples
 

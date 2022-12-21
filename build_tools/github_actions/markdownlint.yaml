@@ -25,5 +25,13 @@ line-length:
 # Allow inline HTML
 no-inline-html: false
 
-# TODO(smain): Remove this once error is resolved
+# Allow dupe heading names only if they're not siblings
+no-duplicate-heading:
+  siblings_only: true
+
+# Allow images w/o alt-text
+no-alt-text: false
+
+# TODO(smain): Remove this once this error is resolved:
+# https://github.com/DavidAnson/markdownlint/issues/686
 reference-links-images: false
