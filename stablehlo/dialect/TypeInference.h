@@ -353,6 +353,12 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> windowDilations,
     Optional<DenseIntElementsAttr> padding, Region& body);
 
+LogicalResult verifySelectAndScatterOp(
+    Optional<Location> location, Value operand, Value source, Value initValue,
+    Optional<DenseIntElementsAttr> windowDimensions,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> padding, Region& select, Region& scatter);
+
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            int64_t dimension, Region& comparator);
 

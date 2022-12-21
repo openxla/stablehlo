@@ -2921,113 +2921,11 @@ LogicalResult SelectAndScatterOp::inferReturnTypes(
                                       inferredReturnTypes);
 }
 
-namespace {
-TensorType inferSelectAndScatterOpWindowReturnType(
-    TensorType operandType, const ArrayRef<hlo::WindowDimension> window) {
-  if (!operandType.hasRank())
-    return UnrankedTensorType::get(operandType.getElementType());
-
-  return RankedTensorType::get(
-      hlo::inferWindowOutputShape(operandType.getShape(), window),
-      operandType.getElementType());
-}
-}  // namespace
-
-//  We intend to verify the following properties:
-//   P1. Check if the select function has a proper shape of (T,T) -> PRED, where
-//        T is a 0-D tensor with element-type same as 'operand' element-type.
-//   P2. Verify scatter-computation type.
-//   P3. size-of(window_dimension) == rank-of(input),
-//         where input is an element of 'inputs'.
-//   P4. Verify and collect the window attributes.
-//   P5. Check if the result type of window operation matches the source type.
 LogicalResult SelectAndScatterOp::verify() {
-  auto operandType = getOperand().getType().cast<TensorType>();
-  auto initValueType = getInitValue().getType().cast<TensorType>();
-  auto sourceType = getSource().getType().cast<TensorType>();
-
-  // P1.
-  Block& selectBlock = getSelect().front();
-
-  if (selectBlock.getArguments().size() != 2)
-    return emitOpError()
-           << "expects the select-region to take 2 parameters, but takes "
-           << selectBlock.getArguments().size();
-
-  Type expectedSelectArgType =
-      RankedTensorType::get({}, operandType.getElementType());
-  for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
-    if (!hlo::compatibleShapeAndElementType(expectedSelectArgType,
-                                            selectArgIt.value().getType(),
-                                            /*ignoreFpPrecision=*/true))
-      return emitOpError()
-             << "expects the type of select-region's parameter at index "
-             << selectArgIt.index() << " to be " << expectedSelectArgType
-             << ", but got " << selectArgIt.value().getType();
-
-  auto selectResult = selectBlock.getTerminator()->getOperands();
-  if (selectResult.size() != 1)
-    return emitOpError()
-           << "expects select-region to return single value, but got: "
-           << selectResult.size();
-
-  auto selectResultType = selectResult[0].getType().dyn_cast<TensorType>();
-  if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
-      (selectResultType.hasRank() &&
-       selectResultType.cast<RankedTensorType>().getRank() != 0))
-    return emitOpError() << "expects the return-type of select-region to be "
-                            "tensor<i1>, but got: "
-                         << selectResult[0].getType();
-
-  // P2.
-  Block& scatterBlock = getScatter().front();
-  if (failed(hlo::verifyReducerShape(
-          this->getLoc(), scatterBlock,
-          {RankedTensorType::get({}, sourceType.getElementType())},
-          {initValueType},
-          /*numInputs=*/1, /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/false)))
-    return failure();
-
-  // P3.
-  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
-  auto windowDimsOrErr = hlo::convert1DAttribute(getWindowDimensions(),
-                                                 getLoc(), "window_dimensions");
-  if (failed(windowDimsOrErr)) return failure();
-  if (operandType.hasRank()) {
-    if (operandType.getRank() !=
-        static_cast<int64_t>((*windowDimsOrErr).size()))
-      return emitOpError()
-             << "expects window-dimensions size == operand rank, but got "
-                "window-dimensions size: "
-             << (*windowDimsOrErr).size()
-             << " and operand-type: " << operandType
-             << " with rank = " << operandType.getRank() << ".";
-  }
-
-  // P4.
-  auto paddingOrErr = hlo::convertPaddingAttribute(getPadding(), getLoc());
-  if (failed(paddingOrErr)) return failure();
-
-  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
-  auto windowStridesOrErr =
-      hlo::convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
-      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, getLoc());
-  if (failed(windowOrErr)) return failure();
-
-  // P5.
-  auto windowResultType =
-      inferSelectAndScatterOpWindowReturnType(operandType, *windowOrErr);
-
-  if (!hlo::compatibleShapeAndElementType(windowResultType, sourceType,
-                                          /*ignoreFpPrecision=*/true))
-    return emitOpError() << "expects source-type to be " << windowResultType
-                         << ", but got" << sourceType;
-
-  return success();
+  return hlo::verifySelectAndScatterOp(getLoc(), getOperand(), getSource(),
+                                       getInitValue(), getWindowDimensions(),
+                                       getWindowStrides(), getPadding(),
+                                       getSelect(), getScatter());
 }
 
 //===----------------------------------------------------------------------===//

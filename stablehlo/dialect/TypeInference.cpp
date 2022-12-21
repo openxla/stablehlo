@@ -2763,6 +2763,113 @@ LogicalResult verifyReduceWindowOp(
   return success();
 }
 
+//  We intend to verify the following properties:
+//   P1. Check if the select function has a proper shape of (T,T) -> PRED, where
+//        T is a 0-D tensor with element-type same as 'operand' element-type.
+//   P2. Verify scatter-computation type.
+//   P3. size-of(window_dimension) == rank-of(input),
+//         where input is an element of 'inputs'.
+//   P4. Verify and collect the window attributes.
+//   P5. Check if the result type of window operation matches the source type.
+LogicalResult verifySelectAndScatterOp(
+    Optional<Location> location, Value operand, Value source, Value initValue,
+    Optional<DenseIntElementsAttr> windowDimensions,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> padding, Region& select, Region& scatter) {
+  auto operandType = operand.getType().cast<TensorType>();
+  auto initValueType = initValue.getType().cast<TensorType>();
+  auto sourceType = source.getType().cast<TensorType>();
+
+  // P1.
+  Block& selectBlock = select.front();
+
+  if (selectBlock.getArguments().size() != 2)
+    return emitOptionalError(
+        location, "expects the select-region to take 2 parameters, but takes ",
+        selectBlock.getArguments().size());
+
+  Type expectedSelectArgType =
+      RankedTensorType::get({}, operandType.getElementType());
+  for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
+    if (!compatibleShapeAndElementType(expectedSelectArgType,
+                                       selectArgIt.value().getType(),
+                                       /*ignoreFpPrecision=*/true))
+      return emitOptionalError(
+          location, "expects the type of select-region's parameter at index ",
+          selectArgIt.index(), " to be ", expectedSelectArgType, ", but got ",
+          selectArgIt.value().getType());
+
+  auto selectResult = selectBlock.getTerminator()->getOperands();
+  if (selectResult.size() != 1)
+    return emitOptionalError(
+        location, "expects select-region to return single value, but got: ",
+        selectResult.size());
+
+  auto selectResultType = selectResult[0].getType().dyn_cast<TensorType>();
+  if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
+      (selectResultType.hasRank() &&
+       selectResultType.cast<RankedTensorType>().getRank() != 0))
+    return emitOptionalError(
+        location,
+        "expects the return-type of select-region to be tensor<i1>, but got: ",
+        selectResult[0].getType());
+
+  // P2.
+  Block& scatterBlock = scatter.front();
+  if (failed(verifyReducerShape(
+          location, scatterBlock,
+          {RankedTensorType::get({}, sourceType.getElementType())},
+          {initValueType},
+          /*numInputs=*/1, /*allowedDimensions=*/{},
+          /*allInputsUnranked=*/false)))
+    return failure();
+
+  // P3.
+  // TODO: add missing tests of convert1DAttribute( for SelectAndScatterOp.
+  auto windowDimsOrErr =
+      convert1DAttribute(windowDimensions, location, "window_dimensions");
+  if (failed(windowDimsOrErr)) return failure();
+  if (operandType.hasRank()) {
+    if (operandType.getRank() !=
+        static_cast<int64_t>((*windowDimsOrErr).size()))
+      return emitOptionalError(
+          location,
+          "expects window-dimensions size == operand rank, but got "
+          "window-dimensions size: ",
+          (*windowDimsOrErr).size(), " and operand-type: ", operandType,
+          " with rank = ", operandType.getRank(), ".");
+  }
+
+  // P4.
+  auto paddingOrErr = convertPaddingAttribute(padding, location);
+  if (failed(paddingOrErr)) return failure();
+
+  // TODO: add missing tests of convert1DAttribute( for SelectAndScatterOp.
+  auto windowStridesOrErr =
+      convert1DAttribute(windowStrides, location, "window_strides");
+  if (failed(windowStridesOrErr)) return failure();
+  auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
+      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
+      /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, location);
+  if (failed(windowOrErr)) return failure();
+
+  // P5.
+  TensorType windowResultType;
+  if (!operandType.hasRank())
+    windowResultType = UnrankedTensorType::get(operandType.getElementType());
+  else
+    windowResultType = RankedTensorType::get(
+        inferWindowOutputShape(operandType.getShape(), *windowOrErr),
+        operandType.getElementType());
+
+  if (!compatibleShapeAndElementType(windowResultType, sourceType,
+                                     /*ignoreFpPrecision=*/true))
+    return emitOptionalError(location, "expects source-type to be ",
+                             windowResultType, ", but got", sourceType);
+
+  return success();
+}
+
 LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
                            int64_t dimension, Region& comparator) {
   auto operandTypes = inputs.getTypes();
