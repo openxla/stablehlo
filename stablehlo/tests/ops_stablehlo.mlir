@@ -1505,10 +1505,25 @@ func.func @dot_more_dynamic_output_type(%arg0: tensor<3xf32>, %arg1: tensor<?x3x
 
 // -----
 
-func.func @dot_illegal_result_type(%arg0: tensor<?x3xf32>, %arg1: tensor<3xf32>) -> tensor<3x?xf32> {
-// expected-error@+1 {{'stablehlo.dot' op inferred type(s) 'tensor<?xf32>' are incompatible with return type(s) of operation 'tensor<3x?xf32>'}}
+func.func @dot_cannot_infer_type(%arg0: tensor<?x?x3xf32>, %arg1: tensor<?x3x?xf32>) -> tensor<*xf32> {
+  // expected-error@+1 {{failed to infer shape for lhs 'tensor<?x?x3xf32>' and rhs 'tensor<?x3x?xf32>'}}
+  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<?x?x3xf32>, tensor<?x3x?xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
+}
+
+// -----
+
+func.func @dot_result_type_mismatch_with_inferred_type(%arg0: tensor<?x3xf32>, %arg1: tensor<3xf32>) -> tensor<3x?xf32> {
+  // expected-error@+1 {{inferred shape '[?]' is incompatible with return type of operation 'tensor<3x?xf32>'}}
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<?x3xf32>, tensor<3xf32>) -> tensor<3x?xf32>
   func.return %0 : tensor<3x?xf32>
+}
+
+// -----
+
+func.func @dot_result_type_match_with_inferred_type(%arg0: tensor<?x3xf32>, %arg1: tensor<3xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<?x3xf32>, tensor<3xf32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
 }
 
 // -----
@@ -3295,7 +3310,7 @@ func.func @dot_general(%arg0: tensor<?x2x?xf32>, %arg1: tensor<?x3x?xf32>) {
 
 // CHECK-LABEL: func @dot_general
 func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x6xf32> {
-  // expected-error@+1 {{'stablehlo.dot_general' op inferred type(s) 'tensor<2x4x5xf32>' are incompatible with return type(s) of operation 'tensor<2x4x6xf32>'}}
+  // expected-error@+1 {{inferred shape '[2, 4, 5]' is incompatible with return type of operation 'tensor<2x4x6xf32>'}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],

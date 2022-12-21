@@ -2059,7 +2059,7 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
       "::mlir::DenseIntElementsAttr":$source_target_pairs)>];
 }
 
-def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType]> {
+def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
   let summary = "Convolution operator";
   let description = [{
     Computes dot products between windows of `lhs` and slices of `rhs` and
@@ -2090,15 +2090,13 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure, InferTensorType
     StableHLO_ConvolutionAttributes.attributes);
 
   let results = (outs HLO_Tensor);
+  let hasVerifier = 1;
 
   let extraClassDeclaration = [{
     bool hasWindowReversal() {
       auto reversal = getWindowReversalAttr();
       return reversal && llvm::any_of(reversal.getValues<bool>(),
                                       [](bool v) { return v; });
-    }
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
     }
   }];
 
@@ -2186,8 +2184,7 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
   }];
 }
 
-def StableHLO_DotOp: StableHLO_Op<"dot",
-    [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
   let summary = "Dot operator";
   let description = [{
     Performs dot products between vectors, vector/matrix and matrix/matrix
@@ -2208,12 +2205,7 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
     StableHLO_PrecisionConfigAttr:$precision_config
   );
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
+  let hasVerifier = 1;
 
   // Use empty `` to prevent extra whitespace before precision config.
   let assemblyFormat = [{
@@ -2222,8 +2214,7 @@ def StableHLO_DotOp: StableHLO_Op<"dot",
   }];
 }
 
-def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
-    [Pure, InferTensorTypeWithReify]> {
+def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
   let summary = "General Dot operator";
   let description = [{
     Computes dot products between slices of `lhs` and slices of `rhs` and
@@ -2253,12 +2244,7 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general",
   );
 
   let results = (outs HLO_Tensor);
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return succeeded(mlir::verifyCompatibleShapes(l, r));
-    }
-  }];
+  let hasVerifier = 1;
 }
 
 // Define Base Einsum op within the HLO dialect as these are client ops and

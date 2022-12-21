@@ -626,7 +626,7 @@ func.func @invalid_conv_window_attributes(%arg0: tensor<1x8x8x207xf32>,
 
 func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x16xf32> {
-  // expected-error @+1 {{inferred type(s) 'tensor<1x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x8x16xf32>'}}
+  // expected-error @+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x8x16xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1, 1]],
@@ -647,7 +647,7 @@ func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
 
 func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<2x8x8x16xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<2x8x8x16xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<2x8x8x16xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -668,7 +668,7 @@ func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
 
 func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x8x8x32xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x8x8x32xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x8x8x32xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -691,7 +691,7 @@ func.func @invalid_conv_return_type(%arg0: tensor<1x8x8x207xf32>,
 // Dynamic input-batch-dimension
 func.func @invalid_conv_dynamic_shapes(%arg0: tensor<?x8x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<?x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[?, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -710,7 +710,7 @@ func.func @invalid_conv_dynamic_shapes(%arg0: tensor<?x8x8x207xf32>,
 // Dynamic input-feature-dimension: No effect on output dimensions.
 func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x?xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -729,7 +729,7 @@ func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x?xf32>,
 // Dynamic input-spatial-dimension
 func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x?x8x207xf32>,
     %arg1: tensor<3x3x207x16xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x?x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, ?, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -748,7 +748,7 @@ func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x?x8x207xf32>,
 // Dynamic kernel-input-feature-dimension: No effect on output dimensions.
 func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x?x16xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x8x16xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, 8, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -767,7 +767,7 @@ func.func @invalid_conv_dynamic_shapes(%arg0: tensor<1x8x8x207xf32>,
 // Dynamic kernel-output-feature-dimension
 func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x3x207x?xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x8x?xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, 8, ?]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],
@@ -786,7 +786,7 @@ func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf
 // Dynamic kernel-spatial-dimension
 func.func @check_inferred_type_with_dynamic_input_dims(%arg0: tensor<1x8x8x207xf32>,
     %arg1: tensor<3x?x207x16xf32>) -> tensor<1x1x1x1xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<1x8x?x16xf32>' are incompatible with return type(s) of operation 'tensor<1x1x1x1xf32>'}}
+  // expected-error@+1 {{inferred shape '[1, 8, ?, 16]' is incompatible with return type of operation 'tensor<1x1x1x1xf32>'}}
   %0 = stablehlo.convolution(%arg0, %arg1)
          dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
          window = {stride = [1, 1], pad = [[1, 1], [1,1]],

@@ -180,6 +180,7 @@ ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 //   Custom:
 //     [1, ?]
 std::string dimSizeToString(int64_t dimSize);
+std::string dimSizesToString(llvm::ArrayRef<int64_t> dimSize);
 
 void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes);
 
