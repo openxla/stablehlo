@@ -1664,7 +1664,7 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
     `update`.
 
     See:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#stablehloslice
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#stablehlodynamic_update_slice
 
     Example:
     ```mlir
