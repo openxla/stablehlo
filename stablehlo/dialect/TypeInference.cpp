@@ -2300,13 +2300,15 @@ LogicalResult verifyDotOp(Optional<Location> location, Value lhs, Value rhs,
   auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
-  if (!lhsType || !rhsType || !resultType) return success();
+  if (!lhsType || !rhsType) return success();
 
   SmallVector<int64_t> inferredShape;
   if (failed(inferDotShape(lhsType, rhsType, inferredShape)))
-    return emitOptionalError(location, "failed to infer shape");
+    return emitOptionalError(location, "failed to infer shape for lhs ",
+                             lhsType, " and rhs ", rhsType);
 
-  if (failed(verifyCompatibleShape(inferredShape, resultType.getShape())))
+  if (resultType &&
+      failed(verifyCompatibleShape(inferredShape, resultType.getShape())))
     return emitOptionalError(
         location, "inferred shape '", dimSizesToString(inferredShape), "' ",
         "is incompatible with return type of operation ", resultType, "");
