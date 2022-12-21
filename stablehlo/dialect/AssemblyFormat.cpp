@@ -312,11 +312,24 @@ std::string dimSizeToString(int64_t dimSize) {
   return std::to_string(dimSize);
 }
 
-void printDimSizes(AsmPrinter& p, llvm::ArrayRef<int64_t> dimSizes) {
-  p << '[';
-  llvm::interleaveComma(
-      dimSizes, p, [&p](int64_t dimSize) { p << dimSizeToString(dimSize); });
-  p << ']';
+template <typename Stream>
+void printDimSizes(Stream& stream, ArrayRef<int64_t> dimSizes) {
+  stream << '[';
+  llvm::interleaveComma(dimSizes, stream, [&](int64_t dimSize) {
+    stream << dimSizeToString(dimSize);
+  });
+  stream << ']';
+}
+
+std::string dimSizesToString(ArrayRef<int64_t> dimSizes) {
+  std::string buffer;
+  llvm::raw_string_ostream os(buffer);
+  printDimSizes(os, dimSizes);
+  return buffer;
+}
+
+void printDimSizes(AsmPrinter& p, ArrayRef<int64_t> dimSizes) {
+  printDimSizes<AsmPrinter>(p, dimSizes);
 }
 
 FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {

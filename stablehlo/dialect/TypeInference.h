@@ -165,14 +165,6 @@ LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
 LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferDotGeneralOp(
-    Optional<Location> location, Value lhs, Value rhs,
-    ArrayRef<int64_t> lhsBatchingDimensions,
-    ArrayRef<int64_t> rhsBatchingDimensions,
-    ArrayRef<int64_t> lhsContractingDimensions,
-    ArrayRef<int64_t> rhsContractingDimensions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
-
 LogicalResult inferDynamicSliceOp(
     Optional<Location> location, Value operand, ValueRange startIndices,
     DenseIntElementsAttr sliceSizes,
@@ -296,6 +288,32 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
 
 LogicalResult verifyCollectivePermuteOp(Optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
+
+LogicalResult verifyConvolutionOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> padding,
+    Optional<DenseIntElementsAttr> lhsDilation,
+    Optional<DenseIntElementsAttr> rhsDilation,
+    Optional<DenseElementsAttr> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    Optional<ArrayAttr> precisionConfig, Value result);
+
+LogicalResult verifyDotOp(Optional<Location> location, Value lhs, Value rhs,
+                          Optional<ArrayAttr> precisionConfig, Value result);
+
+LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
+                                 Value rhs,
+                                 ArrayRef<int64_t> lhsBatchingDimensions,
+                                 ArrayRef<int64_t> rhsBatchingDimensions,
+                                 ArrayRef<int64_t> lhsContractingDimensions,
+                                 ArrayRef<int64_t> rhsContractingDimensions,
+                                 Optional<ArrayAttr> precisionConfig,
+                                 Value result);
 
 LogicalResult verifyDynamicBroadcastInDimOp(
     Optional<Location> location, Value operand, Value outputDimensions,

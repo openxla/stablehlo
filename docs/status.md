@@ -68,7 +68,7 @@ one of the following tracking labels.
 | concatenate              | yes           | yes          | yes            | yes             | no          |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | no          |
-| convolution              | revisit       | yes          | revisit        | revisit         | no          |
+| convolution              | revisit       | yes          | infeasible     | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
 | create_token             | no            | yes\*        | yes\*          | yes             | no          |
@@ -76,8 +76,8 @@ one of the following tracking labels.
 | cstr_reshapable          | no            | revisit      | no             | yes             | no          |
 | custom_call              | yes           | yes          | infeasible     | yes             | no          |
 | divide                   | yes           | yes          | yes            | yes             | no          |
-| dot                      | no            | revisit      | revisit        | yes             | no          |
-| dot_general              | yes           | revisit      | revisit        | no              | no          |
+| dot                      | no            | revisit      | infeasible     | yes             | no          |
+| dot_general              | yes           | revisit      | infeasible     | no              | no          |
 | dynamic_broadcast_in_dim | no            | revisit      | infeasible     | no              | no          |
 | dynamic_conv             | no            | revisit      | no             | no              | no          |
 | dynamic_gather           | no            | revisit      | revisit        | no              | no          |

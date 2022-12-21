@@ -42,17 +42,6 @@ namespace hlo {
 
 namespace {
 
-// Convert dynamic dimensions to -1 for infer tests.
-std::string dimSizesToString(ArrayRef<int64_t> dimSizes) {
-  std::string buffer;
-  llvm::raw_string_ostream os(buffer);
-  os << '[';
-  llvm::interleaveComma(
-      dimSizes, os, [&](int64_t dimSize) { os << dimSizeToString(dimSize); });
-  os << ']';
-  return buffer;
-}
-
 struct InferReturnTypesPattern : public RewritePattern {
   explicit InferReturnTypesPattern(MLIRContext *context)
       : RewritePattern("hlo_test_infer.get_return_types", 1, context) {}

@@ -173,15 +173,6 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   assert(type.isIndex() || value.getType().isIndex());
   return b.create<arith::IndexCastOp>(loc, type, value);
 }
-
-// Checks if the precision config has a valid size, if provided.
-LogicalResult verifyPrecisionConfig(Optional<Location> loc,
-                                    ::mlir::ArrayAttr attrArr) {
-  return !attrArr || attrArr.size() == 2 || attrArr.empty()
-             ? success()
-             : emitOptionalError(
-                   loc, "expects precision config to be null or of size 2.");
-}
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -573,50 +564,10 @@ LogicalResult CholeskyOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 // DotOp
 //===----------------------------------------------------------------------===//
-namespace {
-bool dimCompatible(int64_t a, int64_t b) {
-  return hlo::isDynamicDimSize(a) || hlo::isDynamicDimSize(b) || a == b;
-}
 
-ShapedType inferDotReturnType(ShapedType lhs, ShapedType rhs) {
-  auto elementType = lhs.getElementType();
-  if (!lhs.hasRank() || !rhs.hasRank()) {
-    return UnrankedTensorType::get(elementType);
-  }
-
-  // vector dot vector
-  if (1 == lhs.getRank() && 1 == rhs.getRank() &&
-      dimCompatible(lhs.getDimSize(0), rhs.getDimSize(0))) {
-    return RankedTensorType::get({}, elementType);
-  }
-  // matrix dot vector
-  if (2 == lhs.getRank() && 1 == rhs.getRank() &&
-      dimCompatible(lhs.getDimSize(1), rhs.getDimSize(0))) {
-    return RankedTensorType::get({lhs.getDimSize(0)}, elementType);
-  }
-  // vector dot matrix
-  if (1 == lhs.getRank() && 2 == rhs.getRank() &&
-      dimCompatible(lhs.getDimSize(0), rhs.getDimSize(0))) {
-    return RankedTensorType::get({rhs.getDimSize(1)}, elementType);
-  }
-  // matrix dot matrix
-  if (2 == lhs.getRank() && 2 == rhs.getRank() &&
-      dimCompatible(lhs.getDimSize(1), rhs.getDimSize(0))) {
-    int64_t shape[2] = {lhs.getDimSize(0), rhs.getDimSize(1)};
-    return RankedTensorType::get(shape, elementType);
-  }
-  return {};
-}
-}  // namespace
-
-LogicalResult DotOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  DotOp::Adaptor op(operands);
-  auto lhsType = op.getLhs().getType().cast<ShapedType>();
-  auto rhsType = op.getRhs().getType().cast<ShapedType>();
-  inferredReturnTypes.push_back(inferDotReturnType(lhsType, rhsType));
-  return success();
+LogicalResult DotOp::verify() {
+  return hlo::verifyDotOp(getLoc(), getLhs(), getRhs(), getPrecisionConfig(),
+                          getResult());
 }
 
 // PrecisionConfig - Optional attribute, print the array as raw enums
@@ -661,21 +612,14 @@ ParseResult parsePrecisionConfig(OpAsmParser& parser, mlir::ArrayAttr& attr) {
 // DotGeneralOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult DotGeneralOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  DotGeneralOp::Adaptor adaptor(operands, attributes, regions);
-  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
-    return failure();
-
-  return hlo::inferDotGeneralOp(
-      location, adaptor.getLhs(), adaptor.getRhs(),
-      adaptor.getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
-      adaptor.getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
-      adaptor.getDotDimensionNumbersAttr().getLhsContractingDimensions(),
-      adaptor.getDotDimensionNumbersAttr().getRhsContractingDimensions(),
-      inferredReturnShapes);
+LogicalResult DotGeneralOp::verify() {
+  return hlo::verifyDotGeneralOp(
+      getLoc(), getLhs(), getRhs(),
+      getDotDimensionNumbersAttr().getLhsBatchingDimensions(),
+      getDotDimensionNumbersAttr().getRhsBatchingDimensions(),
+      getDotDimensionNumbersAttr().getLhsContractingDimensions(),
+      getDotDimensionNumbersAttr().getRhsContractingDimensions(),
+      getPrecisionConfig(), getResult());
 }
 
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
@@ -1334,357 +1278,21 @@ LogicalResult CollectivePermuteOp::verify() {
 // ConvolutionOp
 //===----------------------------------------------------------------------===//
 
-namespace {
-// Checks:
-//  P1. Same sizes for input, kernel and output spatialDims.
-//  P2. Spatial and non-spatial dimentions (for input,kernel, &output) should
-//      be unique and in range [0, num_dims), where num_dims = rank of input
-//      (lhs/rhs) tensors.
-//
-//  Note that the spatial + non-spatial dimensions may not cover all the
-//  dimensions in the range [0,num) because of the presence of 'unknown'
-//  dimensions (ref. `printConvolutionDimensions()`)
-LogicalResult isSpatialDimensionsValid(
-    Value lhs, int64_t inputBatchDimension, int64_t inputFeatureDimension,
-    ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
-    Optional<Location> location) {
-  uint64_t spatialDimNum = inputSpatialDimensions.size();
-  // P1.
-  if ((spatialDimNum != kernelSpatialDimensions.size()) ||
-      (spatialDimNum != outputSpatialDimensions.size()))
-    return emitOptionalError(location,
-                             "expects the same size for input, kernel "
-                             "and output spatial-dimensions, but got ",
-                             spatialDimNum, ", ",
-                             kernelSpatialDimensions.size(), ", and ",
-                             outputSpatialDimensions.size(), " resp.");
-
-  // P2.
-  SmallVector<int64_t> inputDimNums(spatialDimNum + 2);
-  inputDimNums[0] = inputBatchDimension;
-  inputDimNums[1] = inputFeatureDimension;
-  std::copy(inputSpatialDimensions.begin(), inputSpatialDimensions.end(),
-            inputDimNums.begin() + 2);
-
-  SmallVector<int64_t> windowDimNums(spatialDimNum + 2);
-  windowDimNums[0] = kernelInputFeatureDimension;
-  windowDimNums[1] = kernelOutputFeatureDimension;
-  std::copy(kernelSpatialDimensions.begin(), kernelSpatialDimensions.end(),
-            windowDimNums.begin() + 2);
-
-  SmallVector<int64_t> OutputDimNums(spatialDimNum + 2);
-  OutputDimNums[0] = outputBatchDimension;
-  OutputDimNums[1] = outputFeatureDimension;
-  std::copy(outputSpatialDimensions.begin(), outputSpatialDimensions.end(),
-            OutputDimNums.begin() + 2);
-
-  auto numDims = lhs.getType().cast<RankedTensorType>().getRank();
-  const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
-
-  if (!llvm::all_of(inputDimNums, inRange) ||
-      !llvm::all_of(windowDimNums, inRange) ||
-      !llvm::all_of(OutputDimNums, inRange))
-    return emitOptionalError(location,
-                             "expects input, kernel, and output "
-                             "dimension-numbers to be in-range [0, ",
-                             numDims, ").");
-
-  if (hasDuplicates(inputDimNums))
-    return emitOptionalError(
-        location, "expects input dimension-numbers to be unique, got {",
-        inputDimNums, "}.");
-
-  if (hasDuplicates(windowDimNums))
-    return emitOptionalError(
-        location, "expects kernel dimension-numbers to be unique, got {",
-        windowDimNums, "}.");
-
-  if (hasDuplicates(OutputDimNums))
-    return emitOptionalError(
-        location, "expects output dimension-numbers to be unique, got {",
-        OutputDimNums, "}.");
-
-  return success();
-}
-
-// Verifies the following properties:
-//  P1. The input, kernel, and output spatial-dimentions are valid.
-//  P2. Given,
-//          input-dimensions: b * input-spatial-dims * f
-//          kernel-dimensions: kernel-spatial-dims * i * o
-//          output-dimensions: b' * out-spatial-dims * f'
-//            where b = input-batch-dim
-//            where f = input-feature-dim
-//            where i = kernel-input-feature-dim
-//            where o = kernel-output-feature-dim
-//            where b' = output-batch-dim
-//            where f' = output-feature-dim
-//      Check the following properties w.r.t feature_group_count (fgc) and
-//      batch_group_count (bgc).
-//        * fgc > 0, bgc > 0 and !(fgc > 1 && bgc > 1)
-//        * dim(lhs, b) % bgc == 0
-//        * dim(lhs, f) % fgc == 0 and
-//          dim(lhs, f) / fgc = dim(rhs, i)
-//        * dim(rhs, o) (or dim(output, f')) % bgc == 0 and
-//          dim(rhs, o) (or dim(output, f')) % fgc == 0
-LogicalResult verifyConvolutionAttributes(
-    Value lhs, Value rhs, int64_t inputBatchDimension,
-    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
-    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t featureGroupCount, int64_t batchGroupCount,
-    Optional<Location> location) {
-  // P1.
-  if (failed(isSpatialDimensionsValid(
-          lhs, inputBatchDimension, inputFeatureDimension,
-          inputSpatialDimensions, kernelInputFeatureDimension,
-          kernelOutputFeatureDimension, kernelSpatialDimensions,
-          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
-          location)))
-    return failure();
-
-  // P2.
-  if (featureGroupCount <= 0)
-    return emitOptionalError(
-        location, "expects feature_group_count to be a positive number, got ",
-        featureGroupCount, ".");
-
-  if (batchGroupCount <= 0)
-    return emitOptionalError(
-        location, "expects batch_group_count to be a positive number, got ",
-        batchGroupCount, ".");
-
-  if (batchGroupCount > 1 && featureGroupCount > 1)
-    return emitOptionalError(
-        location,
-        "expects batch_group_count and feature_group_count not to be both "
-        "greater than 1. Got ",
-        batchGroupCount, " and ", featureGroupCount, " resp.");
-
-  auto lhsType = lhs.getType().cast<RankedTensorType>();
-  const int64_t inputFeatures = lhsType.getShape()[inputFeatureDimension];
-  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
-
-  auto rhsType = rhs.getType().cast<RankedTensorType>();
-  const int64_t kernelInputFeatures =
-      rhsType.getShape()[kernelInputFeatureDimension];
-  const int64_t kernelOutputFeatures =
-      rhsType.getShape()[kernelOutputFeatureDimension];
-
-  if (!hlo::isDynamicDimSize(kernelOutputFeatures)) {
-    if (kernelOutputFeatures % batchGroupCount != 0)
-      return emitOptionalError(
-          location, "expects output feature dimension size (",
-          kernelOutputFeatures,
-          ") to be a multiple of batch_group_count. Got batch_group_count = ",
-          batchGroupCount, ".");
-
-    if (kernelOutputFeatures % featureGroupCount != 0)
-      return emitOptionalError(location,
-                               "expects kernel output feature dimension (",
-                               kernelOutputFeatures,
-                               ") to be divisible by feature_group_count. For "
-                               "feature_group_count = ",
-                               featureGroupCount, ".");
-  }
-
-  if (!hlo::isDynamicDimSize(inputFeatures)) {
-    if (inputFeatures % featureGroupCount != 0)
-      return emitOptionalError(location, "expects input feature dimension (",
-                               inputFeatures,
-                               ") to be a multiple of feature_group_count. Got "
-                               "feature_group_count = ",
-                               featureGroupCount, ".");
-
-    if (!hlo::isDynamicDimSize(kernelInputFeatures) &&
-        inputFeatures / featureGroupCount != kernelInputFeatures)
-      return emitOptionalError(
-          location, "expects input feature dimension (", inputFeatures,
-          ") / "
-          "feature_group_count = kernel input feature dimension (",
-          kernelInputFeatures,
-          "). Got feature_group_count = ", featureGroupCount, ".");
-  }
-
-  if (!hlo::isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
-    return emitOptionalError(location, "expects input batch dimension (",
-                             inputBatch,
-                             ") to be divisible by "
-                             "batch_group_count. Got batch_group_count = ",
-                             batchGroupCount, ".");
-
-  return success();
-}
-
-// Infer the return-shape of ConvolutionOp.
-// Precondition:
-//  1. Input args to ConvolutionOp 'op' are RankedTypes.
-//  2. rank-of(input-type) == rank-of(output-type)
-SmallVector<int64_t> inferConvolutionOpReturnShape(
-    Value lhs, Value rhs, int64_t inputBatchDimension,
-    ArrayRef<int64_t> inputSpatialDimensions,
-    int64_t kernelOutputFeatureDimension, int64_t outputBatchDimension,
-    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
-    int64_t batchGroupCount, const ArrayRef<hlo::WindowDimension> window) {
-  auto lhsType = lhs.getType().cast<RankedTensorType>();
-  SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
-                                        ShapedType::kDynamic);
-
-  // Infer the output spatial dimensions.
-  auto numSpatialDims = inputSpatialDimensions.size();
-  SmallVector<int64_t> inputSpatialDimVals(numSpatialDims);
-  for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
-    inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDimensions[i]];
-
-  auto windowOutputShape =
-      hlo::inferWindowOutputShape(inputSpatialDimVals, window);
-
-  for (int64_t i = 0; i < static_cast<int64_t>(window.size()); ++i)
-    outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
-
-  // Infer the output-batch-dimension and output-feature-dimension.
-  auto rhsType = rhs.getType().cast<RankedTensorType>();
-  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
-  const int64_t kernelOutputFeatures =
-      rhsType.getShape()[kernelOutputFeatureDimension];
-
-  outputDimensions[outputBatchDimension] = hlo::isDynamicDimSize(inputBatch)
-                                               ? ShapedType::kDynamic
-                                               : inputBatch / batchGroupCount;
-  outputDimensions[outputFeatureDimension] = kernelOutputFeatures;
-
-  return outputDimensions;
-}
-
-}  // namespace
-
-/*
- * We intend to verify the following properties
- *  P1. Verify the input, kernel types.
- *  P2. Verify the convolution atributes.
- *  P3. Verify and collect the window atributes.
- *  P4. Verify precision_config attribute.
- *  P5. Verify the return shape.
- *      TODO(b/232574102): Verify the element-type of return-value.
- */
-LogicalResult ConvolutionOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  ConvolutionOp::Adaptor adaptor(operands, attributes, regions);
-
-  Value lhs = adaptor.getLhs();
-  Value rhs = adaptor.getRhs();
-  Optional<DenseIntElementsAttr> windowStrides = adaptor.getWindowStrides();
-  Optional<DenseIntElementsAttr> padding = adaptor.getPadding();
-  Optional<DenseIntElementsAttr> lhsDilation = adaptor.getLhsDilation();
-  Optional<DenseIntElementsAttr> rhsDilation = adaptor.getRhsDilation();
-  Optional<DenseElementsAttr> windowReversal = adaptor.getWindowReversal();
-
-  int64_t inputBatchDimension =
-      adaptor.getDimensionNumbers().getInputBatchDimension();
-  int64_t inputFeatureDimension =
-      adaptor.getDimensionNumbers().getInputFeatureDimension();
-  ArrayRef<int64_t> inputSpatialDimensions =
-      adaptor.getDimensionNumbers().getInputSpatialDimensions();
-  int64_t kernelInputFeatureDimension =
-      adaptor.getDimensionNumbers().getKernelInputFeatureDimension();
-  int64_t kernelOutputFeatureDimension =
-      adaptor.getDimensionNumbers().getKernelOutputFeatureDimension();
-  ArrayRef<int64_t> kernelSpatialDimensions =
-      adaptor.getDimensionNumbers().getKernelSpatialDimensions();
-  int64_t outputBatchDimension =
-      adaptor.getDimensionNumbers().getOutputBatchDimension();
-  int64_t outputFeatureDimension =
-      adaptor.getDimensionNumbers().getOutputFeatureDimension();
-  ArrayRef<int64_t> outputSpatialDimensions =
-      adaptor.getDimensionNumbers().getOutputSpatialDimensions();
-
-  int64_t featureGroupCount = adaptor.getFeatureGroupCount();
-  int64_t batchGroupCount = adaptor.getBatchGroupCount();
-
-  auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
-  auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
-
-  if (!lhsType || !rhsType) {
-    inferredReturnShapes.emplace_back(lhsType.getElementType());
-    return success();
-  }
-
-  // P1.
-  int numDims = lhsType.getRank();
-  if (numDims != rhsType.getRank())
-    return emitOptionalError(location,
-                             "expects convolution arguments to have same "
-                             "number of dimensions. Got: ",
-                             lhsType, " and ", rhsType, ".");
-
-  if (numDims < 2)
-    return emitOptionalError(
-        location,
-        "expects convolution arguments to have >= 2 dimensions. Got: ", lhsType,
-        " and ", rhsType, ".");
-
-  // P2.
-  if (failed(verifyConvolutionAttributes(
-          lhs, rhs, inputBatchDimension, inputFeatureDimension,
-          inputSpatialDimensions, kernelInputFeatureDimension,
-          kernelOutputFeatureDimension, kernelSpatialDimensions,
-          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
-          featureGroupCount, batchGroupCount, location)))
-    return failure();
-
-  if ((size_t)numDims != inputSpatialDimensions.size() + 2)
-    return emitOptionalError(location, "expects convolution arguments to have ",
-                             inputSpatialDimensions.size() + 2,
-                             " dimensions. Got: ", numDims);
-
-  // P3.
-  SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
-  for (size_t i = 0; i < windowDimensions.size(); i++)
-    windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
-
-  auto paddingOrErr = hlo::convertPaddingAttribute(padding, location);
-  if (failed(paddingOrErr)) return failure();
-
-  // TODO: add missing tests for ConvolutionOp.
-  auto windowStridesOrErr =
-      hlo::convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  auto lhsDilationOrErr =
-      hlo::convert1DAttribute(lhsDilation, location, "lhs_dilation");
-  if (failed(lhsDilationOrErr)) return failure();
-  auto rhsDilationOrErr =
-      hlo::convert1DAttribute(rhsDilation, location, "rhs_dilation");
-  if (failed(rhsDilationOrErr)) return failure();
-  auto windowReversalOrErr = hlo::convertWindowReversalAttribute(
-      windowReversal, location, "window_reversal");
-  if (failed(windowReversalOrErr)) return failure();
-
-  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
-      windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
-      *rhsDilationOrErr, *windowReversalOrErr, location);
-  if (failed(windowOrErr)) return failure();
-
-  // P3.
-  if (failed(verifyPrecisionConfig(location, adaptor.getPrecisionConfigAttr())))
-    return failure();
-
-  // P5.
-  auto expectedReturnShape = inferConvolutionOpReturnShape(
-      lhs, rhs, inputBatchDimension, inputSpatialDimensions,
-      kernelOutputFeatureDimension, outputBatchDimension,
-      outputFeatureDimension, outputSpatialDimensions, batchGroupCount,
-      *windowOrErr);
-
-  inferredReturnShapes.emplace_back(expectedReturnShape,
-                                    lhsType.getElementType());
-
-  return success();
+LogicalResult ConvolutionOp::verify() {
+  return hlo::verifyConvolutionOp(
+      getLoc(), getLhs(), getRhs(), getWindowStrides(), getPadding(),
+      getLhsDilation(), getRhsDilation(), getWindowReversal(),
+      getDimensionNumbers().getInputBatchDimension(),
+      getDimensionNumbers().getInputFeatureDimension(),
+      getDimensionNumbers().getInputSpatialDimensions(),
+      getDimensionNumbers().getKernelInputFeatureDimension(),
+      getDimensionNumbers().getKernelOutputFeatureDimension(),
+      getDimensionNumbers().getKernelSpatialDimensions(),
+      getDimensionNumbers().getOutputBatchDimension(),
+      getDimensionNumbers().getOutputFeatureDimension(),
+      getDimensionNumbers().getOutputSpatialDimensions(),
+      getFeatureGroupCount(), getBatchGroupCount(), getPrecisionConfig(),
+      getResult());
 }
 
 //===----------------------------------------------------------------------===//
