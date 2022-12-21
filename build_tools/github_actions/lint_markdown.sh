@@ -17,8 +17,11 @@
 
 if [[ $# -ne 1 ]] ; then
   echo "Usage: $0 <files|directories|globs>"
-  echo "  All file/directory/glob paths must be relative to the repo root."
-  echo "  Glob patterns must be wrapped in quotes."
+  echo " "
+  echo "All file/directory/glob paths must be relative to the repo root."
+  echo "Glob patterns must be wrapped in quotes."
+  echo "To lint all .md files, run this command:"
+  echo "    bash lint_markdown.sh \"./**/*.md\""
   exit 1
 fi
 
