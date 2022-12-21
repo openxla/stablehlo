@@ -1,6 +1,6 @@
 # Copyright 2022 The StableHLO Authors.
 
-name: Docs Lint
+name: Markdown Lint
 
 on:
   workflow_dispatch:
@@ -15,7 +15,5 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
     - name: Run markdownlint
-      uses: nosborn/github-action-markdown-cli@v3.2.0
-      with:
-        files: "./**/*.md"
-        config_file: docs/markdownlint.yaml
+      run: |
+        ./build_tools/github_actions/lint_markdown.sh "./**/*.md"
