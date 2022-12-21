@@ -4,6 +4,7 @@ name: Markdown Lint
 
 on:
   workflow_dispatch:
+  push:
 #  pull_request:
 #    paths:
 #      - '**.md'
