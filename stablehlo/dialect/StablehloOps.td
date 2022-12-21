@@ -2368,7 +2368,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "GetDimensionSize operator";
   let description = [{
-    Returns the size of the given `dimension` of the `operand`.
+    Produces the size of the given `dimension` of the `operand`.
 
     See
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#stablehloget_dimension_size

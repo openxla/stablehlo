@@ -2833,7 +2833,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 ### Semantics
 
-Returns the size of the given `dimension` of the `operand`.
+Produces the size of the given `dimension` of the `operand`.
 
 ### Inputs
 
@@ -2850,8 +2850,7 @@ Returns the size of the given `dimension` of the `operand`.
 
 ### Constraints
 
-  * (C1) 0 $\le$ `dimension` $\lt$ rank of `operand`. [todo](https://github.com/openxla/stablehlo/issues/790)
-  * (C2) dim(operand, dimension) $\le$ std::numeric_limits<int32_t>::max(). [todo](https://github.com/openxla/stablehlo/issues/790)
+  * (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`. [todo](https://github.com/openxla/stablehlo/issues/790)
 
 ### Examples
 
