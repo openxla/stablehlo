@@ -9,3 +9,6 @@ line-length:
 
 # Allow inline HTML
 no-inline-html: false
+
+# TODO(smain): Remove this once error is resolved
+reference-links-images: false
