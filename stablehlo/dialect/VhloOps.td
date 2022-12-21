@@ -43,8 +43,20 @@ def VHLO_Dialect : Dialect {
   let useDefaultTypePrinterParser = 0;
 }
 
+include "stablehlo/dialect/VhloTypes.td"
 include "stablehlo/dialect/VhloEnums.td"
 include "stablehlo/dialect/VhloAttrs.td"
+
+def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an op is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an op is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
 
 // Most ops should not use traits. Exceptions are:
 // - ReturnOp needs a trait for Terminator.
