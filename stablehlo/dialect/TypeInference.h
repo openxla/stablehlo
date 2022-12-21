@@ -216,6 +216,10 @@ LogicalResult inferOptimizationBarrierOp(
 LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferPartitionIdOp(MLIRContext* context,
+                                 Optional<Location> location,
+                                 SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferRealOp(Optional<Location> location, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
