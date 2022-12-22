@@ -9,7 +9,7 @@ particular, this RFC doesn’t propose any further changes to the current state.
 
 Bounded dynamism allows programs to represent the maximum runtime size that a
 particular dynamic dimension of a tensor can have. This makes it possible to run
-such programs on hardware that doesn't support dynamic tensors but could support
+such programs on platforms that don't support dynamic tensors but could support
 it if the upper bounds of tensor dimensions are known at the compilation time.
 Applications include:
 
