@@ -353,6 +353,14 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> windowDilations,
     Optional<DenseIntElementsAttr> padding, Region& body);
 
+LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
+                              Value scatterIndices, ValueRange updates,
+                              ArrayRef<int64_t> updateWindowDims,
+                              ArrayRef<int64_t> insertedWindowDims,
+                              ArrayRef<int64_t> scatterDimsToOperandDims,
+                              int64_t indexVectorDim,
+                              Region& updateComputation);
+
 LogicalResult verifySelectAndScatterOp(
     Optional<Location> location, Value operand, Value source, Value initValue,
     Optional<DenseIntElementsAttr> windowDimensions,
