@@ -154,9 +154,8 @@ before their uses. Possible execution orders of the example program above are
 → `return`.
 
 More formally, a **StableHLO process** is a combination of:
-
-1) a StableHLO program, 2) operation statuses (not executed yet,
-already executed), and 3) intermediate values that the process is working on.
+(1) a StableHLO program, (2) operation statuses (not executed yet,
+already executed), and (3) intermediate values that the process is working on.
 The process starts with input values to the `main` function, progresses through
 the graph of ops updating operation statuses and intermediate values and
 finishes with output values. Further formalization is TBD.
