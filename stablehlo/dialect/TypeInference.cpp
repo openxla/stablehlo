@@ -41,6 +41,7 @@ limitations under the License.
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/MathExtras.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -2076,6 +2077,17 @@ LogicalResult inferTupleOp(MLIRContext* context, Optional<Location>,
                            ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(TupleType::get(context, val.getTypes()));
+  return success();
+}
+
+LogicalResult inferUniformDequantizeOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  auto operandType = operand.getType().cast<ShapedType>();
+  // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
+  auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
+  auto shape = operandType.dyn_cast<ShapedType>().getShape();
+  inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
   return success();
 }
 

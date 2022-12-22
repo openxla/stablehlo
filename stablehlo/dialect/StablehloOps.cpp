@@ -2947,8 +2947,7 @@ LogicalResult ScatterOp::verify() {
       getScatterDimensionNumbers().getUpdateWindowDims(),
       getScatterDimensionNumbers().getInsertedWindowDims(),
       getScatterDimensionNumbers().getScatterDimsToOperandDims(),
-      getScatterDimensionNumbers().getIndexVectorDim(),
-      getUpdateComputation());
+      getScatterDimensionNumbers().getIndexVectorDim(), getUpdateComputation());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3034,16 +3033,12 @@ ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
 }
 
 LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> /*location*/, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   UniformDequantizeOp::Adaptor adaptor(operands, attributes, regions);
-  auto operandType = (*operands.begin()).getType().cast<ShapedType>();
-  // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
-  auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
-  auto shape = operandType.dyn_cast<ShapedType>().getShape();
-  inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
-  return success();
+  return hlo::inferUniformDequantizeOp(location, adaptor.getOperand(),
+                                       inferredReturnShapes);
 }
 
 }  // namespace stablehlo

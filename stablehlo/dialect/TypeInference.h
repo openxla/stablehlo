@@ -272,6 +272,10 @@ LogicalResult inferTupleOp(MLIRContext* context, Optional<Location> location,
                            ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferUniformDequantizeOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
