@@ -1724,6 +1724,7 @@ LogicalResult inferDynamicUpdateSliceOp(
   auto operandType = operand.getType().cast<ShapedType>();
   auto updateType = update.getType().cast<ShapedType>();
 
+  // (C3)
   if (updateType.hasRank() && operandType.hasRank() &&
       updateType.getRank() != operandType.getRank())
     return emitOptionalError(
@@ -1731,12 +1732,14 @@ LogicalResult inferDynamicUpdateSliceOp(
         "update rank does not match operand rank: ", updateType.getRank(),
         " vs ", operandType.getRank(), ".");
 
+  // (C4)
   if (operandType.hasRank() &&
       (int64_t)startIndices.size() != operandType.getRank())
     return emitOptionalError(
         location, "expects number of start_indices to match operand rank: ",
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
+  // (C5)
   if (!startIndices.empty()) {
     auto firstIndexType = startIndices[0].getType().cast<ShapedType>();
     Type firstIndexElement = firstIndexType.getElementType();
@@ -1751,6 +1754,7 @@ LogicalResult inferDynamicUpdateSliceOp(
     }
   }
 
+  // (C6)
   if (operandType.hasRank() && updateType.hasRank())
     for (auto [index, dims] : llvm::enumerate(
              llvm::zip(operandType.getShape(), updateType.getShape()))) {
@@ -1769,6 +1773,7 @@ LogicalResult inferDynamicUpdateSliceOp(
       }
     }
 
+  // (C1)
   if (operandType.hasRank()) {
     inferredReturnShapes.emplace_back(
         operandType.getShape(), operandType.getElementType(),
