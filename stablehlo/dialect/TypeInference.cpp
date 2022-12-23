@@ -335,6 +335,14 @@ unsigned potentiallyComplexBitwidth(Type type) {
                    : type.getIntOrFloatBitWidth();
 }
 
+// Verifies replica groups attached to collective communication operations.
+// P1. 'replicaGroups' must be a 2-D tensor.
+// P2. replicaGroups' cannot be empty.
+// P3. If `allGroupsMustHaveSameSize` is true, then each group is of the same
+//     size.
+// P4. All values in `replica_groups` are unique and covers all the values in
+//     the interval [0, N-1], where N is the total number of replica ids.
+// P5. replica group size must be equal to 'expectedGroupSize'.
 LogicalResult verifyReplicaGroups(Optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
                                   bool allGroupsMustHaveSameSize,
@@ -1108,7 +1116,7 @@ static LogicalResult verifyGather(
   // This should be fully expressible with type constraints, but it isn't
   // obvious how to do that with the current infrastructure.
   if (sliceSizesShape.hasRank() && sliceSizesShape.getRank() != 1)
-    return emitOptionalError(location,  "slice_sizes.rank != 1");
+    return emitOptionalError(location, "slice_sizes.rank != 1");
   if (sliceSizesShape.hasStaticShape()) {
     int64_t sliceSize = sliceSizesShape.getNumElements();
 
@@ -2330,6 +2338,66 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
 //===----------------------------------------------------------------------===//
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
+
+LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
+                                int64_t allGatherDim,
+                                DenseIntElementsAttr replicaGroups,
+                                bool useGlobalDeviceIds, Value result) {
+  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
+                                      /*allGroupsMustHaveSameSize=*/true,
+                                      useGlobalDeviceIds,
+                                      /*expectedGroupSize=*/std::nullopt)))
+    return failure();
+
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  auto resultType = result.getType().dyn_cast<RankedTensorType>();
+
+  if (allGatherDim < 0)
+    return emitOptionalError(location, "all_gather_dim cannot be negative");
+
+  if (operandType) {
+    if (allGatherDim >= operandType.getRank())
+      return emitOptionalError(
+          location, "all_gather_dim must be a valid index of operand");
+
+    if (operandType.getDimSize(allGatherDim) == 0)
+      return emitOptionalError(
+          location,
+          "dimension size of operand at 'all_gather_dim' cannot be zero");
+  }
+
+  if (operandType && resultType) {
+    if (resultType.getRank() != operandType.getRank())
+      return emitOptionalError(location,
+                               "operand and return must have the same rank");
+
+    for (int64_t i = 0; i < operandType.getRank(); i++) {
+      if (i == allGatherDim || operandType.isDynamicDim(i) ||
+          resultType.isDynamicDim(i))
+        continue;
+
+      if (resultType.getDimSize(i) != operandType.getDimSize(i))
+        return emitOptionalError(
+            location,
+            "operand and result should have the same shape except for the "
+            "dimension size at 'all_gather_dim'");
+    }
+
+    if (operandType.isDynamicDim(allGatherDim) ||
+        resultType.isDynamicDim(allGatherDim))
+      return success();
+
+    if ((resultType.getDimSize(allGatherDim) %
+         operandType.getDimSize(allGatherDim)) != 0)
+      return emitOptionalError(
+          location, "result gather dimension has size ",
+          resultType.getDimSize(allGatherDim),
+          ", expected to be a multiple of operand gather dimension size ",
+          operandType.getDimSize(allGatherDim));
+  }
+
+  return success();
+}
 
 LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,

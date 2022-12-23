@@ -867,8 +867,7 @@ LogicalResult GatherOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   GatherOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferGatherOp(
-      location, operands,
-      adaptor.getDimensionNumbers().getOffsetDims(),
+      location, operands, adaptor.getDimensionNumbers().getOffsetDims(),
       adaptor.getDimensionNumbers().getCollapsedSliceDims(),
       adaptor.getDimensionNumbers().getStartIndexMap(),
       adaptor.getDimensionNumbers().getIndexVectorDim(),
@@ -889,12 +888,10 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
     MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-
   DynamicGatherOp::Adaptor adaptor(operands, attributes, regions);
 
   return hlo::inferDynamicGatherOp(
-      location, operands,
-      adaptor.getDimensionNumbers().getOffsetDims(),
+      location, operands, adaptor.getDimensionNumbers().getOffsetDims(),
       adaptor.getDimensionNumbers().getCollapsedSliceDims(),
       adaptor.getDimensionNumbers().getStartIndexMap(),
       adaptor.getDimensionNumbers().getIndexVectorDim(), inferredReturnShapes);
@@ -1042,57 +1039,9 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllGatherOp::verify() {
-  if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      getUseGlobalDeviceIds(),
-                                      /*expectedGroupSize=*/std::nullopt)))
-    return failure();
-
-  auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
-  auto resultType = getType().dyn_cast<RankedTensorType>();
-  int64_t allGatherDimIndex = getAllGatherDim();
-
-  if (allGatherDimIndex < 0)
-    return emitOpError() << "all_gather_dim cannot be negative";
-
-  if (operandType) {
-    if (allGatherDimIndex >= operandType.getRank())
-      return emitOpError() << "all_gather_dim must be a valid index of operand";
-
-    if (operandType.getDimSize(allGatherDimIndex) == 0)
-      return emitOpError()
-             << "dimension size of operand at 'all_gather_dim' cannot be zero";
-  }
-
-  if (operandType && resultType) {
-    if (resultType.getRank() != operandType.getRank())
-      return emitOpError() << "operand and return must have the same rank";
-
-    for (int64_t i = 0; i < operandType.getRank(); i++) {
-      if (i == allGatherDimIndex || operandType.isDynamicDim(i) ||
-          resultType.isDynamicDim(i))
-        continue;
-
-      if (resultType.getDimSize(i) != operandType.getDimSize(i))
-        return emitOpError() << "operand and result should have the same shape "
-                                "except for the "
-                                "dimension size at 'all_gather_dim'";
-    }
-
-    if (operandType.isDynamicDim(allGatherDimIndex) ||
-        resultType.isDynamicDim(allGatherDimIndex))
-      return success();
-
-    if ((resultType.getDimSize(allGatherDimIndex) %
-         operandType.getDimSize(allGatherDimIndex)) != 0)
-      return emitOpError()
-             << "result gather dimension has size "
-             << resultType.getDimSize(allGatherDimIndex)
-             << ", expected to be a multiple of operand gather dimension size "
-             << operandType.getDimSize(allGatherDimIndex);
-  }
-
-  return success();
+  return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
+                                getReplicaGroups(), getUseGlobalDeviceIds(),
+                                getResult());
 }
 
 //===----------------------------------------------------------------------===//

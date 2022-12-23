@@ -83,20 +83,6 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions,
                                  bool allInputsUnranked);
 
-// Verifies replica groups attached to collective communication operations.
-// P1. 'replicaGroups' must be a 2-D tensor.
-// P2. replicaGroups' cannot be empty.
-// P3. If `allGroupsMustHaveSameSize` is true, then each group is of the same
-//     size.
-// P4. All values in `replica_groups` are unique and covers all the values in
-//     the interval [0, N-1], where N is the total number of replica ids.
-// P5. replica group size must be equal to 'expectedGroupSize'.
-LogicalResult verifyReplicaGroups(Optional<Location> location,
-                                  DenseIntElementsAttr replicaGroups,
-                                  bool allGroupsMustHaveSameSize,
-                                  bool useGlobalDeviceIds,
-                                  Optional<size_t> expectedGroupSize);
-
 template <typename dimTy>
 static void inferGatherShape(
     int64_t resultRank, llvm::function_ref<dimTy(int64_t)> getStartIndicesDim,
@@ -350,6 +336,11 @@ LogicalResult inferWhileOp(Optional<Location> location, ValueRange operand,
 //===----------------------------------------------------------------------===//
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
+
+LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
+                                int64_t allGatherDim,
+                                DenseIntElementsAttr replicaGroups,
+                                bool useGlobalDeviceIds, Value result);
 
 LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
