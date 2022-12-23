@@ -1597,10 +1597,7 @@ Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
 // We intend to verify the following properties
 //  P2. exponent_bits >= 1
 LogicalResult ReducePrecisionOp::verify() {
-  if (getExponentBits() < 1) {
-    return emitOpError() << "exponent_bits must be at least 1.";
-  }
-  return success();
+  return hlo::verifyReducePrecisionOp(getLoc(), getExponentBits());
 }
 
 //===----------------------------------------------------------------------===//
