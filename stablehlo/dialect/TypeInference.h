@@ -419,6 +419,9 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> windowDilations,
     Optional<DenseIntElementsAttr> padding, Region& body);
 
+LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
+                                      Value initialState, Value outputState);
+
 LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
                               Value scatterIndices, ValueRange updates,
                               ArrayRef<int64_t> updateWindowDims,

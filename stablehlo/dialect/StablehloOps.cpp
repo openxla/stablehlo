@@ -2001,13 +2001,8 @@ LogicalResult ReturnOp::inferReturnTypes(
 
 // Verify that input state has the same shape as output shape
 LogicalResult RngBitGeneratorOp::verify() {
-  auto initialShape = getInitialState().getType().dyn_cast<RankedTensorType>();
-  auto outputShape = getOutputState().getType().dyn_cast<RankedTensorType>();
-  if (initialShape.getShape() != outputShape.getShape())
-    return emitOpError()
-           << "output state shape must match initial state shape. Got: "
-           << initialShape << " and " << outputShape;
-  return success();
+  return hlo::verifyRngBitGeneratorOp(getLoc(), getInitialState(),
+                                      getOutputState());
 }
 
 //===----------------------------------------------------------------------===//

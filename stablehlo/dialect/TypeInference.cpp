@@ -3190,6 +3190,17 @@ LogicalResult verifyReduceWindowOp(
   return success();
 }
 
+LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
+                                      Value initialState, Value outputState) {
+  auto initialShape = initialState.getType().dyn_cast<RankedTensorType>();
+  auto outputShape = outputState.getType().dyn_cast<RankedTensorType>();
+  if (initialShape.getShape() != outputShape.getShape())
+    return emitOptionalError(
+        location, "output state shape must match initial state shape. Got: ",
+        initialShape, " and ", outputShape);
+  return success();
+}
+
 // We intend to verify the following properties:
 //  P0. scatter_indices argument must be an integral tensor. Enforced by ODS.
 //  P1. Scatter index leaf dimension must be within [0, rank(scatter_indices)"
