@@ -1022,6 +1022,157 @@ LogicalResult validateScatterDimensionNumbers(
   return success();
 }
 
+// Verify the following properties:
+//  P1. Verify no repeat in start_index_map.
+//  P2. Verify 0 <= start_index_map[i] < rank(operand), for every i.
+//  P3. Verify 0 <= index_vector_dim <= rank(start_indices).
+//  P4. Verify size(start_index_map) == shape(start_indices)[index_vector_dim].
+//  P5. Verify offset_dims is_sorted and not repeated.
+//  P6. Verify collapsed_slice_dims is_sorted and not repeated.
+//  P7. Verify rank(operand) == size(offset_dims) + size(collapsed_slice_dims).
+//  P8. Verify slice_sizes has rank of 1.
+//  P9. Verify size(slice_sizes) == rank(operand).
+//  P10. Verify 0 <= collapsed_slice_dims[i] < size(slice_sizes) for all items.
+static LogicalResult verifyGather(
+    Optional<Location> location, ShapeAdaptor operandShape,
+    ShapeAdaptor startIndicesShape, ShapeAdaptor sliceSizesShape,
+    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
+    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim) {
+  // P1.
+  // Check startIndexMap
+  if (hasDuplicates(startIndexMap))
+    return emitOptionalError(location,
+                             "expects start_index_map to not repeat, got: [",
+                             startIndexMap, "]");
+
+  // P2.
+  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
+    if (startIndexMap[i] < 0 ||
+        (operandShape.hasRank() && startIndexMap[i] >= operandShape.getRank()))
+      return emitOptionalError(
+          location, "start_index_map[", i, "]: ", startIndexMap[i],
+          " is out of bounds for ", "operand rank ", operandShape.getRank());
+
+  if (startIndicesShape.hasRank()) {
+    // P3.
+    // index_vector_dim == start_indices.rank implies a trailing 1 on the shape
+    // of start_indices.
+    if (indexVectorDim > startIndicesShape.getRank() || indexVectorDim < 0)
+      return emitOptionalError(location, "index_vector_dim ", indexVectorDim,
+                               " is out of bounds for start indices with rank ",
+                               startIndicesShape.getRank());
+
+    bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
+    if (impliedTrailingDim || !startIndicesShape.isDynamicDim(indexVectorDim)) {
+      int64_t effectiveDimSize;
+      if (impliedTrailingDim)
+        effectiveDimSize = 1;
+      else
+        effectiveDimSize = startIndicesShape.getDimSize(indexVectorDim);
+      // P4.
+      if (effectiveDimSize != static_cast<int64_t>(startIndexMap.size()))
+        return emitOptionalError(
+            location, "start_index_map size (", startIndexMap.size(),
+            ") is not equal to size of index dimension (", indexVectorDim,
+            ") of start_indices (", effectiveDimSize, ")");
+    }
+  }
+
+  // P5.
+  if (!llvm::is_sorted(offsetDims))
+    return emitOptionalError(
+        location, "expects offset_dims to be sorted, got: [", offsetDims, "]");
+  if (hasDuplicates(offsetDims))
+    return emitOptionalError(
+        location, "expects offset_dims to not repeat, got: [", offsetDims, "]");
+
+  // P6.
+  if (!llvm::is_sorted(collapsedSliceDims))
+    return emitOptionalError(
+        location, "expects collapsed_slice_dims to be sorted, got: [",
+        collapsedSliceDims, "]");
+  if (hasDuplicates(collapsedSliceDims))
+    return emitOptionalError(
+        location, "expects collapsed_slice_dims to not repeat, got: [",
+        collapsedSliceDims, "]");
+
+  // P7.
+  int64_t impliedOperandRank = offsetDims.size() + collapsedSliceDims.size();
+  if (operandShape.hasRank() && operandShape.getRank() != impliedOperandRank)
+    return emitOptionalError(
+        location, "offset_dims size (", offsetDims.size(),
+        ") plus collapse_slice_dims size (", collapsedSliceDims.size(),
+        ") is not equal to operand rank (", operandShape.getRank(), ")");
+
+  // P8.
+  // This should be fully expressible with type constraints, but it isn't
+  // obvious how to do that with the current infrastructure.
+  if (sliceSizesShape.hasRank() && sliceSizesShape.getRank() != 1)
+    return emitOptionalError(location,  "slice_sizes.rank != 1");
+  if (sliceSizesShape.hasStaticShape()) {
+    int64_t sliceSize = sliceSizesShape.getNumElements();
+
+    // P9.
+    if (sliceSize != impliedOperandRank)
+      return emitOptionalError(location, "slice_sizes size (", sliceSize,
+                               ") not equal to (implied) operand rank (",
+                               impliedOperandRank, ")");
+
+    // P10.
+    for (auto dim : collapsedSliceDims)
+      if (dim < 0 || dim >= sliceSize)
+        return emitOptionalError(location, "collapsed dimension ", dim,
+                                 " is out of bounds for slice_sizes.size (",
+                                 sliceSize, ")");
+  }
+
+  return success();
+}
+
+// Verify the following properties:
+//  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
+//      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
+static LogicalResult inferGatherReturnTypeComponents(
+    Optional<Location> location, ShapeAdaptor operandShape,
+    ShapeAdaptor startIndicesShape,
+    llvm::function_ref<int64_t(int64_t)> getSliceDim,
+    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
+    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  Type elementType = operandShape.getElementType();
+
+  // We need this to determine the result rank. We could still place bounds on
+  // the result rank if that was something ShapedTypeComponents could express.
+  if (!startIndicesShape.hasRank()) {
+    inferredReturnShapes.push_back(elementType);
+    return success();
+  }
+
+  int64_t startIndicesRank = startIndicesShape.getRank();
+  // If index_vector_dim == start_indices.rank, then an implicit trailing 1 is
+  // appended to start_indices shape.
+  if (indexVectorDim == startIndicesRank) ++startIndicesRank;
+  int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
+  // P1.
+  for (int64_t i = 0; i < static_cast<int64_t>(offsetDims.size()); ++i)
+    if (offsetDims[i] < 0 || offsetDims[i] >= resultRank)
+      return emitOptionalError(location, "offset_dims[", i,
+                               "]: ", offsetDims[i], " is out of bounds for ",
+                               "implied result rank ", resultRank);
+
+  auto getStartIndicesDim = [&](int64_t index) {
+    return startIndicesShape.getDimSize(index);
+  };
+
+  SmallVector<int64_t> shape;
+  inferGatherShape<int64_t>(resultRank, getStartIndicesDim, getSliceDim,
+                            offsetDims, collapsedSliceDims, startIndexMap,
+                            indexVectorDim, shape);
+
+  inferredReturnShapes.emplace_back(shape, elementType);
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
@@ -1418,6 +1569,28 @@ LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
   return success();
 }
 
+LogicalResult inferDynamicGatherOp(
+    Optional<Location> location, ValueShapeRange operands,
+    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
+    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // We want the ShapeAdaptors, so can't route via the adaptor :-/
+  ShapeAdaptor operandShape = operands.getShape(0);
+  ShapeAdaptor startIndicesShape = operands.getShape(1);
+  ShapeAdaptor sliceSizesShape = operands.getShape(2);
+
+  if (failed(verifyGather(location, /*operandShape=*/operandShape,
+                          /*startIndicesShape=*/startIndicesShape,
+                          /*sliceSizesShape=*/sliceSizesShape, offsetDims,
+                          collapsedSliceDims, startIndexMap, indexVectorDim)))
+    return failure();
+
+  auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
+  return inferGatherReturnTypeComponents(
+      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
+}
+
 LogicalResult inferDynamicSliceOp(
     Optional<Location> location, Value operand, ValueRange startIndices,
     DenseIntElementsAttr sliceSizes,
@@ -1519,6 +1692,62 @@ LogicalResult inferDynamicUpdateSliceOp(
     inferredReturnShapes.emplace_back(operandType.getElementType());
   }
   return success();
+}
+
+// The following properties are already enforced by the ODS:
+//  P0. Verify the start_indices has element type of integer.
+// Verify the following properties:
+//  P1. Verifications by verifyGather().
+//  P2. Verify slice_sizes[i] <= 1 for i in collapsed_slice_dims.
+//  P3. Verify 0 <= slice_sizes[i] < shape(operand)[i], for every i.
+//  Verifications by inferGatherReturnTypeComponents().
+LogicalResult inferGatherOp(
+    Optional<Location> location, ValueShapeRange operands,
+    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
+    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    DenseIntElementsAttr sliceSizes,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // We want the ShapeAdaptors, so can't route via the adaptor :-/
+  ShapeAdaptor operandShape = operands.getShape(0);
+  ShapeAdaptor startIndicesShape = operands.getShape(1);
+
+  // P1.
+  // For some reason the getType call is necessary here
+  if (failed(verifyGather(location,
+                          /*operandShape=*/operandShape,
+                          /*startIndicesShape=*/startIndicesShape,
+                          /*sliceSizesShape=*/sliceSizes.getType(), offsetDims,
+                          collapsedSliceDims, startIndexMap, indexVectorDim)))
+    return failure();
+
+  // P2.
+  for (auto dim : collapsedSliceDims) {
+    int64_t sliceDimSize = sliceSizes.getValues<int64_t>()[dim];
+    if (sliceDimSize > 1)
+      return emitOptionalError(location, "slice_sizes collapsed dimension ",
+                               dim, " should <= 1 but got ", sliceDimSize);
+  }
+
+  // P3.
+  if (operandShape.hasRank()) {
+    for (const auto& it : llvm::enumerate(sliceSizes.getValues<int64_t>())) {
+      if (operandShape.isDynamicDim(it.index())) continue;
+      auto operandDimSize = operandShape.getDimSize(it.index());
+      auto sliceDimSize = it.value();
+      if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
+        return emitOptionalError(location, "slice size (", sliceDimSize,
+                                 ") is out of bounds for operand dimension (",
+                                 operandDimSize, ") at index ", it.index());
+    }
+  }
+
+  auto getSliceDim = [&sliceSizes](int64_t index) -> int64_t {
+    return sliceSizes.getValues<int64_t>()[index];
+  };
+
+  return inferGatherReturnTypeComponents(
+      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
 }
 
 LogicalResult inferGetTupleElementOp(
