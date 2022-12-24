@@ -1772,6 +1772,13 @@ LogicalResult inferGetTupleElementOp(
   return success();
 }
 
+LogicalResult inferImagOp(Optional<Location> location, Value operand,
+                          SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(
+      createRealType(operand.getType().cast<TensorType>()));
+  return success();
+}
+
 LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto argTy = x.getType().cast<TensorType>();

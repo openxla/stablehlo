@@ -1234,11 +1234,11 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ImagOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(
-      hlo::createRealType(operands[0].getType().cast<TensorType>()));
-  return success();
+    MLIRContext*, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  ImagOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferImagOp(location, adaptor.getOperand(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

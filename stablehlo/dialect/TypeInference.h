@@ -237,6 +237,9 @@ LogicalResult inferGetTupleElementOp(
     Optional<Location> location, Value operand, int32_t index,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferImagOp(Optional<Location> location, Value operand,
+                          SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
