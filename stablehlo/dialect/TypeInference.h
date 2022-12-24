@@ -31,57 +31,6 @@ namespace hlo {
 //===----------------------------------------------------------------------===//
 // Utilities for shape functions
 //===----------------------------------------------------------------------===//
-// TODO(#270): Remove them when all shape functions are moved to this file.
-
-bool compatibleShapeAndElementType(Type type1, Type type2,
-                                   bool ignoreFpPrecision = false);
-
-FailureOr<SmallVector<int64_t>> convert1DAttribute(
-    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc,
-    StringRef attrName);
-
-FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
-    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc);
-
-// Convert a 1D dense bool attribute to a list of values.
-FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
-    Optional<DenseElementsAttr> optionalAttr, Optional<Location> loc,
-    StringRef attrName);
-
-// WindowDimension described how the kernel window moves across the base area
-// in a particular dimension.
-// Describes the windowing in an operation such as convolution.
-// The window is moved across a base area and for each position of the
-// window a computation is performed. The field below describes the
-// window and the movement of the window across a base area.
-struct WindowDimension {
-  int64_t size = 0;
-  int64_t stride = 1;
-  int64_t paddingLow = 0;
-  int64_t paddingHigh = 0;
-  int64_t windowDilation = 1;
-  int64_t baseDilation = 1;
-  bool windowReversal = false;
-};
-
-FailureOr<SmallVector<WindowDimension>>
-verifyWindowAttributesAndInferWindowDimensions(
-    ArrayRef<int64_t> windowDimensions, ArrayRef<int64_t> windowStrides,
-    ArrayRef<std::pair<int64_t, int64_t>> padding,
-    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
-    ArrayRef<bool> windowReversal, Optional<Location> loc);
-
-SmallVector<int64_t> inferWindowOutputShape(
-    const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window);
-
-unsigned potentiallyComplexBitwidth(Type type);
-
-LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
-                                 ArrayRef<TensorType> inputArgTypes,
-                                 ArrayRef<TensorType> initValueTypes,
-                                 int64_t numInputs,
-                                 ArrayRef<int64_t> allowedDimensions,
-                                 bool allInputsUnranked);
 
 template <typename dimTy>
 static void inferGatherShape(

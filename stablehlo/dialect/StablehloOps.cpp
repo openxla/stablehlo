@@ -1561,26 +1561,6 @@ LogicalResult ReduceWindowOp::verify() {
                                    getPadding(), getBody());
 }
 
-// Get the operation used for reduction applied to `result_index`th result. Its
-// expected to be a binary operation that consumes `result_index`th and
-// `result_index + getInputs().size`th arguments of the body.
-Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
-  auto returnOp = cast<ReturnOp>(getBody().front().getTerminator());
-  Operation* computeOp = returnOp.getResults()[resultIndex].getDefiningOp();
-  if (computeOp->getNumOperands() != 2) return nullptr;
-  auto arg0 = computeOp->getOperand(0).dyn_cast<BlockArgument>();
-  auto arg1 = computeOp->getOperand(1).dyn_cast<BlockArgument>();
-  if (!arg0 || !arg1) return nullptr;
-  int64_t arg0Num = arg0.getArgNumber();
-  int64_t arg1Num = arg1.getArgNumber();
-  int64_t otherArgIndex = resultIndex + getInputs().size();
-  if (arg0Num == resultIndex && arg1Num == otherArgIndex) return computeOp;
-  if (arg0Num == otherArgIndex && arg1Num == resultIndex &&
-      computeOp->hasTrait<mlir::OpTrait::IsCommutative>())
-    return computeOp;
-  return nullptr;
-}
-
 //===----------------------------------------------------------------------===//
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//

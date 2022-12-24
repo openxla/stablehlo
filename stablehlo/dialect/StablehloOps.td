@@ -2862,9 +2862,6 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   // TODO(hinsu): Implement custom printer and parser.
 
   let extraClassDeclaration = [{
-    // Get the operation used for reduction applied to `result_index`th result.
-    Operation *getReductionOp(int result_index);
-
     static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
       return mlir::hlo::isCompatibleForHloTypeInference(l, r);
     }
