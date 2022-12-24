@@ -96,12 +96,6 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
   }
 }
 
-// Checks if the vector `nums` has duplicates.
-const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
-  llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
-  return set.size() != nums.size();
-};
-
 //===----------------------------------------------------------------------===//
 // Utilities for the canonicalize patterns
 //===----------------------------------------------------------------------===//
