@@ -3119,8 +3119,8 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
 }
 
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
-                                      int64_t exponentBit) {
-  if (exponentBit < 1)
+                                      int32_t exponentBits) {
+  if (exponentBits < 1)
     return emitOptionalError(location, "exponent_bits must be at least 1.");
   return success();
 }
