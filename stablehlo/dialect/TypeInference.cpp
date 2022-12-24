@@ -98,7 +98,7 @@ bool compatibleShapeAndElementType(Type type1, Type type2,
 }
 
 bool verifyCompatibleDims(int64_t dimSize1, int64_t dimSize2) {
-  return hlo::isDynamicDimSize(dimSize1) || hlo::isDynamicDimSize(dimSize2) ||
+  return isDynamicDimSize(dimSize1) || isDynamicDimSize(dimSize2) ||
          dimSize1 == dimSize2;
 }
 
@@ -834,7 +834,7 @@ LogicalResult verifyConvolutionAttributes(
   const int64_t kernelOutputFeatures =
       rhsType.getShape()[kernelOutputFeatureDimension];
 
-  if (!hlo::isDynamicDimSize(kernelOutputFeatures)) {
+  if (!isDynamicDimSize(kernelOutputFeatures)) {
     if (kernelOutputFeatures % batchGroupCount != 0)
       return emitOptionalError(
           location, "expects output feature dimension size (",
@@ -851,7 +851,7 @@ LogicalResult verifyConvolutionAttributes(
                                featureGroupCount, ".");
   }
 
-  if (!hlo::isDynamicDimSize(inputFeatures)) {
+  if (!isDynamicDimSize(inputFeatures)) {
     if (inputFeatures % featureGroupCount != 0)
       return emitOptionalError(location, "expects input feature dimension (",
                                inputFeatures,
@@ -859,7 +859,7 @@ LogicalResult verifyConvolutionAttributes(
                                "feature_group_count = ",
                                featureGroupCount, ".");
 
-    if (!hlo::isDynamicDimSize(kernelInputFeatures) &&
+    if (!isDynamicDimSize(kernelInputFeatures) &&
         inputFeatures / featureGroupCount != kernelInputFeatures)
       return emitOptionalError(
           location, "expects input feature dimension (", inputFeatures,
@@ -869,7 +869,7 @@ LogicalResult verifyConvolutionAttributes(
           "). Got feature_group_count = ", featureGroupCount, ".");
   }
 
-  if (!hlo::isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
+  if (!isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
     return emitOptionalError(location, "expects input batch dimension (",
                              inputBatch,
                              ") to be divisible by "
@@ -997,7 +997,7 @@ LogicalResult validateScatterDimensionNumbers(
 
   // P4.
   if (scatterIndicesTypeRanked) {
-    if (!hlo::isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
+    if (!isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
         static_cast<int64_t>(scatterDimsToOperandDims.size()) !=
             scatterIndicesShape[indexVectorDim])
       return emitOptionalError(loc, "Scatter op has ",
@@ -1221,10 +1221,9 @@ LogicalResult inferAllToAllOp(
   if (splitCount <= 0)
     return emitOptionalError(location, "AllToAll split_count must be > 0");
 
-  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      /*useGlobalDeviceIds=*/false,
-                                      splitCount)))
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/true,
+                                 /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
 
   if (splitDimension < 0)
@@ -1356,8 +1355,7 @@ LogicalResult inferConditionalOp(Optional<Location> location,
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
-                                              branchResultTypes))
+    if (!isCompatibleForHloTypeInference(branch0ResultTypes, branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
@@ -1456,8 +1454,7 @@ LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   TensorType operandType = lhs.getType().cast<TensorType>();
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
-  inferredReturnTypes.push_back(
-      hlo::getSameShapeTensorType(operandType, elementTy));
+  inferredReturnTypes.push_back(getSameShapeTensorType(operandType, elementTy));
   return success();
 }
 
@@ -1678,8 +1675,8 @@ LogicalResult inferDynamicUpdateSliceOp(
     for (auto [index, dims] : llvm::enumerate(
              llvm::zip(operandType.getShape(), updateType.getShape()))) {
       auto [operandDim, updateDim] = dims;
-      if (hlo::isDynamicDimSize(updateDim)) continue;
-      if (hlo::isStaticDimSize(operandDim)) {
+      if (isDynamicDimSize(updateDim)) continue;
+      if (isStaticDimSize(operandDim)) {
         if (updateDim < 0 || updateDim > operandDim)
           return emitOptionalError(location, "expects size at dimension ",
                                    index, " of update to be in range [0, ",
@@ -1783,8 +1780,7 @@ LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto argTy = x.getType().cast<TensorType>();
   Builder b(context);
-  inferredReturnTypes.push_back(
-      hlo::getSameShapeTensorType(argTy, b.getI1Type()));
+  inferredReturnTypes.push_back(getSameShapeTensorType(argTy, b.getI1Type()));
   return success();
 }
 
@@ -1942,9 +1938,9 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
           location,
           "Interior padding cannot be negative: ", paddingInteriorVal);
 
-    bool isStaticDim = !hlo::isDynamicDimSize(inputShape[i]);
+    bool isStaticDim = !isDynamicDimSize(inputShape[i]);
     bool isStaticBound =
-        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+        !inputBounds.empty() && !isDynamicDimSize(inputBounds[i]);
     if (isStaticDim || isStaticBound) {
       int64_t operandSizeOrBound = isStaticDim ? inputShape[i] : inputBounds[i];
       int64_t resultSizeOrBound =
@@ -2090,7 +2086,7 @@ LogicalResult inferSelectOp(
   //   (a) have the same element type, and
   //   (b) have compatible shapes (i.e. the same shape and/or at least one
   //       dynamic shape)
-  if (!hlo::compatibleShapeAndElementType(trueType, falseType))
+  if (!compatibleShapeAndElementType(trueType, falseType))
     return emitOptionalError(
         location, "requires compatible types for non-predicate operands");
 
@@ -2105,8 +2101,8 @@ LogicalResult inferSelectOp(
   // The output shape should be derived from the most specific parts of the
   // `onTrue` and `onFalse` (see documentation for details).
   SmallVector<Type> inferredReturnTypes;
-  return hlo::inferMostSpecificTypeComponents(location, {trueType, falseType},
-                                              inferredReturnShapes);
+  return inferMostSpecificTypeComponents(location, {trueType, falseType},
+                                         inferredReturnShapes);
 }
 
 LogicalResult inferSelectAndScatterOp(
@@ -2178,9 +2174,9 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
                                " in dimension ", i);
 
     // P4.
-    bool isStaticDim = !hlo::isDynamicDimSize(rankedTy.getDimSize(i));
+    bool isStaticDim = !isDynamicDimSize(rankedTy.getDimSize(i));
     bool isStaticBound =
-        !inputBounds.empty() && !hlo::isDynamicDimSize(inputBounds[i]);
+        !inputBounds.empty() && !isDynamicDimSize(inputBounds[i]);
     if (isStaticDim || isStaticBound) {
       int64_t operandSizeOrBound =
           isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
@@ -2357,10 +2353,10 @@ LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
                                 int64_t allGatherDim,
                                 DenseIntElementsAttr replicaGroups,
                                 bool useGlobalDeviceIds, Value result) {
-  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      useGlobalDeviceIds,
-                                      /*expectedGroupSize=*/std::nullopt)))
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/true,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
     return failure();
 
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
@@ -2416,16 +2412,16 @@ LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
 LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
                                 bool useGlobalDeviceIds, Region& computation) {
-  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
-                                      /*allGroupsMustHaveSameSize=*/false,
-                                      useGlobalDeviceIds,
-                                      /*expectedGroupSize=*/std::nullopt)))
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/false,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
     return failure();
 
   auto operandType = operand.getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
   Block& block = computation.front();
-  if (failed(hlo::verifyReducerShape(
+  if (failed(verifyReducerShape(
           location, block, {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},
           /*numInputs=*/1, /*allowedDimensions=*/{},
@@ -2458,8 +2454,8 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
         operandTensorType, " and ", targetTensorType);
   }
 
-  auto targetEltBitwidth = hlo::potentiallyComplexBitwidth(targetElt);
-  auto operandEltBitwidth = hlo::potentiallyComplexBitwidth(operandElt);
+  auto targetEltBitwidth = potentiallyComplexBitwidth(targetElt);
+  auto operandEltBitwidth = potentiallyComplexBitwidth(operandElt);
 
   // P2.
   auto operandType = operandTensorType.dyn_cast<RankedTensorType>();
@@ -2493,7 +2489,7 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
                                operandType, " and ", targetType, ".");
     }
     smallerEltPrefix = smallerEltShape.drop_back();
-    if (!hlo::isDynamicDimSize(smallerEltShape.back()) &&
+    if (!isDynamicDimSize(smallerEltShape.back()) &&
         smallerEltShape.back() * smallerEltBitwidth != biggerEltBitwidth) {
       return emitOptionalError(
           location, "requires compatible bitwidths. ", "Got: ", operandType,
@@ -2507,8 +2503,7 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
   for (auto it : llvm::zip(smallerEltPrefix, biggerEltShape)) {
     auto targetDim = std::get<0>(it);
     auto operandDim = std::get<1>(it);
-    if (!hlo::isDynamicDimSize(targetDim) &&
-        !hlo::isDynamicDimSize(operandDim)) {
+    if (!isDynamicDimSize(targetDim) && !isDynamicDimSize(operandDim)) {
       if (targetDim != operandDim) {
         return emitOptionalError(
             location,
@@ -2678,24 +2673,24 @@ LogicalResult verifyConvolutionOp(
   for (size_t i = 0; i < windowDimensions.size(); i++)
     windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
 
-  auto paddingOrErr = hlo::convertPaddingAttribute(padding, location);
+  auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
 
   // TODO: add missing tests for ConvolutionOp.
   auto windowStridesOrErr =
-      hlo::convert1DAttribute(windowStrides, location, "window_strides");
+      convert1DAttribute(windowStrides, location, "window_strides");
   if (failed(windowStridesOrErr)) return failure();
   auto lhsDilationOrErr =
-      hlo::convert1DAttribute(lhsDilation, location, "lhs_dilation");
+      convert1DAttribute(lhsDilation, location, "lhs_dilation");
   if (failed(lhsDilationOrErr)) return failure();
   auto rhsDilationOrErr =
-      hlo::convert1DAttribute(rhsDilation, location, "rhs_dilation");
+      convert1DAttribute(rhsDilation, location, "rhs_dilation");
   if (failed(rhsDilationOrErr)) return failure();
-  auto windowReversalOrErr = hlo::convertWindowReversalAttribute(
+  auto windowReversalOrErr = convertWindowReversalAttribute(
       windowReversal, location, "window_reversal");
   if (failed(windowReversalOrErr)) return failure();
 
-  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
+  auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       windowDimensions, *windowStridesOrErr, *paddingOrErr, *lhsDilationOrErr,
       *rhsDilationOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
@@ -2715,7 +2710,7 @@ LogicalResult verifyConvolutionOp(
     inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDimensions[i]];
 
   auto windowOutputShape =
-      hlo::inferWindowOutputShape(inputSpatialDimVals, *windowOrErr);
+      inferWindowOutputShape(inputSpatialDimVals, *windowOrErr);
 
   for (int64_t i = 0; i < static_cast<int64_t>(windowOrErr->size()); ++i)
     outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
@@ -2725,7 +2720,7 @@ LogicalResult verifyConvolutionOp(
   const int64_t kernelOutputFeatures =
       rhsType.getShape()[kernelOutputFeatureDimension];
 
-  outputDimensions[outputBatchDimension] = hlo::isDynamicDimSize(inputBatch)
+  outputDimensions[outputBatchDimension] = isDynamicDimSize(inputBatch)
                                                ? ShapedType::kDynamic
                                                : inputBatch / batchGroupCount;
   outputDimensions[outputFeatureDimension] = kernelOutputFeatures;
@@ -2846,8 +2841,8 @@ LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
 
     for (auto [lhs, rhs] :
          llvm::zip(lhsBatchingDimensions, rhsBatchingDimensions)) {
-      if (hlo::isDynamicDimSize(lhsShape[lhs])) continue;
-      if (hlo::isDynamicDimSize(rhsShape[rhs])) continue;
+      if (isDynamicDimSize(lhsShape[lhs])) continue;
+      if (isDynamicDimSize(rhsShape[rhs])) continue;
       if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "batching dimension sizes must "
@@ -2856,8 +2851,8 @@ LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
 
     for (auto [lhs, rhs] :
          llvm::zip(lhsContractingDimensions, rhsContractingDimensions)) {
-      if (hlo::isDynamicDimSize(lhsShape[lhs])) continue;
-      if (hlo::isDynamicDimSize(rhsShape[rhs])) continue;
+      if (isDynamicDimSize(lhsShape[lhs])) continue;
+      if (isDynamicDimSize(rhsShape[rhs])) continue;
       if (lhsShape[lhs] != rhsShape[rhs])
         return emitOptionalError(location,
                                  "contracting dimension sizes must "
@@ -3137,15 +3132,15 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
                                     DenseIntElementsAttr replicaGroups,
                                     bool useGlobalDeviceIds,
                                     Region& computation, Value result) {
-  if (failed(hlo::verifyReplicaGroups(location, replicaGroups,
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      useGlobalDeviceIds,
-                                      /*expectedGroupSize=*/std::nullopt)))
+  if (failed(verifyReplicaGroups(location, replicaGroups,
+                                 /*allGroupsMustHaveSameSize=*/true,
+                                 useGlobalDeviceIds,
+                                 /*expectedGroupSize=*/std::nullopt)))
     return failure();
   auto operandType = operand.getType().cast<TensorType>();
   bool operandTypeRanked = operandType.isa<RankedTensorType>();
   Block& block = computation.front();
-  if (failed(hlo::verifyReducerShape(
+  if (failed(verifyReducerShape(
           location, block, {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},
           /*numInputs=*/1, /*allowedDimensions=*/{},
@@ -3333,10 +3328,10 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
     initValueTypes.push_back(
         RankedTensorType::get({}, updatesTypes[i].getElementType()));
   }
-  if (failed(hlo::verifyReducerShape(
-          location, block, inputTypes, initValueTypes, numOperands,
-          /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/!allOperandTypesRanked)))
+  if (failed(verifyReducerShape(location, block, inputTypes, initValueTypes,
+                                numOperands,
+                                /*allowedDimensions=*/{},
+                                /*allInputsUnranked=*/!allOperandTypesRanked)))
     return failure();
 
   // P3.
@@ -3401,8 +3396,8 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
              ++i) {
           auto updateWindowDim = updateWindowDims[i];
 
-          if (hlo::isDynamicDimSize(updatesShape[updateWindowDim]) ||
-              hlo::isDynamicDimSize(maxUpdateSliceSizes[i]))
+          if (isDynamicDimSize(updatesShape[updateWindowDim]) ||
+              isDynamicDimSize(maxUpdateSliceSizes[i]))
             continue;
 
           if (updatesShape[updateWindowDim] > maxUpdateSliceSizes[i]) {
@@ -3429,9 +3424,8 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
           if (isUpdateWindowDim) continue;
           if (scatterDimsSeen == indexVectorDim) ++scatterDimsSeen;
 
-          if (!hlo::isDynamicDimSize(updatesShape[i]) &&
-              !hlo::isDynamicDimSize(
-                  expandedScatterIndicesShape[scatterDimsSeen]) &&
+          if (!isDynamicDimSize(updatesShape[i]) &&
+              !isDynamicDimSize(expandedScatterIndicesShape[scatterDimsSeen]) &&
               (updatesShape[i] !=
                expandedScatterIndicesShape[scatterDimsSeen])) {
             return emitOptionalError(
@@ -3616,19 +3610,19 @@ LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
   auto operandTypes = operand.getTypes();
   auto condArgsTypes = cond.front().getArgumentTypes();
   auto bodyArgsTypes = body.front().getArgumentTypes();
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
+  if (!isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
     return emitOptionalError(location,
                              "expect operands are compatible with condition "
                              "block arguments but got ",
                              operandTypes, " vs ", condArgsTypes);
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
+  if (!isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
     return emitOptionalError(
         location,
         "expect operands are compatible with body block arguments but got ",
         operandTypes, " vs ", bodyArgsTypes);
 
   auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
-  if (!hlo::isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
+  if (!isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
     return emitOptionalError(
         location,
         "expect operands are compatible with body block return types but got ",
