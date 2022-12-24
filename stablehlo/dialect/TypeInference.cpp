@@ -2055,6 +2055,13 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
+LogicalResult inferReplicaIdOp(MLIRContext* context, Optional<Location>,
+                               SmallVectorImpl<Type>& inferredReturnTypes) {
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
+  return success();
+}
+
 LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
   return success();
 }

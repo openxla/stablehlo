@@ -287,6 +287,9 @@ LogicalResult inferReduceWindowOp(
     Optional<DenseIntElementsAttr> padding,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferReplicaIdOp(MLIRContext* context, Optional<Location>,
+                               SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferReturnOp(Optional<Location> location,
                             SmallVectorImpl<Type>& inferredReturnTypes);
 
