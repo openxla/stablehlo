@@ -2209,49 +2209,9 @@ LogicalResult PadOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicPadOp::verify() {
-  auto inputType = getOperand().getType().dyn_cast<RankedTensorType>();
-  // If operand is unranked, there is very little to verify statically.
-  if (!inputType) return success();
-  int inputRank = inputType.getRank();
-
-  auto padType = getPaddingValue().getType().cast<RankedTensorType>();
-  if (padType.getRank() != 0) {
-    return emitOpError() << "padding value type should be a rank-0";
-  }
-
-  auto paddingLowType = getEdgePaddingLow().getType().cast<RankedTensorType>();
-  if (paddingLowType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_low length("
-                         << paddingLowType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto paddingHighType =
-      getEdgePaddingHigh().getType().cast<RankedTensorType>();
-  if (paddingHighType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_high length("
-                         << paddingHighType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto interiorPaddingType =
-      getInteriorPadding().getType().cast<RankedTensorType>();
-  if (interiorPaddingType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_interior length("
-                         << interiorPaddingType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto outputType = getResult().getType().dyn_cast<RankedTensorType>();
-  // If result is unranked, there is very little to verify statically.
-  if (!outputType) return success();
-  int outputRank = outputType.getRank();
-  if (inputRank != outputRank) {
-    return emitOpError() << "operand rank(" << inputRank
-                         << ") must match result(" << outputRank << ").";
-  }
-
-  return success();
+  return hlo::verifyDynamicPadOp(getLoc(), getOperand(), getPaddingValue(),
+                                 getEdgePaddingLow(), getEdgePaddingHigh(),
+                                 getInteriorPadding(), getResult());
 }
 
 LogicalResult DynamicPadOp::reifyReturnTypeShapes(

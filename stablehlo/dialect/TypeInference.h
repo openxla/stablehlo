@@ -388,6 +388,11 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     Optional<DenseIntElementsAttr> knownExpandingDimensions,
     Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result);
 
+LogicalResult verifyDynamicPadOp(Optional<Location> location, Value operand,
+                                 Value paddingValue, Value edgePaddingLow,
+                                 Value edgePaddingHigh, Value interiorPadding,
+                                 Value result);
+
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
 

@@ -2969,6 +2969,49 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   return success();
 }
 
+LogicalResult verifyDynamicPadOp(Optional<Location> location, Value operand,
+                                 Value paddingValue, Value edgePaddingLow,
+                                 Value edgePaddingHigh, Value interiorPadding,
+                                 Value result) {
+  auto inputType = operand.getType().dyn_cast<RankedTensorType>();
+  // If operand is unranked, there is very little to verify statically.
+  if (!inputType) return success();
+  int inputRank = inputType.getRank();
+
+  auto padType = paddingValue.getType().cast<RankedTensorType>();
+  if (padType.getRank() != 0) {
+    return emitOptionalError(location, "padding value type should be a rank-0");
+  }
+
+  auto paddingLowType = edgePaddingLow.getType().cast<RankedTensorType>();
+  if (paddingLowType.getNumElements() != inputRank)
+    return emitOptionalError(location, "edge_padding_low length(",
+                             paddingLowType.getNumElements(),
+                             ") must match operand rank(", inputRank, ").");
+
+  auto paddingHighType = edgePaddingHigh.getType().cast<RankedTensorType>();
+  if (paddingHighType.getNumElements() != inputRank)
+    return emitOptionalError(location, "edge_padding_high length(",
+                             paddingHighType.getNumElements(),
+                             ") must match operand rank(", inputRank, ").");
+
+  auto interiorPaddingType = interiorPadding.getType().cast<RankedTensorType>();
+  if (interiorPaddingType.getNumElements() != inputRank)
+    return emitOptionalError(location, "edge_padding_interior length(",
+                             interiorPaddingType.getNumElements(),
+                             ") must match operand rank(", inputRank, ").");
+
+  auto outputType = result.getType().dyn_cast<RankedTensorType>();
+  // If result is unranked, there is very little to verify statically.
+  if (!outputType) return success();
+  int outputRank = outputType.getRank();
+  if (inputRank != outputRank)
+    return emitOptionalError(location, "operand rank(", inputRank,
+                             ") must match result(", outputRank, ").");
+
+  return success();
+}
+
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result) {
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
