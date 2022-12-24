@@ -424,6 +424,9 @@ LogicalResult verifyReduceWindowOp(
     Optional<DenseIntElementsAttr> windowDilations,
     Optional<DenseIntElementsAttr> padding, Region& body);
 
+LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
+                              Value result);
+
 LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState);
 

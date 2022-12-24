@@ -3233,6 +3233,28 @@ LogicalResult verifyReduceWindowOp(
   return success();
 }
 
+LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
+                              Value result) {
+  // If the operand type is dynamically shaped there is nothing to verify.
+  auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandTy || !operandTy.hasStaticShape()) return success();
+
+  // If the operand type is statically shaped (not required) the number of
+  // elements must match that of the result type.
+  auto resultTy = result.getType().cast<RankedTensorType>();
+  assert(resultTy && resultTy.hasStaticShape() &&
+         "result type must be statically shaped");
+  int64_t numResultElements = resultTy.getNumElements();
+  int64_t numOperandElements = operandTy.getNumElements();
+  if (numResultElements != numOperandElements)
+    return emitOptionalError(location, "number of output elements (",
+                             numResultElements,
+                             ") doesn't match expected number of elements (",
+                             numOperandElements, ")");
+
+  return success();
+}
+
 LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState) {
   auto initialShape = initialState.getType().dyn_cast<RankedTensorType>();

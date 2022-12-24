@@ -2282,23 +2282,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReshapeOp::verify() {
-  // If the operand type is dynamically shaped there is nothing to verify.
-  auto operandTy = getOperand().getType().dyn_cast<RankedTensorType>();
-  if (!operandTy || !operandTy.hasStaticShape()) return success();
-
-  // If the operand type is statically shaped (not required) the number of
-  // elements must match that of the result type.
-  auto resultTy = getType().cast<RankedTensorType>();
-  assert(resultTy && resultTy.hasStaticShape() &&
-         "result type must be statically shaped");
-  int64_t numResultElements = resultTy.getNumElements();
-  int64_t numOperandElements = operandTy.getNumElements();
-  if (numResultElements != numOperandElements)
-    return emitOpError() << "number of output elements (" << numResultElements
-                         << ") doesn't match expected number of elements ("
-                         << numOperandElements << ")";
-
-  return success();
+  return hlo::verifyReshapeOp(getLoc(), getOperand(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
