@@ -32,60 +32,12 @@ namespace hlo {
 // Utilities for shape functions
 //===----------------------------------------------------------------------===//
 
-template <typename dimTy>
-static void inferGatherShape(
-    int64_t resultRank, llvm::function_ref<dimTy(int64_t)> getStartIndicesDim,
-    llvm::function_ref<dimTy(int64_t)> getSliceDim,
+void reifyGatherDimSizes(
+    int64_t resultRank, llvm::function_ref<Value(int64_t)> getStartIndicesDim,
+    llvm::function_ref<Value(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-    SmallVectorImpl<dimTy>& shape) {
-  // We don't necessarily know the rank of sliceSizes, but we do know that it
-  // can't be larger than the highest collapsed dimension. So go through those
-  // and populate the leading dimensions of adjustedSliceSizes. The trailing
-  // dimensions can just be adjusted by an offset.
-  const auto* maxCollapsedDimIt =
-      std::max_element(collapsedSliceDims.begin(), collapsedSliceDims.end());
-  int64_t maxCollapsedDim = -1;
-  if (maxCollapsedDimIt != collapsedSliceDims.end())
-    maxCollapsedDim = *maxCollapsedDimIt;
-
-  SmallVector<dimTy> adjustedSliceSizePrefix;
-  for (int dimIndex = 0; dimIndex <= maxCollapsedDim; ++dimIndex) {
-    if (llvm::is_contained(collapsedSliceDims, dimIndex)) continue;
-    adjustedSliceSizePrefix.push_back(getSliceDim(dimIndex));
-  }
-  auto getAdjustedSliceDim = [&](int64_t index) -> dimTy {
-    if (index < static_cast<int64_t>(adjustedSliceSizePrefix.size()))
-      return adjustedSliceSizePrefix[index];
-    return getSliceDim(index + collapsedSliceDims.size());
-  };
-
-  // Dimensions in the output that aren't offset dimensions are called batch
-  // dimensions.
-  SmallVector<int64_t> batchDims;
-  for (int dim = 0; dim < resultRank; ++dim)
-    if (!llvm::is_contained(offsetDims, dim)) batchDims.push_back(dim);
-
-  for (int i = 0; i < resultRank; ++i) {
-    const auto* offsetDimsIt =
-        std::find(offsetDims.begin(), offsetDims.end(), i);
-    if (offsetDimsIt != offsetDims.end()) {
-      auto index = std::distance(offsetDims.begin(), offsetDimsIt);
-      shape.push_back(getAdjustedSliceDim(index));
-      continue;
-    }
-    auto* batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
-    assert(batchDimsIt != batchDims.end());
-    auto index = std::distance(batchDims.begin(), batchDimsIt);
-    // This can never run into the special case where start_indices gets
-    // implicitly expanded with a trailing 1 if
-    // index_vector_dim = start_indices.rank because then index would equal
-    // index_vector_dim, which means we'd be looking at index+1, which would be
-    // out of bounds anyway.
-    if (index >= indexVectorDim) ++index;
-    shape.push_back(getStartIndicesDim(index));
-  }
-}
+    SmallVectorImpl<Value>& shape);
 
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.

@@ -833,7 +833,7 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
   auto getSliceDim = [&sliceSizes](int64_t index) -> Value {
     return sliceSizes[index];
   };
-  hlo::inferGatherShape<Value>(
+  hlo::reifyGatherDimSizes(
       resultRank, getStartIndicesDim, getSliceDim,
       op->getDimensionNumbers().getOffsetDims(),
       op->getDimensionNumbers().getCollapsedSliceDims(),
