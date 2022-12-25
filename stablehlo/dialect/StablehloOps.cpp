@@ -96,12 +96,6 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
   }
 }
 
-// Checks if the vector `nums` has duplicates.
-const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
-  llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
-  return set.size() != nums.size();
-};
-
 //===----------------------------------------------------------------------===//
 // Utilities for the canonicalize patterns
 //===----------------------------------------------------------------------===//
@@ -808,267 +802,6 @@ void getSliceSizeValues(DynamicGatherOp* /*dGather*/, OpBuilder& builder,
   }
 }
 
-// Verify the following properties:
-//  P1. Verify no repeat in start_index_map.
-//  P2. Verify 0 <= start_index_map[i] < rank(operand), for every i.
-//  P3. Verify 0 <= index_vector_dim <= rank(start_indices).
-//  P4. Verify size(start_index_map) == shape(start_indices)[index_vector_dim].
-//  P5. Verify offset_dims is_sorted and not repeated.
-//  P6. Verify collapsed_slice_dims is_sorted and not repeated.
-//  P7. Verify rank(operand) == size(offset_dims) + size(collapsed_slice_dims).
-//  P8. Verify slice_sizes has rank of 1.
-//  P9. Verify size(slice_sizes) == rank(operand).
-//  P10. Verify 0 <= collapsed_slice_dims[i] < size(slice_sizes) for all items.
-static LogicalResult verifyGather(
-    ShapeAdaptor operandShape, ShapeAdaptor startIndicesShape,
-    ShapeAdaptor sliceSizesShape, GatherDimensionNumbersAttr dimensionNumbers,
-    llvm::function_ref<InFlightDiagnostic()> errorEmitter) {
-  int64_t indexVectorDim = dimensionNumbers.getIndexVectorDim();
-
-  // Check startIndexMap
-  auto startIndexMap = to_vector(dimensionNumbers.getStartIndexMap());
-  // P1.
-  if (hasDuplicates(startIndexMap))
-    return errorEmitter() << "expects start_index_map to not repeat, got: ["
-                          << startIndexMap << "]";
-
-  // P2.
-  for (int64_t i = 0; i < static_cast<int64_t>(startIndexMap.size()); ++i)
-    if (startIndexMap[i] < 0 ||
-        (operandShape.hasRank() && startIndexMap[i] >= operandShape.getRank()))
-      return errorEmitter()
-             << "start_index_map[" << i << "]: " << startIndexMap[i]
-             << " is out of bounds for "
-             << "operand rank " << operandShape.getRank();
-
-  if (startIndicesShape.hasRank()) {
-    // P3.
-    // index_vector_dim == start_indices.rank implies a trailing 1 on the shape
-    // of start_indices.
-    if (indexVectorDim > startIndicesShape.getRank() || indexVectorDim < 0)
-      return errorEmitter() << "index_vector_dim " << indexVectorDim
-                            << " is out of bounds for start indices with rank "
-                            << startIndicesShape.getRank();
-
-    bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
-    if (impliedTrailingDim || !startIndicesShape.isDynamicDim(indexVectorDim)) {
-      int64_t effectiveDimSize;
-      if (impliedTrailingDim)
-        effectiveDimSize = 1;
-      else
-        effectiveDimSize = startIndicesShape.getDimSize(indexVectorDim);
-      // P4.
-      if (effectiveDimSize !=
-          static_cast<int64_t>(dimensionNumbers.getStartIndexMap().size()))
-        return errorEmitter() << "start_index_map size ("
-                              << dimensionNumbers.getStartIndexMap().size()
-                              << ") is not equal to size of index dimension ("
-                              << indexVectorDim << ") of start_indices ("
-                              << effectiveDimSize << ")";
-    }
-  }
-
-  // P5.
-  auto offsetDims = to_vector(dimensionNumbers.getOffsetDims());
-  if (!llvm::is_sorted(offsetDims))
-    return errorEmitter() << "expects offset_dims to be sorted, got: ["
-                          << offsetDims << "]";
-  if (hasDuplicates(offsetDims))
-    return errorEmitter() << "expects offset_dims to not repeat, got: ["
-                          << offsetDims << "]";
-
-  // P6.
-  auto collapsedSliceDims = to_vector(dimensionNumbers.getCollapsedSliceDims());
-  if (!llvm::is_sorted(collapsedSliceDims))
-    return errorEmitter() << "expects collapsed_slice_dims to be sorted, got: ["
-                          << collapsedSliceDims << "]";
-  if (hasDuplicates(collapsedSliceDims))
-    return errorEmitter()
-           << "expects collapsed_slice_dims to not repeat, got: ["
-           << collapsedSliceDims << "]";
-
-  // P7.
-  int64_t impliedOperandRank = dimensionNumbers.getOffsetDims().size() +
-                               dimensionNumbers.getCollapsedSliceDims().size();
-  if (operandShape.hasRank() && operandShape.getRank() != impliedOperandRank)
-    return errorEmitter() << "offset_dims size ("
-                          << dimensionNumbers.getOffsetDims().size()
-                          << ") plus collapse_slice_dims size ("
-                          << dimensionNumbers.getCollapsedSliceDims().size()
-                          << ") is not equal to operand rank ("
-                          << operandShape.getRank() << ")";
-
-  // P8.
-  // This should be fully expressible with type constraints, but it isn't
-  // obvious how to do that with the current infrastructure.
-  if (sliceSizesShape.hasRank() && sliceSizesShape.getRank() != 1)
-    return errorEmitter() << "slice_sizes.rank != 1";
-  if (sliceSizesShape.hasStaticShape()) {
-    int64_t sliceSize = sliceSizesShape.getNumElements();
-
-    // P9.
-    if (sliceSize != impliedOperandRank)
-      return errorEmitter() << "slice_sizes size (" << sliceSize
-                            << ") not equal to (implied) operand rank ("
-                            << impliedOperandRank << ")";
-
-    // P10.
-    for (auto dim : dimensionNumbers.getCollapsedSliceDims())
-      if (dim < 0 || dim >= sliceSize)
-        return errorEmitter() << "collapsed dimension " << dim
-                              << " is out of bounds for slice_sizes.size ("
-                              << sliceSize << ")";
-  }
-
-  return success();
-}
-
-// Verify the following properties:
-//  P1. Verifications by verifyGather().
-//  P2. Verify slice_sizes[i] <= 1 for i in collapsed_slice_dims.
-//  P3. Verify 0 <= slice_sizes[i] < shape(operand)[i], for every i.
-static LogicalResult verifyStaticGather(
-    ShapeAdaptor operandShape, ShapeAdaptor startIndicesShape,
-    DenseIntElementsAttr sliceSizes,
-    GatherDimensionNumbersAttr dimensionNumbers,
-    llvm::function_ref<InFlightDiagnostic()> errorEmitter) {
-  // P1.
-  // For some reason the getType call is necessary here
-  if (failed(verifyGather(
-          /*operandShape=*/operandShape,
-          /*startIndicesShape=*/startIndicesShape,
-          /*sliceSizesShape=*/sliceSizes.getType(), dimensionNumbers,
-          errorEmitter)))
-    return failure();
-
-  // P2.
-  for (auto dim : dimensionNumbers.getCollapsedSliceDims()) {
-    int64_t sliceDimSize = sliceSizes.getValues<int64_t>()[dim];
-    if (sliceDimSize > 1) {
-      return errorEmitter() << "slice_sizes collapsed dimension " << dim
-                            << " should <= 1 but got " << sliceDimSize;
-    }
-  }
-
-  // P3.
-  if (operandShape.hasRank()) {
-    for (const auto& it : llvm::enumerate(sliceSizes.getValues<int64_t>())) {
-      if (operandShape.isDynamicDim(it.index())) continue;
-      auto operandDimSize = operandShape.getDimSize(it.index());
-      auto sliceDimSize = it.value();
-      if (sliceDimSize < 0 || sliceDimSize > operandDimSize)
-        return errorEmitter() << "slice size (" << sliceDimSize
-                              << ") is out of bounds for operand dimension ("
-                              << operandDimSize << ") at index " << it.index();
-    }
-  }
-  return success();
-}
-
-template <typename dimTy>
-static void inferGatherShape(
-    int64_t resultRank, llvm::function_ref<dimTy(int64_t)> getStartIndicesDim,
-    llvm::function_ref<dimTy(int64_t)> getSliceDim,
-    GatherDimensionNumbersAttr dimensionNumbers,
-    SmallVectorImpl<dimTy>& shape) {
-  ArrayRef<int64_t> collapsedSliceDims =
-      dimensionNumbers.getCollapsedSliceDims();
-  int64_t indexVectorDim = dimensionNumbers.getIndexVectorDim();
-
-  // We don't necessarily know the rank of sliceSizes, but we do know that it
-  // can't be larger than the highest collapsed dimension. So go through those
-  // and populate the leading dimensions of adjustedSliceSizes. The trailing
-  // dimensions can just be adjusted by an offset.
-  const auto* maxCollapsedDimIt =
-      std::max_element(collapsedSliceDims.begin(), collapsedSliceDims.end());
-  int64_t maxCollapsedDim = -1;
-  if (maxCollapsedDimIt != collapsedSliceDims.end())
-    maxCollapsedDim = *maxCollapsedDimIt;
-
-  SmallVector<dimTy> adjustedSliceSizePrefix;
-  for (int dimIndex = 0; dimIndex <= maxCollapsedDim; ++dimIndex) {
-    if (llvm::is_contained(collapsedSliceDims, dimIndex)) continue;
-    adjustedSliceSizePrefix.push_back(getSliceDim(dimIndex));
-  }
-  auto getAdjustedSliceDim = [&](int64_t index) -> dimTy {
-    if (index < static_cast<int64_t>(adjustedSliceSizePrefix.size()))
-      return adjustedSliceSizePrefix[index];
-    return getSliceDim(index + collapsedSliceDims.size());
-  };
-
-  ArrayRef<int64_t> offsetDims = dimensionNumbers.getOffsetDims();
-
-  // Dimensions in the output that aren't offset dimensions are called batch
-  // dimensions.
-  SmallVector<int64_t> batchDims;
-  for (int dim = 0; dim < resultRank; ++dim)
-    if (!llvm::is_contained(offsetDims, dim)) batchDims.push_back(dim);
-
-  for (int i = 0; i < resultRank; ++i) {
-    const auto* offsetDimsIt =
-        std::find(offsetDims.begin(), offsetDims.end(), i);
-    if (offsetDimsIt != offsetDims.end()) {
-      auto index = std::distance(offsetDims.begin(), offsetDimsIt);
-      shape.push_back(getAdjustedSliceDim(index));
-      continue;
-    }
-    auto* batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
-    assert(batchDimsIt != batchDims.end());
-    auto index = std::distance(batchDims.begin(), batchDimsIt);
-    // This can never run into the special case where start_indices gets
-    // implicitly expanded with a trailing 1 if
-    // index_vector_dim = start_indices.rank because then index would equal
-    // index_vector_dim, which means we'd be looking at index+1, which would be
-    // out of bounds anyway.
-    if (index >= indexVectorDim) ++index;
-    shape.push_back(getStartIndicesDim(index));
-  }
-}
-
-// Verify the following properties:
-//  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
-//      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
-static LogicalResult inferGatherReturnTypeComponents(
-    ShapeAdaptor operandShape, ShapeAdaptor startIndicesShape,
-    llvm::function_ref<int64_t(int64_t)> getSliceDim,
-    GatherDimensionNumbersAttr dimensionNumbers,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
-    llvm::function_ref<InFlightDiagnostic()> errorEmitter) {
-  Type elementType = operandShape.getElementType();
-
-  // We need this to determine the result rank. We could still place bounds on
-  // the result rank if that was something ShapedTypeComponents could express.
-  if (!startIndicesShape.hasRank()) {
-    inferredReturnShapes.push_back(elementType);
-    return success();
-  }
-
-  ArrayRef<int64_t> offsetDims = dimensionNumbers.getOffsetDims();
-  int64_t startIndicesRank = startIndicesShape.getRank();
-  // If index_vector_dim == start_indices.rank, then an implicit trailing 1 is
-  // appended to start_indices shape.
-  if (dimensionNumbers.getIndexVectorDim() == startIndicesRank)
-    ++startIndicesRank;
-  int64_t resultRank = offsetDims.size() + startIndicesRank - 1;
-  // P1.
-  for (int64_t i = 0; i < static_cast<int64_t>(offsetDims.size()); ++i)
-    if (offsetDims[i] < 0 || offsetDims[i] >= resultRank)
-      return errorEmitter() << "offset_dims[" << i << "]: " << offsetDims[i]
-                            << " is out of bounds for "
-                            << "implied result rank " << resultRank;
-
-  auto getStartIndicesDim = [&](int64_t index) {
-    return startIndicesShape.getDimSize(index);
-  };
-
-  SmallVector<int64_t> shape;
-  inferGatherShape<int64_t>(resultRank, getStartIndicesDim, getSliceDim,
-                            dimensionNumbers, shape);
-
-  inferredReturnShapes.emplace_back(shape, elementType);
-  return success();
-}
-
 template <typename Op>
 LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
                                SmallVectorImpl<Value>& reifiedReturnShapes) {
@@ -1100,8 +833,12 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
   auto getSliceDim = [&sliceSizes](int64_t index) -> Value {
     return sliceSizes[index];
   };
-  inferGatherShape<Value>(resultRank, getStartIndicesDim, getSliceDim,
-                          op->getDimensionNumbers(), shapeValues);
+  hlo::reifyGatherDimSizes(resultRank, getStartIndicesDim, getSliceDim,
+                           op->getDimensionNumbers().getOffsetDims(),
+                           op->getDimensionNumbers().getCollapsedSliceDims(),
+                           op->getDimensionNumbers().getStartIndexMap(),
+                           op->getDimensionNumbers().getIndexVectorDim(),
+                           shapeValues);
 
   Value outputShape = builder.create<tensor::FromElementsOp>(
       loc, RankedTensorType::get({resultRank}, shapeElTy), shapeValues);
@@ -1118,42 +855,18 @@ LogicalResult GatherOp::reifyReturnTypeShapes(
   return reifyGatherShape(this, builder, operands, reifiedReturnShapes);
 }
 
-// The following properties are already enforced by the ODS:
-//  P0. Verify the start_indices has element type of integer.
-// Verify the following properties:
-//  Verifications by verifyStaticGather() and verifyGather() inside it.
-//  Verifications by inferGatherReturnTypeComponents.
 LogicalResult GatherOp::inferReturnTypeComponents(
     MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  Location loc = location.value_or(UnknownLoc::get(context));
-  auto errorEmitter = [&loc]() {
-    return mlir::emitError(loc)
-           << "'" << GatherOp::getOperationName() << "' op ";
-  };
   GatherOp::Adaptor adaptor(operands, attributes, regions);
-  if (failed(adaptor.verify(loc))) return failure();
-
-  // We want the ShapeAdaptors, so can't route via the adaptor :-/
-  ShapeAdaptor operandShape = operands.getShape(0);
-  ShapeAdaptor startIndicesShape = operands.getShape(1);
-  GatherDimensionNumbersAttr dimensionNumbers = adaptor.getDimensionNumbers();
-  DenseIntElementsAttr sliceSizesAttr = adaptor.getSliceSizes();
-
-  if (failed(verifyStaticGather(/*operandShape=*/operandShape,
-                                /*startIndicesShape=*/startIndicesShape,
-                                /*sliceSizes=*/sliceSizesAttr, dimensionNumbers,
-                                errorEmitter)))
-    return failure();
-
-  auto getSliceDim = [&sliceSizesAttr](int64_t index) -> int64_t {
-    return sliceSizesAttr.getValues<int64_t>()[index];
-  };
-
-  return inferGatherReturnTypeComponents(operandShape, startIndicesShape,
-                                         getSliceDim, dimensionNumbers,
-                                         inferredReturnShapes, errorEmitter);
+  return hlo::inferGatherOp(
+      location, adaptor.getOperand(), adaptor.getStartIndices(),
+      adaptor.getDimensionNumbers().getOffsetDims(),
+      adaptor.getDimensionNumbers().getCollapsedSliceDims(),
+      adaptor.getDimensionNumbers().getStartIndexMap(),
+      adaptor.getDimensionNumbers().getIndexVectorDim(),
+      adaptor.getSliceSizes(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1170,33 +883,13 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
     MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // This can get called before other op verify methods, so we have to do a
-  // bunch of verification up front. With a better story for ordering and/or
-  // multi-phase op verification, this should hopefully all go away.
-  Location loc = location.value_or(UnknownLoc::get(context));
-  auto errorEmitter = [&loc]() {
-    return mlir::emitError(loc)
-           << "'" << DynamicGatherOp::getOperationName() << "' op ";
-  };
   DynamicGatherOp::Adaptor adaptor(operands, attributes, regions);
-  if (failed(adaptor.verify(loc))) return failure();
-
-  // We want the ShapeAdaptors, so can't route via the adaptor :-/
-  ShapeAdaptor operandShape = operands.getShape(0);
-  ShapeAdaptor startIndicesShape = operands.getShape(1);
-  ShapeAdaptor sliceSizesShape = operands.getShape(2);
-  GatherDimensionNumbersAttr dimensionNumbers = adaptor.getDimensionNumbers();
-
-  if (failed(verifyGather(/*operandShape=*/operandShape,
-                          /*startIndicesShape=*/startIndicesShape,
-                          /*sliceSizesShape=*/sliceSizesShape, dimensionNumbers,
-                          errorEmitter)))
-    return failure();
-
-  auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
-  return inferGatherReturnTypeComponents(operandShape, startIndicesShape,
-                                         getSliceDim, dimensionNumbers,
-                                         inferredReturnShapes, errorEmitter);
+  return hlo::inferDynamicGatherOp(
+      location, adaptor.getOperand(), adaptor.getStartIndices(),
+      adaptor.getSliceSizes(), adaptor.getDimensionNumbers().getOffsetDims(),
+      adaptor.getDimensionNumbers().getCollapsedSliceDims(),
+      adaptor.getDimensionNumbers().getStartIndexMap(),
+      adaptor.getDimensionNumbers().getIndexVectorDim(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1341,57 +1034,9 @@ void AllToAllOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllGatherOp::verify() {
-  if (failed(hlo::verifyReplicaGroups(getLoc(), getReplicaGroups(),
-                                      /*allGroupsMustHaveSameSize=*/true,
-                                      getUseGlobalDeviceIds(),
-                                      /*expectedGroupSize=*/std::nullopt)))
-    return failure();
-
-  auto operandType = getOperand().getType().dyn_cast<RankedTensorType>();
-  auto resultType = getType().dyn_cast<RankedTensorType>();
-  int64_t allGatherDimIndex = getAllGatherDim();
-
-  if (allGatherDimIndex < 0)
-    return emitOpError() << "all_gather_dim cannot be negative";
-
-  if (operandType) {
-    if (allGatherDimIndex >= operandType.getRank())
-      return emitOpError() << "all_gather_dim must be a valid index of operand";
-
-    if (operandType.getDimSize(allGatherDimIndex) == 0)
-      return emitOpError()
-             << "dimension size of operand at 'all_gather_dim' cannot be zero";
-  }
-
-  if (operandType && resultType) {
-    if (resultType.getRank() != operandType.getRank())
-      return emitOpError() << "operand and return must have the same rank";
-
-    for (int64_t i = 0; i < operandType.getRank(); i++) {
-      if (i == allGatherDimIndex || operandType.isDynamicDim(i) ||
-          resultType.isDynamicDim(i))
-        continue;
-
-      if (resultType.getDimSize(i) != operandType.getDimSize(i))
-        return emitOpError() << "operand and result should have the same shape "
-                                "except for the "
-                                "dimension size at 'all_gather_dim'";
-    }
-
-    if (operandType.isDynamicDim(allGatherDimIndex) ||
-        resultType.isDynamicDim(allGatherDimIndex))
-      return success();
-
-    if ((resultType.getDimSize(allGatherDimIndex) %
-         operandType.getDimSize(allGatherDimIndex)) != 0)
-      return emitOpError()
-             << "result gather dimension has size "
-             << resultType.getDimSize(allGatherDimIndex)
-             << ", expected to be a multiple of operand gather dimension size "
-             << operandType.getDimSize(allGatherDimIndex);
-  }
-
-  return success();
+  return hlo::verifyAllGatherOp(getLoc(), getOperand(), getAllGatherDim(),
+                                getReplicaGroups(), getUseGlobalDeviceIds(),
+                                getResult());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1590,11 +1235,11 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ImagOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange operands, DictionaryAttr,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(
-      hlo::createRealType(operands[0].getType().cast<TensorType>()));
-  return success();
+    MLIRContext*, Optional<Location> location, ValueRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
+  ImagOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferImagOp(location, adaptor.getOperand(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1917,26 +1562,6 @@ LogicalResult ReduceWindowOp::verify() {
                                    getPadding(), getBody());
 }
 
-// Get the operation used for reduction applied to `result_index`th result. Its
-// expected to be a binary operation that consumes `result_index`th and
-// `result_index + getInputs().size`th arguments of the body.
-Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
-  auto returnOp = cast<ReturnOp>(getBody().front().getTerminator());
-  Operation* computeOp = returnOp.getResults()[resultIndex].getDefiningOp();
-  if (computeOp->getNumOperands() != 2) return nullptr;
-  auto arg0 = computeOp->getOperand(0).dyn_cast<BlockArgument>();
-  auto arg1 = computeOp->getOperand(1).dyn_cast<BlockArgument>();
-  if (!arg0 || !arg1) return nullptr;
-  int64_t arg0Num = arg0.getArgNumber();
-  int64_t arg1Num = arg1.getArgNumber();
-  int64_t otherArgIndex = resultIndex + getInputs().size();
-  if (arg0Num == resultIndex && arg1Num == otherArgIndex) return computeOp;
-  if (arg0Num == otherArgIndex && arg1Num == resultIndex &&
-      computeOp->hasTrait<mlir::OpTrait::IsCommutative>())
-    return computeOp;
-  return nullptr;
-}
-
 //===----------------------------------------------------------------------===//
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//
@@ -1947,10 +1572,7 @@ Operation* ReduceWindowOp::getReductionOp(int resultIndex) {
 // We intend to verify the following properties
 //  P2. exponent_bits >= 1
 LogicalResult ReducePrecisionOp::verify() {
-  if (getExponentBits() < 1) {
-    return emitOpError() << "exponent_bits must be at least 1.";
-  }
-  return success();
+  return hlo::verifyReducePrecisionOp(getLoc(), getExponentBits());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2354,13 +1976,8 @@ LogicalResult ReturnOp::inferReturnTypes(
 
 // Verify that input state has the same shape as output shape
 LogicalResult RngBitGeneratorOp::verify() {
-  auto initialShape = getInitialState().getType().dyn_cast<RankedTensorType>();
-  auto outputShape = getOutputState().getType().dyn_cast<RankedTensorType>();
-  if (initialShape.getShape() != outputShape.getShape())
-    return emitOpError()
-           << "output state shape must match initial state shape. Got: "
-           << initialShape << " and " << outputShape;
-  return success();
+  return hlo::verifyRngBitGeneratorOp(getLoc(), getInitialState(),
+                                      getOutputState());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2567,49 +2184,9 @@ LogicalResult PadOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicPadOp::verify() {
-  auto inputType = getOperand().getType().dyn_cast<RankedTensorType>();
-  // If operand is unranked, there is very little to verify statically.
-  if (!inputType) return success();
-  int inputRank = inputType.getRank();
-
-  auto padType = getPaddingValue().getType().cast<RankedTensorType>();
-  if (padType.getRank() != 0) {
-    return emitOpError() << "padding value type should be a rank-0";
-  }
-
-  auto paddingLowType = getEdgePaddingLow().getType().cast<RankedTensorType>();
-  if (paddingLowType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_low length("
-                         << paddingLowType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto paddingHighType =
-      getEdgePaddingHigh().getType().cast<RankedTensorType>();
-  if (paddingHighType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_high length("
-                         << paddingHighType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto interiorPaddingType =
-      getInteriorPadding().getType().cast<RankedTensorType>();
-  if (interiorPaddingType.getNumElements() != inputRank) {
-    return emitOpError() << "edge_padding_interior length("
-                         << interiorPaddingType.getNumElements()
-                         << ") must match operand rank(" << inputRank << ").";
-  }
-
-  auto outputType = getResult().getType().dyn_cast<RankedTensorType>();
-  // If result is unranked, there is very little to verify statically.
-  if (!outputType) return success();
-  int outputRank = outputType.getRank();
-  if (inputRank != outputRank) {
-    return emitOpError() << "operand rank(" << inputRank
-                         << ") must match result(" << outputRank << ").";
-  }
-
-  return success();
+  return hlo::verifyDynamicPadOp(getLoc(), getOperand(), getPaddingValue(),
+                                 getEdgePaddingLow(), getEdgePaddingHigh(),
+                                 getInteriorPadding(), getResult());
 }
 
 LogicalResult DynamicPadOp::reifyReturnTypeShapes(
@@ -2680,23 +2257,7 @@ LogicalResult DynamicPadOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReshapeOp::verify() {
-  // If the operand type is dynamically shaped there is nothing to verify.
-  auto operandTy = getOperand().getType().dyn_cast<RankedTensorType>();
-  if (!operandTy || !operandTy.hasStaticShape()) return success();
-
-  // If the operand type is statically shaped (not required) the number of
-  // elements must match that of the result type.
-  auto resultTy = getType().cast<RankedTensorType>();
-  assert(resultTy && resultTy.hasStaticShape() &&
-         "result type must be statically shaped");
-  int64_t numResultElements = resultTy.getNumElements();
-  int64_t numOperandElements = operandTy.getNumElements();
-  if (numResultElements != numOperandElements)
-    return emitOpError() << "number of output elements (" << numResultElements
-                         << ") doesn't match expected number of elements ("
-                         << numOperandElements << ")";
-
-  return success();
+  return hlo::verifyReshapeOp(getLoc(), getOperand(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2704,11 +2265,9 @@ LogicalResult ReshapeOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReplicaIdOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location>, ValueRange operands,
+    MLIRContext* context, Optional<Location> location, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  inferredReturnTypes.push_back(RankedTensorType::get(
-      /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
-  return success();
+  return hlo::inferReplicaIdOp(context, location, inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2893,17 +2452,12 @@ void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
 }
 
 LogicalResult CompareOp::inferReturnTypeComponents(
-    mlir::MLIRContext* ctx, llvm::Optional<mlir::Location>,
-    ValueShapeRange operands, mlir::DictionaryAttr, mlir::RegionRange,
-    llvm::SmallVectorImpl<mlir::ShapedTypeComponents>& inferredReturnTypes) {
-  ShapedTypeComponents& components =
-      inferredReturnTypes.emplace_back(IntegerType::get(ctx, /*width=*/1));
-  auto argTy = operands.front().getType().cast<TensorType>();
-  if (argTy.hasRank()) {
-    components =
-        ShapedTypeComponents(argTy.getShape(), components.getElementType());
-  }
-  return success();
+    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  CompareOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
+                             inferredReturnShapes);
 }
 
 LogicalResult CompareOp::reifyReturnTypeShapes(
@@ -2926,113 +2480,11 @@ LogicalResult SelectAndScatterOp::inferReturnTypes(
                                       inferredReturnTypes);
 }
 
-namespace {
-TensorType inferSelectAndScatterOpWindowReturnType(
-    TensorType operandType, const ArrayRef<hlo::WindowDimension> window) {
-  if (!operandType.hasRank())
-    return UnrankedTensorType::get(operandType.getElementType());
-
-  return RankedTensorType::get(
-      hlo::inferWindowOutputShape(operandType.getShape(), window),
-      operandType.getElementType());
-}
-}  // namespace
-
-//  We intend to verify the following properties:
-//   P1. Check if the select function has a proper shape of (T,T) -> PRED, where
-//        T is a 0-D tensor with element-type same as 'operand' element-type.
-//   P2. Verify scatter-computation type.
-//   P3. size-of(window_dimension) == rank-of(input),
-//         where input is an element of 'inputs'.
-//   P4. Verify and collect the window attributes.
-//   P5. Check if the result type of window operation matches the source type.
 LogicalResult SelectAndScatterOp::verify() {
-  auto operandType = getOperand().getType().cast<TensorType>();
-  auto initValueType = getInitValue().getType().cast<TensorType>();
-  auto sourceType = getSource().getType().cast<TensorType>();
-
-  // P1.
-  Block& selectBlock = getSelect().front();
-
-  if (selectBlock.getArguments().size() != 2)
-    return emitOpError()
-           << "expects the select-region to take 2 parameters, but takes "
-           << selectBlock.getArguments().size();
-
-  Type expectedSelectArgType =
-      RankedTensorType::get({}, operandType.getElementType());
-  for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
-    if (!hlo::compatibleShapeAndElementType(expectedSelectArgType,
-                                            selectArgIt.value().getType(),
-                                            /*ignoreFpPrecision=*/true))
-      return emitOpError()
-             << "expects the type of select-region's parameter at index "
-             << selectArgIt.index() << " to be " << expectedSelectArgType
-             << ", but got " << selectArgIt.value().getType();
-
-  auto selectResult = selectBlock.getTerminator()->getOperands();
-  if (selectResult.size() != 1)
-    return emitOpError()
-           << "expects select-region to return single value, but got: "
-           << selectResult.size();
-
-  auto selectResultType = selectResult[0].getType().dyn_cast<TensorType>();
-  if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
-      (selectResultType.hasRank() &&
-       selectResultType.cast<RankedTensorType>().getRank() != 0))
-    return emitOpError() << "expects the return-type of select-region to be "
-                            "tensor<i1>, but got: "
-                         << selectResult[0].getType();
-
-  // P2.
-  Block& scatterBlock = getScatter().front();
-  if (failed(hlo::verifyReducerShape(
-          this->getLoc(), scatterBlock,
-          {RankedTensorType::get({}, sourceType.getElementType())},
-          {initValueType},
-          /*numInputs=*/1, /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/false)))
-    return failure();
-
-  // P3.
-  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
-  auto windowDimsOrErr = hlo::convert1DAttribute(getWindowDimensions(),
-                                                 getLoc(), "window_dimensions");
-  if (failed(windowDimsOrErr)) return failure();
-  if (operandType.hasRank()) {
-    if (operandType.getRank() !=
-        static_cast<int64_t>((*windowDimsOrErr).size()))
-      return emitOpError()
-             << "expects window-dimensions size == operand rank, but got "
-                "window-dimensions size: "
-             << (*windowDimsOrErr).size()
-             << " and operand-type: " << operandType
-             << " with rank = " << operandType.getRank() << ".";
-  }
-
-  // P4.
-  auto paddingOrErr = hlo::convertPaddingAttribute(getPadding(), getLoc());
-  if (failed(paddingOrErr)) return failure();
-
-  // TODO: add missing tests of hlo::convert1DAttribute( for SelectAndScatterOp.
-  auto windowStridesOrErr =
-      hlo::convert1DAttribute(getWindowStrides(), getLoc(), "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  auto windowOrErr = hlo::verifyWindowAttributesAndInferWindowDimensions(
-      *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
-      /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, getLoc());
-  if (failed(windowOrErr)) return failure();
-
-  // P5.
-  auto windowResultType =
-      inferSelectAndScatterOpWindowReturnType(operandType, *windowOrErr);
-
-  if (!hlo::compatibleShapeAndElementType(windowResultType, sourceType,
-                                          /*ignoreFpPrecision=*/true))
-    return emitOpError() << "expects source-type to be " << windowResultType
-                         << ", but got" << sourceType;
-
-  return success();
+  return hlo::verifySelectAndScatterOp(getLoc(), getOperand(), getSource(),
+                                       getInitValue(), getWindowDimensions(),
+                                       getWindowStrides(), getPadding(),
+                                       getSelect(), getScatter());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3048,293 +2500,13 @@ LogicalResult ScatterOp::inferReturnTypes(
                              inferredReturnTypes);
 }
 
-/*
- * We intend to verify the following properties:
- * P1. The 'update_window_dims' must be valid indices of 'updates' tensor.
- * P2. The 'inserted_window_dims' must be valid indices of 'operand' tensor.
- * P3. Check if the rank-of('operand') == size-of('update_window_dims') +
- *     size-of('inserted_window_dims')
- * P4. size-of('scatter_dims_to_operand_dims') =
- *         'scatter_indices'['index_vector_dim'] &
- *     'scatter_dims_to_operand_dims' must be valid indices of 'operand' tensor.
- */
-LogicalResult validateScatterDimensionNumbers(
-    ShapedType operandType, ArrayRef<int64_t> scatterIndicesShape,
-    ShapedType updateType, bool operandTypeRanked,
-    bool scatterIndicesTypeRanked, bool updatesTypeRanked,
-    ScatterDimensionNumbersAttr dimNumbers, Location loc) {
-  // P1.
-  auto updateWindowDims = to_vector(dimNumbers.getUpdateWindowDims());
-  if (!llvm::is_sorted(updateWindowDims))
-    return mlir::emitError(loc)
-           << "Expects update_window_dims to be sorted; got: ["
-           << updateWindowDims << "].";
-
-  if (hasDuplicates(updateWindowDims))
-    return mlir::emitError(loc)
-           << "Expects update_window_dims to not repeat; got: ["
-           << updateWindowDims << "].";
-
-  if (updatesTypeRanked) {
-    for (int64_t windowDim : updateWindowDims) {
-      if (windowDim < 0 || windowDim >= updateType.getRank()) {
-        return mlir::emitError(loc)
-               << "Expects each element of update_window_dims to be in range "
-                  "[0, "
-                  "rank-of('updates') i.e. [0, "
-               << updateType.getRank() << "). got: " << windowDim << ".";
-      }
-    }
-  }
-
-  // P2.
-  auto insertedWindowDims = to_vector(dimNumbers.getInsertedWindowDims());
-  if (!llvm::is_sorted(insertedWindowDims))
-    return mlir::emitError(loc)
-           << "Expects inserted_window_dims to be sorted; got: ["
-           << insertedWindowDims << "].";
-
-  if (hasDuplicates(insertedWindowDims))
-    return mlir::emitError(loc)
-           << "Expects inserted_window_dims to not repeat; got: ["
-           << insertedWindowDims << "].";
-
-  if (operandTypeRanked) {
-    for (int64_t insertedDim : insertedWindowDims) {
-      if (insertedDim < 0 || insertedDim >= operandType.getRank()) {
-        return mlir::emitError(loc)
-               << "Expects each element of inserted_window_dims to be in range "
-                  "[0, rank-of('operand') i.e. [0, "
-               << operandType.getRank() << "). got: " << insertedDim << ".";
-      }
-    }
-  }
-
-  // P3.
-  if (operandTypeRanked) {
-    auto windowSize = updateWindowDims.size() + insertedWindowDims.size();
-    if (operandType.getRank() != static_cast<int64_t>(windowSize))
-      return mlir::emitError(loc)
-             << "Expects rank-of operand to match "
-                "size-of('update_window_dims')  + "
-                "size-of('inserted_window_dims') i.e. "
-             << windowSize << " but got " << operandType.getRank() << ".";
-  }
-
-  // P4.
-  auto scatterDimsToOperandDims =
-      to_vector(dimNumbers.getScatterDimsToOperandDims());
-  auto indexVectorDim = dimNumbers.getIndexVectorDim();
-  if (scatterIndicesTypeRanked) {
-    if (!hlo::isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
-        static_cast<int64_t>(scatterDimsToOperandDims.size()) !=
-            scatterIndicesShape[dimNumbers.getIndexVectorDim()])
-      return mlir::emitError(loc)
-             << "Scatter op has " << scatterDimsToOperandDims.size()
-             << " elements in scatter_dims_to_operand_dims and the bound of "
-                "dimension index_vector_dim="
-             << dimNumbers.getIndexVectorDim() << " of scatter_indices is "
-             << scatterIndicesShape[dimNumbers.getIndexVectorDim()]
-             << ". These two numbers must be equal.";
-  }
-
-  if (operandTypeRanked) {
-    for (int64_t i = 0;
-         i < static_cast<int64_t>(scatterDimsToOperandDims.size()); ++i) {
-      int64_t scatterDimToOperandDim = scatterDimsToOperandDims[i];
-      if (scatterDimToOperandDim < 0 ||
-          scatterDimToOperandDim >= operandType.getRank())
-        return mlir::emitError(loc)
-               << "Invalid scatter_dims_to_operand_dims mapping; domain is [0, "
-               << operandType.getRank() << "), got: " << i << "->"
-               << scatterDimToOperandDim << ".";
-    }
-  }
-
-  if (hasDuplicates(scatterDimsToOperandDims))
-    return mlir::emitError(loc)
-           << "Expects scatter_dims_to_operand_dims to not repeat; got: ["
-           << scatterDimsToOperandDims << "].";
-
-  return success();
-}
-/*
- * We intend to verify the following properties:
- *  P0. scatter_indices argument must be an integral tensor. Enforced by ODS.
- *  P1. Scatter index leaf dimension must be within [0, rank(scatter_indices)"
- *      " + 1).
- *  P2. Verify reducer shape.
- *  P3. rank-of('updates[i]') == size-of('update_window_dims') +
- *      rank-of('scatter_indices') - 1, where 'scatter_indices' is expanded by a
- *      trailing 1 dimension if 'index_vector_dim' == rank-of('scatter_indices')
- *      for all values of `i`.
- *  P4. Validate the scatter-dimensions-numbers.
- *  P5. Valide the bounds of each of the 'updates' w.r.t the operands.
- *  P6. Validate the bounds of each of the 'updates' w.r.t the
- * 'scatter_indices'.
- */
 LogicalResult ScatterOp::verify() {
-  // Get the first operand and update, since variadic Scatter is not yet
-  // implemented
-  auto numOperands = getInputs().size();
-  auto scatterIndicesType =
-      getScatterIndices().getType().dyn_cast<TensorType>();
-
-  SmallVector<TensorType, 1> operandTypes =
-      llvm::to_vector(llvm::map_range(getInputs().getTypes(), [](Type type) {
-        return type.cast<TensorType>();
-      }));
-  SmallVector<TensorType, 1> updatesTypes =
-      llvm::to_vector(llvm::map_range(getUpdates().getTypes(), [](Type type) {
-        return type.cast<TensorType>();
-      }));
-  bool allOperandTypesRanked =
-      llvm::all_of(getInputs().getTypes(),
-                   [](Type type) { return type.isa<RankedTensorType>(); });
-  bool scatterIndicesTypeRanked = scatterIndicesType.isa<RankedTensorType>();
-
-  // P1.
-  int64_t indexVectorDim = getScatterDimensionNumbers().getIndexVectorDim();
-  if (scatterIndicesTypeRanked) {
-    if (indexVectorDim > scatterIndicesType.getRank() || indexVectorDim < 0)
-      return emitOpError()
-             << "expects scatter index leaf dimension to be within [0, "
-                "rank(scatter_indices) + 1."
-                " rank(scatter_indices) is "
-             << scatterIndicesType.getRank()
-             << " and scatter index leaf dimension is " << indexVectorDim
-             << ".";
-  }
-
-  // P2.
-  Block& block = getUpdateComputation().front();
-  SmallVector<TensorType> inputTypes, initValueTypes;
-  for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
-    inputTypes.push_back(operandTypes[i]);
-    initValueTypes.push_back(
-        RankedTensorType::get({}, updatesTypes[i].getElementType()));
-  }
-  if (failed(hlo::verifyReducerShape(
-          this->getLoc(), block, inputTypes, initValueTypes, numOperands,
-          /*allowedDimensions=*/{},
-          /*allInputsUnranked=*/!allOperandTypesRanked)))
-    return failure();
-
-  // P3.
-  auto updateWindowDims = getScatterDimensionNumbers().getUpdateWindowDims();
-  SmallVector<int64_t> expandedScatterIndicesShape;
-  if (scatterIndicesTypeRanked) {
-    expandedScatterIndicesShape =
-        llvm::to_vector(scatterIndicesType.getShape());
-    if (static_cast<int64_t>(expandedScatterIndicesShape.size()) ==
-        indexVectorDim)
-      expandedScatterIndicesShape.push_back(1);
-  }
-
-  for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
-    if (scatterIndicesTypeRanked && updatesTypes[i].isa<RankedTensorType>()) {
-      int64_t expectedUpdatesRank =
-          expandedScatterIndicesShape.size() - 1 + updateWindowDims.size();
-      if (updatesTypes[i].getRank() != expectedUpdatesRank)
-        return emitOpError()
-               << "expects updates tensor must be of rank "
-               << expectedUpdatesRank
-               << " ( == rank-of('scatter_indices') - 1 + "
-                  "size-of('update_window_dims'), where 'scatter_indices' is "
-                  "expanded by a trailing 1 dimension if 'index_vector_dim' == "
-                  "rank-of('scatter_indices')), but got "
-               << updatesTypes[i].getRank() << ".";
-    }
-  }
-
-  // P4.
-  for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
-    if (failed(validateScatterDimensionNumbers(
-            operandTypes[i], expandedScatterIndicesShape, updatesTypes[i],
-            operandTypes[i].isa<RankedTensorType>(), scatterIndicesTypeRanked,
-            updatesTypes[i].isa<RankedTensorType>(),
-            getScatterDimensionNumbers(), getLoc())))
-      return failure();
-  }
-
-  // P5.
-  for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
-    if (updatesTypes[i].isa<RankedTensorType>()) {
-      auto updatesShape = updatesTypes[i].getShape();
-      if (operandTypes[i].isa<RankedTensorType>()) {
-        auto operandShape = operandTypes[i].getShape();
-        auto insertedWindowDims =
-            getScatterDimensionNumbers().getInsertedWindowDims();
-
-        int64_t insertedDimsSeen = 0;
-        SmallVector<int64_t> maxUpdateSliceSizes;
-        const auto dimensionsSize = operandTypes[i].getRank();
-        maxUpdateSliceSizes.reserve(dimensionsSize);
-        for (int i = 0; i < dimensionsSize; ++i) {
-          if (insertedDimsSeen <
-                  static_cast<int64_t>(insertedWindowDims.size()) &&
-              insertedWindowDims[insertedDimsSeen] == i) {
-            ++insertedDimsSeen;
-          } else {
-            maxUpdateSliceSizes.push_back(operandShape[i]);
-          }
-        }
-
-        for (int64_t i = 0; i < static_cast<int64_t>(updateWindowDims.size());
-             ++i) {
-          auto updateWindowDim = updateWindowDims[i];
-
-          if (hlo::isDynamicDimSize(updatesShape[updateWindowDim]) ||
-              hlo::isDynamicDimSize(maxUpdateSliceSizes[i]))
-            continue;
-
-          if (updatesShape[updateWindowDim] > maxUpdateSliceSizes[i]) {
-            return emitOpError()
-                   << "expects bounds of the window dimensions of "
-                      "updates to not exceed the "
-                      "bounds of the corresponding dimensions of "
-                      "operand. For dimension "
-                   << updateWindowDim << ", updates bound is "
-                   << updatesShape[updateWindowDim] << ", operand bound is "
-                   << maxUpdateSliceSizes[i] << ".";
-          }
-        }
-      }
-
-      // P6.
-      if (scatterIndicesTypeRanked) {
-        int64_t scatterDimsSeen = 0;
-        for (int64_t i = 0; i < static_cast<int64_t>(updatesShape.size());
-             ++i) {
-          bool isUpdateWindowDim = std::binary_search(
-              updateWindowDims.begin(), updateWindowDims.end(), i);
-
-          if (isUpdateWindowDim) continue;
-          if (scatterDimsSeen == indexVectorDim) ++scatterDimsSeen;
-
-          if (!hlo::isDynamicDimSize(updatesShape[i]) &&
-              !hlo::isDynamicDimSize(
-                  expandedScatterIndicesShape[scatterDimsSeen]) &&
-              (updatesShape[i] !=
-               expandedScatterIndicesShape[scatterDimsSeen])) {
-            return emitOpError()
-                   << "expects bounds of the scatter dimensions of "
-                      "updates to be same as the "
-                      "bounds of the corresponding dimensions of "
-                      "scatter indices. For "
-                      "scatter dimension "
-                   << i << ", updates bound is " << updatesShape[i]
-                   << " , scatter_indices "
-                      "bound is "
-                   << expandedScatterIndicesShape[scatterDimsSeen] << ".";
-          }
-          ++scatterDimsSeen;
-        }
-      }
-    }
-  }
-
-  return success();
+  return hlo::verifyScatterOp(
+      getLoc(), getInputs(), getScatterIndices(), getUpdates(),
+      getScatterDimensionNumbers().getUpdateWindowDims(),
+      getScatterDimensionNumbers().getInsertedWindowDims(),
+      getScatterDimensionNumbers().getScatterDimsToOperandDims(),
+      getScatterDimensionNumbers().getIndexVectorDim(), getUpdateComputation());
 }
 
 //===----------------------------------------------------------------------===//
@@ -3420,16 +2592,12 @@ ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
 }
 
 LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> /*location*/, ValueShapeRange operands,
+    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   UniformDequantizeOp::Adaptor adaptor(operands, attributes, regions);
-  auto operandType = (*operands.begin()).getType().cast<ShapedType>();
-  // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
-  auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
-  auto shape = operandType.dyn_cast<ShapedType>().getShape();
-  inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
-  return success();
+  return hlo::inferUniformDequantizeOp(location, adaptor.getOperand(),
+                                       inferredReturnShapes);
 }
 
 }  // namespace stablehlo
