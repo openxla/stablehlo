@@ -32,12 +32,13 @@ namespace hlo {
 // Utilities for shape functions
 //===----------------------------------------------------------------------===//
 
-void reifyGatherDimSizes(
-    int64_t resultRank, llvm::function_ref<Value(int64_t)> getStartIndicesDim,
-    llvm::function_ref<Value(int64_t)> getSliceDim,
-    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-    SmallVectorImpl<Value>& shape);
+void reifyGatherDimSizes(int64_t resultRank,
+                         llvm::function_ref<Value(int64_t)> getStartIndicesDim,
+                         llvm::function_ref<Value(int64_t)> getSliceDim,
+                         ArrayRef<int64_t> offsetDims,
+                         ArrayRef<int64_t> collapsedSliceDims,
+                         ArrayRef<int64_t> startIndexMap,
+                         int64_t indexVectorDim, SmallVectorImpl<Value>& shape);
 
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
