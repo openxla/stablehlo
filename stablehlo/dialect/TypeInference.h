@@ -160,9 +160,10 @@ LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferDynamicGatherOp(
-    Optional<Location> location, ValueShapeRange operands,
-    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    Optional<Location> location, Value operand, Value startIndices,
+    Value sliceSizes, ArrayRef<int64_t> offsetDims,
+    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> startIndexMap,
+    int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicSliceOp(
@@ -176,7 +177,7 @@ LogicalResult inferDynamicUpdateSliceOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGatherOp(
-    Optional<Location> location, ValueShapeRange operands,
+    Optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     DenseIntElementsAttr sliceSizes,

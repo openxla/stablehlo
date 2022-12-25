@@ -885,7 +885,9 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
   DynamicGatherOp::Adaptor adaptor(operands, attributes, regions);
 
   return hlo::inferDynamicGatherOp(
-      location, operands, adaptor.getDimensionNumbers().getOffsetDims(),
+      location, adaptor.getOperand(), adaptor.getOperand(),
+      adaptor.getStartIndices(), adaptor.getSliceSizes(),
+      adaptor.getDimensionNumbers().getOffsetDims(),
       adaptor.getDimensionNumbers().getCollapsedSliceDims(),
       adaptor.getDimensionNumbers().getStartIndexMap(),
       adaptor.getDimensionNumbers().getIndexVectorDim(), inferredReturnShapes);

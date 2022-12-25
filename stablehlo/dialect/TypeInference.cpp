@@ -1591,14 +1591,14 @@ LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
 }
 
 LogicalResult inferDynamicGatherOp(
-    Optional<Location> location, ValueShapeRange operands,
-    ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
-    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+    Optional<Location> location, Value operand, Value startIndices,
+    Value sliceSizes, ArrayRef<int64_t> offsetDims,
+    ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> startIndexMap,
+    int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // We want the ShapeAdaptors, so can't route via the adaptor :-/
-  ShapeAdaptor operandShape = operands.getShape(0);
-  ShapeAdaptor startIndicesShape = operands.getShape(1);
-  ShapeAdaptor sliceSizesShape = operands.getShape(2);
+  ShapeAdaptor operandShape(operand.getType());
+  ShapeAdaptor startIndicesShape(startIndices.getType());
+  ShapeAdaptor sliceSizesShape(sliceSizes.getType());
 
   if (failed(verifyGather(location, /*operandShape=*/operandShape,
                           /*startIndicesShape=*/startIndicesShape,
@@ -1723,14 +1723,13 @@ LogicalResult inferDynamicUpdateSliceOp(
 //  P3. Verify 0 <= slice_sizes[i] < shape(operand)[i], for every i.
 //  Verifications by inferGatherReturnTypeComponents().
 LogicalResult inferGatherOp(
-    Optional<Location> location, ValueShapeRange operands,
+    Optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // We want the ShapeAdaptors, so can't route via the adaptor :-/
-  ShapeAdaptor operandShape = operands.getShape(0);
-  ShapeAdaptor startIndicesShape = operands.getShape(1);
+  ShapeAdaptor operandShape(operand.getType());
+  ShapeAdaptor startIndicesShape(startIndices.gettype());
 
   // P1.
   // For some reason the getType call is necessary here
