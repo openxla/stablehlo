@@ -861,7 +861,8 @@ LogicalResult GatherOp::inferReturnTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   GatherOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferGatherOp(
-      location, operands, adaptor.getDimensionNumbers().getOffsetDims(),
+      location, adaptor.getOperand(), adaptor.getStartIndices(),
+      adaptor.getDimensionNumbers().getOffsetDims(),
       adaptor.getDimensionNumbers().getCollapsedSliceDims(),
       adaptor.getDimensionNumbers().getStartIndexMap(),
       adaptor.getDimensionNumbers().getIndexVectorDim(),
@@ -883,11 +884,9 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicGatherOp::Adaptor adaptor(operands, attributes, regions);
-
   return hlo::inferDynamicGatherOp(
-      location, adaptor.getOperand(), adaptor.getOperand(),
-      adaptor.getStartIndices(), adaptor.getSliceSizes(),
-      adaptor.getDimensionNumbers().getOffsetDims(),
+      location, adaptor.getOperand(), adaptor.getStartIndices(),
+      adaptor.getSliceSizes(), adaptor.getDimensionNumbers().getOffsetDims(),
       adaptor.getDimensionNumbers().getCollapsedSliceDims(),
       adaptor.getDimensionNumbers().getStartIndexMap(),
       adaptor.getDimensionNumbers().getIndexVectorDim(), inferredReturnShapes);

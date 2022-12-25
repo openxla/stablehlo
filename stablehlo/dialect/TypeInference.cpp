@@ -1729,7 +1729,7 @@ LogicalResult inferGatherOp(
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapeAdaptor operandShape(operand.getType());
-  ShapeAdaptor startIndicesShape(startIndices.gettype());
+  ShapeAdaptor startIndicesShape(startIndices.getType());
 
   // P1.
   // For some reason the getType call is necessary here
