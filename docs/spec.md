@@ -4,27 +4,27 @@
 
 Following are the supported element types in StableHLO:
 
-* **Integer types**
-  * Signed integer with two’s complement representation. Referred to in the
+  * **Integer types**
+    * Signed integer with two’s complement representation. Referred to in the
     document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}.
-  * Unsigned integer referred to in the document as `ui<N>`, where the
+    * Unsigned integer referred to in the document as `ui<N>`, where the
     bit-width N ∊ {4, 8, 16, 32, 64}.
-* **Boolean type** referred to in the document as `i1`. Exact
+  * **Boolean type** referred to in the document as `i1`. Exact
   representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
   is implementation-defined.
-* **Floating-point types**
-  * Single precision `f32`, double precision `f64` and half precision `f16`
+  * **Floating-point types**
+    * Single precision `f32`, double precision `f64` and half precision `f16`
     floating-points complying with [IEEE 754-2019
     format](https://ieeexplore.ieee.org/document/8766229).
-  * Bfloat16 `bf16` floating-point complying with [BFloat16 format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
+    * Bfloat16 `bf16` floating-point complying with [BFloat16 format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
     Provides the same number of exponent bits as `f32`, so that it matches its
     dynamic range, but with greatly reduced precision. This also ensures
     identical behavior for underflows, overflows, and NaNs. However, `bf16`
     handles denormals differently from `f32`: it flushes them to zero.
-  * FP8 `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
+    * FP8 `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
     `E4M3` and `E5M2` types from the whitepaper
     [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
-* **Complex types** represent a pair of floating-point types. Supported ones
+  * **Complex types** represent a pair of floating-point types. Supported ones
     are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
     (represents a pair of `f64`). Exact representation of complex types
     (e.g. whether the real part or the imaginary part comes first in memory)
@@ -34,14 +34,14 @@ Following are the supported element types in StableHLO:
 immutable n-dimensional arrays and are referred to in the document as
 `tensor<SxE>` where:
 
-* **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is a 1-dimensional array
+  * **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is a 1-dimensional array
   of **dimension sizes** `di`, in the increasing order of the corresponding
   **dimensions** (which are also called **axes**) 0, 1, ..., R-1.
   The size `R` of this array is called **rank**. Dimension sizes have type
   `si64` and are non-negative (dimension sizes equal to zero are allowed,
   and their meaning is described below). Ranks equal to zero are also allowed,
   and their meaning is also described below.
-* **Element type** `E` is any one of the supported element types mentioned
+  * **Element type** `E` is any one of the supported element types mentioned
   above.
 
 For example, `tensor<2x3xf32>` is a tensor type with shape `2x3` and element
@@ -58,11 +58,11 @@ At the moment, StableHLO only supports dense tensors, so each tensor has
 `1*(d0)*(d1)*...*(dR-1)` elements whose indices are drawn from an
 **index space** which is a Cartesian product of its dimensions. For example:
 
-* `tensor<2x3xf32>` has 6 elements whose indices are
+  * `tensor<2x3xf32>` has 6 elements whose indices are
     `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
-* Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
+  * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
     allowed and are useful to model scalars.
-* Tensors with dimensions of size zero, e.g. `tensor<2x0xf32>`, have
+  * Tensors with dimensions of size zero, e.g. `tensor<2x0xf32>`, have
     0 elements. Such tensors are allowed and are useful in rare cases, e.g.
     to model empty slices.
 
@@ -85,9 +85,9 @@ side-effecting operations using data dependencies.
 using: 1) the full form: `tuple<T0, ... TN-1>`, 2) the short form: `tuple`,
 where:
 
-* `N` is the tuple size.
-* `Ti` are types of tuple elements.
-* Element types are one of `tensor`, `token` or `tuple`.
+  * `N` is the tuple size.
+  * `Ti` are types of tuple elements.
+  * Element types are one of `tensor`, `token` or `tuple`.
 
 Tuple types are inherited from HLO where they are used to model variadic inputs
 and outputs. In StableHLO, variadic inputs and outputs are supported natively,
@@ -98,9 +98,9 @@ types are used to model HLO-compatible ABI of custom calls.
 the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
 `function`, where:
 
-* `Ii` are types of inputs of the corresponding function.
-* `Oj` are types of outputs of the corresponding function.
-* Input types and output types are one of `tensor`, `token` or `tuple`.
+  * `Ii` are types of inputs of the corresponding function.
+  * `Oj` are types of outputs of the corresponding function.
+  * Input types and output types are one of `tensor`, `token` or `tuple`.
 
 Function types are not first class, i.e. StableHLO doesn't support values of
 function types. Some StableHLO ops can take functions as inputs, but they are
@@ -211,8 +211,8 @@ introduced by them, is TBD.
 
 Every StableHLO process has access to two streaming interfaces:
 
-* **Infeed** that can be read from.
-* **Outfeed** that can be written to.
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
 
 Unlike channels, which are used to communicate between processes and therefore
 have processes at both of their ends, infeeds and outfeeds have their other
@@ -355,122 +355,121 @@ implementation-defined.
 The section describes the constants supported in StableHLO along with their
 syntax.
 
-* **Integer constants** use decimal notation, e.g. `123`, or hexadecimal
+  * **Integer constants** use decimal notation, e.g. `123`, or hexadecimal
   notation, e.g. `ff`. Negative numbers can be used with signed integer types,
   but not with unsigned integer types.
-* **Boolean constants** `true` and `false` are both valid constants of the
+  * **Boolean constants** `true` and `false` are both valid constants of the
   `pred` type.
-* **Floating-point constants** use decimal notation, e.g. `123.421`,
+  * **Floating-point constants** use decimal notation, e.g. `123.421`,
   exponential notation, e.g. `1.23421e+2`, or a more precise hexadecimal
   notation, e.g. `0x42f6d78d`.
-* **Complex constants** Complex constants are represented as a pair of
+  * **Complex constants** Complex constants are represented as a pair of
   floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56.78)`,
   where the first constant is the real part, and the second constant is the
   imaginary part.
-* **Tensor constants** use NumPy notation. For example,
+  * **Tensor constants** use NumPy notation. For example,
   `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
   following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
   `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
-* **String constants** String constants are represented as a sequence of
+  * **String constants** String constants are represented as a sequence of
   bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
   encoding) or "\18\A3" (in hex encoding).
 
 ## Index of Ops
-
-* [abs](#stablehloabs)
-* [add](#stablehloadd)
-* [after_all](#stablehloafter_all)
-* [all_gather](#stablehloall_gather)
-* [all_reduce](#stablehloall_reduce)
-* [all_to_all](#stablehloall_to_all)
-* [and](#stablehloand)
-* [atan2](#stablehloatan2)
-* [batch_norm_grad](#stablehlobatch_norm_grad)
-* [batch_norm_inference](#stablehlobatch_norm_inference)
-* [batch_norm_training](#stablehlobatch_norm_training)
-* [bitcast_convert](#stablehlobitcast_convert)
-* [broadcast_in_dim](#stablehlobroadcast_in_dim)
-* [case](#stablehlocase)
-* [cbrt](#stablehlocbrt)
-* [ceil](#stablehloceil)
-* [cholesky](#stablehlocholesky)
-* [clamp](#stablehloclamp)
-* [collective_permute](#stablehlocollective_permute)
-* [compare](#stablehlocompare)
-* [complex](#stablehlocomplex)
-* [concatenate](#stablehloconcatenate)
-* [constant](#stablehloconstant)
-* [convert](#stablehloconvert)
-* [convolution](#stablehloconvolution)
-* [cosine](#stablehlocosine)
-* [count_leading_zeros](#stablehlocount_leading_zeros)
-* [custom_call](#stablehlocustom_call)
-* [divide](#stablehlodivide)
-* [dot_general](#stablehlodot_general)
-* [dynamic_slice](#stablehlodynamic_slice)
-* [dynamic_update_slice](#stablehlodynamic_update_slice)
-* [exponential](#stablehloexponential)
-* [exponential_minus_one](#stablehloexponential_minus_one)
-* [fft](#stablehlofft)
-* [floor](#stablehlofloor)
-* [gather](#stablehlogather)
-* [get_dimension_size](#stablehloget_dimension_size)
-* [get_tuple_element](#stablehloget_tuple_element)
-* [if](#stablehloif)
-* [imag](#stablehloimag)
-* [infeed](#stablehloinfeed)
-* [iota](#stablehloiota)
-* [is_finite](#stablehlois_finite)
-* [log](#stablehlolog)
-* [log_plus_one](#stablehlolog_plus_one)
-* [logistic](#stablehlologistic)
-* [map](#stablehlomap)
-* [maximum](#stablehlomaximum)
-* [minimum](#stablehlominimum)
-* [multiply](#stablehlomultiply)
-* [negate](#stablehlonegate)
-* [not](#stablehlonot)
-* [optimization_barrier](#stablehlooptimization_barrier)
-* [or](#stablehloor)
-* [outfeed](#stablehlooutfeed)
-* [pad](#stablehlopad)
-* [partition_id](#stablehlopartition_id)
-* [popcnt](#stablehlopopcnt)
-* [power](#stablehlopower)
-* [real](#stablehloreal)
-* [recv](#stablehlorecv)
-* [reduce](#stablehloreduce)
-* [reduce_precision](#stablehloreduce_precision)
-* [reduce_scatter](#stablehloreduce_scatter)
-* [reduce_window](#stablehloreduce_window)
-* [remainder](#stablehloremainder)
-* [replica_id](#stablehloreplica_id)
-* [reshape](#stablehloreshape)
-* [reverse](#stablehloreverse)
-* [rng](#stablehlorng)
-* [rng_bit_generator](#stablehlorng_bit_generator)
-* [round_nearest_afz](#stablehloround_nearest_afz)
-* [round_nearest_even](#stablehloround_nearest_even)
-* [rsqrt](#stablehlorsqrt)
-* [scatter](#stablehloscatter)
-* [select](#stablehloselect)
-* [select_and_scatter](#stablehloselect_and_scatter)
-* [send](#stablehlosend)
-* [shift_left](#stablehloshift_left)
-* [shift_right_arithmetic](#stablehloshift_right_arithmetic)
-* [shift_right_logical](#stablehloshift_right_logical)
-* [sign](#stablehlosign)
-* [sine](#stablehlosine)
-* [slice](#stablehloslice)
-* [sort](#stablehlosort)
-* [sqrt](#stablehlosqrt)
-* [subtract](#stablehlosubtract)
-* [tanh](#stablehlotanh)
-* [transpose](#stablehlotranspose)
-* [triangular_solve](#stablehlotriangular_solve)
-* [tuple](#stablehlotuple)
-* [while](#stablehlowhile)
-* [xor](#stablehloxor)
+   * [abs](#stablehloabs)
+   * [add](#stablehloadd)
+   * [after_all](#stablehloafter_all)
+   * [all_gather](#stablehloall_gather)
+   * [all_reduce](#stablehloall_reduce)
+   * [all_to_all](#stablehloall_to_all)
+   * [and](#stablehloand)
+   * [atan2](#stablehloatan2)
+   * [batch_norm_grad](#stablehlobatch_norm_grad)
+   * [batch_norm_inference](#stablehlobatch_norm_inference)
+   * [batch_norm_training](#stablehlobatch_norm_training)
+   * [bitcast_convert](#stablehlobitcast_convert)
+   * [broadcast_in_dim](#stablehlobroadcast_in_dim)
+   * [case](#stablehlocase)
+   * [cbrt](#stablehlocbrt)
+   * [ceil](#stablehloceil)
+   * [cholesky](#stablehlocholesky)
+   * [clamp](#stablehloclamp)
+   * [collective_permute](#stablehlocollective_permute)
+   * [compare](#stablehlocompare)
+   * [complex](#stablehlocomplex)
+   * [concatenate](#stablehloconcatenate)
+   * [constant](#stablehloconstant)
+   * [convert](#stablehloconvert)
+   * [convolution](#stablehloconvolution)
+   * [cosine](#stablehlocosine)
+   * [count_leading_zeros](#stablehlocount_leading_zeros)
+   * [custom_call](#stablehlocustom_call)
+   * [divide](#stablehlodivide)
+   * [dot_general](#stablehlodot_general)
+   * [dynamic_slice](#stablehlodynamic_slice)
+   * [dynamic_update_slice](#stablehlodynamic_update_slice)
+   * [exponential](#stablehloexponential)
+   * [exponential_minus_one](#stablehloexponential_minus_one)
+   * [fft](#stablehlofft)
+   * [floor](#stablehlofloor)
+   * [gather](#stablehlogather)
+   * [get_dimension_size](#stablehloget_dimension_size)
+   * [get_tuple_element](#stablehloget_tuple_element)
+   * [if](#stablehloif)
+   * [imag](#stablehloimag)
+   * [infeed](#stablehloinfeed)
+   * [iota](#stablehloiota)
+   * [is_finite](#stablehlois_finite)
+   * [log](#stablehlolog)
+   * [log_plus_one](#stablehlolog_plus_one)
+   * [logistic](#stablehlologistic)
+   * [map](#stablehlomap)
+   * [maximum](#stablehlomaximum)
+   * [minimum](#stablehlominimum)
+   * [multiply](#stablehlomultiply)
+   * [negate](#stablehlonegate)
+   * [not](#stablehlonot)
+   * [optimization_barrier](#stablehlooptimization_barrier)
+   * [or](#stablehloor)
+   * [outfeed](#stablehlooutfeed)
+   * [pad](#stablehlopad)
+   * [partition_id](#stablehlopartition_id)
+   * [popcnt](#stablehlopopcnt)
+   * [power](#stablehlopower)
+   * [real](#stablehloreal)
+   * [recv](#stablehlorecv)
+   * [reduce](#stablehloreduce)
+   * [reduce_precision](#stablehloreduce_precision)
+   * [reduce_scatter](#stablehloreduce_scatter)
+   * [reduce_window](#stablehloreduce_window)
+   * [remainder](#stablehloremainder)
+   * [replica_id](#stablehloreplica_id)
+   * [reshape](#stablehloreshape)
+   * [reverse](#stablehloreverse)
+   * [rng](#stablehlorng)
+   * [rng_bit_generator](#stablehlorng_bit_generator)
+   * [round_nearest_afz](#stablehloround_nearest_afz)
+   * [round_nearest_even](#stablehloround_nearest_even)
+   * [rsqrt](#stablehlorsqrt)
+   * [scatter](#stablehloscatter)
+   * [select](#stablehloselect)
+   * [select_and_scatter](#stablehloselect_and_scatter)
+   * [send](#stablehlosend)
+   * [shift_left](#stablehloshift_left)
+   * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
+   * [shift_right_logical](#stablehloshift_right_logical)
+   * [sign](#stablehlosign)
+   * [sine](#stablehlosine)
+   * [slice](#stablehloslice)
+   * [sort](#stablehlosort)
+   * [sqrt](#stablehlosqrt)
+   * [subtract](#stablehlosubtract)
+   * [tanh](#stablehlotanh)
+   * [transpose](#stablehlotranspose)
+   * [triangular_solve](#stablehlotriangular_solve)
+   * [tuple](#stablehlotuple)
+   * [while](#stablehlowhile)
+   * [xor](#stablehloxor)
 
 ## stablehlo.abs
 
@@ -483,8 +482,8 @@ the IEEE-754 specification.
 For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
-* Saturation to $2^{n-1}-1$
-* $-2^{n-1}$
+  * Saturation to $2^{n-1}-1$
+  * $-2^{n-1}$
 
 ### Inputs
 
@@ -500,8 +499,8 @@ defined and one of the following:
 
 ### Constraints
 
-* (C1)  `operand` and `result` have the same shape.
-* (C2)  `operand` and `result` have the same element type, except when the
+  * (C1)  `operand` and `result` have the same shape.
+  * (C2)  `operand` and `result` have the same element type, except when the
   element type of the `operand` is complex type, in which case the element type
   of the `result` is the element type of the complex type (e.g. the element type
   of the `result` is `f64` for operand type `complex<f64>`).
@@ -525,10 +524,10 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 unsigned/signed overflow, the result is implementation-defined and one
 of the following:
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `addition` operation from
@@ -550,7 +549,7 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -603,18 +602,18 @@ Within each process group in the StableHLO grid, concatenates the values of the
 
 The operation splits the StableHLO grid into `process_groups` as follows:
 
-* `channel_id <= 0` and `use_global_device_ids = false`,
+  * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = false`,
+  * `channel_id > 0` and `use_global_device_ids = false`,
     `cross_replica_and_partition(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = true`,
+  * `channel_id > 0` and `use_global_device_ids = true`,
     `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
 
-* `operands@receiver = [operand@sender for sender in process_group]` for all
+  * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
-* `result@process = concatenate(operands@process, all_gather_dim)` for all
+  * `result@process = concatenate(operands@process, all_gather_dim)` for all
     `process` in `process_group`.
 
 ### Inputs
@@ -635,19 +634,19 @@ Afterwards, within each `process_group`:
 
 ### Constraints
 
-* (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
-* (C2) All values in `replica_groups` are unique.
-* (C3) `size(replica_groups)` depends on the process grouping strategy:
-  * If `cross_replica`, `num_replicas`.
-  * If `cross_replica_and_partition`, `num_replicas`.
-  * If `flattened_ids`, `num_processes`.
-* (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+  * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
+  * (C2) All values in `replica_groups` are unique.
+  * (C3) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-  [todo](https://github.com/openxla/stablehlo/issues/654)
-* (C6)`type(result) = type(operand)` except:
-  * `dim(result, all_gather_dim)` =
-    `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
+  * (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
+    [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C6)`type(result) = type(operand)` except:
+    * `dim(result, all_gather_dim)` =
+      `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
 ### Examples
 
@@ -679,19 +678,18 @@ produces a `result` tensor.
 
 The operation splits the StableHLO grid into process groups as follows:
 
-* `channel_id <= 0` and `use_global_device_ids = false`,
+  * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = false`,
+  * `channel_id > 0` and `use_global_device_ids = false`,
     `cross_replica_and_partition(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = true`,
+  * `channel_id > 0` and `use_global_device_ids = true`,
     `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
 
-* `operands@receiver = [operand@sender for sender in process_group]` for all
+  * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
-* &#32;
-
+  * &#32;
     ```mlir
     result@process[i0, i1, ..., iR-1] =
         reduce_without_init(
@@ -700,7 +698,6 @@ Afterwards, within each `process_group`:
           body=computation
         )
     ```
-
     where `reduce_without_init` works exactly like `reduce`, except that its
     `schedule` doesn't include init values.
 
@@ -722,18 +719,18 @@ Afterwards, within each `process_group`:
 
 ### Constraints
 
-* (C1) All values in `replica_groups` are unique.
-* (C2) `size(replica_groups)` depends on the process grouping strategy:
-  * If `cross_replica`, `num_replicas`.
-  * If `cross_replica_and_partition`, `num_replicas`.
-  * If `flattened_ids`, `num_processes`.
-* (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+  * (C1) All values in `replica_groups` are unique.
+  * (C2) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
-  [todo](https://github.com/openxla/stablehlo/issues/654)
-* (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
+         [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
-* (C6) type(`result`) $=$ type(`operand`).
+  * (C6) type(`result`) $=$ type(`operand`).
 
 ### Examples
 
@@ -758,6 +755,7 @@ Afterwards, within each `process_group`:
 
 [Back to Ops](#index-of-ops)
 
+
 ## stablehlo.all_to_all
 
 ### Semantics
@@ -774,8 +772,7 @@ The operation splits the StableHLO grid into process groups using the
 
 Afterwards, within each `process_group`:
 
-* &#32;
-
+  * &#32;
     ```mlir
     split_parts@sender = [
         slice(
@@ -793,11 +790,11 @@ Afterwards, within each `process_group`:
         ) for i in range(split_count)
      ]
     ```
-
     for all `sender` in `process_group`.
-* `scattered_parts@receiver = [split_parts@sender[receiver_index] for sender in
-  process_group]` where `receiver_index = index_of(receiver, process_group)`.
-* `result@process = concatenate(scattered_parts@process, concat_dimension)`.
+  * `scattered_parts@receiver = [split_parts@sender[receiver_index] for
+    sender in process_group]` where
+    `receiver_index = index_of(receiver, process_group)`.
+  * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
 
 ### Inputs
 
@@ -817,19 +814,19 @@ Afterwards, within each `process_group`:
 
 ### Constraints
 
-* (C1) `split_dimension` $\in$ [0, rank(`operand`)).
-* (C2) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
-* (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
-* (C4) `split_count` $\gt$ 0.
-* (C5) All values in `replica_groups` are unique.
-* (C6) `size(replica_groups)` = `num_replicas`.
-* (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
+  * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
+  * (C2) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
+  * (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
+  * (C4) `split_count` $\gt$ 0.
+  * (C5) All values in `replica_groups` are unique.
+  * (C6) `size(replica_groups)` = `num_replicas`.
+  * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C8) `type(result) = type(operand)` except:
-  * `dim(result, split_dimension) =
-    dim(operand, split_dimension) / split_count`.
-  * `dim(result, concat_dimension) =
-    dim(operand, concat_dimension) * split_count`.
+  * (C8) `type(result) = type(operand)` except:
+    * `dim(result, split_dimension) =
+      dim(operand, split_dimension) / split_count`.
+    * `dim(result, concat_dimension) =
+      dim(operand, concat_dimension) * split_count`.
 
 ### Examples
 
@@ -889,7 +886,7 @@ For boolean tensors, computes the logical operation.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -926,7 +923,7 @@ with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
 
 ### Examples
 
@@ -1023,13 +1020,13 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 
 ### Constraints
 
-* (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-* (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
          `grad_scale` and `grad_offset` have the same element type.
-* (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
-* (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
+  * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
+  * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
          same shape.
-* (C5) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`scale`) $=$ `dim(operand, feature_index)`.
 
 ### Examples
 
@@ -1109,14 +1106,14 @@ Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-* (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
     same element type.
-* (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
-* (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
-* (C5) size(`mean`) $=$ `dim(operand, feature_index)`.
-* (C6) size(`variance`) $=$ `dim(operand, feature_index)`.
-* (C7) `operand` and `result` have the same type.
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`variance`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -1197,14 +1194,14 @@ Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-* (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
+  * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
+  * (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
          have the same element type.
-* (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
-* (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
-* (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
-* (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
-* (C7) `operand` and `output` have the same type.
+  * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
+  * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
+  * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
+  * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
+  * (C7) `operand` and `output` have the same type.
 
 ### Examples
 
@@ -1240,11 +1237,11 @@ type of the `result` tensor.
 Let `E` and `E'` be the `operand` and `result` element type respectively, and
 `R = rank(operand)`:
 
-* If `num_bits(E')` $=$ `num_bits(E)`,
+  * If `num_bits(E')` $=$ `num_bits(E)`,
     `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
-* If `num_bits(E')` $\lt$ `num_bits(E)`,
+  * If `num_bits(E')` $\lt$ `num_bits(E)`,
     `bits(result[i0, ..., iR-1, :]) = bits(operand[i0, ..., iR-1])`.
-* If `num_bits(E')` $\gt$ `num_bits(E)`,
+  * If `num_bits(E')` $\gt$ `num_bits(E)`,
     `bits(result[i0, ..., iR-2]) = bits(operand[i0, ..., iR-2, :])`.
 
 The behavior of `bits` is implementation-defined because the exact
@@ -1265,18 +1262,18 @@ representation of element types is implementation-defined as well.
 
 ### Constraints
 
-* (C1) Let `E` and `E'` be the `operand` and `result` element type,
+  * (C1) Let `E` and `E'` be the `operand` and `result` element type,
     respectively and `R = rank(operand)`:
-  * If `num_bits(E')` $=$ `num_bits(E)`, shape(`result`) $=$ shape(`operand`).
-  * If `num_bits(E')` $\lt$ `num_bits(E)`:
-    * `rank(result) = R+1`.
-    * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1].
-    * `dim(result, R) = num_bits(E)/num_bits(E')`.
-  * If `num_bits(E')` $\gt$ `num_bits(E)`:
-    * `rank(result) = R-1`.
-    * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1).
-    * `dim(operand, R-1) = num_bits(E')/num_bits(E)`.
-* (C2) Conversion between complex and non-complex types is not permitted.
+    * If `num_bits(E')` $=$ `num_bits(E)`, shape(`result`) $=$ shape(`operand`).
+    * If `num_bits(E')` $\lt$ `num_bits(E)`:
+      * `rank(result) = R+1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1].
+      * `dim(result, R) = num_bits(E)/num_bits(E')`.
+    * If `num_bits(E')` $\gt$ `num_bits(E)`:
+      * `rank(result) = R-1`.
+      * dim(`result`, `i`) $=$ dim(`operand`, `i`) for all `i` $\in$ [0, `R`-1).
+      * `dim(operand, R-1) = num_bits(E')/num_bits(E)`.
+  * (C2) Conversion between complex and non-complex types is not permitted.
 
 ### Examples
 
@@ -1316,14 +1313,14 @@ dimensions `k` in `operand`.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same element type.
-* (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
-* (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
+  * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
          dimensions i in `operand`.
-* (C4) All dimensions in `broadcast_dimensions` are unique.
-* (C5) For all dimensions `j` in `operand`:
-  * `dim(operand, j) = 1` or
-  * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
+  * (C4) All dimensions in `broadcast_dimensions` are unique.
+  * (C5) For all dimensions `j` in `operand`:
+    * `dim(operand, j) = 1` or
+    * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
 
 ### Examples
 
@@ -1374,10 +1371,10 @@ returned.
 
 ### Constraints
 
-* (C1) `branches` have at least one function.
-* (C2) All functions in `branches` have 0 inputs.
-* (C3) All functions in `branches` have the same output types.
-* (C4) For all `i`, `type(results[i]) = type(branches[0]).outputs[i]`.
+  * (C1) `branches` have at least one function.
+  * (C2) All functions in `branches` have 0 inputs.
+  * (C3) All functions in `branches` have the same output types.
+  * (C4) For all `i`, `type(results[i]) = type(branches[0]).outputs[i]`.
 
 ### Examples
 
@@ -1418,7 +1415,7 @@ corner cases TBD. Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -1452,7 +1449,7 @@ specification.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -1497,9 +1494,9 @@ matrix, then the behavior is undefined.
 
 ### Constraints
 
-* (C1) `a` and `result` have the same type.
-* (C2) rank(`a`) >= 2.
-* (C3) dim(`a`, -2) = dim(`a`, -1).
+  * (C1) `a` and `result` have the same type.
+  * (C2) rank(`a`) >= 2.
+  * (C3) dim(`a`, -2) = dim(`a`, -1).
 
 ### Examples
 
@@ -1549,10 +1546,10 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 
 ### Constraints
 
-* (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
-* (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
-* (C3) `min`, `operand`, and `max` have the same element type.
-* (C4) `operand` and `result` have the same type.
+  * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
+  * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
+  * (C3) `min`, `operand`, and `max` have the same element type.
+  * (C4) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -1576,16 +1573,16 @@ Within each process group in the StableHLO grid, sends the value of the
 
 The operation splits the StableHLO grid into `process_groups` as follows:
 
-* `channel_id <= 0`,
+  * `channel_id <= 0`,
     `cross_replica(replica_groups)`.
-* `channel_id > 0`,
+  * `channel_id > 0`,
     `cross_partition(replica_groups)`.
 
 Afterwards, `result@process` is given by:
 
-* `operand@process_groups[i, 0]`, if there exists an `i` such that
-  `process_groups[i, 1] = process`.
-* `broadcast_in_dim(0, [], shape(result))`, otherwise.
+ * `operand@process_groups[i, 0]`, if there exists an `i` such that
+   `process_groups[i, 1] = process`.
+ * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
 ### Inputs
 
@@ -1603,14 +1600,14 @@ Afterwards, `result@process` is given by:
 
 ### Constraints
 
-* (C1) dim(`source_target_pairs`, 1) $=$ 2.
-* (C2) All values in `source_target_pairs[:, 0]` are unique.
-* (C3) All values in `source_target_pairs[:, 1]` are unique.
-* (C4) $0 \le$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
+  * (C1) dim(`source_target_pairs`, 1) $=$ 2.
+  * (C2) All values in `source_target_pairs[:, 0]` are unique.
+  * (C3) All values in `source_target_pairs[:, 1]` are unique.
+  * (C4) $0 \le$ source_target_pairs[i][0], source_target_pairs[i][1] $\lt N$,
          where $N$ depends on the process grouping strategy:
-  * If `cross_replica`, `num_replicas`.
-  * If `cross_partition`, `num_partitions`.
-* (C5) type(`result`) $=$ type(`operand`).
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_partition`, `num_partitions`.
+  * (C5) type(`result`) $=$ type(`operand`).
 
 ### Examples
 
@@ -1643,22 +1640,22 @@ semantics:
 
 For integer and boolean element types:
 
-* `EQ`: `lhs` $=$ `rhs`.
-* `NE`: `lhs` $\ne$ `rhs`.
-* `GE`: `lhs` $\ge$ `rhs`.
-* `GT`: `lhs` $\gt$ `rhs`.
-* `LE`: `lhs` $\le$ `rhs`.
-* `LT`: `lhs` $\lt$ `rhs`.
+  * `EQ`: `lhs` $=$ `rhs`.
+  * `NE`: `lhs` $\ne$ `rhs`.
+  * `GE`: `lhs` $\ge$ `rhs`.
+  * `GT`: `lhs` $\gt$ `rhs`.
+  * `LE`: `lhs` $\le$ `rhs`.
+  * `LT`: `lhs` $\lt$ `rhs`.
 
 For floating-point element types and `compare_type = FLOAT`, the op implements
 the following IEEE-754 operations:
 
-* `EQ`: `compareQuietEqual`.
-* `NE`: `compareQuietNotEqual`.
-* `GE`: `compareQuietGreaterEqual`.
-* `GT`: `compareQuietGreater`.
-* `LE`: `compareQuietLessEqual`.
-* `LT`: `compareQuietLess`.
+  * `EQ`: `compareQuietEqual`.
+  * `NE`: `compareQuietNotEqual`.
+  * `GE`: `compareQuietGreaterEqual`.
+  * `GT`: `compareQuietGreater`.
+  * `LE`: `compareQuietLessEqual`.
+  * `LT`: `compareQuietLess`.
 
 For floating-point element types and `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
@@ -1684,15 +1681,15 @@ performed using the provided `comparison_direction` and `compare_type`.
 
 ### Constraints
 
-* (C1) `lhs` and `rhs` have the same element type.
-* (C2) `lhs`, `rhs`, and `result` have the same shape.
-* (C3) Given `E` is the `lhs` element type, the following are legal values of
+  * (C1) `lhs` and `rhs` have the same element type.
+  * (C2) `lhs`, `rhs`, and `result` have the same shape.
+  * (C3) Given `E` is the `lhs` element type, the following are legal values of
          `compare_type`:
-  * If `E` is signed integer type, `compare_type` = `SIGNED`.
-  * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
-  * If `E` is floating-point type,
+    * If `E` is signed integer type, `compare_type` = `SIGNED`.
+    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
+    * If `E` is floating-point type,
       `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}.
-  * If `E` is complex type, `compare_type` = `FLOAT`.
+    * If `E` is complex type, `compare_type` = `FLOAT`.
 
 ### Examples
 
@@ -1730,9 +1727,9 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 ### Constraints
 
-* (C1) `lhs` and `rhs` have the same type.
-* (C2) shape(`result`) $=$ shape(`lhs`).
-* (C3) element_type(`result`) = complex_type(element_type(`lhs`)).
+  * (C1) `lhs` and `rhs` have the same type.
+  * (C2) shape(`result`) $=$ shape(`lhs`).
+  * (C3) element_type(`result`) = complex_type(element_type(`lhs`)).
 
 ### Examples
 
@@ -1773,13 +1770,13 @@ tensor. More formally,
 
 ### Constraints
 
-* (C1) All tensors in `inputs` have the same element type.
-* (C2) All tensors in `inputs` have the same shape except for the size of the
+  * (C1) All tensors in `inputs` have the same element type.
+  * (C2) All tensors in `inputs` have the same shape except for the size of the
   `dimension`th dimension.
-* (C3) `inputs` have N tensors where N >= 1.
-* (C4) 0 $\le$ `dimension` $\lt$ `rank(inputs[0])`.
-* (C5) `result` has the same element type as the tensors in `inputs`.
-* (C6) `result` has the same shape as the tensors in `inputs` except for the
+  * (C3) `inputs` have N tensors where N >= 1.
+  * (C4) 0 $\le$ `dimension` $\lt$ `rank(inputs[0])`.
+  * (C5) `result` has the same element type as the tensors in `inputs`.
+  * (C6) `result` has the same shape as the tensors in `inputs` except for the
   size of the `dimension`th dimension, which is calculated as a sum of the size
   of `inputs[k][dimension]` for all `k` in `inputs`.
 
@@ -1816,7 +1813,7 @@ Produces an `output` tensor from a constant `value`.
 
 ### Constraints
 
-* (C1) `value` and `output` have the same type.
+  * (C1) `value` and `output` have the same type.
 
 ### Examples
 
@@ -1840,11 +1837,10 @@ Performs an element-wise conversion from one element type to another on
 
 For conversions involving **integer-to-integer**, if there is an unsigned/signed
 overflow, the result is implementation-defined and one of the following:
-
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
     for unsigned overflow. For signed integer overflow, wraps the result around
     the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
     saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For conversions involving **floating-point-to-floating-point** or
@@ -1890,7 +1886,7 @@ converted to zero, and the value `true` is converted to one. For
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same shape.
+  * (C1) `operand` and `result` have the same shape.
 
 ### Examples
 
@@ -1916,26 +1912,26 @@ More formally, we start with reframing the inputs to the operation in terms
 of `lhs` in order to be able to express windows of `lhs`:
 
 <!-- markdownlint-disable line-length -->
-* `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
-* `lhs_window_strides = lhs_shape(1, window_strides, 1)`.
-* `lhs_padding = lhs_shape([0, 0], padding, [0, 0])`.
-* `lhs_base_dilations = lhs_shape(1, lhs_dilation, 1)`.
-* `lhs_window_dilations = lhs_shape(1, rhs_dilation, 1)`.
+  * `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
+  * `lhs_window_strides = lhs_shape(1, window_strides, 1)`.
+  * `lhs_padding = lhs_shape([0, 0], padding, [0, 0])`.
+  * `lhs_base_dilations = lhs_shape(1, lhs_dilation, 1)`.
+  * `lhs_window_dilations = lhs_shape(1, rhs_dilation, 1)`.
 
 This reframing uses the following helper functions:
 
-* `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
-* `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
+  *  `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
+  *  `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
 
 If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations)`.
-* `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
-* `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
-* `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
-* `dot_product = dot_general(reversed_lhs_window, rhs,
+  * `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations)`.
+  * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
+  * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
+  * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
+  * `dot_product = dot_general(reversed_lhs_window, rhs,
       lhs_batching_dimensions=[],
       lhs_contracting_dimensions=input_spatial_dimensions + [input_feature_dimension],
       rhs_batching_dimensions=[],
@@ -1943,17 +1939,17 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 
 If `feature_group_count > 1`:
 
-* `lhses = split(lhs, feature_group_count, input_feature_dimension)`.
-* `rhses = split(rhs, feature_group_count, kernel_output_feature_dimension)`.
-* `results[:] = convolution(lhses[:], rhses[:], ..., feature_group_count=1, ...)`.
-* `result = concatenate(results, output_feature_dimension)`.
+  * `lhses = split(lhs, feature_group_count, input_feature_dimension)`.
+  * `rhses = split(rhs, feature_group_count, kernel_output_feature_dimension)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., feature_group_count=1, ...)`.
+  * `result = concatenate(results, output_feature_dimension)`.
 
 If `batch_group_count > 1`:
 
-* `lhses = split(lhs, batch_group_count, input_batch_dimension)`.
-* `rhses = split(rhs, batch_group_count, kernel_output_feature_dimension)`.
-* `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1, ...)`.
-* `result = concatenate(results, output_feature_dimension)`.
+  * `lhses = split(lhs, batch_group_count, input_batch_dimension)`.
+  * `rhses = split(rhs, batch_group_count, kernel_output_feature_dimension)`.
+  * `results[:] = convolution(lhses[:], rhses[:], ..., batch_group_count=1, ...)`.
+  * `result = concatenate(results, output_feature_dimension)`.
 <!-- markdownlint-enable line-length -->
 
 ### Inputs
@@ -1980,6 +1976,7 @@ If `batch_group_count > 1`:
 | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)      |
 | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                  |
 
+
 ### Outputs
 
 | Name     | Type                         | Constraints         |
@@ -1989,53 +1986,53 @@ If `batch_group_count > 1`:
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) $N =$ rank(`lhs`) $=$ rank(`rhs`).
-* (C2) element_type(`lhs`) $=$ element_type(`rhs`).
-* (C3) size(`window_strides`) $= N - 2$ .
-* (C4) `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
-* (C5) dim(`padding`, 0) $= N - 2$ and dim(`padding`, 1) = 2.
-* (C6) size(`lhs_dilation`) $= N - 2$.
-* (C7) `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
-* (C8) size(`rhs_dilation`) $= N - 2$.
-* (C9) `rhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`rhs_dilation`)).
-* (C10) size(`window_reversal`) $= N - 2$.
-* (C11) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
-* (C12) `dim(lhs, input_feature_dimension) % feature_group_count = 0.
-* (C13) size(`input_spatial_dimensions`) $= N - 2$.
-* (C14) Given `input_dimensions = [input_batch_dimension] +
+  * (C1) $N =$ rank(`lhs`) $=$ rank(`rhs`).
+  * (C2) element_type(`lhs`) $=$ element_type(`rhs`).
+  * (C3) size(`window_strides`) $= N - 2$ .
+  * (C4) `window_strides[i]` $\gt 0$  for all i $\in$ [0, size(`window_strides`)).
+  * (C5) dim(`padding`, 0) $= N - 2$ and dim(`padding`, 1) = 2.
+  * (C6) size(`lhs_dilation`) $= N - 2$.
+  * (C7) `lhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`lhs_dilation`)).
+  * (C8) size(`rhs_dilation`) $= N - 2$.
+  * (C9) `rhs_dilation[i]` $\gt 0$ for all i $\in$ [0, size(`rhs_dilation`)).
+  * (C10) size(`window_reversal`) $= N - 2$.
+  * (C11) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
+  * (C12) `dim(lhs, input_feature_dimension) % feature_group_count = 0.
+  * (C13) size(`input_spatial_dimensions`) $= N - 2$.
+  * (C14) Given `input_dimensions = [input_batch_dimension] +
          input_spatial_dimensions + [input_feature_dimension]`.
-  * All dimensions in `input_dimensions` are unique.
-  * For any i $\in$ `input_dimensions`, 0 $\le$ i $\lt$ N.
-* (C15) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
-* (C16) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
-* (C17) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
-* (C18) size(`kernel_spatial_dimensions`) $= N - 2$.
-* (C19) Given `kernel_dimensions = kernel_spatial_dimensions +
+    * All dimensions in `input_dimensions` are unique.
+    * For any i $\in$ `input_dimensions`, 0 $\le$ i $\lt$ N.
+  * (C15) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
+  * (C16) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
+  * (C17) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
+  * (C18) size(`kernel_spatial_dimensions`) $= N - 2$.
+  * (C19) Given `kernel_dimensions = kernel_spatial_dimensions +
           [kernel_input_feature_dimension] + [kernel_output_feature_dimension]`.
-  * All dimensions in `kernel_dimensions` are unique.
-  * For any i $\in$ `kernel_dimensions`, 0 $\le$ i $\lt$ N.
-* (C20) size(`output_spatial_dimensions`) $= N - 2$.
-* (C21) Given `output_dimensions = [output_batch_dimension] +
+    * All dimensions in `kernel_dimensions` are unique.
+    * For any i $\in$ `kernel_dimensions`, 0 $\le$ i $\lt$ N.
+  * (C20) size(`output_spatial_dimensions`) $= N - 2$.
+  * (C21) Given `output_dimensions = [output_batch_dimension] +
           output_spatial_dimensions + [output_feature_dimension]`.
-  * All dimensions in `output_dimensions` are unique.
-  * For any i $\in$ `output_dimensions`, 0 $\le$ i $\lt$ N.
-* (C22) `feature_group_count > 0`.
-* (C23) `batch_group_count > 0`.
-* (C24) `feature_group_count` $= 1$ OR  `batch_group_count` $= 1$.
-* (C25) size(`precision_config`) $=$ 2.
-* (C26) For result_dim $\in$ [0, N), `dim(result, result_dim)` is given by
-  * `dim(lhs, input_batch_dimension) / batch_group_count`, if `result_dim = output_batch_dimension`.
-  * `dim(rhs, kernel_output_feature_dimension)`, if `result_dim = output_feature_dimension`.
-  * `num_windows` otherwise, where:
-    * `output_spatial_dimensions[spatial_dim] = result_dim`.
-    * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
-    * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
-    * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
-    * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
-    * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
-    * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
-* (C27) element_type(`result`) $=$ element_type(`lhs`).
-* (C28) rank(`result`) $= N$.
+    * All dimensions in `output_dimensions` are unique.
+    * For any i $\in$ `output_dimensions`, 0 $\le$ i $\lt$ N.
+  * (C22) `feature_group_count > 0`.
+  * (C23) `batch_group_count > 0`.
+  * (C24) `feature_group_count` $= 1$ OR  `batch_group_count` $= 1$.
+  * (C25) size(`precision_config`) $=$ 2.
+  * (C26) For result_dim $\in$ [0, N), `dim(result, result_dim)` is given by
+    * `dim(lhs, input_batch_dimension) / batch_group_count`, if `result_dim = output_batch_dimension`.
+    * `dim(rhs, kernel_output_feature_dimension)`, if `result_dim = output_feature_dimension`.
+    * `num_windows` otherwise, where:
+        * `output_spatial_dimensions[spatial_dim] = result_dim`.
+        * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
+        * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
+        * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
+        * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
+        * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
+        * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
+  * (C27) element_type(`result`) $=$ element_type(`lhs`).
+  * (C28) rank(`result`) $= N$.
 <!-- markdownlint-enable line-length -->
 
 ### Examples
@@ -2107,7 +2104,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -2145,7 +2142,7 @@ tensor and produces a `result` tensor.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -2223,7 +2220,7 @@ produces an implementation-defined value.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -2251,19 +2248,19 @@ Computes dot products between slices of `lhs` and slices of `rhs` and produces a
 More formally, `result[result_index] = dot_product`, where:
 
 <!-- markdownlint-disable line-length -->
-* `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
-* `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
-* `result_batching_index + result_lhs_index + result_rhs_index = result_index`
+  * `lhs_result_dimensions = [d for d in axes(lhs) and d not in lhs_batching_dimensions and d not in lhs_contracting_dimensions]`.
+  * `rhs_result_dimensions = [d for d in axes(rhs) and d not in rhs_batching_dimensions and d not in rhs_contracting_dimensions]`.
+  * `result_batching_index + result_lhs_index + result_rhs_index = result_index`
     where `size(result_batching_index) = size(lhs_batching_dimensions)`,
     `size(result_lhs_index) = size(lhs_result_dimensions)` and
     `size(result_rhs_index) = size(rhs_result_dimensions)`.
-* `transposed_lhs = transpose(lhs, lhs_batching_dimensions + lhs_result_dimensions + lhs_contracting_dimensions)`.
-* `transposed_lhs_slice = slice(result_batching_index + result_lhs_index + [:, ..., :])`.
-* `reshaped_lhs_slice = reshape(transposed_lhs_slice, dims(lhs, lhs_contracting_dimensions))`.
-* `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
-* `transposed_rhs_slice = slice(result_batching_index + result_rhs_index + [:, ..., :])`.
-* `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
-* `dot_product = reduce(
+  * `transposed_lhs = transpose(lhs, lhs_batching_dimensions + lhs_result_dimensions + lhs_contracting_dimensions)`.
+  * `transposed_lhs_slice = slice(result_batching_index + result_lhs_index + [:, ..., :])`.
+  * `reshaped_lhs_slice = reshape(transposed_lhs_slice, dims(lhs, lhs_contracting_dimensions))`.
+  * `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
+  * `transposed_rhs_slice = slice(result_batching_index + result_rhs_index + [:, ..., :])`.
+  * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
+  * `dot_product = reduce(
     inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
     init_values=[0],
     dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
@@ -2273,11 +2270,11 @@ More formally, `result[result_index] = dot_product`, where:
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following:
 
-* `DEFAULT`: Fastest calculation, but least accurate approximation to the
+  * `DEFAULT`: Fastest calculation, but least accurate approximation to the
     original number.
-* `HIGH`: Slower calculation, but more accurate approximation to the
+  * `HIGH`: Slower calculation, but more accurate approximation to the
     original number.
-* `HIGHEST`: Slowest calculation, but most accurate approximation to the
+  * `HIGHEST`: Slowest calculation, but most accurate approximation to the
     original number.
 
 ### Inputs
@@ -2300,30 +2297,30 @@ computations on accelerator backends. This can be one of the following:
 
 ### Constraints
 
-* (C1) `lhs` and `rhs` have the same element type.
-* (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
-* (C3) size(`lhs_contracting_dimensions`) $=$
+  * (C1) `lhs` and `rhs` have the same element type.
+  * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
+  * (C3) size(`lhs_contracting_dimensions`) $=$
     size(`rhs_contracting_dimensions`).
-* (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
+  * (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
     unique.
-* (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
+  * (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
     unique.
-* (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+  * (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
     $\in$ [0, size(`lhs_batching_dimensions`)).
-* (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+  * (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
     $\in$ [0, size(`lhs_contracting_dimensions`)).
-* (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+  * (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
     $\in$ [0, size(`rhs_batching_dimensions`)).
-* (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+  * (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
     $\in$ [0, size(`rhs_contracting_dimensions`)).
-* (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
+  * (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
     dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
     size(`lhs_batching_dimensions`)).
-* (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
+  * (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
     dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
     size(`lhs_contracting_dimensions`)).
-* (C12) size(`precision_config`) $=$ 2.
-* (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
+  * (C12) size(`precision_config`) $=$ 2.
+  * (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
     dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
 
 ### Examples
@@ -2373,8 +2370,8 @@ contain the sizes of the slice for each dimension.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
-* `jd = adjusted_start_indices[d][] + id`.
-* `adjusted_start_indices = clamp(0, start_indices, shape(operand) -`
+  * `jd = adjusted_start_indices[d][] + id`.
+  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) - `
     `slice_sizes)`.
 
 ### Inputs
@@ -2393,12 +2390,12 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same element type.
-* (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
-* (C3) All `start_indices` have the same type.
-* (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$ [0,
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
+  * (C3) All `start_indices` have the same type.
+  * (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$ [0,
     rank(`operand`)).
-* (C5) shape(`result`) $=$ `slice_sizes`.
+  * (C5) shape(`result`) $=$ `slice_sizes`.
 
 ### Examples
 
@@ -2432,8 +2429,7 @@ the slice starting at `start_indices` is updated with the values in `update`.
 More formally, `result[i0, ..., iR-1]` is defined as:
 
   * `update[j0, ..., jR-1]` if `jd = adjusted_start_indices[d][] + id` where
-    `adjusted_start_indices =
-    clamp(0, start_indices, shape(operand) - shape(update))`.
+    `adjusted_start_indices = clamp(0, start_indices, shape(operand) - update)`.
   * `operand[i0, ..., iR-1]` otherwise.
 
 ### Inputs
@@ -2452,13 +2448,14 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* (C2) element_type(`update`) $=$ element_type(`operand`).
-* (C3) rank(`update`) $=$ rank(`operand`).
-* (C4) size(`start_indices`) $=$ rank(`operand`).
-* (C5) All `start_indices` have the same type.
-* (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
+  * (C1) `operand` and `result` have the same type.
+  * (C2) element_type(`update`) $=$ element_type(`operand`).
+  * (C3) rank(`update`) $=$ rank(`operand`).
+  * (C4) size(`start_indices`) $=$ rank(`operand`).
+  * (C5) All `start_indices` have the same type.
+  * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
     [0, rank(`operand`)).
+
 
 ### Examples
 
@@ -2511,7 +2508,7 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -2551,7 +2548,7 @@ precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -2572,10 +2569,10 @@ inputs/outputs.
 
 `fft_type` is one of the following:
 
-* `FFT`: Forward complex-to-complex FFT.
-* `IFFT`: Inverse complex-to-complex FFT.
-* `RFFT`: Forward real-to-complex FFT.
-* `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real).
+  * `FFT`: Forward complex-to-complex FFT.
+  * `IFFT`: Inverse complex-to-complex FFT.
+  * `RFFT`: Forward real-to-complex FFT.
+  * `IRFFT`: Inverse real-to-complex FFT (i.e. takes complex, returns real).
 
 More formally, given the function `fft` which takes 1-dimensional tensors of
 complex types as input, produces 1-dimensional tensors of same types as
@@ -2584,9 +2581,9 @@ output and computes the discrete Fourier transform:
 For `fft_type = FFT`, `result` is defined as the final result of a series of L
 computations where `L = size(fft_length)`. For example, for `L = 3`:
 
-* `result1[i0, ..., :]` = `fft(operand[i0, ..., :])` for all `i`.
-* `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
-* `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+  * `result1[i0, ..., :]` = `fft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
     for all `i`.
 
 Furthermore, given the function `ifft` which has the same type signature and
@@ -2595,19 +2592,19 @@ computes the inverse of `fft`:
 For `fft_type = IFFT`, `result` is defined as the inverse of the computations
 for `fft_type = FFT`. For example, for `L = 3`:
 
-* `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
     for all `i`.
-* `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
-* `result[i0, ..., :]` = `ifft(result2[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `ifft(result2[i0, ..., :])` for all `i`.
 
 Furthermore, given the function `rfft` which takes 1-dimensional tensors of
 floating-point types, produces 1-dimensional tensors of complex types of the
 same floating-point semantics and works as follows:
 
-* `rfft(real_operand) = truncated_result` where
-* `complex_operand[i] = (real_operand, 0)` for all `i`.
-* `complex_result = fft(complex_operand)`.
-* `truncated_result = complex_result[:(rank(complex_result) / 2 + 1)]`.
+  * `rfft(real_operand) = truncated_result` where
+  * `complex_operand[i] = (real_operand, 0)` for all `i`.
+  * `complex_result = fft(complex_operand)`.
+  * `truncated_result = complex_result[:(rank(complex_result) / 2 + 1)]`.
 
 (When the discrete Fourier transform is computed for real operands, the first
 `N/2 + 1` elements of the result unambiguously define the rest of the result,
@@ -2616,9 +2613,9 @@ so the result of `rfft` is truncated to avoid computing redundant elements).
 For `fft_type = RFFT`, `result` is defined as the final result of a series of L
 computations where `L = size(fft_length)`. For example, for `L = 3`:
 
-* `result1[i0, ..., :]` = `rfft(operand[i0, ..., :])` for all `i`.
-* `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
-* `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
+  * `result1[i0, ..., :]` = `rfft(operand[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `fft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :, iR-2, iR-1]` = `fft(result2[i0, ..., :, iR-2, iR-1])`
     for all `i`.
 
 Finally, given the function `irfft` which has the same type signature and
@@ -2627,10 +2624,10 @@ computes the inverse of `rfft`:
 For `fft_type = IRFFT`, `result` is defined as the inverse of the computations
 for `fft_type = RFFT`. For example, for `L = 3`:
 
-* `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
+  * `result1[i0, ..., :, iR-2, iR-1]` = `ifft(operand[i0, ..., :, iR-2, iR-1])`
     for all `i`.
-* `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
-* `result[i0, ..., :]` = `irfft(result2[i0, ..., :])` for all `i`.
+  * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
+  * `result[i0, ..., :]` = `irfft(result2[i0, ..., :])` for all `i`.
 
 ### Inputs
 
@@ -2648,25 +2645,25 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 
 ### Constraints
 
-* (C1) `rank(operand)` $\ge$ `size(fft_length)`.
-* (C2) The relationship between `operand` and `result` element types varies:
-  * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
+  * (C1) `rank(operand)` $\ge$ `size(fft_length)`.
+  * (C2) The relationship between `operand` and `result` element types varies:
+    * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
       have the same complex type.
-  * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
+    * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
       have the same complex type.
-  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
+    * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
       `element_type(result)` is a complex type of the same floating-point
       semantics.
-  * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
+    * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
       `element_type(result)` is a floating-point type of the same floating-point
       semantics.
-* (C3) 1 $\le$ `size(fft_length)` $\le$ 3.
-* (C4) If among `operand` and `result`, there is a tensor `real` of a
+  * (C3) 1 $\le$ `size(fft_length)` $\le$ 3.
+  * (C4) If among `operand` and `result`, there is a tensor `real` of a
   floating-type type, then `dims(real)[-size(fft_length):] = fft_length`.
-* (C5) `dim(result, d) = dim(operand, d)` for all `d`, except for:
-  * If `fft_type = RFFT`,
+  * (C5) `dim(result, d) = dim(operand, d)` for all `d`, except for:
+    * If `fft_type = RFFT`,
       `dim(result, -1) = dim(operand, -1) == 0 ? 0 : dim(operand, -1) / 2 + 1`.
-  * If `fft_type = IRFFT`,
+    * If `fft_type = IRFFT`,
       `dim(operand, -1) = dim(result, -1) == 0 ? 0 : dim(result, -1) / 2 + 1`.
 
 ### Examples
@@ -2704,7 +2701,7 @@ specification.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -2733,21 +2730,21 @@ indices and explains in detail which `operand` indices they correspond to.
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
-* `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
-* `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
-* `start_index` =
-  * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+  * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
+  * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
+  * `start_index` =
+      * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
         elements in `batch_index` and `:` is inserted at the `index_vector_dim`
         index, if `index_vector_dim` < `rank(start_indices)`.
-  * `[start_indices[batch_index]]` otherwise.
-* For `do` in `axes(operand)`,
-  * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
-  * `full_start_index[do]` = `0` otherwise.
-* `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
-* `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+      * `[start_indices[batch_index]]` otherwise.
+  * For `do` in `axes(operand)`,
+      * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
+      * `full_start_index[do]` = `0` otherwise.
+  * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
+  * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `offset_index`, and `0` is inserted at indices from
     `collapsed_slice_dims`.
-* `operand_index` = `add(full_start_index, full_offset_index)`.
+  * `operand_index` = `add(full_start_index, full_offset_index)`.
     If `operand_index` is out of bounds for `operand`, then the behavior is
     implementation-defined.
 
@@ -2777,36 +2774,36 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 ### Constraints
 
-* (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
+  * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
          size(`collapsed_slice_dims`).
-* (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
-* (C3) size(`start_index_map`) $=$
+  * (C2) $0 \le$ `index_vector_dim` $\le$ rank(`start_indices`).
+  * (C3) size(`start_index_map`) $=$
          `index_vector_dim` $\lt$ rank(`start_indices`) ?
          dim(`start_indices`, `index_vector_dim`) : 1.
-* (C4) All dimensions in `offset_dims` are unique and sorted in ascending
+  * (C4) All dimensions in `offset_dims` are unique and sorted in ascending
          order.
-* (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
+  * (C5) $0 \le$ `offset_dims`[i] $\lt$ rank(`result`) $\forall i$
          such that $0 \le$ i $\lt$ size(`offset_dims`).
-* (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
+  * (C6) All dimensions in `collapsed_slice_dims` are unique and sorted in
          ascending order.
-* (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
+  * (C7) $0 \le$ `collapsed_slice_dims`[i] $\lt$ size(`slice_sizes`)
           $\forall i$ such that $0 \le$ i $\lt$ size(`collapsed_slice_dims`).
-* (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
-* (C9) All dimensions in `start_index_map` are unique.
-* (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
+  * (C8) `slice_sizes`[i] $\le$ 1 $\forall i \in$ `collapsed_slice_dims`.
+  * (C9) All dimensions in `start_index_map` are unique.
+  * (C10) $0 \le$ `start_index_map`[i] $\lt$ rank(`operand`) $\forall i$
          such that $0 \le$ i $\lt$ size(`start_index_map`).
-* (C11) size(`slice_sizes`) $=$ rank(`operand`).
-* (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
+  * (C11) size(`slice_sizes`) $=$ rank(`operand`).
+  * (C12) $0 \le$ `slice_sizes`[i] $\le$ dim(`operand`, i) $\forall i$
           such that $0 \le$ i $\lt$ size(`slice_sizes`).
-* (C13) `shape(result)` $=$ `combine(batch_dim_sizes, offset_dim_sizes)`
+  * (C13) `shape(result)` $=$ `combine(batch_dim_sizes, offset_dim_sizes)`
           where:
-  * `batch_dim_sizes` = `shape(start_indices)` except that the dimension size
+    * `batch_dim_sizes` = `shape(start_indices)` except that the dimension size
       of `start_indices` corresponding to `index_vector_dim` is not included.
-  * `offset_dim_sizes` = `shape(slice_sizes)` except that the dimension sizes
+    * `offset_dim_sizes` = `shape(slice_sizes)` except that the dimension sizes
       in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
-  * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
+    * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
      `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C15) `operand` and `result` have the same element type.
+  * (C15) `operand` and `result` have the same element type.
 
 ### Examples
 
@@ -2866,8 +2863,8 @@ Produces the size of the given `dimension` of the `operand`.
 
 ### Constraints
 
-* (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`.
-  [todo](https://github.com/openxla/stablehlo/issues/790)
+  * (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`.
+    [todo](https://github.com/openxla/stablehlo/issues/790)
 
 ### Examples
 
@@ -2903,8 +2900,8 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 ### Constraints
 
-* (C1) 0 $\le$ `index` $\lt$ size(`operand`).
-* (C2) type(`operand[index]`) $=$ type(`result`).
+  * (C1) 0 $\le$ `index` $\lt$ size(`operand`).
+  * (C2) type(`operand[index]`) $=$ type(`result`).
 
 ### Examples
 
@@ -2943,9 +2940,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 ### Constraints
 
-* (C1) `true_branch` and `false_branch` have 0 inputs.
-* (C2) `true_branch` and `false_branch` have the same output types.
-* (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
+  * (C1) `true_branch` and `false_branch` have 0 inputs.
+  * (C2) `true_branch` and `false_branch` have the same output types.
+  * (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
 
 ### Examples
 
@@ -2986,10 +2983,10 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 ### Constraints
 
-* (C1) shape(`result`) = shape(`operand`).
-* (C2) element_type(`result`) $=$
-  * element_type(`operand`) if it's a floating-point type.
-  * real_type(element_type(`operand`)) otherwise.
+  * (C1) shape(`result`) = shape(`operand`).
+  * (C2) element_type(`result`) $=$
+    * element_type(`operand`) if it's a floating-point type.
+    * real_type(element_type(`operand`)) otherwise.
 
 ### Examples
 
@@ -3000,6 +2997,7 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 ```
 
 [Back to Ops](#index-of-ops)
+
 
 ## stablehlo.infeed
 
@@ -3028,10 +3026,10 @@ as a value that other operations can take a data dependency on.
 
 ### Constraints
 
-* (C1) size(`results`) $\ge$ 1.
-* (C2) type(`results`[-1]) $=$ `token`.
-* -- [Verify layout in
-  InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
+  * (C1) size(`results`) $\ge$ 1.
+  * (C2) type(`results`[-1]) $=$ `token`.
+  * -- [Verify layout in
+    InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
 ### Examples
 
@@ -3046,7 +3044,6 @@ as a value that other operations can take a data dependency on.
 ## stablehlo.iota
 
 ### Semantics
-
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 `output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
@@ -3055,10 +3052,10 @@ For integers, if the dimension size is larger than what the element type's
 maximum value can hold, an overflow occurs and the behavior is implementation-
 defined and one of the following:
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
+  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
   for unsigned overflow.
 
 ### Inputs
@@ -3075,7 +3072,7 @@ defined and one of the following:
 
 ### Constraints
 
-* (C1) 0 $\le$ `iota_dimension` $\lt$ `rank(output)`.
+  * (C1) 0 $\le$ `iota_dimension` $\lt$ `rank(output)`.
 
 ### Examples
 
@@ -3127,7 +3124,7 @@ operation from the IEEE-754 specification.
 
 ### Constraints
 
-* (C1) `x` and `y` have the same shape.
+  * (C1) `x` and `y` have the same shape.
 
 ### Examples
 
@@ -3164,7 +3161,7 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3204,7 +3201,7 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3241,7 +3238,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3264,7 +3261,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
 
-More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
+More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
 `..., inputs[N-1][i0, ..., iR-1])`.
 
 ### Inputs
@@ -3283,10 +3280,10 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 
 ### Constraints
 
-* (C1) All `inputs` and `result` have the same shape.
-* (C2) size(`inputs`) $=$ N $\ge$ 1.
-* (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
-* (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
+  * (C1) All `inputs` and `result` have the same shape.
+  * (C2) size(`inputs`) $=$ N $\ge$ 1.
+  * (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
+  * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
     where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
     element_type(`result`).
 
@@ -3332,7 +3329,7 @@ For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -3373,7 +3370,7 @@ For boolean element type, the behavior is same as
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -3397,10 +3394,10 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 unsigned/signed overflow, the result is implementation-defined and one
 of the following:
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `multiplication` operation
@@ -3427,7 +3424,7 @@ For boolean element type, the behavior is same as
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -3452,8 +3449,8 @@ from the IEEE-754 specification. For signed integer types, it performs the
 regular negation operation where the negation of $-2^{n-1}$ is implementation-
 defined and one of the following:
 
-* Saturation to $2^{n-1}-1$
-* $-2^{n-1}$
+  * Saturation to $2^{n-1}-1$
+  * $-2^{n-1}$
 
 For unsigned integer types, it bitcasts to the corresponding signed integer type,
 performs the regular negation operation and bitcasts back to the original
@@ -3473,7 +3470,7 @@ unsigned integer type.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3514,7 +3511,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3531,6 +3528,7 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 ```
 
 [Back to Ops](#index-of-ops)
+
 
 ## stablehlo.optimization_barrier
 
@@ -3555,8 +3553,8 @@ an identity, i.e. `result` = `operand`.
 
 ### Constraints
 
-* (C1) size(`operand`) $=$ size(`result`).
-* (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i.
+  * (C1) size(`operand`) $=$ size(`result`).
+  * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i.
 
 ### Examples
 
@@ -3593,7 +3591,7 @@ operation.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3668,9 +3666,9 @@ the interior-padded operand.
 
 More formally, `result[i0, ..., iR-1]` is equal to:
 
-* `operand[j0, ..., jR-1]` if
-  `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
-* `padding_value[]` otherwise.
+  * `operand[j0, ..., jR-1]` if
+    `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
+  * `padding_value[]` otherwise.
 
 ### Inputs
 
@@ -3691,11 +3689,11 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) `operand`, `padding_value`, `result` have the same element type.
-* (C2) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
+  * (C1) `operand`, `padding_value`, `result` have the same element type.
+  * (C2) `edge_padding_low`, `edge_padding_high`, `interior_padding` have the
   size equal to `operand`'s rank.
-* (C3) 0 $\le$ `interior_padding[i]` for all `i` values in `interior_padding`.
-* (C4) 0 $\le$ `dim(result, i)` for all `i`th dimension of `operand`, where
+  * (C3) 0 $\le$ `interior_padding[i]` for all `i` values in `interior_padding`.
+  * (C4) 0 $\le$ `dim(result, i)` for all `i`th dimension of `operand`, where
   `dim(result, i) = di + max(di - 1, 0) * interior_padding[i] + edge_padding_low[i] + edge_padding_high[i]`
   and `di = dim(operand, i)`.
 <!-- markdownlint-enable line-length -->
@@ -3765,7 +3763,7 @@ and produces a `result` tensor.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -3787,18 +3785,18 @@ produces a `result` tensor.
 For integer element types, if the exponentiation has an unsigned/signed
 overflow, the result is implementation-defined and one of the following:
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For an integer, `x`, raised to a negative power, `y`, the behaviour is as
 follows:
 
-* If `abs(x)` $\gt$ 1, then result is 0.
-* If `abs(x)` $=$ 1, then result is equivalent to `x^abs(y)`.
-* If `abs(x)` $=$ 0, then behaviour is implementation-defined.
+  * If `abs(x)` $\gt$ 1, then result is 0.
+  * If `abs(x)` $=$ 1, then result is equivalent to `x^abs(y)`.
+  * If `abs(x)` $=$ 0, then behaviour is implementation-defined.
 
 For floating-point element types, it implements the `pow` operation from the
 IEEE-754 specification. For complex element types, it computes complex
@@ -3820,7 +3818,7 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
 
 ### Examples
 
@@ -3856,10 +3854,10 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 
 ### Constraints
 
-* (C1) shape(`result`) = shape(`operand`).
-* (C2) element_type(`result`) $=$
-  * element_type(`operand`) if it's a floating-point type.
-  * real_type(element_type(`operand`)) otherwise.
+  * (C1) shape(`result`) = shape(`operand`).
+  * (C2) element_type(`result`) $=$
+    * element_type(`operand`) if it's a floating-point type.
+    * real_type(element_type(`operand`)) otherwise.
 
 ### Examples
 
@@ -3902,12 +3900,12 @@ other operations can take a data dependency on.
 
 ### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
-  must be
-  * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
-  * `DEVICE_TO_DEVICE`, otherwise.
-* (C2) size(`results`) $\ge$ 1.
-* (C3) type(`results`[-1]) $=$ `token`.
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579)
+    `channel_type` must be
+    * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
+  * (C2) size(`results`) $\ge$ 1.
+  * (C3) type(`results`[-1]) $=$ `token`.
 
 ### Examples
 
@@ -3940,17 +3938,17 @@ means for numeric precision is implementation-defined.
 
 More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
-* `input_slices` = `inputs[:][j0, ..., :, ..., jR-1]`, where `:` are inserted
+  * `input_slices` = `inputs[:][j0, ..., :, ..., jR-1]`, where `:` are inserted
     at `dimensions`.
-* `reduce(input_slices)` = `exec(schedule)` for some binary tree `schedule`
+  * `reduce(input_slices)` = `exec(schedule)` for some binary tree `schedule`
     where:
-  * `exec(node)` = `body(exec(node.left), exec(node.right))`.
-  * `exec(leaf)` = `leaf.value`.
-* `schedule` is an implementation-defined full binary tree whose in-order
+    * `exec(node)` = `body(exec(node.left), exec(node.right))`.
+    * `exec(leaf)` = `leaf.value`.
+  * `schedule` is an implementation-defined full binary tree whose in-order
     traversal consists of:
-  * `input_slices[:][index]` values, for all `index` in the index space
+    * `input_slices[:][index]` values, for all `index` in the index space
       of `input_slices`, in the ascending lexicographic order of `index`.
-  * Interspersed with an implementation-defined amount of `init_values`
+    * Interspersed with an implementation-defined amount of `init_values`
       at implementation-defined positions.
 
 ### Inputs
@@ -3970,18 +3968,18 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 ### Constraints
 
-* (C1) All `inputs` have the same shape.
-* (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
+  * (C1) All `inputs` have the same shape.
+  * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
   element_type(`results[k]`) for all `k` $\in$ [0, N).
-* (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
+  * (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
   N >= 1.
-* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
+  * (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
   `d`.
-* (C5) All dimensions in `dimensions` are unique.
-* (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+  * (C5) All dimensions in `dimensions` are unique.
+  * (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
   `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
   `Ek = element_type(inputs[k])`.
-* (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
+  * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
   sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 ### Examples
@@ -4010,13 +4008,12 @@ that uses `exponent_bits` and `mantissa_bits` and back to the original
 floating-point type and produces a `result` tensor.
 
 More formally:
-
-* The mantissa bits of the original value are updated to round the original
+  * The mantissa bits of the original value are updated to round the original
     value to the nearest value representable with `mantissa_bits` using
     `roundToIntegralTiesToEven` semantics.
-* Then, if `mantissa_bits` are smaller than the number of mantissa bits of
+  * Then, if `mantissa_bits` are smaller than the number of mantissa bits of
     the original value, the mantissa bits are truncated to `mantissa_bits`.
-* Then, if the exponent bits of the intermediate result don't fit into the
+  * Then, if the exponent bits of the intermediate result don't fit into the
     range provided by `exponent_bits`, the intermediate result overflows to
     infinity using the original sign or underflows to zero using the
     original sign.
@@ -4037,9 +4034,9 @@ More formally:
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* (C2) `exponent_bits` $\ge$ 1.
-* (C3) `mantissa_bits` $\ge$ 0.
+  * (C1) `operand` and `result` have the same type.
+  * (C2) `exponent_bits` $\ge$ 1.
+  * (C3) `mantissa_bits` $\ge$ 0.
 
 ### Examples
 
@@ -4069,20 +4066,20 @@ the split parts between the processes to produce the `result`.
 
 The operation splits the StableHLO grid into `process_groups` as follows:
 
-* `channel_id <= 0` and `use_global_device_ids = false`,
+  * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = false`,
+  * `channel_id > 0` and `use_global_device_ids = false`,
     `cross_replica_and_partition(replica_groups)`.
-* `channel_id > 0` and `use_global_device_ids = true`,
+  * `channel_id > 0` and `use_global_device_ids = true`,
     `flattened_ids(replica_groups)`.
 
 Afterwards, within each `process_group`:
 
 <!-- markdownlint-disable line-length -->
-* `reduced_value = all_reduce(operand, replica_groups, channel_id, use_global_device_ids, computation)`.
-* `parts@sender = split(reduced_value@sender, dim(process_groups, 1), split_dimension)`.
-* `result@receiver = parts@sender[receiver_index]` for any sender in process_group,
-      where `receiver_index = index_of(receiver, process_group)`.
+  * `reduced_value = all_reduce(operand, replica_groups, channel_id, use_global_device_ids, computation)`.
+  * `parts@sender = split(reduced_value@sender, dim(process_groups, 1), split_dimension)`.
+  * `result@receiver = parts@sender[receiver_index]` for any sender in process_group,
+    where `receiver_index = index_of(receiver, process_group)`.
 <!-- markdownlint-enable line-length -->
 
 ### Inputs
@@ -4105,20 +4102,21 @@ Afterwards, within each `process_group`:
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
-* (C2) `scatter_dimension` $\in$ [0, rank(`operand`)).
-* (C3) All values in `replica_groups` are unique.
-* (C4) `size(replica_groups)` depends on the process grouping strategy:
-  * If `cross_replica`, `num_replicas`.
-  * If `cross_replica_and_partition`, `num_replicas`.
-  * If `flattened_ids`, `num_processes`.
-* (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
+  * (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
+  * (C2) `scatter_dimension` $\in$ [0, rank(`operand`)).
+  * (C3) All values in `replica_groups` are unique.
+  * (C4) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_replica_and_partition`, `num_replicas`.
+    * If `flattened_ids`, `num_processes`.
+  * (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
-* (C6) If `use_global_device_ids = true`, then `channel_id > 0`. [todo](https://github.com/openxla/stablehlo/issues/654)
-* (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+  * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
+         [todo](https://github.com/openxla/stablehlo/issues/654)
+  * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
          `E = element_type(operand)`.
-* (C8) `type(result) = type(operand)` except:
-  * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
+  * (C8) `type(result) = type(operand)` except:
+    * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
 <!-- markdownlint-enable line-length -->
 
 ### Examples
@@ -4175,9 +4173,9 @@ More formally,
 where:
 
 <!-- markdownlint-disable line-length -->
-* `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
-* `window_start = result_index * window_strides`.
-* `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
+  * `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
+  * `window_start = result_index * window_strides`.
+  * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
 <!-- markdownlint-enable line-length -->
 
 ### Inputs
@@ -4202,29 +4200,29 @@ where:
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
+  * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
          N $\ge$ 1.
-* (C2) All `inputs` have the same shape.
-* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for any k
+  * (C2) All `inputs` have the same shape.
+  * (C3) `element_type(inputs[k]) = element_type(init_values[k])` for any k
       $\in$ [0, N).
-* (C4) size(`window_dimensions`) $=$ rank(`inputs[0]`).
-* (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
-* (C6) size(`window_strides`) $=$ rank(`inputs[0]`).
-* (C7) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(`window_strides`)).
-* (C8) size(`base_dilations`) $=$ rank(`inputs[0]`).
-* (C9) `base_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`base_dilations`)).
-* (C10) size(`window_dilations`) $=$ rank(`inputs[0]`).
-* (C11) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
-* (C12) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
-* (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+  * (C4) size(`window_dimensions`) $=$ rank(`inputs[0]`).
+  * (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
+  * (C6) size(`window_strides`) $=$ rank(`inputs[0]`).
+  * (C7) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(`window_strides`)).
+  * (C8) size(`base_dilations`) $=$ rank(`inputs[0]`).
+  * (C9) `base_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`base_dilations`)).
+  * (C10) size(`window_dilations`) $=$ rank(`inputs[0]`).
+  * (C11) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
+  * (C12) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
+  * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
           where `Ek = element_type(inputs[0])`.
-* (C14) All `results` have the same shape.
-* (C15) `shape(results[0]) = num_windows`
-  * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
-  * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
-  * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
-  * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
+  * (C14) All `results` have the same shape.
+  * (C15) `shape(results[0]) = num_windows`
+    * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
+    * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
+    * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
+    * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
+  * (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
       $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
@@ -4279,7 +4277,7 @@ implementation-defined value.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -4343,8 +4341,8 @@ spaces of `result` and `operand`.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same element type.
-* (C2) `operand` and `result` have the same number of elements.
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `operand` and `result` have the same number of elements.
 
 ### Examples
 
@@ -4361,7 +4359,6 @@ spaces of `result` and `operand`.
 ## stablehlo.reverse
 
 ### Semantics
-
 Reverses the order of elements in the `operand` along the specified `dimensions`
 and produces a `result` tensor. More formally,
 `result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
@@ -4382,9 +4379,9 @@ and produces a `result` tensor. More formally,
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* (C2) All dimensions in `dimensions` are unique.
-* (C3) For all dimensions `k` in `dimensions`, 0 $\le$ `dimensions[k]` $\lt$
+  * (C1) `operand` and `result` have the same type.
+  * (C2) All dimensions in `dimensions` are unique.
+  * (C3) For all dimensions `k` in `dimensions`, 0 $\le$ `dimensions[k]` $\lt$
   `rank(result)`.
 
 ### Examples
@@ -4445,10 +4442,10 @@ hidden state.
 
 ### Constraints
 
-* (C1) `a`, `b`, and `result` have the same element type.
-* (C2) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
+  * (C1) `a`, `b`, and `result` have the same element type.
+  * (C2) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
     floating-point element type.
-* (C3) shape(`result`) = `shape`.
+  * (C3) shape(`result`) = `shape`.
 
 ### Examples
 
@@ -4480,9 +4477,9 @@ deterministic between implementations.
 
 `rng_algorithm` is one of the following:
 
-* `DEFAULT`: Implementation-defined algorithm.
-* `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
-* `PHILOX`: Implementation-defined variant of the Philox algorithm.*
+  * `DEFAULT`: Implementation-defined algorithm.
+  * `THREE_FRY`: Implementation-defined variant of the Threefry algorithm.*
+  * `PHILOX`: Implementation-defined variant of the Philox algorithm.*
 
 \* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
 ](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
@@ -4503,11 +4500,11 @@ deterministic between implementations.
 
 ### Constraints
 
-* (C1) type(`initial_state`) $=$ type(`output_state`).
-* (C2) size(`initial_state`) depends on `rng_algorithm`:
-  * `DEFAULT`: implementation-defined.
-  * `THREE_FRY`: `2`.
-  * `PHILOX`: `2` or `3`.
+  * (C1) type(`initial_state`) $=$ type(`output_state`).
+  * (C2) size(`initial_state`) depends on `rng_algorithm`:
+    * `DEFAULT`: implementation-defined.
+    * `THREE_FRY`: `2`.
+    * `PHILOX`: `2` or `3`.
 
 ### Examples
 
@@ -4547,7 +4544,7 @@ the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -4582,7 +4579,7 @@ specification.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -4616,7 +4613,7 @@ specification. Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -4649,40 +4646,39 @@ correspond to.
 
 More formally, for all `update_index` from the index space of `updates[0]`:
 
-* `update_scatter_dims` = [`d` for `d` in `axes(updates[0])` and `d` not in
+  * `update_scatter_dims` = [`d` for `d` in `axes(updates[0])` and `d` not in
     `update_window_dims`].
-* `update_scatter_index` = [`update_index[d]` for `d` in
+  * `update_scatter_index` = [`update_index[d]` for `d` in
     `update_scatter_dims`].
-* `start_index` =
-  * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
+  * `start_index` =
+      * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
         elements in `update_scatter_index` and `:` is inserted at the
         `index_vector_dim` index, if `index_vector_dim` <
         `rank(scatter_indices)`.
-  * `[scatter_indices[update_scatter_index]]` otherwise.
-* For `do` in `axes(inputs[0])`,
-  * `full_start_index[do]` = `start_index[ds]` if
+      * `[scatter_indices[update_scatter_index]]` otherwise.
+  * For `do` in `axes(inputs[0])`,
+      * `full_start_index[do]` = `start_index[ds]` if
         `do = scatter_dims_to_operand_dims[ds]`.
-  * `full_start_index[do]` = `0` otherwise.
-* `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
-* `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+      * `full_start_index[do]` = `0` otherwise.
+  * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
+  * `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `update_window_index`, and `0` is inserted at indices from
     `inserted_window_dims`.
-* `result_index` = `add(full_start_index, full_window_index)`.
+  * `result_index` = `add(full_start_index, full_window_index)`.
 
 Using this mapping between `update_index` and `result_index`, we define
 `results = exec(schedule, inputs)`, where:
 
-<!-- markdownlint-disable line-length -->
-* `schedule` is an implementation-defined permutation of the index space
+  * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
-* `exec([update_index, ...], results) = exec([...], updated_results)` where:
-  * `updated_values = update_computation(results[:][result_index], updates[:][update_index])`.
-  * `updated_results` is a copy of `results` with `results[:][result_index]`
+  * `exec([update_index, ...], results) = exec([...], updated_results)` where:
+    * `updated_values =
+      update_computation(results[:][result_index], updates[:][update_index])`.
+    * `updated_results` is a copy of `results` with `results[:][result_index]`
       set to `updated_values[:]`.
-  * If `result_index` is out of bounds for `shape(results[:])`, the behavior
+    * If `result_index` is out of bounds for `shape(results[:])`, the behavior
       is implementation-defined.
-* `exec([], results) = results`.
-<!-- markdownlint-enable line-length -->
+  * `exec([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
 `scatter_indices` are sorted with respect to `scatter_dims_to_operand_dims`,
@@ -4718,41 +4714,40 @@ is undefined.
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) All `inputs` have the same shape.
-* (C2) rank(`inputs`[0]) = size(`update_window_dims`) +
+  * (C1) All `inputs` have the same shape.
+  * (C2) rank(`inputs`[0]) = size(`update_window_dims`) +
          size(`inserted_window_dims`).
-* (C3) All `updates` have the same shape.
-* (C4) `shape(updates[0])` $=$
+  * (C3) All `updates` have the same shape.
+  * (C4) `shape(updates[0])` $=$
           `combine(update_scatter_dim_sizes, update_window_dim_sizes)` where:
-  * `update_scatter_dim_sizes` = `shape(scatter_indices)` except that
+    * `update_scatter_dim_sizes` = `shape(scatter_indices)` except that
       the dimension size of `scatter_indices` corresponding to
       `index_vector_dim` is not included.
-  * `update_window_dim_sizes` $\le$ `shape(inputs[0])` except that
+    * `update_window_dim_sizes` $\le$ `shape(inputs[0])` except that
       the dimension sizes in `inputs[0]` corresponding to `inserted_window_dims`
       are not included.
-  * `combine` puts `update_scatter_dim_sizes` at axes corresponding to
+    * `combine` puts `update_scatter_dim_sizes` at axes corresponding to
      `update_scatter_dims` and `update_window_dim_sizes` at axes corresponding
      to `update_window_dims`.
-* (C5) N $=$ size(`inputs`) = size(`updates`) and N $\ge$ 1.
-* (C6) `element_type(updates[k]) = element_type(inputs[k])` for any k $\in$
+  * (C5) N $=$ size(`inputs`) = size(`updates`) and N $\ge$ 1.
+  * (C6) `element_type(updates[k]) = element_type(inputs[k])` for any k $\in$
          [0, N).
-* (C7) All dimensions in `update_window_dims` are unique and sorted.
-* (C8) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
+  * (C7) All dimensions in `update_window_dims` are unique and sorted.
+  * (C8) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
     `update_window_dims`[i] $\lt$ rank(`updates`[0]).
-* (C9) All dimensions in `inserted_window_dims` are unique and sorted.
-* (C10) For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
+  * (C9) All dimensions in `inserted_window_dims` are unique and sorted.
+  * (C10) For all i $\in$ [0, size(`inserted_window_dims`)), $0 \le$
     `inserted_window_dims`[i] $\lt$ rank(`inputs`[0]).
-* (C11) size(`scatter_dims_to_operand_dims`) $=$
+  * (C11) size(`scatter_dims_to_operand_dims`) $=$
          `index_vector_dim` $\lt$ rank(`scatter_indices`) ?
          dim(`scatter_indices`, `index_vector_dim`) : 1.
-* (C12) All dimensions in `scatter_dims_to_operand_dims` are unique.
-* (C13) For all i $\in$ [0, size(`scatter_dims_to_operand_dims`)), $0 \le$
+  * (C12) All dimensions in `scatter_dims_to_operand_dims` are unique.
+  * (C13) For all i $\in$ [0, size(`scatter_dims_to_operand_dims`)), $0 \le$
         `scatter_dims_to_operand_dims`[i] $\lt$ rank(`inputs`[0]).
-* (C14) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
-* (C15) `update_computation` has type
-  `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+  * (C14) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
+  * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
           where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
-* (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
+  * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
 ### Examples
@@ -4818,8 +4813,8 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Constraints
 
-* (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
-* (C2) `on_true`, `on_false` and `result` have same type.
+  * (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
+  * (C2) `on_true`, `on_false` and `result` have same type.
 
 ### Examples
 
@@ -4848,29 +4843,27 @@ The following diagram shows how elements in `result` are computed from
 
 More formally:
 
-* `selected_values = reduce_window_without_init(...)` with the following inputs:
-  * `inputs` $=$ [ `operand` ].
-  * `window_dimensions`, `window_strides`, and `padding` which are used as is.
-  * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
-  * `body` defined as:
-
+ * `selected_values = reduce_window_without_init(...)` with the following inputs:
+   * `inputs` $=$ [ `operand` ].
+   * `window_dimensions`, `window_strides`, and `padding` which are used as is.
+   * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
+   * `body` defined as:
      ```C++
      (tensor<E> arg0, tensor<E> arg1) -> tensor<E> {
       return select(arg0, arg1) ? arg0 : arg1;
      }
      ```
-
      where `E = element_type(operand)`.
    where `reduce_window_without_init` works exactly like `reduce_window`,
    except that the `schedule` of the underlying `reduce` doesn't include
    init values.
-* `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
+ * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
    where:
-  * `source_values` $=$ [`source[source_index]` for `source_index` in
+   * `source_values` $=$ [`source[source_index]` for `source_index` in
      `source_indices`].
-  * `source_indices` $=$ [`source_index` for `source_index` in
+   * `source_indices` $=$ [`source_index` for `source_index` in
      `indices(source)` if `selected_index(source_index) = result_index`].
-  * `selected_index(source_index) = operand_index` if
+   * `selected_index(source_index) = operand_index` if
      `selected_values[source_index]` has the `operand` element
      from `operand_index`.
 
@@ -4896,21 +4889,18 @@ More formally:
 ### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) rank(`operand`) $=$ size(`window_dimensions`).
-* (C2) `operand` and `source` have the same element type.
-* (C3) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
-  * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
-* (C4) element_type(`init_value`) $=$ element_type(`operand`).
-* (C5) size(`window_dimensions`) $=$ rank(`operand`).
-* (C6) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
-* (C7) size(`window_strides`) $=$ rank(`operand`).
-* (C8) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
-* (C9) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
-* (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
-         `E = element_type(operand)`.
-* (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-         `E = element_type(operand)`.
-* (C12) type(`operand`) $=$ type(`result`).
+  * (C1) rank(`operand`) $=$ size(`window_dimensions`).
+  * (C2) `operand` and `source` have the same element type.
+  * (C3) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
+    * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
+  * (C4) element_type(`init_value`) $=$ element_type(`operand`).
+  * (C5) size(`window_dimensions`) $=$ rank(`operand`).
+  * (C6) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
+  * (C7) size(`window_strides`) $=$ rank(`operand`).
+  * (C8) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
+  * (C9) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
+  * (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+  * (C12) type(`operand`) $=$ type(`result`).
 <!-- markdownlint-enable line-length -->
 
 ### Examples
@@ -4968,10 +4958,10 @@ implementation-defined.
 
 ### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
-  must be
-  * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
-  * `DEVICE_TO_DEVICE`, otherwise.
+  * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
+    must be
+    * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
+    * `DEVICE_TO_DEVICE`, otherwise.
 
 ### Examples
 
@@ -5008,7 +4998,7 @@ of bits and produces a `result` tensor.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
 
 ### Examples
 
@@ -5043,7 +5033,7 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 
 ### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
 
 ### Examples
 
@@ -5078,7 +5068,7 @@ number of bits and produces a `result` tensor.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
+  * (C1) `lhs`, `rhs`, and `result` have the same type.
 
 ### Examples
 
@@ -5098,7 +5088,6 @@ number of bits and produces a `result` tensor.
 Returns the sign of the `operand` element-wise and produces a `result` tensor.
 More formally, for each element `x`, the semantics can be expressed using
 Python-like syntax as follows:
-
 ```python
 def sign(x):
   if is_integer(x):
@@ -5134,7 +5123,7 @@ def sign(x):
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -5169,7 +5158,7 @@ Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -5216,13 +5205,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same element type.
-* (C2) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
   rank(`operand`).
-* (C3) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
+  * (C3) 0 $\le$ `start_indices[d]` $\le$ `limit_indices[d]` $\le$
   `dim(operand, d)` for all dimension `d`.
-* (C4) 0 $\lt$ `strides[d]` for all dimension `d`.
-* (C5) `dim(result, d)` =
+  * (C4) 0 $\lt$ `strides[d]` for all dimension `d`.
+  * (C5) `dim(result, d)` =
   $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
   dimension `d` in `operand`.
 
@@ -5296,13 +5285,13 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 
 ### Constraints
 
-* (C1) `inputs` have at least 1 tensor.
-* (C2) For all `i`, `type(inputs[i])` = `type(results[i])`.
-* (C3) All tensors in `inputs` and `results` have the same shape.
-* (C4) `-R` $\le$ `dimension` $\lt$ `R`, where `R` is rank of `inputs[0]`.
-* (C5) `comparator` has type
-  `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
-  where `Ei` is element type of `inputs[i]`.
+  * (C1) `inputs` have at least 1 tensor.
+  * (C2) For all `i`, `type(inputs[i])` = `type(results[i])`.
+  * (C3) All tensors in `inputs` and `results` have the same shape.
+  * (C4) `-R` $\le$ `dimension` $\lt$ `R`, where `R` is rank of `inputs[0]`.
+  * (C5) `comparator` has type
+    `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
+    where `Ei` is element type of `inputs[i]`.
 
 ### Examples
 
@@ -5367,7 +5356,7 @@ specification.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -5392,10 +5381,10 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 an unsigned/signed overflow, the result is implementation-defined and one of the
 following:
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
+  * mathematical result modulo $2^n$, where n is the bit width of the result,
   for unsigned overflow. For signed integer overflow, wraps the result around
   the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
+  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
   saturation to $2^n - 1$ (or $0$) for unsigned overflow.
 
 For floating-point element types, it implements the `subtraction` operation from
@@ -5416,7 +5405,7 @@ the IEEE-754 specification.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
@@ -5453,7 +5442,7 @@ Numeric precision is implementation-defined.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same type.
+  * (C1) `operand` and `result` have the same type.
 
 ### Examples
 
@@ -5490,10 +5479,10 @@ where `i[d] = j[permutation[d]]`.
 
 ### Constraints
 
-* (C1) `operand` and `result` have the same element type.
-* (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
+  * (C1) `operand` and `result` have the same element type.
+  * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
   rank of `operand`.
-* (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
+  * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
   where `j = permutation[i]`.
 
 ### Examples
@@ -5529,9 +5518,9 @@ to `op(a[i0, ..., iR-3, :, :]) * x = b[i0, ..., iR-3, :, :]` when `left_side` is
 `left_side` is `false`, solving for the variable `x` where `op(a)` is determined
 by `transpose_a`, which can be one of the following:
 
-* `NO_TRANSPOSE`: Perform operation using `a` as-is.
-* `TRANSPOSE`: Perform operation on transpose of `a`.
-* `ADJOINT`: Perform operation on conjugate transpose of `a`.
+  * `NO_TRANSPOSE`: Perform operation using `a` as-is.
+  * `TRANSPOSE`: Perform operation on transpose of `a`.
+  * `ADJOINT`: Perform operation on conjugate transpose of `a`.
 
 Input data is read only from the lower triangle of `a`, if `lower` is `true` or
 upper triangle of `a`, otherwise. Output data is returned in the same triangle;
@@ -5559,12 +5548,12 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 
 ### Constraints
 
-* (C1) `a` and `b` have the same element type
-* (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
-* (C3) The relationship between shape(`a`) and shape(`b`) is as follows:
-  * For all `i` $\in$ [0, R-3], dim(`a`, `i`) $=$ dim(`b`, `i`).
-  * `dim(a, R-2)` $=$ `dim(a, R-1)` $=$ `dim(b, left_side ? R-2 : R-1)`.
-* (C4) `b` and `result` have the same type.
+  * (C1) `a` and `b` have the same element type
+  * (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
+  * (C3) The relationship between shape(`a`) and shape(`b`) is as follows:
+    * For all `i` $\in$ [0, R-3], dim(`a`, `i`) $=$ dim(`b`, `i`).
+    * `dim(a, R-2)` $=$ `dim(a, R-1)` $=$ `dim(b, left_side ? R-2 : R-1)`.
+  * (C4) `b` and `result` have the same type.
 
 ### Examples
 
@@ -5614,8 +5603,8 @@ Produces a `result` tuple from values `val`.
 
 ### Constraints
 
-* (C1) size(`val`) $=$ size(`result`) $=$ N.
-* (C2) `type(val[i])` $=$ `type(result[i])`, for all `i` $\in$ range [0, N).
+  * (C1) size(`val`) $=$ size(`result`) $=$ N.
+  * (C2) `type(val[i])` $=$ `type(result[i])`, for all `i` $\in$ range [0, N).
 
 ### Examples
 
@@ -5661,11 +5650,11 @@ The behavior of an infinite loop is TBD.
 
 ### Constraints
 
-* (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
+  * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
          `Ti` = `type(operands[i])`.
-* (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
+  * (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
          `Ti` = `type(operands[i])`.
-* (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
+  * (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
 
 ### Examples
 
@@ -5713,7 +5702,7 @@ logical operation.
 
 ### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+  * (C1) `lhs`, `rhs` and `result` have the same type.
 
 ### Examples
 
