@@ -25,7 +25,7 @@ on figuring out the appropriate governance to make this happen.
 
 ## Roadmap
 
-* Workstream #1: Stable version of HLO/MHLO, including
+  * Workstream #1: Stable version of HLO/MHLO, including
   [the spec](https://github.com/openxla/stablehlo/labels/Spec),
   the corresponding dialect with high-quality implementations of
   [prettyprinting](https://github.com/openxla/stablehlo/labels/Prettyprinting),
@@ -33,8 +33,8 @@ on figuring out the appropriate governance to make this happen.
   [type inference](https://github.com/openxla/stablehlo/labels/Type%20inference),
   and [the interpeter](https://github.com/openxla/stablehlo/labels/Interpreter).
   ETA: H2 2022.
-* Workstream #2: Evolution beyond what's currently in HLO/MHLO.
+  * Workstream #2: Evolution beyond what's currently in HLO/MHLO.
   Ongoing work on [dynamism](https://github.com/openxla/stablehlo/labels/Dynamism),
   sparsity, quantization and extensibility. ETA: H2 2022.
-* Workstream #3: Support for ML frameworks (TensorFlow, JAX, PyTorch) and
+  * Workstream #3: Support for ML frameworks (TensorFlow, JAX, PyTorch) and
   ML compilers (XLA and IREE). ETA: H2 2022.

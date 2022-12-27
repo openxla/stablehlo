@@ -31,48 +31,48 @@ in the following code comments:
 The following attributes / types are subclasses of builtin machinery and call
 into the bytecode implementations in the Builtin Dialect.
 
-- `StableHLO_ArrayOfLayoutAttr`
-- `StableHLO_BoolElementsAttr`
-- `StableHLO_FlatSymbolRefArrayAttr`
-- `StableHLO_LayoutAttr`
-- `HLO_ComplexTensor`
-- `HLO_Complex`
-- `HLO_DimensionTensor`
-- `HLO_DimensionValue`
-- `HLO_Float32Or64`
-- `HLO_Float`
-- `HLO_Fp32Or64Tensor`
-- `HLO_FpOrComplexTensor`
-- `HLO_FpTensor`
-- `HLO_IntFpOrComplexTensor`
-- `HLO_IntOrFpTensor`
-- `HLO_IntTensor`
-- `HLO_Int`
-- `HLO_PredIntOrFpTensor`
-- `HLO_PredOrIntTensor`
-- `HLO_PredTensor`
-- `HLO_Pred`
-- `HLO_QuantizedIntTensor`
-- `HLO_QuantizedInt`
-- `HLO_QuantizedSignedInt`
-- `HLO_QuantizedUnsignedInt`
-- `HLO_SInt`
-- `HLO_ScalarIntTensor`
-- `HLO_StaticShapeTensor`
-- `HLO_TensorOrTokenOrTuple`
-- `HLO_TensorOrToken`
-- `HLO_Tensor`
-- `HLO_Tuple`
-- `HLO_UInt`
+  - `StableHLO_ArrayOfLayoutAttr`
+  - `StableHLO_BoolElementsAttr`
+  - `StableHLO_FlatSymbolRefArrayAttr`
+  - `StableHLO_LayoutAttr`
+  - `HLO_ComplexTensor`
+  - `HLO_Complex`
+  - `HLO_DimensionTensor`
+  - `HLO_DimensionValue`
+  - `HLO_Float32Or64`
+  - `HLO_Float`
+  - `HLO_Fp32Or64Tensor`
+  - `HLO_FpOrComplexTensor`
+  - `HLO_FpTensor`
+  - `HLO_IntFpOrComplexTensor`
+  - `HLO_IntOrFpTensor`
+  - `HLO_IntTensor`
+  - `HLO_Int`
+  - `HLO_PredIntOrFpTensor`
+  - `HLO_PredOrIntTensor`
+  - `HLO_PredTensor`
+  - `HLO_Pred`
+  - `HLO_QuantizedIntTensor`
+  - `HLO_QuantizedInt`
+  - `HLO_QuantizedSignedInt`
+  - `HLO_QuantizedUnsignedInt`
+  - `HLO_SInt`
+  - `HLO_ScalarIntTensor`
+  - `HLO_StaticShapeTensor`
+  - `HLO_TensorOrTokenOrTuple`
+  - `HLO_TensorOrToken`
+  - `HLO_Tensor`
+  - `HLO_Tuple`
+  - `HLO_UInt`
 
 **Special Cases:**
 
-- `StableHLO_ConvolutionAttributes`
-  - Despite its name,  is not an attribute and is not encoded.
+  - `StableHLO_ConvolutionAttributes`
+    - Despite its name,  is not an attribute and is not encoded.
     Rather, it is a dag which gets expanded into several attributes
     which are all encoded separately.
-- `StableHLO_CustomCallApiVersionAttr`
-  - This enum is defined strictly as an attribute of `I32EnumAttr`
+  - `StableHLO_CustomCallApiVersionAttr`
+    - This enum is defined strictly as an attribute of `I32EnumAttr`
     and not an `EnumAttr` of the `StablehloDialect`. This differs from
    `FftType` and other enum attributes. Because of this, it is handled by
     the builtin encoding.

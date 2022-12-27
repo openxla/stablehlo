@@ -16,25 +16,25 @@ The progress of a StableHLO op, as mentioned in the corresponding row, on a
 particular aspect, as mentioned in the corresponding column, is tracked using
 one of the following tracking labels.
 
-- Generic labels
-  - **yes**: there is a comprehensive implementation.
-  - **no**: there is no implementation, but working on that is part of
+  - Generic labels
+    - **yes**: there is a comprehensive implementation.
+    - **no**: there is no implementation, but working on that is part of
       [the roadmap](https://github.com/openxla/stablehlo#roadmap).
       Note that Verifier can never be labeled as "no" because the ODS already
       implements some verification.
-- Customized labels for Verifier and Type Inference
-  - **yes**: there is an implementation, and it's in sync with
+  - Customized labels for Verifier and Type Inference
+    - **yes**: there is an implementation, and it's in sync with
     [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
-  - **yes\***: there is an implementation, and it's in sync with
+    - **yes\***: there is an implementation, and it's in sync with
     [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
     Since XLA semantics is oftentimes underdocumented, we are using
     [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
     and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
     as the reference.
-  - **revisit**: there is an implementation, but it doesn't fall under "yes"
+    - **revisit**: there is an implementation, but it doesn't fall under "yes"
       or "yes\*" - either because we haven't audited it yet, or because we have
       and found issues.
-  - **infeasible**: there is no implementation, because it's infeasible.
+    - **infeasible**: there is no implementation, because it's infeasible.
       For example, because the result type of an op cannot be inferred from
       its operands and attributes.
 
