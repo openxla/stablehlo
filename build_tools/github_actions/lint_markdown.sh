@@ -30,7 +30,7 @@ readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 
 # These must be relative to the repo root because that's the context
 # in which the Docker container will mount and find all files
-readonly CONFIG="build_tools/github_actions/markdownlint.yaml"
+readonly CONFIG=".markdownlint.yaml"
 readonly FILES="$1"
 
 # Verify Docker is available
