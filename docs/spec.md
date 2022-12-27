@@ -376,100 +376,101 @@ syntax.
   encoding) or "\18\A3" (in hex encoding).
 
 ## Index of Ops
-   * [abs](#stablehloabs)
-   * [add](#stablehloadd)
-   * [after_all](#stablehloafter_all)
-   * [all_gather](#stablehloall_gather)
-   * [all_reduce](#stablehloall_reduce)
-   * [all_to_all](#stablehloall_to_all)
-   * [and](#stablehloand)
-   * [atan2](#stablehloatan2)
-   * [batch_norm_grad](#stablehlobatch_norm_grad)
-   * [batch_norm_inference](#stablehlobatch_norm_inference)
-   * [batch_norm_training](#stablehlobatch_norm_training)
-   * [bitcast_convert](#stablehlobitcast_convert)
-   * [broadcast_in_dim](#stablehlobroadcast_in_dim)
-   * [case](#stablehlocase)
-   * [cbrt](#stablehlocbrt)
-   * [ceil](#stablehloceil)
-   * [cholesky](#stablehlocholesky)
-   * [clamp](#stablehloclamp)
-   * [collective_permute](#stablehlocollective_permute)
-   * [compare](#stablehlocompare)
-   * [complex](#stablehlocomplex)
-   * [concatenate](#stablehloconcatenate)
-   * [constant](#stablehloconstant)
-   * [convert](#stablehloconvert)
-   * [convolution](#stablehloconvolution)
-   * [cosine](#stablehlocosine)
-   * [count_leading_zeros](#stablehlocount_leading_zeros)
-   * [custom_call](#stablehlocustom_call)
-   * [divide](#stablehlodivide)
-   * [dot_general](#stablehlodot_general)
-   * [dynamic_slice](#stablehlodynamic_slice)
-   * [dynamic_update_slice](#stablehlodynamic_update_slice)
-   * [exponential](#stablehloexponential)
-   * [exponential_minus_one](#stablehloexponential_minus_one)
-   * [fft](#stablehlofft)
-   * [floor](#stablehlofloor)
-   * [gather](#stablehlogather)
-   * [get_dimension_size](#stablehloget_dimension_size)
-   * [get_tuple_element](#stablehloget_tuple_element)
-   * [if](#stablehloif)
-   * [imag](#stablehloimag)
-   * [infeed](#stablehloinfeed)
-   * [iota](#stablehloiota)
-   * [is_finite](#stablehlois_finite)
-   * [log](#stablehlolog)
-   * [log_plus_one](#stablehlolog_plus_one)
-   * [logistic](#stablehlologistic)
-   * [map](#stablehlomap)
-   * [maximum](#stablehlomaximum)
-   * [minimum](#stablehlominimum)
-   * [multiply](#stablehlomultiply)
-   * [negate](#stablehlonegate)
-   * [not](#stablehlonot)
-   * [optimization_barrier](#stablehlooptimization_barrier)
-   * [or](#stablehloor)
-   * [outfeed](#stablehlooutfeed)
-   * [pad](#stablehlopad)
-   * [partition_id](#stablehlopartition_id)
-   * [popcnt](#stablehlopopcnt)
-   * [power](#stablehlopower)
-   * [real](#stablehloreal)
-   * [recv](#stablehlorecv)
-   * [reduce](#stablehloreduce)
-   * [reduce_precision](#stablehloreduce_precision)
-   * [reduce_scatter](#stablehloreduce_scatter)
-   * [reduce_window](#stablehloreduce_window)
-   * [remainder](#stablehloremainder)
-   * [replica_id](#stablehloreplica_id)
-   * [reshape](#stablehloreshape)
-   * [reverse](#stablehloreverse)
-   * [rng](#stablehlorng)
-   * [rng_bit_generator](#stablehlorng_bit_generator)
-   * [round_nearest_afz](#stablehloround_nearest_afz)
-   * [round_nearest_even](#stablehloround_nearest_even)
-   * [rsqrt](#stablehlorsqrt)
-   * [scatter](#stablehloscatter)
-   * [select](#stablehloselect)
-   * [select_and_scatter](#stablehloselect_and_scatter)
-   * [send](#stablehlosend)
-   * [shift_left](#stablehloshift_left)
-   * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
-   * [shift_right_logical](#stablehloshift_right_logical)
-   * [sign](#stablehlosign)
-   * [sine](#stablehlosine)
-   * [slice](#stablehloslice)
-   * [sort](#stablehlosort)
-   * [sqrt](#stablehlosqrt)
-   * [subtract](#stablehlosubtract)
-   * [tanh](#stablehlotanh)
-   * [transpose](#stablehlotranspose)
-   * [triangular_solve](#stablehlotriangular_solve)
-   * [tuple](#stablehlotuple)
-   * [while](#stablehlowhile)
-   * [xor](#stablehloxor)
+
+  * [abs](#stablehloabs)
+  * [add](#stablehloadd)
+  * [after_all](#stablehloafter_all)
+  * [all_gather](#stablehloall_gather)
+  * [all_reduce](#stablehloall_reduce)
+  * [all_to_all](#stablehloall_to_all)
+  * [and](#stablehloand)
+  * [atan2](#stablehloatan2)
+  * [batch_norm_grad](#stablehlobatch_norm_grad)
+  * [batch_norm_inference](#stablehlobatch_norm_inference)
+  * [batch_norm_training](#stablehlobatch_norm_training)
+  * [bitcast_convert](#stablehlobitcast_convert)
+  * [broadcast_in_dim](#stablehlobroadcast_in_dim)
+  * [case](#stablehlocase)
+  * [cbrt](#stablehlocbrt)
+  * [ceil](#stablehloceil)
+  * [cholesky](#stablehlocholesky)
+  * [clamp](#stablehloclamp)
+  * [collective_permute](#stablehlocollective_permute)
+  * [compare](#stablehlocompare)
+  * [complex](#stablehlocomplex)
+  * [concatenate](#stablehloconcatenate)
+  * [constant](#stablehloconstant)
+  * [convert](#stablehloconvert)
+  * [convolution](#stablehloconvolution)
+  * [cosine](#stablehlocosine)
+  * [count_leading_zeros](#stablehlocount_leading_zeros)
+  * [custom_call](#stablehlocustom_call)
+  * [divide](#stablehlodivide)
+  * [dot_general](#stablehlodot_general)
+  * [dynamic_slice](#stablehlodynamic_slice)
+  * [dynamic_update_slice](#stablehlodynamic_update_slice)
+  * [exponential](#stablehloexponential)
+  * [exponential_minus_one](#stablehloexponential_minus_one)
+  * [fft](#stablehlofft)
+  * [floor](#stablehlofloor)
+  * [gather](#stablehlogather)
+  * [get_dimension_size](#stablehloget_dimension_size)
+  * [get_tuple_element](#stablehloget_tuple_element)
+  * [if](#stablehloif)
+  * [imag](#stablehloimag)
+  * [infeed](#stablehloinfeed)
+  * [iota](#stablehloiota)
+  * [is_finite](#stablehlois_finite)
+  * [log](#stablehlolog)
+  * [log_plus_one](#stablehlolog_plus_one)
+  * [logistic](#stablehlologistic)
+  * [map](#stablehlomap)
+  * [maximum](#stablehlomaximum)
+  * [minimum](#stablehlominimum)
+  * [multiply](#stablehlomultiply)
+  * [negate](#stablehlonegate)
+  * [not](#stablehlonot)
+  * [optimization_barrier](#stablehlooptimization_barrier)
+  * [or](#stablehloor)
+  * [outfeed](#stablehlooutfeed)
+  * [pad](#stablehlopad)
+  * [partition_id](#stablehlopartition_id)
+  * [popcnt](#stablehlopopcnt)
+  * [power](#stablehlopower)
+  * [real](#stablehloreal)
+  * [recv](#stablehlorecv)
+  * [reduce](#stablehloreduce)
+  * [reduce_precision](#stablehloreduce_precision)
+  * [reduce_scatter](#stablehloreduce_scatter)
+  * [reduce_window](#stablehloreduce_window)
+  * [remainder](#stablehloremainder)
+  * [replica_id](#stablehloreplica_id)
+  * [reshape](#stablehloreshape)
+  * [reverse](#stablehloreverse)
+  * [rng](#stablehlorng)
+  * [rng_bit_generator](#stablehlorng_bit_generator)
+  * [round_nearest_afz](#stablehloround_nearest_afz)
+  * [round_nearest_even](#stablehloround_nearest_even)
+  * [rsqrt](#stablehlorsqrt)
+  * [scatter](#stablehloscatter)
+  * [select](#stablehloselect)
+  * [select_and_scatter](#stablehloselect_and_scatter)
+  * [send](#stablehlosend)
+  * [shift_left](#stablehloshift_left)
+  * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
+  * [shift_right_logical](#stablehloshift_right_logical)
+  * [sign](#stablehlosign)
+  * [sine](#stablehlosine)
+  * [slice](#stablehloslice)
+  * [sort](#stablehlosort)
+  * [sqrt](#stablehlosqrt)
+  * [subtract](#stablehlosubtract)
+  * [tanh](#stablehlotanh)
+  * [transpose](#stablehlotranspose)
+  * [triangular_solve](#stablehlotriangular_solve)
+  * [tuple](#stablehlotuple)
+  * [while](#stablehlowhile)
+  * [xor](#stablehloxor)
 
 ## stablehlo.abs
 
@@ -690,6 +691,7 @@ Afterwards, within each `process_group`:
   * `operands@receiver = [operand@sender for sender in process_group]` for all
     `receiver` in `process_group`.
   * &#32;
+
     ```mlir
     result@process[i0, i1, ..., iR-1] =
         reduce_without_init(
@@ -698,6 +700,7 @@ Afterwards, within each `process_group`:
           body=computation
         )
     ```
+
     where `reduce_without_init` works exactly like `reduce`, except that its
     `schedule` doesn't include init values.
 
@@ -755,7 +758,6 @@ Afterwards, within each `process_group`:
 
 [Back to Ops](#index-of-ops)
 
-
 ## stablehlo.all_to_all
 
 ### Semantics
@@ -773,6 +775,7 @@ The operation splits the StableHLO grid into process groups using the
 Afterwards, within each `process_group`:
 
   * &#32;
+
     ```mlir
     split_parts@sender = [
         slice(
@@ -790,6 +793,7 @@ Afterwards, within each `process_group`:
         ) for i in range(split_count)
      ]
     ```
+
     for all `sender` in `process_group`.
   * `scattered_parts@receiver = [split_parts@sender[receiver_index] for
     sender in process_group]` where
@@ -1580,9 +1584,9 @@ The operation splits the StableHLO grid into `process_groups` as follows:
 
 Afterwards, `result@process` is given by:
 
- * `operand@process_groups[i, 0]`, if there exists an `i` such that
+  * `operand@process_groups[i, 0]`, if there exists an `i` such that
    `process_groups[i, 1] = process`.
- * `broadcast_in_dim(0, [], shape(result))`, otherwise.
+  * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
 ### Inputs
 
@@ -1837,6 +1841,7 @@ Performs an element-wise conversion from one element type to another on
 
 For conversions involving **integer-to-integer**, if there is an unsigned/signed
 overflow, the result is implementation-defined and one of the following:
+
   * mathematical result modulo $2^n$, where n is the bit width of the result,
     for unsigned overflow. For signed integer overflow, wraps the result around
     the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
@@ -1920,8 +1925,8 @@ of `lhs` in order to be able to express windows of `lhs`:
 
 This reframing uses the following helper functions:
 
-  *  `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
-  *  `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
+  * `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
+  * `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
 
 If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
@@ -1976,7 +1981,6 @@ If `batch_group_count > 1`:
 | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)      |
 | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                  |
 
-
 ### Outputs
 
 | Name     | Type                         | Constraints         |
@@ -2024,13 +2028,13 @@ If `batch_group_count > 1`:
     * `dim(lhs, input_batch_dimension) / batch_group_count`, if `result_dim = output_batch_dimension`.
     * `dim(rhs, kernel_output_feature_dimension)`, if `result_dim = output_feature_dimension`.
     * `num_windows` otherwise, where:
-        * `output_spatial_dimensions[spatial_dim] = result_dim`.
-        * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
-        * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
-        * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
-        * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
-        * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
-        * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
+      * `output_spatial_dimensions[spatial_dim] = result_dim`.
+      * `lhs_dim = input_spatial_dimensions[spatial_dim]`.
+      * `rhs_dim = kernel_spatial_dimensions[spatial_dim]`.
+      * `dilated_input_shape[lhs_dim] = dim(lhs, lhs_dim) == 0 ? 0 : (dim(lhs, lhs_dim) - 1) * lhs_dilation[spatial_dim] + 1`.
+      * `padded_input_shape[lhs_dim] = padding[spatial_dim, 0] + dilated_input_shape[lhs_dim] + padding[spatial_dim, 1]`.
+      * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) == 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
+      * `num_windows = (padded_input_shape[lhs_dim] == 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]) ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
   * (C27) element_type(`result`) $=$ element_type(`lhs`).
   * (C28) rank(`result`) $= N$.
 <!-- markdownlint-enable line-length -->
@@ -2371,7 +2375,7 @@ contain the sizes of the slice for each dimension.
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
   * `jd = adjusted_start_indices[d][] + id`.
-  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) - `
+  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) -`
     `slice_sizes)`.
 
 ### Inputs
@@ -2455,7 +2459,6 @@ More formally, `result[i0, ..., iR-1]` is defined as:
   * (C5) All `start_indices` have the same type.
   * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
     [0, rank(`operand`)).
-
 
 ### Examples
 
@@ -2733,13 +2736,13 @@ More formally, `result[result_index] = operand[operand_index]` where:
   * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
   * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
   * `start_index` =
-      * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
+    * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
         elements in `batch_index` and `:` is inserted at the `index_vector_dim`
         index, if `index_vector_dim` < `rank(start_indices)`.
-      * `[start_indices[batch_index]]` otherwise.
+    * `[start_indices[batch_index]]` otherwise.
   * For `do` in `axes(operand)`,
-      * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
-      * `full_start_index[do]` = `0` otherwise.
+    * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
+    * `full_start_index[do]` = `0` otherwise.
   * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
   * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `offset_index`, and `0` is inserted at indices from
@@ -2998,7 +3001,6 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 [Back to Ops](#index-of-ops)
 
-
 ## stablehlo.infeed
 
 ### Semantics
@@ -3044,6 +3046,7 @@ as a value that other operations can take a data dependency on.
 ## stablehlo.iota
 
 ### Semantics
+
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 `output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
@@ -3261,7 +3264,7 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
 
-More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1], `
+More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 `..., inputs[N-1][i0, ..., iR-1])`.
 
 ### Inputs
@@ -3528,7 +3531,6 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 ```
 
 [Back to Ops](#index-of-ops)
-
 
 ## stablehlo.optimization_barrier
 
@@ -4008,6 +4010,7 @@ that uses `exponent_bits` and `mantissa_bits` and back to the original
 floating-point type and produces a `result` tensor.
 
 More formally:
+
   * The mantissa bits of the original value are updated to round the original
     value to the nearest value representable with `mantissa_bits` using
     `roundToIntegralTiesToEven` semantics.
@@ -4359,6 +4362,7 @@ spaces of `result` and `operand`.
 ## stablehlo.reverse
 
 ### Semantics
+
 Reverses the order of elements in the `operand` along the specified `dimensions`
 and produces a `result` tensor. More formally,
 `result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
@@ -4651,15 +4655,15 @@ More formally, for all `update_index` from the index space of `updates[0]`:
   * `update_scatter_index` = [`update_index[d]` for `d` in
     `update_scatter_dims`].
   * `start_index` =
-      * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
+    * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
         elements in `update_scatter_index` and `:` is inserted at the
         `index_vector_dim` index, if `index_vector_dim` <
         `rank(scatter_indices)`.
-      * `[scatter_indices[update_scatter_index]]` otherwise.
+    * `[scatter_indices[update_scatter_index]]` otherwise.
   * For `do` in `axes(inputs[0])`,
-      * `full_start_index[do]` = `start_index[ds]` if
+    * `full_start_index[do]` = `start_index[ds]` if
         `do = scatter_dims_to_operand_dims[ds]`.
-      * `full_start_index[do]` = `0` otherwise.
+    * `full_start_index[do]` = `0` otherwise.
   * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
   * `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
     elements in `update_window_index`, and `0` is inserted at indices from
@@ -4843,27 +4847,29 @@ The following diagram shows how elements in `result` are computed from
 
 More formally:
 
- * `selected_values = reduce_window_without_init(...)` with the following inputs:
-   * `inputs` $=$ [ `operand` ].
-   * `window_dimensions`, `window_strides`, and `padding` which are used as is.
-   * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
-   * `body` defined as:
+  * `selected_values = reduce_window_without_init(...)` with the following inputs:
+    * `inputs` $=$ [ `operand` ].
+    * `window_dimensions`, `window_strides`, and `padding` which are used as is.
+    * `base_dilations` $=$ `windows_dilations` $=$ `[1, ..., 1]`.
+    * `body` defined as:
+
      ```C++
      (tensor<E> arg0, tensor<E> arg1) -> tensor<E> {
       return select(arg0, arg1) ? arg0 : arg1;
      }
      ```
+
      where `E = element_type(operand)`.
    where `reduce_window_without_init` works exactly like `reduce_window`,
    except that the `schedule` of the underlying `reduce` doesn't include
    init values.
- * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
+  * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
    where:
-   * `source_values` $=$ [`source[source_index]` for `source_index` in
+    * `source_values` $=$ [`source[source_index]` for `source_index` in
      `source_indices`].
-   * `source_indices` $=$ [`source_index` for `source_index` in
+    * `source_indices` $=$ [`source_index` for `source_index` in
      `indices(source)` if `selected_index(source_index) = result_index`].
-   * `selected_index(source_index) = operand_index` if
+    * `selected_index(source_index) = operand_index` if
      `selected_values[source_index]` has the `operand` element
      from `operand_index`.
 
@@ -5088,6 +5094,7 @@ number of bits and produces a `result` tensor.
 Returns the sign of the `operand` element-wise and produces a `result` tensor.
 More formally, for each element `x`, the semantics can be expressed using
 Python-like syntax as follows:
+
 ```python
 def sign(x):
   if is_integer(x):
