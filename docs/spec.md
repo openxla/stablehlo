@@ -1,129 +1,32 @@
 # StableHLO Specification
 
-## Types
+StableHLO is an operation set for high-level operations (HLO) in machine
+learning (ML) models. StableHLO works as a portability layer between different
+ML frameworks and ML compilers: ML frameworks that produce StableHLO programs
+are compatible with ML compilers that consume StableHLO programs.
 
-Following are the supported element types in StableHLO:
+Our goal is to simplify and accelerate ML development by creating more
+interoperability between various ML frameworks (such as TensorFlow, JAX and
+PyTorch) and ML compilers (such as XLA and IREE). Towards that end, this
+document provides a specification for the StableHLO programming language.
 
-  * **Integer types**
-    * Signed integer with two’s complement representation. Referred to in the
-    document as `si<N>`, where the bit-width N ∊ {4, 8, 16, 32, 64}.
-    * Unsigned integer referred to in the document as `ui<N>`, where the
-    bit-width N ∊ {4, 8, 16, 32, 64}.
-  * **Boolean type** referred to in the document as `i1`. Exact
-  representation of boolean types (e.g. 1 byte per boolean vs 1 bit per boolean)
-  is implementation-defined.
-  * **Floating-point types**
-    * Single precision `f32`, double precision `f64` and half precision `f16`
-    floating-points complying with [IEEE 754-2019
-    format](https://ieeexplore.ieee.org/document/8766229).
-    * Bfloat16 `bf16` floating-point complying with [BFloat16 format](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
-    Provides the same number of exponent bits as `f32`, so that it matches its
-    dynamic range, but with greatly reduced precision. This also ensures
-    identical behavior for underflows, overflows, and NaNs. However, `bf16`
-    handles denormals differently from `f32`: it flushes them to zero.
-    * FP8 `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
-    `E4M3` and `E5M2` types from the whitepaper
-    [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
-  * **Complex types** represent a pair of floating-point types. Supported ones
-    are `complex<f32>` (represents a par of `f32`) and `complex<f64>`
-    (represents a pair of `f64`). Exact representation of complex types
-    (e.g. whether the real part or the imaginary part comes first in memory)
-    is implementation-defined.
-
-**Tensor types** are the cornerstone of the StableHLO type system. They model
-immutable n-dimensional arrays and are referred to in the document as
-`tensor<SxE>` where:
-
-  * **Shape** `S` represented as `(d0)x(d1)x...x(dR-1)` is a 1-dimensional array
-  of **dimension sizes** `di`, in the increasing order of the corresponding
-  **dimensions** (which are also called **axes**) 0, 1, ..., R-1.
-  The size `R` of this array is called **rank**. Dimension sizes have type
-  `si64` and are non-negative (dimension sizes equal to zero are allowed,
-  and their meaning is described below). Ranks equal to zero are also allowed,
-  and their meaning is also described below.
-  * **Element type** `E` is any one of the supported element types mentioned
-  above.
-
-For example, `tensor<2x3xf32>` is a tensor type with shape `2x3` and element
-type `f32`. It has two dimensions (or, in other words, two axes) whose sizes
-are 2 and 3. Its rank is 2.
-
-At the logical level, a `tensor<SxE>` maps a 1-dimensional array of **indices**
-`{i0, i1, ..., iR-1}` on **elements** of type `E`. If a tensor `t` maps an index
-`i` on an element `e`, we say that `t[i0, i1, ..., iR-1] = e`.
-
-Individual indices have type `si64` and are within the range `[0, di)` defined
-by the corresponding dimension. The size of the index array is equal to `R`.
-At the moment, StableHLO only supports dense tensors, so each tensor has
-`1*(d0)*(d1)*...*(dR-1)` elements whose indices are drawn from an
-**index space** which is a Cartesian product of its dimensions. For example:
-
-  * `tensor<2x3xf32>` has 6 elements whose indices are
-    `{0, 0}`, `{0, 1}`, `{0, 2}`, `{1, 0}`, `{1, 1}` and `{1, 2}`.
-  * Tensors of rank zero, e.g `tensor<f32>`, have 1 element. Such tensors are
-    allowed and are useful to model scalars.
-  * Tensors with dimensions of size zero, e.g. `tensor<2x0xf32>`, have
-    0 elements. Such tensors are allowed and are useful in rare cases, e.g.
-    to model empty slices.
-
-**Canonical representation** of a tensor is a 1-dimensional array of elements
-which correspond to indices ordered lexicographically. For example, for a
-`tensor<2x3xf32>` with the following mapping from indices to elements:
-`{0, 0} => 1`, `{0, 1} => 2`, `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`,
-`{1, 2} => 6` - the canonical representation would be: `[1, 2, 3, 4, 5, 6]`.
-
-Exact representation of tensors is implementation-defined. This specification
-does not define in which order tensor elements are laid out in memory (e.g.
-whether/when they follow the canonical order) and how individual tensor elements
-in a particular order are packed together into a tensor (e.g. how these elements
-are aligned, whether they are stored contiguously, etc).
-
-**Token type** Values of this type are used for imposing order on execution of
-side-effecting operations using data dependencies.
-
-**Tuple types** model heterogeneous lists and are referred to in the document
-using: 1) the full form: `tuple<T0, ... TN-1>`, 2) the short form: `tuple`,
-where:
-
-  * `N` is the tuple size.
-  * `Ti` are types of tuple elements.
-  * Element types are one of `tensor`, `token` or `tuple`.
-
-Tuple types are inherited from HLO where they are used to model variadic inputs
-and outputs. In StableHLO, variadic inputs and outputs are supported natively,
-so the only use of tuple types in StableHLO is in `custom_call` where tuple
-types are used to model HLO-compatible ABI of custom calls.
-
-**Function types** model functions and are referred to in the document using: 1)
-the full form: `(I1, ..., IN) -> (O1, ..., OM)`, or 2) the short form:
-`function`, where:
-
-  * `Ii` are types of inputs of the corresponding function.
-  * `Oj` are types of outputs of the corresponding function.
-  * Input types and output types are one of `tensor`, `token` or `tuple`.
-
-Function types are not first class, i.e. StableHLO doesn't support values of
-function types. Some StableHLO ops can take functions as inputs, but they are
-never produced as outputs.
-
-**String type** represents a sequence of bytes and is referred to in the
-document as `string`. Exact representation of string type (e.g. null terminated
-or not, encoding etc.) is implementation-defined.
-
-Strings types are not first class, i.e. StableHLO doesn't support values of
-string types. Some StableHLO ops can take strings as inputs, but they are never
-produced as outputs.
+This specification contains three major sections. First, the "Programs" section
+describes the structure of StableHLO programs which consist of StableHLO
+functions which themselves consist of StableHLO ops. Within that structure, the
+"Ops" section specifies semantics of individual ops. Finally, the "Execution"
+section provides semantics for all these ops executing together within
+a program.
 
 ## Programs
 
-**StableHLO programs** consist of **StableHLO functions**. Each function has
-inputs and outputs of supported types and a list of ops in static
-single-assignment (SSA) form which is terminated by a `return` op which produces
-the outputs of the function.
+```ebnf
+Program ::= {Func}
+```
 
-Here is an example of a program that consists of a function `@main` which takes
-three inputs (`%image`, `%weights` and `%bias`) and produces one output (`%4`).
-Below we describe how this program can be executed.
+**StableHLO programs** consist of an arbitrary number of StableHLO functions.
+Below is an example program with a function `@main` which has 3 inputs
+(`%image`, `%weights` and `%bias`) and 1 output. The body of the function
+has 6 ops.
 
 ```mlir
 stablehlo.func @main(
@@ -140,240 +43,355 @@ stablehlo.func @main(
 }
 ```
 
-## Execution
+### Functions
 
-### Sequential execution
-
-A StableHLO program is executed by providing input values to the `main` function
-and computing output values. Output values of a function are computed by
-executing the graph of ops rooted in the corresponding `return` op.
-
-The execution order is implementation-defined, as long as ops are executed
-before their uses. Possible execution orders of the example program above are
-`%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` → `%1` → `%2` → `%4`
-→ `return`.
-
-More formally, a **StableHLO process** is a combination of:
-(1) a StableHLO program, (2) operation statuses (not executed yet,
-already executed), and (3) intermediate values that the process is working on.
-The process starts with input values to the `main` function, progresses through
-the graph of ops updating operation statuses and intermediate values and
-finishes with output values. Further formalization is TBD.
-
-### Parallel execution
-
-StableHLO programs can be executed in parallel, organized into a 2D grid of
-`num_replicas` by `num_partitions` which both have type `ui32`.
-
-In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO
-processes are executing at the same time. Each process has a unique
-`process_id = (replica_id, partition_id)`, where
-`replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
-`partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
-type `ui32`.
-
-The size of the grid is known statically for every program, and the position
-within the grid is known statically for every process. Each process has access
-to its position within the grid via the `replica_id` and `partition_id` ops.
-
-Within the grid, the programs can all be the same (in the "Single Program,
-Multiple Data" style), can all be different (in the "Multiple Program, Multiple
-Data" style) or something in between.
-
-Within the grid, the processes are mostly independent from each other - they
-have separate operation statuses, separate input/intermediate/output values and
-most of the ops are executed separately between processes, with the exception of
-a small number of collective ops described below.
-
-Given that execution of most of the ops is only using values from the same
-process, it is usually unambiguous to refer to these values by their names.
-However, when describing semantics of collective ops, that is insufficient, and
-we use the notation `name@process_id` to refer to the value `name` within a
-particular process. (From that perspective, unqualified `name` can be viewed as
-a shorthand for `name@(replica_id(), partition_id())`).
-
-The execution order across processes is implementation-defined, except for the
-synchronization introduced by point-to-point communication and collective ops
-as described below.
-
-### Point-to-point communication
-
-StableHLO processes can communicate with each other through
-**StableHLO channels**. A channel is represented by a positive id of type
-`si64`. Through various ops, it is possible to send values to channels and
-receive them from channels.
-
-Further formalization, e.g. where these channel ids are coming from, how
-processes programs become aware of them and what kind of synchronization is
-introduced by them, is TBD.
-
-### Streaming communication
-
-Every StableHLO process has access to two streaming interfaces:
-
-  * **Infeed** that can be read from.
-  * **Outfeed** that can be written to.
-
-Unlike channels, which are used to communicate between processes and therefore
-have processes at both of their ends, infeeds and outfeeds have their other
-end implementation-defined.
-
-Further formalization, e.g. how streaming communication influences execution
-order and what kind of synchronization is introduced by it, is TBD.
-
-### Collective ops
-
-There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
-`all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
-the processes in the StableHLO grid into **StableHLO process groups** and
-execute a joint computation within each process group, independently from other
-process groups.
-
-Within each process group, collective ops may introduce a synchronization
-barrier. Further formalization, e.g. elaborating on when exactly this
-synchronization happens, how exactly the processes arrive at this barrier,
-and what happens if they don't, is TBD.
-
-If the process group involves cross-partition communication, i.e. there are
-processes in the process group whose partition ids are different, then execution
-of the collective op needs a channel, and the collective op must provide a
-positive `channel_id` of type `si64`. Cross-replica communication doesn't need
-channels.
-
-The computations performed by the collective ops are specific to individual ops
-and are described in individual op sections below. However, the strategies by
-which the grid is split into process groups are shared between these ops and are
-described in this section. More formally, StableHLO supports the following
-four strategies.
-
-#### cross_replica
-
-Only cross-replica communications happen within each process group. This
-strategy takes `replica_groups` - a list of lists of replica ids - and computes
-a Cartesian product of `replica_groups` by `partition_ids`. `replica_groups`
-must have unique elements and cover all `replica_ids`. More formally:
-
-```Python
-def cross_replica(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
-  for replica_group in replica_groups:
-    for partition_id in partition_ids:
-      process_group = []
-      for replica_id in replica_group:
-        process_group.append((replica_id, partition_id))
-      yield process_group
+```ebnf
+Func        ::= 'stablehlo' '.' 'func' FuncId FuncInputs FuncOutputs '{' FuncBody '}'
+FuncInputs  ::= '(' [FuncInput {',' FuncInput}] `)`
+FuncInput   ::= '%' ValueId ':' ValueType
+FuncOutputs ::= ['->' FuncOutput, {',' FuncOutput}]
+FuncOutput  ::= ValueType
+FuncBody    ::= {Op}
 ```
 
-For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
-`cross_replica` will produce
-`[[(0, 0), (1, 0)], [(0, 1), (1, 1)], [(2, 0), (3, 0)], [(2, 1), (3, 1)]]`.
+**StableHLO functions** (which are also called **named functions**) have
+an identifier, inputs/outputs and a body. In the future, we are planning to
+introduce additional metadata for functions to achieve better compatibility
+with HLO ([#425](https://github.com/openxla/stablehlo/issues/425)).
 
-#### cross_partition
+### Identifiers
 
-Only cross-partition communications happen within each process group. This
-strategy takes `partition_groups` - a list of lists of partition ids - and
-computes a Cartesian product of `partition_groups` by `replica_ids`.
-`partition_groups` must have unique elements and cover all `partition_ids`.
-More formally:
-
-```Python
-def cross_partition(partition_groups: List[List[PartitionId]]) -> List[List[ProcessId]]:
-  for partition_group in partition_groups:
-    for replica_id in replica_ids:
-      process_group = []
-      for partition_id in partition_group:
-        process_group.append((replica_id, partition_id))
-      yield process_group
+```ebnf
+FuncId  ::= '@' letter {letter | digit}
+ValueId ::= '%' digit {digit}
+          | '%' letter {letter | digit}
+letter  ::= 'a' | ... | 'z' | 'A' | ... | 'Z' | '_'
+digit   ::= '0' | ... | '9'
 ```
 
-For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
-`cross_partition` will produce
-`[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
+**StableHLO identifiers** are similar to identifiers in many programming
+languages, with two peculiarities: 1) all identifiers have sigils which
+distinguish different kinds of identifiers, 2) value identifiers can be
+completely numeric to simplify generation of StableHLO programs.
 
-#### cross_replica_and_partition
+### Types
 
-Both cross-replica and cross-partition communications may happen within each
-process group. This strategy takes `replica_groups` - a list of lists of
-replica ids - and computes Cartesian products of each `replica_group` by
-`partition_ids`. `replica_groups` must have unique elements and cover all
-`replica_ids`. More formally:
-
-```Python
-def cross_replica_and_partition(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
-  for replica_group in replica_groups:
-    process_group = []
-    for partition_id in partition_ids:
-      for replica_id in replica_group:
-        process_group.append((replica_id, partition_id))
-    yield process_group
+```ebnf
+Type         ::= ValueType | NonValueType
+ValueType    ::= TensorType | TokenType | TupleType
+NonValueType ::= ElementType | FunctionType | StringType
 ```
 
-For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
-`cross_replica_and_partition` will produce
-`[[(0, 0), (1, 0), (0, 1), (1, 1)], [(2, 0), (3, 0), (2, 1), (3, 1)]]`.
+**StableHLO types** are categorized into **value types** (which are also called
+**first-class types**) which represent StableHLO values and **non-value types**
+which describe other program elements. StableHLO types are similar to types in
+many programming languages, with the main peculiarity being StableHLO's
+domain-specific nature which results in some unusual outcomes (e.g. scalar types
+are not value types).
 
-#### flattened_ids
-
-This strategy takes `flattened_id_groups` - a list of lists of "flattened"
-process ids in the form of `replica_id * num_partitions + partition_id` - and
-turns them into process ids. `flattened_id_groups` must have unique elements
-and cover all `process_ids`. More formally:
-
-```Python
-def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]]:
-  for flattened_id_group in flattened_id_groups:
-    process_group = []
-    for flattened_id in flattened_id_group:
-      replica_id = flattened_id // num_partitions
-      partition_id = flattened_id % num_partitions
-      process_group.append((replica_id, partition_id))
-    yield process_group
+```ebnf
+TensorType    ::= 'tensor' '<' TensorShape ElementType '>'
+TensorShape   ::= {DimensionSize 'x'}
+DimensionSize ::= digit {digit}
 ```
 
-For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
-`num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
-`[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
+**Tensor types** represent tensors, i.e. multidimensional arrays. They have a
+**shape** and an **element type**, where a shape represents non-negative
+**dimension sizes** in the ascending order of the corresponding **dimensions**
+(which are also called **axes**) numbered from `0` to `R-1`. The number of
+dimensions `R` is called **rank**. For example, `tensor<2x3xf32>` is a tensor
+type with shape `2x3` and element type `f32`. It has two dimensions (or,
+in other words, two axes) - 0th dimension and 1st dimension - whose sizes are
+2 and 3. Its rank is 2.
 
-## Errors
+```ebnf
+TokenType ::= 'token'
+```
 
-StableHLO programs are validated through an extensive set of constraints for
-individual ops, which rules out many classes of errors prior to run time.
-However, error conditions are still possible, e.g. through integer overflows,
-out-of-bounds accesses, etc. Unless explicitly called out, all these errors
-result in implementation-defined behavior.
+**Token types** represent tokens, i.e. opaque values produced and consumed
+by some operations. Tokens are used for imposing execution order on operations
+as described in the "Execution" section.
 
-As an exception to this rule, floating-point exceptions in StableHLO programs
-have well-defined behavior. Operations which result in exceptions defined by the
-IEEE-754 standard (invalid operation, division-by-zero, overflow, underflow, or
-inexact exceptions) produce default results (as defined in the standard) and
-continue execution without raising the corresponding status flag; similar to
-`raiseNoFlag` exception handling from the standard. Exceptions for nonstandard
-operations (e.g. complex arithmetic and certain transcendental functions) are
-implementation-defined.
+```ebnf
+TupleType ::= 'tuple' '<' [ValueType {',' ValueType}] '>'
+```
 
-## Constants
+**Tuple types** represent tuples, i.e. heterogeneous lists. Tuples are a legacy
+feature which only exists for compatibility with HLO. In HLO, tuples are
+used to represent variadic inputs and outputs. In StableHLO, variadic inputs and
+outputs are supported natively, and the only use of tuples in StableHLO is to
+comprehensively represent HLO ABI where e.g. `T`, `tuple<T>` and
+`tuple<tuple<T>>` may be materially different depending on a particular
+implementation.
 
-The section describes the constants supported in StableHLO along with their
-syntax.
+```ebnf
+ElementType ::= BooleanType | IntegerType | FloatType | ComplexType
+BooleanType ::= 'i1'
+IntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
+              | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
+FloatType   ::= 'f8E4M3FN' | 'f8E5M2' | 'bf16' | 'f16' | 'f32' | 'f64'
+ComplexType ::= 'complex' '<' ('f32' | 'f64') '>'
+```
 
-  * **Integer constants** use decimal notation, e.g. `123`, or hexadecimal
-  notation, e.g. `ff`. Negative numbers can be used with signed integer types,
-  but not with unsigned integer types.
-  * **Boolean constants** `true` and `false` are both valid constants of the
-  `pred` type.
-  * **Floating-point constants** use decimal notation, e.g. `123.421`,
-  exponential notation, e.g. `1.23421e+2`, or a more precise hexadecimal
-  notation, e.g. `0x42f6d78d`.
-  * **Complex constants** Complex constants are represented as a pair of
-  floating-point constants of `f32` or `f64` types, e.g. `(12.34, 56.78)`,
-  where the first constant is the real part, and the second constant is the
-  imaginary part.
-  * **Tensor constants** use NumPy notation. For example,
-  `[[1, 2, 3], [4, 5, 6]]` is a constant of type `tensor<2x3xf32>` with the
-  following mapping from indices to elements: `{0, 0} => 1`, `{0, 1} => 2`,
-  `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`, `{1, 2} => 6`.
-  * **String constants** String constants are represented as a sequence of
-  bytes enclosed in double quotation mark symbols, e.g. "foo123?" (in ASCII
-  encoding) or "\18\A3" (in hex encoding).
+**Element types** represent elements of tensor types. Unlike in many programming
+languages, these types are not first class in StableHLO. This means that
+StableHLO programs cannot directly represent values of these types (as a result,
+it is idiomatic to represent scalar values of type `T` with 0-dimensional tensor
+values of type `tensor<T>`).
+
+  * **Boolean type** represents boolean values `true` and `false`.
+  * **Integer types** can be either signed (`si`) or unsigned (`ui`) and have
+    one of the supported bit widths (`4`, `8`, `16`, `32` or `64`).
+    Signed `siN` types represent integer values from `-2^(N-1)` to `2^(N-1)-1`
+    inclusive, and unsigned `uiN` types represent integer values from `0` to
+    `2^N-1` inclusive.
+  * **Floating-point types** can be one of the following:
+    * `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
+    `E4M3` and `E5M2` encodings of the FP8 format described in
+    [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
+    * `bf16` type corresponding to the `bfloat16` format described in
+    [BFloat16: The secret to high performance on Cloud TPUs](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
+    * `f16`, `f32` and `f64` types corresponding to respectively
+    `binary16` ("half precision"), `binary32` ("single precision") and
+    `binary64` ("double precision") formats described in
+    [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
+  * **Complex types** represent complex values that have a **real part**
+    and an **imaginary part** of the same **element type**. Supported complex
+    types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
+    (both parts are of type `f64`).
+
+```ebnf
+FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
+```
+
+**Function types** represent both named and anonymous functions. They have
+input types (the list of types on the left-hand side of `->`) and output types
+(the list of types on the right-hand side of `->`). In many programming
+languages, function types are first class, but not in StableHLO.
+
+```ebnf
+StringType ::= 'string'
+```
+
+**String type** represents sequences of bytes. Unlike in many programming
+languages, string type is not first class in StableHLO and is only used to
+specify static metadata for program elements.
+
+### Operations
+
+**StableHLO operations** (which are also called **ops**) represent a closed set
+of high-level operations in machine learning models. As discussed above,
+StableHLO syntax is heavily inspired by MLIR, which is not necessarily the most
+ergonomic alternative, but is arguably the best fit for StableHLO's goal of
+creating more interoperability between ML frameworks and ML compilers.
+
+```ebnf
+Op            ::= [OpOutputs] OpName OpInputs ':' OpSignature
+OpName        ::= '"' 'stablehlo' '.' OpMnemonic '"'
+OpMnemonic    ::= 'abs' | 'add' | ...
+```
+
+**StableHLO operations** (which are also called **ops**) have a name,
+inputs/outputs and a signature. The name consists of the `stablehlo.` prefix and
+a **mnemonic** which uniquely identifies one of the supported ops. See below for
+a comprehensive list of all supported ops.
+
+```ebnf
+OpInputs        ::= OpInputValues OpInputFuncs OpInputAttrs
+OpInputValues   ::= '(' [OpInputValue {',' OpInputValue}] ')'
+OpInputValue    ::= ValueId
+OpInputFuncs    ::= ['(' OpInputFunc {',' OpInputFunc} ')']
+OpInputAttrs    ::= ['{' OpInputAttr {',' OpInputAttr} '}']
+OpOutputs       ::= [OpOutput {',' OpOutput} '=']
+OpOutput        ::= ValueId
+```
+
+Ops consume **inputs** and produce **outputs**. Inputs are categorized into
+input values (computed during execution), input functions (provided
+statically, because in StableHLO functions are not first-class values) and
+input attributes (also provided statically). The kind of inputs and outputs
+consumed and produced by an op depends on its mnemonic. For example, the `add`
+op consumes 2 input values and produces 1 output value. In comparison, the
+`select_and_scatter` op consumes 3 input values, 2 input functions and
+3 input attributes.
+
+```ebnf
+OpInputFunc ::= '{' Unused FuncInputs ':' FuncBody '}'
+Unused      ::= '^' digit {digit}
+              | '^' letter {letter | digit}
+```
+
+**Input functions** (which are also called **anonymous functions**) are very
+similar to named functions except that: 1) they don't have an identifier (hence
+the name "anonymous"), 2) they don't declare output types (output types are
+inferred from the `return` op within the function).
+
+The syntax for input functions includes a currently unused part (see the
+`Unused` production above) which is there for compatibility with MLIR. In MLIR,
+there is a more general concept of "regions" which can have multiple "blocks"
+of ops connected together via jump ops. These blocks have ids which correspond
+to the `Unused` production, so that they can be distinguished from each other.
+StableHLO doesn't have jump ops, so the corresponding part of MLIR syntax is
+unused (but is still there).
+
+```ebnf
+OpInputAttr      ::= OpInputAttrName '=' OpInputAttrValue
+OpInputAttrName  ::= letter {letter | digit}
+OpInputAttrValue ::= Constant
+```
+
+**Input attributes** have a name and a value which is one of the supported
+constants. They are the primary way to specify static metadata for program
+elements. For example, the `concatenate` op uses the attribute `dimension` to
+specify the dimension along which its input values are concatenated. Similarly,
+the `slice` op uses multiple attributes like `start_indices` and `limit_indices`
+to specify the bounds that are used to slice the input value.
+
+```ebnf
+OpSignature ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
+```
+
+**Op signature** consists of the types of all input values (the list of types on
+the left-hand side of `->`) and the types of all output values (the list of
+types on the right-hand side of `->`). Strictly speaking, input types are
+redundant, and output types are almost always redundant as well (because for
+most StableHLO ops, output types can be inferred from inputs). Nonetheless, op
+signature is deliberately part of StableHLO syntax for compatibility with MLIR.
+
+Below is an example op whose mnemonic is `select_and_scatter`. It consumes 3
+input values (`%operand`, `%source` and `%init_value`), 2 input functions
+and 3 input attributes (`window_dimensions`, `window_strides` and `padding`).
+Note how the signature of the op only includes the types of its input values
+(but not the types of input functions and attributes which are provided inline).
+
+```mlir
+%result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction GE>
+    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%0) : (tensor<i1>) -> ()
+}, {
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+}) {
+  window_dimensions = dense<[3, 1]> : tensor<2xi64>,
+  window_strides = dense<[2, 1]> : tensor<2xi64>,
+  padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
+} : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
+```
+
+### Constants
+
+```ebnf
+Constant ::= BooleanConstant
+           | IntegerConstant
+           | FloatConstant
+           | ComplexConstant
+           | TensorConstant
+           | StringConstant
+           | EnumConstant
+```
+
+**StableHLO constants** have a literal and a type which together represent
+a StableHLO value. Generally, the type is part of the constant syntax, except
+when it's unambiguous (e.g. a boolean constant unambiguously has type `i1`,
+whereas an integer constant can have multiple possible types).
+
+```ebnf
+BooleanConstant ::= BooleanLiteral
+BooleanLiteral  ::= 'true' | 'false'
+```
+
+**Boolean constants** represent boolean values `true` and `false`. Boolean
+constants have type `i1`.
+
+```ebnf
+IntegerConstant   ::= IntegerLiteral ':' IntegerType
+IntegerLiteral    ::= ['-' | '+'] DecimalDigits
+                    | ['-' | '+'] '0x' HexadecimalDigits
+DecimalDigits     ::= decimalDigit {decimalDigit}
+HexadecimalDigits ::= hexadecimalDigit {hexadecimalDigit}
+decimalDigit      ::= '0' | ... | '9'
+hexadecimalDigit  ::= decimalDigit | 'a' | ... | 'f' | 'A' | ... | 'F'
+```
+
+**Integer constants** represent integer values via strings that use decimal or
+hexadecimal notation. Other bases, e.g. binary or octal, are not supported.
+Integer constants have the following constraints:
+
+  * (C1) `is_wellformed(literal, type)`, i.e. `literal` can be parsed as
+    a value of type `type`.
+
+```ebnf
+FloatConstant  ::= FloatLiteral ':' FloatType
+FloatLiteral   ::= SignPart IntegerPart FractionalPart ScientificPart
+                 | '0x' [HexadecimalDigits]
+SignPart       ::= ['-' | '+']
+IntegerPart    ::= DecimalDigits
+FractionalPart ::= ['.' [DecimalDigits]]
+ScientificPart ::= [('e' | 'E') ['-' | '+'] DecimalDigits]
+```
+
+**Floating-point constants** represent floating-point values via strings that
+use decimal or scientific notation. Additionally, hexadecimal notation can be
+used to directly specify the underlying bits in the floating-point format of
+the corresponding type. Floating-point constants have the following constraints:
+
+  * (C1) If non-hexadecimal notation is used, `is_wellformed(literal, type)`.
+  * (C2) If hexadecimal notation is used,
+    `size(literal) = num_bits(type) / 4 + 2`.
+
+```ebnf
+ComplexConstant      ::= ComplexLiteral ':' ComplexType
+ComplexLiteral       ::= '(' ComplexRealPart ',' ComplexImaginaryPart ')'
+ComplexRealPart      ::= FloatLiteral
+ComplexImaginaryPart ::= FloatLiteral
+```
+
+**Complex constants** represent complex values using lists of a real part
+(comes first) and an imaginary part (comes second). For example,
+`(1.0, 0.0) : complex<f32>` represents `1.0 + 0.0i`, and
+`(0.0, 1.0) : complex<f32>` represents `0.0 + 1.0i`. The order in which these
+parts are then stored in memory is implementation-defined. Complex constants
+have the following constraints:
+
+  * (C1) `is_wellformed(literal[:], element_type(type))`.
+
+```ebnf
+TensorConstant ::= TensorLiteral ':' TensorType
+TensorLiteral  ::= 'dense' '<' (DenseLiteral | ElementLiteral) '>'
+DenseLiteral   ::= DenseDimension | DenseElements
+DenseDimension ::= '[' [DenseLiteral {',' DenseLiteral}] ']'
+DenseElements  ::= [ElementLiteral {',' ElementLiteral}]
+ElementLiteral ::= BooleanLiteral | IntegerLiteral | FloatLiteral | ComplexLiteral
+```
+
+**Tensor constants** represent tensor values using nested lists specified via
+NumPy notation. For example, `dense<[[1, 2, 3], [4, 5, 6]]> : tensor<2x3xi32>`
+represents a tensor value with the following mapping from indices to elements:
+`{0, 0} => 1`, `{0, 1} => 2`, `{0, 2} => 3`, `{1, 0} => 4`, `{1, 1} => 5`,
+`{1, 2} => 6`. The order in which these elements are then stored in memory is
+implementation-defined. Tensor constants have the following constraints:
+
+  * (C1) `is_wellformed(element, element_type(type))`
+    for all `element` in `literal`.
+  * (C2) `has_shape(literal, shape(type))`, where:
+    * `has_shape(literal: String, []) = true`.
+    * `has_shape(literal: List, shape) = size(literal) == shape[0] and all(has_shape(literal[:], shape[1:]))`.
+    * otherwise, `false`.
+
+```ebnf
+StringConstant  ::= StringLiteral
+StringLiteral   ::= '"' {stringCharacter | escapeSequence} '"'
+stringCharacter ::= all ASCII characters except '\00', '\01', ... '\1f' and '"'
+escapeSequence  ::= '\' ('"' | '\' | 'n' | 't' | (hexadecimalDigit hexadecimalDigit))
+```
+
+**String literals** consist of bytes specified using ASCII characters and
+escape sequences. They are encoding-agnostic, so the interpretation of these
+bytes is implementation-defined. String literals have type `string`.
 
 ## Index of Ops
 
@@ -625,7 +643,7 @@ Afterwards, within each `process_group`:
 | `all_gather_dim`        | constant of type `si64`                      |
 | `replica_groups`        | 2-dimensional tensor constant of type `si64` |
 | `channel_id`            | constant of type `si64`                      |
-| `use_global_device_ids` | constant of type `boolean`                   |
+| `use_global_device_ids` | constant of type `i1`                        |
 
 ### Outputs
 
@@ -711,8 +729,8 @@ Afterwards, within each `process_group`:
 | `operand`               | tensor of any supported type                                     |
 | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` |
 | `channel_id`            | constant of type `si64`                                          |
-| `use_global_device_ids` | constant of type `boolean`                                       |
-| `computation`           | `function`                                                       |
+| `use_global_device_ids` | constant of type `i1`                                            |
+| `computation`           | function                                                         |
 
 ### Outputs
 
@@ -1365,7 +1383,7 @@ returned.
 | Name       | Type                                |
 |------------|-------------------------------------|
 | `index`    | 1-dimensional tensor of type `si32` |
-| `branches` | variadic number of `function`       |
+| `branches` | variadic number of functions        |
 
 ### Outputs
 
@@ -1913,8 +1931,8 @@ Computes dot products between windows of `lhs` and slices of `rhs` and produces
 
 ![](images/spec/convolution.svg)
 
-More formally, we start with reframing the inputs to the operation in terms
-of `lhs` in order to be able to express windows of `lhs`:
+More formally, consider the following reframing of the inputs in terms of `lhs`
+in order to be able to express windows of `lhs`:
 
 <!-- markdownlint-disable line-length -->
   * `lhs_window_dimensions = lhs_shape(dim(lhs, input_batch_dimension), dim(rhs, kernel_spatial_dimensions), dim(lhs, input_feature_dimension))`.
@@ -1967,7 +1985,7 @@ If `batch_group_count > 1`:
 | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                            |
 | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                      |
 | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                      |
-| `window_reversal`                 | 1-dimensional tensor constant of type `boolean`             | (C10)                                  |
+| `window_reversal`                 | 1-dimensional tensor constant of type `i1`                  | (C10)                                  |
 | `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                    |
 | `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14)                           |
 | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                    |
@@ -2176,7 +2194,7 @@ implementation-defined metadata.
 | `has_side_effect`     | constant of type `i1`                                           |
 | `backend_config`      | constant of type `string`                                       |
 | `api_version`         | constant of type `si32`                                         |
-| `called_computations` | variadic number of `function`                                   |
+| `called_computations` | variadic number of functions                                    |
 
 ### Outputs
 
@@ -2893,7 +2911,7 @@ Extracts element at `index` position of the `operand` tuple and produces a
 
 | Name      | Type                    |
 |-----------|-------------------------|
-| `operand` | `tuple`                 |
+| `operand` | tuple                   |
 | `index`   | constant of type `si32` |
 
 ### Outputs
@@ -2933,8 +2951,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 | Name           | Type                                       |
 |----------------|--------------------------------------------|
 | `pred`         | 1-dimensional tensor constant of type `i1` |
-| `true_branch`  | `function`                                 |
-| `false_branch` | `function`                                 |
+| `true_branch`  | function                                   |
+| `false_branch` | function                                   |
 
 ### Outputs
 
@@ -3037,7 +3055,7 @@ as a value that other operations can take a data dependency on.
 ### Examples
 
 ```mlir
-%results:2 = "stablehlo.infeed"(%token) {
+%results0, %results1 = "stablehlo.infeed"(%token) {
   infeed_config = ""
 } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
@@ -3274,7 +3292,7 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 |---------------|--------------------------------------------------|
 | `inputs`      | variadic number of tensors of any supported type |
 | `dimensions`  | 1-dimensional tensor constant of type `si64`     |
-| `computation` | `function`                                       |
+| `computation` | function                                         |
 
 ### Outputs
 
@@ -3913,7 +3931,7 @@ other operations can take a data dependency on.
 ### Examples
 
 ```mlir
-%results:2 = "stablehlo.recv"(%token) {
+%results0, %results1 = "stablehlo.recv"(%token) {
   // channel_id = 5 : i64,
   // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
   channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
@@ -3961,7 +3979,7 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 | `inputs`      | variadic number of tensors of any supported type               |
 | `init_values` | variadic number of 0-dimensional tensors of any supported type |
 | `dimensions`  | 1-dimensional tensor constant of type `si64`                   |
-| `body`        | `function`                                                     |
+| `body`        | function                                                       |
 
 ### Outputs
 
@@ -4094,8 +4112,8 @@ Afterwards, within each `process_group`:
 | `scatter_dimension`     | constant of type `si64`                      |
 | `replica_groups`        | 2-dimensional tensor constant of type `si64` |
 | `channel_id`            | constant of type `si64`                      |
-| `use_global_device_ids` | constant of type `boolean`                   |
-| `computation`           | `function`                                   |
+| `use_global_device_ids` | constant of type `i1`                        |
+| `computation`           | function                                     |
 
 ### Outputs
 
@@ -4193,7 +4211,7 @@ where:
 | `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C8), (C9), (C15)                               |
 | `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C10), (C11), (C15)                             |
 | `padding`           | 2-dimensional tensor constant of type `si64`                   | (C12), (C15)                                    |
-| `body`              | `function`                                                     | (C13)                                           |
+| `body`              | function                                                       | (C13)                                           |
 
 ### Outputs
 
@@ -4671,8 +4689,7 @@ More formally, for all `update_index` from the index space of `updates[0]`:
     `inserted_window_dims`.
   * `result_index` = `add(full_start_index, full_window_index)`.
 
-Using this mapping between `update_index` and `result_index`, we define
-`results = exec(schedule, inputs)`, where:
+Given that, `results = exec(schedule, inputs)`, where:
 
   * `schedule` is an implementation-defined permutation of the index space
     of `updates[0]`.
@@ -4708,7 +4725,7 @@ is undefined.
 | `index_vector_dim`             | constant of type `si64`                           | (C4), (C11), (C14)                                       |
 | `indices_are_sorted`           | constant of type `i1`                             |                                                          |
 | `unique_indices`               | constant of type `i1`                             |                                                          |
-| `update_computation`           | `function`                                        | (C15)                                                    |
+| `update_computation`           | function                                          | (C15)                                                    |
 
 ### Outputs
 
@@ -4876,16 +4893,16 @@ More formally:
 
 ### Inputs
 
-| Name                | Type                                       | Constraints                    |
-|---------------------|--------------------------------------------|--------------------------------|
-| `operand`           | tensor of any supported type               | (C1-C5), (C7), (C9), (C10-C12) |
-| `source`            | tensor of any supported type               | (C2), (C3)                     |
-| `init_value`        | 0-dimensional tensor of any supported type | (C4)                           |
-| `window_dimensions` | 1-dimensional tensor constant type `si64`  | (C1), (C3), (C5), (C6)         |
-| `window_strides`    | 1-dimensional tensor constant type `si64`  | (C3), (C7), (C8)               |
-| `padding`           | 2-dimensional tensor constant type `si64`  | (C3), (C9)                     |
-| `select`            | `function`                                 | (C10)                          |
-| `scatter`           | `function`                                 | (C11)                          |
+| Name                | Type                                         | Constraints                    |
+|---------------------|----------------------------------------------|--------------------------------|
+| `operand`           | tensor of any supported type                 | (C1-C5), (C7), (C9), (C10-C12) |
+| `source`            | tensor of any supported type                 | (C2), (C3)                     |
+| `init_value`        | 0-dimensional tensor of any supported type   | (C4)                           |
+| `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)         |
+| `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)               |
+| `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)                     |
+| `select`            | function                                     | (C10)                          |
+| `scatter`           | function                                     | (C11)                          |
 
 ### Outputs
 
@@ -4918,12 +4935,14 @@ More formally:
 // %init_value: 0
 %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = stablehlo.compare GE, %arg0, %arg1 : (tensor<i32>, tensor<i32>) -> tensor<i1>
-    stablehlo.return %0 : tensor<i1>
+    %0 = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction GE>
+    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%0) : (tensor<i1>) -> ()
 }, {
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = stablehlo.add %arg0, %arg1 : tensor<i32>
-    stablehlo.return %0 : tensor<i32>
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+    "stablehlo.return"(%0) : (tensor<i32>) -> ()
 }) {
   window_dimensions = dense<[3, 1]> : tensor<2xi64>,
   window_strides = dense<[2, 1]> : tensor<2xi64>,
@@ -5283,7 +5302,7 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 | `inputs`     | variadic number of tensors of any supported type |
 | `dimension`  | constant of type `si64`                          |
 | `is_stable`  | constant of type `i1`                            |
-| `comparator` | `function`                                       |
+| `comparator` | function                                         |
 
 ### Outputs
 
@@ -5607,7 +5626,7 @@ Produces a `result` tuple from values `val`.
 
 | Name     | Type    |
 |----------|---------|
-| `result` | `tuple` |
+| `result` | tuple   |
 
 ### Constraints
 
@@ -5647,8 +5666,8 @@ The behavior of an infinite loop is TBD.
 | Name       | Type                                                       |
 |------------|------------------------------------------------------------|
 | `operands` | variadic number of tensors of any supported type or tokens |
-| `cond`     | `function`                                                 |
-| `body`     | `function`                                                 |
+| `cond`     | function                                                   |
+| `body`     | function                                                   |
 
 ### Outputs
 
@@ -5670,7 +5689,7 @@ The behavior of an infinite loop is TBD.
 // %constant0: 1
 // %input0: 0
 // %input1: 10
-%results:2 = "stablehlo.while"(%input0, %input1) ({
+%results0, %results1 = "stablehlo.while"(%input0, %input1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
     %0 = "stablehlo.compare"(%arg0, %arg1) {
       comparison_direction = #stablehlo<comparison_direction LT>
@@ -5681,8 +5700,8 @@ The behavior of an infinite loop is TBD.
     %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
     "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
 }) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
-// %results#0: 10
-// %results#1: 10
+// %results0: 10
+// %results1: 10
 ```
 
 [Back to Ops](#index-of-ops)
@@ -5729,3 +5748,213 @@ logical operation.
 ```
 
 [Back to Ops](#index-of-ops)
+
+## Execution
+
+### Sequential execution
+
+A StableHLO program is executed by providing input values to the `main` function
+and computing output values. Output values of a function are computed by
+executing the graph of ops rooted in the corresponding `return` op.
+
+The execution order is implementation-defined, as long as ops are executed
+before their uses. Possible execution orders of the example program above are
+`%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` → `%1` → `%2` → `%4`
+→ `return`.
+
+More formally, a **StableHLO process** is a combination of:
+1\) a StableHLO program, 2) operation statuses (not executed yet,
+already executed), and 3) intermediate values that the process is working on.
+The process starts with input values to the `main` function, progresses through
+the graph of ops updating operation statuses and intermediate values and
+finishes with output values. Further formalization is TBD.
+
+### Parallel execution
+
+StableHLO programs can be executed in parallel, organized into a 2D grid of
+`num_replicas` by `num_partitions` which both have type `ui32`.
+
+In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO
+processes are executing at the same time. Each process has a unique
+`process_id = (replica_id, partition_id)`, where
+`replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
+`partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
+type `ui32`.
+
+The size of the grid is known statically for every program, and the position
+within the grid is known statically for every process. Each process has access
+to its position within the grid via the `replica_id` and `partition_id` ops.
+
+Within the grid, the programs can all be the same (in the "Single Program,
+Multiple Data" style), can all be different (in the "Multiple Program, Multiple
+Data" style) or something in between.
+
+Within the grid, the processes are mostly independent from each other - they
+have separate operation statuses, separate input/intermediate/output values and
+most of the ops are executed separately between processes, with the exception of
+a small number of collective ops described below.
+
+Given that execution of most of the ops is only using values from the same
+process, it is usually unambiguous to refer to these values by their names.
+However, when describing semantics of collective ops, that is insufficient, and
+that gives rise to the notation `name@process_id` to refer to the value `name`
+within a particular process. (From that perspective, unqualified `name` can be
+viewed as a shorthand for `name@(replica_id(), partition_id())`).
+
+The execution order across processes is implementation-defined, except for the
+synchronization introduced by point-to-point communication and collective ops
+as described below.
+
+### Point-to-point communication
+
+StableHLO processes can communicate with each other through
+**StableHLO channels**. A channel is represented by a positive id of type
+`si64`. Through various ops, it is possible to send values to channels and
+receive them from channels.
+
+Further formalization, e.g. where these channel ids are coming from, how
+processes programs become aware of them and what kind of synchronization is
+introduced by them, is TBD.
+
+### Streaming communication
+
+Every StableHLO process has access to two streaming interfaces:
+
+  * **Infeed** that can be read from.
+  * **Outfeed** that can be written to.
+
+Unlike channels, which are used to communicate between processes and therefore
+have processes at both of their ends, infeeds and outfeeds have their other
+end implementation-defined.
+
+Further formalization, e.g. how streaming communication influences execution
+order and what kind of synchronization is introduced by it, is TBD.
+
+### Collective ops
+
+There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
+`all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
+the processes in the StableHLO grid into **StableHLO process groups** and
+execute a joint computation within each process group, independently from other
+process groups.
+
+Within each process group, collective ops may introduce a synchronization
+barrier. Further formalization, e.g. elaborating on when exactly this
+synchronization happens, how exactly the processes arrive at this barrier,
+and what happens if they don't, is TBD.
+
+If the process group involves cross-partition communication, i.e. there are
+processes in the process group whose partition ids are different, then execution
+of the collective op needs a channel, and the collective op must provide a
+positive `channel_id` of type `si64`. Cross-replica communication doesn't need
+channels.
+
+The computations performed by the collective ops are specific to individual ops
+and are described in individual op sections above. However, the strategies by
+which the grid is split into process groups are shared between these ops and are
+described in this section. More formally, StableHLO supports the following
+four strategies.
+
+#### cross_replica
+
+Only cross-replica communications happen within each process group. This
+strategy takes `replica_groups` - a list of lists of replica ids - and computes
+a Cartesian product of `replica_groups` by `partition_ids`. `replica_groups`
+must have unique elements and cover all `replica_ids`. More formally:
+
+```Python
+def cross_replica(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
+  for replica_group in replica_groups:
+    for partition_id in partition_ids:
+      process_group = []
+      for replica_id in replica_group:
+        process_group.append((replica_id, partition_id))
+      yield process_group
+```
+
+For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
+`cross_replica` will produce
+`[[(0, 0), (1, 0)], [(0, 1), (1, 1)], [(2, 0), (3, 0)], [(2, 1), (3, 1)]]`.
+
+#### cross_partition
+
+Only cross-partition communications happen within each process group. This
+strategy takes `partition_groups` - a list of lists of partition ids - and
+computes a Cartesian product of `partition_groups` by `replica_ids`.
+`partition_groups` must have unique elements and cover all `partition_ids`.
+More formally:
+
+```Python
+def cross_partition(partition_groups: List[List[PartitionId]]) -> List[List[ProcessId]]:
+  for partition_group in partition_groups:
+    for replica_id in replica_ids:
+      process_group = []
+      for partition_id in partition_group:
+        process_group.append((replica_id, partition_id))
+      yield process_group
+```
+
+For example, for `partition_groups = [[0, 1]]` and `num_replicas = 4`,
+`cross_partition` will produce
+`[[(0, 0), (0, 1)], [(1, 0), (1, 1)], [(2, 0), (2, 1)], [(3, 0), (3, 1)]]`.
+
+#### cross_replica_and_partition
+
+Both cross-replica and cross-partition communications may happen within each
+process group. This strategy takes `replica_groups` - a list of lists of
+replica ids - and computes Cartesian products of each `replica_group` by
+`partition_ids`. `replica_groups` must have unique elements and cover all
+`replica_ids`. More formally:
+
+```Python
+def cross_replica_and_partition(replica_groups: List[List[ReplicaId]]) -> List[List[ProcessId]]:
+  for replica_group in replica_groups:
+    process_group = []
+    for partition_id in partition_ids:
+      for replica_id in replica_group:
+        process_group.append((replica_id, partition_id))
+    yield process_group
+```
+
+For example, for `replica_groups = [[0, 1], [2, 3]]` and `num_partitions = 2`,
+`cross_replica_and_partition` will produce
+`[[(0, 0), (1, 0), (0, 1), (1, 1)], [(2, 0), (3, 0), (2, 1), (3, 1)]]`.
+
+#### flattened_ids
+
+This strategy takes `flattened_id_groups` - a list of lists of "flattened"
+process ids in the form of `replica_id * num_partitions + partition_id` - and
+turns them into process ids. `flattened_id_groups` must have unique elements
+and cover all `process_ids`. More formally:
+
+```Python
+def flattened_ids(flattened_id_groups: List[List[ui32]]) -> List[List[ProcessId]]:
+  for flattened_id_group in flattened_id_groups:
+    process_group = []
+    for flattened_id in flattened_id_group:
+      replica_id = flattened_id // num_partitions
+      partition_id = flattened_id % num_partitions
+      process_group.append((replica_id, partition_id))
+    yield process_group
+```
+
+For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
+`num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
+`[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
+
+### Errors
+
+StableHLO programs are validated through an extensive set of constraints for
+individual ops, which rules out many classes of errors prior to run time.
+However, error conditions are still possible, e.g. through integer overflows,
+out-of-bounds accesses, etc. Unless explicitly called out, all these errors
+result in implementation-defined behavior.
+
+As an exception to this rule, floating-point exceptions in StableHLO programs
+have well-defined behavior. Operations which result in exceptions defined by the
+IEEE-754 standard (invalid operation, division-by-zero, overflow, underflow, or
+inexact exceptions) produce default results (as defined in the standard) and
+continue execution without raising the corresponding status flag; similar to
+`raiseNoFlag` exception handling from the standard. Exceptions for nonstandard
+operations (e.g. complex arithmetic and certain transcendental functions) are
+implementation-defined.
