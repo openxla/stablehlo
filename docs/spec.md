@@ -393,102 +393,7 @@ escapeSequence  ::= '\' ('"' | '\' | 'n' | 't' | (hexadecimalDigit hexadecimalDi
 escape sequences. They are encoding-agnostic, so the interpretation of these
 bytes is implementation-defined. String literals have type `string`.
 
-## Index of Ops
-
-  * [abs](#stablehloabs)
-  * [add](#stablehloadd)
-  * [after_all](#stablehloafter_all)
-  * [all_gather](#stablehloall_gather)
-  * [all_reduce](#stablehloall_reduce)
-  * [all_to_all](#stablehloall_to_all)
-  * [and](#stablehloand)
-  * [atan2](#stablehloatan2)
-  * [batch_norm_grad](#stablehlobatch_norm_grad)
-  * [batch_norm_inference](#stablehlobatch_norm_inference)
-  * [batch_norm_training](#stablehlobatch_norm_training)
-  * [bitcast_convert](#stablehlobitcast_convert)
-  * [broadcast_in_dim](#stablehlobroadcast_in_dim)
-  * [case](#stablehlocase)
-  * [cbrt](#stablehlocbrt)
-  * [ceil](#stablehloceil)
-  * [cholesky](#stablehlocholesky)
-  * [clamp](#stablehloclamp)
-  * [collective_permute](#stablehlocollective_permute)
-  * [compare](#stablehlocompare)
-  * [complex](#stablehlocomplex)
-  * [concatenate](#stablehloconcatenate)
-  * [constant](#stablehloconstant)
-  * [convert](#stablehloconvert)
-  * [convolution](#stablehloconvolution)
-  * [cosine](#stablehlocosine)
-  * [count_leading_zeros](#stablehlocount_leading_zeros)
-  * [custom_call](#stablehlocustom_call)
-  * [divide](#stablehlodivide)
-  * [dot_general](#stablehlodot_general)
-  * [dynamic_slice](#stablehlodynamic_slice)
-  * [dynamic_update_slice](#stablehlodynamic_update_slice)
-  * [exponential](#stablehloexponential)
-  * [exponential_minus_one](#stablehloexponential_minus_one)
-  * [fft](#stablehlofft)
-  * [floor](#stablehlofloor)
-  * [gather](#stablehlogather)
-  * [get_dimension_size](#stablehloget_dimension_size)
-  * [get_tuple_element](#stablehloget_tuple_element)
-  * [if](#stablehloif)
-  * [imag](#stablehloimag)
-  * [infeed](#stablehloinfeed)
-  * [iota](#stablehloiota)
-  * [is_finite](#stablehlois_finite)
-  * [log](#stablehlolog)
-  * [log_plus_one](#stablehlolog_plus_one)
-  * [logistic](#stablehlologistic)
-  * [map](#stablehlomap)
-  * [maximum](#stablehlomaximum)
-  * [minimum](#stablehlominimum)
-  * [multiply](#stablehlomultiply)
-  * [negate](#stablehlonegate)
-  * [not](#stablehlonot)
-  * [optimization_barrier](#stablehlooptimization_barrier)
-  * [or](#stablehloor)
-  * [outfeed](#stablehlooutfeed)
-  * [pad](#stablehlopad)
-  * [partition_id](#stablehlopartition_id)
-  * [popcnt](#stablehlopopcnt)
-  * [power](#stablehlopower)
-  * [real](#stablehloreal)
-  * [recv](#stablehlorecv)
-  * [reduce](#stablehloreduce)
-  * [reduce_precision](#stablehloreduce_precision)
-  * [reduce_scatter](#stablehloreduce_scatter)
-  * [reduce_window](#stablehloreduce_window)
-  * [remainder](#stablehloremainder)
-  * [replica_id](#stablehloreplica_id)
-  * [reshape](#stablehloreshape)
-  * [reverse](#stablehloreverse)
-  * [rng](#stablehlorng)
-  * [rng_bit_generator](#stablehlorng_bit_generator)
-  * [round_nearest_afz](#stablehloround_nearest_afz)
-  * [round_nearest_even](#stablehloround_nearest_even)
-  * [rsqrt](#stablehlorsqrt)
-  * [scatter](#stablehloscatter)
-  * [select](#stablehloselect)
-  * [select_and_scatter](#stablehloselect_and_scatter)
-  * [send](#stablehlosend)
-  * [shift_left](#stablehloshift_left)
-  * [shift_right_arithmetic](#stablehloshift_right_arithmetic)
-  * [shift_right_logical](#stablehloshift_right_logical)
-  * [sign](#stablehlosign)
-  * [sine](#stablehlosine)
-  * [slice](#stablehloslice)
-  * [sort](#stablehlosort)
-  * [sqrt](#stablehlosqrt)
-  * [subtract](#stablehlosubtract)
-  * [tanh](#stablehlotanh)
-  * [transpose](#stablehlotranspose)
-  * [triangular_solve](#stablehlotriangular_solve)
-  * [tuple](#stablehlotuple)
-  * [while](#stablehlowhile)
-  * [xor](#stablehloxor)
+## Ops
 
 ## stablehlo.abs
 
@@ -531,8 +436,6 @@ defined and one of the following:
 %result = "stablehlo.abs"(%operand) : (tensor<3xi32>) -> tensor<3xi32>
 // %result: [2, 0, 2]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.add
 
@@ -581,8 +484,6 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.after_all
 
 ### Semantics
@@ -608,8 +509,6 @@ it only exists to establish data dependencies from `result` to `inputs`.
 ```mlir
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.all_gather
 
@@ -684,8 +583,6 @@ Afterwards, within each `process_group`:
 // %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
 // %result@(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.all_reduce
 
@@ -773,8 +670,6 @@ Afterwards, within each `process_group`:
 // %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
 // %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.all_to_all
 
@@ -883,8 +778,6 @@ Afterwards, within each `process_group`:
 //                 ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.and
 
 ### Semantics
@@ -918,8 +811,6 @@ For boolean tensors, computes the logical operation.
 %result = "stablehlo.and"(%lhs, %rhs) : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[1, 2], [3, 0]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.atan2
 
@@ -955,8 +846,6 @@ with corner cases TBD. Numeric precision is implementation-defined.
 %result = "stablehlo.atan2"(%lhs, %rhs) : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xf32>
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.batch_norm_grad
 
@@ -1078,8 +967,6 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 // %grad_offset: [0.4, 0.4]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.batch_norm_inference
 
 ### Semantics
@@ -1157,8 +1044,6 @@ Numeric precision is implementation-defined.
 //           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.batch_norm_training
 
@@ -1246,8 +1131,6 @@ Numeric precision is implementation-defined.
 // %batch_var: [1.0, 1.0]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.bitcast_convert
 
 ### Semantics
@@ -1308,8 +1191,6 @@ representation of element types is implementation-defined as well.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.broadcast_in_dim
 
 ### Semantics
@@ -1367,8 +1248,6 @@ dimensions `k` in `operand`.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.case
 
 ### Semantics
@@ -1412,8 +1291,6 @@ returned.
 // %result: 11
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.cbrt
 
 ### Semantics
@@ -1446,8 +1323,6 @@ corner cases TBD. Numeric precision is implementation-defined.
 %result = "stablehlo.cbrt"(%operand) : (tensor<4xf32>) -> tensor<4xf32>
 // %result: [0.0, 1.0, 2.0, 3.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.ceil
 
@@ -1482,8 +1357,6 @@ specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.cholesky
 
@@ -1538,8 +1411,6 @@ matrix, then the behavior is undefined.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.clamp
 
 ### Semantics
@@ -1582,8 +1453,6 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 %result = "stablehlo.clamp"(%min, %operand, %max) : (tensor<3xi32>, tensor<3xi32>, tensor<3xi32>) -> tensor<3xi32>
 // %result: [5, 13, 20]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.collective_permute
 
@@ -1647,8 +1516,6 @@ Afterwards, `result@process` is given by:
 // %result@(0, 0): [[0, 0], [0, 0]]
 // %result@(1, 0): [[1, 2], [3, 4]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.compare
 
@@ -1725,8 +1592,6 @@ performed using the provided `comparison_direction` and `compare_type`.
 // %result: [true, false]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.complex
 
 ### Semantics
@@ -1761,8 +1626,6 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 %result = "stablehlo.complex"(%lhs, %rhs) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xcomplex<f32>>
 // %result: [(1.0, 2.0), (3.0, 4.0)]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.concatenate
 
@@ -1813,8 +1676,6 @@ tensor. More formally,
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.constant
 
 ### Semantics
@@ -1847,8 +1708,6 @@ Produces an `output` tensor from a constant `value`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.convert
 
@@ -1918,8 +1777,6 @@ converted to zero, and the value `true` is converted to one. For
 %result = "stablehlo.convert"(%operand) : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
 // %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.convolution
 
@@ -2102,8 +1959,6 @@ If `batch_group_count > 1`:
 //          ]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.cosine
 
 ### Semantics
@@ -2141,8 +1996,6 @@ specification. Numeric precision is implementation-defined.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.count_leading_zeros
 
 ### Semantics
@@ -2173,8 +2026,6 @@ tensor and produces a `result` tensor.
 %result = "stablehlo.count_leading_zeros"(%operand) : (tensor<2x2xi8>) -> tensor<2x2xi8>
 // %result: [[8, 7], [1, 0]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.custom_call
 
@@ -2213,8 +2064,6 @@ implementation-defined metadata.
   called_computations = [@foo]
 } : (tensor<f32>) -> tensor<f32>
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.divide
 
@@ -2257,8 +2106,6 @@ produces an implementation-defined value.
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
 // %result: [5, -5, -5, 5]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.dot_general
 
@@ -2379,8 +2226,6 @@ computations on accelerator backends. This can be one of the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_dot_general.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.dynamic_slice
 
 ### Semantics
@@ -2438,8 +2283,6 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 //           [1, 1]
 //          ]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.dynamic_update_slice
 
@@ -2504,8 +2347,6 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.exponential
 
 ### Semantics
@@ -2544,8 +2385,6 @@ implementation-defined.
 // %result: (-1.13120438, 2.47172667)
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.exponential_minus_one
 
 ### Semantics
@@ -2579,8 +2418,6 @@ precision is implementation-defined.
 %result = "stablehlo.exponential_minus_one"(%operand) : (tensor<2xf32>) -> tensor<2xf32>
 // %result: [0.0, 1.71828187]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.fft
 
@@ -2699,8 +2536,6 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 // %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.floor
 
 ### Semantics
@@ -2734,8 +2569,6 @@ specification.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.gather
 
@@ -2862,8 +2695,6 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.get_dimension_size
 
 ### Semantics
@@ -2897,8 +2728,6 @@ Produces the size of the given `dimension` of the `operand`.
 } : (tensor<2x3xf32>) -> tensor<i32>
 // %result: 3
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.get_tuple_element
 
@@ -2934,8 +2763,6 @@ Extracts element at `index` position of the `operand` tuple and produces a
 } : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
 // %result: [1.0, 2.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.if
 
@@ -2980,8 +2807,6 @@ output of `true_branch` is returned, else if pred is `false`, output of
 // %result: 10
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.imag
 
 ### Semantics
@@ -3017,8 +2842,6 @@ More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
 %result = "stablehlo.imag"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
 // %result: [2.0, 4.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.infeed
 
@@ -3059,8 +2882,6 @@ as a value that other operations can take a data dependency on.
   infeed_config = ""
 } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.iota
 
@@ -3122,8 +2943,6 @@ defined and one of the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.is_finite
 
 ### Semantics
@@ -3156,8 +2975,6 @@ operation from the IEEE-754 specification.
 %y = "stablehlo.is_finite"(%x) : (tensor<7xf32>) -> tensor<7xi1>
 // %y: [false, false, false, true, true, true, true]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.log
 
@@ -3197,8 +3014,6 @@ implementation-defined.
 // %result: (0.80471896, 1.10714871)
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.log_plus_one
 
 ### Semantics
@@ -3232,8 +3047,6 @@ implementation-defined.
 %result = "stablehlo.log_plus_one"(%operand) : (tensor<6xf32>) -> tensor<6xf32>
 // %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.logistic
 
@@ -3273,8 +3086,6 @@ function, with corner cases TBD. Numeric precision is implementation-defined.
 %result = "stablehlo.logistic"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: (1.02141536, 0.40343871)
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.map
 
@@ -3324,8 +3135,6 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 // %result: [[0, 5], [12, 21]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.maximum
 
 ### Semantics
@@ -3363,8 +3172,6 @@ For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.minimum
 
@@ -3404,8 +3211,6 @@ For boolean element type, the behavior is same as
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.multiply
 
@@ -3459,8 +3264,6 @@ For boolean element type, the behavior is same as
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_multiply.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.negate
 
 ### Semantics
@@ -3510,8 +3313,6 @@ unsigned integer type.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_negate.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.not
 
 ### Semantics
@@ -3549,8 +3350,6 @@ produces a `result` tensor. For boolean tensors, it computes the logical NOT.
 // %result: [false, true]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.optimization_barrier
 
 ### Semantics
@@ -3586,8 +3385,6 @@ an identity, i.e. `result` = `operand`.
 // %result0: 0.0
 // %result1: 1.0
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.or
 
@@ -3630,8 +3427,6 @@ operation.
 // %result: [[false, true], [true, true]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.outfeed
 
 ### Semantics
@@ -3664,8 +3459,6 @@ as a value that other operations can take a data dependency on.
   outfeed_config = ""
 } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.pad
 
@@ -3741,8 +3534,6 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.partition_id
 
 ### Semantics
@@ -3760,8 +3551,6 @@ Produces `partition_id` of the current process.
 ```mlir
 %result = "stablehlo.partition_id"() : () -> tensor<ui32>
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.popcnt
 
@@ -3793,8 +3582,6 @@ and produces a `result` tensor.
 %result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
 // %result: [0, 1, 1, 7]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.power
 
@@ -3850,8 +3637,6 @@ implementation-defined.
 // %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.real
 
 ### Semantics
@@ -3887,8 +3672,6 @@ More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
 %result = "stablehlo.real"(%operand) : (tensor<2xcomplex<f32>>) -> tensor<2xf32>
 // %result: [1.0, 3.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.recv
 
@@ -3938,8 +3721,6 @@ other operations can take a data dependency on.
   is_host_transfer = true
 } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.reduce
 
@@ -4018,8 +3799,6 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 // %result = [15]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.reduce_precision
 
 ### Semantics
@@ -4072,8 +3851,6 @@ More formally:
 // Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
 // %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.reduce_scatter
 
@@ -4176,8 +3953,6 @@ Afterwards, within each `process_group`:
 //                 ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.reduce_window
 
 ### Semantics
@@ -4267,8 +4042,6 @@ where:
 // %result = [[0, 0], [3, 4]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.remainder
 
 ### Semantics
@@ -4315,8 +4088,6 @@ implementation-defined value.
 // %result: [2, -2, 2, -2]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.replica_id
 
 ### Semantics
@@ -4334,8 +4105,6 @@ Produces `replica_id` of the current process.
 ```mlir
 %result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.reshape
 
@@ -4375,8 +4144,6 @@ spaces of `result` and `operand`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.reverse
 
@@ -4426,8 +4193,6 @@ and produces a `result` tensor. More formally,
 } : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.rng
 
@@ -4486,8 +4251,6 @@ hidden state.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.rng_bit_generator
 
 ### Semantics
@@ -4543,8 +4306,6 @@ deterministic between implementations.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.round_nearest_afz
 
 ### Semantics
@@ -4576,8 +4337,6 @@ the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 %result = "stablehlo.round_nearest_afz"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
 // %result: [-3.0, 0.0, 1.0, 1.0, 3.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.round_nearest_even
 
@@ -4611,8 +4370,6 @@ specification.
 %result = "stablehlo.round_nearest_even"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
 // %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.rsqrt
 
@@ -4649,8 +4406,6 @@ specification. Numeric precision is implementation-defined.
 %result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: [(0.56886448, -0.35157758)]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.scatter
 
@@ -4805,8 +4560,6 @@ is undefined.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.select
 
 ### Semantics
@@ -4847,8 +4600,6 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 %result = "stablehlo.select"(%pred, %on_true, %on_false) : (tensor<2x2xi1>, tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
 // %result: [[5, 2], [3, 8]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.select_and_scatter
 
@@ -4951,8 +4702,6 @@ More formally:
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.send
 
 ### Semantics
@@ -5000,8 +4749,6 @@ implementation-defined.
 } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.shift_left
 
 ### Semantics
@@ -5034,8 +4781,6 @@ of bits and produces a `result` tensor.
 %result = "stablehlo.shift_left"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
 // %result: [-2, -8, 24, 0, -128, 0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.shift_right_arithmetic
 
@@ -5070,8 +4815,6 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 // %result: [-1, -32, -5, 1, 1, 0]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.shift_right_logical
 
 ### Semantics
@@ -5104,8 +4847,6 @@ number of bits and produces a `result` tensor.
 %result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
 // %result: [127, 32, 27, 1, 1, 0]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.sign
 
@@ -5161,8 +4902,6 @@ def sign(x):
 // %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.sine
 
 ### Semantics
@@ -5199,8 +4938,6 @@ Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.slice
 
@@ -5272,8 +5009,6 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 //            [1, 1]
 //           ]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.sort
 
@@ -5359,8 +5094,6 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 // %result1 = [[1, 2, 3], [1, 2, 3]]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.sqrt
 
 ### Semantics
@@ -5396,8 +5129,6 @@ specification.
 %result = "stablehlo.sqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
 // %result: [(1.27201965, 0.78615138)]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.subtract
 
@@ -5445,8 +5176,6 @@ the IEEE-754 specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_subtract.mlir)
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.tanh
 
 ### Semantics
@@ -5480,8 +5209,6 @@ Numeric precision is implementation-defined.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.transpose
 
@@ -5529,8 +5256,6 @@ where `i[d] = j[permutation[d]]`.
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.triangular_solve
 
@@ -5608,8 +5333,6 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 //          ]
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.tuple
 
 ### Semantics
@@ -5641,8 +5364,6 @@ Produces a `result` tuple from values `val`.
 %result = "stablehlo.tuple"(%val0, %val1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
 // %result: ([1.0, 2.0], (3))
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## stablehlo.while
 
@@ -5704,8 +5425,6 @@ The behavior of an infinite loop is TBD.
 // %results1: 10
 ```
 
-[Back to Ops](#index-of-ops)
-
 ## stablehlo.xor
 
 ### Semantics
@@ -5746,8 +5465,6 @@ logical operation.
 %result = "stablehlo.xor"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, false]]
 ```
-
-[Back to Ops](#index-of-ops)
 
 ## Execution
 
