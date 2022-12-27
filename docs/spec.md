@@ -555,16 +555,16 @@ the IEEE-754 specification. For boolean element type, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type   |
+|-------|--------|
+| `lhs` | tensor |
+| `rhs` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -639,7 +639,7 @@ Afterwards, within each `process_group`:
 
 | Name                    | Type                                         |
 |-------------------------|----------------------------------------------|
-| `operand`               | tensor of any supported type                 |
+| `operand`               | tensor                                       |
 | `all_gather_dim`        | constant of type `si64`                      |
 | `replica_groups`        | 2-dimensional tensor constant of type `si64` |
 | `channel_id`            | constant of type `si64`                      |
@@ -647,9 +647,9 @@ Afterwards, within each `process_group`:
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -726,7 +726,7 @@ Afterwards, within each `process_group`:
 
 | Name                    | Type                                                             |
 |-------------------------|------------------------------------------------------------------|
-| `operand`               | tensor of any supported type                                     |
+| `operand`               | tensor                                                           |
 | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` |
 | `channel_id`            | constant of type `si64`                                          |
 | `use_global_device_ids` | constant of type `i1`                                            |
@@ -734,9 +734,9 @@ Afterwards, within each `process_group`:
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -822,7 +822,7 @@ Afterwards, within each `process_group`:
 
 | Name               | Type                                         |
 |--------------------|----------------------------------------------|
-| `operand`          | tensor of any supported type                 |
+| `operand`          | tensor                                       |
 | `split_dimension`  | constant of type `si64`                      |
 | `concat_dimension` | constant of type `si64`                      |
 | `split_count`      | constant of type `si64`                      |
@@ -830,9 +830,9 @@ Afterwards, within each `process_group`:
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1272,15 +1272,15 @@ representation of element types is implementation-defined as well.
 
 ### Inputs
 
-| Name      | Type                         |
-|-----------|------------------------------|
-| `operand` | tensor of any supported type |
+| Name      | Type   |
+|-----------|--------|
+| `operand` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1324,14 +1324,14 @@ dimensions `k` in `operand`.
 
 | Name                   | Type                                         |
 |------------------------|----------------------------------------------|
-| `operand`              | tensor of any supported type                 |
+| `operand`              | tensor                                       |
 | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1387,9 +1387,9 @@ returned.
 
 ### Outputs
 
-| Name      | Type                                                       |
-|-----------|------------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type or tokens |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `results` | variadic number of tensors or tokens |
 
 ### Constraints
 
@@ -1554,17 +1554,17 @@ operations correspond to [stablehlo.minimum](#stablehlominimum) and
 
 ### Inputs
 
-| Name      | Type                         |
-|-----------|------------------------------|
-| `min`     | tensor of any supported type |
-| `operand` | tensor of any supported type |
-| `max`     | tensor of any supported type |
+| Name      | Type   |
+|-----------|--------|
+| `min`     | tensor |
+| `operand` | tensor |
+| `max`     | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1610,15 +1610,15 @@ Afterwards, `result@process` is given by:
 
 | Name                  | Type                                         |
 |-----------------------|----------------------------------------------|
-| `operand`             | tensor of any supported type                 |
+| `operand`             | tensor                                       |
 | `source_target_pairs` | 2-dimensional tensor constant of type `si64` |
 | `channel_id`          | constant of type `si64`                      |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1690,8 +1690,8 @@ performed using the provided `comparison_direction` and `compare_type`.
 
 | Name                   | Type                                                    |
 |------------------------|---------------------------------------------------------|
-| `lhs`                  | tensor of any supported type                            |
-| `rhs`                  | tensor of any supported type                            |
+| `lhs`                  | tensor                                                  |
+| `rhs`                  | tensor                                                  |
 | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |
 | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` |
 
@@ -1779,16 +1779,16 @@ tensor. More formally,
 
 ### Inputs
 
-| Name        | Type                                             |
-|-------------|--------------------------------------------------|
-| `inputs`    | variadic number of tensors of any supported type |
-| `dimension` | constant of type `si64`                          |
+| Name        | Type                       |
+|-------------|----------------------------|
+| `inputs`    | variadic number of tensors |
+| `dimension` | constant of type `si64`    |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1823,15 +1823,15 @@ Produces an `output` tensor from a constant `value`.
 
 ### Inputs
 
-| Name    | Type                           |
-|---------|--------------------------------|
-| `value` | constant of any supported type |
+| Name    | Type     |
+|---------|----------|
+| `value` | constant |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `output` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `output` | tensor |
 
 ### Constraints
 
@@ -1897,15 +1897,15 @@ converted to zero, and the value `true` is converted to one. For
 
 ### Inputs
 
-| Name      | Type                         |
-|-----------|------------------------------|
-| `operand` | tensor of any supported type |
+| Name      | Type   |
+|-----------|--------|
+| `operand` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -1979,8 +1979,8 @@ If `batch_group_count > 1`:
 
 | Name                              | Type                                                        | Constraints                            |
 |-----------------------------------|-------------------------------------------------------------|----------------------------------------|
-| `lhs`                             | tensor of any supported type                                | (C1), (C2), (C11), (C12), (C26), (C27) |
-| `rhs`                             | tensor of any supported type                                | (C1), (C2), (C15), (C16), (C17), (C26) |
+| `lhs`                             | tensor                                                      | (C1), (C2), (C11), (C12), (C26), (C27) |
+| `rhs`                             | tensor                                                      | (C1), (C2), (C15), (C16), (C17), (C26) |
 | `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                      |
 | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                            |
 | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                      |
@@ -2001,9 +2001,9 @@ If `batch_group_count > 1`:
 
 ### Outputs
 
-| Name     | Type                         | Constraints         |
-|----------|------------------------------|---------------------|
-| `result` | tensor of any supported type | (C26), (C27), (C28) |
+| Name     | Type   | Constraints         |
+|----------|--------|---------------------|
+| `result` | tensor | (C26), (C27), (C28) |
 
 ### Constraints
 
@@ -2187,20 +2187,20 @@ implementation-defined metadata.
 
 ### Inputs
 
-| Name                  | Type                                                            |
-|-----------------------|-----------------------------------------------------------------|
-| `inputs`              | variadic number of values of any supported type                 |
-| `call_target_name`    | constant of type `string`                                       |
-| `has_side_effect`     | constant of type `i1`                                           |
-| `backend_config`      | constant of type `string`                                       |
-| `api_version`         | constant of type `si32`                                         |
-| `called_computations` | variadic number of functions                                    |
+| Name                  | Type                         |
+|-----------------------|------------------------------|
+| `inputs`              | variadic number of values    |
+| `call_target_name`    | constant of type `string`    |
+| `has_side_effect`     | constant of type `i1`        |
+| `backend_config`      | constant of type `string`    |
+| `api_version`         | constant of type `si32`      |
+| `called_computations` | variadic number of functions |
 
 ### Outputs
 
-| Name      | Type                                            |
-|-----------|-------------------------------------------------|
-| `results` | variadic number of values of any supported type |
+| Name      | Type                      |
+|-----------|---------------------------|
+| `results` | variadic number of values |
 
 ### Examples
 
@@ -2303,8 +2303,8 @@ computations on accelerator backends. This can be one of the following:
 
 | Name                         | Type                                                        |
 |------------------------------|-------------------------------------------------------------|
-| `lhs`                        | tensor of any supported type                                |
-| `rhs`                        | tensor of any supported type                                |
+| `lhs`                        | tensor                                                      |
+| `rhs`                        | tensor                                                      |
 | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                |
 | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                |
 | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                |
@@ -2313,9 +2313,9 @@ computations on accelerator backends. This can be one of the following:
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -2400,15 +2400,15 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 | Name            | Type                                                     |
 |-----------------|----------------------------------------------------------|
-| `operand`       | tensor of any supported type                             |
+| `operand`       | tensor                                                   |
 | `start_indices` | variadic number of 0-dimensional tensors of integer type |
 | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -2459,15 +2459,15 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 
 | Name            | Type                                                     |
 |-----------------|----------------------------------------------------------|
-| `operand`       | tensor of any supported type                             |
-| `update`        | tensor of any supported type                             |
+| `operand`       | tensor                                                   |
+| `update`        | tensor                                                   |
 | `start_indices` | variadic number of 0-dimensional tensors of integer type |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -2779,8 +2779,8 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 | Name                   | Type                                         | Constraints                      |
 |------------------------|----------------------------------------------|----------------------------------|
-| `operand`              | tensor of any supported type                 | (C1), (C10), (C11), (C12), (C15) |
-| `start_indices`        | tensor of any supported integer type         | (C2), (C3), (C13)                |
+| `operand`              | tensor                                       | (C1), (C10), (C11), (C12), (C15) |
+| `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)                |
 | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5),                |
 | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13)    |
 | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)                |
@@ -2790,9 +2790,9 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -2872,10 +2872,10 @@ Produces the size of the given `dimension` of the `operand`.
 
 ### Inputs
 
-| Name          | Type                         |
-|---------------|------------------------------|
-| `operand`     | tensor of any supported type |
-| `dimension`   | constant of type `si64`      |
+| Name          | Type                    |
+|---------------|-------------------------|
+| `operand`     | tensor                  |
+| `dimension`   | constant of type `si64` |
 
 ### Outputs
 
@@ -2956,9 +2956,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 ### Outputs
 
-| Name      | Type                                                       |
-|-----------|------------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type or tokens |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `results` | variadic number of tensors or tokens |
 
 ### Constraints
 
@@ -3041,9 +3041,9 @@ as a value that other operations can take a data dependency on.
 
 ### Outputs
 
-| Name      | Type                                                       |
-|-----------|------------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type or tokens |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `results` | variadic number of tensors or tokens |
 
 ### Constraints
 
@@ -3288,17 +3288,17 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 
 ### Inputs
 
-| Name          | Type                                             |
-|---------------|--------------------------------------------------|
-| `inputs`      | variadic number of tensors of any supported type |
-| `dimensions`  | 1-dimensional tensor constant of type `si64`     |
-| `computation` | function                                         |
+| Name          | Type                                         |
+|---------------|----------------------------------------------|
+| `inputs`      | variadic number of tensors                   |
+| `dimensions`  | 1-dimensional tensor constant of type `si64` |
+| `computation` | function                                     |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -3338,16 +3338,16 @@ For boolean element type, the behavior is same as [stablehlo.or](#stablehloor).
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type   |
+|-------|--------|
+| `lhs` | tensor |
+| `rhs` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -3379,16 +3379,16 @@ For boolean element type, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type   |
+|-------|--------|
+| `lhs` | tensor |
+| `rhs` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -3433,16 +3433,16 @@ For boolean element type, the behavior is same as
 
 ### Inputs
 
-| Name  | Type                         |
-|-------|------------------------------|
-| `lhs` | tensor of any supported type |
-| `rhs` | tensor of any supported type |
+| Name  | Type   |
+|-------|--------|
+| `lhs` | tensor |
+| `rhs` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -3562,15 +3562,15 @@ an identity, i.e. `result` = `operand`.
 
 ### Arguments
 
-| Name      | Type                                                       |
-|-----------|------------------------------------------------------------|
-| `operand` | variadic number of tensors of any supported type or tokens |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `operand` | variadic number of tensors or tokens |
 
 ### Outputs
 
-| Name     | Type                                                       |
-|----------|------------------------------------------------------------|
-| `result` | variadic number of tensors of any supported type or tokens |
+| Name     | Type                                 |
+|----------|--------------------------------------|
+| `result` | variadic number of tensors or tokens |
 
 ### Constraints
 
@@ -3645,11 +3645,11 @@ as a value that other operations can take a data dependency on.
 
 ### Inputs
 
-| Name             | Type                                             |
-|------------------|--------------------------------------------------|
-| `inputs`         | variadic number of tensors of any supported type |
-| `token`          | `token`                                          |
-| `outfeed_config` | constant of type `string`                        |
+| Name             | Type                       |
+|------------------|----------------------------|
+| `inputs`         | variadic number of tensors |
+| `token`          | `token`                    |
+| `outfeed_config` | constant of type `string`  |
 
 ### Outputs
 
@@ -3695,17 +3695,17 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 | Name                | Type                                         |
 |---------------------|----------------------------------------------|
-| `operand`           | tensor of any supported type                 |
-| `padding_value`     | 0-dimensional tensor of any supported type   |
+| `operand`           | tensor                                       |
+| `padding_value`     | 0-dimensional tensor                         |
 | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` |
 | `edge_padding_high` | 1-dimensional tensor constant of type `si64` |
 | `interior_padding`  | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -3915,9 +3915,9 @@ other operations can take a data dependency on.
 
 ### Outputs
 
-| Name      | Type                                                      |
-|-----------|-----------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type or token |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `results` | variadic number of tensors or tokens |
 
 ### Constraints
 
@@ -3974,18 +3974,18 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 ### Inputs
 
-| Name          | Type                                                           |
-|---------------|----------------------------------------------------------------|
-| `inputs`      | variadic number of tensors of any supported type               |
-| `init_values` | variadic number of 0-dimensional tensors of any supported type |
-| `dimensions`  | 1-dimensional tensor constant of type `si64`                   |
-| `body`        | function                                                       |
+| Name          | Type                                         |
+|---------------|----------------------------------------------|
+| `inputs`      | variadic number of tensors                   |
+| `init_values` | variadic number of 0-dimensional tensors     |
+| `dimensions`  | 1-dimensional tensor constant of type `si64` |
+| `body`        | function                                     |
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
+| Name      | Type                       |
+|-----------|----------------------------|
+| `results` | variadic number of tensors |
 
 ### Constraints
 
@@ -4108,7 +4108,7 @@ Afterwards, within each `process_group`:
 
 | Name                    | Type                                         |
 |-------------------------|----------------------------------------------|
-| `operand`               | tensor of any supported type                 |
+| `operand`               | tensor                                       |
 | `scatter_dimension`     | constant of type `si64`                      |
 | `replica_groups`        | 2-dimensional tensor constant of type `si64` |
 | `channel_id`            | constant of type `si64`                      |
@@ -4117,9 +4117,9 @@ Afterwards, within each `process_group`:
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -4202,22 +4202,22 @@ where:
 
 ### Inputs
 
-| Name                | Type                                                           | Constraints                                     |
-|---------------------|----------------------------------------------------------------|-------------------------------------------------|
-| `inputs`            | variadic number of tensors of any supported type               | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
-| `init_values`       | variadic number of 0-dimensional tensors of any supported type | (C1), (C13), (C16)                              |
-| `window_dimensions` | 1-dimensional tensor constant of type `si64`                   | (C4), (C5), (C15)                               |
-| `window_strides`    | 1-dimensional tensor constant of type `si64`                   | (C6), (C7), (C15)                               |
-| `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C8), (C9), (C15)                               |
-| `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C10), (C11), (C15)                             |
-| `padding`           | 2-dimensional tensor constant of type `si64`                   | (C12), (C15)                                    |
-| `body`              | function                                                       | (C13)                                           |
+| Name                | Type                                         | Constraints                                     |
+|---------------------|----------------------------------------------|-------------------------------------------------|
+| `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
+| `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
+| `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
+| `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
+| `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
+| `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
+| `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
+| `body`              | function                                     | (C13)                                           |
 
 ### Outputs
 
-| Name      | Type                                             | Constraints     |
-|-----------|--------------------------------------------------|-----------------|
-| `results` | variadic number of tensors of any supported type | (C1), (C14-C16) |
+| Name      | Type                       | Constraints     |
+|-----------|----------------------------|-----------------|
+| `results` | variadic number of tensors | (C1), (C14-C16) |
 
 ### Constraints
 
@@ -4351,15 +4351,15 @@ spaces of `result` and `operand`.
 
 ### Inputs
 
-| Name      | Type                         |
-|-----------|------------------------------|
-| `operand` | tensor of any supported type |
+| Name      | Type   |
+|-----------|--------|
+| `operand` | tensor |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -4391,14 +4391,14 @@ and produces a `result` tensor. More formally,
 
 | Name         | Type                                         |
 |--------------|----------------------------------------------|
-| `operand`    | tensor of any supported type                 |
+| `operand`    | tensor                                       |
 | `dimensions` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -4714,24 +4714,24 @@ is undefined.
 
 ### Inputs
 
-| Name                           | Type                                              | Constraints                                              |
-|--------------------------------|---------------------------------------------------|----------------------------------------------------------|
-| `inputs`                       | variadic number of tensors of any supported types | (C1), (C2), (C4), (C5), (C6), (C10), (C13), (C15), (C16) |
-| `scatter_indices`              | tensor of any supported integer type              | (C4), (C11), (C14)                                       |
-| `updates`                      | variadic number of tensors of any supported types | (C3), (C4), (C5), (C6), (C8)                             |
-| `update_window_dims`           | 1-dimensional tensor constant of type `si64`      | (C2), (C4), (C7), (C8)                                   |
-| `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`      | (C2), (C4), (C9), (C10)                                  |
-| `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`      | (C11),(C12), (C13)                                       |
-| `index_vector_dim`             | constant of type `si64`                           | (C4), (C11), (C14)                                       |
-| `indices_are_sorted`           | constant of type `i1`                             |                                                          |
-| `unique_indices`               | constant of type `i1`                             |                                                          |
-| `update_computation`           | function                                          | (C15)                                                    |
+| Name                           | Type                                         | Constraints                                              |
+|--------------------------------|----------------------------------------------|----------------------------------------------------------|
+| `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4), (C5), (C6), (C10), (C13), (C15), (C16) |
+| `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                                       |
+| `updates`                      | variadic number of tensors                   | (C3), (C4), (C5), (C6), (C8)                             |
+| `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                                   |
+| `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                                  |
+| `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11),(C12), (C13)                                       |
+| `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                                       |
+| `indices_are_sorted`           | constant of type `i1`                        |                                                          |
+| `unique_indices`               | constant of type `i1`                        |                                                          |
+| `update_computation`           | function                                     | (C15)                                                    |
 
 ### Outputs
 
-| Name      | Type                                              |
-|-----------|---------------------------------------------------|
-| `results` | variadic number of tensors of any supported types |
+| Name      | Type                       |
+|-----------|----------------------------|
+| `results` | variadic number of tensors |
 
 ### Constraints
 
@@ -4824,14 +4824,14 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 | Name       | Type                         |
 |------------|------------------------------|
 | `pred`     | tensor of type `i1`          |
-| `on_true`  | tensor of any supported type |
-| `on_false` | tensor of any supported type |
+| `on_true`  | tensor                       |
+| `on_false` | tensor                       |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -4895,9 +4895,9 @@ More formally:
 
 | Name                | Type                                         | Constraints                    |
 |---------------------|----------------------------------------------|--------------------------------|
-| `operand`           | tensor of any supported type                 | (C1-C5), (C7), (C9), (C10-C12) |
-| `source`            | tensor of any supported type                 | (C2), (C3)                     |
-| `init_value`        | 0-dimensional tensor of any supported type   | (C4)                           |
+| `operand`           | tensor                                       | (C1-C5), (C7), (C9), (C10-C12) |
+| `source`            | tensor                                       | (C2), (C3)                     |
+| `init_value`        | 0-dimensional tensor                         | (C4)                           |
 | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)         |
 | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)               |
 | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)                     |
@@ -4906,9 +4906,9 @@ More formally:
 
 ### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of any supported type | (C12)       |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C12)       |
 
 ### Constraints
 
@@ -4968,13 +4968,13 @@ implementation-defined.
 
 ### Inputs
 
-| Name               | Type                                             |
-|--------------------|--------------------------------------------------|
-| `inputs`           | variadic number of tensors of any supported type |
-| `token`            | `token`                                          |
-| `channel_id`       | constant of type `si64`                          |
-| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`  |
-| `is_host_transfer` | constant of type `i1`                            |
+| Name               | Type                                            |
+|--------------------|-------------------------------------------------|
+| `inputs`           | variadic number of tensors                      |
+| `token`            | `token`                                         |
+| `channel_id`       | constant of type `si64`                         |
+| `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` |
+| `is_host_transfer` | constant of type `i1`                           |
 
 ### Outputs
 
@@ -5219,16 +5219,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Name            | Type                                         |
 |-----------------|----------------------------------------------|
-| `operand`       | tensor of any supported type                 |
+| `operand`       | tensor                                       |
 | `start_indices` | 1-dimensional tensor constant of type `si64` |
 | `limit_indices` | 1-dimensional tensor constant of type `si64` |
 | `strides`       | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -5297,18 +5297,18 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 
 ### Inputs
 
-| Name         | Type                                             |
-|--------------|--------------------------------------------------|
-| `inputs`     | variadic number of tensors of any supported type |
-| `dimension`  | constant of type `si64`                          |
-| `is_stable`  | constant of type `i1`                            |
-| `comparator` | function                                         |
+| Name         | Type                       |
+|--------------|----------------------------|
+| `inputs`     | variadic number of tensors |
+| `dimension`  | constant of type `si64`    |
+| `is_stable`  | constant of type `i1`      |
+| `comparator` | function                   |
 
 ### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of any supported type |
+| Name      | Type                       |
+|-----------|----------------------------|
+| `results` | variadic number of tensors |
 
 ### Constraints
 
@@ -5495,14 +5495,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Name          | Type                                         |
 |---------------|----------------------------------------------|
-| `operand`     | tensor of any supported type                 |
+| `operand`     | tensor                                       |
 | `permutation` | 1-dimensional tensor constant of type `si64` |
 
 ### Outputs
 
-| Name     | Type                         |
-|----------|------------------------------|
-| `result` | tensor of any supported type |
+| Name     | Type   |
+|----------|--------|
+| `result` | tensor |
 
 ### Constraints
 
@@ -5618,9 +5618,9 @@ Produces a `result` tuple from values `val`.
 
 ### Inputs
 
-| Name  | Type                                            |
-|-------|-------------------------------------------------|
-| `val` | variadic number of values of any supported type |
+| Name  | Type                      |
+|-------|---------------------------|
+| `val` | variadic number of values |
 
 ### Outputs
 
@@ -5663,17 +5663,17 @@ The behavior of an infinite loop is TBD.
 
 ### Inputs
 
-| Name       | Type                                                       |
-|------------|------------------------------------------------------------|
-| `operands` | variadic number of tensors of any supported type or tokens |
-| `cond`     | function                                                   |
-| `body`     | function                                                   |
+| Name       | Type                                 |
+|------------|--------------------------------------|
+| `operands` | variadic number of tensors or tokens |
+| `cond`     | function                             |
+| `body`     | function                             |
 
 ### Outputs
 
-| Name      | Type                                                       |
-|-----------|------------------------------------------------------------|
-| `results` | variadic number of tensors of any supported type or tokens |
+| Name      | Type                                 |
+|-----------|--------------------------------------|
+| `results` | variadic number of tensors or tokens |
 
 ### Constraints
 
