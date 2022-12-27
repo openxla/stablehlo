@@ -13,11 +13,32 @@
 
 # markdownlint-cli configuration file.
 
-# Enable all rules by default
+# Enable all markdwonlint rules by default
 default: true
 
-# Prefer indented lists for legacy compatibility
+# List formatting:
+# 1. Lists must start following a blank line.
+# 2. Unordered (bulleted) lists are indented by 2 spaces and must use the same
+#    bullet symbol consistently (such as *, +, or -).
+# 3. Ordered (numbered) lists are not indented.
+# 4. Each nested list increases indentation by 2 spaces. This is checked
+#    automatically for unordered lists with the following ul-indent rule,
+#    but markdownlint currently does not check indentation for ordered lists.
+#    Please also use 2-space indentation for nested ordered lists.
+# 5. In multiline list items, subsequent lines are indented by 2 spaces.
+#    This is not checked automatically, so we're documenting this convention
+#    to make sure the codebase stays consistent. Example:
+#
+#      * This is a list item that has multiple
+#        lines and each line aligns with the text
+#        from the first line.
+#
+#    For ordered lists, that means three spaces for wrapped lines:
+#
+#    1. The intention is to keep the text aligned
+#       on the left for readability.
 ul-indent:
+  indent: 2
   start_indented: true
 
 # Limit to 80-char line length, except for tables and code blocks

@@ -21,8 +21,8 @@ for storage. The last one is used for storing elements with complex types.
      individual tensor element at multi-dimensional index `index` as `Element`
      object.
   - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
-  To update an `Element` object `element` into a tensor at multi-dimensional
-  index `index`.
+    To update an `Element` object `element` into a tensor at multi-dimensional
+    index `index`.
 
 ## Working of the interpreter
 

@@ -69,13 +69,13 @@ into the bytecode implementations in the Builtin Dialect.
 
   - `StableHLO_ConvolutionAttributes`
     - Despite its name,  is not an attribute and is not encoded.
-    Rather, it is a dag which gets expanded into several attributes
-    which are all encoded separately.
+      Rather, it is a dag which gets expanded into several attributes
+      which are all encoded separately.
   - `StableHLO_CustomCallApiVersionAttr`
     - This enum is defined strictly as an attribute of `I32EnumAttr`
-    and not an `EnumAttr` of the `StablehloDialect`. This differs from
-   `FftType` and other enum attributes. Because of this, it is handled by
-    the builtin encoding.
+      and not an `EnumAttr` of the `StablehloDialect`. This differs from
+      `FftType` and other enum attributes. Because of this, it is handled by
+      the builtin encoding.
 
 ## Other Notes
 

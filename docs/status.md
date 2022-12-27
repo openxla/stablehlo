@@ -24,13 +24,13 @@ one of the following tracking labels.
       implements some verification.
   - Customized labels for Verifier and Type Inference
     - **yes**: there is an implementation, and it's in sync with
-    [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
+      [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
     - **yes\***: there is an implementation, and it's in sync with
-    [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
-    Since XLA semantics is oftentimes underdocumented, we are using
-    [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
-    and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
-    as the reference.
+      [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
+      Since XLA semantics is oftentimes underdocumented, we are using
+      [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
+      and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
+      as the reference.
     - **revisit**: there is an implementation, but it doesn't fall under "yes"
       or "yes\*" - either because we haven't audited it yet, or because we have
       and found issues.
