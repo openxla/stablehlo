@@ -13,7 +13,7 @@
 
 # markdownlint-cli configuration file.
 
-# Enable all markdwonlint rules by default
+# Enable all markdownlint rules by default
 default: true
 
 # List formatting:
