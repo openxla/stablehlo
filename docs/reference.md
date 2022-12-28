@@ -69,7 +69,7 @@ we encapsulate details about how different element types are handled in
 
 We can use the interpreter mechanism to fold operations with constant operand
 values. The following code snippet demonstrates an idea of the implementation
-for folding `stablehlo::AddOp` with floating-point typed operands:
+for folding `stablehlo::AddOp` with Floating-point typed operands:
 
 ```C++
 OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
@@ -134,49 +134,58 @@ interpret\_\*.mlir).
 
 ### Testing guidelines
 
-**(G1) Do we need to test for all the supported types for every op ?**
+**(G1) Do we need to test for all the supported types for every op?**
 
-We can use the following thumb rule to decide it:
+We can use a combination of following rules to decide it:
 
-While implementing an op, if we need to introduce code in the corresponding
-`eval` function to handle types differently, then it is imperative to have tests
-to cover for all those types. But in cases where a set of types are handled
-uniformly, like for `add` op, all the supported integer types are handled alike
-using `llvm::APInt` APIs, then we can skip adding tests for all those types and,
-instead, add a single test with a type, with maximum bit-width (an arbitrary
-choice), from the set.
+  1. While implementing an op, if there exists code in the corresponding `eval`
+     function to handle a particular type, then it is imperative to have test(s)
+     to cover for that type. As an example, for `add` op, there is exclusive
+     code to handle Integer, Boolean, Floating-point, and Complex types, and hence we
+     need one test for each type.
+  2. If a set of types are handled uniformly in the corresponding
+     `eval` function, then a single test for all those types should be
+     sufficient. As an example, for `add` op, all the variants of Integers
+     types (`si4`, `u4`, `si8`, `u8` and so on) are handled alike using
+     `llvm::APInt` APIs, and hence we can skip adding tests for each of those
+     variants, and instead, add a single representative test. To avoid ambiguity
+     in selecting the representative, we should use the following guidelines:
 
-For quantization ops, like `uniform_dequantize`, `uniform_quantize`, the
-decision is TBD.
+       * If all the types, handled uniformaly, have the same primitive type
+         (i.e., if all are Integer, or Floating-point, or Complex types), then
+         choose the one with maximum bit-width.
+       * If all the types, handled uniformaly, have a mix of primitive types,
+         then choose the one with the following primitive type, in decreasing
+         order of preference: Boolean, Integer, Floating-point, Complex.
 
-**(G2) How about adding tests dedicated for testing the interpreter infrastructure ?**
+**(G2) How about adding tests dedicated for testing the interpreter infrastructure?**
 
 The interpreter infrastructure is mostly straightforward and can be added it in
 our trust base. The only non-trivial part is how various types are packed into
 and unpacked from the underlying interpreter storage. As discussed in (G1), we
 will be testing only those types of an op which are handled differently. With
 that is possible that the packing/un-packing code, corresponding to different
-variants of integer/floating point types, might not get fully covered during
+variants of Integer/Floating-point types, might not get fully covered during
 testing.
 
 To ensure that we can chose an op, like `add`, which supports all the StableHLO
 element types and write exhaustive tests. Fortunately, we already have it.
 
-**(G3) If the implementation of an op depends other ops, should be write tests for the later ?**
+**(G3) If the implementation of an op depends other ops, should be write tests for the latter?**
 
 No. For example, the implementation of `batch_norm_grad` can be based on
-`divide`, `subtract`, `multiply` and others, we should avoid testing the later
+`divide`, `subtract`, `multiply` and others, we should avoid testing the latter
 ops while testing the former.
 
-**(G4) Should we write tests to exercise the implementation-defined / undefined behaviors ?**
+**(G4) Should we write tests to exercise the implementation-defined / undefined behaviors?**
 
 We should not write tests which exercises the implementation defined or
 undefined behaviors of the op. Tests exercising implementation defined behaviors
-demonstrates a local behavior of the interpreter which cannot be generalized.
-Tests exercising undefined behavior does not contribute towards the
-understanding of the op's behavior.
+demonstrates a local behavior of the interpreter which should not be
+generalized.  Tests exercising undefined behavior does not contribute towards
+the understanding of the op's behavior.
 
-**(G5) While writing tests for floating point type, to what precision the results need to be specified in llvm lit checks ?**
+**(G5) While writing tests for Floating-point type, to what precision the results need to be specified in llvm lit checks?**
 
 The current lit-based interpreter testing fails if the result is computed with a
 different precision than what is mentioned in the lit CHECK directives. As a
