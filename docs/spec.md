@@ -399,7 +399,7 @@ bytes is implementation-defined. String literals have type `string`.
 
 ### Semantics
 
-Computes element-wise absolute value of `operand` tensor and produces a `result`
+Performs element-wise abs operation on `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
 
   * For signed integers: integer modulus.
