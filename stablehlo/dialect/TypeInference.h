@@ -316,6 +316,9 @@ LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
                                        Value operand, Value startIndices,
                                        Value limitIndices, Value strides);
 
+LogicalResult verifyRecvOp(Dialect* dialect, Optional<Location> location,
+                           ValueRange results);
+
 LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body);

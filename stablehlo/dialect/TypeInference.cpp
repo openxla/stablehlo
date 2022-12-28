@@ -3211,6 +3211,25 @@ LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
   return success();
 }
 
+// Checks that the result type is of the form `zero_or_more_type(s),
+// stablehlo::token`
+LogicalResult verifyRecvOp(Dialect* dialect, Optional<Location> location,
+                           ValueRange results) {
+  auto resultTypes = results.getTypes();
+  if (resultTypes.empty())
+    return emitOptionalError(
+        location, "result is expected to be at least of size 1, but got ",
+        resultTypes.size());
+
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+    return emitOptionalError(location,
+                             "last element of result types is expected to "
+                             "be of token type, but got ",
+                             resultTypes[resultTypes.size() - 1]);
+  return success();
+}
+
 // We intend to verify the following properties
 //  P1. Verify all `inputs` need to have compatible shapes.
 //  P2. Verify that

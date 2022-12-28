@@ -1479,19 +1479,9 @@ LogicalResult SendOp::inferReturnTypes(
 // RecvOp
 //===----------------------------------------------------------------------===//
 
-// Checks that the result type is of the form `zero_or_more_type(s),
-// stablehlo::token`
 LogicalResult RecvOp::verify() {
-  auto resultTypes = getResultTypes();
-  if (resultTypes.empty())
-    return emitOpError()
-           << "result is expected to be at least of size 1, but got "
-           << resultTypes.size();
-  if (!resultTypes[resultTypes.size() - 1].isa<TokenType>())
-    return emitOpError() << "last element of result types is expected to "
-                            "be of token type, but got "
-                         << resultTypes[resultTypes.size() - 1];
-  return success();
+  auto dialect = getContext()->getLoadedDialect<StablehloDialect>();
+  return hlo::verifyRecvOp(dialect, getLoc(), getResults());
 }
 
 //===----------------------------------------------------------------------===//
