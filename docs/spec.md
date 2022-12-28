@@ -401,6 +401,7 @@ bytes is implementation-defined. String literals have type `string`.
 
 Computes element-wise absolute value of `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
+
   * For signed integers: integer modulus.
   * For floats: `abs` from IEEE-754.
   * For complex numbers: complex modulus.
@@ -439,6 +440,7 @@ tensor. Depending on the element type, does the following:
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For booleans: logical OR.
   * For integers: integer addition.
   * For floats: `addition` from IEEE-754.
@@ -772,6 +774,7 @@ Afterwards, within each `process_group`:
 
 Performs element-wise AND of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
+
   * For booleans: logical AND.
   * For integers: bitwise AND.
 
@@ -807,6 +810,7 @@ tensor. Depending on the element type, does the following:
 
 Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For floats: `atan2` from IEEE-754.
   * For complex numbers: complex atan2.
 
@@ -981,8 +985,6 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
 
-Numeric precision is implementation-defined.
-
 ### Inputs
 
 | Name            | Type                                        |
@@ -1066,8 +1068,6 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   return batch_norm_inference(operand, scale, offset, mean,
                               variance, epsilon, feature_index)
 ```
-
-Numeric precision is implementation-defined.
 
 ### Inputs
 
@@ -1285,6 +1285,7 @@ returned.
 
 Performs element-wise cubic root operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For floats: `rootn(x, 3)` from IEEE-754.
   * For complex numbers: complex cubic root.
 
@@ -3117,6 +3118,7 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For booleans: logical OR.
   * For integers: integer maximum.
   * For floats: `maximum` from IEEE-754.
@@ -3156,6 +3158,7 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 
 Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For booleans: logical AND.
   * For integers: integer minimum.
   * For floats: `minimum` from IEEE-754.
@@ -3195,6 +3198,7 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 
 Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For booleans: logical AND.
   * For integers: integer multiplication.
   * For floats: `multiplication` from IEEE-754.
@@ -3234,6 +3238,7 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 
 Performs element-wise negation of `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
+
   * For signed integers: integer negation.
   * For unsigned integers: bitcast to signed integer, integer negation, bitcast
     back to unsigned integer.
@@ -3278,6 +3283,7 @@ tensor. Depending on the element type, does the following:
 
 Performs element-wise NOT of tensor `operand` and produces a `result` tensor.
 Depending on the element type, does the following:
+
   * For booleans: logical NOT.
   * For integers: bitwise NOT.
 
@@ -3680,8 +3686,7 @@ same results for all inputs on all implementations.
 
 However, this condition doesn't hold for many popular reductions. E.g.
 floating-point addition for `body` and zero for `init_values` don't actually
-form a monoid because floating-point addition is not associative. What this
-means for numeric precision is implementation-defined.
+form a monoid because floating-point addition is not associative.
 
 More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
@@ -5086,6 +5091,7 @@ Performs element-wise square root operation on `operand` tensor and produces a
 
 Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
+
   * For integers: integer subtraction.
   * For floats: `subtraction` from IEEE-754.
   * For complex numbers: complex subtraction.
