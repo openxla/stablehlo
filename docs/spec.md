@@ -399,15 +399,12 @@ bytes is implementation-defined. String literals have type `string`.
 
 ### Semantics
 
-Performs element-wise absolute value of `operand` tensor and produces a `result`
-tensor. For floating-point element types, it implements the `abs` operation from
-the IEEE-754 specification.
+Performs element-wise abs operation on `operand` tensor and produces a `result`
+tensor. Depending on the element type, does the following:
 
-For n-bit signed integer, the absolute value of $-2^{n-1}$ is implementation-
-defined and one of the following:
-
-  * Saturation to $2^{n-1}-1$
-  * $-2^{n-1}$
+  * For signed integers: integer modulus.
+  * For floats: `abs` from IEEE-754.
+  * For complex numbers: complex modulus.
 
 ### Inputs
 
@@ -442,19 +439,12 @@ defined and one of the following:
 ### Semantics
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
-`result` tensor. For integer element types, if the element-wise sum has an
-unsigned/signed overflow, the result is implementation-defined and one
-of the following:
+`result` tensor. Depending on the element type, does the following:
 
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
-  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
-
-For floating-point element types, it implements the `addition` operation from
-the IEEE-754 specification. For boolean element type, the behavior is same as
-`or`.
+  * For booleans: logical OR.
+  * For integers: integer addition.
+  * For floats: `addition` from IEEE-754.
+  * For complex numbers: complex addition.
 
 ### Inputs
 
@@ -789,22 +779,24 @@ Afterwards, within each `process_group`:
 
 ### Semantics
 
-Performs element-wise bitwise or logical AND of two tensors `lhs` and `rhs` and
-produces a `result` tensor. For integer tensors, computes the bitwise operation.
-For boolean tensors, computes the logical operation.
+Performs element-wise AND of two tensors `lhs` and `rhs` and produces a `result`
+tensor. Depending on the element type, does the following:
+
+  * For booleans: logical AND.
+  * For integers: bitwise AND.
 
 ### Inputs
 
 | Name  | Type                              |
 |-------|-----------------------------------|
-| `lhs` | tensor of integer or boolean type |
-| `rhs` | tensor of integer or boolean type |
+| `lhs` | tensor of boolean or integer type |
+| `rhs` | tensor of boolean or integer type |
 
 ### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
-| `result` | tensor of integer or boolean type |
+| `result` | tensor of boolean or integer type |
 
 ### Constraints
 
@@ -824,9 +816,10 @@ For boolean tensors, computes the logical operation.
 ### Semantics
 
 Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
-`result` tensor, implementing the `atan2` operation from the IEEE-754
-specification. For complex element types, it computes a complex atan2 function
-with corner cases TBD. Numeric precision is implementation-defined.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `atan2` from IEEE-754.
+  * For complex numbers: complex atan2.
 
 ### Inputs
 
@@ -999,8 +992,6 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
 
-Numeric precision is implementation-defined.
-
 ### Inputs
 
 | Name            | Type                                        |
@@ -1084,8 +1075,6 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   return batch_norm_inference(operand, scale, offset, mean,
                               variance, epsilon, feature_index)
 ```
-
-Numeric precision is implementation-defined.
 
 ### Inputs
 
@@ -1302,9 +1291,10 @@ returned.
 ### Semantics
 
 Performs element-wise cubic root operation on `operand` tensor and produces a
-`result` tensor, implementing the `rootn(x, 3)` operation from the IEEE-754
-specification. For complex element types, it computes a complex cubic root, with
-corner cases TBD. Numeric precision is implementation-defined.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `rootn(x, 3)` from IEEE-754.
+  * For complex numbers: complex cubic root.
 
 ### Inputs
 
@@ -1531,7 +1521,7 @@ Performs element-wise comparison of `lhs` and `rhs` tensors according to
 The values of `comparison_direction` and `compare_type` have the following
 semantics:
 
-For integer and boolean element types:
+For boolean and integer element types:
 
   * `EQ`: `lhs` $=$ `rhs`.
   * `NE`: `lhs` $\ne$ `rhs`.
@@ -1968,8 +1958,10 @@ If `batch_group_count > 1`:
 ### Semantics
 
 Performs element-wise cosine operation on `operand` tensor and produces a
-`result` tensor, implementing the `cos` operation from the IEEE-754
-specification. Numeric precision is implementation-defined.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `cos` from IEEE-754.
+  * For complex numbers: complex cosine.
 
 ### Inputs
 
@@ -2074,11 +2066,11 @@ implementation-defined metadata.
 ### Semantics
 
 Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
-produces a `result` tensor. For floating-point element types, it implements the
-`division` operation from IEEE-754 specification. For integer element types, it
-implements integer division truncating any fractional part. For n-bit integer
-types, division overflow (division by zero or division of $-2^{n-1}$ with $-1$)
-produces an implementation-defined value.
+produces a `result` tensor. Depending on the element type, does the following:
+
+  * For integers: integer division.
+  * For floats: `division` from IEEE-754.
+  * For complex numbers: complex division.
 
 ### Inputs
 
@@ -2356,10 +2348,10 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 ### Semantics
 
 Performs element-wise exponential operation on `operand` tensor and produces a
-`result` tensor. For floating-point element types, it implements the `exp`
-operation from the IEEE-754 specification. For complex element types, it
-computes a complex exponential, with corner cases TBD. Numeric precision is
-implementation-defined.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `exp` from IEEE-754.
+  * For complex numbers: complex exponential.
 
 ### Inputs
 
@@ -2394,10 +2386,10 @@ implementation-defined.
 ### Semantics
 
 Performs element-wise exponential minus one operation on `operand` tensor and
-produces a `result` tensor. For floating-point element types, it implements the
-`expm1` operation from the IEEE-754 specification. For complex element types, it
-computes a complex exponential minus one, with corner cases TBD. Numeric
-precision is implementation-defined.
+produces a `result` tensor. Depending on the element type, does the following:
+
+  * For floats: `expm1` from IEEE-754.
+  * For complex numbers: complex exponential minus one.
 
 ### Inputs
 
@@ -2816,9 +2808,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 ### Semantics
 
 Extracts the imaginary part, element-wise, from the `operand` and produces a
-`result` tensor.
-
-More formally, for each element `x`: `imag(x) = is_complex(x) ? x.imag : 0.0`.
+`result` tensor. More formally, for each element `x`:
+`imag(x) = is_complex(x) ? x.imag : 0.0`.
 
 ### Inputs
 
@@ -2894,16 +2885,6 @@ as a value that other operations can take a data dependency on.
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 `output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
-
-For integers, if the dimension size is larger than what the element type's
-maximum value can hold, an overflow occurs and the behavior is implementation-
-defined and one of the following:
-
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ for signed overflow and saturation to $2^n - 1$
-  for unsigned overflow.
 
 ### Inputs
 
@@ -2985,10 +2966,10 @@ operation from the IEEE-754 specification.
 ### Semantics
 
 Performs element-wise logarithm operation on `operand` tensor and produces a
-`result` tensor. For floating-point element types, it implements the `log`
-operation from the IEEE-754 specification. For complex element types, it
-computes a complex logarithm, with corner cases TBD. Numeric precision is
-implementation-defined.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `log` from IEEE-754.
+  * For complex numbers: complex logarithm.
 
 ### Inputs
 
@@ -3022,11 +3003,11 @@ implementation-defined.
 
 ### Semantics
 
-Performs element-wise log plus one operation on `operand` tensor and produces a
-`result` tensor. For floating-point element types, it implements the `logp1`
-operation from the IEEE-754 specification. For complex element types, it
-computes a complex log plus one, with corner cases TBD. Numeric precision is
-implementation-defined.
+Performs element-wise logarithm plus one operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+  * For floats: `logp1` from IEEE-754.
+  * For complex numbers: complex logarithm plus one.
 
 ### Inputs
 
@@ -3056,12 +3037,11 @@ implementation-defined.
 
 ### Semantics
 
-Performs element-wise logistic (sigmoid) function on `operand` tensor and
-produces a `result` tensor. For floating-point element types, it implements:
-$$logistic(x) = division(1, addition(1, exp(-x)))$$
-where `addition`, `division`, and `exp` are operations from IEEE-754
-specification. For complex element types, it computes a complex logistic
-function, with corner cases TBD. Numeric precision is implementation-defined.
+Performs element-wise logistic operation on `operand` tensor and produces a
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `division(1, addition(1, exp(-x)))` from IEEE-754.
+  * For complex numbers: complex logistic.
 
 ### Inputs
 
@@ -3144,10 +3124,12 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 ### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element types, it implements the `maximum`
-operation from the IEEE-754 specification. For complex element types, it performs
-lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element type, the behavior is same as `or`.
+`result` tensor. Depending on the element type, does the following:
+
+  * For booleans: logical OR.
+  * For integers: integer maximum.
+  * For floats: `maximum` from IEEE-754.
+  * For complex numbers: lexicographic maximum for the `(real, imaginary)` pair.
 
 ### Inputs
 
@@ -3182,10 +3164,12 @@ For boolean element type, the behavior is same as `or`.
 ### Semantics
 
 Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
-`result` tensor. For floating-point element types, it implements the `minimum`
-operation from the IEEE-754 specification. For complex element types, it performs
-lexicographic comparison on the (real, imaginary) pairs with corner cases TBD.
-For boolean element type, the behavior is same as `and`.
+`result` tensor. Depending on the element type, does the following:
+
+  * For booleans: logical AND.
+  * For integers: integer minimum.
+  * For floats: `minimum` from IEEE-754.
+  * For complex numbers: lexicographic minimum for the `(real, imaginary)` pair.
 
 ### Inputs
 
@@ -3220,23 +3204,12 @@ For boolean element type, the behavior is same as `and`.
 ### Semantics
 
 Performs element-wise product of two tensors `lhs` and `rhs` and produces a
-`result` tensor. For integer element types, if the element-wise product has an
-unsigned/signed overflow, the result is implementation-defined and one
-of the following:
+`result` tensor. Depending on the element type, does the following:
 
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ \ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
-  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
-
-For floating-point element types, it implements the `multiplication` operation
-from the IEEE-754 specification.
-
-For complex element types, it computes a complex multiplication, with corner
-cases TBD.
-
-For boolean element type, the behavior is same as `and`.
+  * For booleans: logical AND.
+  * For integers: integer multiplication.
+  * For floats: `multiplication` from IEEE-754.
+  * For complex numbers: complex multiplication.
 
 ### Inputs
 
@@ -3271,17 +3244,13 @@ For boolean element type, the behavior is same as `and`.
 ### Semantics
 
 Performs element-wise negation of `operand` tensor and produces a `result`
-tensor. For floating-point element types, it implements the `negate` operation
-from the IEEE-754 specification. For signed integer types, it performs the
-regular negation operation where the negation of $-2^{n-1}$ is implementation-
-defined and one of the following:
+tensor. Depending on the element type, does the following:
 
-  * Saturation to $2^{n-1}-1$
-  * $-2^{n-1}$
-
-For unsigned integer types, it bitcasts to the corresponding signed integer type,
-performs the regular negation operation and bitcasts back to the original
-unsigned integer type.
+  * For signed integers: integer negation.
+  * For unsigned integers: bitcast to signed integer, integer negation, bitcast
+    back to unsigned integer.
+  * For floats: `negate` from IEEE-754.
+  * For complex numbers: complex negation.
 
 ### Inputs
 
@@ -3319,20 +3288,23 @@ unsigned integer type.
 
 ### Semantics
 
-Performs element-wise bitwise NOT of tensor `operand` of type integer and
-produces a `result` tensor. For boolean tensors, it computes the logical NOT.
+Performs element-wise NOT of tensor `operand` and produces a `result` tensor.
+Depending on the element type, does the following:
+
+  * For booleans: logical NOT.
+  * For integers: bitwise NOT.
 
 ### Arguments
 
 | Name      | Type                              |
 |-----------|-----------------------------------|
-| `operand` | tensor of integer or boolean type |
+| `operand` | tensor of boolean or integer type |
 
 ### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
-| `result` | tensor of integer or boolean type |
+| `result` | tensor of boolean or integer type |
 
 ### Constraints
 
@@ -3392,9 +3364,11 @@ an identity, i.e. `result` = `operand`.
 
 ### Semantics
 
-Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
-and produces a `result` tensor. For boolean tensors, it computes the logical
-operation.
+Performs element-wise OR of two tensors `lhs` and `rhs` and produces a `result`
+tensor. Depending on the element type, does the following:
+
+  * For booleans: logical OR.
+  * For integers: bitwise OR.
 
 ### Inputs
 
@@ -3590,28 +3564,11 @@ and produces a `result` tensor.
 ### Semantics
 
 Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
-produces a `result` tensor.
+produces a `result` tensor. Depending on the element type, does the following:
 
-For integer element types, if the exponentiation has an unsigned/signed
-overflow, the result is implementation-defined and one of the following:
-
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
-  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
-
-For an integer, `x`, raised to a negative power, `y`, the behaviour is as
-follows:
-
-  * If `abs(x)` $\gt$ 1, then result is 0.
-  * If `abs(x)` $=$ 1, then result is equivalent to `x^abs(y)`.
-  * If `abs(x)` $=$ 0, then behaviour is implementation-defined.
-
-For floating-point element types, it implements the `pow` operation from the
-IEEE-754 specification. For complex element types, it computes complex
-exponentiation, with corner cases TBD. Numeric precision is
-implementation-defined.
+  * For integers: integer exponentiation.
+  * For floats: `pow` from IEEE-754.
+  * For complex numbers: complex exponentiation.
 
 ### Inputs
 
@@ -3644,9 +3601,8 @@ implementation-defined.
 ### Semantics
 
 Extracts the real part, element-wise, from the `operand` and produces a `result`
-tensor.
-
-More formally, for each element `x`: `real(x) = is_complex(x) ? x.real : x`.
+tensor. More formally, for each element `x`:
+`real(x) = is_complex(x) ? x.real : x`.
 
 ### Inputs
 
@@ -3737,8 +3693,7 @@ same results for all inputs on all implementations.
 
 However, this condition doesn't hold for many popular reductions. E.g.
 floating-point addition for `body` and zero for `init_values` don't actually
-form a monoid because floating-point addition is not associative. What this
-means for numeric precision is implementation-defined.
+form a monoid because floating-point addition is not associative.
 
 More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
@@ -4049,15 +4004,14 @@ where:
 ### Semantics
 
 Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors and
-produces a `result` tensor. The sign of the result is taken from the dividend,
-and the absolute value of the result is always less than the divisor's absolute
-value. The remainder is calculated as `lhs - d * rhs`, where
-`d = stablehlo.divide`. For floating-point element types, this is in contrast
-with the `remainder` operation from IEEE-754 specification where `d` is an
-integral value nearest to the exact value of `lhs/rhs` with ties to even. For
-floating-point types, the corner cases are TBD. For n-bit integer, division
-overflow (remainder by zero or remainder of $-2^{n-1}$ with $-1$) produces an
-implementation-defined value.
+produces a `result` tensor.
+
+More formally, the sign of the result is taken from the dividend, and the
+absolute value of the result is always less than the divisor's absolute value.
+The remainder is calculated as `lhs - d * rhs`, where `d = stablehlo.divide`.
+For floating-point element types, this is in contrast with the `remainder`
+operation from IEEE-754 specification where `d` is an integral value nearest to
+the exact value of `lhs/rhs` with ties to even.
 
 ### Inputs
 
@@ -4378,8 +4332,10 @@ specification.
 ### Semantics
 
 Performs element-wise reciprocal square root operation on `operand` tensor and
-produces a `result` tensor, implementing the `rSqrt` operation from the IEEE-754
-specification. Numeric precision is implementation-defined.
+produces a `result` tensor. Depending on the element type, does the following:
+
+  * For floats: `rSqrt` from IEEE-754.
+  * For complex numbers: complex reciprocal square root.
 
 ### Inputs
 
@@ -4909,8 +4865,10 @@ def sign(x):
 ### Semantics
 
 Performs element-wise sine operation on `operand` tensor and produces a `result`
-tensor, implementing the `sin` operation from the IEEE-754 specification.
-Numeric precision is implementation-defined.
+tensor. Depending on the element type, does the following:
+
+  * For floats: `sin` from IEEE-754.
+  * For complex numbers: complex sine.
 
 ### Inputs
 
@@ -5101,8 +5059,10 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 ### Semantics
 
 Performs element-wise square root operation on `operand` tensor and produces a
-`result` tensor, implementing the `squareRoot` operation from the IEEE-754
-specification.
+`result` tensor. Depending on the element type, does the following:
+
+  * For floats: `squareRoot` from IEEE-754.
+  * For complex numbers: complex square root.
 
 ### Inputs
 
@@ -5137,18 +5097,11 @@ specification.
 ### Semantics
 
 Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
-`result` tensor. For integer element types, if the element-wise difference has
-an unsigned/signed overflow, the result is implementation-defined and one of the
-following:
+`result` tensor. Depending on the element type, does the following:
 
-  * mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-  * saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
-  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
-
-For floating-point element types, it implements the `subtraction` operation from
-the IEEE-754 specification.
+  * For integers: integer subtraction.
+  * For floats: `subtraction` from IEEE-754.
+  * For complex numbers: complex subtraction.
 
 ### Inputs
 
@@ -5182,9 +5135,11 @@ the IEEE-754 specification.
 
 ### Semantics
 
-Performs element-wise tanh operation on `operand` tensor and produces a `result`
-tensor, implementing the `tanh` operation from the IEEE-754 specification.
-Numeric precision is implementation-defined.
+Performs element-wise hyperbolic tangent operation on `operand` tensor and
+produces a `result` tensor. Depending on the element type, does the following:
+
+  * For floats: `tanh` from IEEE-754.
+  * For complex numbers: complex hyperbolic tangent.
 
 ### Inputs
 
@@ -5431,22 +5386,24 @@ The behavior of an infinite loop is TBD.
 
 ### Semantics
 
-Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
-types and produces a `result` tensor. For boolean tensors, it computes the
-logical operation.
+Performs element-wise XOR of two tensors `lhs` and `rhs` and produces a `result`
+tensor. Depending on the element type, does the following:
+
+  * For booleans: logical XOR.
+  * For integers: bitwise XOR.
 
 ### Inputs
 
 | Name  | Type                              |
 |-------|-----------------------------------|
-| `lhs` | tensor of integer or boolean type |
-| `rhs` | tensor of integer or boolean type |
+| `lhs` | tensor of boolean or integer type |
+| `rhs` | tensor of boolean or integer type |
 
 ### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
-| `result` | tensor of integer or boolean type |
+| `result` | tensor of boolean or integer type |
 
 ### Constraints
 

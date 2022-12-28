@@ -203,7 +203,7 @@ def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
      TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]>> {
   let summary = "Absolute value operator";
   let description = [{
-    Performs element-wise absolute value of `operand` tensor and produces a
+    Performs element-wise abs operation on `operand` tensor and produces a
     `result` tensor.
 
     See:
@@ -221,8 +221,7 @@ def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
   let summary = "Cubic root operator";
   let description = [{
     Performs element-wise cubic root operation on `operand` tensor and produces
-    a `result` tensor, implementing the `rootn(x, 3)` operation from the
-    IEEE-754 specification.
+    a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#cbrt
@@ -291,8 +290,7 @@ def StableHLO_CosineOp: StableHLO_UnaryElementwiseOp<"cosine",
   let summary = "Cos operator";
   let description = [{
     Performs element-wise cosine operation on `operand` tensor and produces a
-    `result` tensor, implementing the `cos` operation from the IEEE-754
-    specification.
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#cosine
@@ -417,8 +415,8 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Log1p operator";
   let description = [{
-    Computes element-wise logarithm of `operand` tensor plus one and produces a
-    `result` tensor.
+    Performs element-wise logarithm plus one operation on `operand` tensor and
+    produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#log_plus_one
@@ -434,8 +432,8 @@ def StableHLO_LogisticOp: StableHLO_UnaryElementwiseOp<"logistic",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Logistic operator";
   let description = [{
-    Performs element-wise logistic (sigmoid) function on `operand` tensor and
-    produces a `result` tensor.
+    Performs element-wise logistic operation on `operand` tensor and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#logistic
@@ -451,8 +449,8 @@ def StableHLO_NotOp: StableHLO_UnaryElementwiseOp<"not",
     [Pure, HLO_CompatibleOperandsAndResultType], HLO_PredOrIntTensor> {
   let summary = "Not operator";
   let description = [{
-    Performs element-wise bitwise NOT of tensor `operand` of type integer and
-    produces a `result` tensor.
+    Performs element-wise NOT of tensor `operand` of type integer and produces
+    a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#not
@@ -593,8 +591,7 @@ def StableHLO_SineOp: StableHLO_UnaryElementwiseOp<"sine",
   let summary = "Sin operator";
   let description = [{
     Performs element-wise sine operation on `operand` tensor and produces a
-    `result` tensor, implementing the `sin` operation from the IEEE-754
-    specification.
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#sine
@@ -611,8 +608,7 @@ def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
   let summary = "Square-root operator";
   let description = [{
     Performs element-wise square root operation on `operand` tensor and produces
-    a `result` tensor, implementing the `squareRoot` operation from the IEEE-754
-    specification.
+    a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#sqrt
@@ -629,9 +625,8 @@ def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
     HLO_FpOrComplexTensor> {
   let summary = "Tanh operator";
   let description = [{
-    Performs element-wise tanh operation on `operand` tensor and produces a
-    `result` tensor, implementing the `tanh` operation from the IEEE-754
-    specification.
+    Performs element-wise hyperbolic tangent operation on `operand` tensor and
+    produces a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#tanh
@@ -699,8 +694,7 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
   let summary = "Atan2 operator";
   let description = [{
     Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces
-    a `result` tensor, implementing the `atan2` operation from the IEEE-754
-    specification.
+    a `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#atan2
@@ -923,8 +917,8 @@ class StableHLO_BinaryBiwiseOrLogicalElementwiseOp<string mnemonic> :
 def StableHLO_AndOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"and"> {
   let summary = "And operator";
   let description = [{
-    Performs element-wise bitwise or logical AND of two tensors `lhs` and `rhs`
-    and produces a `result` tensor
+    Performs element-wise AND of two tensors `lhs` and `rhs` and produces a
+    `result` tensor
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#and
@@ -939,8 +933,8 @@ def StableHLO_AndOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"and"> {
 def StableHLO_OrOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"or"> {
   let summary = "Or operator";
   let description = [{
-    Performs element-wise bitwise OR of two tensors `lhs` and `rhs` of integer types
-    and produces a `result` tensor.
+    Performs element-wise OR of two tensors `lhs` and `rhs` and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#or
@@ -955,8 +949,8 @@ def StableHLO_OrOp: StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"or"> {
 def StableHLO_XorOp : StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"xor"> {
   let summary = "Xor operator";
   let description = [{
-    Performs element-wise bitwise XOR of two tensors `lhs` and `rhs` of integer
-    types and produces a `result` tensor.
+    Performs element-wise XOR of two tensors `lhs` and `rhs` and produces a
+    `result` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#xor
