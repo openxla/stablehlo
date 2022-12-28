@@ -3117,6 +3117,56 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
   return success();
 }
 
+LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
+                             Optional<ArrayAttr> layoutAttr,
+                             ValueRange results) {
+  auto resultTypes = results.getType();
+  if (resultTypes.empty())
+    return emitOptionalError(
+        location, "result is expected to be at least of size 1, but got ",
+        resultTypes.size());
+
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+    return emitOptionalError(location,
+                             "last element of result types is expected to "
+                             "be of token type, but got ",
+                             resultTypes[resultTypes.size() - 1]);
+
+  if (!layoutAttr.has_value()) return success();
+  ArrayAttr layout = layoutAttr.value();
+  if (!layout)
+    return emitOptionalError(location,
+                             "layout-attribute expected to be of array-type.");
+
+  if (layout.size() != resultTypes.size() - 1)
+    return emitOptionalError(location, "layout-attribute size must be ",
+                             resultTypes.size() - 1,
+                             " (which is the number of "
+                             "op-results - 1 (for token result)), but got ",
+                             layout.size());
+
+  for (auto childLayout : layout) {
+    mlir::ArrayAttr childLayoutArr = childLayout.dyn_cast<mlir::ArrayAttr>();
+    if (!childLayoutArr)
+      return emitOptionalError(location,
+                               "layout-attribute expected to have "
+                               "elements of type array, but got ",
+                               childLayout);
+
+    for (auto i : childLayoutArr) {
+      mlir::IntegerAttr attr = i.dyn_cast<mlir::IntegerAttr>();
+      if (!attr)
+        return emitOptionalError(location,
+                                 "layout-attribute's leaf elements are "
+                                 "expected to be of type integer, but got ",
+                                 i);
+    }
+  }
+
+  return success();
+}
+
 LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
                            Value result) {
   auto shape = result.getType().cast<ShapedType>();

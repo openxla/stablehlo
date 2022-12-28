@@ -305,6 +305,10 @@ LogicalResult verifyDynamicPadOp(Optional<Location> location, Value operand,
 LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
                                      Value outputShape, Value result);
 
+LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
+                             Optional<ArrayAttr> layoutAttr,
+                             ValueRange results);
+
 LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
                            Value result);
 
