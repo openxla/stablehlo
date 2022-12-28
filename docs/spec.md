@@ -2700,10 +2700,10 @@ Produces the size of the given `dimension` of the `operand`.
 
 ### Inputs
 
-| Name          | Type                    |
-|---------------|-------------------------|
-| `operand`     | tensor                  |
-| `dimension`   | constant of type `si64` |
+| Name        | Type                    |
+|-------------|-------------------------|
+| `operand`   | tensor                  |
+| `dimension` | constant of type `si64` |
 
 ### Outputs
 
@@ -4569,11 +4569,11 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 ### Inputs
 
-| Name       | Type                         |
-|------------|------------------------------|
-| `pred`     | tensor of type `i1`          |
-| `on_true`  | tensor                       |
-| `on_false` | tensor                       |
+| Name       | Type                |
+|------------|---------------------|
+| `pred`     | tensor of type `i1` |
+| `on_true`  | tensor              |
+| `on_false` | tensor              |
 
 ### Outputs
 
@@ -5342,9 +5342,9 @@ Produces a `result` tuple from values `val`.
 
 ### Outputs
 
-| Name     | Type    |
-|----------|---------|
-| `result` | tuple   |
+| Name     | Type  |
+|----------|-------|
+| `result` | tuple |
 
 ### Constraints
 
