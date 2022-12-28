@@ -741,7 +741,9 @@ Afterwards, within each `process_group`:
   * (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
   * (C4) `split_count` $\gt$ 0.
   * (C5) All values in `replica_groups` are unique.
-  * (C6) `size(replica_groups)` = `num_replicas`.
+  * (C6) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_partition`, `num_partitions`.
   * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
   * (C8) `type(result) = type(operand)` except:
