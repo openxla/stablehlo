@@ -3117,9 +3117,10 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
   return success();
 }
 
+// Checks that the result type is of the form `zero_or_more_type(s),
+// stablehlo::token`
 LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
-                             Optional<ArrayAttr> layoutAttr,
-                             ValueRange results) {
+                             Optional<ArrayAttr> layout, ValueRange results) {
   auto resultTypes = results.getType();
   if (resultTypes.empty())
     return emitOptionalError(
@@ -3133,20 +3134,19 @@ LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
                              "be of token type, but got ",
                              resultTypes[resultTypes.size() - 1]);
 
-  if (!layoutAttr.has_value()) return success();
-  ArrayAttr layout = layoutAttr.value();
-  if (!layout)
+  if (!layout.has_value()) return success();
+  if (!layout.value())
     return emitOptionalError(location,
                              "layout-attribute expected to be of array-type.");
 
-  if (layout.size() != resultTypes.size() - 1)
+  if (layout.value().size() != resultTypes.size() - 1)
     return emitOptionalError(location, "layout-attribute size must be ",
                              resultTypes.size() - 1,
                              " (which is the number of "
                              "op-results - 1 (for token result)), but got ",
-                             layout.size());
+                             layout.value().size());
 
-  for (auto childLayout : layout) {
+  for (auto childLayout : layout.value()) {
     mlir::ArrayAttr childLayoutArr = childLayout.dyn_cast<mlir::ArrayAttr>();
     if (!childLayoutArr)
       return emitOptionalError(location,
@@ -3272,6 +3272,11 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
+// The following property is already enforced by the ODS:
+//  P0. operand element type is float
+//  P1. mantissa_bits >= 0
+// We intend to verify the following properties
+//  P2. exponent_bits >= 1
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
                                       int32_t exponentBits) {
   if (exponentBits < 1)

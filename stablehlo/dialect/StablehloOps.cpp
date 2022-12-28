@@ -1425,8 +1425,6 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
 // InfeedOp
 //===----------------------------------------------------------------------===//
 
-// Checks that the result type is of the form `zero_or_more_type(s),
-// stablehlo::token`
 LogicalResult InfeedOp::verify() {
   auto dialect = getContext()->getLoadedDialect<StablehloDialect>();
   return hlo::verifyInfeedOp(dialect, getLoc(), getLayout(), getResults());
@@ -1511,11 +1509,6 @@ LogicalResult ReduceWindowOp::verify() {
 // ReducePrecisionOp
 //===----------------------------------------------------------------------===//
 
-// The following property is already enforced by the ODS:
-//  P0. operand element type is float
-//  P1. mantissa_bits >= 0
-// We intend to verify the following properties
-//  P2. exponent_bits >= 1
 LogicalResult ReducePrecisionOp::verify() {
   return hlo::verifyReducePrecisionOp(getLoc(), getExponentBits());
 }
