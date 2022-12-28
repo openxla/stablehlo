@@ -682,8 +682,12 @@ Within each process group in the StableHLO grid, splits the values of the
 between the processes, concatenates the scattered parts along `concat_dimension`
 and produces a `result` tensor.
 
-The operation splits the StableHLO grid into process groups using the
-`cross_replica(replica_groups)` strategy.
+The operation splits the StableHLO grid into `process_groups` as follows:
+
+  * `channel_id <= 0`,
+    `cross_replica(replica_groups)`.
+  * `channel_id > 0`,
+    `cross_partition(replica_groups)`.
 
 Afterwards, within each `process_group`:
 
@@ -722,6 +726,7 @@ Afterwards, within each `process_group`:
 | `concat_dimension` | constant of type `si64`                      |
 | `split_count`      | constant of type `si64`                      |
 | `replica_groups`   | 2-dimensional tensor constant of type `si64` |
+| `channel_id`       | constant of type `si64`                      |
 
 ### Outputs
 
@@ -736,7 +741,9 @@ Afterwards, within each `process_group`:
   * (C3) `concat_dimension` $\in$ [0, rank(`operand`)).
   * (C4) `split_count` $\gt$ 0.
   * (C5) All values in `replica_groups` are unique.
-  * (C6) `size(replica_groups)` = `num_replicas`.
+  * (C6) `size(replica_groups)` depends on the process grouping strategy:
+    * If `cross_replica`, `num_replicas`.
+    * If `cross_partition`, `num_partitions`.
   * (C7) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
          in `indices(replica_groups)`.
   * (C8) `type(result) = type(operand)` except:
