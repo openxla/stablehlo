@@ -3446,6 +3446,15 @@ LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
   return success();
 }
 
+LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
+                          bool isRngDistributionUniform) {
+  if (isRngDistributionUniform) return success();
+  auto muTy = a.getType().cast<TensorType>().getElementType();
+  auto sigmaTy = b.getType().cast<TensorType>().getElementType();
+  if (muTy.isa<FloatType>() && sigmaTy.isa<FloatType>()) return success();
+  return emitOptionalError(location, "mu and sigma must be floats");
+}
+
 LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState) {
   auto initialShape = initialState.getType().dyn_cast<RankedTensorType>();

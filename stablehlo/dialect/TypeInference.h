@@ -341,6 +341,9 @@ LogicalResult verifyReduceWindowOp(
 LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
                               Value result);
 
+LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
+                          bool isRngDistributionUniform);
+
 LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState);
 
