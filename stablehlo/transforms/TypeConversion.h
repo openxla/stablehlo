@@ -71,6 +71,14 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](Float64Type type) {
       return Float64V1Type::get(type.getContext());
     });
+    addConversion([&](FunctionType type) -> Type {
+      SmallVector<Type> convertedInputs;
+      SmallVector<Type> convertedResults;
+      if (failed(convertTypes(type.getInputs(), convertedInputs))) return {};
+      if (failed(convertTypes(type.getResults(), convertedResults))) return {};
+      return FunctionV1Type::get(type.getContext(), convertedInputs,
+                                 convertedResults);
+    });
     addConversion(
         [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
     addConversion([&](IntegerType type) {
@@ -152,6 +160,14 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     });
     addConversion([&](Float64V1Type type) {
       return Float64Type::get(type.getContext());
+    });
+    addConversion([&](FunctionV1Type type) -> Type {
+      SmallVector<Type> convertedInputs;
+      SmallVector<Type> convertedResults;
+      if (failed(convertTypes(type.getInputs(), convertedInputs))) return {};
+      if (failed(convertTypes(type.getResults(), convertedResults))) return {};
+      return FunctionType::get(type.getContext(), convertedInputs,
+                               convertedResults);
     });
     addConversion(
         [&](IndexV1Type type) { return IndexType::get(type.getContext()); });

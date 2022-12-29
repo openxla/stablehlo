@@ -12,7 +12,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Casting.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -139,6 +142,11 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   if (auto strAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(strAttr.getContext(), strAttr.getValue());
   }
+  if (auto typeAttr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
+    auto builtinType = typeConverter->convertType(typeAttr.getValue());
+    if (!builtinType) return {};
+    return TypeAttr::get(builtinType);
+  }
   if (auto unitAttr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
     return UnitAttr::get(unitAttr.getContext());
   }
@@ -164,6 +172,7 @@ struct VhloLegalizeToStablehloPass
     ConversionTarget target(getContext());
     target.addIllegalDialect<vhlo::VhloDialect>();
     target.addLegalDialect<stablehlo::StablehloDialect>();
+    target.addLegalDialect<func::FuncDialect>();
 
     vhlo::VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
@@ -201,6 +210,14 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           convertAttrToStablehlo(vhloAttr.getValue(), this->getTypeConverter());
       if (!stablehloAttr) return failure();
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
+    }
+
+    if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
+      if (llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
+        rewriter.replaceOpWithNewOp<func::ReturnOp>(
+            vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
+        return success();
+      }
     }
 
     // Convert the vhlo operation to a StableHLO equivalent.
@@ -247,7 +264,7 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
   populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp>(patterns, converter, context);
 }
 
 }  // namespace stablehlo

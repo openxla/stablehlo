@@ -82,6 +82,14 @@ def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
 
 def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
 
+def VHLO_FunctionType : VHLO_TypeDef<"FunctionV1", "func"> {
+  let parameters = (ins
+    ArrayRefParameter<"::mlir::Type">:$inputs,
+    ArrayRefParameter<"mlir::Type">:$results
+  );
+  let assemblyFormat = "`<` `(` custom<TypeArray>($inputs) `)` `->` custom<TypeArray>($results) `>`";
+}
+
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
 
 def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {

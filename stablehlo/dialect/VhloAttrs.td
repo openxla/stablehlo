@@ -206,6 +206,19 @@ def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
   let assemblyFormat = "`<` $value `>`";
 }
 
+def VHLO_TypeAttr : VHLO_AttrDef<"TypeV1"> {
+  let mnemonic = "type";
+  let parameters = (ins "::mlir::Type":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+/*
+def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
+  let mnemonic = "dict";
+  let parameters = (ins Variadic<VHLO_AnyType>:$entries); // NamedAttributes
+  let assemblyFormat = "`<` $entries `>`";
+}
+*/
+
 def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
   let mnemonic = "unit";
   let storageType = [{ ::mlir::UnitAttr }];

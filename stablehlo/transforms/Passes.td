@@ -22,7 +22,7 @@ def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp">
 
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
-  let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+  let dependentDialects = ["mlir::stablehlo::StablehloDialect", "mlir::func::FuncDialect"];
 }
 
 def VhloToVersionPass : Pass<"vhlo-to-version"> {

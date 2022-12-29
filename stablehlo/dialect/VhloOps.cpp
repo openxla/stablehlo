@@ -68,6 +68,28 @@ ParseResult parseTensorShape(AsmParser& parser,
   return success();
 }
 
+static void printTypeArray(AsmPrinter& os, ArrayRef<Type> typeArray) {
+  if (typeArray.empty()) os << "()";
+  os << typeArray;
+}
+
+ParseResult parseTypeArray(AsmParser& parser,
+                           FailureOr<SmallVector<Type>>& typeArray) {
+  SmallVector<Type> array;
+  if (succeeded(parser.parseOptionalLParen()) &&
+      succeeded(parser.parseOptionalRParen())) {
+    typeArray = array;
+    return success();
+  }
+
+  auto parseEle = [&]() { return parser.parseType(array.emplace_back()); };
+  if (failed(parser.parseCommaSeparatedList(parseEle))) {
+    return failure();
+  }
+  typeArray = array;
+  return success();
+}
+
 static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }

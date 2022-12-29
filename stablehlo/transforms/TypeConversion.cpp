@@ -23,15 +23,15 @@ namespace vhlo {
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter) {
+  /*
+  // FIXME
   target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
-    return converter.isSignatureLegal(op.getFunctionType());
-  });
-  target.addDynamicallyLegalOp<func::CallOp>([&](func::CallOp op) {
-    return converter.isSignatureLegal(op.getCalleeType());
+    return converter.isSignatureLegal(op.getFunctionType()); // FIXME
   });
   target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp op) {
     return converter.isLegal(op.getOperandTypes());
   });
+  */
   populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
                                                                  converter);
   populateCallOpTypeConversionPattern(patterns, converter);

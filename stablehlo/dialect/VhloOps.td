@@ -975,4 +975,29 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
   let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
 }
 
+def VHLO_FuncOpV1 : VHLO_Op<"func"> {
+  /*
+    let arguments = (ins SymbolNameAttr:$sym_name,
+                       TypeAttrOf<FunctionType>:$function_type,
+                       OptionalAttr<StrAttr>:$sym_visibility,
+                       OptionalAttr<DictArrayAttr>:$arg_attrs,
+                       OptionalAttr<DictArrayAttr>:$res_attrs);
+  */
+  let arguments = (ins VHLO_AnyAttr:$sym_name,
+                       VHLO_AnyAttr:$function_type,
+                       OptionalAttr<VHLO_AnyAttr>:$sym_visibility,
+                       OptionalAttr<VHLO_AnyAttr>:$arg_attrs,
+                       OptionalAttr<VHLO_AnyAttr>:$res_attrs);
+  let regions = (region VHLO_AnyRegion:$body);
+  let assemblyFormat = "$sym_name $body attr-dict `:` $function_type";
+}
+
+def VHLO_CallOpV1 : VHLO_Op<"call"> {
+  let arguments = (ins VHLO_AnyAttr:$callee, Variadic<VHLO_AnyType>:$operands);
+  let results = (outs Variadic<VHLO_AnyType>);
+  let assemblyFormat = [{
+    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
+}
+
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS
