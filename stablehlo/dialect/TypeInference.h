@@ -130,8 +130,8 @@ LogicalResult inferDynamicUpdateSliceOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferFftOp(
-    Optional<Location> location, Value operand, bool isRfft, bool isIrfft,
-    DenseIntElementsAttr fftLength,
+    Optional<Location> location, Value operand, bool isFftTypeRfft,
+    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGatherOp(

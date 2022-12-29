@@ -1788,10 +1788,10 @@ LogicalResult inferDynamicUpdateSliceOp(
 // P2. Element types agree with fft_type
 // P3. Operand shape dimensions agree with fft_length for the given fft_type
 LogicalResult inferFftOp(
-    Optional<Location> location, Value operand, bool isRfft, bool isIrfft,
-    DenseIntElementsAttr fftLength,
+    Optional<Location> location, Value operand, bool isFftTypeRfft,
+    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto fftLengthes = fftLength.getValues<int64_t>();
+  auto fftLengthValues = fftLength.getValues<int64_t>();
   int64_t fftRank = fftLength.size();
 
   // P1.
@@ -1807,7 +1807,7 @@ LogicalResult inferFftOp(
   auto operandType = operand.getType().cast<TensorType>();
   Type operandElementType = operandType.getElementType();
   // Check the input element type and infer return element type
-  if (isRfft) {
+  if (isFftTypeRfft) {
     if (!operandElementType.isF32() && !operandElementType.isF64()) {
       return emitOptionalError(
           location, "RFFT requires f32 or f64 input type, but is given ",
@@ -1815,15 +1815,15 @@ LogicalResult inferFftOp(
     }
   } else {
     if (!operandElementType.isa<ComplexType>())
-      return emitOptionalError(
-          location, "FFT/IFFT/IRFFT",
-          " takes a complex tensor as input, but is given ", operandType, ".");
+      return emitOptionalError(location, "FFT/IFFT/IRFFT",
+                               " take a complex tensor as input, but is given ",
+                               operandType, ".");
   }
   // Generate the output element type
   Type resultElementType = operandElementType;
-  if (isRfft) {  // RFFT : R -> C
+  if (isFftTypeRfft) {  // RFFT : R -> C
     resultElementType = ComplexType::get(resultElementType);
-  } else if (isIrfft) {  // IRFFT : C -> R
+  } else if (isFftTypeIrfft) {  // IRFFT : C -> R
     resultElementType = operandElementType.cast<ComplexType>().getElementType();
   }
 
@@ -1841,41 +1841,42 @@ LogicalResult inferFftOp(
 
   SmallVector<int64_t> resultShape = to_vector(operandShape);
 
-  if (isRfft) {
+  if (isFftTypeRfft) {
     auto shapeBack = operandShape.take_back(fftRank);
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthes)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
       if (operandDim != fftDim) {
         return emitOptionalError(
             location,
             "RFFT requires innermost dimensions match fft_length. Got: ",
-            operandShape, " but wanted ", fftLengthes, ".");
+            operandShape, " but wanted ", fftLengthValues, ".");
       }
     }
-    if (fftLengthes[fftRank - 1] != 0) {
-      resultShape[resultShape.size() - 1] = fftLengthes[fftRank - 1] / 2 + 1;
+    if (fftLengthValues[fftRank - 1] != 0) {
+      resultShape[resultShape.size() - 1] =
+          fftLengthValues[fftRank - 1] / 2 + 1;
     }
   }
-  if (isIrfft) {
+  if (isFftTypeIrfft) {
     auto shapeBack = operandShape.take_back(fftRank).drop_back();
-    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthes)) {
+    for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
       if (operandDim != fftDim) {
         return emitOptionalError(location,
                                  "IRFFT requires non-final dimensions "
                                  "match fft_length. Got: ",
-                                 operandShape, " but wanted ", fftLengthes,
+                                 operandShape, " but wanted ", fftLengthValues,
                                  ", and ", operandDim, " != ", fftDim, ".");
       }
     }
     if ((operandShape[operandShape.size() - 1] != 0 ||
-         fftLengthes[fftRank - 1] != 0) &&
+         fftLengthValues[fftRank - 1] != 0) &&
         operandShape[operandShape.size() - 1] !=
-            fftLengthes[fftRank - 1] / 2 + 1)
+            fftLengthValues[fftRank - 1] / 2 + 1)
       return emitOptionalError(location,
                                "IRFFT requires innermost dimension match "
                                "fft_length[-1]/2+1. Got: ",
-                               operandShape, " but fft_length is ", fftLengthes,
-                               ".");
-    resultShape[resultShape.size() - 1] = fftLengthes[fftRank - 1];
+                               operandShape, " but fft_length is ",
+                               fftLengthValues, ".");
+    resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
   }
 
   inferredReturnShapes.emplace_back(resultShape, resultElementType);

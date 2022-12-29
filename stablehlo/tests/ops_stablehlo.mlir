@@ -4905,7 +4905,7 @@ func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
 // -----
 
 func.func @irfft_invalid_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
-  // expected-error@+1 {{IRFFT takes a complex tensor as input, but is given 'tensor<3x9xf32>'}}
+  // expected-error@+1 {{FFT/IFFT/IRFFT take a complex tensor as input, but is given 'tensor<3x9xf32>'}}
   %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
