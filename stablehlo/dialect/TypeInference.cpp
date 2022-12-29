@@ -3116,6 +3116,56 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
   return success();
 }
 
+// Checks that the result type is of the form `zero_or_more_type(s),
+// stablehlo::token`
+LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
+                             Optional<ArrayAttr> layout, ValueRange results) {
+  auto resultTypes = results.getType();
+  if (resultTypes.empty())
+    return emitOptionalError(
+        location, "result is expected to be at least of size 1, but got ",
+        resultTypes.size());
+
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+    return emitOptionalError(location,
+                             "last element of result types is expected to "
+                             "be of token type, but got ",
+                             resultTypes[resultTypes.size() - 1]);
+
+  if (!layout.has_value()) return success();
+  if (!layout.value())
+    return emitOptionalError(location,
+                             "layout-attribute expected to be of array-type.");
+
+  if (layout.value().size() != resultTypes.size() - 1)
+    return emitOptionalError(location, "layout-attribute size must be ",
+                             resultTypes.size() - 1,
+                             " (which is the number of "
+                             "op-results - 1 (for token result)), but got ",
+                             layout.value().size());
+
+  for (auto childLayout : layout.value()) {
+    mlir::ArrayAttr childLayoutArr = childLayout.dyn_cast<mlir::ArrayAttr>();
+    if (!childLayoutArr)
+      return emitOptionalError(location,
+                               "layout-attribute expected to have "
+                               "elements of type array, but got ",
+                               childLayout);
+
+    for (auto i : childLayoutArr) {
+      mlir::IntegerAttr attr = i.dyn_cast<mlir::IntegerAttr>();
+      if (!attr)
+        return emitOptionalError(location,
+                                 "layout-attribute's leaf elements are "
+                                 "expected to be of type integer, but got ",
+                                 i);
+    }
+  }
+
+  return success();
+}
+
 LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
                            Value result) {
   auto shape = result.getType().cast<ShapedType>();
@@ -3157,6 +3207,25 @@ LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
     return emitOptionalError(
         location, "has mismatched number of operand rank (", inputRank,
         ") and strides size (", stridesType.getNumElements(), ")");
+  return success();
+}
+
+// Checks that the result type is of the form `zero_or_more_type(s),
+// stablehlo::token`
+LogicalResult verifyRecvOp(Dialect* dialect, Optional<Location> location,
+                           ValueRange results) {
+  auto resultTypes = results.getTypes();
+  if (resultTypes.empty())
+    return emitOptionalError(
+        location, "result is expected to be at least of size 1, but got ",
+        resultTypes.size());
+
+  auto hloDialect = cast<HloDialectInterface>(dialect);
+  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+    return emitOptionalError(location,
+                             "last element of result types is expected to "
+                             "be of token type, but got ",
+                             resultTypes[resultTypes.size() - 1]);
   return success();
 }
 
@@ -3202,6 +3271,11 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
+// The following property is already enforced by the ODS:
+//  P0. operand element type is float
+//  P1. mantissa_bits >= 0
+// We intend to verify the following properties
+//  P2. exponent_bits >= 1
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
                                       int32_t exponentBits) {
   if (exponentBits < 1)

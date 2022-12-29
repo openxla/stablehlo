@@ -136,6 +136,9 @@ class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
   // See docs for the particular type in the corresponding dialect.
   virtual Type createTokenType() const = 0;
 
+  // Check whether the type is of TokenType in the corresponding dialect.
+  virtual bool isTokenType(Type type) const = 0;
+
   // Creates a TypeExtensions attribute, specific to this dialect.
   // See docs for the particular attribute in the corresponding dialect.
   virtual Attribute createTypeExtensions(ArrayRef<int64_t> bounds) const = 0;
