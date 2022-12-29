@@ -274,15 +274,6 @@ struct VersionConversionPattern : OpConversionPattern<SourceOp> {
 /// Upgrade and Downgrade Definitions ///
 /////////////////////////////////////////
 
-template <typename WrappedDataType>
-WrappedDataType unwrap(Attribute attr) {
-  auto wrapped = attr.dyn_cast<WrappedAttr>();
-  if (!wrapped) return WrappedDataType();
-  auto unwrapped = wrapped.getData().dyn_cast<WrappedDataType>();
-  if (!unwrapped) return WrappedDataType();
-  return unwrapped;
-}
-
 // vhlo.custom_call --> vhlo.custom_call_v2
 struct CustomCallOpV1ToV2
     : public VersionConversionPattern<CustomCallOpV1, CustomCallOpV2> {
@@ -299,8 +290,8 @@ struct CustomCallOpV2ToV1
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
     if (op.getOutputOperandAliases()) {
       auto aliases =
-          unwrap<mlir::ArrayAttr>(op.getOutputOperandAliases().value());
-      if (!aliases || !aliases.empty()) {
+          op.getOutputOperandAliases().value().dyn_cast<vhlo::ArrayV1Attr>();
+      if (!aliases || !aliases.getValue().empty()) {
         return emitDowngradeError(
             op, "op has a non-empty output_operand_aliases attribute");
       }

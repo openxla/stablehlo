@@ -102,9 +102,10 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose);
   }
-  if (vhloAttr.isa<vhlo::WrappedAttr>()) {
-    return convertAttrToStablehlo(vhloAttr.cast<vhlo::WrappedAttr>().getData(),
-                                  typeConverter);
+
+  // Forked attributes
+  if (auto intAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+    return intAttr.getValue();
   }
   if (auto floatAttr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
     auto floatType = typeConverter->convertType(floatAttr.getType());
@@ -126,6 +127,21 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return FlatSymbolRefAttr::get(flatSymAttr.getContext(),
                                   rootRef.cast<StringAttr>());
   }
+  if (auto strAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
+    return StringAttr::get(strAttr.getContext(), strAttr.getValue());
+  }
+  if (auto unitAttr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
+    return UnitAttr::get(unitAttr.getContext());
+  }
+  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloAttrs.getValue()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
+  }
 
   if (vhloAttr.getDialect().getNamespace() ==
       vhlo::VhloDialect::getDialectNamespace()) {
@@ -133,19 +149,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return {};
   }
 
-  // Handle non-VHLO attributes.
-  // If an attribute is not defined in vhlo, then it is unchanged,
-  // with the exception of ArrayAttr which is converted recursively.
-  // This will change once we fork necessary upstream types to VHLO.
-  if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloAttrs) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
-  }
   return vhloAttr;
 }
 

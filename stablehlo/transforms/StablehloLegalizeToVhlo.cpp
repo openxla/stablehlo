@@ -15,6 +15,7 @@ limitations under the License.
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -134,15 +135,22 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return vhlo::FlatSymbolRefV1Attr::get(flatSymAttr.getContext(), rootRef);
   }
 
-  // Don't support string attr with type.
-  if (stablehloAttr.isa<StringAttr>() &&
-      !stablehloAttr.cast<StringAttr>().getType().isa<NoneType>()) {
-    LLVM_DEBUG(llvm::dbgs() << "Failed to convert string with type: "
-                            << stablehloAttr << '\n');
-    return {};
+  if (auto strAttr = stablehloAttr.dyn_cast<StringAttr>()) {
+    if (!strAttr.getType().isa<NoneType>()) {
+      // Don't support custom string types
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Failed to convert string with type: " << strAttr << '\n');
+      return {};
+    }
+    return vhlo::StringV1Attr::get(strAttr.getContext(), strAttr.getValue());
   }
-  if (stablehloAttr.isa<IntegerAttr, StringAttr, UnitAttr>()) {
-    return vhlo::WrappedAttr::get(stablehloAttr.getContext(), stablehloAttr);
+
+  if (auto unitAttr = stablehloAttr.dyn_cast<UnitAttr>()) {
+    return vhlo::UnitV1Attr::get(unitAttr.getContext());
+  }
+
+  if (auto intAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
+    return vhlo::IntegerV1Attr::get(intAttr.getContext(), intAttr);
   }
 
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
@@ -152,9 +160,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
       if (!vhloAttr) return {};
       vhloAttrs.push_back(vhloAttr);
     }
-    return vhlo::WrappedAttr::get(
-        stablehloAttrs.getContext(),
-        ArrayAttr::get(stablehloAttrs.getContext(), vhloAttrs));
+    return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
   if (auto elementsAttr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
     auto vhloType = typeConverter->convertType(elementsAttr.getType());

@@ -21,6 +21,7 @@ limitations under the License.
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -31,6 +32,21 @@ limitations under the License.
 
 namespace mlir {
 namespace vhlo {
+
+static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
+  os << '[' << arrayAttr << ']';
+}
+
+ParseResult parseAttributeArray(AsmParser& parser,
+                                FailureOr<SmallVector<Attribute>>& arrayAttr) {
+  ArrayAttr array;
+  if (failed(parser.parseAttribute(array))) {
+    return failure();
+  }
+  SmallVector<Attribute> values(array.begin(), array.end());
+  arrayAttr = values;
+  return success();
+}
 
 static void printFloatValue(const APFloat& apValue, AsmPrinter& os) {
   // We would like to output the FP constant value in exponential notation,
