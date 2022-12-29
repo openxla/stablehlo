@@ -129,6 +129,11 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferFftOp(
+    Optional<Location> location, Value operand, bool isRfft, bool isIrfft,
+    DenseIntElementsAttr fftLength,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferGatherOp(
     Optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
