@@ -60,16 +60,39 @@ class VHLO_AttrDef<string name,
 // Wrapped Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_AttrWrap : VHLO_AttrDef<"Wrapped"> {
-  let mnemonic = "wrapped";
-  let parameters = (ins "mlir::Attribute":$data);
-  let assemblyFormat = "`<` $data `>`";
+def VHLO_IntegerAttr  : VHLO_AttrDef<"IntegerV1"> {
+  let mnemonic = "integer";
+  let parameters = (ins "mlir::IntegerAttr":$value);
+  let assemblyFormat = "`<` $value `>`";
 }
 
 def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
   let mnemonic = "float";
   let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
   let assemblyFormat = "`<` $value `:` $type `>`";
+}
+
+def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
+  let mnemonic = "string";
+  let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_ArrayAttr : VHLO_AttrDef<"ArrayV1"> {
+  let mnemonic = "array";
+  let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
+  let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
+}
+
+def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
+  let mnemonic = "unit";
+  let storageType = [{ ::mlir::UnitAttr }];
+  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
+  let convertFromStorage = "$_self != nullptr";
+  let returnType = "bool";
+  let defaultValue = "false";
+  let valueType = NoneType;
+  let isOptional = 1;
 }
 
 def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
@@ -164,38 +187,6 @@ def VHLO_TypeExtensions : VHLO_AttrDef<"TypeExtensions"> {
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_LayoutAttr : Attr<
-  And<[IndexElementsAttr.predicate,
-       CPred<[{$_self.cast<::mlir::DenseIntElementsAttr>().getType().getRank()
-               == 1}]>]>,
-  "A 1D tensor of index type (layout)"> {
-  let storageType = IndexElementsAttr.storageType;
-  let returnType = IndexElementsAttr.returnType;
-  let convertFromStorage = IndexElementsAttr.convertFromStorage;
-}
-
-// An array of layout (1D tensor) attributes.
-def VHLO_ArrayOfLayoutAttr : TypedArrayAttrBase<VHLO_LayoutAttr,
-    "Array of layout (1D tensor of index type) attributes">;
-
-// An array of FlatSymbolRef attributes that can be used as a default valued
-// attribute.
-def VHLO_FlatSymbolRefArrayAttr :
-  TypedArrayAttrBase<FlatSymbolRefAttr, "flat symbol ref array attribute"> {
-  let constBuilderCall = "::mlir::ArrayAttr::get($_builder.getContext(), $0)";
-}
-
-def VHLO_BoolElementsAttr :
-    ElementsAttrBase<
-      And<[CPred<"$_self.isa<::mlir::DenseIntOrFPElementsAttr>()">,
-           CPred<"$_self.cast<::mlir::DenseIntOrFPElementsAttr>().getType().getElementType().isInteger(1)">]>,
-      "constant boolean vector/tensor attribute"> {
-  let storageType = [{ ::mlir::DenseElementsAttr }];
-  let returnType = [{ ::mlir::DenseElementsAttr }];
-
-  let convertFromStorage = "$_self";
 }
 
 def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
