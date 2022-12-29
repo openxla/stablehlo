@@ -129,6 +129,11 @@ LogicalResult inferDynamicUpdateSliceOp(
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferFftOp(
+    Optional<Location> location, Value operand, bool isFftTypeRfft,
+    bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferGatherOp(
     Optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
@@ -341,6 +346,9 @@ LogicalResult verifyReduceWindowOp(
 
 LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
                               Value result);
+
+LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
+                          bool isRngDistributionUniform);
 
 LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState);
