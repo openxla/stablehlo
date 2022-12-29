@@ -216,6 +216,11 @@ enum AttributeCode {
   ///   UnitAttr {
   ///   }
   kUnitAttr = 22,
+
+  ///   TypeAttr {
+  ///     value: Type
+  ///   }
+  kTypeAttr = 27,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -320,6 +325,12 @@ enum TypeCode {
   ///   }
   /// Variant of RankedTensorType with an encoding.
   kRankedTensorTypeWithEncoding = 20,
+
+  ///   FunctionType {
+  ///     inputs: Type[]
+  ///     results: Type[]
+  ///   }
+  kFunctionType = 15,
 
   ///   TupleType {
   ///     elementTypes: Type[]
@@ -457,6 +468,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(FloatV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(IntegerV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(StringV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(TypeV1Attr attr, DialectBytecodeWriter &writer) const;
   // void write(UnitV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
@@ -549,6 +561,8 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readIntegerV1Attr(reader);
     case vhlo_encoding::kStringAttr:
       return readStringV1Attr(reader);
+    case vhlo_encoding::kTypeAttr:
+      return readTypeV1Attr(reader);
     case vhlo_encoding::kUnitAttr:
       return UnitV1Attr::get(getContext());
     default:
@@ -576,7 +590,7 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             return success();
           })
       .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, FlatSymbolRefV1Attr,
-            FloatV1Attr, IntegerV1Attr, StringV1Attr>([&](auto attr) {
+            FloatV1Attr, IntegerV1Attr, StringV1Attr, TypeV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;  // Forked attrs
         write(attr, writer);
         return success();
@@ -1120,6 +1134,23 @@ void VhloBytecodeInterface::write(StringV1Attr attr,
   writer.writeOwnedString(attr.getValue());
 }
 
+void VhloBytecodeInterface::write(TypeV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  assertFromVhlo(attr.getValue());
+  writer.writeVarInt(vhlo_encoding::kTypeAttr);
+  writer.writeType(attr.getValue());
+}
+
+TypeV1Attr VhloBytecodeInterface::readTypeAttr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  Type type;
+  if (failed(reader.readType(type))) return TypeV1Attr();
+
+  assertFromVhlo(type);
+  return TypeV1Attr::get(getContext(), type);
+}
+
 //===----------------------------------------------------------------------===//
 // Types
 //===----------------------------------------------------------------------===//
@@ -1147,6 +1178,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return Float8E5M2V1Type::get(getContext());
     case vhlo_encoding::kFloat8E4M3FN:
       return Float8E4M3FNV1Type::get(getContext());
+    case vhlo_encoding::kFunctionType:
+      return readFunctionV1Type(reader);
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
     case vhlo_encoding::kIntegerI1Type:
@@ -1339,6 +1372,19 @@ RankedTensorV1Type VhloBytecodeInterface::readRankedTensorType(
   return RankedTensorV1Type::get(getContext(), shape, elementType, encoding);
 }
 
+FunctionV1Type VhloBytecodeInterface::readFunctionType(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  SmallVector<Type> inputs;
+  SmallVector<Type> results;
+  if (failed(reader.readTypes(inputs)) || failed(reader.readTypes(results)))
+    return FunctionV1Type();
+
+  llvm::all_of(inputs, assertFromVhlo<Type>);
+  llvm::all_of(results, assertFromVhlo<Type>);
+  return FunctionV1Type::get(getContext(), inputs, results);
+}
+
 void VhloBytecodeInterface::write(RankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   if (Attribute encoding = type.getEncoding()) {
@@ -1405,6 +1451,16 @@ void VhloBytecodeInterface::write(UniformQuantizedV1Type type,
   writer.writeSignedVarInt(type.getZeroPoint());
   writer.writeSignedVarInt(type.getStorageTypeMin());
   writer.writeSignedVarInt(type.getStorageTypeMax());
+}
+
+// FIXME:
+void VhloBytecodeInterface::write(FunctionV1Type type,
+                                  DialectBytecodeWriter &writer) const {
+  llvm::all_of(type.getInputs(), assertFromVhlo<Type>);
+  llvm::all_of(type.getResults(), assertFromVhlo<Type>);
+  writer.writeVarInt(vhlo_encoding::kFunctionType);
+  writer.writeTypes(type.getInputs());
+  writer.writeTypes(type.getResults());
 }
 
 //===----------------------------------------------------------------------===//

@@ -13,6 +13,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -202,15 +203,36 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     }
     return vhlo::StringV1Attr::get(attr.getContext(), attr.getValue());
   }
+  if (auto attr = stablehloAttr.dyn_cast<TypeAttr>()) {
+    auto vhloType = typeConverter->convertType(attr.getValue());
+    if (!vhloType) return {};
+    return vhlo::TypeV1Attr::get(attr.getContext(), vhloType);
+  }
   if (auto attr = stablehloAttr.dyn_cast<UnitAttr>()) {
     return vhlo::UnitV1Attr::get(attr.getContext());
   }
+
+  
+  // FIXME:
+  if (stablehloAttr.isa<DictionaryAttr>()) return stablehloAttr;
 
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
   return {};  // Failed to convert attribute.
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
+
+class FuncOpToVhloOpConverter : public OpConversionPattern<func::FuncOp> {
+ public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      func::FuncOp funcOp, func::FuncOp::Adaptor adaptor,
+      ConversionPatternRewriter& rewriter) const final {
+    // TODO: Convert to vhlo.func
+    return success();
+  }
+};
 
 template <typename StablehloOpTy>
 class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
@@ -294,6 +316,9 @@ struct StablehloLegalizeToVhloPass
   void runOnOperation() override {
     ConversionTarget target(getContext());
     target.addIllegalDialect<stablehlo::StablehloDialect>();
+    target.addIllegalDialect<func::FuncDialect>();
+    // FuncOp and ReturnOp are marked dynamically legal in
+    // registerFuncOpsForTypeConversion
     target.addLegalDialect<vhlo::VhloDialect>();
 
     StablehloToVhloTypeConverter converter;
@@ -317,7 +342,8 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp, func::ReturnOp>(patterns, converter,
+                                                    context);
 }
 }  // namespace stablehlo
 }  // namespace mlir

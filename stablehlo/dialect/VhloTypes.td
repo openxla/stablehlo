@@ -90,7 +90,15 @@ def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
 
 def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0">;
 
-def VHLO_Float8E5M2 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0">;
+def VHLO_Float8E5M2V1 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0">;
+
+def VHLO_FunctionTypeV1 : VHLO_TypeDef<"FunctionV1", "func"> {
+  let parameters = (ins
+    ArrayRefParameter<"::mlir::Type">:$inputs,
+    ArrayRefParameter<"mlir::Type">:$results
+  );
+  let assemblyFormat = "`<` `(` custom<TypeArray>($inputs) `)` `->` custom<TypeArray>($results) `>`";
+}
 
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
 
