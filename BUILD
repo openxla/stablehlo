@@ -275,6 +275,25 @@ cc_library(
 )
 
 gentbl_cc_library(
+    name = "vhlo_attr_interfaces_inc_gen",
+    tbl_outs = [
+        (
+            ["-gen-attr-interface-decls"],
+            "stablehlo/dialect/VhloAttrInterfaces.h.inc",
+        ),
+        (
+            ["-gen-attr-interface-defs"],
+            "stablehlo/dialect/VhloAttrInterfaces.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/dialect/VhloOps.td",
+    deps = [
+        ":vhlo_ops_td_files",
+    ],
+)
+
+gentbl_cc_library(
     name = "vhlo_attrs_inc_gen",
     tbl_outs = [
         (
@@ -313,7 +332,7 @@ gentbl_cc_library(
 )
 
 gentbl_cc_library(
-    name = "vhlo_interfaces_inc_gen",
+    name = "vhlo_op_interfaces_inc_gen",
     tbl_outs = [
         (
             ["-gen-op-interface-decls"],
@@ -325,9 +344,9 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/dialect/VhloBase.td",
+    td_file = "stablehlo/dialect/VhloOps.td",
     deps = [
-        "@llvm-project//mlir:OpBaseTdFiles",
+        ":vhlo_ops_td_files",
     ],
 )
 
@@ -345,14 +364,18 @@ cc_library(
         ":base",
         ":stablehlo_assembly_format",
         ":version",
+        ":vhlo_attr_interfaces_inc_gen",
         ":vhlo_attrs_inc_gen",
         ":vhlo_enums_inc_gen",
-        ":vhlo_interfaces_inc_gen",
+        ":vhlo_op_interfaces_inc_gen",
         ":vhlo_ops_inc_gen",
+        ":vhlo_type_interfaces_inc_gen",
+        ":vhlo_types_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:Support",
     ],
 )
 
@@ -382,11 +405,50 @@ td_library(
         "stablehlo/dialect/VhloBase.td",
         "stablehlo/dialect/VhloEnums.td",
         "stablehlo/dialect/VhloOps.td",
+        "stablehlo/dialect/VhloTypes.td",
     ],
     deps = [
         "@llvm-project//mlir:BuiltinDialectTdFiles",
         "@llvm-project//mlir:OpBaseTdFiles",
         "@llvm-project//mlir:ShapeOpsTdFiles",
+    ],
+)
+
+gentbl_cc_library(
+    name = "vhlo_type_interfaces_inc_gen",
+    tbl_outs = [
+        (
+            ["-gen-type-interface-decls"],
+            "stablehlo/dialect/VhloTypeInterfaces.h.inc",
+        ),
+        (
+            ["-gen-type-interface-defs"],
+            "stablehlo/dialect/VhloTypeInterfaces.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/dialect/VhloOps.td",
+    deps = [
+        ":vhlo_ops_td_files",
+    ],
+)
+
+gentbl_cc_library(
+    name = "vhlo_types_inc_gen",
+    tbl_outs = [
+        (
+            ["-gen-typedef-decls"],
+            "stablehlo/dialect/VhloTypeDefs.h.inc",
+        ),
+        (
+            ["-gen-typedef-defs"],
+            "stablehlo/dialect/VhloTypeDefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/dialect/VhloOps.td",
+    deps = [
+        ":vhlo_ops_td_files",
     ],
 )
 
@@ -517,9 +579,11 @@ cc_library(
 cc_library(
     name = "reference_tensor",
     srcs = [
+        "stablehlo/reference/Index.cpp",
         "stablehlo/reference/Tensor.cpp",
     ],
     hdrs = [
+        "stablehlo/reference/Index.h",
         "stablehlo/reference/Tensor.h",
     ],
     deps = [
@@ -745,6 +809,7 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:Support",
     ],
 )
@@ -768,10 +833,7 @@ cc_library(
         ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ArithDialect",
-        "@llvm-project//mlir:BytecodeReader",
-        "@llvm-project//mlir:BytecodeWriter",
         "@llvm-project//mlir:ComplexDialect",
-        "@llvm-project//mlir:Dialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:QuantOps",
@@ -809,6 +871,16 @@ cc_binary(
         ":test_utils",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
+    ],
+)
+
+filegroup(
+    name = "test_data",
+    testonly = True,
+    data = [
+        ":stablehlo-interpreter",
+        ":stablehlo-opt",
+        "@llvm-project//llvm:FileCheck",
     ],
 )
 
