@@ -4633,6 +4633,9 @@ More formally:
   * (C8) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
   * (C9) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
   * (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+          `E = element_type(operand)`.
+  * (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
+          `E = element_type(operand)`.
   * (C12) type(`operand`) $=$ type(`result`).
 <!-- markdownlint-enable line-length -->
 
