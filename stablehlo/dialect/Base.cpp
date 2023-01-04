@@ -264,12 +264,9 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
 // Inference rules for conditional branches (lhs/rhs are commutative):
 //       Dim of lhs     Dim of rhs      Infer
 //  c0:  X              X               X
-//  c1:  X              ?               ?
-//  c2:  X              ?, B(>=X)       ?, B(>=X)
-//  c3:  X              ?, B(<X)        ?, B(<X)
-//  c4:  ?              ?               ?
-//  c5:  ?              ?, B            ?, B
-//  c6:  ?, B           ?, C            ?, max(B, C)
+//  c1:  any            ?               ?
+//  c2:  X              ?, B            ?, max(X, B)
+//  c3:  ?, B           ?, C            ?, max(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
