@@ -442,18 +442,16 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   void write(TokenType type, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
-  // Wrapped Types
-  LogicalResult writeWrappedType(WrappedType type,
-                                 DialectBytecodeWriter &writer) const;
+  // Forked Types
+  RankedTensorV1Type readRankedTensorType(DialectBytecodeReader &reader,
+                                          bool hasEncoding) const;
+  TupleV1Type readTupleType(DialectBytecodeReader &reader) const;
+  UnrankedTensorV1Type readUnrankedTensorType(
+      DialectBytecodeReader &reader) const;
 
-  WrappedType readRankedTensorType(DialectBytecodeReader &reader,
-                                   bool hasEncoding) const;
-  WrappedType readTupleType(DialectBytecodeReader &reader) const;
-  WrappedType readUnrankedTensorType(DialectBytecodeReader &reader) const;
-
-  void write(RankedTensorType type, DialectBytecodeWriter &writer) const;
-  void write(TupleType type, DialectBytecodeWriter &writer) const;
-  void write(UnrankedTensorType type, DialectBytecodeWriter &writer) const;
+  void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
+  void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
+  void write(UnrankedTensorV1Type type, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
   // Element Types
@@ -1226,8 +1224,7 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
     case vhlo_encoding::kUnrankedTensorType:
       return readUnrankedTensorType(reader);
     case vhlo_encoding::kWitnessType:
-      return WrappedType::get(getContext(),
-                              shape::WitnessType::get(getContext()));
+      return WitnessV1Type::get(getContext());
     case vhlo_encoding::kIntegerType:
       return readIntegerType(reader);
     case vhlo_encoding::kIndexType:
@@ -1251,42 +1248,41 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 }
 
 
-WrappedType VhloBytecodeInterface::readRankedTensorType(
+RankedTensorV1Type VhloBytecodeInterface::readRankedTensorType(
     DialectBytecodeReader &reader, bool hasEncoding) const {
   LOG_READ_CALL;
   Attribute encoding;
   if (hasEncoding && failed(reader.readAttribute(encoding)))
-    return WrappedType();
+    return RankedTensorV1Type();
   SmallVector<int64_t> shape;
   Type elementType;
   if (failed(reader.readSignedVarInts(shape)) ||
       failed(reader.readType(elementType)))
-    return WrappedType();
+    return RankedTensorV1Type();
 
   if (hasEncoding) assertFromVhlo(encoding);
   assertFromVhlo(elementType);
-  return WrappedType::get(getContext(),
-                          RankedTensorType::get(shape, elementType, encoding));
+  return RankedTensorV1Type::get(getContext(), shape, elementType, encoding);
 }
 
-WrappedType VhloBytecodeInterface::readTupleType(
+TupleV1Type VhloBytecodeInterface::readTupleType(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   SmallVector<Type> elements;
-  if (failed(reader.readTypes(elements))) return WrappedType();
+  if (failed(reader.readTypes(elements))) return TupleV1Type();
 
   llvm::all_of(elements, assertFromVhlo<Type>);
-  return WrappedType::get(getContext(), TupleType::get(getContext(), elements));
+  return TupleV1Type::get(getContext(), elements);
 }
 
-WrappedType VhloBytecodeInterface::readUnrankedTensorType(
+UnrankedTensorV1Type VhloBytecodeInterface::readUnrankedTensorType(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type elementType;
-  if (failed(reader.readType(elementType))) return WrappedType();
+  if (failed(reader.readType(elementType))) return UnrankedTensorV1Type();
 
   assertFromVhlo(elementType);
-  return WrappedType::get(getContext(), UnrankedTensorType::get(elementType));
+  return UnrankedTensorV1Type::get(getContext(), elementType);
 }
 
 ComplexV1Type VhloBytecodeInterface::readComplexType(
@@ -1347,15 +1343,11 @@ LogicalResult VhloBytecodeInterface::writeType(
         write(type, writer);
         return success();
       })
-      .Case<WrappedType>([&](WrappedType type) {
+      .Case<ComplexV1Type, IntegerV1Type, RankedTensorV1Type, TupleV1Type,
+            UnrankedTensorV1Type, UniformQuantizedV1Type>([&](auto type) {
         LOG_WRITE_CALL;
-        return writeWrappedType(type, writer);
+        return write(type, writer), success();
       })
-      .Case<ComplexV1Type, IntegerV1Type, UniformQuantizedV1Type>(
-          [&](auto type) {
-            LOG_WRITE_CALL;
-            return write(type, writer), success();
-          })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIndexType), success();
@@ -1375,6 +1367,10 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](Float64V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloat64Type), success();
+      })
+      .Case([&](WitnessV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kWitnessType), success();
       })
       .Default([&](Type) {
         LOG_NOT_IMPLEMENTED;
@@ -1398,28 +1394,7 @@ void VhloBytecodeInterface::write(TokenType type,
 ///////////////////
 // Wrapped Types //
 ///////////////////
-
-LogicalResult VhloBytecodeInterface::writeWrappedType(
-    WrappedType type, DialectBytecodeWriter &writer) const {
-  return TypeSwitch<Type, LogicalResult>(type.getData())
-      .Case<RankedTensorType, UnrankedTensorType, TupleType>([&](auto type) {
-        LOG_WRITE_CALL;
-        write(type, writer);
-        return success();
-      })
-      .Case([&](shape::WitnessType) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kWitnessType), success();
-      })
-      .Default([&](Type) {
-        LOG_NOT_IMPLEMENTED;
-        LLVM_DEBUG(llvm::dbgs() << "Unsupported element type " << type << '\n');
-        llvm_unreachable("Cannot wrap unsupported VHLO type.");
-        return failure();
-      });
-}
-
-void VhloBytecodeInterface::write(RankedTensorType type,
+void VhloBytecodeInterface::write(RankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   assertFromVhlo(type.getElementType());
   if (Attribute encoding = type.getEncoding()) {
@@ -1433,14 +1408,14 @@ void VhloBytecodeInterface::write(RankedTensorType type,
   writer.writeType(type.getElementType());
 }
 
-void VhloBytecodeInterface::write(TupleType type,
+void VhloBytecodeInterface::write(TupleV1Type type,
                                   DialectBytecodeWriter &writer) const {
   llvm::all_of(type.getTypes(), assertFromVhlo<Type>);
   writer.writeVarInt(vhlo_encoding::kTupleType);
   writer.writeTypes(type.getTypes());
 }
 
-void VhloBytecodeInterface::write(UnrankedTensorType type,
+void VhloBytecodeInterface::write(UnrankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   assertFromVhlo(type.getElementType());
   writer.writeVarInt(vhlo_encoding::kUnrankedTensorType);
