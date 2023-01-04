@@ -983,8 +983,8 @@ func.func @concat_bounds_unranked_c1(
 
 // This test covers all cases (except "error out") of inferBranchedDimAndBound()
 // CHECK-LABEL: func @if_bounds
-func.func @if_bounds(%pred : tensor<i1>, 
-    %true_branch_operand : tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>, 
+func.func @if_bounds(%pred : tensor<i1>,
+    %true_branch_operand : tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>,
     %false_branch_operand : tensor<2x?x?x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, ?, 5, 7]>>) -> tensor<*xindex> {
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%true_branch_operand) : (
@@ -1001,9 +1001,9 @@ func.func @if_bounds(%pred : tensor<i1>,
 // -----
 
 // This test covers only a few cases of inferBranchedDimAndBound() with more branches
-// as test "if_bounds" above covers all cases 
+// as test "if_bounds" above covers all cases
 // CHECK-LABEL: func @case_bounds
-func.func @case_bounds(%index : tensor<i32>, 
+func.func @case_bounds(%index : tensor<i32>,
     %branch_0_operand : tensor<2xf32, #stablehlo.type_extensions<bounds = [?]>>,
     %branch_2_operand : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> tensor<*xindex> {
   %0 = "stablehlo.case"(%index) ({
