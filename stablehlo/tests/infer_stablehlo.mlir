@@ -1000,6 +1000,28 @@ func.func @if_bounds(%pred : tensor<i1>,
 
 // -----
 
+// This test covers only a few cases of inferBranchedDimAndBound() with more branches
+// as test "if_bounds" above covers all cases 
+// CHECK-LABEL: func @case_bounds
+func.func @case_bounds(%index : tensor<i32>, 
+    %branch_0_operand : tensor<2xf32, #stablehlo.type_extensions<bounds = [?]>>,
+    %branch_2_operand : tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_0_operand) : (tensor<2xf32, #stablehlo.type_extensions<bounds = [?]>>) -> ()
+  }, {
+      "stablehlo.return"(%branch_0_operand) : (tensor<2xf32, #stablehlo.type_extensions<bounds = [?]>>) -> ()
+  }, {
+      "stablehlo.return"(%branch_2_operand) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> ()
+  }, {
+      "stablehlo.return"(%branch_2_operand) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> ()
+  }) : (tensor<i32>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @gather
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<3x4x2xi32>, %[[ARG1:.*]]: tensor<?x3x2xi64>
 func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xi64> {
