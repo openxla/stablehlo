@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloOps.h"
 
+#include <cstdint>
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -32,6 +34,39 @@ limitations under the License.
 
 namespace mlir {
 namespace vhlo {
+
+static void printEncoding(AsmPrinter& os, Attribute encoding) {
+  if (!encoding) return;
+  os << ", " << encoding;
+}
+
+ParseResult parseEncoding(AsmParser& parser, FailureOr<Attribute>& encoding) {
+  Attribute attr;
+  if (failed(parser.parseOptionalComma())) {
+    encoding = attr;
+    return success();
+  }
+  if (failed(parser.parseAttribute(attr))) return failure();
+  encoding = attr;
+  return success();
+}
+
+static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
+  if (dimSizes.empty()) return;
+  for (int64_t dimSize : dimSizes) {
+    os << hlo::dimSizeToString(dimSize) << 'x';
+  }
+}
+
+ParseResult parseTensorShape(AsmParser& parser,
+                             FailureOr<SmallVector<int64_t>>& dimSizes) {
+  SmallVector<int64_t> sizes;
+  if (failed(parser.parseDimensionList(sizes))) {
+    return failure();
+  }
+  dimSizes = sizes;
+  return success();
+}
 
 static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';

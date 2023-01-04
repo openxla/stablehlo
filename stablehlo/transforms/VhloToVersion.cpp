@@ -104,18 +104,6 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   return failure();
 }
 
-LogicalResult isLegalElementType(Type type, const Version& targetVersion) {
-  auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
-  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
-    LLVM_DEBUG(llvm::dbgs() << "Unsupported type " << type << '\n');
-    return success();
-  }
-
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
-                          << " to version " << targetVersion << '\n');
-  return failure();
-}
-
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // All valid VHLO types must have versioned type interface.
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
@@ -131,28 +119,23 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
     return failure();
   }
 
-  // Recursively check wrapped types.
-  if (auto wrapped = type.dyn_cast<WrappedType>()) {
-    Type data = wrapped.getData();
-    if (auto ranked = data.dyn_cast<RankedTensorType>()) {
-      auto encoding = ranked.getEncoding();
-      if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
-        return failure();
-      return isLegalElementType(ranked.getElementType(), targetVersion);
-    }
-    if (auto unranked = data.dyn_cast<UnrankedTensorType>()) {
-      return isLegalElementType(unranked.getElementType(), targetVersion);
-    }
-    if (auto tuple = data.dyn_cast<TupleType>()) {
-      return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
-        return succeeded(isLegalType(ele, targetVersion));
-      }));
-    }
-    // Only valid wrapped if witness type
-    return success(/*isSuccess=*/data.isa<shape::WitnessType>());
+  // Recursively check types.
+  if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
+    auto encoding = ranked.getEncoding();
+    if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
+      return failure();
+    return isLegalType(ranked.getElementType(), targetVersion);
+  }
+  if (auto unranked = type.dyn_cast<UnrankedTensorType>()) {
+    return isLegalType(unranked.getElementType(), targetVersion);
+  }
+  if (auto tuple = type.dyn_cast<TupleType>()) {
+    return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion));
+    }));
   }
 
-  // Not wrapped, success.
+  // Is VHLO and valid version, success.
   return success();
 }
 

@@ -35,37 +35,7 @@ class VersionedTypeConverterBase : public TypeConverter {
  public:
   VersionedTypeConverterBase() : TypeConverter(){};
 
-  // This is placed in a separate methods since type conversions ar applied in a
-  // last-to-first registered order. So these must be applied after the generic
-  // `Type -> Type` transformations.
-  void addWrapConversions() {
-    // Supported upstream types. Might return a wrapped version.
-    addConversion([&](RankedTensorType type) -> Type {
-      auto encoding = type.getEncoding();
-      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
-      auto convertedElementType = convertType(type.getElementType());
-      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
-      return maybeWrap(RankedTensorType::get(
-          type.getShape(), convertedElementType, convertedEncoding));
-    });
-    addConversion([&](TupleType type) -> Type {
-      SmallVector<Type> convertedTypes;
-      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-      return maybeWrap(TupleType::get(type.getContext(), convertedTypes));
-    });
-    addConversion([&](UnrankedTensorType type) -> Type {
-      auto convertedElementType = convertType(type.getElementType());
-      if (!convertedElementType) return {};  // unsupported element type
-      return maybeWrap(UnrankedTensorType::get(convertedElementType));
-    });
-    addConversion([&](shape::WitnessType type) -> Type {
-      return maybeWrap(std::move(type));
-    });
-  }
-
   virtual ~VersionedTypeConverterBase() = default;
-
-  virtual Type maybeWrap(Type&& type) = 0;
 
   virtual Attribute convertEncoding(Attribute attr) = 0;
 };
@@ -84,6 +54,25 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     addConversion([](stablehlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
+    });
+
+    addConversion([&](RankedTensorType type) -> Type {
+      auto encoding = type.getEncoding();
+      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
+      auto convertedElementType = convertType(type.getElementType());
+      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
+      return RankedTensorV1Type::get(type.getContext(), type.getShape(),
+                                     convertedElementType, convertedEncoding);
+    });
+    addConversion([&](UnrankedTensorType type) -> Type {
+      auto convertedElementType = convertType(type.getElementType());
+      if (!convertedElementType) return {};  // unsupported element type
+      return UnrankedTensorV1Type::get(type.getContext(), convertedElementType);
+    });
+    addConversion([&](TupleType type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return vhlo::TupleV1Type::get(type.getContext(), convertedTypes);
     });
 
     // Element Types
@@ -117,15 +106,13 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
           APFloat(type.getScale()), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
     });
-    addWrapConversions();
+    addConversion([&](shape::WitnessType type) -> Type {
+      return vhlo::WitnessV1Type::get(type.getContext());
+    });
   }
 
   bool isTargetDialect(Dialect& dialect) {
     return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
-  }
-
-  Type maybeWrap(Type&& type) final {
-    return WrappedType::get(type.getContext(), type);
   }
 
   Attribute convertEncoding(Attribute attr) final {
@@ -154,9 +141,24 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
       return stablehlo::TokenType::get(token.getContext());
     });
 
-    // Unwrap VHLO wrapped types.
-    addConversion([&](vhlo::WrappedType wrapped) {
-      return convertType(wrapped.getData());
+    // Forked types
+    addConversion([&](TupleV1Type type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return TupleType::get(type.getContext(), convertedTypes);
+    });
+    addConversion([&](RankedTensorV1Type type) -> Type {
+      auto encoding = type.getEncoding();
+      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
+      auto convertedElementType = convertType(type.getElementType());
+      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
+      return RankedTensorType::get(type.getShape(), convertedElementType,
+                                   convertedEncoding);
+    });
+    addConversion([&](UnrankedTensorV1Type type) -> Type {
+      auto convertedElementType = convertType(type.getElementType());
+      if (!convertedElementType) return {};  // unsupported element type
+      return UnrankedTensorType::get(convertedElementType);
     });
 
     // Element Types
@@ -187,11 +189,10 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
           type.getScale().convertToDouble(), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
     });
-
-    addWrapConversions();
+    addConversion([&](WitnessV1Type type) -> Type {
+      return shape::WitnessType::get(type.getContext());
+    });
   }
-
-  Type maybeWrap(Type&& type) final { return type; }
 
   Attribute convertEncoding(Attribute attr) final {
     if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsAttr>()) {
@@ -218,12 +219,7 @@ class VhloToVersionConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
-
-    addWrapConversions();
   }
-
-  // Don't wrap in VHLO -> VHLO
-  Type maybeWrap(Type&& type) final { return type; }
 
   // All encodings from VHLO -> VHLO are valid.
   Attribute convertEncoding(Attribute attr) final { return attr; }

@@ -119,7 +119,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
 
   // Handle builtin attributes.
-  // Supported attributes are wrapped or converted to VHLO.
+  // Supported attributes are converted to VHLO.
 
   if (auto floatAttr = stablehloAttr.dyn_cast<FloatAttr>()) {
     auto floatType = typeConverter->convertType(floatAttr.getType());

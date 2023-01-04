@@ -66,11 +66,25 @@ class VHLO_TypeDef<string cppName,
 // Token type.
 def VHLO_Token : VHLO_TypeDef<"Token", "token">;
 
-// A type wrapper to conrtol serialization and deserialization
-def VHLO_Wrapped : VHLO_TypeDef<"Wrapped", "wrapped"> {
-  let mnemonic = "wrapped";
-  let parameters = (ins "mlir::Type":$data);
-  let assemblyFormat = "`<` $data `>`";
+// Tuple Type
+def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
+  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let assemblyFormat = "`<` $types `>`";
+}
+
+// Tensor Types
+def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
+  let parameters = (ins
+    VHLO_Dims:$shape,
+    "::mlir::Type":$elementType,
+    "::mlir::Attribute":$encoding
+  );
+  let assemblyFormat = "`<` custom<TensorShape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
+}
+
+def VHLO_UnankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
+  let parameters = (ins "::mlir::Type":$elementType);
+  let assemblyFormat = "`<` $elementType `>`";
 }
 
 // Element Types
@@ -98,11 +112,14 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType">
   let assemblyFormat = "`<` $elementType `>`";
 }
 
-def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "::mlir::BFloat16Type">;
-def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "::mlir::Float16Type">;
-def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "::mlir::Float32Type">;
-def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "::mlir::Float64Type">;
-def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "::mlir::IndexType">;
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
+
+// Shape Witness Type
+def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness">;
 
 // Quantized Type
 def VHLO_Double : APFloatParameter<""> {
