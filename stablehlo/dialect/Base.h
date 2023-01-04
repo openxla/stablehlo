@@ -243,11 +243,6 @@ class CompatibleOperandsAndResultType
           location,
           "Expected non-empty operands for [CompatibleOperandsAndResultType]");
 
-    // if (failed(inferMostSpecificType(location, operands.getTypes(),
-    //                                  inferredReturnTypes,
-    //                                  inferMergedDimAndBound)))
-    //   return failure();
-
     auto inferredTypeOrErr = inferMostSpecificType(
         location, operands.getTypes(), inferMergedDimAndBound);
     if (failed(inferredTypeOrErr)) return failure();

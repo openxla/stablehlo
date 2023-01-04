@@ -1091,8 +1091,6 @@ LogicalResult inferConditionalOp(Optional<Location> location,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-  // for (auto resultType : branch0ResultTypes)
-  //   inferredReturnTypes.push_back(resultType);
 
   for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
     SmallVector<Type> inputTypes;

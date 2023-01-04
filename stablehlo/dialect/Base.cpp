@@ -151,7 +151,7 @@ Type createRealType(TensorType type) {
 }
 
 // TODO(zhouxin) move this section to TypeInference.h/cpp
-// 
+//
 //===----------------------------------------------------------------------===//
 // Utils for shape functions with bounded dynamism.
 //===----------------------------------------------------------------------===//
@@ -290,8 +290,8 @@ FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
     if (isLeftStaticDim && isRightStaticDim) {
       if (leftSize != rightSize)
         return emitOptionalError(location, "Mismatched dimension sizes ",
-                               leftSize, " and ", rightSize, " in dimension ",
-                               dim);
+                                 leftSize, " and ", rightSize, " in dimension ",
+                                 dim);
       inferredSize = leftSize;
     }
     if (isLeftStaticBound || isRightStaticBound) {
@@ -313,7 +313,7 @@ FailureOr<Type> inferMostSpecificType(
     Optional<Location> location, TypeRange inputTypes,
     std::function<FailureOr<std::pair<int64_t, int64_t>>(
         Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
-        mergeFunc) {
+        inferDimAndBoundFunc) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -335,27 +335,19 @@ FailureOr<Type> inferMostSpecificType(
       if (!bounds.empty()) inferredBounds = to_vector(bounds);
       continue;
     }
-    llvm::errs() << "rank ====== : " << rank << "\n";
-    llvm::errs() << "inferredSizes.size(): " << inferredSizes.size() << "\n";
-    llvm::errs() << "inferredBounds.size(): " << inferredBounds.size() << "\n";
 
     for (int dim = 0; dim < rank; ++dim) {
-      std::pair<int64_t, int64_t> inferredDimAndBound;
-      int64_t leftSize = inferredSizes[dim];
-      int64_t rightSize = rankedType.getShape()[dim];
-      int64_t leftBound = inferredBounds[dim];
-      int64_t rightBound = bounds.empty() ? ShapedType::kDynamic : bounds[dim];
-
-      auto inferredDimAndBoundOrErr =
-          mergeFunc(location, dim, leftSize, rightSize, leftBound, rightBound);
+      auto inferredDimAndBoundOrErr = inferDimAndBoundFunc(
+          location, dim,
+          /*leftSize=*/inferredSizes[dim],
+          /*rightSize=*/rankedType.getShape()[dim],
+          /*leftBound=*/inferredBounds[dim],
+          /*rightBound=*/bounds.empty() ? ShapedType::kDynamic : bounds[dim]);
       if (failed(inferredDimAndBoundOrErr)) return failure();
-      inferredDimAndBound = *inferredDimAndBoundOrErr;
-      inferredSizes[dim] = inferredDimAndBound.first;
-      inferredBounds[dim] = inferredDimAndBound.second;
+      inferredSizes[dim] = (*inferredDimAndBoundOrErr).first;
+      inferredBounds[dim] = (*inferredDimAndBoundOrErr).second;
     }
   }
-  llvm::errs() << "rank: " << rank << "\n";
-  llvm::errs() << "inferredSizes.size(): " << inferredSizes.size() << "\n";
 
   return RankedTensorType::get(
       inferredSizes, rankedTypes[0].getElementType(),
@@ -364,7 +356,7 @@ FailureOr<Type> inferMostSpecificType(
           // Empty array as argument is an indicator to boundsToEncoding() that
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type
-          anyInputHaveBounds ? inferredBounds : llvm::ArrayRef<int64_t>({})));
+          anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
 }
 
 LogicalResult inferMostSpecificTypeComponents(
