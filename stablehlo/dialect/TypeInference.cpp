@@ -1094,9 +1094,9 @@ LogicalResult inferConditionalOp(Optional<Location> location,
 
   for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
     SmallVector<Type> inputTypes;
-    for (unsigned j = 0; j < branches.size(); ++j)
+    for (auto branch: branches)
       inputTypes.push_back(
-          branches[j]->front().getTerminator()->getOperandTypes()[i]);
+          branch->front().getTerminator()->getOperandTypes()[i]);
     auto inferredTypeOrErr =
         inferMostSpecificType(location, inputTypes, inferBranchedDimAndBound);
     if (failed(inferredTypeOrErr)) return failure();

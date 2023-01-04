@@ -714,9 +714,7 @@ func.func @unranked_input(%arg0: tensor<*xf32>, %arg1: tensor<i32>) -> tensor<*x
 
 // -----
 
-// This test covers all cases (except the "Error out" case) for type inference
-// of binary op with bounds
-// See PairwiseSameOperandAndResultType::inferDimWithBound()
+// This test covers all cases (except "error out") of inferMergedDimAndBound()
 // CHECK-LABEL: @add_bounds
 func.func @add_bounds(
   %arg0: tensor<3x3x3x?x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 3, 3]>>,
@@ -835,7 +833,7 @@ func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo
 
 // -----
 
-// Also see this in Base.cpp
+// These tests covers all cases of inferConcatenatedDimAndBound()
 // Inference rules to concat dimensions with bounds (lhs/rhs are commutative):
 //       Dim of lhs     Dim of rhs      Infer
 //  c0:  X              Y               X+Y
@@ -983,6 +981,7 @@ func.func @concat_bounds_unranked_c1(
 
 // -----
 
+// This test covers all cases (except "error out") of inferBranchedDimAndBound()
 // CHECK-LABEL: func @if_bounds
 func.func @if_bounds(%pred : tensor<i1>, 
     %true_branch_operand : tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>, 
