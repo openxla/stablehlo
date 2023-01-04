@@ -984,15 +984,19 @@ func.func @concat_bounds_unranked_c1(
 // -----
 
 // CHECK-LABEL: func @if_bounds
-func.func @if_bounds(%pred : tensor<i1>, %branch_operand : tensor<2xf32>, %wrong_type : tensor<2xf32>) {
+func.func @if_bounds(%pred : tensor<i1>, 
+    %true_branch_operand : tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>, 
+    %false_branch_operand : tensor<2x?x?x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, ?, 5, 7]>>) -> tensor<*xindex> {
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%wrong_type) : (tensor<2xf32>) -> ()
+      "stablehlo.return"(%true_branch_operand) : (
+        tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>) -> ()
     }, {
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-    }) : (tensor<i1>) -> tensor<2xf32>
-  // CHECK: (tensor<2xf32>) -> tensor<2xindex>
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xindex>
-  func.return
+      "stablehlo.return"(%false_branch_operand) : (
+        tensor<2x?x?x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, ?, 5, 7]>>) -> ()
+    }) : (tensor<i1>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<2x?x?x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, ?, ?, 7]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
 }
 
 // -----

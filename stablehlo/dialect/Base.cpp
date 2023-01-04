@@ -150,6 +150,12 @@ Type createRealType(TensorType type) {
   return hlo::getSameShapeTensorType(type, elementTy);
 }
 
+// TODO(zhouxin) move this section to TypeInference.h/cpp
+// 
+//===----------------------------------------------------------------------===//
+// Utils for shape functions with bounded dynamism.
+//===----------------------------------------------------------------------===//
+
 LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
                            function_ref<InFlightDiagnostic()> emitError) {
   int64_t boundsLen = bounds.size();
@@ -264,23 +270,43 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
 // Inference rules for conditional branches (lhs/rhs are commutative):
 //       Dim of lhs     Dim of rhs      Infer
 //  c0:  X              X               X
-//  c1:  any            ?               ?
-//  c2:  X              ?, B            ?, max(X, B)
-//  c3:  ?, B           ?, C            ?, max(B, C)
+//  c1:  X              ?               ?
+//  c2:  X              ?, B(<X)        Will error out by compatible checks
+//  c3:  X              ?, B(>=X)       ?, B
+//  c4:  ?              ?               ?
+//  c5:  ?              ?, B            ?
+//  c6:  ?, B           ?, C            ?, max(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  // TODO
-  return std::make_pair(leftSize, ShapedType::kDynamic);
+  bool isLeftStaticDim = !isDynamicDimSize(leftSize);
+  bool isRightStaticDim = !isDynamicDimSize(rightSize);
+  bool isLeftStaticBound = !isDynamicDimSize(leftBound);
+  bool isRightStaticBound = !isDynamicDimSize(rightBound);
+  int64_t inferredSize = ShapedType::kDynamic;
+  int64_t inferredbound = ShapedType::kDynamic;
+
+  if (isLeftStaticDim || isRightStaticDim) {
+    if (isLeftStaticDim && isRightStaticDim) {
+      if (leftSize != rightSize)
+        return emitOptionalError(location, "Mismatched dimension sizes ",
+                               leftSize, " and ", rightSize, " in dimension ",
+                               dim);
+      inferredSize = leftSize;
+    }
+    if (isLeftStaticBound || isRightStaticBound) {
+      int64_t size = isLeftStaticDim ? leftSize : rightSize;
+      inferredbound = isLeftStaticBound ? leftBound : rightBound;
+      if (size > inferredbound)
+        return emitOptionalError(location, "Mismatched dimension size ", size,
+                                 " and bound ", inferredbound, " in dimension ",
+                                 dim);
+    }
+  } else {
+    if (isLeftStaticBound && isRightStaticBound)
+      inferredbound = std::max(leftBound, rightBound);
+  }
+  return std::make_pair(inferredSize, inferredbound);
 }
 
 FailureOr<Type> inferMostSpecificType(
