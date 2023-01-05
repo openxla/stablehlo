@@ -65,22 +65,6 @@ namespace hlo {
 // Utils for shape functions.
 //===----------------------------------------------------------------------===//
 
-// WindowDimension described how the kernel window moves across the base area
-// in a particular dimension.
-// Describes the windowing in an operation such as convolution.
-// The window is moved across a base area and for each position of the
-// window a computation is performed. The field below describes the
-// window and the movement of the window across a base area.
-struct WindowDimension {
-  int64_t size = 0;
-  int64_t stride = 1;
-  int64_t paddingLow = 0;
-  int64_t paddingHigh = 0;
-  int64_t windowDilation = 1;
-  int64_t baseDilation = 1;
-  bool windowReversal = false;
-};
-
 // Checks if the vector `nums` has duplicates.
 const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());

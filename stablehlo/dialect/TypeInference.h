@@ -40,6 +40,53 @@ void reifyGatherDimSizes(int64_t resultRank,
                          ArrayRef<int64_t> startIndexMap,
                          int64_t indexVectorDim, SmallVectorImpl<Value>& shape);
 
+// Convert a 1D dense bool attribute to a list of values.
+FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
+    Optional<DenseElementsAttr> optionalAttr, Optional<Location> loc,
+    StringRef attrName);
+
+// WindowDimension described how the kernel window moves across the base area
+// in a particular dimension.
+// Describes the windowing in an operation such as convolution.
+// The window is moved across a base area and for each position of the
+// window a computation is performed. The field below describes the
+// window and the movement of the window across a base area.
+struct WindowDimension {
+  int64_t size = 0;
+  int64_t stride = 1;
+  int64_t paddingLow = 0;
+  int64_t paddingHigh = 0;
+  int64_t windowDilation = 1;
+  int64_t baseDilation = 1;
+  bool windowReversal = false;
+};
+
+FailureOr<SmallVector<WindowDimension>>
+verifyWindowAttributesAndInferWindowDimensions(
+    ArrayRef<int64_t> windowDimensions, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Optional<Location> loc);
+
+SmallVector<int64_t> inferWindowOutputShape(
+    const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window);
+
+LogicalResult verifyReplicaGroups(Optional<Location> location,
+                                  DenseIntElementsAttr replicaGroups,
+                                  bool allGroupsMustHaveSameSize,
+                                  bool useGlobalDeviceIds,
+                                  Optional<size_t> expectedGroupSize);
+
+LogicalResult verifyConvolutionAttributes(
+    Optional<Location> location, Value lhs, Value rhs,
+    int64_t inputBatchDimension, int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    Optional<ArrayAttr> precisionConfig);
+
 //===----------------------------------------------------------------------===//
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
