@@ -134,9 +134,8 @@ LogicalResult inferBroadcastOp(
 LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferCholeskyOp(
-    Optional<Location> location, Value a,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+LogicalResult inferCholeskyOp(Optional<Location> location, Value a,
+                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferClampOp(
     Optional<Location> location, Value min, Value operand, Value max,

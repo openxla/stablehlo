@@ -547,12 +547,12 @@ void CustomCallOp::getEffects(
 // CholeskyOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult CholeskyOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+LogicalResult CholeskyOp::inferReturnTypes(
+    MLIRContext*, Optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   CholeskyOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferCholeskyOp(location, adaptor.getA(), inferredReturnShapes);
+  return hlo::inferCholeskyOp(location, adaptor.getA(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

@@ -88,9 +88,8 @@ func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xind
 // CHECK-LABEL: @cholesky
 func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
   %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x2xf32>) -> tensor<1x2x2xf32>
-  %1 = "hlo_test_infer.get_return_type_components"(%0)
-      : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 2]", element_type0 = f32} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<1x2x2xf32>} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
   func.return %1: tensor<1x2x2xindex>
 }
 
@@ -1033,6 +1032,96 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
   } : (tensor<?x48x48x32xf32>, tensor<f32>) -> tensor<?x48x48x48xf32>
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x48x48x48xf32>) -> tensor<4xindex>
   func.return %1 : tensor<4xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_batch(%input: tensor<?x3x3xf32, #stablehlo.type_extensions<bounds = [5, ?, ?]>>) ->  tensor<?x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<?x3x3xf32, #stablehlo.type_extensions<bounds = [5, ?, ?]>>) -> tensor<?x3x3xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<?x3x3xf32, #stablehlo.type_extensions<bounds = [5, ?, ?]>>} : (tensor<?x3x3xf32>) -> tensor<?x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<?x3x3xf32, #stablehlo.type_extensions<bounds = [5, ?, ?]>>} : (tensor<?x3x3xf32>) -> tensor<?x3x3xindex>
+  func.return %1 : tensor<?x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c0(%input: tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) ->  tensor<2x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) -> tensor<2x3x3xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x3xf32>) -> tensor<2x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x3xf32>) -> tensor<2x3x3xindex>
+  func.return %1 : tensor<2x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c1(%input: tensor<2x?x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) ->  tensor<2x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) -> tensor<2x?x3xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x3xf32>) -> tensor<2x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x3xf32>) -> tensor<2x3x3xindex>
+  func.return %1 : tensor<2x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c2(%input: tensor<2x?x3xf32, #stablehlo.type_extensions<bounds = [?, 4, ?]>>) ->  tensor<2x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x3xf32, #stablehlo.type_extensions<bounds = [?, 4, ?]>>) -> tensor<2x?x3xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x3xf32>) -> tensor<2x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x3xf32>) -> tensor<2x3x3xindex>
+  func.return %1 : tensor<2x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c3(%input: tensor<2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) ->  tensor<2x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) -> tensor<2x3x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x?xf32>) -> tensor<2x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x?xf32>) -> tensor<2x3x3xindex>
+  func.return %1 : tensor<2x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c4(%input: tensor<2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 5]>>) ->  tensor<2x3x3xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 5]>>) -> tensor<2x3x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x?xf32>) -> tensor<2x3x3xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x3x3xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x3x?xf32>) -> tensor<2x3x3xindex>
+  func.return %1 : tensor<2x3x3xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c5(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) ->  tensor<2x?x?xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>) -> tensor<2x?x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  func.return %1 : tensor<2x?x?xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c6(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) ->  tensor<2x?x?xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<2x?x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, 5]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, 5]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  func.return %1 : tensor<2x?x?xindex>
+}
+
+// -----
+
+func.func @cholesky_bounds_c7(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 5]>>) ->  tensor<2x?x?xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 5]>>) -> tensor<2x?x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, 5]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, 5]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  func.return %1 : tensor<2x?x?xindex>
+}
+
+// -----
+
+func.func @cholesky_different_bounds_c8(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 3, 6]>>) ->  tensor<2x?x?xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 3, 6]>>) -> tensor<2x?x?xf32>
+  %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 3, 3]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 3, 3]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
+  func.return %1 : tensor<2x?x?xindex>
 }
 
 // -----

@@ -1421,14 +1421,12 @@ LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
 // We intend to verify the following properties
 //   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
 //   P2. The two minor dimensions of 'a' must have equal size, got %s.
-LogicalResult inferCholeskyOp(
-    Optional<Location> location, Value a,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+LogicalResult inferCholeskyOp(Optional<Location> location, Value a,
+                              SmallVectorImpl<Type>& inferredReturnTypes) {
   Type aType = a.getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
   if (!aRankedType) {
-    inferredReturnShapes.emplace_back(
-        aType.cast<TensorType>().getElementType());
+    inferredReturnTypes.emplace_back(aType);
     return success();
   }
 
@@ -1443,8 +1441,59 @@ LogicalResult inferCholeskyOp(
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
-  inferredReturnShapes.emplace_back(aRankedType.getShape(),
-                                    aRankedType.getElementType());
+
+  // bound infer rules for the last two dimensions of A:
+  //        Dim R-2 | Dim R-1 | inferred R-2 | inferred R-1
+  // case0: 3       | 3       | 3            | 3
+  // case1: ?       | 3       | 3            | 3
+  // case2: ?, A>=3 | 3       | 3            | 3
+  // case3: 3       | ?       | 3            | 3
+  // case4: 3       | ?, A>=3 | 3            | 3
+  int64_t lastDim = aShape[aShape.size() - 1];
+  int64_t penultimateDim = aShape[aShape.size() - 2];
+  auto resultBounds = encodingToBounds(aRankedType.getEncoding()).vec();
+  if (isStaticDimSize(lastDim) || isStaticDimSize(penultimateDim)) {
+    auto resultShape = aRankedType.getShape().vec();
+    auto staticSize = isStaticDimSize(lastDim) ? lastDim : penultimateDim;
+    resultShape[resultShape.size() - 1] = staticSize;
+    resultShape[resultShape.size() - 2] = staticSize;
+    if (resultBounds.empty()) {
+      inferredReturnTypes.push_back(
+          RankedTensorType::get(resultShape, aRankedType.getElementType()));
+    } else {
+      resultBounds[resultBounds.size() - 1] = ShapedType::kDynamic;
+      resultBounds[resultBounds.size() - 2] = ShapedType::kDynamic;
+      inferredReturnTypes.push_back(RankedTensorType::get(
+          resultShape, aRankedType.getElementType(),
+          boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
+    }
+    return success();
+  }
+  // case5: ?       | ?       | ?            | ?
+  if (resultBounds.empty()) {
+    inferredReturnTypes.push_back(RankedTensorType::get(
+        aRankedType.getShape(), aRankedType.getElementType(),
+        boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
+    return success();
+  }
+  // case6: ?, A    | ?       | ?, A         | ?, A
+  // case7: ?       | ?, A    | ?, A         | ?, A
+  // case8: ?, A    | ?, B    | ?, min(A,B)  | ?, min(A,B)
+  bool isLastDimStaticBound =
+      !isDynamicDimSize(resultBounds[resultBounds.size() - 1]);
+  bool isPenultimateDimStaticBound =
+      !isDynamicDimSize(resultBounds[resultBounds.size() - 2]);
+  int64_t staticBound = isLastDimStaticBound
+                            ? resultBounds[resultBounds.size() - 1]
+                            : resultBounds[resultBounds.size() - 2];
+  if (isLastDimStaticBound && isPenultimateDimStaticBound)
+    staticBound = std::min(resultBounds[resultBounds.size() - 1],
+                           resultBounds[resultBounds.size() - 2]);
+  resultBounds[resultBounds.size() - 1] = staticBound;
+  resultBounds[resultBounds.size() - 2] = staticBound;
+  inferredReturnTypes.push_back(RankedTensorType::get(
+      aRankedType.getShape(), aRankedType.getElementType(),
+      boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
   return success();
 }
 
