@@ -1775,8 +1775,9 @@ LogicalResult inferDynamicUpdateSliceOp(
 
   // (C1)
   if (operandType.hasRank()) {
-    inferredReturnShapes.emplace_back(operandType.getShape(),
-                                      operandType.getElementType());
+    inferredReturnShapes.emplace_back(
+        operandType.getShape(), operandType.getElementType(),
+        operandType.cast<RankedTensorType>().getEncoding());
   } else {
     inferredReturnShapes.emplace_back(operandType.getElementType());
   }

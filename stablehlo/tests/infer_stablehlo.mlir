@@ -378,6 +378,15 @@ func.func @dynamic_update_slice(%arg0: tensor<4x4xi32>, %arg1: tensor<2x2xi32>, 
 
 // -----
 
+func.func @dynamic_update_slice(%input: tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>, %update: tensor<1x4x3xi64>, %start1: tensor<i64>, %start2: tensor<i64>, %start3 : tensor<i64>) ->  tensor<*xindex> {
+  %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2, %start3) : (tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>, tensor<1x4x3xi64>, tensor<i64>, tensor<i64>, tensor<i64>) -> tensor<3x?x?xi64>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3x?x?xi64>) -> tensor<*xindex>
+  // CHECK: types0 = tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @create_token
 func.func @create_token() -> !stablehlo.token {
   %0 = "stablehlo.create_token"() : () -> !stablehlo.token
