@@ -769,6 +769,17 @@ LogicalResult isSpatialDimensionsValid(
   return success();
 }
 
+// Checks if the precision config has a valid size, if provided.
+LogicalResult verifyPrecisionConfig(Optional<Location> loc,
+                                    Optional<ArrayAttr> maybeArrayAttr) {
+  if (!maybeArrayAttr.has_value()) return success();
+  auto arrayAttr = maybeArrayAttr.value();
+  return !arrayAttr || arrayAttr.size() == 2 || arrayAttr.empty()
+             ? success()
+             : emitOptionalError(
+                   loc, "expects precision config to be null or of size 2.");
+}
+
 // Verifies the following properties:
 //  P1. The input, kernel, and output spatial-dimentions are valid.
 //  P2. Given,
@@ -789,14 +800,16 @@ LogicalResult isSpatialDimensionsValid(
 //          dim(lhs, f) / fgc = dim(rhs, i)
 //        * dim(rhs, o) (or dim(output, f')) % bgc == 0 and
 //          dim(rhs, o) (or dim(output, f')) % fgc == 0
+//  P3. Precision config is null, of size 0 or of size 2.
 LogicalResult verifyConvolutionAttributes(
-    Value lhs, Value rhs, int64_t inputBatchDimension,
-    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    Optional<Location> location, Value lhs, Value rhs,
+    int64_t inputBatchDimension, int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    Optional<Location> location) {
+    Optional<ArrayAttr> precisionConfig) {
   // P1.
   if (failed(isSpatialDimensionsValid(
           lhs, inputBatchDimension, inputFeatureDimension,
@@ -876,18 +889,11 @@ LogicalResult verifyConvolutionAttributes(
                              "batch_group_count. Got batch_group_count = ",
                              batchGroupCount, ".");
 
-  return success();
-}
+  // P3.
+  if (failed(verifyPrecisionConfig(location, precisionConfig)))
+    return failure();
 
-// Checks if the precision config has a valid size, if provided.
-LogicalResult verifyPrecisionConfig(Optional<Location> loc,
-                                    Optional<ArrayAttr> maybeArrayAttr) {
-  if (!maybeArrayAttr.has_value()) return success();
-  auto arrayAttr = maybeArrayAttr.value();
-  return !arrayAttr || arrayAttr.size() == 2 || arrayAttr.empty()
-             ? success()
-             : emitOptionalError(
-                   loc, "expects precision config to be null or of size 2.");
+  return success();
 }
 
 LogicalResult inferDotShape(RankedTensorType lhs, RankedTensorType rhs,
@@ -2789,7 +2795,6 @@ LogicalResult verifyCollectivePermuteOp(
  *  P3. Verify and collect the window atributes.
  *  P4. Verify precision_config attribute.
  *  P5. Verify the return shape.
- *      TODO(b/232574102): Verify the element-type of return-value.
  */
 LogicalResult verifyConvolutionOp(
     Optional<Location> location, Value lhs, Value rhs,
@@ -2824,11 +2829,11 @@ LogicalResult verifyConvolutionOp(
 
   // P2.
   if (failed(verifyConvolutionAttributes(
-          lhs, rhs, inputBatchDimension, inputFeatureDimension,
+          location, lhs, rhs, inputBatchDimension, inputFeatureDimension,
           inputSpatialDimensions, kernelInputFeatureDimension,
           kernelOutputFeatureDimension, kernelSpatialDimensions,
           outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
-          featureGroupCount, batchGroupCount, location)))
+          featureGroupCount, batchGroupCount, precisionConfig)))
     return failure();
 
   if ((size_t)numDims != inputSpatialDimensions.size() + 2)
@@ -2863,11 +2868,7 @@ LogicalResult verifyConvolutionOp(
       *rhsDilationOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
 
-  // P3.
-  if (failed(verifyPrecisionConfig(location, precisionConfig)))
-    return failure();
-
-  // P5.
+  // P4.
   SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
                                         ShapedType::kDynamic);
 
