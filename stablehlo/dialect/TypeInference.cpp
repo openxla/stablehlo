@@ -65,6 +65,8 @@ namespace hlo {
 // Utils for shape functions.
 //===----------------------------------------------------------------------===//
 
+static constexpr int64_t kDynamicSizePrintValue = -1;
+
 // Checks if the vector `nums` has duplicates.
 const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
   llvm::SmallDenseSet<int64_t> set(nums.begin(), nums.end());
@@ -1671,9 +1673,9 @@ LogicalResult inferDynamicSliceOp(
   int numSliceSizes = sliceSizes.getNumElements();
   int numStartIndices = startIndices.size();
   if (numStartIndices != numSliceSizes)
-    return emitOptionalError(location, "has mismatched number of slice sizes (",
-                             numSliceSizes, ") and number of start indices (",
-                             numStartIndices, ")");
+    return emitOptionalError(
+        location, "op has mismatched number of slice sizes (", numSliceSizes,
+        ") and number of start indices (", numStartIndices, ")");
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   if (!operandType) return failure();
 
@@ -1915,7 +1917,9 @@ LogicalResult inferGatherOp(
   }
 
   auto getSliceDim = [&sliceSizes](int64_t index) -> int64_t {
-    return sliceSizes.getValues<int64_t>()[index];
+    return sliceSizes.getValues<int64_t>()[index] == kDynamicSizePrintValue
+               ? ShapedType::kDynamic
+               : sliceSizes.getValues<int64_t>()[index];
   };
 
   return inferGatherReturnTypeComponents(
