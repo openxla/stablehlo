@@ -1228,8 +1228,7 @@ func.func @sort_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<*xi32>) {
 // -----
 
 // CHECK-LABEL: @sort_bounds_and_unknown_rank
-func.func @sort_bounds_and_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<5x?x?xi32, #stablehlo.type_extensions<bounds = [?, 7, 6]>>
-) {
+func.func @sort_bounds_and_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<5x?x?xi32, #stablehlo.type_extensions<bounds = [?, 7, 6]>>) {
   %0, %1 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
     %pred = "stablehlo.compare"(%arg0, %arg1) {
