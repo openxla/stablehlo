@@ -228,18 +228,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
 
 #undef RETURN_CONVERTED_ENUM_ATTR
 
-class FuncOpToVhloOpConverter : public OpConversionPattern<func::FuncOp> {
- public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult matchAndRewrite(
-      func::FuncOp funcOp, func::FuncOp::Adaptor adaptor,
-      ConversionPatternRewriter& rewriter) const final {
-    // TODO: Convert to vhlo.func
-    return success();
-  }
-};
-
 template <typename StablehloOpTy>
 class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
  public:
@@ -323,7 +311,6 @@ struct StablehloLegalizeToVhloPass
     ConversionTarget target(getContext());
     target.addIllegalDialect<stablehlo::StablehloDialect>();
     target.addIllegalDialect<func::FuncDialect>();
-    // FuncOp and ReturnOp are marked dynamically legal in
     target.addLegalDialect<vhlo::VhloDialect>();
 
     StablehloToVhloTypeConverter converter;

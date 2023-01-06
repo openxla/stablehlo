@@ -893,7 +893,7 @@ func.func @op_func(%arg0: tensor<f32> {stablehlo.self = unit}) -> (tensor<f32> {
   // CHECK:      "vhlo.func"() ({
   // CHECK-NEXT: ^bb0(%arg0: !vhlo.tensor<!vhlo.f32>):
   // CHECK-NEXT:   "vhlo.return"(%arg0) : (!vhlo.tensor<!vhlo.f32>) -> ()
-  // CHECK-NEXT: arg_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.unit}>]>  
+  // CHECK-NEXT: arg_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.unit}>]>
   // CHECK-SAME: function_type = #vhlo.type<!vhlo.func<(!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>>>
   // CHECK-SAME: res_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.unit}>]>
   func.return %arg0 : tensor<f32>
