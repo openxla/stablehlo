@@ -1506,7 +1506,7 @@ func.func @dot_more_dynamic_output_type(%arg0: tensor<3xf32>, %arg1: tensor<?x3x
 // -----
 
 func.func @dot_cannot_infer_type(%arg0: tensor<?x?x3xf32>, %arg1: tensor<?x3x?xf32>) -> tensor<*xf32> {
-  // expected-error@+1 {{failed to infer shape for lhs 'tensor<?x?x3xf32>' and rhs 'tensor<?x3x?xf32>'}}
+  // expected-error@+1 {{expected both lhs/rhs ranks to be either 1 or 2}}
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<?x?x3xf32>, tensor<?x3x?xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }

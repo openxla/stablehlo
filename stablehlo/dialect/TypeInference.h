@@ -156,8 +156,41 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
 LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferConvertOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferConvolutionOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    Optional<DenseIntElementsAttr> windowStrides,
+    Optional<DenseIntElementsAttr> padding,
+    Optional<DenseIntElementsAttr> lhsDilation,
+    Optional<DenseIntElementsAttr> rhsDilation,
+    Optional<DenseElementsAttr> windowReversal, int64_t inputBatchDimension,
+    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
+    ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
+    int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    Optional<ArrayAttr> precisionConfig,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferDotOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    Optional<ArrayAttr> precisionConfig,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferDotGeneralOp(
+    Optional<Location> location, Value lhs, Value rhs,
+    ArrayRef<int64_t> lhsBatchingDimensions,
+    ArrayRef<int64_t> rhsBatchingDimensions,
+    ArrayRef<int64_t> lhsContractingDimensions,
+    ArrayRef<int64_t> rhsContractingDimensions,
+    Optional<ArrayAttr> precisionConfig,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicGatherOp(
     Optional<Location> location, Value operand, Value startIndices,
@@ -188,6 +221,10 @@ LogicalResult inferGatherOp(
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferGetDimensionSizeOp(
+    MLIRContext* context, Optional<Location> location,
+    SmallVectorImpl<Type>& inferredReturnTypes);
+
 LogicalResult inferGetTupleElementOp(
     Optional<Location> location, Value operand, int32_t index,
     SmallVectorImpl<Type>& inferredReturnTypes);
@@ -198,10 +235,6 @@ LogicalResult inferImagOp(Optional<Location> location, Value operand,
 LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferGetDimensionSizeOp(
-    MLIRContext* context, Optional<Location> location,
-    SmallVectorImpl<Type>& inferredReturnTypes);
-
 LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -210,19 +243,19 @@ LogicalResult inferMapOp(
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferPadOp(Optional<Location> location, Value operand,
-                         Value paddingValue,
-                         DenseIntElementsAttr edgePaddingLow,
-                         DenseIntElementsAttr edgePaddingHigh,
-                         DenseIntElementsAttr interiorPadding,
-                         SmallVectorImpl<Type>& inferredReturnTypes);
-
 LogicalResult inferOptimizationBarrierOp(
     Optional<Location> location, ValueRange operand,
     SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferPadOp(Optional<Location> location, Value operand,
+                         Value paddingValue,
+                         DenseIntElementsAttr edgePaddingLow,
+                         DenseIntElementsAttr edgePaddingHigh,
+                         DenseIntElementsAttr interiorPadding,
+                         SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferPartitionIdOp(MLIRContext* context,
                                  Optional<Location> location,
@@ -288,6 +321,10 @@ LogicalResult inferTupleOp(MLIRContext* context, Optional<Location> location,
                            SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferUniformDequantizeOp(
+    Optional<Location> location, Value operand,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
+LogicalResult inferUniformQuantizeOp(
     Optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
