@@ -16,29 +16,6 @@ func.func @illegal_type_tensor_element(%arg0: !vhlo.tensor<4x16xi16>) -> () {
   func.return
 }
 
-/// if (auto complex = type.dyn_cast<ComplexV1Type>()) {
-  //   return isLegalType(complex.getElementType(), targetVersion);
-  // }
-  // if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
-  //   auto encoding = ranked.getEncoding();
-  //   if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
-  //     return failure();
-  //   return isLegalType(ranked.getElementType(), targetVersion);
-  // }
-  // if (auto quant = type.dyn_cast<UniformQuantizedV1Type>()) {
-  //   return success(
-  //       succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
-  //       succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
-  // }
-  // if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>()) {
-  //   return isLegalType(unranked.getElementType(), targetVersion);
-  // }
-  // if (auto tuple = type.dyn_cast<TupleV1Type>()) {
-  //   return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
-  //     return succeeded(isLegalType(ele, targetVersion));
-  //   }));
-  // }
-
 // -----
 
 // This following type tests simulate version validation if a new numeric type is introduced.
