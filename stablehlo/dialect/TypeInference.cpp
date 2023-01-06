@@ -774,10 +774,12 @@ LogicalResult verifyPrecisionConfig(Optional<Location> loc,
                                     Optional<ArrayAttr> maybeArrayAttr) {
   if (!maybeArrayAttr.has_value()) return success();
   auto arrayAttr = maybeArrayAttr.value();
-  return !arrayAttr || arrayAttr.size() == 2 || arrayAttr.empty()
+  if (!arrayAttr) return success();
+  return arrayAttr.size() <= 2
              ? success()
-             : emitOptionalError(
-                   loc, "expects precision config to be null or of size 2.");
+             : emitOptionalError(loc,
+                                 "expects precision config to be empty or have "
+                                 "<= 2 elements.");
 }
 
 // Verifies the following properties:
