@@ -1472,31 +1472,10 @@ LogicalResult inferCholeskyOp(
     return success();
   }
   // case5: ?       | ?       | ?            | ?
-  if (resultBounds.empty()) {
-    inferredReturnShapes.emplace_back(
-        aRankedType.getShape(), aRankedType.getElementType(),
-        boundsToEncoding(aRankedType.getEncoding(), resultBounds));
-    return success();
-  }
   // case6: ?, A    | ?       | ?, A         | ?, A
   // case7: ?       | ?, A    | ?, A         | ?, A
   // case8: ?, A    | ?, B    | ?, min(A,B)  | ?, min(A,B)
-  bool isLastDimStaticBound =
-      !isDynamicDimSize(resultBounds[resultBounds.size() - 1]);
-  bool isPenultimateDimStaticBound =
-      !isDynamicDimSize(resultBounds[resultBounds.size() - 2]);
-  int64_t staticBound = isLastDimStaticBound
-                            ? resultBounds[resultBounds.size() - 1]
-                            : resultBounds[resultBounds.size() - 2];
-  if (isLastDimStaticBound && isPenultimateDimStaticBound)
-    staticBound = std::min(resultBounds[resultBounds.size() - 1],
-                           resultBounds[resultBounds.size() - 2]);
-  resultBounds[resultBounds.size() - 1] = staticBound;
-  resultBounds[resultBounds.size() - 2] = staticBound;
-  inferredReturnShapes.emplace_back(
-      aRankedType.getShape(), aRankedType.getElementType(),
-      boundsToEncoding(aRankedType.getEncoding(), resultBounds));
-  return success();
+  return inferMostSpecificTypeComponents(location, aType, inferredReturnShapes);
 }
 
 LogicalResult inferClampOp(
