@@ -222,14 +222,14 @@ enum AttributeCode {
   ///   }
   kStringAttr = 26,
 
-  ///   UnitAttr {
-  ///   }
-  kUnitAttr = 27,
-
   ///   TypeAttr {
   ///     value: Type
   ///   }
-  kTypeAttr = 28,
+  kTypeAttr = 27,
+
+  ///   UnitAttr {
+  ///   }
+  kUnitAttr = 28,
 };
 
 /// This enum contains marker codes used to indicate which type is

@@ -24,11 +24,14 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/FunctionImplementation.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/IR/Value.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
@@ -37,11 +40,13 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
+// Prints an optional encoding
 static void printEncoding(AsmPrinter& os, Attribute encoding) {
   if (!encoding) return;
   os << ", " << encoding;
 }
 
+// Parse an optional encoding
 ParseResult parseEncoding(AsmParser& parser, FailureOr<Attribute>& encoding) {
   Attribute attr;
   if (failed(parser.parseOptionalComma())) {
@@ -53,6 +58,7 @@ ParseResult parseEncoding(AsmParser& parser, FailureOr<Attribute>& encoding) {
   return success();
 }
 
+// Print dim sizes separated by 'x': 1x2x?x4
 static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
   if (dimSizes.empty()) return;
   for (int64_t dimSize : dimSizes) {
@@ -60,6 +66,7 @@ static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
   }
 }
 
+// Parse dim sizes separated by 'x': 1x2x?x4
 ParseResult parseTensorShape(AsmParser& parser,
                              FailureOr<SmallVector<int64_t>>& dimSizes) {
   SmallVector<int64_t> sizes;
@@ -70,11 +77,13 @@ ParseResult parseTensorShape(AsmParser& parser,
   return success();
 }
 
+// Print types in parns: (!vhlo.type, !vhlo.type)
 static void printTypeArray(AsmPrinter& os, ArrayRef<Type> typeArray) {
   if (typeArray.empty()) os << "()";
   os << typeArray;
 }
 
+// Parse types in parns: (!vhlo.type, !vhlo.type)
 ParseResult parseTypeArray(AsmParser& parser,
                            FailureOr<SmallVector<Type>>& typeArray) {
   SmallVector<Type> array;
@@ -92,10 +101,12 @@ ParseResult parseTypeArray(AsmParser& parser,
   return success();
 }
 
+// Parse attributes in brackets: [#vhlo.attr, !vhlo.attr]
 static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }
 
+// Parse attributes in brackets: [#vhlo.attr, !vhlo.attr]
 ParseResult parseAttributeArray(AsmParser& parser,
                                 FailureOr<SmallVector<Attribute>>& arrayAttr) {
   ArrayAttr array;
@@ -107,6 +118,7 @@ ParseResult parseAttributeArray(AsmParser& parser,
   return success();
 }
 
+// Print array of NVPs in braces: {key = value, key = value}
 static void printDictionary(AsmPrinter& os,
                             ArrayRef<std::pair<Attribute, Attribute>> values) {
   os << '{';
@@ -116,6 +128,7 @@ static void printDictionary(AsmPrinter& os,
   os << '}';
 }
 
+// Parse array of NVPs in braces: {key = value, key = value}
 ParseResult parseDictionary(
     AsmParser& parser,
     FailureOr<SmallVector<std::pair<Attribute, Attribute>>>& values) {
@@ -186,6 +199,48 @@ static void printFloatValue(const APFloat& apValue, AsmPrinter& os) {
   os << str;
 }
 
+// Print function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
+                       Region& region, Attribute funcType) {
+  p.printSymbolName(name.cast<vhlo::StringV1Attr>().getValue());
+  p << '(';
+  llvm::interleaveComma(region.getArguments(), p,
+                        [&](auto arg) { p.printRegionArgument(arg); });
+  p << ") -> (";
+  auto fnType =
+      funcType.cast<TypeV1Attr>().getValue().cast<vhlo::FunctionV1Type>();
+  llvm::interleaveComma(fnType.getResults(), p,
+                        [&](auto res) { p.printType(res); });
+  p << ") ";
+  p.printRegion(region, false, true, true);
+}
+
+// Parse function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
+                              Region& region, Attribute& funcType) {
+  StringAttr strName;
+  SmallVector<OpAsmParser::Argument> args;
+  SmallVector<Type> inputTypes;
+  SmallVector<Type> resultTypes;
+  if (failed(parser.parseSymbolName(strName)) ||
+      failed(
+          parser.parseArgumentList(args, AsmParser::Delimiter::Paren, true)) ||
+      failed(parser.parseArrowTypeList(resultTypes)) ||
+      failed(parser.parseRegion(region, args))) {
+    return failure();
+  }
+  name = vhlo::StringV1Attr::get(parser.getContext(), strName.getValue());
+  for (OpAsmParser::Argument arg : args) {
+    inputTypes.push_back(arg.type);
+  }
+  funcType = TypeV1Attr::get(
+      parser.getContext(),
+      FunctionV1Type::get(parser.getContext(), inputTypes, resultTypes));
+
+  return success();
+}
+
+// Print dense elements using DenseIntOfFPElementsAttr printing.
 void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
   VhloToStablehloTypeConverter conv;
   p << '<'
@@ -194,6 +249,7 @@ void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
     << '>';
 }
 
+// Parse dense elements using DenseIntOfFPElementsAttr printing.
 Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
   StablehloToVhloTypeConverter conv;
   DenseIntOrFPElementsAttr attr;

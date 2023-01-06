@@ -976,20 +976,13 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
 }
 
 def VHLO_FuncOpV1 : VHLO_Op<"func"> {
-  /*
-    let arguments = (ins SymbolNameAttr:$sym_name,
-                       TypeAttrOf<FunctionType>:$function_type,
-                       OptionalAttr<StrAttr>:$sym_visibility,
-                       OptionalAttr<DictArrayAttr>:$arg_attrs,
-                       OptionalAttr<DictArrayAttr>:$res_attrs);
-  */
   let arguments = (ins VHLO_AnyAttr:$sym_name,
                        VHLO_AnyAttr:$function_type,
                        OptionalAttr<VHLO_AnyAttr>:$sym_visibility,
                        OptionalAttr<VHLO_AnyAttr>:$arg_attrs,
                        OptionalAttr<VHLO_AnyAttr>:$res_attrs);
   let regions = (region VHLO_AnyRegion:$body);
-  let assemblyFormat = "$sym_name $body attr-dict `:` $function_type";
+  let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
 
 def VHLO_CallOpV1 : VHLO_Op<"call"> {
