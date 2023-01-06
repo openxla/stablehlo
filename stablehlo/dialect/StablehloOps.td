@@ -1927,8 +1927,7 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
 // directly.
 
 def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
-      [Pure, SameOperandsAndResultElementType,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+      [Pure, SameOperandsAndResultElementType, InferTensorType]> {
   let summary = "Cholesky operator";
   let description = [{
     Computes the Cholesky decomposition of a batch of matrices.

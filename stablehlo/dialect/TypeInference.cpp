@@ -1421,12 +1421,14 @@ LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
 // We intend to verify the following properties
 //   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
 //   P2. The two minor dimensions of 'a' must have equal size, got %s.
-LogicalResult inferCholeskyOp(Optional<Location> location, Value a,
-                              SmallVectorImpl<Type>& inferredReturnTypes) {
+LogicalResult inferCholeskyOp(
+    Optional<Location> location, Value a,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type aType = a.getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
   if (!aRankedType) {
-    inferredReturnTypes.emplace_back(aType);
+    inferredReturnShapes.emplace_back(
+        aType.cast<TensorType>().getElementType());
     return success();
   }
 
@@ -1458,22 +1460,22 @@ LogicalResult inferCholeskyOp(Optional<Location> location, Value a,
     resultShape[resultShape.size() - 1] = staticSize;
     resultShape[resultShape.size() - 2] = staticSize;
     if (resultBounds.empty()) {
-      inferredReturnTypes.push_back(
-          RankedTensorType::get(resultShape, aRankedType.getElementType()));
+      inferredReturnShapes.emplace_back(resultShape,
+                                        aRankedType.getElementType());
     } else {
       resultBounds[resultBounds.size() - 1] = ShapedType::kDynamic;
       resultBounds[resultBounds.size() - 2] = ShapedType::kDynamic;
-      inferredReturnTypes.push_back(RankedTensorType::get(
+      inferredReturnShapes.emplace_back(
           resultShape, aRankedType.getElementType(),
-          boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
+          boundsToEncoding(aRankedType.getEncoding(), resultBounds));
     }
     return success();
   }
   // case5: ?       | ?       | ?            | ?
   if (resultBounds.empty()) {
-    inferredReturnTypes.push_back(RankedTensorType::get(
+    inferredReturnShapes.emplace_back(
         aRankedType.getShape(), aRankedType.getElementType(),
-        boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
+        boundsToEncoding(aRankedType.getEncoding(), resultBounds));
     return success();
   }
   // case6: ?, A    | ?       | ?, A         | ?, A
@@ -1491,9 +1493,9 @@ LogicalResult inferCholeskyOp(Optional<Location> location, Value a,
                            resultBounds[resultBounds.size() - 2]);
   resultBounds[resultBounds.size() - 1] = staticBound;
   resultBounds[resultBounds.size() - 2] = staticBound;
-  inferredReturnTypes.push_back(RankedTensorType::get(
+  inferredReturnShapes.emplace_back(
       aRankedType.getShape(), aRankedType.getElementType(),
-      boundsToEncoding(aRankedType.getEncoding(), resultBounds)));
+      boundsToEncoding(aRankedType.getEncoding(), resultBounds));
   return success();
 }
 
