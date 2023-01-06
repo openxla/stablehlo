@@ -57,58 +57,7 @@ class VHLO_AttrDef<string name,
 }
 
 //===----------------------------------------------------------------------===//
-// Wrapped Attributes
-//===----------------------------------------------------------------------===//
-
-def VHLO_IntegerAttr  : VHLO_AttrDef<"IntegerV1"> {
-  let mnemonic = "integer";
-  let parameters = (ins "mlir::IntegerAttr":$value);
-  let assemblyFormat = "`<` $value `>`";
-}
-
-def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
-  let mnemonic = "float";
-  let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
-  let assemblyFormat = "`<` $value `:` $type `>`";
-}
-
-def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
-  let mnemonic = "string";
-  let parameters = (ins StringRefParameter<"">:$value);
-  let assemblyFormat = "`<` $value `>`";
-}
-
-def VHLO_ArrayAttr : VHLO_AttrDef<"ArrayV1"> {
-  let mnemonic = "array";
-  let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
-  let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
-}
-
-def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
-  let mnemonic = "unit";
-  let storageType = [{ ::mlir::UnitAttr }];
-  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
-  let convertFromStorage = "$_self != nullptr";
-  let returnType = "bool";
-  let defaultValue = "false";
-  let valueType = NoneType;
-  let isOptional = 1;
-}
-
-def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
-  let mnemonic = "dense";
-  let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
-  let hasCustomAssemblyFormat = 1;
-}
-
-def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
-  let mnemonic = "sym";
-  let parameters = (ins "::mlir::Attribute":$root_reference);
-  let assemblyFormat = "`<` $root_reference `>`";
-}
-
-//===----------------------------------------------------------------------===//
-// Attributes
+// VHLO Attributes
 //===----------------------------------------------------------------------===//
 
 def VHLO_ScatterDimensionNumbers: VHLO_AttrDef<"ScatterDimensionNumbers"> {
@@ -215,6 +164,57 @@ def VHLO_ConvolutionAttributes {
     VHLO_AnyAttr:$batch_group_count,
     VHLO_AnyAttr:$precision_config
   );
+}
+
+//===----------------------------------------------------------------------===//
+// Forked Attributes
+//===----------------------------------------------------------------------===//
+
+def VHLO_ArrayAttr : VHLO_AttrDef<"ArrayV1"> {
+  let mnemonic = "array";
+  let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
+  let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
+}
+
+def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
+  let mnemonic = "dense";
+  let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
+  let hasCustomAssemblyFormat = 1;
+}
+
+def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
+  let mnemonic = "sym";
+  let parameters = (ins "::mlir::Attribute":$root_reference);
+  let assemblyFormat = "`<` $root_reference `>`";
+}
+
+def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
+  let mnemonic = "float";
+  let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
+  let assemblyFormat = "`<` $value `:` $type `>`";
+}
+
+def VHLO_IntegerAttr  : VHLO_AttrDef<"IntegerV1"> {
+  let mnemonic = "integer";
+  let parameters = (ins "mlir::IntegerAttr":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
+  let mnemonic = "string";
+  let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
+  let mnemonic = "unit";
+  let storageType = [{ ::mlir::UnitAttr }];
+  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
+  let convertFromStorage = "$_self != nullptr";
+  let returnType = "bool";
+  let defaultValue = "false";
+  let valueType = NoneType;
+  let isOptional = 1;
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

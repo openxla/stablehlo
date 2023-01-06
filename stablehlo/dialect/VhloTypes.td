@@ -63,31 +63,27 @@ class VHLO_TypeDef<string cppName,
 // VHLO Type Definitions.
 //===----------------------------------------------------------------------===//
 
-// Token type.
 def VHLO_Token : VHLO_TypeDef<"Token", "token">;
 
-// Tuple Type
-def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
-  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
-  let assemblyFormat = "`<` $types `>`";
-}
+//===----------------------------------------------------------------------===//
+// Forked Types
+//===----------------------------------------------------------------------===//
 
-// Tensor Types
-def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
-  let parameters = (ins
-    VHLO_Dims:$shape,
-    "::mlir::Type":$elementType,
-    "::mlir::Attribute":$encoding
-  );
-  let assemblyFormat = "`<` custom<TensorShape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
-}
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
 
-def VHLO_UnankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
-  let parameters = (ins "::mlir::Type":$elementType);
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
+  let parameters = (ins "Type":$elementType);
   let assemblyFormat = "`<` $elementType `>`";
 }
 
-// Element Types
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
+
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
+
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
+
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
+
 def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
   let parameters = (ins "::mlir::IntegerType":$value);
   let assemblyFormat = "`<` $value `>`";
@@ -107,22 +103,23 @@ def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
     }
   }];
 }
-def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
-  let parameters = (ins "Type":$elementType);
-  let assemblyFormat = "`<` $elementType `>`";
+
+def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
+  let parameters = (ins
+    VHLO_Dims:$shape,
+    "::mlir::Type":$elementType,
+    "::mlir::Attribute":$encoding
+  );
+  let assemblyFormat = "`<` custom<TensorShape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
 }
 
-def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
-def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
-def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
-def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
-def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
+def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
+  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let assemblyFormat = "`<` $types `>`";
+}
 
-// Shape Witness Type
-def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness">;
-
-// Quantized Type
 def VHLO_Double : APFloatParameter<""> {
+  // Used by UniformQuantizedV1 to have APFloat with custom parser
   let parser = [{
     [&]() -> FailureOr<llvm::APFloat> {
       double value;
@@ -134,7 +131,6 @@ def VHLO_Double : APFloatParameter<""> {
   }];
   let printer = "printFloatValue($_self, $_printer)";
 }
-
 def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let parameters = (ins
     "unsigned":$flags,
@@ -147,5 +143,12 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   );
   let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
+
+def VHLO_UnankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
+  let parameters = (ins "::mlir::Type":$elementType);
+  let assemblyFormat = "`<` $elementType `>`";
+}
+
+def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness">;
 
 #endif // STABLEHLO_DIALECT_VHLO_TYPES
