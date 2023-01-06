@@ -35,7 +35,7 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 echo "Gathering changed files..."
-CHANGED_FILES=$(git diff --name-only HEAD $BASE_BRANCH | grep '.*\.h\|.*\.cpp' | xargs)
+CHANGED_FILES=$(git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.h\|.*\.cpp' | xargs)
 if [[ -z "$CHANGED_FILES" ]]; then
   echo "No files to format."
   exit 0
