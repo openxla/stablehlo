@@ -1443,38 +1443,6 @@ LogicalResult inferCholeskyOp(
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
-
-  // bound infer rules for the last two dimensions of A:
-  //        Dim R-2 | Dim R-1 | inferred R-2 | inferred R-1
-  // case0: 3       | 3       | 3            | 3
-  // case1: ?       | 3       | 3            | 3
-  // case2: ?, A>=3 | 3       | 3            | 3
-  // case3: 3       | ?       | 3            | 3
-  // case4: 3       | ?, A>=3 | 3            | 3
-  int64_t lastDim = aShape[aShape.size() - 1];
-  int64_t penultimateDim = aShape[aShape.size() - 2];
-  auto resultBounds = encodingToBounds(aRankedType.getEncoding()).vec();
-  if (isStaticDimSize(lastDim) || isStaticDimSize(penultimateDim)) {
-    auto resultShape = aRankedType.getShape().vec();
-    auto staticSize = isStaticDimSize(lastDim) ? lastDim : penultimateDim;
-    resultShape[resultShape.size() - 1] = staticSize;
-    resultShape[resultShape.size() - 2] = staticSize;
-    if (resultBounds.empty()) {
-      inferredReturnShapes.emplace_back(resultShape,
-                                        aRankedType.getElementType());
-    } else {
-      resultBounds[resultBounds.size() - 1] = ShapedType::kDynamic;
-      resultBounds[resultBounds.size() - 2] = ShapedType::kDynamic;
-      inferredReturnShapes.emplace_back(
-          resultShape, aRankedType.getElementType(),
-          boundsToEncoding(aRankedType.getEncoding(), resultBounds));
-    }
-    return success();
-  }
-  // case5: ?       | ?       | ?            | ?
-  // case6: ?, A    | ?       | ?, A         | ?, A
-  // case7: ?       | ?, A    | ?, A         | ?, A
-  // case8: ?, A    | ?, B    | ?, min(A,B)  | ?, min(A,B)
   return inferMostSpecificTypeComponents(location, aType, inferredReturnShapes);
 }
 
