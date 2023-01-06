@@ -2391,10 +2391,24 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult inferSortOp(
-    Optional<Location>, ValueRange inputs,
+    Optional<Location> location, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  for (auto resultType : inputs.getTypes())
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  // Infermost specific type from all operands
+  SmallVector<Type> mostSpecificType;
+  if (failed(hlo::inferMostSpecificType(location, inputs.getTypes(),
+                                        mostSpecificType)))
+    return failure();
+
+  auto rankedOutput = mostSpecificType.front().dyn_cast<RankedTensorType>();
+  for (auto inputType : inputs.getTypes()) {
+    auto inputShapedType = inputType.cast<ShapedType>();
+    if (rankedOutput)
+      inferredReturnShapes.emplace_back(rankedOutput.getShape(),
+                                        inputShapedType.getElementType(),
+                                        rankedOutput.getEncoding());
+    else
+      inferredReturnShapes.emplace_back(inputShapedType);
+  }
   return success();
 }
 
