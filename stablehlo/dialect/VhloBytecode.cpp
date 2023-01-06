@@ -530,14 +530,22 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
   return TypeSwitch<Attribute, LogicalResult>(attr)
       .Case<ArgResultAliasAttr, ChannelHandleAttr, ComparisonDirectionAttr,
             ComparisonTypeAttr, ConvDimensionNumbersAttr,
+<<<<<<< HEAD
             CustomCallApiVersionAttr, DotDimensionNumbersAttr, FftTypeAttr,
             GatherDimensionNumbersAttr, OutputOperandAliasAttr, PrecisionAttr,
             RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
             TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
+=======
+            DotDimensionNumbersAttr, FftTypeAttr, GatherDimensionNumbersAttr,
+            OutputOperandAliasAttr, PrecisionAttr, RngAlgorithmAttr,
+            RngDistributionAttr, ScatterDimensionNumbersAttr, TransposeAttr,
+            TypeExtensionsAttr>([&](auto attr) {
+>>>>>>> 5bac165 (Reorganize VHLO BytecodeWriter)
         LOG_WRITE_CALL;
         write(attr, writer);
         return success();
       })
+<<<<<<< HEAD
       .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, FlatSymbolRefV1Attr,
             FloatV1Attr, IntegerV1Attr, StringV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;  // Forked attrs
@@ -548,6 +556,8 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kUnitAttr), success();
       })
+=======
+>>>>>>> 5bac165 (Reorganize VHLO BytecodeWriter)
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -690,6 +700,7 @@ void VhloBytecodeInterface::write(ConvDimensionNumbersAttr attr,
 }
 
 //===----------------------------------------------------------------------===//
+<<<<<<< HEAD
 // CustomCallApiVersionAttr
 
 CustomCallApiVersionAttr VhloBytecodeInterface::readCustomCallApiVersionAttr(
@@ -707,6 +718,8 @@ void VhloBytecodeInterface::write(CustomCallApiVersionAttr attr,
 }
 
 //===----------------------------------------------------------------------===//
+=======
+>>>>>>> 5bac165 (Reorganize VHLO BytecodeWriter)
 // DotDimensionNumbersAttr
 
 DotDimensionNumbersAttr VhloBytecodeInterface::readDotDimensionNumbersAttr(
@@ -928,6 +941,7 @@ void VhloBytecodeInterface::write(TypeExtensionsAttr attr,
 }
 
 //===----------------------------------------------------------------------===//
+<<<<<<< HEAD
 // Forked Attributes
 //===----------------------------------------------------------------------===//
 
@@ -1107,6 +1121,8 @@ void VhloBytecodeInterface::write(StringV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
+=======
+>>>>>>> 5bac165 (Reorganize VHLO BytecodeWriter)
 // Types
 //===----------------------------------------------------------------------===//
 
@@ -1151,7 +1167,10 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
   }
 }
 
+<<<<<<< HEAD
 // TO ADD TYPE: Update the case selection to include the new type.
+=======
+>>>>>>> 5bac165 (Reorganize VHLO BytecodeWriter)
 LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
