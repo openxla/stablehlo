@@ -529,8 +529,7 @@ struct ChloDialectInlinerInterface : public DialectInlinerInterface {
                        BlockAndValueMapping& valueMapping) const final {
     return true;
   }
-  // Operations in StableHLO dialect are always legal to inline since they are
-  // pure.
+  // Operations in CHLO dialect are always legal to inline since they are pure.
   bool isLegalToInline(Operation*, Region*, bool,
                        BlockAndValueMapping&) const final {
     return true;
