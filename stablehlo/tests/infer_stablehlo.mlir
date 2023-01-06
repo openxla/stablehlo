@@ -262,6 +262,21 @@ func.func @batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf3
 
 // -----
 
+// CHECK-LABEL: @batch_norm_inference_dynamic
+func.func @batch_norm_inference_dynamic(
+  %input: tensor<4x?xf32, #stablehlo.type_extensions<bounds = [?, 64]>>, %scale: tensor<?xf32>,
+  %offset: tensor<?xf32>, %mean: tensor<?xf32>, %variance: tensor<?xf32>
+) -> (tensor<*xindex>) {
+  %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {
+    epsilon = 1.001000e-05 : f32, feature_index = 1 : i64
+    } : (tensor<4x?xf32, #stablehlo.type_extensions<bounds = [?, 64]>>, tensor<?xf32>, tensor<?xf32>, tensor<?xf32>, tensor<?xf32>) -> tensor<4x?xf32, #stablehlo.type_extensions<bounds = [?, 64]>>
+  // CHECK: (tensor<4x?xf32, #stablehlo.type_extensions<bounds = [?, 64]>>) -> tensor<*xindex>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<4x?xf32, #stablehlo.type_extensions<bounds = [?, 64]>>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @map
 func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xindex> {
   %0 = "stablehlo.map"(%arg0, %arg1) ({
