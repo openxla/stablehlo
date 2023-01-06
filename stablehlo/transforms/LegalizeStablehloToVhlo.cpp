@@ -118,41 +118,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return {};
   }
 
-  // Handle builtin attributes.
-  // Supported attributes are converted to VHLO.
-
-  if (auto floatAttr = stablehloAttr.dyn_cast<FloatAttr>()) {
-    auto floatType = typeConverter->convertType(floatAttr.getType());
-    if (!floatType) return {};
-    return vhlo::FloatV1Attr::get(floatAttr.getContext(), floatType,
-                                  floatAttr.getValue());
-  }
-
-  if (auto flatSymAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
-    auto rootRef =
-        convertAttrToVhlo(flatSymAttr.getRootReference(), typeConverter);
-    if (!rootRef) return {};
-    return vhlo::FlatSymbolRefV1Attr::get(flatSymAttr.getContext(), rootRef);
-  }
-
-  if (auto strAttr = stablehloAttr.dyn_cast<StringAttr>()) {
-    if (!strAttr.getType().isa<NoneType>()) {
-      // Don't support custom string types
-      LLVM_DEBUG(llvm::dbgs()
-                 << "Failed to convert string with type: " << strAttr << '\n');
-      return {};
-    }
-    return vhlo::StringV1Attr::get(strAttr.getContext(), strAttr.getValue());
-  }
-
-  if (auto unitAttr = stablehloAttr.dyn_cast<UnitAttr>()) {
-    return vhlo::UnitV1Attr::get(unitAttr.getContext());
-  }
-
-  if (auto intAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
-    return vhlo::IntegerV1Attr::get(intAttr.getContext(), intAttr);
-  }
-
+  // Forked attributes
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
@@ -167,6 +133,33 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     if (!vhloType) return {};
     return vhlo::DenseIntOrFPElementsV1Attr::get(
         elementsAttr.getContext(), vhloType, elementsAttr.getRawData());
+  }
+  if (auto flatSymAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+    auto rootRef =
+        convertAttrToVhlo(flatSymAttr.getRootReference(), typeConverter);
+    if (!rootRef) return {};
+    return vhlo::FlatSymbolRefV1Attr::get(flatSymAttr.getContext(), rootRef);
+  }
+  if (auto floatAttr = stablehloAttr.dyn_cast<FloatAttr>()) {
+    auto floatType = typeConverter->convertType(floatAttr.getType());
+    if (!floatType) return {};
+    return vhlo::FloatV1Attr::get(floatAttr.getContext(), floatType,
+                                  floatAttr.getValue());
+  }
+  if (auto intAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
+    return vhlo::IntegerV1Attr::get(intAttr.getContext(), intAttr);
+  }
+  if (auto strAttr = stablehloAttr.dyn_cast<StringAttr>()) {
+    if (!strAttr.getType().isa<NoneType>()) {
+      // Don't support custom string types
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Failed to convert string with type: " << strAttr << '\n');
+      return {};
+    }
+    return vhlo::StringV1Attr::get(strAttr.getContext(), strAttr.getValue());
+  }
+  if (auto unitAttr = stablehloAttr.dyn_cast<UnitAttr>()) {
+    return vhlo::UnitV1Attr::get(unitAttr.getContext());
   }
 
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');

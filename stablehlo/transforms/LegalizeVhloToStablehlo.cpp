@@ -104,14 +104,14 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   }
 
   // Forked attributes
-  if (auto intAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
-    return intAttr.getValue();
-  }
-  if (auto floatAttr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
-    auto floatType = typeConverter->convertType(floatAttr.getType());
-    if (!floatType) return {};
-    // FIXME: What is the proper way to reconstruct a floatAttr?
-    return FloatAttr::get(floatType, floatAttr.getValue().convertToDouble());
+  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloAttrs.getValue()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
   }
   if (auto denseElements =
           vhloAttr.dyn_cast<vhlo::DenseIntOrFPElementsV1Attr>()) {
@@ -127,28 +127,31 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return FlatSymbolRefAttr::get(flatSymAttr.getContext(),
                                   rootRef.cast<StringAttr>());
   }
+  if (auto floatAttr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
+    auto floatType = typeConverter->convertType(floatAttr.getType());
+    if (!floatType) return {};
+    // FIXME: What is the proper way to reconstruct a floatAttr?
+    return FloatAttr::get(floatType, floatAttr.getValue().convertToDouble());
+  }
+  if (auto intAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+    return intAttr.getValue();
+  }
   if (auto strAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(strAttr.getContext(), strAttr.getValue());
   }
   if (auto unitAttr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
     return UnitAttr::get(unitAttr.getContext());
   }
-  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloAttrs.getValue()) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
-  }
 
+  // All VHLO Attributes must be converted by now.
   if (vhloAttr.getDialect().getNamespace() ==
       vhlo::VhloDialect::getDialectNamespace()) {
     // All VHLO attributes must have counterparts in StableHLO.
     return {};
   }
 
+  // This should be unreachable unless program is a mix of VHLO and other
+  // due to user edits to textual assembly format.
   return vhloAttr;
 }
 
