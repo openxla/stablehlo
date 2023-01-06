@@ -2393,7 +2393,7 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 LogicalResult inferSortOp(
     Optional<Location> location, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  // Infermost specific type from all operands
+  // Infer most specific type from all operands
   SmallVector<Type> mostSpecificType;
   if (failed(hlo::inferMostSpecificType(location, inputs.getTypes(),
                                         mostSpecificType)))
