@@ -1650,7 +1650,7 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
 
 def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
       [Pure, AllElementTypesMatch<["operand", "update", "result"]>,
-       AllShapesMatch<["operand", "result"]>, InferTensorType]> {
+       InferTensorType]> {
   let summary = "Dynamic Update Slice operator";
   let description = [{
     Produces a `result` tensor which is equal to the `operand` tensor except
