@@ -85,8 +85,8 @@ func.func @illegal_attr_array_element(%arg0: !vhlo.tensor<!vhlo.f32>) -> !vhlo.t
 func.func @vhlo_illegal_attr_symbolref(%arg0: !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32> {
   // expected-error @+1 {{failed to legalize operation 'vhlo.custom_call_v2' that was explicitly marked illegal}}
   %0 = "vhlo.custom_call_v2"(%arg0) {
-    api_version = #vhlo<api_version API_VERSION_ORIGINAL>, 
-    backend_config = #vhlo.string<"">, 
+    api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
+    backend_config = #vhlo.string<"">,
     call_target_name = #vhlo.string<"foo">,
     called_computations = #vhlo.array<[#vhlo.sym<dense<1> : tensor<i16>>]>
   } : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
@@ -99,7 +99,7 @@ func.func @vhlo_illegal_attr_symbolref(%arg0: !vhlo.tensor<!vhlo.f32>) -> !vhlo.
 func.func @vhlo_illegal_attr_float(%arg0: !vhlo.tensor<16x16x16x16x!vhlo.f32>, %arg1: !vhlo.tensor<16x!vhlo.f32>, %arg2: !vhlo.tensor<16x!vhlo.f32>, %arg3: !vhlo.tensor<16x!vhlo.f32>, %arg4: !vhlo.tensor<16x!vhlo.f32>) -> !vhlo.tensor<16x16x16x16x!vhlo.f32> {
   // expected-error @+1 {{failed to legalize operation 'vhlo.batch_norm_inference' that was explicitly marked illegal}}
   %0 = "vhlo.batch_norm_inference"(%arg0, %arg1, %arg2, %arg3, %arg4) {
-    epsilon = #vhlo.float<1.000000e-03 : f80>, 
+    epsilon = #vhlo.float<1.000000e-03 : f80>,
     feature_index = #vhlo.integer<0 : i64>
   } : (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>) -> !vhlo.tensor<16x16x16x16x!vhlo.f32>
   return %0 : !vhlo.tensor<16x16x16x16x!vhlo.f32>
