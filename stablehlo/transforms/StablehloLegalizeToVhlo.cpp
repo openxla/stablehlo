@@ -176,6 +176,16 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return vhlo::DenseIntOrFPElementsV1Attr::get(attr.getContext(), vhloType,
                                                  attr.getRawData());
   }
+  if (auto dictAttr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
+    SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
+    for (auto namedAttr : dictAttr.getValue()) {
+      auto vhloName = convertAttrToVhlo(namedAttr.getName(), typeConverter);
+      auto vhloValue = convertAttrToVhlo(namedAttr.getValue(), typeConverter);
+      if (!vhloName || !vhloValue) return {};
+      vhloAttrs.push_back({vhloName, vhloValue});
+    }
+    return vhlo::DictionaryV1Attr::get(dictAttr.getContext(), vhloAttrs);
+  }
   if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
     auto vhloRootRef =
         convertAttrToVhlo(attr.getRootReference(), typeConverter);
@@ -211,10 +221,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   if (auto attr = stablehloAttr.dyn_cast<UnitAttr>()) {
     return vhlo::UnitV1Attr::get(attr.getContext());
   }
-
-  
-  // FIXME:
-  if (stablehloAttr.isa<DictionaryAttr>()) return stablehloAttr;
 
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
   return {};  // Failed to convert attribute.
@@ -318,14 +324,12 @@ struct StablehloLegalizeToVhloPass
     target.addIllegalDialect<stablehlo::StablehloDialect>();
     target.addIllegalDialect<func::FuncDialect>();
     // FuncOp and ReturnOp are marked dynamically legal in
-    // registerFuncOpsForTypeConversion
     target.addLegalDialect<vhlo::VhloDialect>();
 
     StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // StableHLO is a subset of VHLO.
     if (failed(applyPartialConversion(getOperation(), target,
