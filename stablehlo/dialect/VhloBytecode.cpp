@@ -180,22 +180,23 @@ enum AttributeCode {
 
   // Gap in numbers to separate StableHLO types from forked types //
 
-  ///   StringAttr {
-  ///     value: string
+  ///   ArrayAttr {
+  ///     elements: Attribute[]
   ///   }
-  kStringAttr = 20,
+  ///
+  kArrayAttr = 20,
+
+  ///   DenseIntOrFPElementsAttr {
+  ///     type: ShapedType,
+  ///     data: blob
+  ///   }
+  kDenseIntOrFPElementsAttr = 21,
 
   ///   FlatSymbolRefAttr {
   ///     rootReference: StringAttr
   ///   }
   /// A variant of SymbolRefAttr with no leaf references.
-  kFlatSymbolRefAttr = 21,
-
-  ///   IntegerAttr {
-  ///     type: Type
-  ///     value: APInt,
-  ///   }
-  kIntegerAttr = 22,
+  kFlatSymbolRefAttr = 22,
 
   ///   FloatAttr {
   ///     type: FloatType
@@ -203,21 +204,20 @@ enum AttributeCode {
   ///   }
   kFloatAttr = 23,
 
+  ///   IntegerAttr {
+  ///     type: Type
+  ///     value: APInt,
+  ///   }
+  kIntegerAttr = 24,
+
+  ///   StringAttr {
+  ///     value: string
+  ///   }
+  kStringAttr = 25,
+
   ///   UnitAttr {
   ///   }
-  kUnitAttr = 24,
-
-  ///   ArrayAttr {
-  ///     elements: Attribute[]
-  ///   }
-  ///
-  kArrayAttr = 25,
-
-  ///   DenseIntOrFPElementsAttr {
-  ///     type: ShapedType,
-  ///     data: blob
-  ///   }
-  kDenseIntOrFPElementsAttr = 26,
+  kUnitAttr = 26,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -236,61 +236,49 @@ enum TypeCode {
 
   // Gap in numbers to separate StableHLO types from forked types //
 
-  ///   IntegerType {
-  ///     widthAndSignedness: varint // (width << 2) | (signedness)
+  ///   ComplexType {
+  ///     elementType: Type
   ///   }
   ///
-  kIntegerType = 5,
+  kComplexType = 5,
 
-  ///   IndexType {
+  ///   BFloat16Type {
   ///   }
   ///
-  kIndexType = 6,
+  kBFloat16Type = 6,
+
+  ///   Float16Type {
+  ///   }
+  ///
+  kFloat16Type = 7,
+
+  ///   Float32Type {
+  ///   }
+  ///
+  kFloat32Type = 8,
+
+  ///   Float64Type {
+  ///   }
+  ///
+  kFloat64Type = 9,
 
   ///   FunctionType {
   ///     inputs: Type[],
   ///     results: Type[]
   ///   }
   ///
-  // kFunctionType = 3,
+  kFunctionType = 10,
 
-  ///   BFloat16Type {
+  ///   IndexType {
   ///   }
   ///
-  kBFloat16Type = 7,
+  kIndexType = 11,
 
-  ///   Float16Type {
+  ///   IntegerType {
+  ///     widthAndSignedness: varint // (width << 2) | (signedness)
   ///   }
   ///
-  kFloat16Type = 8,
-
-  ///   Float32Type {
-  ///   }
-  ///
-  kFloat32Type = 9,
-
-  ///   Float64Type {
-  ///   }
-  ///
-  kFloat64Type = 10,
-
-  ///   ComplexType {
-  ///     elementType: Type
-  ///   }
-  ///
-  kComplexType = 11,
-
-  ///   UniformQuantizedType {
-  ///     flags: varint
-  ///     storageType: Type
-  ///     expressedType: Type
-  ///     scale: APFloat
-  ///     zeroPoint: svarint
-  ///     storageTypeMin: svarint
-  ///     storageTypeMax: svarint
-  ///   }
-  ///
-  kUniformQuantizedType = 12,
+  kIntegerType = 12,
 
   ///   RankedTensorType {
   ///     shape: svarint[],
@@ -312,15 +300,27 @@ enum TypeCode {
   ///   }
   kTupleType = 15,
 
+  ///   UniformQuantizedType {
+  ///     flags: varint
+  ///     storageType: Type
+  ///     expressedType: Type
+  ///     scale: APFloat
+  ///     zeroPoint: svarint
+  ///     storageTypeMin: svarint
+  ///     storageTypeMax: svarint
+  ///   }
+  ///
+  kUniformQuantizedType = 16,
+
   ///   UnrankedTensorType {
   ///     elementType: Type
   ///   }
   ///
-  kUnrankedTensorType = 16,
+  kUnrankedTensorType = 17,
 
   ///   WitnessType {
   ///   }
-  kWitnessType = 17,
+  kWitnessType = 18,
 };
 
 }  // namespace vhlo_encoding
