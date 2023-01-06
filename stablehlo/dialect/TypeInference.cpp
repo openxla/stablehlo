@@ -590,9 +590,8 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
          outputShapeIdx < static_cast<int64_t>(allowedDimensions.size()) &&
          argShapeIdx < static_cast<int64_t>(argShape.size());
          outputShapeIdx++)
-      if (allowedDimensions[outputShapeIdx] == ShapedType::kDynamic ||
-          argShape[argShapeIdx] == ShapedType::kDynamic ||
-          allowedDimensions[outputShapeIdx] == argShape[argShapeIdx])
+      if (verifyCompatibleDims(allowedDimensions[outputShapeIdx],
+                               argShape[argShapeIdx]))
         argShapeIdx++;
 
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
@@ -1468,14 +1467,11 @@ LogicalResult inferCholeskyOp(
         location, "argument 'a' must have rank >= 2, got shape ", aShape, ".");
   }
 
-  int64_t lastDim = aShape[aShape.size() - 1];
-  int64_t penultimateDim = aShape[aShape.size() - 2];
-  if (!isDynamicDimSize(lastDim) && !isDynamicDimSize(penultimateDim) &&
-      lastDim != penultimateDim) {
+  if (!verifyCompatibleDims(aShape[aShape.size() - 2],
+                            aShape[aShape.size() - 1]))
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
-  }
   inferredReturnShapes.emplace_back(aRankedType.getShape(),
                                     aRankedType.getElementType());
   return success();
@@ -1564,9 +1560,8 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
     auto firstShape = firstRankedType.getShape();
     auto secondShape = secondType.getShape();
     for (int d = 0; d < firstRankedType.getRank(); ++d) {
-      if (!isDynamicDimSize(firstShape[d]) &&
-          !isDynamicDimSize(secondShape[d]) &&
-          firstShape[d] != secondShape[d] && d != dimension) {
+      if (d != dimension &&
+          !verifyCompatibleDims(firstShape[d], secondShape[d]))
         return emitOptionalError(
             location, "shapes of operand (", firstRankedIndex, ") and (", i,
             ") do not match at non-concat "
@@ -1574,7 +1569,6 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
             llvm::make_range(firstShape.begin(), firstShape.end()), ") != (",
             llvm::make_range(secondShape.begin(), secondShape.end()),
             ") at non-concat index ", d);
-      }
     }
   }
 
@@ -2558,11 +2552,9 @@ LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
                                "operand and return must have the same rank");
 
     for (int64_t i = 0; i < operandType.getRank(); i++) {
-      if (i == allGatherDim || operandType.isDynamicDim(i) ||
-          resultType.isDynamicDim(i))
-        continue;
-
-      if (resultType.getDimSize(i) != operandType.getDimSize(i))
+      if (i == allGatherDim) continue;
+      if (!verifyCompatibleDims(resultType.getDimSize(i),
+                                operandType.getDimSize(i)))
         return emitOptionalError(
             location,
             "operand and result should have the same shape except for the "
@@ -2679,16 +2671,12 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
   for (auto it : llvm::zip(smallerEltPrefix, biggerEltShape)) {
     auto targetDim = std::get<0>(it);
     auto operandDim = std::get<1>(it);
-    if (!isDynamicDimSize(targetDim) && !isDynamicDimSize(operandDim)) {
-      if (targetDim != operandDim) {
-        return emitOptionalError(
-            location,
-            "operand and result shapes must match except "
-            "for the innermost dimension of the shape with "
-            "the smaller element type. Got: ",
-            operandType, " and ", targetType, ".");
-      }
-    }
+    if (!verifyCompatibleDims(targetDim, operandDim))
+      return emitOptionalError(location,
+                               "operand and result shapes must match except "
+                               "for the innermost dimension of the shape with "
+                               "the smaller element type. Got: ",
+                               operandType, " and ", targetType, ".");
   }
 
   return success();
@@ -3011,9 +2999,7 @@ LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
 
     for (auto [lhs, rhs] :
          llvm::zip(lhsBatchingDimensions, rhsBatchingDimensions)) {
-      if (isDynamicDimSize(lhsShape[lhs])) continue;
-      if (isDynamicDimSize(rhsShape[rhs])) continue;
-      if (lhsShape[lhs] != rhsShape[rhs])
+      if (!verifyCompatibleDims(lhsShape[lhs], rhsShape[rhs]))
         return emitOptionalError(location,
                                  "batching dimension sizes must "
                                  "match for lhs/rhs");
@@ -3021,9 +3007,7 @@ LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
 
     for (auto [lhs, rhs] :
          llvm::zip(lhsContractingDimensions, rhsContractingDimensions)) {
-      if (isDynamicDimSize(lhsShape[lhs])) continue;
-      if (isDynamicDimSize(rhsShape[rhs])) continue;
-      if (lhsShape[lhs] != rhsShape[rhs])
+      if (!verifyCompatibleDims(lhsShape[lhs], rhsShape[rhs]))
         return emitOptionalError(location,
                                  "contracting dimension sizes must "
                                  "match for lhs/rhs");
@@ -3425,11 +3409,10 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
         resultType.getDimSize(scatterDimension));
 
   // Non scatter dimensions should be equal.
-  for (uint64_t index : llvm::seq<uint64_t>(0, operandType.getRank())) {
-    if (static_cast<int64_t>(index) == scatterDimension ||
-        operandType.isDynamicDim(index) || resultType.isDynamicDim(index))
-      continue;
-    if (operandType.getDimSize(index) != resultType.getDimSize(index))
+  for (auto index : llvm::seq<int64_t>(0, operandType.getRank())) {
+    if (index == scatterDimension) continue;
+    if (!verifyCompatibleDims(operandType.getDimSize(index),
+                              resultType.getDimSize(index)))
       return emitOptionalError(
           location, "non scatter dimensions should be same for operand (",
           operandType.getDimSize(index), ") and result (",
@@ -3677,10 +3660,9 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
           if (isUpdateWindowDim) continue;
           if (scatterDimsSeen == indexVectorDim) ++scatterDimsSeen;
 
-          if (!isDynamicDimSize(updatesShape[i]) &&
-              !isDynamicDimSize(expandedScatterIndicesShape[scatterDimsSeen]) &&
-              (updatesShape[i] !=
-               expandedScatterIndicesShape[scatterDimsSeen])) {
+          if (!verifyCompatibleDims(
+                  updatesShape[i],
+                  expandedScatterIndicesShape[scatterDimsSeen]))
             return emitOptionalError(
                 location,
                 "expects bounds of the scatter dimensions of updates to be "
@@ -3689,7 +3671,7 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
                 i, ", updates bound is ", updatesShape[i],
                 " , scatter_indices bound is ",
                 expandedScatterIndicesShape[scatterDimsSeen], ".");
-          }
+
           ++scatterDimsSeen;
         }
       }
