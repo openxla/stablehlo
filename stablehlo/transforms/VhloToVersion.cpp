@@ -113,11 +113,21 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   if (auto elementsAttr = attr.dyn_cast<DenseIntOrFPElementsV1Attr>()) {
     return isLegalType(elementsAttr.getType(), targetVersion);
   }
+  if (auto arrAttr = attr.dyn_cast<DictionaryV1Attr>()) {
+    return success(llvm::all_of(
+        arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
+          return succeeded(isLegalAttribute(entry.first, targetVersion)) &&
+                 succeeded(isLegalAttribute(entry.second, targetVersion));
+        }));
+  }
   if (auto flatSymAttr = attr.dyn_cast<FlatSymbolRefV1Attr>()) {
     return isLegalAttribute(flatSymAttr.getRootReference(), targetVersion);
   }
   if (auto floatAttr = attr.dyn_cast<FloatV1Attr>()) {
     return isLegalType(floatAttr.getType(), targetVersion);
+  }
+  if (auto typeAttr = attr.dyn_cast<TypeV1Attr>()) {
+    return isLegalType(typeAttr.getValue(), targetVersion);
   }
 
   // Is VHLO and valid version, success.
