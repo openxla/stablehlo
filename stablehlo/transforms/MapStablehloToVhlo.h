@@ -182,6 +182,7 @@ MAP_UPSTREAM_TO_VHLO(func::FuncOp, vhlo::FuncOp, V1)
 MAP_UPSTREAM_TO_VHLO(func::CallOp, vhlo::CallOp, V1)
 
 // Slight ambiguity between stablehlo::ReturnOp and func::ReturnOp
+// Only map in one direction for func.return --> vhlo.return
 template <>
 struct StablehloToVhloOpImpl<func::ReturnOp> {
   using Type = vhlo::ReturnOpV1;

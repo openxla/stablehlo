@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
@@ -31,6 +32,7 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
@@ -236,6 +238,7 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
         [&targetVersion](Operation* op) {
           return isLegalOperation(op, targetVersion);
         });
+    target.addIllegalDialect<stablehlo::StablehloDialect, func::FuncDialect>();
 
     vhlo::VhloToVersionConverter converter;
     RewritePatternSet patterns(&getContext());

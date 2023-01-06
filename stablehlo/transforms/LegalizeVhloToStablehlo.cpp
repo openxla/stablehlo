@@ -221,6 +221,7 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
     }
 
+    // Replace vhlo.return --> func.return if direct parent is a func op.
     if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
       if (llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
         rewriter.replaceOpWithNewOp<func::ReturnOp>(
@@ -274,6 +275,7 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
       , func::CallOp, func::FuncOp>(patterns, converter, context);
+  // Omit ReturnOp since it is handled during conversion of vhlo::ReturnOp
 }
 
 }  // namespace stablehlo
