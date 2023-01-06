@@ -97,7 +97,6 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
 LogicalResult isLegalType(Type type, const Version& targetVersion);
 
 LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
-  if (attr.isa<DictionaryAttr, TypeAttr>()) return success();  // FIXME
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
   if (!attrInterface || !isLegalVersion(attrInterface, targetVersion)) {
     LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
@@ -126,7 +125,6 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
 }
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
-  if (type.isa<FunctionType>()) return success();  // FIXME
   // All valid VHLO types must have versioned type interface.
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
   if (!typeInterface || !isLegalVersion(typeInterface, targetVersion)) {
@@ -233,7 +231,6 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
                                              &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // Conversions within VHLO may fail if new features or ops are used.
     if (failed(applyPartialConversion(getOperation(), target,

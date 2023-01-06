@@ -886,7 +886,7 @@ func.func @op_floor(%arg0: tensor<f32>) -> tensor<f32> {
 }
 // CHECK-LABEL: "op_floor"
 
-func.func @op_func(%arg0: tensor<f32>) -> tensor<f32> {
+func.func @op_func(%arg0: tensor<f32> {stablehlo.self = unit}) -> tensor<f32> {
   // CHECK:      "vhlo.func"() ({
   // CHECK-NEXT: ^bb0(%arg0: !vhlo.tensor<!vhlo.f32>):
   // CHECK-NEXT:   "vhlo.return"(%arg0) : (!vhlo.tensor<!vhlo.f32>) -> ()

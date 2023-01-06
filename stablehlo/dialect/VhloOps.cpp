@@ -26,6 +26,8 @@ limitations under the License.
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
@@ -102,6 +104,37 @@ ParseResult parseAttributeArray(AsmParser& parser,
   }
   SmallVector<Attribute> values(array.begin(), array.end());
   arrayAttr = values;
+  return success();
+}
+
+static void printDictionary(AsmPrinter& os,
+                            ArrayRef<std::pair<Attribute, Attribute>> values) {
+  os << '{';
+  for (auto nvp : values) {
+    os << nvp.first << " = " << nvp.second;
+  }
+  os << '}';
+}
+
+ParseResult parseDictionary(
+    AsmParser& parser,
+    FailureOr<SmallVector<std::pair<Attribute, Attribute>>>& values) {
+  SmallVector<std::pair<Attribute, Attribute>> nvps;
+  auto parseEle = [&]() {
+    Attribute name;
+    Attribute value;
+    if (failed(parser.parseAttribute(name)) || failed(parser.parseEqual()) ||
+        failed(parser.parseAttribute(value))) {
+      return failure();
+    }
+    nvps.push_back({name, value});
+    return success();
+  };
+  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Braces,
+                                            parseEle))) {
+    return failure();
+  }
+  values = nvps;
   return success();
 }
 

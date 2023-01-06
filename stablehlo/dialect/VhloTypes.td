@@ -123,7 +123,7 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
 
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
-  let assemblyFormat = "`<` $types `>`";
+  let assemblyFormat = "`<` custom<TypeArray>($types) `>`";
 }
 
 def VHLO_Double : APFloatParameter<""> {

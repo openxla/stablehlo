@@ -235,12 +235,6 @@ class VhloToVersionConverter : public VersionedTypeConverterBase {
   Attribute convertEncoding(Attribute attr) final { return attr; }
 };
 
-// Complements conversion patterns with boilerplate that makes sure `func.func`,
-// `func.call` and `func.return` ops which involve illegal types get converted
-// to use legal types.
-void registerFuncOpsForTypeConversion(ConversionTarget& target,
-                                      RewritePatternSet& patterns,
-                                      TypeConverter& converter);
 }  // namespace vhlo
 }  // namespace mlir
 

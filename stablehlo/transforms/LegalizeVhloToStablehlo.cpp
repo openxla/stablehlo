@@ -123,6 +123,16 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return DenseIntOrFPElementsAttr::getFromRawBuffer(
         builtinType, denseElements.getRawData());
   }
+  if (auto dictAttr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
+    SmallVector<NamedAttribute> vhloAttrs;
+    for (auto namedAttr : dictAttr.getValue()) {
+      auto vhloName = convertAttrToStablehlo(namedAttr.first, typeConverter);
+      auto vhloValue = convertAttrToStablehlo(namedAttr.second, typeConverter);
+      if (!vhloName || !vhloValue || !vhloName.isa<StringAttr>()) return {};
+      vhloAttrs.push_back({vhloName.cast<StringAttr>(), vhloValue});
+    }
+    return DictionaryAttr::get(dictAttr.getContext(), vhloAttrs);
+  }
   if (auto flatSymAttr = vhloAttr.dyn_cast<vhlo::FlatSymbolRefV1Attr>()) {
     auto rootRef =
         convertAttrToStablehlo(flatSymAttr.getRootReference(), typeConverter);
@@ -178,7 +188,6 @@ struct VhloLegalizeToStablehloPass
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // VHLO should always be convertible to StableHLO if upgraded.
     if (failed(applyPartialConversion(getOperation(), target,

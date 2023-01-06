@@ -182,6 +182,12 @@ def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
+  let mnemonic = "dict";
+  let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
+  let assemblyFormat = "`<` custom<Dictionary>($value) `>`";
+}
+
 def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
   let mnemonic = "sym";
   let parameters = (ins "::mlir::Attribute":$root_reference);
