@@ -130,6 +130,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto elementsAttr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
     auto vhloType = typeConverter->convertType(elementsAttr.getType());
+    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};
     return vhlo::DenseIntOrFPElementsV1Attr::get(
         elementsAttr.getContext(), vhloType, elementsAttr.getRawData());

@@ -93,43 +93,65 @@ bool isLegalVersion(VersionedInterface& interface, const Version& target) {
          target <= interface.getMaxVersion();
 }
 
+// Forward declare, isLegal(Type|Attribute) are mutually recursive
+LogicalResult isLegalType(Type type, const Version& targetVersion);
+
 LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
-  if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
-    return success();
+  if (!attrInterface || !isLegalVersion(attrInterface, targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
+                            << " to version " << targetVersion << '\n');
+    return failure();
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
-                          << " to version " << targetVersion << '\n');
-  return failure();
+  // Recursively check attrs if VHLO attr is a container
+  if (auto arrAttr = attr.dyn_cast<ArrayV1Attr>()) {
+    return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
+      return succeeded(isLegalAttribute(ele, targetVersion));
+    }));
+  }
+  if (auto elementsAttr = attr.dyn_cast<DenseIntOrFPElementsV1Attr>()) {
+    return isLegalType(elementsAttr.getType(), targetVersion);
+  }
+  if (auto flatSymAttr = attr.dyn_cast<FlatSymbolRefV1Attr>()) {
+    return isLegalAttribute(flatSymAttr.getRootReference(), targetVersion);
+  }
+  if (auto floatAttr = attr.dyn_cast<FloatV1Attr>()) {
+    return isLegalType(floatAttr.getType(), targetVersion);
+  }
+
+  // Is VHLO and valid version, success.
+  return success();
 }
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // All valid VHLO types must have versioned type interface.
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
-  if (!typeInterface) {
-    LLVM_DEBUG(llvm::dbgs() << "Unsupported type " << type << '\n');
-    return failure();
-  }
-
-  // All valid VHLO types must satisfy the target version.
-  if (!isLegalVersion(typeInterface, targetVersion)) {
+  if (!typeInterface || !isLegalVersion(typeInterface, targetVersion)) {
     LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
                             << " to version " << targetVersion << '\n');
     return failure();
   }
 
-  // Recursively check types.
+  // Recursively check types if VHLO type is a container.
+  if (auto complex = type.dyn_cast<ComplexV1Type>()) {
+    return isLegalType(complex.getElementType(), targetVersion);
+  }
   if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
     auto encoding = ranked.getEncoding();
     if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
       return failure();
     return isLegalType(ranked.getElementType(), targetVersion);
   }
-  if (auto unranked = type.dyn_cast<UnrankedTensorType>()) {
+  if (auto quant = type.dyn_cast<UniformQuantizedV1Type>()) {
+    return success(
+        succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
+        succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
+  }
+  if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>()) {
     return isLegalType(unranked.getElementType(), targetVersion);
   }
-  if (auto tuple = type.dyn_cast<TupleType>()) {
+  if (auto tuple = type.dyn_cast<TupleV1Type>()) {
     return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
       return succeeded(isLegalType(ele, targetVersion));
     }));
