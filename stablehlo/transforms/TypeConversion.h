@@ -50,43 +50,17 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
       return Type();
     });
-
     addConversion([](stablehlo::TokenType token) -> Type {
-      LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return TokenType::get(token.getContext());
     });
 
-    addConversion([&](RankedTensorType type) -> Type {
-      auto encoding = type.getEncoding();
-      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
-      auto convertedElementType = convertType(type.getElementType());
-      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
-      return RankedTensorV1Type::get(type.getContext(), type.getShape(),
-                                     convertedElementType, convertedEncoding);
+    // Forked Types
+    addConversion([&](BFloat16Type type) {
+      return BFloat16V1Type::get(type.getContext());
     });
-    addConversion([&](UnrankedTensorType type) -> Type {
-      auto convertedElementType = convertType(type.getElementType());
-      if (!convertedElementType) return {};  // unsupported element type
-      return UnrankedTensorV1Type::get(type.getContext(), convertedElementType);
-    });
-    addConversion([&](TupleType type) -> Type {
-      SmallVector<Type> convertedTypes;
-      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-      return vhlo::TupleV1Type::get(type.getContext(), convertedTypes);
-    });
-
-    // Element Types
     addConversion([&](ComplexType type) {
       return ComplexV1Type::get(type.getContext(),
                                 convertType(type.getElementType()));
-    });
-    addConversion([&](IntegerType type) {
-      return IntegerV1Type::get(type.getContext(), type);
-    });
-    addConversion(
-        [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
-    addConversion([&](BFloat16Type type) {
-      return BFloat16V1Type::get(type.getContext());
     });
     addConversion([&](Float16Type type) {
       return Float16V1Type::get(type.getContext());
@@ -97,6 +71,24 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](Float64Type type) {
       return Float64V1Type::get(type.getContext());
     });
+    addConversion(
+        [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
+    addConversion([&](IntegerType type) {
+      return IntegerV1Type::get(type.getContext(), type);
+    });
+    addConversion([&](RankedTensorType type) -> Type {
+      auto encoding = type.getEncoding();
+      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
+      auto convertedElementType = convertType(type.getElementType());
+      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
+      return RankedTensorV1Type::get(type.getContext(), type.getShape(),
+                                     convertedElementType, convertedEncoding);
+    });
+    addConversion([&](TupleType type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return vhlo::TupleV1Type::get(type.getContext(), convertedTypes);
+    });
     addConversion([&](quant::UniformQuantizedType type) -> Type {
       Type storage = convertType(type.getStorageType());
       Type expressed = convertType(type.getExpressedType());
@@ -105,6 +97,11 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
           type.getContext(), type.getFlags(), storage, expressed,
           APFloat(type.getScale()), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
+    });
+    addConversion([&](UnrankedTensorType type) -> Type {
+      auto convertedElementType = convertType(type.getElementType());
+      if (!convertedElementType) return {};  // unsupported element type
+      return UnrankedTensorV1Type::get(type.getContext(), convertedElementType);
     });
     addConversion([&](shape::WitnessType type) -> Type {
       return vhlo::WitnessV1Type::get(type.getContext());
@@ -135,41 +132,17 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
  public:
   VhloToStablehloTypeConverter() : VersionedTypeConverterBase() {
     addConversion([](Type type) -> Type { return type; });
-
     addConversion([](vhlo::TokenType token) -> Type {
       LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
       return stablehlo::TokenType::get(token.getContext());
     });
 
     // Forked types
-    addConversion([&](TupleV1Type type) -> Type {
-      SmallVector<Type> convertedTypes;
-      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
-      return TupleType::get(type.getContext(), convertedTypes);
-    });
-    addConversion([&](RankedTensorV1Type type) -> Type {
-      auto encoding = type.getEncoding();
-      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
-      auto convertedElementType = convertType(type.getElementType());
-      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
-      return RankedTensorType::get(type.getShape(), convertedElementType,
-                                   convertedEncoding);
-    });
-    addConversion([&](UnrankedTensorV1Type type) -> Type {
-      auto convertedElementType = convertType(type.getElementType());
-      if (!convertedElementType) return {};  // unsupported element type
-      return UnrankedTensorType::get(convertedElementType);
-    });
-
-    // Element Types
-    addConversion([&](ComplexV1Type type) {
-      return ComplexType::get(convertType(type.getElementType()));
-    });
-    addConversion([&](IntegerV1Type type) { return type.getValue(); });
-    addConversion(
-        [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
     addConversion([&](BFloat16V1Type type) {
       return BFloat16Type::get(type.getContext());
+    });
+    addConversion([&](ComplexV1Type type) {
+      return ComplexType::get(convertType(type.getElementType()));
     });
     addConversion([&](Float16V1Type type) {
       return Float16Type::get(type.getContext());
@@ -180,6 +153,22 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](Float64V1Type type) {
       return Float64Type::get(type.getContext());
     });
+    addConversion(
+        [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
+    addConversion([&](IntegerV1Type type) { return type.getValue(); });
+    addConversion([&](RankedTensorV1Type type) -> Type {
+      auto encoding = type.getEncoding();
+      auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
+      auto convertedElementType = convertType(type.getElementType());
+      if ((encoding && !convertedEncoding) || !convertedElementType) return {};
+      return RankedTensorType::get(type.getShape(), convertedElementType,
+                                   convertedEncoding);
+    });
+    addConversion([&](TupleV1Type type) -> Type {
+      SmallVector<Type> convertedTypes;
+      if (failed(convertTypes(type.getTypes(), convertedTypes))) return {};
+      return TupleType::get(type.getContext(), convertedTypes);
+    });
     addConversion([&](UniformQuantizedV1Type type) -> Type {
       Type storage = convertType(type.getStorageType());
       Type expressed = convertType(type.getExpressedType());
@@ -188,6 +177,11 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
           type.getFlags(), storage, expressed,
           type.getScale().convertToDouble(), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
+    });
+    addConversion([&](UnrankedTensorV1Type type) -> Type {
+      auto convertedElementType = convertType(type.getElementType());
+      if (!convertedElementType) return {};  // unsupported element type
+      return UnrankedTensorType::get(convertedElementType);
     });
     addConversion([&](WitnessV1Type type) -> Type {
       return shape::WitnessType::get(type.getContext());
