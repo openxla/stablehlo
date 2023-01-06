@@ -96,3 +96,11 @@ func.func @vhlo_illegal_attr_float(%arg0: !vhlo.tensor<16x16x16x16x!vhlo.f32>, %
   } : (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>) -> !vhlo.tensor<16x16x16x16x!vhlo.f32>
   return %0 : !vhlo.tensor<16x16x16x16x!vhlo.f32>
 }
+// This simulates version validation if a new attr is used in a dictionary.
+
+// -----
+
+// expected-error @+1 {{failed to legalize operation 'vhlo.func' that was explicitly marked illegal}}
+vhlo.func @vhlo_illegal_attr_type(%arg0: !vhlo.tensor<16x16x16x16x!vhlo.f32>) -> () {
+  vhlo.return
+} {arg_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.type<tensor<i16>>}>]>}

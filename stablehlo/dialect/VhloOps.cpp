@@ -24,11 +24,14 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/FunctionImplementation.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/IR/Value.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
@@ -76,6 +79,7 @@ static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }
 
+// Parse attributes in brackets: [#vhlo.attr, !vhlo.attr]
 ParseResult parseAttributeArray(AsmParser& parser,
                                 SmallVector<Attribute>& arrayAttr) {
   ArrayAttr array;
@@ -112,6 +116,7 @@ static void printDictionary(AsmPrinter& os,
   os << '}';
 }
 
+// Parse array of NVPs in braces: {key = value, key = value}
 ParseResult parseDictionary(
     AsmParser& parser,
     FailureOr<SmallVector<std::pair<Attribute, Attribute>>>& values) {
@@ -141,6 +146,7 @@ void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
     << '>';
 }
 
+// Parse dense elements using DenseIntOfFPElementsAttr printing.
 Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
   DenseIntOrFPElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||

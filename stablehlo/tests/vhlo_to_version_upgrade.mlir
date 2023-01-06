@@ -25,12 +25,12 @@ func.func @all_gather_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor
 }
 
 // CHECK-LABEL: @collective_permute_to_v2
-func.func @collective_permute_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x8x!vhlo.f32> {
+vhlo.func @collective_permute_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x8x!vhlo.f32> {
   // CHECK-NEXT: %0 = "vhlo.collective_permute_v2"(%arg0)
   %0 = "vhlo.collective_permute"(%arg0) {
     source_target_pairs = #vhlo.dense<dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>>
   } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x8x!vhlo.f32>
-  return %0 : !vhlo.tensor<16x8x!vhlo.f32>
+  vhlo.return %0 : !vhlo.tensor<16x8x!vhlo.f32>
 }
 
 // CHECK-LABEL: @custom_call_to_v2
