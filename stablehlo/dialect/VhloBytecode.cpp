@@ -494,6 +494,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Forked Types
   ComplexV1Type readComplexType(DialectBytecodeReader &reader) const;
+  FunctionV1Type readFunctionType(DialectBytecodeReader &reader) const;
   RankedTensorV1Type readRankedTensorType(DialectBytecodeReader &reader,
                                           bool hasEncoding) const;
   TupleV1Type readTupleType(DialectBytecodeReader &reader) const;
@@ -503,6 +504,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
 
   void write(ComplexV1Type type, DialectBytecodeWriter &writer) const;
+  void write(FunctionV1Type type, DialectBytecodeWriter &writer) const;
   void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
