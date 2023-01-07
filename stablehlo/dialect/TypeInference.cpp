@@ -1368,8 +1368,8 @@ LogicalResult inferBatchNormInferenceOp(
     return failure();
   auto operandType = operand.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(
-        operandType.getShape(), operandType.getElementType(),
-        operandType.cast<RankedTensorType>().getEncoding());
+      operandType.getShape(), operandType.getElementType(),
+      operandType.cast<RankedTensorType>().getEncoding());
   return success();
 }
 
