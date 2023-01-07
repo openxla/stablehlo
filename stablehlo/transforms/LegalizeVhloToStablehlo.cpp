@@ -13,6 +13,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -39,8 +40,9 @@ namespace {
   if (!stablehloValue.has_value()) return {};                  \
   return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
 
-Attribute convertAttrToStablehlo(Attribute vhloAttr) {
-  LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
+Attribute convertAttrToStablehlo(Attribute vhloAttr,
+                                 TypeConverter* typeConverter) {
+  LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
   if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
@@ -100,25 +102,56 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
   if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose);
   }
+
+  // Forked attributes
+  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloAttrs.getValue()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
+  }
+  if (auto denseElements =
+          vhloAttr.dyn_cast<vhlo::DenseIntOrFPElementsV1Attr>()) {
+    auto builtinType = typeConverter->convertType(denseElements.getType());
+    if (!builtinType) return {};
+    return DenseIntOrFPElementsAttr::getFromRawBuffer(
+        builtinType, denseElements.getRawData());
+  }
+  if (auto flatSymAttr = vhloAttr.dyn_cast<vhlo::FlatSymbolRefV1Attr>()) {
+    auto rootRef =
+        convertAttrToStablehlo(flatSymAttr.getRootReference(), typeConverter);
+    if (!rootRef || !rootRef.isa<StringAttr>()) return {};
+    return FlatSymbolRefAttr::get(flatSymAttr.getContext(),
+                                  rootRef.cast<StringAttr>());
+  }
+  if (auto floatAttr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
+    auto floatType = typeConverter->convertType(floatAttr.getType());
+    if (!floatType) return {};
+    // FIXME: What is the proper way to reconstruct a floatAttr?
+    return FloatAttr::get(floatType, floatAttr.getValue().convertToDouble());
+  }
+  if (auto intAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+    return intAttr.getValue();
+  }
+  if (auto strAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
+    return StringAttr::get(strAttr.getContext(), strAttr.getValue());
+  }
+  if (auto unitAttr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
+    return UnitAttr::get(unitAttr.getContext());
+  }
+
+  // All VHLO Attributes must be converted by now.
   if (vhloAttr.getDialect().getNamespace() ==
       vhlo::VhloDialect::getDialectNamespace()) {
     // All VHLO attributes must have counterparts in StableHLO.
     return {};
   }
 
-  // Handle non-VHLO attributes.
-  // If an attribute is not defined in vhlo, then it is unchanged,
-  // with the exception of ArrayAttr which is converted recursively.
-  // This will change once we fork necessary upstream types to VHLO.
-  if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloAttrs) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
-  }
+  // This should be unreachable unless program is a mix of VHLO and other
+  // due to user edits to textual assembly format.
   return vhloAttr;
 }
 
@@ -164,7 +197,8 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
 
     SmallVector<NamedAttribute> stablehloAttrs;
     for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr.getValue());
+      auto stablehloAttr =
+          convertAttrToStablehlo(vhloAttr.getValue(), this->getTypeConverter());
       if (!stablehloAttr) return failure();
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
     }
@@ -187,6 +221,10 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
          llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {
       rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
                                   stablehloRegion.end());
+      if (failed(rewriter.convertRegionTypes(&stablehloRegion,
+                                             *this->getTypeConverter(),
+                                             /*entryConversion=*/nullptr)))
+        return failure();
     }
     return success();
   }

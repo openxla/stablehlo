@@ -16,11 +16,142 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloOps.h"
 
+#include <cstdint>
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/transforms/TypeConversion.h"
+
+namespace mlir {
+namespace vhlo {
+
+static void printEncoding(AsmPrinter& os, Attribute encoding) {
+  if (!encoding) return;
+  os << ", " << encoding;
+}
+
+ParseResult parseEncoding(AsmParser& parser, FailureOr<Attribute>& encoding) {
+  Attribute attr;
+  if (failed(parser.parseOptionalComma())) {
+    encoding = attr;
+    return success();
+  }
+  if (failed(parser.parseAttribute(attr))) return failure();
+  encoding = attr;
+  return success();
+}
+
+static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
+  if (dimSizes.empty()) return;
+  for (int64_t dimSize : dimSizes) {
+    os << hlo::dimSizeToString(dimSize) << 'x';
+  }
+}
+
+ParseResult parseTensorShape(AsmParser& parser,
+                             FailureOr<SmallVector<int64_t>>& dimSizes) {
+  SmallVector<int64_t> sizes;
+  if (failed(parser.parseDimensionList(sizes))) {
+    return failure();
+  }
+  dimSizes = sizes;
+  return success();
+}
+
+static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
+  os << '[' << arrayAttr << ']';
+}
+
+ParseResult parseAttributeArray(AsmParser& parser,
+                                FailureOr<SmallVector<Attribute>>& arrayAttr) {
+  ArrayAttr array;
+  if (failed(parser.parseAttribute(array))) {
+    return failure();
+  }
+  SmallVector<Attribute> values(array.begin(), array.end());
+  arrayAttr = values;
+  return success();
+}
+
+static void printFloatValue(const APFloat& apValue, AsmPrinter& os) {
+  // We would like to output the FP constant value in exponential notation,
+  // but we cannot do this if doing so will lose precision.  Check here to
+  // make sure that we only output it in exponential format if we can parse
+  // the value back and get the same value.
+  bool isInf = apValue.isInfinity();
+  bool isNaN = apValue.isNaN();
+  if (!isInf && !isNaN) {
+    SmallString<128> strValue;
+    apValue.toString(strValue, /*FormatPrecision=*/6, /*FormatMaxPadding=*/0,
+                     /*TruncateZero=*/false);
+
+    // Check to make sure that the stringized number is not some string like
+    // "Inf" or NaN, that atof will accept, but the lexer will not.  Check
+    // that the string matches the "[-+]?[0-9]" regex.
+    assert(((strValue[0] >= '0' && strValue[0] <= '9') ||
+            ((strValue[0] == '-' || strValue[0] == '+') &&
+             (strValue[1] >= '0' && strValue[1] <= '9'))) &&
+           "[-+]?[0-9] regex does not match!");
+
+    // Parse back the stringized version and check that the value is equal
+    // (i.e., there is no precision loss).
+    if (APFloat(apValue.getSemantics(), strValue).bitwiseIsEqual(apValue)) {
+      os << strValue;
+      return;
+    }
+
+    // If it is not, use the default format of APFloat instead of the
+    // exponential notation.
+    strValue.clear();
+    apValue.toString(strValue);
+
+    // Make sure that we can parse the default form as a float.
+    if (strValue.str().contains('.')) {
+      os << strValue;
+      return;
+    }
+  }
+
+  // Print special values in hexadecimal format. The sign bit should be included
+  // in the literal.
+  SmallVector<char, 16> str;
+  APInt apInt = apValue.bitcastToAPInt();
+  apInt.toString(str, /*Radix=*/16, /*Signed=*/false,
+                 /*formatAsCLiteral=*/true);
+  os << str;
+}
+
+void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
+  VhloToStablehloTypeConverter conv;
+  p << '<'
+    << DenseIntOrFPElementsAttr::getFromRawBuffer(conv.convertType(getType()),
+                                                  getRawData())
+    << '>';
+}
+
+Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
+  StablehloToVhloTypeConverter conv;
+  DenseIntOrFPElementsAttr attr;
+  if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
+      failed(parser.parseGreater())) {
+    return DenseIntOrFPElementsV1Attr();
+  }
+  return DenseIntOrFPElementsV1Attr::get(
+      parser.getContext(), conv.convertType(attr.getType()), attr.getRawData());
+}
+
+}  // namespace vhlo
+}  // namespace mlir
 
 // Include order matters
 #include "stablehlo/dialect/VhloTypeInterfaces.cpp.inc"
@@ -56,6 +187,8 @@ VhloDialect::VhloDialect(MLIRContext* context)
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
       >();
+  context->loadDialect<shape::ShapeDialect>();
+  context->loadDialect<quant::QuantizationDialect>();
 }
 
 Type VhloDialect::parseType(DialectAsmParser& parser) const {
