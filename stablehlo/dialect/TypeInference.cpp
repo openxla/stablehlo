@@ -2453,11 +2453,11 @@ LogicalResult inferTriangularSolveOp(
     return emitOptionalError(
         location, "operand 'a' must have rank >= 2, but got ", aType);
 
-  if (aType.getDimSize(aRank - 2) != aType.getDimSize(aRank - 1))
+  if (!verifyCompatibleDims(aType.getDimSize(aRank - 2),
+                            aType.getDimSize(aRank - 1)))
     return emitOptionalError(location,
-                             "two minor dimensions of operand 'a' must have "
-                             "equal size, but got ",
-                             aType);
+                             "two minor dimensions of operand 'a' must ",
+                             "be compatible, but got ", aType);
 
   auto bType = b.getType().dyn_cast<RankedTensorType>();
   if (!bType) {
@@ -2471,22 +2471,17 @@ LogicalResult inferTriangularSolveOp(
                              "operands must have equal rank, but got ", aType,
                              " and ", bType);
 
-  // The shared dimension of a and b should match.
-  if (aType.getDimSize(aRank - 1) !=
-      bType.getDimSize(bRank - (leftSide ? 2 : 1)))
+  if (!verifyCompatibleDims(aType.getDimSize(aRank - 1),
+                            bType.getDimSize(bRank - (leftSide ? 2 : 1))))
     return emitOptionalError(location,
-                             "shared dimension of operands 'a' and 'b' does "
-                             "not match, but got ",
-                             aType, " and ", bType);
+                             "shared dimension of operands 'a' and 'b' must ",
+                             "be compatible, but got ", aType, " and ", bType);
 
-  // The leading batch dimensions of a and b must be equal.
   auto aBatchDims = aType.getShape().drop_back(2);
   auto bBatchDims = bType.getShape().drop_back(2);
-  if (aBatchDims != bBatchDims)
-    return emitOptionalError(
-        location,
-        "leading batch dimensions of the operands must be same, but got ",
-        aType, " and ", bType);
+  if (failed(verifyCompatibleShape(aBatchDims, bBatchDims)))
+    return emitOptionalError(location, "batch dimensions of the operands must ",
+                             "be compatible, but got ", aType, " and ", bType);
 
   if (isTransposeAInvalid)
     return emitOptionalError(
