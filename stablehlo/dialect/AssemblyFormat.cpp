@@ -328,6 +328,10 @@ std::string dimSizesToString(ArrayRef<int64_t> dimSizes) {
   return buffer;
 }
 
+std::string boundsToString(Attribute attr) {
+  return dimSizesToString(encodingToBounds(attr));
+}
+
 void printDimSizes(AsmPrinter& p, ArrayRef<int64_t> dimSizes) {
   printDimSizes<AsmPrinter>(p, dimSizes);
 }
