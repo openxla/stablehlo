@@ -116,7 +116,7 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
   }];
   let arguments = (ins I64Attr:$iota_dimension);
 
-  let results = (outs HLO_IntFpOrComplexTensor:$output);
+  let results = (outs HLO_StaticShapeIntFpOrComplexTensor:$output);
 
   let hasVerifier = 1;
 
@@ -966,8 +966,6 @@ def StableHLO_XorOp : StableHLO_BinaryBiwiseOrLogicalElementwiseOp<"xor"> {
 // StableHLO communication op definitions.
 //===----------------------------------------------------------------------===//
 
-// InfeedOp corresponds to 'InfeedWithToken' xla client API and not 'Infeed'.
-// InfeedWithToken allows ordering of infeed HLO instructions using tokens.
 def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
 
   let summary = "Infeed operator";
@@ -991,12 +989,10 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
     DefaultValuedStrAttr<StrAttr, "">:$infeed_config,
     OptionalAttr<ArrayAttr>:$layout
   );
-  let results = (outs Variadic<HLO_TensorOrToken>);
+  let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);
   let hasVerifier = 1;
 }
 
-// OutfeedOp corresponds to 'OutfeedWithToken' xla client API and not 'Outfeed'.
-// OutfeedWithToken allows ordering of outfeed HLO instructions using tokens.
 def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
     [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
 
@@ -1083,7 +1079,7 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
     DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
   );
 
-  let results = (outs Variadic<HLO_TensorOrToken>);
+  let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);
   let hasVerifier = 1;
 }
 
@@ -2995,7 +2991,7 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
   let results = (outs
     HLO_IntOrFpTensor:$output_state,
-    HLO_IntOrFpTensor:$output
+    HLO_StaticShapeIntOrFpTensor:$output
   );
 
   let hasVerifier = 1;
