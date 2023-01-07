@@ -23,6 +23,7 @@ limitations under the License.
 #include "mlir/Dialect/Traits.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloBytecode.h"
 
@@ -513,6 +514,29 @@ LogicalResult ConstantOp::inferReturnTypes(
 namespace mlir {
 namespace chlo {
 
+namespace {
+struct ChloDialectInlinerInterface : public DialectInlinerInterface {
+  using DialectInlinerInterface::DialectInlinerInterface;
+
+  // Allow all call operations to be inlined.
+  bool isLegalToInline(Operation* call, Operation* callable,
+                       bool wouldBeCloned) const final {
+    return true;
+  }
+  // We don't have any special restrictions on what can be inlined into
+  // destination regions (e.g. while/conditional bodies). Always allow it.
+  bool isLegalToInline(Region* dest, Region* src, bool wouldBeCloned,
+                       BlockAndValueMapping& valueMapping) const final {
+    return true;
+  }
+  // Operations in CHLO dialect are always legal to inline since they are pure.
+  bool isLegalToInline(Operation*, Region*, bool,
+                       BlockAndValueMapping&) const final {
+    return true;
+  }
+};
+}  // namespace
+
 //===----------------------------------------------------------------------===//
 // chlo Dialect Constructor
 //===----------------------------------------------------------------------===//
@@ -523,6 +547,7 @@ ChloDialect::ChloDialect(MLIRContext* context)
 #define GET_OP_LIST
 #include "stablehlo/dialect/ChloOps.cpp.inc"
       >();
+  addInterfaces<ChloDialectInlinerInterface>();
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/ChloAttrs.cpp.inc"

@@ -70,6 +70,7 @@ add_mlir_dialect_library(ChloOps
   MLIRInferTypeOpInterface
   MLIRIR
   MLIRQuantDialect
+  MLIRTransformUtils
 )
 
 target_include_directories(ChloOps INTERFACE
