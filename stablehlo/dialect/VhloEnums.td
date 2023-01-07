@@ -106,15 +106,19 @@ def VHLO_CUSTOM_CALL_API_VERSION_STATUS_RETURNING :
     I32EnumAttrCase<"API_VERSION_STATUS_RETURNING", 2>;
 def VHLO_CUSTOM_CALL_API_VERSION_STATUS_RETURNING_UNIFIED :
     I32EnumAttrCase<"API_VERSION_STATUS_RETURNING_UNIFIED", 3>;
-def VHLO_CustomCallApiVersionAttr :
+
+def VHLO_CustomCallApiVersion :
     I32EnumAttr<"CustomCallApiVersion", "Custom call API version", [
         VHLO_CUSTOM_CALL_API_VERSION_UNSPECIFIED,
         VHLO_CUSTOM_CALL_API_VERSION_ORIGINAL,
         VHLO_CUSTOM_CALL_API_VERSION_STATUS_RETURNING,
         VHLO_CUSTOM_CALL_API_VERSION_STATUS_RETURNING_UNIFIED
     ]> {
+  let genSpecializedAttr = 0;
   let cppNamespace = "::mlir::vhlo";
 }
+
+def VHLO_CustomCallApiVersionAttr : VHLO_EnumAttr<VHLO_CustomCallApiVersion, "api_version">;
 
 //===----------------------------------------------------------------------===//
 // Comparison op definitions.

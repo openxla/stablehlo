@@ -57,13 +57,8 @@ class VHLO_AttrDef<string name,
 }
 
 //===----------------------------------------------------------------------===//
-// Attributes
+// VHLO Attributes
 //===----------------------------------------------------------------------===//
-
-def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
-  let parser = "mlir::hlo::parseDimSizes($_parser)";
-  let printer = "mlir::hlo::printDimSizes($_printer, $_self)";
-}
 
 def VHLO_ScatterDimensionNumbers: VHLO_AttrDef<"ScatterDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
@@ -138,38 +133,6 @@ def VHLO_TypeExtensions : VHLO_AttrDef<"TypeExtensions"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_LayoutAttr : Attr<
-  And<[IndexElementsAttr.predicate,
-       CPred<[{$_self.cast<::mlir::DenseIntElementsAttr>().getType().getRank()
-               == 1}]>]>,
-  "A 1D tensor of index type (layout)"> {
-  let storageType = IndexElementsAttr.storageType;
-  let returnType = IndexElementsAttr.returnType;
-  let convertFromStorage = IndexElementsAttr.convertFromStorage;
-}
-
-// An array of layout (1D tensor) attributes.
-def VHLO_ArrayOfLayoutAttr : TypedArrayAttrBase<VHLO_LayoutAttr,
-    "Array of layout (1D tensor of index type) attributes">;
-
-// An array of FlatSymbolRef attributes that can be used as a default valued
-// attribute.
-def VHLO_FlatSymbolRefArrayAttr :
-  TypedArrayAttrBase<FlatSymbolRefAttr, "flat symbol ref array attribute"> {
-  let constBuilderCall = "::mlir::ArrayAttr::get($_builder.getContext(), $0)";
-}
-
-def VHLO_BoolElementsAttr :
-    ElementsAttrBase<
-      And<[CPred<"$_self.isa<::mlir::DenseIntOrFPElementsAttr>()">,
-           CPred<"$_self.cast<::mlir::DenseIntOrFPElementsAttr>().getType().getElementType().isInteger(1)">]>,
-      "constant boolean vector/tensor attribute"> {
-  let storageType = [{ ::mlir::DenseElementsAttr }];
-  let returnType = [{ ::mlir::DenseElementsAttr }];
-
-  let convertFromStorage = "$_self";
-}
-
 def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "conv";
@@ -201,6 +164,76 @@ def VHLO_ConvolutionAttributes {
     VHLO_AnyAttr:$batch_group_count,
     VHLO_AnyAttr:$precision_config
   );
+}
+
+//===----------------------------------------------------------------------===//
+// Forked Attributes
+//===----------------------------------------------------------------------===//
+
+def VHLO_ArrayAttr : VHLO_AttrDef<"ArrayV1"> {
+  let mnemonic = "array";
+  let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
+  let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
+}
+
+def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
+  let mnemonic = "dense";
+  let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
+  let hasCustomAssemblyFormat = 1;
+}
+
+def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
+  let mnemonic = "dict";
+  let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
+  let assemblyFormat = "`<` custom<Dictionary>($value) `>`";
+}
+
+def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
+  let mnemonic = "sym";
+  let parameters = (ins "::mlir::Attribute":$root_reference);
+  let assemblyFormat = "`<` $root_reference `>`";
+}
+
+def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
+  let mnemonic = "float";
+  let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
+  let assemblyFormat = "`<` $value `:` $type `>`";
+}
+
+def VHLO_IntegerAttr  : VHLO_AttrDef<"IntegerV1"> {
+  let mnemonic = "integer";
+  let parameters = (ins "mlir::IntegerAttr":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
+  let mnemonic = "string";
+  let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_TypeAttr : VHLO_AttrDef<"TypeV1"> {
+  let mnemonic = "type";
+  let parameters = (ins "::mlir::Type":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+/*
+def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
+  let mnemonic = "dict";
+  let parameters = (ins Variadic<VHLO_AnyType>:$entries); // NamedAttributes
+  let assemblyFormat = "`<` $entries `>`";
+}
+*/
+
+def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
+  let mnemonic = "unit";
+  let storageType = [{ ::mlir::UnitAttr }];
+  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
+  let convertFromStorage = "$_self != nullptr";
+  let returnType = "bool";
+  let defaultValue = "false";
+  let valueType = NoneType;
+  let isOptional = 1;
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

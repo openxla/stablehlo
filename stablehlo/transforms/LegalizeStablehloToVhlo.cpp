@@ -12,7 +12,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
@@ -36,7 +40,15 @@ namespace {
   if (!vhloValue.has_value()) return {};                             \
   return vhlo::Name##Attr::get(attr.getContext(), vhloValue.value())
 
-Attribute convertAttrToVhlo(Attribute stablehloAttr) {
+Attribute convertCustomCallApiVersion(Attribute stablehloAttr) {
+  if (auto attr = stablehloAttr.dyn_cast<CustomCallApiVersionAttr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
+  }
+  return {};
+}
+
+Attribute convertAttrToVhlo(Attribute stablehloAttr,
+                            TypeConverter* typeConverter) {
   // Handle StableHLO attributes.
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
@@ -60,10 +72,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
         attr.getKernelOutputFeatureDimension(),
         attr.getKernelSpatialDimensions(), attr.getOutputBatchDimension(),
         attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
-  }
-  if (auto attr =
-          stablehloAttr.dyn_cast<stablehlo::CustomCallApiVersionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::DotDimensionNumbersAttr>()) {
@@ -111,20 +119,68 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr) {
     return {};
   }
 
-  // Handle non-StableHLO attributes.
-  // If an attribute is not defined in StableHLO, then it is unchanged,
-  // with the exception of ArrayAttr which is converted recursively.
-  // This will change once we fork necessary upstream types to VHLO.
+  // Forked attributes
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
-      auto vhloAttr = convertAttrToVhlo(stablehloAttr);
+      auto vhloAttr = convertAttrToVhlo(stablehloAttr, typeConverter);
       if (!vhloAttr) return {};
       vhloAttrs.push_back(vhloAttr);
     }
-    return ArrayAttr::get(stablehloAttrs.getContext(), vhloAttrs);
+    return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  return stablehloAttr;
+  if (auto elementsAttr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
+    auto vhloType = typeConverter->convertType(elementsAttr.getType());
+    LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
+    if (!vhloType) return {};
+    return vhlo::DenseIntOrFPElementsV1Attr::get(
+        elementsAttr.getContext(), vhloType, elementsAttr.getRawData());
+  }
+  if (auto dictAttr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
+    SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
+    for (auto namedAttr : dictAttr.getValue()) {
+      auto vhloName = convertAttrToVhlo(namedAttr.getName(), typeConverter);
+      auto vhloValue = convertAttrToVhlo(namedAttr.getValue(), typeConverter);
+      if (!vhloName || !vhloValue) return {};
+      vhloAttrs.push_back({vhloName, vhloValue});
+    }
+    return vhlo::DictionaryV1Attr::get(dictAttr.getContext(), vhloAttrs);
+  }
+  if (auto flatSymAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+    auto rootRef =
+        convertAttrToVhlo(flatSymAttr.getRootReference(), typeConverter);
+    if (!rootRef) return {};
+    return vhlo::FlatSymbolRefV1Attr::get(flatSymAttr.getContext(), rootRef);
+  }
+  if (auto floatAttr = stablehloAttr.dyn_cast<FloatAttr>()) {
+    auto floatType = typeConverter->convertType(floatAttr.getType());
+    if (!floatType) return {};
+    return vhlo::FloatV1Attr::get(floatAttr.getContext(), floatType,
+                                  floatAttr.getValue());
+  }
+  if (auto intAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
+    return vhlo::IntegerV1Attr::get(intAttr.getContext(), intAttr);
+  }
+  if (auto strAttr = stablehloAttr.dyn_cast<StringAttr>()) {
+    if (!strAttr.getType().isa<NoneType>()) {
+      // Don't support custom string types
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Failed to convert string with type: " << strAttr << '\n');
+      return {};
+    }
+    return vhlo::StringV1Attr::get(strAttr.getContext(), strAttr.getValue());
+  }
+  if (auto typeAttr = stablehloAttr.dyn_cast<TypeAttr>()) {
+    auto vhloType = typeConverter->convertType(typeAttr.getValue());
+    if (!vhloType) return {};
+    return vhlo::TypeV1Attr::get(typeAttr.getContext(), vhloType);
+  }
+  if (auto unitAttr = stablehloAttr.dyn_cast<UnitAttr>()) {
+    return vhlo::UnitV1Attr::get(unitAttr.getContext());
+  }
+
+  LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
+  return {};  // Failed to convert attribute.
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
@@ -137,10 +193,9 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
       StablehloOpTy stablehloOp, typename StablehloOpTy::Adaptor adaptor,
       ConversionPatternRewriter& rewriter) const final {
     SmallVector<Type> vhloTypes;
-    LLVM_DEBUG(llvm::dbgs() << "Converting types:\n");
     if (failed(this->getTypeConverter()->convertTypes(
             stablehloOp->getResultTypes(), vhloTypes))) {
-      LLVM_DEBUG(llvm::dbgs() << "Failed type conversion\n");
+      LLVM_DEBUG(llvm::dbgs() << "Failed StableHLO -> VHLO type conversion\n");
       return failure();
     }
 
@@ -150,7 +205,17 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
 
     SmallVector<NamedAttribute> vhloAttrs;
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
-      auto vhloAttr = convertAttrToVhlo(stablehloAttr.getValue());
+      if constexpr (std::is_same<StablehloOpTy,
+                                 stablehlo::CustomCallOp>::value) {
+        if (stablehloAttr.getName() == "api_version") {
+          auto vhloAttr = convertCustomCallApiVersion(stablehloAttr.getValue());
+          if (!vhloAttr) return failure();
+          vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
+          continue;
+        }
+      }
+      auto vhloAttr =
+          convertAttrToVhlo(stablehloAttr.getValue(), this->getTypeConverter());
       if (!vhloAttr) return failure();
       vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
     }
@@ -173,6 +238,10 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
          llvm::zip(stablehloOp->getRegions(), vhloOp->getRegions())) {
       rewriter.inlineRegionBefore(stablehloRegion, vhloRegion,
                                   vhloRegion.end());
+      if (failed(rewriter.convertRegionTypes(&vhloRegion,
+                                             *this->getTypeConverter(),
+                                             /*entryConversion=*/nullptr)))
+        return failure();
     }
     return success();
   }
@@ -198,13 +267,13 @@ struct StablehloLegalizeToVhloPass
   void runOnOperation() override {
     ConversionTarget target(getContext());
     target.addIllegalDialect<stablehlo::StablehloDialect>();
+    target.addIllegalDialect<func::FuncDialect>();
     target.addLegalDialect<vhlo::VhloDialect>();
 
     vhlo::StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // StableHLO is a subset of VHLO.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -221,7 +290,8 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp, func::ReturnOp>(patterns, converter,
+                                                    context);
 }
 }  // namespace stablehlo
 }  // namespace mlir

@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_BASE
 #define STABLEHLO_DIALECT_VHLO_BASE
 
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -27,6 +28,12 @@ include "mlir/IR/OpBase.td"
 def VHLO_AnyType : AnyTypeOf<[AnyType]>;
 def VHLO_AnyAttr : AnyAttrOf<[AnyAttr]>;
 def VHLO_AnyRegion : Region<CPred<"true">, "any region">;
+
+// Data types used in Attributes / Types
+def VHLO_Dims : ArrayRefParameter<"int64_t", "Dimension"> {
+  let parser = "mlir::hlo::parseDimSizes($_parser)";
+  let printer = "mlir::hlo::printDimSizes($_printer, $_self)";
+}
 
 //===----------------------------------------------------------------------===//
 // VHLO traits

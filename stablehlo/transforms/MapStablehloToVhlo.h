@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <type_traits>
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
 
@@ -165,6 +166,29 @@ MAP_STABLEHLO_TO_VHLO(XorOp, V1)
 
 #undef MAP_STABLEHLO_TO_VHLO
 #undef MAP_STABLEHLO_TO_VHLO_V0
+
+// Nonstandard mappings
+#define MAP_UPSTREAM_TO_VHLO(UpstreamOpName, VhloOpName, OpVer) \
+  template <>                                                   \
+  struct StablehloToVhloOpImpl<UpstreamOpName> {                \
+    using Type = VhloOpName##OpVer;                             \
+  };                                                            \
+  template <>                                                   \
+  struct VhloToStablehloOpImpl<VhloOpName##OpVer> {             \
+    using Type = UpstreamOpName;                                \
+  };
+
+MAP_UPSTREAM_TO_VHLO(func::FuncOp, vhlo::FuncOp, V1)
+MAP_UPSTREAM_TO_VHLO(func::CallOp, vhlo::CallOp, V1)
+
+// Slight ambiguity between stablehlo::ReturnOp and func::ReturnOp
+// Only map in one direction for func.return --> vhlo.return
+template <>
+struct StablehloToVhloOpImpl<func::ReturnOp> {
+  using Type = vhlo::ReturnOpV1;
+};
+
+#undef MAP_UPSTREAM_TO_VHLO
 
 }  // namespace stablehlo
 }  // namespace mlir

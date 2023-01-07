@@ -16,13 +16,23 @@ limitations under the License.
 #include <memory>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
@@ -49,6 +59,7 @@ FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
   return Version::fromString(versionRef);
 }
 
+// Check user-specified target version. Emit error if invalid.
 FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
                                          Operation* op) {
   auto failOrVersion = parseTargetVersion(versionRef);
@@ -78,48 +89,88 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   return targetVersion;
 }
 
-template <typename AttrOrType>
-bool isFromDialect(AttrOrType at, llvm::StringRef dialectName) {
-  return (at.getDialect().getNamespace() == dialectName);
-}
-
 template <typename VersionedInterface>
 bool isLegalVersion(VersionedInterface& interface, const Version& target) {
   return interface.getMinVersion() <= target &&
          target <= interface.getMaxVersion();
 }
 
-LogicalResult isLegalAttribute(NamedAttribute attr,
-                               const Version& targetVersion) {
-  // TODO: Remove once builtin types are forked.
-  if (isFromDialect(attr.getValue(), "builtin")) {
-    return success();
+// Forward declare, isLegal(Type|Attribute) are mutually recursive
+LogicalResult isLegalType(Type type, const Version& targetVersion);
+
+LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
+  auto attrInterface = dyn_cast<VersionedAttrInterface>(attr);
+  if (!attrInterface || !isLegalVersion(attrInterface, targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr
+                            << " to version " << targetVersion << '\n');
+    return failure();
   }
 
-  auto attrInterface = dyn_cast<VersionedAttrInterface>(attr.getValue());
-  if (attrInterface && isLegalVersion(attrInterface, targetVersion)) {
-    return success();
+  // Recursively check attrs if VHLO attr is a container
+  if (auto arrAttr = attr.dyn_cast<ArrayV1Attr>()) {
+    return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
+      return succeeded(isLegalAttribute(ele, targetVersion));
+    }));
+  }
+  if (auto elementsAttr = attr.dyn_cast<DenseIntOrFPElementsV1Attr>()) {
+    return isLegalType(elementsAttr.getType(), targetVersion);
+  }
+  if (auto arrAttr = attr.dyn_cast<DictionaryV1Attr>()) {
+    return success(llvm::all_of(
+        arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
+          return succeeded(isLegalAttribute(entry.first, targetVersion)) &&
+                 succeeded(isLegalAttribute(entry.second, targetVersion));
+        }));
+  }
+  if (auto flatSymAttr = attr.dyn_cast<FlatSymbolRefV1Attr>()) {
+    return isLegalAttribute(flatSymAttr.getRootReference(), targetVersion);
+  }
+  if (auto floatAttr = attr.dyn_cast<FloatV1Attr>()) {
+    return isLegalType(floatAttr.getType(), targetVersion);
+  }
+  if (auto typeAttr = attr.dyn_cast<TypeV1Attr>()) {
+    return isLegalType(typeAttr.getValue(), targetVersion);
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize attribute " << attr.getName()
-                          << " to version " << targetVersion);
-  return failure();
+  // Is VHLO and valid version, success.
+  return success();
 }
 
 LogicalResult isLegalType(Type type, const Version& targetVersion) {
-  // TODO: Remove once builtin types are forked.
-  if (isFromDialect(type, "builtin") || isFromDialect(type, "shape")) {
-    return success();
-  }
-
+  // All valid VHLO types must have versioned type interface.
   auto typeInterface = dyn_cast<VersionedTypeInterface>(type);
-  if (typeInterface && isLegalVersion(typeInterface, targetVersion)) {
-    return success();
+  if (!typeInterface || !isLegalVersion(typeInterface, targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
+                            << " to version " << targetVersion << '\n');
+    return failure();
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "failed to legalize type " << type
-                          << " to version " << targetVersion << '\n');
-  return failure();
+  // Recursively check types if VHLO type is a container.
+  if (auto complex = type.dyn_cast<ComplexV1Type>()) {
+    return isLegalType(complex.getElementType(), targetVersion);
+  }
+  if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
+    auto encoding = ranked.getEncoding();
+    if (encoding && failed(isLegalAttribute(encoding, targetVersion)))
+      return failure();
+    return isLegalType(ranked.getElementType(), targetVersion);
+  }
+  if (auto quant = type.dyn_cast<UniformQuantizedV1Type>()) {
+    return success(
+        succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
+        succeeded(isLegalType(quant.getExpressedType(), targetVersion)));
+  }
+  if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>()) {
+    return isLegalType(unranked.getElementType(), targetVersion);
+  }
+  if (auto tuple = type.dyn_cast<TupleV1Type>()) {
+    return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion));
+    }));
+  }
+
+  // Is VHLO and valid version, success.
+  return success();
 }
 
 bool isLegalOperation(Operation* op, const Version& targetVersion) {
@@ -127,10 +178,11 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
+  LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
 
   // Validate attributes
-  auto isLegalAttrFn = [&](NamedAttribute attr) {
-    return succeeded(isLegalAttribute(attr, targetVersion));
+  auto isLegalAttrFn = [&](NamedAttribute const& attr) {
+    return succeeded(isLegalAttribute(attr.getValue(), targetVersion));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;
 
@@ -186,12 +238,12 @@ struct VhloToVersionPass : public VhloToVersionPassBase<VhloToVersionPass> {
         [&targetVersion](Operation* op) {
           return isLegalOperation(op, targetVersion);
         });
+    target.addIllegalDialect<stablehlo::StablehloDialect, func::FuncDialect>();
 
     vhlo::VhloToVersionConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToVersionPatterns(&patterns, &converter,
                                              &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // Conversions within VHLO may fail if new features or ops are used.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -255,8 +307,8 @@ struct CustomCallOpV2ToV1
   LogicalResult prepareOpForConversion(CustomCallOpV2 op) const final {
     if (op.getOutputOperandAliases()) {
       auto aliases =
-          op.getOutputOperandAliases()->dyn_cast<::mlir::ArrayAttr>();
-      if (!aliases || !aliases.empty()) {
+          op.getOutputOperandAliases().value().dyn_cast<vhlo::ArrayV1Attr>();
+      if (!aliases || !aliases.getValue().empty()) {
         return emitDowngradeError(
             op, "op has a non-empty output_operand_aliases attribute");
       }
