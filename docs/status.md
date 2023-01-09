@@ -68,7 +68,7 @@ one of the following tracking labels.
 | concatenate              | yes           | yes          | yes            | yes             | no          |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | no          |
-| convolution              | revisit       | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
 | create_token             | no            | yes\*        | yes\*          | yes             | no          |
