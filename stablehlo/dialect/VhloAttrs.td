@@ -199,7 +199,7 @@ def VHLO_ConvolutionAttributes {
     VHLO_AnyAttr:$dimension_numbers,
     VHLO_AnyAttr:$feature_group_count,
     VHLO_AnyAttr:$batch_group_count,
-    VHLO_AnyAttr:$precision_config
+    OptionalAttr<VHLO_AnyAttr>:$precision_config
   );
 }
 
