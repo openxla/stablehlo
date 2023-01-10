@@ -1252,13 +1252,13 @@ void reifyGatherDimSizes(int64_t resultRank,
 //  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
 //      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
 static LogicalResult inferGatherReturnTypeComponents(
-    std::optional<Location> location, ShapeAdaptor operandShape,
-    ShapeAdaptor startIndicesShape,
+    Optional<Location> location, ShapeAdaptor operandShape, Value startIndices,
     llvm::function_ref<int64_t(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type elementType = operandShape.getElementType();
+  ShapeAdaptor startIndicesShape(startIndices.getType());
 
   // We need this to determine the result rank. We could still place bounds on
   // the result rank if that was something ShapedTypeComponents could express.
@@ -1288,7 +1288,35 @@ static LogicalResult inferGatherReturnTypeComponents(
                             offsetDims, collapsedSliceDims, startIndexMap,
                             indexVectorDim, shape);
 
-  inferredReturnShapes.emplace_back(shape, elementType);
+  // The dimension sizes of result, corresponding to offset dimensions, depend
+  // on attributes (like `collapsed_slice_dims` and `slice_sizes`) and hence are
+  // always static. Whereas, the dimension sizes of result, corresponding to
+  // batch dimensions, depends on input `start_indices` and could be dynamic.
+  // The corresponding bounds, in that case,  are propagated from the
+  // `start_indices`.
+  ArrayRef<int64_t> startIndicesBounds = encodingToBounds(
+      startIndices.getType().cast<RankedTensorType>().getEncoding());
+  SmallVector<int64_t> inferredBounds(resultRank, ShapedType::kDynamic);
+  if (!startIndicesBounds.empty()) {
+    SmallVector<int64_t> batchDims;
+    for (int dim = 0; dim < resultRank; ++dim)
+      if (!llvm::is_contained(offsetDims, dim)) batchDims.push_back(dim);
+
+    for (int i = 0; i < resultRank; ++i) {
+      auto* batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
+      if (batchDimsIt == batchDims.end()) continue;
+
+      auto index = std::distance(batchDims.begin(), batchDimsIt);
+      if (index >= indexVectorDim) ++index;
+      inferredBounds[i] = startIndicesBounds[index];
+    }
+  }
+
+  inferredReturnShapes.emplace_back(
+      shape, elementType,
+      boundsToEncoding(
+          startIndices.getType().cast<RankedTensorType>().getEncoding(),
+          inferredBounds));
   return success();
 }
 
@@ -1997,7 +2025,7 @@ LogicalResult inferDynamicGatherOp(
 
   auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
   return inferGatherReturnTypeComponents(
-      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
 }
 
@@ -2255,7 +2283,7 @@ LogicalResult inferGatherOp(
   };
 
   return inferGatherReturnTypeComponents(
-      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
 }
 
