@@ -1000,6 +1000,23 @@ func.func @if_bounds(%pred : tensor<i1>,
 
 // -----
 
+func.func @if_bounds_unranked(%pred : tensor<i1>,
+    %true_branch_operand : tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>,
+    %false_branch_operand : tensor<*xf32>) -> tensor<*xindex> {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%true_branch_operand) : (
+        tensor<2x3x4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, ?, ?, 6]>>) -> ()
+    }, {
+      "stablehlo.return"(%false_branch_operand) : (
+        tensor<*xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<*xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // This test covers only a few cases of inferBranchedDimAndBound() with more branches
 // as test "if_bounds" above covers all cases
 // CHECK-LABEL: func @case_bounds

@@ -1098,7 +1098,7 @@ LogicalResult inferConditionalOp(Optional<Location> location,
       inputTypes.push_back(
           branch->front().getTerminator()->getOperandTypes()[i]);
     auto inferredTypeOrErr =
-        inferMostSpecificType(location, inputTypes, inferBranchedDimAndBound);
+        inferLeastSpecificType(location, inputTypes);
     if (failed(inferredTypeOrErr)) return failure();
     inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
   }
@@ -1268,7 +1268,7 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
         inferredDimAndBound = inferConcatenatedDimAndBound(
             leftSize, rightSize, leftBound, rightBound);
       } else {
-        auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
+        auto inferredDimAndBoundOrErr = inferMostSpecificDimAndBound(
             location, dim, leftSize, rightSize, leftBound, rightBound);
         if (failed(inferredDimAndBoundOrErr)) return failure();
         inferredDimAndBound = *inferredDimAndBoundOrErr;

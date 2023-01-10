@@ -73,22 +73,27 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
                                                          int64_t leftBound,
                                                          int64_t rightBound);
 
-FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
+FailureOr<std::pair<int64_t, int64_t>> inferMostSpecificDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound);
 
-FailureOr<std::pair<int64_t, int64_t>> inferBranchedDimAndBound(
+FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
     Optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound);
+
+// Infer single least specific return type from inputTypes with support for
+// bounds. (Size, bound) of each dimension of the return type will be merged
+// from corresponding dimensions of every inputType by extracting the least
+// specific one. Unranked tensor is a absorbing element.
+FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
+                                       TypeRange inputTypes);
 
 // Infer single most specific return type from inputTypes with support for
 // bounds. (Size, bound) of each dimension of the return type will be merged
-// from corresponding dimensions of every inputType by merging them.
-FailureOr<Type> inferMostSpecificType(
-    Optional<Location> location, TypeRange inputTypes,
-    std::function<FailureOr<std::pair<int64_t, int64_t>>(
-        Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
-        mergeFunc);
+// from corresponding dimensions of every inputType by extracting the most
+// specific one. Unranked tensor is identity element.
+FailureOr<Type> inferMostSpecificType(Optional<Location> location,
+                                      TypeRange inputTypes);
 
 LogicalResult inferMostSpecificTypeComponents(
     Optional<Location> location, TypeRange inputTypes,
@@ -243,8 +248,8 @@ class CompatibleOperandsAndResultType
           location,
           "Expected non-empty operands for [CompatibleOperandsAndResultType]");
 
-    auto inferredTypeOrErr = inferMostSpecificType(
-        location, operands.getTypes(), inferMergedDimAndBound);
+    auto inferredTypeOrErr =
+        inferMostSpecificType(location, operands.getTypes());
     if (failed(inferredTypeOrErr)) return failure();
     inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
     return success();
