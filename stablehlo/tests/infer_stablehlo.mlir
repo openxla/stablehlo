@@ -994,11 +994,11 @@ func.func @concat_bounds_unranked_c1(
 
 // CHECK-LABEL: while_bounds
 func.func @while_bounds(
-  %arg00: tensor<3xf32>,
-  %arg11: tensor<1xi32>,
-  %arg22: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>,
-  %arg33: tensor<1xf32>) -> tensor<*xindex> {
-  %1:4 = "stablehlo.while"(%arg11, %arg22, %arg33, %arg00) ({
+  %while_arg_1: tensor<1xi32>,
+  %while_arg_2: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>,
+  %while_arg_3: tensor<1xf32>,
+  %while_arg_4: tensor<3xf32>) -> tensor<*xindex> {
+  %1:4 = "stablehlo.while"(%while_arg_1, %while_arg_2, %while_arg_3, %while_arg_4) ({
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     %2 = arith.constant dense<0> : tensor<i32>
     %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1, 1]> : tensor<2xi64>, start_indices = dense<[0, 0]> : tensor<2xi64>, strides = dense<[1, 1]> : tensor<2xi64>} :
