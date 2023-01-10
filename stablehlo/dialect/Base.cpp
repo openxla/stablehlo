@@ -355,8 +355,7 @@ FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
     else
-      return inputType; 
-
+      return inputType;
   return inferTypeWithCustomFunc(location, rankedTypes,
                                  inferLeastSpecificDimAndBound);
 }
