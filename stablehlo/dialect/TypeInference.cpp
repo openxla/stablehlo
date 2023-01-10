@@ -1344,23 +1344,7 @@ LogicalResult inferAllToAllOp(
   return success();
 }
 
-LogicalResult inferBatchNormGradOp(
-    Optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
-    return failure();
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-
-  const int64_t featureCount = operandType.getDimSize(featureIndex);
-  SmallVector<int64_t> featureShape{featureCount};
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  return success();
-}
-
-LogicalResult inferBatchNormInferenceOp(
+LogicalResult inferBatchNormOperand(
     Optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
@@ -1373,20 +1357,46 @@ LogicalResult inferBatchNormInferenceOp(
   return success();
 }
 
+LogicalResult inferBatchNorm(
+    Optional<Location> location, Value operand, Value scale,
+    int64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(inferBatchNormOperand(location, operand, scale, featureIndex,
+                                   inferredReturnShapes)))
+    return failure();
+  auto operandType = operand.getType().cast<RankedTensorType>();
+  auto scaleType = scale.getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(
+      scaleType.getShape(), operandType.getElementType(),
+      scaleType.cast<RankedTensorType>().getEncoding());
+  inferredReturnShapes.emplace_back(
+      scaleType.getShape(), operandType.getElementType(),
+      scaleType.cast<RankedTensorType>().getEncoding());
+  return success();
+}
+
+LogicalResult inferBatchNormGradOp(
+    Optional<Location> location, Value operand, Value scale,
+    int64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  return inferBatchNorm(location, operand, scale, featureIndex,
+                        inferredReturnShapes);
+}
+
+LogicalResult inferBatchNormInferenceOp(
+    Optional<Location> location, Value operand, Value scale,
+    int64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  return inferBatchNormOperand(location, operand, scale, featureIndex,
+                               inferredReturnShapes);
+}
+
 LogicalResult inferBatchNormTrainingOp(
     Optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
-    return failure();
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-
-  const int64_t featureCount = operandType.getDimSize(featureIndex);
-  SmallVector<int64_t> featureShape{featureCount};
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  return success();
+  return inferBatchNorm(location, operand, scale, featureIndex,
+                        inferredReturnShapes);
 }
 
 LogicalResult inferBroadcastOp(
