@@ -103,6 +103,9 @@ struct InferReturnTypeComponentsPattern : public RewritePattern {
         newOp->setAttr(
             (StringRef("dims") + Twine(it.index())).str(),
             rewriter.getStringAttr(dimSizesToString(it.value().getDims())));
+        if (it.value().getAttribute())
+          newOp->setAttr((StringRef("bounds") + Twine(it.index())).str(),
+                         it.value().getAttribute());
       }
       if (it.value().getElementType()) {
         newOp->setAttr((Twine("element_type") + Twine(it.index())).str(),
