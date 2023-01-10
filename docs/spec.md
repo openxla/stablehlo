@@ -2514,7 +2514,7 @@ for `fft_type = RFFT`. For example, for `L = 3`:
       semantics.
   * (C3) 1 $\le$ `size(fft_length)` $\le$ 3.
   * (C4) If among `operand` and `result`, there is a tensor `real` of a
-  floating-type type, then `dims(real)[-size(fft_length):] = fft_length`.
+  floating-point type, then `dims(real)[-size(fft_length):] = fft_length`.
   * (C5) `dim(result, d) = dim(operand, d)` for all `d`, except for:
     * If `fft_type = RFFT`,
       `dim(result, -1) = dim(operand, -1) == 0 ? 0 : dim(operand, -1) / 2 + 1`.
