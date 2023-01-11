@@ -1037,11 +1037,11 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
 // -----
 
 // CHECK-LABEL: func @cholesky_bounds
-func.func @cholesky_bounds(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<2x?x?xindex> {
-  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<2x?x?xf32>
-  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
-  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>} : (tensor<2x?x?xf32>) -> tensor<2x?x?xindex>
-  func.return %1 : tensor<2x?x?xindex>
+func.func @cholesky_bounds(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
 }
 
 // CHECK-LABEL: func @concatenate
