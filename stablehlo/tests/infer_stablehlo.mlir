@@ -1240,3 +1240,32 @@ func.func @sort_bounds_and_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<
   %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return
 }
+
+// -----
+
+// CHECK: func @select_and_scatter_bound
+func.func @select_and_scatter_bound(
+    %arg0: tensor<?x24x24x64xf32, #stablehlo.type_extensions<bounds = [10, ?, ?, ?]>>,
+    %arg1: tensor<?x12x12x64xf32, #stablehlo.type_extensions<bounds = [10, ?, ?, ?]>>) -> tensor<*xindex> {
+  %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
+  %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %0) ({
+  ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
+    %2 = "stablehlo.compare"(%arg3, %arg4) {
+      compare_type = #stablehlo<comparison_type TOTALORDER>,
+      comparison_direction = #stablehlo<comparison_direction GE>
+    } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%2) : (tensor<i1>) -> ()
+  }, {
+  ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
+    %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
+    "stablehlo.return"(%2) : (tensor<f32>) -> ()
+  }) {
+    window_dimensions = dense<[1, 2, 2, 1]> : tensor<4xi64>,
+    window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+  } : (tensor<?x24x24x64xf32, #stablehlo.type_extensions<bounds = [10, ?, ?, ?]>>,
+       tensor<?x12x12x64xf32, #stablehlo.type_extensions<bounds = [10, ?, ?, ?]>>,
+       tensor<f32>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<?x24x24x64xf32, #stablehlo.type_extensions<bounds = [10, ?, ?, ?]>>
+  %3 = "hlo_test_infer.get_return_types"(%1) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %3 : tensor<*xindex>
+}
