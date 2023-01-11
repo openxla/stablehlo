@@ -2181,16 +2181,16 @@ LogicalResult inferFftOp(
   }
 
   // P3. Check input shape and infer return shape
-  operandType = operandType.dyn_cast<RankedTensorType>();
-  if (!operandType) {
+  RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
+  if (!operandRankedType) {
     inferredReturnShapes.emplace_back(resultElementType);
     return success();
   }
-  auto operandShape = operandType.getShape();
+  auto operandShape = operandRankedType.getShape();
   if (static_cast<int64_t>(operandShape.size()) < fftRank)
     return emitOptionalError(
         location, "operand rank must not be less than fft rank of ", fftRank,
-        " for operand of type ", operandType, ".");
+        " for operand of type ", operandRankedType, ".");
 
   SmallVector<int64_t> resultShape = to_vector(operandShape);
 
@@ -2233,7 +2233,8 @@ LogicalResult inferFftOp(
     resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
   }
 
-  inferredReturnShapes.emplace_back(resultShape, resultElementType);
+  inferredReturnShapes.emplace_back(resultShape, resultElementType,
+                                    operandRankedType.getEncoding());
   return success();
 }
 

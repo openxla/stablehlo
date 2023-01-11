@@ -1516,3 +1516,13 @@ func.func @triangular_solve_bounds(
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
+
+//-----
+
+// CHECK-LABEL: func @fft_bound
+func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [5, ?]>>) -> tensor<?x9xindex> {
+  %0 = "stablehlo.fft"(%arg0) {fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT>} : (tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [5, ?]>>) -> tensor<?x9xcomplex<f32>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x9xcomplex<f32>>) -> tensor<?x9xindex>
+  // CHECK: %1 = "hlo_test_infer.return_types"(%0) {types0 = tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [5, ?]>>} : (tensor<?x9xcomplex<f32>>) -> tensor<?x9xindex>
+  func.return %1 : tensor<?x9xindex>
+}
