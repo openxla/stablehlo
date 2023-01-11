@@ -1296,3 +1296,28 @@ func.func @select_and_scatter_bound(
   %3 = "hlo_test_infer.get_return_types"(%1) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %3 : tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: func @reduce_window_bound
+func.func @reduce_window_bound(%arg0: tensor<?x2xf32, #stablehlo.type_extensions<bounds = [4, ?]>>,
+    %arg1: tensor<?x2xi32, #stablehlo.type_extensions<bounds = [5, ?]>>,
+    %init0: tensor<f32>, %init1: tensor<i32>) -> (tensor<*xindex>, tensor<*xindex>) {
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+  ^bb0(%a0: tensor<f32>, %a1: tensor<i32>, %b0: tensor<f32>, %b1: tensor<i32>):
+    %2 = stablehlo.add %a0, %b0 : tensor<f32>
+    %3 = stablehlo.add %a1, %b1 : tensor<i32>
+    "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+  }) {
+    padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+    window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+    window_strides = dense<[3, 1]> : tensor<2xi64>
+  } : (tensor<?x2xf32, #stablehlo.type_extensions<bounds = [4, ?]>>,
+      tensor<?x2xi32, #stablehlo.type_extensions<bounds = [5, ?]>>,
+      tensor<f32>, tensor<i32>) -> (tensor<*xf32>, tensor<*xi32>)
+  // CHECK: types0 = tensor<?x2xf32, #stablehlo.type_extensions<bounds = [4, ?]>>, types1 = tensor<?x2xi32, #stablehlo.type_extensions<bounds = [5, ?]>>
+  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<*xf32>) -> tensor<*xindex>
+  // CHECK: types0 = tensor<?x2xf32, #stablehlo.type_extensions<bounds = [4, ?]>>, types1 = tensor<?x2xi32, #stablehlo.type_extensions<bounds = [5, ?]>>
+  %2 = "hlo_test_infer.get_return_types"(%0#1) : (tensor<*xi32>) -> tensor<*xindex>
+  func.return %1, %2 : tensor<*xindex>, tensor<*xindex>
+}
