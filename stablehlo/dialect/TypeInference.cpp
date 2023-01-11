@@ -1344,7 +1344,7 @@ LogicalResult inferAllToAllOp(
   return success();
 }
 
-LogicalResult inferBatchNormOperand(
+LogicalResult inferFromBatchNormOperand(
     Optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
@@ -1361,9 +1361,10 @@ LogicalResult inferBatchNorm(
     Optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(inferBatchNormOperand(location, operand, scale, featureIndex,
-                                   inferredReturnShapes)))
+  if (failed(inferFromBatchNormOperand(location, operand, scale, featureIndex,
+                                       inferredReturnShapes)))
     return failure();
+  // Batch norm ops require operands to be ranked.
   auto operandType = operand.getType().cast<RankedTensorType>();
   auto scaleType = scale.getType().cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(
