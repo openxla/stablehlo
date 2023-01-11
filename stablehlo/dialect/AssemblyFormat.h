@@ -59,7 +59,7 @@ void printSameOperandsAndResultType(OpAsmPrinter& p, Operation* op,
                                     OpTypes... types) {
   static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
   SmallVector<Type> typesVec{types...};
-  ArrayRef<Type> typesRef = makeArrayRef(typesVec);
+  ArrayRef<Type> typesRef = ArrayRef(typesVec);
   return detail::printSameOperandsAndResultTypeImpl(
       p, op, typesRef.drop_back(1), typesRef.back());
 }
@@ -69,7 +69,7 @@ ParseResult parseSameOperandsAndResultType(OpAsmParser& parser,
                                            OpTypes&... types) {
   static_assert(sizeof...(types) > 0);  // Must be non empty, must have result
   SmallVector<Type*> typesVec{&types...};
-  ArrayRef<Type*> typesRef = makeArrayRef(typesVec);
+  ArrayRef<Type*> typesRef = ArrayRef(typesVec);
   return detail::parseSameOperandsAndResultTypeImpl(
       parser, typesRef.drop_back(1), *typesRef.back());
 }
