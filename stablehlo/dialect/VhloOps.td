@@ -670,7 +670,7 @@ def VHLO_DotOpV1 : VHLO_Op<"dot"> {
   let arguments = (
     ins VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
-    VHLO_AnyAttr:$precision_config
+    OptionalAttr<VHLO_AnyAttr>:$precision_config
   );
   let results = (outs VHLO_AnyType);
 }
@@ -680,7 +680,7 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general"> {
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
     VHLO_AnyAttr:$dot_dimension_numbers,
-    VHLO_AnyAttr:$precision_config
+    OptionalAttr<VHLO_AnyAttr>:$precision_config
   );
   let results = (outs VHLO_AnyType);
 }
