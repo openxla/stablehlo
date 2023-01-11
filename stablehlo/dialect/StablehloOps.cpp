@@ -1418,7 +1418,8 @@ LogicalResult ReduceWindowOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReducePrecisionOp::verify() {
-  return hlo::verifyReducePrecisionOp(getLoc(), getExponentBits());
+  return hlo::verifyReducePrecisionOp(getLoc(), getExponentBits(),
+                                      getMantissaBits());
 }
 
 //===----------------------------------------------------------------------===//

@@ -3434,9 +3434,12 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
 // We intend to verify the following properties
 //  P2. exponent_bits >= 1
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
-                                      int32_t exponentBits) {
-  if (exponentBits < 1)
+                                      uint32_t exponentBits,
+                                      uint32_t mantissaBits) {
+  if ((int32_t)exponentBits < 1)
     return emitOptionalError(location, "exponent_bits must be at least 1.");
+  if ((int32_t)mantissaBits < 0)
+    return emitOptionalError(location, "mantissa_bits must be at least 0.");
   return success();
 }
 
