@@ -88,9 +88,8 @@ func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xind
 // CHECK-LABEL: @cholesky
 func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
   %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x2xf32>) -> tensor<1x2x2xf32>
-  %1 = "hlo_test_infer.get_return_type_components"(%0)
-      : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
-// CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 2]", element_type0 = f32} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
+  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
+  // CHECK: %1 = "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2, 2]", element_type0 = f32} : (tensor<1x2x2xf32>) -> tensor<1x2x2xindex>
   func.return %1: tensor<1x2x2xindex>
 }
 
@@ -378,7 +377,7 @@ func.func @dynamic_update_slice(%arg0: tensor<4x4xi32>, %arg1: tensor<2x2xi32>, 
 
 // -----
 
-func.func @dynamic_update_slice(%input: tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>, %update: tensor<1x4x3xi64>, %start1: tensor<i64>, %start2: tensor<i64>, %start3 : tensor<i64>) ->  tensor<*xindex> {
+func.func @dynamic_update_slice(%input: tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>, %update: tensor<1x4x3xi64>, %start1: tensor<i64>, %start2: tensor<i64>, %start3 : tensor<i64>) -> tensor<*xindex> {
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2, %start3) : (tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>, tensor<1x4x3xi64>, tensor<i64>, tensor<i64>, tensor<i64>) -> tensor<3x?x?xi64>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<3x?x?xi64>) -> tensor<*xindex>
   // CHECK: types0 = tensor<3x?x?xi64, #stablehlo.type_extensions<bounds = [?, ?, 5]>>
@@ -1037,6 +1036,14 @@ func.func @pad(%arg0: tensor<?x48x48x32xf32>) -> tensor<4xindex> {
 
 // -----
 
+// CHECK-LABEL: func @cholesky_bounds
+func.func @cholesky_bounds(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.cholesky"(%input) { lower = true } : (tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, 5, ?]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
 // CHECK-LABEL: func @concatenate
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?xi32>, %[[ARG1:.*]]: tensor<?x?xi32>, %[[ARG2:.*]]: tensor<?x?xi32>
 func.func @concatenate(%arg0: tensor<?x?xi32>, %arg1: tensor<?x?xi32>, %arg2: tensor<?x?xi32>) -> tensor<2xindex> {
@@ -1165,7 +1172,7 @@ func.func @broadcast(%arg0: tensor<?xi32>) -> tensor<3xindex> {
 
 // CHECK-LABEL: func @transpose
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?x?x?xi32>
-func.func @transpose(%arg0: tensor<?x?x?x?xi32>) ->  tensor<4xindex> {
+func.func @transpose(%arg0: tensor<?x?x?x?xi32>) -> tensor<4xindex> {
   // CHECK: %[[C0:.*]] = arith.constant 0 : index
   // CHECK: %[[C1:.*]] = arith.constant 1 : index
   // CHECK: %[[C2:.*]] = arith.constant 2 : index

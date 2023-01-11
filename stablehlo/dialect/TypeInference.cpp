@@ -1443,8 +1443,10 @@ LogicalResult inferCholeskyOp(
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
+
   inferredReturnShapes.emplace_back(aRankedType.getShape(),
-                                    aRankedType.getElementType());
+                                    aRankedType.getElementType(),
+                                    aRankedType.getEncoding());
   return success();
 }
 
