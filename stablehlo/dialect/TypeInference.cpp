@@ -1444,98 +1444,10 @@ LogicalResult inferCholeskyOp(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
 
-  // dynamic type inference rules for the last two dims of A (case0 is sanity
-  // check for dynamic batch dims):
-  //        dim R-2 | dim R-1 | inferred R-2 | inferred R-1
-  // case0: 3       | 3       | 3            | 3
-  // case1: ?       | 3       | 3            | 3
-  // case2: ?       | ?       | ?            | ?
-  int64_t lastDim = aShape[aShape.size() - 1];
-  int64_t penultimateDim = aShape[aShape.size() - 2];
-  auto resultShape = aRankedType.getShape().vec();
-  int64_t staticSize = isStaticDimSize(lastDim) ? lastDim : penultimateDim;
-  int64_t rank = aRankedType.getRank();
-  if (isStaticDimSize(lastDim) || isStaticDimSize(penultimateDim)) {
-    resultShape[rank - 1] = staticSize;
-    resultShape[rank - 2] = staticSize;
-  }
-  auto resultBounds = encodingToBounds(aRankedType.getEncoding()).vec();
-  if (resultBounds.empty()) {
-    inferredReturnShapes.emplace_back(resultShape,
-                                      aRankedType.getElementType());
-    return success();
-  }
-
-  auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
-      location, rank - 2, resultShape[rank - 2], resultShape[rank - 1],
-      resultBounds[rank - 2], resultBounds[rank - 1]);
-  if (failed(inferredDimAndBoundOrErr)) return failure();
-  resultShape[rank - 1] = (*inferredDimAndBoundOrErr).first;
-  resultShape[rank - 2] = (*inferredDimAndBoundOrErr).first;
-  resultBounds[rank - 1] = (*inferredDimAndBoundOrErr).second;
-  resultBounds[rank - 2] = (*inferredDimAndBoundOrErr).second;
-  inferredReturnShapes.emplace_back(
-      resultShape, aRankedType.getElementType(),
-      boundsToEncoding(aRankedType.getEncoding(), resultBounds));
+  inferredReturnShapes.emplace_back(aRankedType.getShape(),
+                                    aRankedType.getElementType(),
+                                    aRankedType.getEncoding());
   return success();
-  // // dynamic bound infererence rules for the last two dims of A (case0 is
-  // // sanity check for dynamic batch dims):
-  // //        dim R-2 | dim R-1 | inferred R-2 | inferred R-1
-  // // case0: 3, ?    | 3, ?    | 3, ?         | 3, ?
-  // if (isStaticDimSize(lastDim) && isStaticDimSize(penultimateDim)) {
-  //   inferredReturnShapes.emplace_back(resultShape, aRankedType.getElementType(),
-  //                                     aRankedType.getEncoding());
-  //   return success();
-  // }
-  // if (isStaticDimSize(lastDim) || isStaticDimSize(penultimateDim)) {
-  //   int64_t boundA = isStaticDimSize(lastDim) ? resultBounds[rank - 2]
-  //                                             : resultBounds[rank - 1];
-  //   // case1: ?, ?    | 3, ?    | 3, ?         | 3, ?
-  //   if (isDynamicDimSize(boundA)) {
-  //     Attribute encoding = aRankedType.getEncoding();
-  //     if (llvm::all_of(resultBounds,
-  //                      [&](auto b) { return isDynamicDimSize(b); }))
-  //       encoding = {};
-  //     inferredReturnShapes.emplace_back(resultShape,
-  //                                       aRankedType.getElementType(), encoding);
-  //     return success();
-  //   }
-  //   // case2: ?, A<3  | 3, ?    | error        | error
-  //   if (boundA < staticSize)
-  //     return emitOptionalError(
-  //         location, "dynamic bound ? should be greater than static shape ",
-  //         staticSize, " for the last two dimensions.");
-  //   // case3: ?, A>=3 | 3, ?    | 3, ?         | 3, ?
-  //   resultBounds[rank - 1] = ShapedType::kDynamic;
-  //   resultBounds[rank - 2] = ShapedType::kDynamic;
-  //   inferredReturnShapes.emplace_back(
-  //       resultShape, aRankedType.getElementType(),
-  //       boundsToEncoding(aRankedType.getEncoding(), resultBounds));
-  //   return success();
-  // }
-  // bool isLastDimDynamicBound = isDynamicDimSize(resultBounds[rank - 1]);
-  // bool isPenultimateDimDynamicBound = isDynamicDimSize(resultBounds[rank - 2]);
-  // // case4: ?, ?    | ?, ?    | ?, ?         | ?, ?
-  // if (isLastDimDynamicBound && isPenultimateDimDynamicBound) {
-  //   Attribute encoding = aRankedType.getEncoding();
-  //   if (llvm::all_of(resultBounds, [&](auto b) { return isDynamicDimSize(b); }))
-  //     encoding = {};
-  //   inferredReturnShapes.emplace_back(aRankedType.getShape(),
-  //                                     aRankedType.getElementType(), encoding);
-  //   return success();
-  // }
-  // // case5: ?, A    | ?, ?    | ?, A         | ?, A
-  // int64_t boundA =
-  //     isLastDimDynamicBound ? resultBounds[rank - 2] : resultBounds[rank - 1];
-  // // case6: ?, A    | ?, B    | ?, min(A,B)  | ?, min(A,B)
-  // if (!isLastDimDynamicBound && !isPenultimateDimDynamicBound)
-  //   boundA = std::min(resultBounds[rank - 1], resultBounds[rank - 2]);
-  // resultBounds[rank - 1] = boundA;
-  // resultBounds[rank - 2] = boundA;
-  // inferredReturnShapes.emplace_back(
-  //     aRankedType.getShape(), aRankedType.getElementType(),
-  //     boundsToEncoding(aRankedType.getEncoding(), resultBounds));
-  // return success();
 }
 
 LogicalResult inferClampOp(
