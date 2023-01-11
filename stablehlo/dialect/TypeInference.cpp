@@ -2181,7 +2181,7 @@ LogicalResult inferFftOp(
   }
 
   // P3. Check input shape and infer return shape
-  RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
+  auto operandRankedType = operandType.dyn_cast<RankedTensorType>();
   if (!operandRankedType) {
     inferredReturnShapes.emplace_back(resultElementType);
     return success();
