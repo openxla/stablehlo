@@ -147,13 +147,13 @@ values of type `tensor<T>`).
   `2^N-1` inclusive.
 * **Floating-point types** can be one of the following:
   * `f8E4M3FN` and `f8E5M2` types corresponding to respectively the
-  `E4M3` and `E5M2` encodings of the FP8 format described in
-  [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
+    `E4M3` and `E5M2` encodings of the FP8 format described in
+    [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
   * `bf16` type corresponding to the `bfloat16` format described in
-  [BFloat16: The secret to high performance on Cloud TPUs](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
+    [BFloat16: The secret to high performance on Cloud TPUs](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
   * `f16`, `f32` and `f64` types corresponding to respectively
-  `binary16` ("half precision"), `binary32` ("single precision") and
-  `binary64` ("double precision") formats described in
+    `binary16` ("half precision"), `binary32` ("single precision") and
+    `binary64` ("double precision") formats described in
   [the IEEE 754 standard](https://ieeexplore.ieee.org/document/8766229).
 * **Complex types** represent complex values that have a **real part**
   and an **imaginary part** of the same **element type**. Supported complex
