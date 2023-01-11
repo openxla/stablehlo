@@ -42,8 +42,8 @@ existing StableHLO ops, and the consumer will want to handle the StableHLO op
 directly).
 
 **Proposal 1:** Add StableHLO forks of modularity ops, as well as builtin/quant
-  types and attributes. Maintain conversion patterns to their upstream
-  equivalents.
+types and attributes. Maintain conversion patterns to their upstream
+equivalents.
 
 ## StableHLO Versioning
 
@@ -53,89 +53,89 @@ additions and modifications described in this section. Serialization format
 will be described in a future Serialization RFC in Q4 2022.
 
 **Major Version Bumps:** Backward incompatible changes will cause the major
-  version to be bumped. This includes removing ops, and other semantic changes
-  that prevent IR upgrades.
+version to be bumped. This includes removing ops, and other semantic changes
+that prevent IR upgrades.
 
 **Minor Version Bumps:** Backward compatible changes will bump the minor version
-  number. These changes may be forward compatible, depending on whether new
-  semantics are introduced. This includes feature additions and feature
-  renaming.
+number. These changes may be forward compatible, depending on whether new
+semantics are introduced. This includes feature additions and feature
+renaming.
 
 **Patch Version Bumps:** All other changes will bump the patch version. This
-  includes error message improvements, changing crashes into an error, doc
-  improvements that occur between releases, prettyprint enhancements, and
-  feature additions not related to the StableHLO opset such as new legalization
-  passes or tooling improvements.
+includes error message improvements, changing crashes into an error, doc
+improvements that occur between releases, prettyprint enhancements, and
+feature additions not related to the StableHLO opset such as new legalization
+passes or tooling improvements.
 
 **StableHLO Releases:** Commits will be tagged with a release number at least
-  once a week, and only after tests which verify compatibility have passed.
-  Users are only guaranteed compatibility if using a tagged commit. If a commit
-  is found to be broken, it will be flagged as invalid, and a patch release
-  will be tagged as soon as possible.
+once a week, and only after tests which verify compatibility have passed.
+Users are only guaranteed compatibility if using a tagged commit. If a commit
+is found to be broken, it will be flagged as invalid, and a patch release
+will be tagged as soon as possible.
 
 **Forward compatibility** will be provided at the serialization layer by
-  allowing clients to target previous releases when a program only uses
-  features compatible with a previous release. For example, if a program uses
-  features (ops, attributes and/or types) compatible with `v0.9.0+`, `v1.1.0+`
-  and `v1.2.0+`, then `v1.2.0` is the minimal version that the program is
-  compatible with.
+allowing clients to target previous releases when a program only uses
+features compatible with a previous release. For example, if a program uses
+features (ops, attributes and/or types) compatible with `v0.9.0+`, `v1.1.0+`
+and `v1.2.0+`, then `v1.2.0` is the minimal version that the program is
+compatible with.
 
 **Proposal 2:** Use _Major.Minor.Patch_ versioning for StableHLO releases.
 
 ## Compatibility Guarantees
 
 **(G1) Backward compatibility:** StableHLO provides backward compatibility
-  within major releases, i.e. StableHLO programs serialized by an old version
-  of libStablehlo have the same semantics* when deserialized by new versions of
-  libStablehlo within a major release. Additionally, any program serialized in
-  major version `N` can be deserialized in major version `N+1`. The same is not
-  true of serialization, as deprecated features in version `N+1` may prevent
-  the serialization of a program.
+within major releases, i.e. StableHLO programs serialized by an old version
+of libStablehlo have the same semantics* when deserialized by new versions of
+libStablehlo within a major release. Additionally, any program serialized in
+major version `N` can be deserialized in major version `N+1`. The same is not
+true of serialization, as deprecated features in version `N+1` may prevent
+the serialization of a program.
 
 **(G2) Forward compatibility:** StableHLO provides forward compatibility within
-  major releases when possible, and an additional 1 month between major
-  releases, i.e. StableHLO programs serialized by a new version of libStablehlo
-  have the same semantics when deserialized by old versions of libStablehlo
-  within a major release, unless they are using new features introduced since
-  the old version.
+major releases when possible, and an additional 1 month between major
+releases, i.e. StableHLO programs serialized by a new version of libStablehlo
+have the same semantics when deserialized by old versions of libStablehlo
+within a major release, unless they are using new features introduced since
+the old version.
 
 **(G3) Source compatibility** for C, C++ and Python APIs within libStablehlo is
-  an aspirational goal. At the moment, we don't offer source compatibility
-  guarantees, but please let us know if this is an important use case for you,
-  and we can have a discussion about supporting it.
+an aspirational goal. At the moment, we don't offer source compatibility
+guarantees, but please let us know if this is an important use case for you,
+and we can have a discussion about supporting it.
 
 **(G4) Version 0.x.x:** There will be some stability guarantees while in major
-  version 0. There is not stability guaranteed within the major version, but we
-  will provide 1 month of forward and backward compatibility between minor
-  versions. This approach is chosen to allow dialect evolution and cleanup in
-  the early days, as well as refine compatibility procedures while meeting the
-  requirements of early adopters. Stability within major version will begin
-  with version `1.x.x` and will happen in 2023.
+version 0. There is not stability guaranteed within the major version, but we
+will provide 1 month of forward and backward compatibility between minor
+versions. This approach is chosen to allow dialect evolution and cleanup in
+the early days, as well as refine compatibility procedures while meeting the
+requirements of early adopters. Stability within major version will begin
+with version `1.x.x` and will happen in 2023.
 
 _\*StableHLO semantics is defined by the StableHLO specification and can be
-   tested using the StableHLO interpreter. Refer to the
-   [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
-   for reference semantics._
+tested using the StableHLO interpreter. Refer to the
+[StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
+for reference semantics._
 
 **Proposal 3:** Provide forward / backward compatibility within a major release,
-  with major releases happening at least 5 years apart. Additionally provide
-  backward compatibility for serialized artifacts across 1 major release.
+with major releases happening at least 5 years apart. Additionally provide
+backward compatibility for serialized artifacts across 1 major release.
 
 ## What's not covered?
 
 **Bugs:** We may make backward incompatible changes if the current
-  implementation is clearly broken, that is, if it contradicts the Operation's
-  spec.
+implementation is clearly broken, that is, if it contradicts the Operation's
+spec.
 
 **Unspecced features:** We may make backward incompatible changes to features
-  which haven't been specced (see
-  [StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)).
+which haven't been specced (see
+[StableHLO Specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)).
 
 **Numerical accuracy:** StableHLO has multiple ops that have
-  implementation-defined accuracy across consumers and even within the same
-  consumer across versions. As a result, StableHLO doesn't aim to make any
-  guarantees about numerical accuracy, although this may change in a future
-  RFC.
+implementation-defined accuracy across consumers and even within the same
+consumer across versions. As a result, StableHLO doesn't aim to make any
+guarantees about numerical accuracy, although this may change in a future
+RFC.
 
 ## Compatibility Implementation
 
@@ -175,5 +175,5 @@ IR and legalizing to/from StableHLO must always succeed if compatibility
 guarantees are applicable.
 
 **Proposal 4:** Maintain a shallow versioned copy of StableHLO (VHLO) which is
-  used for serialization/deserialization, and upgrade/downgrades. Keep the
-  StableHLO opset at the latest version of VHLO.
+used for serialization/deserialization, and upgrade/downgrades. Keep the
+StableHLO opset at the latest version of VHLO.

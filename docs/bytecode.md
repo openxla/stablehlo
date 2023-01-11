@@ -74,7 +74,7 @@ into the bytecode implementations in the Builtin Dialect.
 - `StableHLO_CustomCallApiVersionAttr`
   - This enum is defined strictly as an attribute of `I32EnumAttr`
     and not an `EnumAttr` of the `StablehloDialect`. This differs from
-   `FftType` and other enum attributes. Because of this, it is handled by
+    `FftType` and other enum attributes. Because of this, it is handled by
     the builtin encoding.
 
 ## Other Notes

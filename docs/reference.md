@@ -18,8 +18,8 @@ for storage. The last one is used for storing elements with complex types.
 `Tensor` class has the following APIs to interact with its individual elements:
 
 - `Element Tensor::get(llvm::ArrayRef<int64_t> index)`: To extract an
-     individual tensor element at multi-dimensional index `index` as `Element`
-     object.
+  individual tensor element at multi-dimensional index `index` as `Element`
+  object.
 - `void Tensor::set(llvm::ArrayRef<int64_t> index, Element element);`:
   To update an `Element` object `element` into a tensor at multi-dimensional
   index `index`.
