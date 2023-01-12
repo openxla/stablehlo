@@ -296,9 +296,8 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
       inferredBound = isLeftStaticDim ? std::max(leftSize, rightBound)
                                       : std::max(rightSize, leftBound);
     }
-  } else {
-    if (isLeftStaticBound && isRightStaticBound)
-      inferredBound = std::max(leftBound, rightBound);
+  } else if (isLeftStaticBound && isRightStaticBound) {
+    inferredBound = std::max(leftBound, rightBound);
   }
   return std::make_pair(inferredSize, inferredBound);
 }
