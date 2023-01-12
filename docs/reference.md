@@ -69,7 +69,7 @@ we encapsulate details about how different element types are handled in
 
 We can use the interpreter mechanism to fold operations with constant operand
 values. The following code snippet demonstrates an idea of the implementation
-for folding `stablehlo::AddOp` with Floating-point typed operands:
+for folding `stablehlo::AddOp` with floating-point typed operands:
 
 ```C++
 OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
@@ -141,22 +141,22 @@ We can use a combination of following rules to decide it:
   1. While implementing an op, if there exists code in the corresponding `eval`
      function to handle a particular type, then it is imperative to have test(s)
      to cover for that type. As an example, for `add` op, there is exclusive
-     code to handle Integer, Boolean, Floating-point, and Complex types, and hence we
-     need one test for each type.
-  2. If a set of types are handled uniformly in the corresponding
+     code to handle integer, boolean, floating-point, and complex types, and
+     hence we need one test for each category of types.
+  2. If a set of types is handled uniformly in the corresponding
      `eval` function, then a single test for all those types should be
-     sufficient. As an example, for `add` op, all the variants of Integers
+     sufficient. As an example, for `add` op, all the variants of integer
      types (`si4`, `u4`, `si8`, `u8` and so on) are handled alike using
      `llvm::APInt` APIs, and hence we can skip adding tests for each of those
      variants, and instead, add a single representative test. To avoid ambiguity
      in selecting the representative, we should use the following guidelines:
 
        * If all the types, handled uniformaly, have the same primitive type
-         (i.e., if all are Integer, or Floating-point, or Complex types), then
+         (i.e., if all are integer, or floating-point, or complex types), then
          choose the one with maximum bit-width.
        * If all the types, handled uniformaly, have a mix of primitive types,
          then choose the one with the following primitive type, in decreasing
-         order of preference: Boolean, Integer, Floating-point, Complex.
+         order of preference: integer, floating-point, boolean, complex.
 
 **(G2) How about adding tests dedicated for testing the interpreter infrastructure?**
 
@@ -165,7 +165,7 @@ our trust base. The only non-trivial part is how various types are packed into
 and unpacked from the underlying interpreter storage. As discussed in (G1), we
 will be testing only those types of an op which are handled differently. With
 that is possible that the packing/un-packing code, corresponding to different
-variants of Integer/Floating-point types, might not get fully covered during
+variants of integer/floating-point types, might not get fully covered during
 testing.
 
 To ensure that we can chose an op, like `add`, which supports all the StableHLO
@@ -179,18 +179,16 @@ ops while testing the former.
 
 **(G4) Should we write tests to exercise the implementation-defined / undefined behaviors?**
 
-We should not write tests which exercises the implementation defined or
+We should not write tests which exercise the implementation defined or
 undefined behaviors of the op. Tests exercising implementation defined behaviors
-demonstrates a local behavior of the interpreter which should not be
-generalized.  Tests exercising undefined behavior does not contribute towards
+demonstrate a local behavior of the interpreter which should not be
+generalized. Tests exercising undefined behavior do not contribute towards
 the understanding of the op's behavior.
 
-**(G5) While writing tests for Floating-point type, to what precision the results need to be specified in llvm lit checks?**
+**(G5) While writing tests for floating-point type, to what precision the results need to be specified in llvm lit checks?**
 
 The current lit-based interpreter testing fails if the result is computed with a
 different precision than what is mentioned in the lit CHECK directives. As a
 quick-fix, we allow the lit checks to measure the accuracy up to an arbitrary
 places after the decimal point. But the solution is far from ideal. We plan to
 resolve it using [ticket](https://github.com/openxla/stablehlo/issues/268).
-
-
