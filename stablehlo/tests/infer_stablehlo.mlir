@@ -1520,11 +1520,11 @@ func.func @triangular_solve_bounds(
 //-----
 
 // CHECK-LABEL: func @fft_bound
-func.func @fft_bound(%arg0: tensor<3x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xindex> {
+func.func @fft_bound(%arg0: tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT>
-  } : (tensor<3x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xcomplex<f32>>
-  // CHECK: types0 = tensor<3x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>
+  } : (tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xcomplex<f32>>
+  // CHECK: types0 = tensor<?x9xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1532,11 +1532,11 @@ func.func @fft_bound(%arg0: tensor<3x9xcomplex<f32>, #stablehlo.type_extensions<
 // -----
 
 // CHECK-LABEL: func @rfft_without_bound
-func.func @rfft_without_bound(%arg0: tensor<3x?xf32, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xindex> {
+func.func @rfft_without_bound(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>
-  } : (tensor<3x?xf32, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xcomplex<f32>>
-  // CHECK: types0 = tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xcomplex<f32>>
+  // CHECK: types0 = tensor<?x5xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1544,11 +1544,11 @@ func.func @rfft_without_bound(%arg0: tensor<3x?xf32, #stablehlo.type_extensions<
 // -----
 
 // CHECK-LABEL: func @rfft_with_bound
-func.func @rfft_with_bound(%arg0: tensor<3x?xf32, #stablehlo.type_extensions<bounds = [?, 10]>>) -> tensor<*xindex> {
+func.func @rfft_with_bound(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, 10]>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT>
-  } : (tensor<3x?xf32, #stablehlo.type_extensions<bounds = [?, 10]>>) -> tensor<*xcomplex<f32>>
-  // CHECK: types0 = tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>
+  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, 10]>>) -> tensor<*xcomplex<f32>>
+  // CHECK: types0 = tensor<?x5xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1556,11 +1556,11 @@ func.func @rfft_with_bound(%arg0: tensor<3x?xf32, #stablehlo.type_extensions<bou
 // -----
 
 // CHECK-LABEL: func @irfft_without_bound
-func.func @irfft_without_bound(%arg0: tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xindex> {
+func.func @irfft_without_bound(%arg0: tensor<?x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT>
-  } : (tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>) -> tensor<*xf32>
-  // CHECK: types0 = tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>
+  } : (tensor<?x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, ?]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<?x9xf32, #stablehlo.type_extensions<bounds = [3, ?]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1568,11 +1568,11 @@ func.func @irfft_without_bound(%arg0: tensor<3x?xcomplex<f32>, #stablehlo.type_e
 // -----
 
 // CHECK-LABEL: func @irfft_with_bound
-func.func @irfft_with_bound(%arg0: tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, 17]>>) -> tensor<*xindex> {
+func.func @irfft_with_bound(%arg0: tensor<?x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, 17]>>) -> tensor<*xindex> {
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT>
-  } : (tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, 17]>>) -> tensor<*xf32>
-  // CHECK: types0 = tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, ?]>>
+  } : (tensor<?x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [3, 17]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<?x9xf32, #stablehlo.type_extensions<bounds = [3, ?]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
@@ -1583,7 +1583,7 @@ func.func @irfft_invalid_bound(%arg0: tensor<3x?xcomplex<f32>, #stablehlo.type_e
   // expected-error@+1{{IRFFT requires innermost dimension bound to be greater than or equal to fft_length[-1]. Got: 8 but fft_length is 9.}}
   %0 = "stablehlo.fft"(%arg0) {
     fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT>
-  } : (tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, 8]>>) -> tensor<*xcomplex<f32>>
-  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xcomplex<f32>>) -> tensor<*xindex>
+  } : (tensor<3x?xcomplex<f32>, #stablehlo.type_extensions<bounds = [?, 8]>>) -> tensor<*xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }

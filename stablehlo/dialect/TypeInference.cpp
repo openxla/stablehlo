@@ -2249,10 +2249,17 @@ LogicalResult inferFftOp(
         resultShape, resultElementType,
         boundsToEncoding(operandRankedType.getEncoding(), bounds));
   } else if (isFftTypeRfft) {
-    bounds[bounds.size() - 1] = ShapedType::kDynamic;
-    inferredReturnShapes.emplace_back(
-        resultShape, resultElementType,
-        boundsToEncoding(operandRankedType.getEncoding(), bounds));
+    if (!bounds.empty()) {
+      bounds[bounds.size() - 1] = ShapedType::kDynamic;
+      inferredReturnShapes.emplace_back(
+          resultShape, resultElementType,
+          boundsToEncoding(operandRankedType.getEncoding(), bounds));
+    } else {
+      inferredReturnShapes.emplace_back(
+          resultShape, resultElementType,
+          boundsToEncoding(operandRankedType.getEncoding(),
+                           llvm::ArrayRef<int64_t>({})));
+    }
   } else {
     inferredReturnShapes.emplace_back(resultShape, resultElementType,
                                       operandRankedType.getEncoding());
