@@ -3428,18 +3428,14 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-// The following property is already enforced by the ODS:
-//  P0. operand element type is float
-// We intend to verify the following properties (since I32Attr is currently
-// represented by an unsigned 32-bit integer type):
-//  P1. exponent_bits >= 1
-//  P2. mantissa_bits >= 0
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
-                                      uint32_t exponentBits,
-                                      uint32_t mantissaBits) {
-  if ((int32_t)exponentBits < 1)
+                                      int32_t exponentBits,
+                                      int32_t mantissaBits) {
+  // (C2)
+  if (exponentBits < 1)
     return emitOptionalError(location, "exponent_bits must be at least 1.");
-  if ((int32_t)mantissaBits < 0)
+  // (C3)
+  if (mantissaBits < 0)
     return emitOptionalError(location, "mantissa_bits must be at least 0.");
   return success();
 }

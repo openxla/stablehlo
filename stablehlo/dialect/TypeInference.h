@@ -412,8 +412,8 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
                              DenseIntElementsAttr dimensions, Region& body);
 
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
-                                      uint32_t exponentBits,
-                                      uint32_t mantissaBits);
+                                      int32_t exponentBits,
+                                      int32_t mantissaBits);
 
 LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
                                     int64_t scatterDimension,
