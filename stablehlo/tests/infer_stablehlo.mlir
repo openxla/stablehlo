@@ -991,6 +991,26 @@ func.func @concat_bounds_unranked_c1(
 
 // -----
 
+// CHECK-LABEL: while_bounds
+func.func @while_bounds(
+  %while_arg_1: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>,
+  %while_arg_2: tensor<3xf32>) -> tensor<*xindex> {
+  %1:2 = "stablehlo.while"(%while_arg_1, %while_arg_2) ({
+  ^bb0(%arg1: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>, %arg2: tensor<3xf32>):
+    %2 = stablehlo.constant dense<1> : tensor<i1>
+    "stablehlo.return"(%2) : (tensor<i1>) -> ()
+  },  {
+  ^bb0(%arg1: tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>, %arg2: tensor<3xf32>):
+    "stablehlo.return"(%arg1, %arg2) : (tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>, tensor<3xf32>) -> ()
+  }) : (tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>, tensor<3xf32>) -> (tensor<*xi32>, tensor<*xf32>)
+  // CHECK: types0 = tensor<2x?xi32, #stablehlo.type_extensions<bounds = [?, 4]>>,
+  // CHECK-SAME: types1 = tensor<3xf32>
+  %3 = "hlo_test_infer.get_return_types"(%1) : (tensor<*xi32>) -> tensor<*xindex>
+  func.return %3 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @gather
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<3x4x2xi32>, %[[ARG1:.*]]: tensor<?x3x2xi64>
 func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xi64> {
