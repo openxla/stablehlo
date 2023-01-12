@@ -293,9 +293,8 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
                                  dim);
       inferredSize = leftSize;
     } else if (isLeftStaticBound || isRightStaticBound) {
-      int64_t size = isLeftStaticDim ? leftSize : rightSize;
-      int64_t bound = isLeftStaticBound ? leftBound : rightBound;
-      inferredBound = std::max(size, bound);
+      inferredBound = isLeftStaticDim ? std::max(leftSize, rightBound)
+                                      : std::max(rightSize, leftBound);
     }
   } else {
     if (isLeftStaticBound && isRightStaticBound)
@@ -304,7 +303,7 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
   return std::make_pair(inferredSize, inferredBound);
 }
 
-FailureOr<Type> inferTypeWithCustomFunc(
+FailureOr<TensorType> inferTypeWithCustomFunc(
     Optional<Location> location, SmallVector<RankedTensorType> rankedTypes,
     std::function<FailureOr<std::pair<int64_t, int64_t>>(
         Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
@@ -348,25 +347,25 @@ FailureOr<Type> inferTypeWithCustomFunc(
           anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
 }
 
-FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
-                                       TypeRange inputTypes) {
+FailureOr<ShapedType> inferLeastSpecificType(Optional<Location> location,
+                                             TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
     else
-      return inputType;
+      return inputType.cast<ShapedType>();
   return inferTypeWithCustomFunc(location, rankedTypes,
                                  inferLeastSpecificDimAndBound);
 }
 
-FailureOr<Type> inferMostSpecificType(Optional<Location> location,
-                                      TypeRange inputTypes) {
+FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
+                                            TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
-  if (rankedTypes.empty()) return inputTypes[0];
+  if (rankedTypes.empty()) return inputTypes[0].cast<ShapedType>();
   return inferTypeWithCustomFunc(location, rankedTypes,
                                  inferMostSpecificDimAndBound);
 }
@@ -376,7 +375,7 @@ LogicalResult inferMostSpecificTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto inferredTypeOrErr = inferMostSpecificType(location, inputTypes);
   if (failed(inferredTypeOrErr)) return failure();
-  inferredReturnShapes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
+  inferredReturnShapes.emplace_back(*inferredTypeOrErr);
   return success();
 }
 

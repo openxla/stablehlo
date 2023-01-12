@@ -1097,10 +1097,9 @@ LogicalResult inferConditionalOp(Optional<Location> location,
     for (auto branch : branches)
       inputTypes.push_back(
           branch->front().getTerminator()->getOperandTypes()[i]);
-    auto inferredTypeOrErr =
-        inferLeastSpecificType(location, inputTypes);
+    auto inferredTypeOrErr = inferLeastSpecificType(location, inputTypes);
     if (failed(inferredTypeOrErr)) return failure();
-    inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
+    inferredReturnTypes.emplace_back(*inferredTypeOrErr);
   }
   return success();
 }
