@@ -3430,15 +3430,15 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-// The following property is already enforced by the ODS:
-//  P0. operand element type is float
-//  P1. mantissa_bits >= 0
-// We intend to verify the following properties
-//  P2. exponent_bits >= 1
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
-                                      int32_t exponentBits) {
+                                      int32_t exponentBits,
+                                      int32_t mantissaBits) {
+  // (C2)
   if (exponentBits < 1)
     return emitOptionalError(location, "exponent_bits must be at least 1.");
+  // (C3)
+  if (mantissaBits < 0)
+    return emitOptionalError(location, "mantissa_bits must be at least 0.");
   return success();
 }
 
