@@ -160,16 +160,14 @@ We can use a combination of following rules to decide it:
 
 **(G2) How about adding tests dedicated for testing the interpreter infrastructure?**
 
-The interpreter infrastructure is mostly straightforward and can be added it in
+The interpreter infrastructure is mostly straightforward and can be added to
 our trust base. The only non-trivial part is how various types are packed into
 and unpacked from the underlying interpreter storage. As discussed in (G1), we
 will be testing only those types of an op which are handled differently. With
-that is possible that the packing/un-packing code, corresponding to different
+that it is possible that the packing/un-packing code, corresponding to different
 variants of integer/floating-point types, might not get fully covered during
-testing.
-
-To ensure that we can chose an op, like `add`, which supports all the StableHLO
-element types and write exhaustive tests. Fortunately, we already have it.
+testing. To ensure that we can choose an op, like `constant`, which supports all the
+StableHLO element types and write exhaustive tests.
 
 **(G3) If the implementation of an op depends other ops, should be write tests for the latter?**
 
