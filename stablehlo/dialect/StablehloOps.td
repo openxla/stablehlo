@@ -798,8 +798,9 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
   }];
 }
 
-def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
-      [Pure, HLO_CompatibleOperandsAndResultType]> {
+def StableHLO_PowOp : StableHLO_Op<"power",
+      [Pure, HLO_CompatibleOperandsAndResultType, InferShapedTypeOpInterface,
+       SameOperandsAndResultShape, Elementwise]> {
   let summary = "Power operator";
   let description = [{
     Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
@@ -812,6 +813,31 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
     ```mlir
     %result = stablehlo.power %lhs, %rhs : tensor<6xf32>
     ```
+  }];
+
+  let arguments = (ins
+    HLO_FpOrComplexTensor:$lhs,
+    HLO_FpOrComplexTensor:$rhs
+  );
+
+  let results = (outs HLO_FpOrComplexTensor:$result);
+
+  let extraClassDeclaration = [{
+    LogicalResult reifyReturnTypeShapes(
+        OpBuilder& builder, ValueRange operands,
+        SmallVectorImpl<Value>& reifiedReturnShapes) {
+      return ::mlir::hlo::deriveShapeFromOperand(&builder, getOperation(),
+                                                 operands.front(),
+                                                 &reifiedReturnShapes);
+    }
+    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
+      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
+    }
+  }];
+
+  let assemblyFormat = [{
+    $lhs `,` $rhs attr-dict
+      `:` custom<SameOperandsAndResultType>(type($lhs), type($rhs), type($result))
   }];
 }
 
