@@ -2232,9 +2232,27 @@ LogicalResult inferFftOp(
                                " but fft_length is ", fftLengthValues, ".");
     resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
   }
-
-  inferredReturnShapes.emplace_back(resultShape, resultElementType,
-                                    operandRankedType.getEncoding());
+  auto bounds = encodingToBounds(operandRankedType.getEncoding()).vec();
+  if (isFftTypeIrfft) {
+    if (!bounds.empty()) {
+      if (isStaticDimSize(bounds[bounds.size() - 1]) && bounds[bounds.size() - 1] < fftLengthValues[fftRank - 1])
+        return emitOptionalError(location,
+                               "IRFFT requires innermost dimension bound to be "
+                               "greater than or equal to fft_length[-1]. Got: ",
+                               bounds[bounds.size() - 1], " but fft_length is ",
+                               fftLengthValues, ".");
+      bounds[bounds.size() - 1] = ShapedType::kDynamic;
+    }
+    inferredReturnShapes.emplace_back(resultShape, resultElementType,
+                                      boundsToEncoding(operandRankedType.getEncoding(), bounds));
+  } else if (isFftTypeRfft){
+    bounds[bounds.size() - 1] = ShapedType::kDynamic;
+    inferredReturnShapes.emplace_back(resultShape, resultElementType,
+                                      boundsToEncoding(operandRankedType.getEncoding(), bounds));
+  } else {
+    inferredReturnShapes.emplace_back(resultShape, resultElementType,
+                                      operandRankedType.getEncoding());
+  }
   return success();
 }
 
