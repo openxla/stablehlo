@@ -799,8 +799,7 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
 }
 
 def StableHLO_PowOp : StableHLO_Op<"power",
-      [Pure, HLO_CompatibleOperandsAndResultType, InferShapedTypeOpInterface,
-       SameOperandsAndResultShape, Elementwise]> {
+      [Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Power operator";
   let description = [{
     Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
@@ -816,11 +815,11 @@ def StableHLO_PowOp : StableHLO_Op<"power",
   }];
 
   let arguments = (ins
-    HLO_FpOrComplexTensor:$lhs,
-    HLO_FpOrComplexTensor:$rhs
+    HLO_IntFpOrComplexTensor:$lhs,
+    HLO_IntFpOrComplexTensor:$rhs
   );
 
-  let results = (outs HLO_FpOrComplexTensor:$result);
+  let results = (outs HLO_IntFpOrComplexTensor:$result);
 
   let extraClassDeclaration = [{
     LogicalResult reifyReturnTypeShapes(
