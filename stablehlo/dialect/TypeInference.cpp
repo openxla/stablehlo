@@ -3430,9 +3430,10 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
 
 // The following property is already enforced by the ODS:
 //  P0. operand element type is float
-//  P1. mantissa_bits >= 0
-// We intend to verify the following properties
-//  P2. exponent_bits >= 1
+// We intend to verify the following properties (since I32Attr is currently
+// represented by an unsigned 32-bit integer type):
+//  P1. exponent_bits >= 1
+//  P2. mantissa_bits >= 0
 LogicalResult verifyReducePrecisionOp(Optional<Location> location,
                                       uint32_t exponentBits,
                                       uint32_t mantissaBits) {
