@@ -504,11 +504,12 @@ it only exists to establish data dependencies from `result` to `inputs`.
 
 ### Semantics
 
-Within each process group in the StableHLO grid, concatenates the values of the
-`operand` tensor from each process along `all_gather_dim` and produces a
+Within each process group in the StableHLO process grid, concatenates the values
+of the `operand` tensor from each process along `all_gather_dim` and produces a
 `result` tensor.
 
-The operation splits the StableHLO grid into `process_groups` as follows:
+The operation splits the StableHLO process grid into `process_groups` as
+follows:
 
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
@@ -578,11 +579,11 @@ Afterwards, within each `process_group`:
 
 ### Semantics
 
-Within each process group in the StableHLO grid, applies a reduction function
-`computation` to the values of the `operand` tensor from each process and
-produces a `result` tensor.
+Within each process group in the StableHLO process grid, applies a reduction
+function `computation` to the values of the `operand` tensor from each process
+and produces a `result` tensor.
 
-The operation splits the StableHLO grid into process groups as follows:
+The operation splits the StableHLO process grid into process groups as follows:
 
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
@@ -667,12 +668,13 @@ Afterwards, within each `process_group`:
 
 ![](images/spec/all_to_all.svg)
 
-Within each process group in the StableHLO grid, splits the values of the
-`operand` tensor along `split_dimension` into parts, scatters the split parts
-between the processes, concatenates the scattered parts along `concat_dimension`
-and produces a `result` tensor.
+Within each process group in the StableHLO process grid, splits the values of
+the `operand` tensor along `split_dimension` into parts, scatters the split
+parts between the processes, concatenates the scattered parts along
+`concat_dimension` and produces a `result` tensor.
 
-The operation splits the StableHLO grid into `process_groups` as follows:
+The operation splits the StableHLO process grid into `process_groups` as
+follows:
 
   * `channel_id <= 0`,
     `cross_replica(replica_groups)`.
@@ -1452,11 +1454,12 @@ where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 
 ### Semantics
 
-Within each process group in the StableHLO grid, sends the value of the
+Within each process group in the StableHLO process grid, sends the value of the
 `operand` tensor from the source process to the target process and produces a
 `result` tensor.
 
-The operation splits the StableHLO grid into `process_groups` as follows:
+The operation splits the StableHLO process grid into `process_groups` as
+follows:
 
   * `channel_id <= 0`,
     `cross_replica(replica_groups)`.
@@ -3815,12 +3818,13 @@ More formally:
 
 ![](images/spec/reduce_scatter.svg)
 
-Within each process group in the StableHLO grid, performs reduction, using
-`computations`, over the values of the `operand` tensor from each process,
+Within each process group in the StableHLO process grid, performs reduction,
+using `computations`, over the values of the `operand` tensor from each process,
 splits the reduction result along `scatter_dimension` into parts, and scatters
 the split parts between the processes to produce the `result`.
 
-The operation splits the StableHLO grid into `process_groups` as follows:
+The operation splits the StableHLO process grid into `process_groups` as
+follows:
 
   * `channel_id <= 0` and `use_global_device_ids = false`,
     `cross_replica(replica_groups)`.
@@ -5450,28 +5454,29 @@ finishes with output values. Further formalization is TBD.
 
 ### Parallel execution
 
-StableHLO programs can be executed in parallel, organized into a 2D grid of
-`num_replicas` by `num_partitions` which both have type `ui32`.
+StableHLO programs can be executed in parallel, organized into a 2D process grid
+of `num_replicas` by `num_partitions` which both have type `ui32`.
 
-In the **StableHLO grid**, `num_replicas * num_partitions` of StableHLO
+In the **StableHLO process grid**, `num_replicas * num_partitions` of StableHLO
 processes are executing at the same time. Each process has a unique
 `process_id = (replica_id, partition_id)`, where
 `replica_id ∊ replica_ids = [0, ..., num_replicas-1]` and
 `partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
 type `ui32`.
 
-The size of the grid is known statically for every program, and the position
-within the grid is known statically for every process. Each process has access
-to its position within the grid via the `replica_id` and `partition_id` ops.
+The size of the process grid is known statically for every program, and the
+position within the process grid is known statically for every process. Each
+process has access to its position within the process grid via the `replica_id`
+and `partition_id` ops.
 
-Within the grid, the programs can all be the same (in the "Single Program,
-Multiple Data" style), can all be different (in the "Multiple Program, Multiple
-Data" style) or something in between.
+Within the process grid, the programs can all be the same (in the "Single
+Program, Multiple Data" style), can all be different (in the "Multiple Program,
+Multiple Data" style) or something in between.
 
-Within the grid, the processes are mostly independent from each other - they
-have separate operation statuses, separate input/intermediate/output values and
-most of the ops are executed separately between processes, with the exception of
-a small number of collective ops described below.
+Within the process grid, the processes are mostly independent from each other -
+they have separate operation statuses, separate input/intermediate/output values
+and most of the ops are executed separately between processes, with the
+exception of a small number of collective ops described below.
 
 Given that execution of most of the ops is only using values from the same
 process, it is usually unambiguous to refer to these values by their names.
@@ -5513,9 +5518,9 @@ order and what kind of synchronization is introduced by it, is TBD.
 
 There are five collective ops in StableHLO: `all_gather`, `all_reduce`,
 `all_to_all`, `collective_permute` and `reduce_scatter`. All these ops split
-the processes in the StableHLO grid into **StableHLO process groups** and
-execute a joint computation within each process group, independently from other
-process groups.
+the processes in the StableHLO process grid into **StableHLO process groups**
+and execute a joint computation within each process group, independently from
+other process groups.
 
 Within each process group, collective ops may introduce a synchronization
 barrier. Further formalization, e.g. elaborating on when exactly this
@@ -5530,9 +5535,9 @@ channels.
 
 The computations performed by the collective ops are specific to individual ops
 and are described in individual op sections above. However, the strategies by
-which the grid is split into process groups are shared between these ops and are
-described in this section. More formally, StableHLO supports the following
-four strategies.
+which the process grid is split into process groups are shared between these ops
+and are described in this section. More formally, StableHLO supports the
+following four strategies.
 
 #### cross_replica
 
