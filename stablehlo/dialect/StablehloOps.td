@@ -217,7 +217,7 @@ def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
 }
 
 def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Cubic root operator";
   let description = [{
     Performs element-wise cubic root operation on `operand` tensor and produces
@@ -644,7 +644,8 @@ def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
 // See https://www.tensorflow.org/xla/operation_semantics#element-wise_binary_arithmetic_operations
 
 class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
-    Type OperandType = HLO_Tensor, Type ResultType = OperandType> : StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface, SameOperandsAndResultShape]> {
+    Type OperandType = HLO_Tensor, Type ResultType = OperandType> :
+    StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface, SameOperandsAndResultShape]> {
   let arguments = (ins
     OperandType:$lhs,
     OperandType:$rhs
@@ -672,7 +673,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
 }
 
 def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_Tensor> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
   let summary = "Addition operator";
   let description = [{
     Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
@@ -748,7 +749,7 @@ def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
 }
 
 def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_Tensor> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
   let summary = "Maximum operator";
   let description = [{
     Performs element-wise max operation on tensors `lhs` and `rhs` and produces
@@ -765,7 +766,7 @@ def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
 }
 
 def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_Tensor> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
   let summary = "Minimum operator";
   let description = [{
     Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
@@ -782,7 +783,7 @@ def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
 }
 
 def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_Tensor> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
   let summary = "Multiplication operator";
   let description = [{
     Performs element-wise product of two tensors `lhs` and `rhs` and produces a
