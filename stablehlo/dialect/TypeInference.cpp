@@ -221,7 +221,7 @@ LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
       scale.getType().cast<RankedTensorType>().getDimSize(0);
   // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
   // this also infers that featureCount is aligned with them.
-  if (scaleShape != featureCount)
+  if (!verifyCompatibleDims(scaleShape, featureCount))
     return emitOptionalError(
         location,
         "expects the size of scale factor to be same as the "
@@ -1311,7 +1311,7 @@ LogicalResult inferAllToAllOp(
                              "AllToAll concat_dimension cannot be negative");
 
   Type operandType = operand.getType();
-  RankedTensorType operandRankedType = operandType.dyn_cast<RankedTensorType>();
+  auto operandRankedType = operandType.dyn_cast<RankedTensorType>();
   if (!operandRankedType) {
     inferredReturnShapes.emplace_back(
         operandType.cast<TensorType>().getElementType());
@@ -1331,14 +1331,16 @@ LogicalResult inferAllToAllOp(
   // If operand is ranked, size of split dimension should be a multiple of split
   // count.
   auto splitDimSize = operandRankedType.getDimSize(splitDimension);
-  if (splitDimSize % splitCount != 0)
+  if (isStaticDimSize(splitDimSize) && splitDimSize % splitCount != 0)
     return emitOptionalError(
         location, "split dimension has size ", splitDimSize,
         ", expected to be a multiple of split_count ", splitCount);
   SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
                                    operandRankedType.getShape().end());
-  resultShape[splitDimension] /= splitCount;
-  resultShape[concatDimension] *= splitCount;
+  if (isStaticDimSize(resultShape[splitDimension]))
+    resultShape[splitDimension] /= splitCount;
+  if (isStaticDimSize(resultShape[concatDimension]))
+    resultShape[concatDimension] *= splitCount;
   inferredReturnShapes.emplace_back(resultShape,
                                     operandRankedType.getElementType());
   return success();
@@ -2098,7 +2100,7 @@ LogicalResult inferFftOp(
   if (isFftTypeRfft) {
     auto shapeBack = operandShape.take_back(fftRank);
     for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
-      if (operandDim != fftDim) {
+      if (!verifyCompatibleDims(operandDim, fftDim)) {
         return emitOptionalError(
             location,
             "RFFT requires innermost dimensions match fft_length. Got: ",
@@ -2113,7 +2115,7 @@ LogicalResult inferFftOp(
   if (isFftTypeIrfft) {
     auto shapeBack = operandShape.take_back(fftRank).drop_back();
     for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
-      if (operandDim != fftDim) {
+      if (!verifyCompatibleDims(operandDim, fftDim)) {
         return emitOptionalError(location,
                                  "IRFFT requires non-final dimensions "
                                  "match fft_length. Got: ",
@@ -2121,10 +2123,10 @@ LogicalResult inferFftOp(
                                  ", and ", operandDim, " != ", fftDim, ".");
       }
     }
-    if ((operandShape[operandShape.size() - 1] != 0 ||
+    if ((!verifyCompatibleDims(operandShape[operandShape.size() - 1], 0) ||
          fftLengthValues[fftRank - 1] != 0) &&
-        operandShape[operandShape.size() - 1] !=
-            fftLengthValues[fftRank - 1] / 2 + 1)
+        !verifyCompatibleDims(operandShape[operandShape.size() - 1],
+                              fftLengthValues[fftRank - 1] / 2 + 1))
       return emitOptionalError(location,
                                "IRFFT requires innermost dimension match "
                                "fft_length[-1]/2+1. Got: ",
@@ -3474,24 +3476,25 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
   if (operandType.isDynamicDim(scatterDimension) ||
       resultType.isDynamicDim(scatterDimension))
     return success();
-
-  if (operandType.getDimSize(scatterDimension) == 0)
+  auto operandScatterDimSize = operandType.getDimSize(scatterDimension);
+  auto resultScatterDimSize = resultType.getDimSize(scatterDimension);
+  if (operandScatterDimSize == 0)
     return emitOptionalError(location,
                              "operand scatter dimension cannot be zero");
-  if (resultType.getDimSize(scatterDimension) == 0)
+  if (resultScatterDimSize == 0)
     return emitOptionalError(location,
                              "result scatter dimension cannot be zero");
 
   // If operand and result are both ranked, then the size of the scatter
   // dimension in the operand should be a multiple of the size of the scatter
   // dimension in the result.
-  if ((operandType.getDimSize(scatterDimension) %
-       resultType.getDimSize(scatterDimension)) != 0)
+  if (isStaticDimSize(operandScatterDimSize) &&
+      isStaticDimSize(resultScatterDimSize) &&
+      operandScatterDimSize % resultScatterDimSize != 0)
     return emitOptionalError(
-        location, "operand scatter dimension has size ",
-        operandType.getDimSize(scatterDimension),
+        location, "operand scatter dimension has size ", operandScatterDimSize,
         ", expected to be a multiple of result scatter dimension size ",
-        resultType.getDimSize(scatterDimension));
+        resultScatterDimSize);
 
   // Non scatter dimensions should be equal.
   for (auto index : llvm::seq<int64_t>(0, operandType.getRank())) {
@@ -3589,7 +3592,8 @@ LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
                                       Value initialState, Value outputState) {
   auto initialShape = initialState.getType().dyn_cast<RankedTensorType>();
   auto outputShape = outputState.getType().dyn_cast<RankedTensorType>();
-  if (initialShape.getShape() != outputShape.getShape())
+  if (failed(verifyCompatibleShape(initialShape.getShape(),
+                                   outputShape.getShape())))
     return emitOptionalError(
         location, "output state shape must match initial state shape. Got: ",
         initialShape, " and ", outputShape);
