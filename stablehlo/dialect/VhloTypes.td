@@ -40,10 +40,9 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
 
 class VHLO_TypeDef<string cppName,
                    string name,
-                   string cppBaseClass = "::mlir::Type",
                    string minVersion = "0.3.0",
                    string maxVersion = "current">
-  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface], cppBaseClass> {
+  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface]> {
   let mnemonic = name;
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
@@ -72,7 +71,7 @@ def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token">;
 
 def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
 
-def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex"> {
   let parameters = (ins "Type":$elementType);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -88,6 +87,10 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType">
 def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
 def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
 def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
+
+def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0">;
+
+def VHLO_Float8E5M2 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0">;
 
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
 
