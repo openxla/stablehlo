@@ -3583,11 +3583,18 @@ LogicalResult verifyReverseOp(Optional<Location> location, Value operand,
   auto dims = dimensions.getValues<int64_t>();
   llvm::SmallDenseSet<int64_t> uniqueDims(dims.begin(), dims.end());
   if (uniqueDims.size() != dims.size())
-    return emitOptionalError(location, "dimensions should be unique. Got: ", dims);
+    return emitOptionalError(location,
+                             "dimensions should be unique. Got: ", dims);
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
   for (int64_t dim : uniqueDims) {
-    if (dim < 0 || (operandTy && dim >= operandTy.getRank()))
-      return emitOptionalError(location, "all dimensions should be between [0, ", operandTy.getRank(), "). Got dimension: ", dim, ".");
+    if (dim < 0)
+      return emitOptionalError(
+          location,
+          "all dimensions should be non-negative. Got dimension: ", dim, ".");
+    if (operandTy && dim >= operandTy.getRank())
+      return emitOptionalError(
+          location, "all dimensions should be between [0, ",
+          operandTy.getRank(), "). Got dimension: ", dim, ".");
   }
   return success();
 }
