@@ -79,7 +79,6 @@ StableHLO programs.
      Passed: 47
    ```
 
-
 ## Community
 
 Building an amazing portability layer between ML frameworks and ML compilers
@@ -90,7 +89,6 @@ We're using GitHub issues / pull requests to organize development and
 [GitHub discussions](https://github.com/orgs/openxla/discussions/categories/stablehlo)
 to have longer discussions. We also have a `#stablehlo`
 channel on [the OpenXLA Discord server](https://discord.gg/PeWUTaecrA).
-
 
 ## Roadmap
 
