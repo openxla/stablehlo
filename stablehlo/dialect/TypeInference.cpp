@@ -221,7 +221,7 @@ LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
       scale.getType().cast<RankedTensorType>().getDimSize(0);
   // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
   // this also infers that featureCount is aligned with them.
-  if (!verifyCompatibleDims(scaleShape, featureCount))
+  if (scaleShape != featureCount)
     return emitOptionalError(
         location,
         "expects the size of scale factor to be same as the "
@@ -2101,10 +2101,11 @@ LogicalResult inferFftOp(
     auto shapeBack = operandShape.take_back(fftRank);
     for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
       if (!verifyCompatibleDims(operandDim, fftDim)) {
-        return emitOptionalError(
-            location,
-            "RFFT requires innermost dimensions match fft_length. Got: ",
-            operandShape, " but wanted ", fftLengthValues, ".");
+        return emitOptionalError(location,
+                                 "RFFT requires innermost dimensions to be "
+                                 "compatible with fft_length. Got: ",
+                                 operandShape, " but wanted ", fftLengthValues,
+                                 ".");
       }
     }
     if (fftLengthValues[fftRank - 1] != 0) {
@@ -2117,8 +2118,8 @@ LogicalResult inferFftOp(
     for (auto [operandDim, fftDim] : llvm::zip(shapeBack, fftLengthValues)) {
       if (!verifyCompatibleDims(operandDim, fftDim)) {
         return emitOptionalError(location,
-                                 "IRFFT requires non-final dimensions "
-                                 "match fft_length. Got: ",
+                                 "IRFFT requires non-final dimensions to be "
+                                 "compatible with fft_length. Got: ",
                                  operandShape, " but wanted ", fftLengthValues,
                                  ", and ", operandDim, " != ", fftDim, ".");
       }
@@ -2128,10 +2129,10 @@ LogicalResult inferFftOp(
         !verifyCompatibleDims(operandShape[operandShape.size() - 1],
                               fftLengthValues[fftRank - 1] / 2 + 1))
       return emitOptionalError(location,
-                               "IRFFT requires innermost dimension match "
-                               "fft_length[-1]/2+1. Got: ",
-                               operandShape, " but fft_length is ",
-                               fftLengthValues, ".");
+                               "IRFFT requires innermost dimension to be "
+                               "compatible with fft_length[-1]/2+1. Got: ",
+                               operandShape[operandShape.size() - 1],
+                               " but fft_length is ", fftLengthValues, ".");
     resultShape[resultShape.size() - 1] = fftLengthValues[fftRank - 1];
   }
 
@@ -3595,7 +3596,8 @@ LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
   if (failed(verifyCompatibleShape(initialShape.getShape(),
                                    outputShape.getShape())))
     return emitOptionalError(
-        location, "output state shape must match initial state shape. Got: ",
+        location,
+        "output state shape must be compatible with initial state shape. Got: ",
         initialShape, " and ", outputShape);
   return success();
 }
