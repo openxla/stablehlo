@@ -1537,6 +1537,24 @@ func.func @triangular_solve_dynamic_transpose(
 
 // -----
 
+// CHECK-LABEL: func @triangular_solve_dynamic_adjoint
+func.func @triangular_solve_dynamic_adjoint(
+    %arg0: tensor<10x5x4x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 5]>>,
+    %arg1: tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {
+    left_side = false,
+    lower = true,
+    transpose_a = #stablehlo<transpose ADJOINT>,
+    unit_diagonal = true
+  } : (tensor<10x5x4x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 5]>>,
+       tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<10x5x4x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @triangular_solve_dynamic_left_side
 func.func @triangular_solve_dynamic_left_side(
     %arg0: tensor<10x5x4x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 5]>>,
@@ -1563,6 +1581,24 @@ func.func @triangular_solve_dynamic_left_side_transpose(
     left_side = true,
     lower = true,
     transpose_a = #stablehlo<transpose TRANSPOSE>,
+    unit_diagonal = true
+  } : (tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 5, ?]>>,
+       tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 7, ?]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 7, ?]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve_dynamic_left_side_adjoint
+func.func @triangular_solve_dynamic_left_side_adjoint(
+    %arg0: tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 5, ?]>>,
+    %arg1: tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 7, ?]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {
+    left_side = true,
+    lower = true,
+    transpose_a = #stablehlo<transpose ADJOINT>,
     unit_diagonal = true
   } : (tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 5, ?]>>,
        tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 7, ?]>>) -> tensor<*xf32>
