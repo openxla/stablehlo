@@ -707,8 +707,8 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 }
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
-    SameOperandsElementType, DeclareOpInterfaceMethods<InferTypeOpInterface>],
-    HLO_Fp32Or64Tensor, HLO_ComplexTensor> {
+    SameOperandsElementType, SameOperandsAndResultShape,
+    DeclareOpInterfaceMethods<InferTypeOpInterface>, Elementwise]> {
   let summary = "Complex operator";
   let description = [{
     Performs element-wise conversion to a complex value from a pair of real and
@@ -732,7 +732,7 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
 }
 
 def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_FpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntFpOrComplexTensor> {
   let summary = "Division operator";
   let description = [{
     Performs element-wise division of dividend `lhs` and divisor `rhs` tensors
