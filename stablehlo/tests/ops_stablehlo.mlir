@@ -2958,7 +2958,7 @@ func.func @reverse_invalid_dimensions_unranked(%operand: tensor<*xi32>) -> tenso
 
 // -----
 
-func.func @reverse_invalid_dimensions_nagative(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
+func.func @reverse_invalid_dimensions_negative(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{all dimensions should be non-negative. Got dimension: -1.}}
   %0 = "stablehlo.reverse"(%operand) {
     dimensions = dense<-1> : tensor<i64>
