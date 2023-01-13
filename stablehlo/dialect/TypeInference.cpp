@@ -2862,35 +2862,41 @@ LogicalResult inferTriangularSolveOp(
     return emitOptionalError(
         location, "Invalid transpose option value for triangular solve");
 
-  auto resultShape = bType.getShape().vec();
-  auto resultBounds = encodingToBounds(aType.getEncoding()).vec();
-  if (resultBounds.empty()) {
+  auto aBounds = encodingToBounds(aType.getEncoding()).vec();
+  auto bBounds = encodingToBounds(bType.getEncoding()).vec();
+  if (aBounds.empty() || bBounds.empty()) {
     inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
     return success();
   }
-  auto aBounds = encodingToBounds(aType.getEncoding()).vec();
-  auto bBounds = encodingToBounds(bType.getEncoding()).vec();
+  auto resultShape = bType.getShape().vec();
+  auto resultBounds = encodingToBounds(aType.getEncoding()).vec();
   for (int64_t i = 0; i < aRank - 2; i++) {
     auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
         location, i, aBatchDims[i], bBatchDims[i], aBounds[i], bBounds[i]);
     if (failed(inferredDimAndBoundOrErr)) return failure();
     resultShape[i] = (*inferredDimAndBoundOrErr).first;
-    resultShape[i] = (*inferredDimAndBoundOrErr).first;
-    resultBounds[i] = (*inferredDimAndBoundOrErr).second;
     resultBounds[i] = (*inferredDimAndBoundOrErr).second;
   }
   if (leftSide) {
+    resultShape[bRank - 2] = bType.getShape()[bRank - 2];
     resultBounds[bRank - 2] = bBounds[bRank - 2];
-    if (isTransposeOrAdjoint)
+    if (isTransposeOrAdjoint) {
+      resultShape[bRank - 1] = aType.getShape()[aRank - 1];
       resultBounds[bRank - 1] = aBounds[aRank - 1];
-    else
+    } else {
+      resultShape[bRank - 1] = aType.getShape()[aRank - 2];
       resultBounds[bRank - 1] = aBounds[aRank - 2];
+    }
   } else {
+    resultShape[bRank - 1] = bType.getShape()[bRank - 1];
     resultBounds[bRank - 1] = bBounds[bRank - 1];
-    if (isTransposeOrAdjoint)
+    if (isTransposeOrAdjoint) {
+      resultShape[bRank - 2] = aType.getShape()[aRank - 2];
       resultBounds[bRank - 2] = aBounds[aRank - 2];
-    else
+    } else {
+      resultShape[bRank - 2] = aType.getShape()[aRank - 1];
       resultBounds[bRank - 2] = aBounds[aRank - 1];
+    }
   }
   inferredReturnShapes.emplace_back(
       resultShape, bType.getElementType(),
