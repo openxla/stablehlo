@@ -2649,8 +2649,15 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 LogicalResult inferSortOp(
     Optional<Location>, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  for (auto resultType : inputs.getTypes())
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  for (auto resultType : inputs.getTypes()) {
+    auto rankedResult = resultType.dyn_cast<RankedTensorType>();
+    if (rankedResult)
+      inferredReturnShapes.emplace_back(rankedResult.getShape(),
+                                        rankedResult.getElementType(),
+                                        rankedResult.getEncoding());
+    else
+      inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  }
   return success();
 }
 

@@ -1220,3 +1220,23 @@ func.func @dynamic_iota(%arg0: tensor<1xindex>) -> tensor<1xindex> {
   %1 = "hlo_test_infer.reify_return_type_shapes"(%result): (tensor<?xf32>) -> tensor<1xindex>
   func.return %1: tensor<1xindex>
 }
+
+// -----
+
+// CHECK-LABEL: @sort_bounds_and_unknown_rank
+func.func @sort_bounds_and_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<5x?x?xi32, #stablehlo.type_extensions<bounds = [?, 7, 6]>>) {
+  %0, %1 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %pred = "stablehlo.compare"(%arg0, %arg1) {
+      comparison_direction = #stablehlo<comparison_direction GT>
+    } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%pred) : (tensor<i1>) -> ()
+  }) { dimension = 1 : i64, is_stable = true } : (
+    tensor<*xf32>,
+    tensor<5x?x?xi32, #stablehlo.type_extensions<bounds = [?, 7, 6]>>
+  ) -> (tensor<*xf32>, tensor<*xi32>)
+  // CHECK: types0 = tensor<*xf32>
+  // CHECK-SAME: types1 = tensor<5x?x?xi32, #stablehlo.type_extensions<bounds = [?, 7, 6]>>
+  %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return
+}
