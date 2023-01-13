@@ -2546,15 +2546,7 @@ LogicalResult inferSelectOp(
 
 LogicalResult inferSelectAndScatterOp(
     Value operand, SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto operandRankedType = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandRankedType) {
-    inferredReturnTypes.push_back(operand.getType());
-  } else {
-    auto bounds = encodingToBounds(operandRankedType.getEncoding()).vec();
-    inferredReturnTypes.push_back(RankedTensorType::get(
-        operandRankedType.getShape(), operandRankedType.getElementType(),
-        boundsToEncoding(operandRankedType.getEncoding(), bounds)));
-  }
+  inferredReturnTypes.push_back(operand.getType());
   return success();
 }
 
