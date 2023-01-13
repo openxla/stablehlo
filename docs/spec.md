@@ -396,9 +396,9 @@ bytes is implementation-defined. String literals have type `string`.
 
 ## Ops
 
-## abs
+### abs
 
-### Semantics
+#### Semantics
 
 Performs element-wise abs operation on `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -407,19 +407,19 @@ tensor. Depending on the element type, does the following:
 * For floats: `abs` from IEEE-754.
 * For complex numbers: complex modulus.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                                      |
 |-----------|-----------------------------------------------------------|
 | `operand` | tensor of signed integer, floating-point, or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                                      |
 |----------|-----------------------------------------------------------|
 | `result` | tensor of signed integer, floating-point, or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1)  `operand` and `result` have the same shape.
 * (C2)  `operand` and `result` have the same element type, except when the
@@ -427,7 +427,7 @@ tensor. Depending on the element type, does the following:
   of the `result` is the element type of the complex type (e.g. the element type
   of the `result` is `f64` for operand type `complex<f64>`).
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [-2, 0, 2]
@@ -435,9 +435,9 @@ tensor. Depending on the element type, does the following:
 // %result: [2, 0, 2]
 ```
 
-## add
+### add
 
-### Semantics
+#### Semantics
 
 Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -447,24 +447,24 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * For floats: `addition` from IEEE-754.
 * For complex numbers: complex addition.
 
-### Inputs
+#### Inputs
 
 | Name  | Type   |
 |-------|--------|
 | `lhs` | tensor |
 | `rhs` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[1, 2], [3, 4]]
@@ -475,35 +475,35 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_add.mlir)
 
-## after_all
+### after_all
 
-### Semantics
+#### Semantics
 
 Ensures that the operations producing the `inputs` are executed before any
 operations that depend on `result`. Execution of this operation does nothing,
 it only exists to establish data dependencies from `result` to `inputs`.
 
-### Inputs
+#### Inputs
 
 | Name     | Type                       |
 |----------|----------------------------|
 | `inputs` | variadic number of `token` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type    |
 |----------|---------|
 | `result` | `token` |
 
-### Examples
+#### Examples
 
 ```mlir
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
 
-## all_gather
+### all_gather
 
-### Semantics
+#### Semantics
 
 Within each process group in the StableHLO process grid, concatenates the values
 of the `operand` tensor from each process along `all_gather_dim` and produces a
@@ -526,7 +526,7 @@ Afterwards, within each `process_group`:
 * `result@process = concatenate(operands@process, all_gather_dim)` for all
   `process` in `process_group`.
 
-### Inputs
+#### Inputs
 
 | Name                    | Type                                         |
 |-------------------------|----------------------------------------------|
@@ -536,13 +536,13 @@ Afterwards, within each `process_group`:
 | `channel_id`            | constant of type `si64`                      |
 | `use_global_device_ids` | constant of type `i1`                        |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `all_gather_dim` $\in$ [0, rank(`operand`)).
 * (C2) All values in `replica_groups` are unique.
@@ -558,7 +558,7 @@ Afterwards, within each `process_group`:
   * `dim(result, all_gather_dim)` =
     `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
-### Examples
+#### Examples
 
 ```mlir
 // num_replicas: 2
@@ -576,9 +576,9 @@ Afterwards, within each `process_group`:
 // %result@(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
 ```
 
-## all_reduce
+### all_reduce
 
-### Semantics
+#### Semantics
 
 Within each process group in the StableHLO process grid, applies a reduction
 function `computation` to the values of the `operand` tensor from each process
@@ -611,7 +611,7 @@ Afterwards, within each `process_group`:
   where `reduce_without_init` works exactly like `reduce`, except that its
   `schedule` doesn't include init values.
 
-### Inputs
+#### Inputs
 
 | Name                    | Type                                                             |
 |-------------------------|------------------------------------------------------------------|
@@ -621,13 +621,13 @@ Afterwards, within each `process_group`:
 | `use_global_device_ids` | constant of type `i1`                                            |
 | `computation`           | function                                                         |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) All values in `replica_groups` are unique.
 * (C2) `size(replica_groups)` depends on the process grouping strategy:
@@ -642,7 +642,7 @@ Afterwards, within each `process_group`:
        `E = element_type(operand)`.
 * (C6) type(`result`) $=$ type(`operand`).
 
-### Examples
+#### Examples
 
 ```mlir
 // num_replicas: 2
@@ -663,9 +663,9 @@ Afterwards, within each `process_group`:
 // %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
 ```
 
-## all_to_all
+### all_to_all
 
-### Semantics
+#### Semantics
 
 ![](images/spec/all_to_all.svg)
 
@@ -710,7 +710,7 @@ Afterwards, within each `process_group`:
   `receiver_index = index_of(receiver, process_group)`.
 * `result@process = concatenate(scattered_parts@process, concat_dimension)`.
 
-### Inputs
+#### Inputs
 
 | Name               | Type                                         |
 |--------------------|----------------------------------------------|
@@ -721,13 +721,13 @@ Afterwards, within each `process_group`:
 | `replica_groups`   | 2-dimensional tensor constant of type `si64` |
 | `channel_id`       | constant of type `si64`                      |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `split_dimension` $\in$ [0, rank(`operand`)).
 * (C2) dim(`operand`, `split_dimension`) % `split_count` $=$ 0.
@@ -745,7 +745,7 @@ Afterwards, within each `process_group`:
   * `dim(result, concat_dimension) =
     dim(operand, concat_dimension) * split_count`.
 
-### Examples
+#### Examples
 
 ```mlir
 // num_replicas: 2
@@ -778,9 +778,9 @@ Afterwards, within each `process_group`:
 //                 ]
 ```
 
-## and
+### and
 
-### Semantics
+#### Semantics
 
 Performs element-wise AND of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -788,24 +788,24 @@ tensor. Depending on the element type, does the following:
 * For booleans: logical AND.
 * For integers: bitwise AND.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                              |
 |-------|-----------------------------------|
 | `lhs` | tensor of boolean or integer type |
 | `rhs` | tensor of boolean or integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
 | `result` | tensor of boolean or integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[1, 2], [3, 4]]
@@ -814,9 +814,9 @@ tensor. Depending on the element type, does the following:
 // %result: [[1, 2], [3, 0]]
 ```
 
-## atan2
+### atan2
 
-### Semantics
+#### Semantics
 
 Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -824,24 +824,24 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 * For floats: `atan2` from IEEE-754.
 * For complex numbers: complex atan2.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                                     |
 |-------|------------------------------------------|
 | `lhs` | tensor of floating-point or complex type |
 | `rhs` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [0.0, 1.0, -1.0]
@@ -850,9 +850,9 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
 ```
 
-## batch_norm_grad
+### batch_norm_grad
 
-### Semantics
+#### Semantics
 
 Computes gradients of several inputs of `batch_norm_training` backpropagating
 from `grad_output`, and produces `grad_operand`, `grad_scale` and `grad_offset`
@@ -911,7 +911,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   return grad_operand, grad_scale, grad_offset
 ```
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                        |
 |-----------------|---------------------------------------------|
@@ -923,7 +923,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 | `epsilon`       | constant of type `f32`                      |
 | `feature_index` | constant of type `si64`                     |
 
-### Outputs
+#### Outputs
 
 | Name           | Type                                        |
 |----------------|---------------------------------------------|
@@ -931,7 +931,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 | `grad_scale`   | 1-dimensional tensor of floating-point type |
 | `grad_offset`  | 1-dimensional tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
 * (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
@@ -941,7 +941,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
        same shape.
 * (C5) size(`scale`) $=$ `dim(operand, feature_index)`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -969,9 +969,9 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 // %grad_offset: [0.4, 0.4]
 ```
 
-## batch_norm_inference
+### batch_norm_inference
 
-### Semantics
+#### Semantics
 
 Normalizes the `operand` tensor across all dimensions except for the
 `feature_index` dimension and produces a `result` tensor. More formally, this
@@ -995,7 +995,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                        |
 |-----------------|---------------------------------------------|
@@ -1007,13 +1007,13 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 | `epsilon`       | constant of type `f32`                      |
 | `feature_index` | constant of type `si64`                     |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
 * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
@@ -1024,7 +1024,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 * (C6) size(`variance`) $=$ `dim(operand, feature_index)`.
 * (C7) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -1045,9 +1045,9 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 //          ]
 ```
 
-## batch_norm_training
+### batch_norm_training
 
-### Semantics
+#### Semantics
 
 Computes mean and variance across all dimensions except for the `feature_index`
 dimension and normalizes the `operand` tensor producing `output`, `batch_mean`
@@ -1079,7 +1079,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
                               variance, epsilon, feature_index)
 ```
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                        |
 |-----------------|---------------------------------------------|
@@ -1089,7 +1089,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 | `epsilon`       | constant of type `f32`                      |
 | `feature_index` | constant of type `si64`                     |
 
-### Outputs
+#### Outputs
 
 | Name         | Type                                        |
 |--------------|---------------------------------------------|
@@ -1097,7 +1097,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 | `batch_mean` | 1-dimensional tensor of floating-point type |
 | `batch_var`  | 1-dimensional tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
 * (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
@@ -1108,7 +1108,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
 * (C7) `operand` and `output` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -1129,9 +1129,9 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 // %batch_var: [1.0, 1.0]
 ```
 
-## bitcast_convert
+### bitcast_convert
 
-### Semantics
+#### Semantics
 
 Performs a bitcast operation on `operand` tensor and produces a `result` tensor
 where the bits of the entire `operand` tensor are reinterpreted using the
@@ -1151,19 +1151,19 @@ The behavior of `bits` is implementation-defined because the exact
 representation of tensors is implementation-defined, and the exact
 representation of element types is implementation-defined as well.
 
-### Inputs
+#### Inputs
 
 | Name      | Type   |
 |-----------|--------|
 | `operand` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) Let `E` and `E'` be the `operand` and `result` element type,
   respectively and `R = rank(operand)`:
@@ -1178,7 +1178,7 @@ representation of element types is implementation-defined as well.
     * `dim(operand, R-1) = num_bits(E')/num_bits(E)`.
 * (C2) Conversion between complex and non-complex types is not permitted.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [0.0, 1.0]
@@ -1189,9 +1189,9 @@ representation of element types is implementation-defined as well.
 //          ]
 ```
 
-## broadcast_in_dim
+### broadcast_in_dim
 
-### Semantics
+#### Semantics
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. Formally,
@@ -1199,20 +1199,20 @@ in the `operand` tensor and produces a `result` tensor. Formally,
 `jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
 dimensions `k` in `operand`.
 
-### Inputs
+#### Inputs
 
 | Name                   | Type                                         |
 |------------------------|----------------------------------------------|
 | `operand`              | tensor                                       |
 | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) size(`broadcast_dimensions`) $=$ rank(`operand`).
@@ -1223,7 +1223,7 @@ dimensions `k` in `operand`.
   * `dim(operand, j) = 1` or
   * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -1246,36 +1246,36 @@ dimensions `k` in `operand`.
 //          ]
 ```
 
-## case
+### case
 
-### Semantics
+#### Semantics
 
 Produces the output from executing exactly one function from `branches`
 depending on the value of `index`. Formally, if $0 \le$ `index` $\lt$ `N-1`,
 output of `branches[index]` is returned, else, output of `branches[N-1]` is
 returned.
 
-### Inputs
+#### Inputs
 
 | Name       | Type                                |
 |------------|-------------------------------------|
 | `index`    | 1-dimensional tensor of type `si32` |
 | `branches` | variadic number of functions        |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `results` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) `branches` have at least one function.
 * (C2) All functions in `branches` have 0 inputs.
 * (C3) All functions in `branches` have the same output types.
 * (C4) For all `i`, `type(results[i]) = type(branches[0]).outputs[i]`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %result_branch0: 10
@@ -1289,9 +1289,9 @@ returned.
 // %result: 11
 ```
 
-## cbrt
+### cbrt
 
-### Semantics
+#### Semantics
 
 Performs element-wise cubic root operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -1299,23 +1299,23 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 * For floats: `rootn(x, 3)` from IEEE-754.
 * For complex numbers: complex cubic root.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [0.0, 1.0, 8.0, 27.0]
@@ -1323,31 +1323,31 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 // %result: [0.0, 1.0, 2.0, 3.0]
 ```
 
-## ceil
+### ceil
 
-### Semantics
+#### Semantics
 
 Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
 Implements the `roundToIntegralTowardPositive` operation from the IEEE-754
 specification.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                          |
 |-----------|-------------------------------|
 | `operand` | tensor of floating-point type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [-0.8166, -0.2530, 0.2530, 0.8166, 2.0]
@@ -1357,9 +1357,9 @@ specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_ceil.mlir)
 
-## cholesky
+### cholesky
 
-### Semantics
+#### Semantics
 
 Computes the Cholesky decomposition of a batch of matrices.
 
@@ -1373,26 +1373,26 @@ implementation-defined.
 If there exists `i` where the input matrix is not an Hermitian positive-definite
 matrix, then the behavior is undefined.
 
-### Inputs
+#### Inputs
 
 | Name    | Type                                       |
 |---------|--------------------------------------------|
 | `a`     | tensor of floating-point or complex type   |
 | `lower` | 0-dimensional tensor constant of type `i1` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `a` and `result` have the same type.
 * (C2) rank(`a`) >= 2.
 * (C3) dim(`a`, -2) = dim(`a`, -1).
 
-### Examples
+#### Examples
 
 ```mlir
 // %a: [
@@ -1410,9 +1410,9 @@ matrix, then the behavior is undefined.
 //          ]
 ```
 
-## clamp
+### clamp
 
-### Semantics
+#### Semantics
 
 Clamps every element of the `operand` tensor between a minimum and maximum
 value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
@@ -1420,7 +1420,7 @@ value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
 where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 `max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type   |
 |-----------|--------|
@@ -1428,20 +1428,20 @@ where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 | `operand` | tensor |
 | `max`     | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
 * (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
 * (C3) `min`, `operand`, and `max` have the same element type.
 * (C4) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %min: [5, 10, 15]
@@ -1451,9 +1451,9 @@ where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 // %result: [5, 13, 20]
 ```
 
-## collective_permute
+### collective_permute
 
-### Semantics
+#### Semantics
 
 Within each process group in the StableHLO process grid, sends the value of the
 `operand` tensor from the source process to the target process and produces a
@@ -1473,7 +1473,7 @@ Afterwards, `result@process` is given by:
   `process_groups[i, 1] = process`.
 * `broadcast_in_dim(0, [], shape(result))`, otherwise.
 
-### Inputs
+#### Inputs
 
 | Name                  | Type                                         |
 |-----------------------|----------------------------------------------|
@@ -1481,13 +1481,13 @@ Afterwards, `result@process` is given by:
 | `source_target_pairs` | 2-dimensional tensor constant of type `si64` |
 | `channel_id`          | constant of type `si64`                      |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) dim(`source_target_pairs`, 1) $=$ 2.
 * (C2) All values in `source_target_pairs[:, 0]` are unique.
@@ -1498,7 +1498,7 @@ Afterwards, `result@process` is given by:
   * If `cross_partition`, `num_partitions`.
 * (C5) type(`result`) $=$ type(`operand`).
 
-### Examples
+#### Examples
 
 ```mlir
 // num_replicas: 2
@@ -1515,9 +1515,9 @@ Afterwards, `result@process` is given by:
 // %result@(1, 0): [[1, 2], [3, 4]]
 ```
 
-## compare
+### compare
 
-### Semantics
+#### Semantics
 
 Performs element-wise comparison of `lhs` and `rhs` tensors according to
 `comparison_direction` and `compare_type`, and produces a `result` tensor.
@@ -1551,7 +1551,7 @@ IEEE-754.
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
 
-### Inputs
+#### Inputs
 
 | Name                   | Type                                                    |
 |------------------------|---------------------------------------------------------|
@@ -1560,13 +1560,13 @@ performed using the provided `comparison_direction` and `compare_type`.
 | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |
 | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of boolean type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs` and `rhs` have the same element type.
 * (C2) `lhs`, `rhs`, and `result` have the same shape.
@@ -1578,7 +1578,7 @@ performed using the provided `comparison_direction` and `compare_type`.
     `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}.
   * If `E` is complex type, `compare_type` = `FLOAT`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [1.0, 3.0]
@@ -1590,33 +1590,33 @@ performed using the provided `comparison_direction` and `compare_type`.
 // %result: [true, false]
 ```
 
-## complex
+### complex
 
-### Semantics
+#### Semantics
 
 Performs element-wise conversion to a complex value from a pair of real and
 imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                          |
 |-------|-------------------------------|
 | `lhs` | tensor of type `f32` or `f64` |
 | `rhs` | tensor of type `f32` or `f64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs` and `rhs` have the same type.
 * (C2) shape(`result`) $=$ shape(`lhs`).
 * (C3) element_type(`result`) = complex_type(element_type(`lhs`)).
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [1.0, 3.0]
@@ -1625,9 +1625,9 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 // %result: [(1.0, 2.0), (3.0, 4.0)]
 ```
 
-## concatenate
+### concatenate
 
-### Semantics
+#### Semantics
 
 Concatenates a variadic number of tensors in `inputs` along `dimension`
 dimension in the same order as the given arguments and produces a `result`
@@ -1638,20 +1638,20 @@ tensor. More formally,
 1. `d` is equal to `dimension`, and `d0`, ... are `d`th dimension sizes
    of `inputs`.
 
-### Inputs
+#### Inputs
 
 | Name        | Type                       |
 |-------------|----------------------------|
 | `inputs`    | variadic number of tensors |
 | `dimension` | constant of type `si64`    |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) All tensors in `inputs` have the same element type.
 * (C2) All tensors in `inputs` have the same shape except for the size of the
@@ -1663,7 +1663,7 @@ tensor. More formally,
   size of the `dimension`th dimension, which is calculated as a sum of the size
   of `inputs[k][dimension]` for all `k` in `inputs`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %input0: [[1, 2], [3, 4], [5, 6]]
@@ -1674,29 +1674,29 @@ tensor. More formally,
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
-## constant
+### constant
 
-### Semantics
+#### Semantics
 
 Produces an `output` tensor from a constant `value`.
 
-### Inputs
+#### Inputs
 
 | Name    | Type     |
 |---------|----------|
 | `value` | constant |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `output` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `value` and `output` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 %output = "stablehlo.constant"() {
@@ -1707,9 +1707,9 @@ Produces an `output` tensor from a constant `value`.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_constant.mlir)
 
-## convert
+### convert
 
-### Semantics
+#### Semantics
 
 Performs an element-wise conversion from one element type to another on
 `operand` tensor and produces a `result` tensor.
@@ -1752,23 +1752,23 @@ converted to zero, and the value `true` is converted to one. For
 **any-supported-type-to-boolean** conversions, a zero value is converted to
 `false` and any non-zero value is converted to `true`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type   |
 |-----------|--------|
 | `operand` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same shape.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [1, 2, 3]
@@ -1776,9 +1776,9 @@ converted to zero, and the value `true` is converted to one. For
 // %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
 ```
 
-## convolution
+### convolution
 
-### Semantics
+#### Semantics
 
 Computes dot products between windows of `lhs` and slices of `rhs` and produces
 `result`. The following diagram shows how elements in `result` are computed from
@@ -1830,7 +1830,7 @@ If `batch_group_count > 1`:
 * `result = concatenate(results, output_feature_dimension)`.
 <!-- markdownlint-enable line-length -->
 
-### Inputs
+#### Inputs
 
 | Name                              | Type                                                        | Constraints                            |
 |-----------------------------------|-------------------------------------------------------------|----------------------------------------|
@@ -1854,13 +1854,13 @@ If `batch_group_count > 1`:
 | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)      |
 | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                  |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   | Constraints         |
 |----------|--------|---------------------|
 | `result` | tensor | (C26), (C27), (C28) |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) $N =$ rank(`lhs`) $=$ rank(`rhs`).
@@ -1912,7 +1912,7 @@ If `batch_group_count > 1`:
 * (C28) rank(`result`) $= N$.
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[
@@ -1957,9 +1957,9 @@ If `batch_group_count > 1`:
 //          ]]
 ```
 
-## cosine
+### cosine
 
-### Semantics
+#### Semantics
 
 Performs element-wise cosine operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -1967,23 +1967,23 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 * For floats: `cos` from IEEE-754.
 * For complex numbers: complex cosine.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -1996,30 +1996,30 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_cosine.mlir)
 
-## count_leading_zeros
+### count_leading_zeros
 
-### Semantics
+#### Semantics
 
 Performs element-wise count of the number of leading zero bits in the `operand`
 tensor and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                   |
 |-----------|------------------------|
 | `operand` | tensor of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[0, 1], [127, -1]]
@@ -2027,16 +2027,16 @@ tensor and produces a `result` tensor.
 // %result: [[8, 7], [1, 0]]
 ```
 
-## custom_call
+### custom_call
 
-### Semantics
+#### Semantics
 
 Encapsulates an implementation-defined operation `call_target_name` that takes
 `inputs` and `called_computations` and produces `results`. `has_side_effect`,
 `backend_config` and `api_version` may be used to provide additional
 implementation-defined metadata.
 
-### Inputs
+#### Inputs
 
 | Name                  | Type                         |
 |-----------------------|------------------------------|
@@ -2047,13 +2047,13 @@ implementation-defined metadata.
 | `api_version`         | constant of type `si32`      |
 | `called_computations` | variadic number of functions |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                      |
 |-----------|---------------------------|
 | `results` | variadic number of values |
 
-### Examples
+#### Examples
 
 ```mlir
 %results = "stablehlo.custom_call"(%input0) {
@@ -2065,9 +2065,9 @@ implementation-defined metadata.
 } : (tensor<f32>) -> tensor<f32>
 ```
 
-## divide
+### divide
 
-### Semantics
+#### Semantics
 
 Performs element-wise division of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -2076,24 +2076,24 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `division` from IEEE-754.
 * For complex numbers: complex division.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                                              |
 |-------|---------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex type |
 | `rhs` | tensor of integer, floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
 | `result` | tensor of integer, floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [17.1, -17.1, 17.1, -17.1]
@@ -2107,9 +2107,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [5, -5, -5, 5]
 ```
 
-## dot_general
+### dot_general
 
-### Semantics
+#### Semantics
 
 Computes dot products between slices of `lhs` and slices of `rhs` and produces a
 `result` tensor.
@@ -2146,7 +2146,7 @@ computations on accelerator backends. This can be one of the following:
 * `HIGHEST`: Slowest calculation, but most accurate approximation to the
   original number.
 
-### Inputs
+#### Inputs
 
 | Name                         | Type                                                        |
 |------------------------------|-------------------------------------------------------------|
@@ -2158,13 +2158,13 @@ computations on accelerator backends. This can be one of the following:
 | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                |
 | `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs` and `rhs` have the same element type.
 * (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
@@ -2192,7 +2192,7 @@ computations on accelerator backends. This can be one of the following:
 * (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
   dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [
@@ -2226,9 +2226,9 @@ computations on accelerator backends. This can be one of the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_dot_general.mlir)
 
-## dynamic_slice
+### dynamic_slice
 
-### Semantics
+#### Semantics
 
 Extracts a slice from the `operand` using dynamically-computed starting indices
 and produces a `result` tensor. `start_indices` contain the starting indices of
@@ -2241,7 +2241,7 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 * `adjusted_start_indices = clamp(0, start_indices, shape(operand) -`
   `slice_sizes)`.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                                     |
 |-----------------|----------------------------------------------------------|
@@ -2249,13 +2249,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 | `start_indices` | variadic number of 0-dimensional tensors of integer type |
 | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
@@ -2264,7 +2264,7 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
   rank(`operand`)).
 * (C5) shape(`result`) $=$ `slice_sizes`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -2284,9 +2284,9 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 //          ]
 ```
 
-## dynamic_update_slice
+### dynamic_update_slice
 
-### Semantics
+#### Semantics
 
 Produces a `result` tensor which is equal to the `operand` tensor except that
 the slice starting at `start_indices` is updated with the values in `update`.
@@ -2298,7 +2298,7 @@ More formally, `result[i0, ..., iR-1]` is defined as:
   clamp(0, start_indices, shape(operand) - shape(update))`.
 * `operand[i0, ..., iR-1]` otherwise.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                                     |
 |-----------------|----------------------------------------------------------|
@@ -2306,13 +2306,13 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 | `update`        | tensor                                                   |
 | `start_indices` | variadic number of 0-dimensional tensors of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 * (C2) element_type(`update`) $=$ element_type(`operand`).
@@ -2322,7 +2322,7 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 * (C6) dim(`update`, `k`) $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$
   [0, rank(`operand`)).
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -2347,9 +2347,9 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 //          ]
 ```
 
-## exponential
+### exponential
 
-### Semantics
+#### Semantics
 
 Performs element-wise exponential operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -2357,23 +2357,23 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 * For floats: `exp` from IEEE-754.
 * For complex numbers: complex exponential.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
@@ -2385,9 +2385,9 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 // %result: (-1.13120438, 2.47172667)
 ```
 
-## exponential_minus_one
+### exponential_minus_one
 
-### Semantics
+#### Semantics
 
 Performs element-wise exponential minus one operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -2395,23 +2395,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `expm1` from IEEE-754.
 * For complex numbers: complex exponential minus one.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [0.0, 1.0]
@@ -2419,9 +2419,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [0.0, 1.71828187]
 ```
 
-## fft
+### fft
 
-### Semantics
+#### Semantics
 
 Performs the forward and inverse Fourier transforms for real and complex
 inputs/outputs.
@@ -2488,7 +2488,7 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 * `result2[i0, ..., :, iR-1]` = `ifft(result1[i0, ..., :, iR-1])` for all `i`.
 * `result[i0, ..., :]` = `irfft(result2[i0, ..., :])` for all `i`.
 
-### Inputs
+#### Inputs
 
 | Name         | Type                                         |
 |--------------|----------------------------------------------|
@@ -2496,13 +2496,13 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   |
 | `fft_length` | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `rank(operand)` $\ge$ `size(fft_length)`.
 * (C2) The relationship between `operand` and `result` element types varies:
@@ -2525,7 +2525,7 @@ floating-point type, then `dims(real)[-size(fft_length):] = fft_length`.
   * If `fft_type = IRFFT`,
     `dim(operand, -1) = dim(result, -1) == 0 ? 0 : dim(result, -1) / 2 + 1`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
@@ -2536,31 +2536,31 @@ floating-point type, then `dims(real)[-size(fft_length):] = fft_length`.
 // %result: [(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)]
 ```
 
-## floor
+### floor
 
-### Semantics
+#### Semantics
 
 Performs element-wise floor of `operand` tensor and produces a `result` tensor.
 Implements the `roundToIntegralTowardNegative` operation from the IEEE-754
 specification.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                          |
 |-----------|-------------------------------|
 | `operand` | tensor of floating-point type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [-0.8166, -0.2530, 0.2530, 0.8166, 2.0]
@@ -2570,9 +2570,9 @@ specification.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_floor.mlir)
 
-## gather
+### gather
 
-### Semantics
+#### Semantics
 
 Gathers slices from `operand` tensor from offsets specified in `start_indices`
 and produces a `result` tensor.
@@ -2608,7 +2608,7 @@ If `indices_are_sorted` is `true` then the implementation can assume that
 behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 `full_start_index(id)` <= `full_start_index(jd)`.
 
-### Inputs
+#### Inputs
 
 | Name                   | Type                                         | Constraints                      |
 |------------------------|----------------------------------------------|----------------------------------|
@@ -2621,13 +2621,13 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 | `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11), (C12), (C13)  |
 | `indices_are_sorted`   | constant of type `i1`                        |                                  |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) rank(`operand`) $=$ size(`offset_dims`) $+$
        size(`collapsed_slice_dims`).
@@ -2660,7 +2660,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
 * (C15) `operand` and `result` have the same element type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -2695,31 +2695,31 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //          ]
 ```
 
-## get_dimension_size
+### get_dimension_size
 
-### Semantics
+#### Semantics
 
 Produces the size of the given `dimension` of the `operand`.
 
-### Inputs
+#### Inputs
 
 | Name        | Type                    |
 |-------------|-------------------------|
 | `operand`   | tensor                  |
 | `dimension` | constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                |
 |----------|-------------------------------------|
 | `result` | 0-dimensional tensor of type `si32` |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`.
   [todo](https://github.com/openxla/stablehlo/issues/790)
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[1, 2, 3], [4, 5, 6]]
@@ -2729,32 +2729,32 @@ Produces the size of the given `dimension` of the `operand`.
 // %result: 3
 ```
 
-## get_tuple_element
+### get_tuple_element
 
-### Semantics
+#### Semantics
 
 Extracts element at `index` position of the `operand` tuple and produces a
 `result`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                    |
 |-----------|-------------------------|
 | `operand` | tuple                   |
 | `index`   | constant of type `si32` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type               |
 |----------|--------------------|
 | `result` | any supported type |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `index` $\lt$ size(`operand`).
 * (C2) type(`operand[index]`) $=$ type(`result`).
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: ([1.0, 2.0], (3))
@@ -2764,16 +2764,16 @@ Extracts element at `index` position of the `operand` tuple and produces a
 // %result: [1.0, 2.0]
 ```
 
-## if
+### if
 
-### Semantics
+#### Semantics
 
 Produces the output from executing exactly one function from `true_branch` or
 `false_branch` depending on the value of `pred`. Formally, if `pred` is `true`,
 output of `true_branch` is returned, else if pred is `false`, output of
 `false_branch` is returned.
 
-### Inputs
+#### Inputs
 
 | Name           | Type                                       |
 |----------------|--------------------------------------------|
@@ -2781,19 +2781,19 @@ output of `true_branch` is returned, else if pred is `false`, output of
 | `true_branch`  | function                                   |
 | `false_branch` | function                                   |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `results` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) `true_branch` and `false_branch` have 0 inputs.
 * (C2) `true_branch` and `false_branch` have the same output types.
 * (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %result_true_branch: 10
@@ -2807,34 +2807,34 @@ output of `true_branch` is returned, else if pred is `false`, output of
 // %result: 10
 ```
 
-## imag
+### imag
 
-### Semantics
+#### Semantics
 
 Extracts the imaginary part, element-wise, from the `operand` and produces a
 `result` tensor. More formally, for each element `x`:
 `imag(x) = is_complex(x) ? x.imag : 0.0`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) shape(`result`) = shape(`operand`).
 * (C2) element_type(`result`) $=$
   * element_type(`operand`) if it's a floating-point type.
   * real_type(element_type(`operand`)) otherwise.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [(1.0, 2.0), (3.0, 4.0)]
@@ -2842,9 +2842,9 @@ Extracts the imaginary part, element-wise, from the `operand` and produces a
 // %result: [2.0, 4.0]
 ```
 
-## infeed
+### infeed
 
-### Semantics
+#### Semantics
 
 Reads data from the infeed and produces `results`.
 
@@ -2854,27 +2854,27 @@ Semantics of `infeed_config` is implementation-defined.
 last. The operation produces a token to reify the side effect of this operation
 as a value that other operations can take a data dependency on.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                      |
 |-----------------|---------------------------|
 | `token`         | `token`                   |
 | `infeed_config` | constant of type `string` |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `results` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) size(`results`) $\ge$ 1.
 * (C2) type(`results`[-1]) $=$ `token`.
 * -- [Verify layout in
   InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
-### Examples
+#### Examples
 
 ```mlir
 %results0, %results1 = "stablehlo.infeed"(%token) {
@@ -2882,31 +2882,31 @@ as a value that other operations can take a data dependency on.
 } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
 ```
 
-## iota
+### iota
 
-### Semantics
+#### Semantics
 
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally,
 `output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
 
-### Inputs
+#### Inputs
 
 | Name             | Type   |
 |------------------|--------|
 | `iota_dimension` | `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
 | `output` | tensor of integer, floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) 0 $\le$ `iota_dimension` $\lt$ `rank(output)`.
 
-### Examples
+#### Examples
 
 ```mlir
 %output = "stablehlo.iota"() {
@@ -2932,31 +2932,31 @@ along the `iota_dimension` dimension. More formally,
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_iota.mlir)
 
-## is_finite
+### is_finite
 
-### Semantics
+#### Semantics
 
 Performs element-wise check whether the value in `x` is finite (i.e. is neither
 +Inf, -Inf, nor NaN) and produces a `y` tensor. Implements the `isFinite`
 operation from the IEEE-754 specification.
 
-### Inputs
+#### Inputs
 
 | Name | Type                          |
 |------|-------------------------------|
 | `x`  | tensor of floating-point type |
 
-### Outputs
+#### Outputs
 
 | Name | Type                   |
 |------|------------------------|
 | `y`  | tensor of boolean type |
 
-### Constraints
+#### Constraints
 
 * (C1) `x` and `y` have the same shape.
 
-### Examples
+#### Examples
 
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
@@ -2965,9 +2965,9 @@ operation from the IEEE-754 specification.
 // %y: [false, false, false, true, true, true, true]
 ```
 
-## log
+### log
 
-### Semantics
+#### Semantics
 
 Performs element-wise logarithm operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -2975,23 +2975,23 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 * For floats: `log` from IEEE-754.
 * For complex numbers: complex logarithm.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[1.0, 2.0], [3.0, 4.0]]
@@ -3003,9 +3003,9 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 // %result: (0.80471896, 1.10714871)
 ```
 
-## log_plus_one
+### log_plus_one
 
-### Semantics
+#### Semantics
 
 Performs element-wise logarithm plus one operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -3013,23 +3013,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `logp1` from IEEE-754.
 * For complex numbers: complex logarithm plus one.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [-2.0, -0.0, -0.999, 7.0, 6.38905621, 15.0]
@@ -3037,9 +3037,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
-## logistic
+### logistic
 
-### Semantics
+#### Semantics
 
 Performs element-wise logistic operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -3047,23 +3047,23 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 * For floats: `division(1, addition(1, exp(-x)))` from IEEE-754.
 * For complex numbers: complex logistic.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
@@ -3075,9 +3075,9 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 // %result: (1.02141536, 0.40343871)
 ```
 
-## map
+### map
 
-### Semantics
+#### Semantics
 
 Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
@@ -3085,7 +3085,7 @@ produces a `result` tensor.
 More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 `..., inputs[N-1][i0, ..., iR-1])`.
 
-### Inputs
+#### Inputs
 
 | Name          | Type                                         |
 |---------------|----------------------------------------------|
@@ -3093,13 +3093,13 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 | `dimensions`  | 1-dimensional tensor constant of type `si64` |
 | `computation` | function                                     |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) All `inputs` and `result` have the same shape.
 * (C2) size(`inputs`) $=$ N $\ge$ 1.
@@ -3108,7 +3108,7 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
   where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
   element_type(`result`).
 
-### Examples
+#### Examples
 
 ```mlir
 // %input0: [[0, 1], [2, 3]]
@@ -3123,9 +3123,9 @@ More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
 // %result: [[0, 5], [12, 21]]
 ```
 
-## maximum
+### maximum
 
-### Semantics
+#### Semantics
 
 Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -3135,24 +3135,24 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 * For floats: `maximum` from IEEE-754.
 * For complex numbers: lexicographic maximum for the `(real, imaginary)` pair.
 
-### Inputs
+#### Inputs
 
 | Name  | Type   |
 |-------|--------|
 | `lhs` | tensor |
 | `rhs` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[1, 2], [7, 8]]
@@ -3163,9 +3163,9 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_maximum.mlir)
 
-## minimum
+### minimum
 
-### Semantics
+#### Semantics
 
 Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -3175,24 +3175,24 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 * For floats: `minimum` from IEEE-754.
 * For complex numbers: lexicographic minimum for the `(real, imaginary)` pair.
 
-### Inputs
+#### Inputs
 
 | Name  | Type   |
 |-------|--------|
 | `lhs` | tensor |
 | `rhs` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[1, 2], [7, 8]]
@@ -3203,9 +3203,9 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_minimum.mlir)
 
-## multiply
+### multiply
 
-### Semantics
+#### Semantics
 
 Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -3215,24 +3215,24 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 * For floats: `multiplication` from IEEE-754.
 * For complex numbers: complex multiplication.
 
-### Inputs
+#### Inputs
 
 | Name  | Type   |
 |-------|--------|
 | `lhs` | tensor |
 | `rhs` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[1, 2], [3, 4]]
@@ -3243,9 +3243,9 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_multiply.mlir)
 
-## negate
+### negate
 
-### Semantics
+#### Semantics
 
 Performs element-wise negation of `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -3256,23 +3256,23 @@ tensor. Depending on the element type, does the following:
 * For floats: `negate` from IEEE-754.
 * For complex numbers: complex negation.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                               |
 |-----------|----------------------------------------------------|
 | `operand` | tensor of integer, floating-point, or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                               |
 |----------|----------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // Negation operation with integer Tensors
@@ -3288,9 +3288,9 @@ tensor. Depending on the element type, does the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_negate.mlir)
 
-## not
+### not
 
-### Semantics
+#### Semantics
 
 Performs element-wise NOT of tensor `operand` and produces a `result` tensor.
 Depending on the element type, does the following:
@@ -3298,23 +3298,23 @@ Depending on the element type, does the following:
 * For booleans: logical NOT.
 * For integers: bitwise NOT.
 
-### Arguments
+#### Arguments
 
 | Name      | Type                              |
 |-----------|-----------------------------------|
 | `operand` | tensor of boolean or integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
 | `result` | tensor of boolean or integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors
@@ -3328,33 +3328,33 @@ Depending on the element type, does the following:
 // %result: [false, true]
 ```
 
-## optimization_barrier
+### optimization_barrier
 
-### Semantics
+#### Semantics
 
 Ensures that the operations that produce the `operand` are executed before any
 operations that depend on the `result` and prevents compiler transformations
 from moving operations across the barrier. Other than that, the operation is
 an identity, i.e. `result` = `operand`.
 
-### Arguments
+#### Arguments
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `operand` | variadic number of tensors or tokens |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                 |
 |----------|--------------------------------------|
 | `result` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) size(`operand`) $=$ size(`result`).
 * (C2) type(`operand[i]`) $=$ type(`result[i]`) for all i.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand0: 0.0
@@ -3364,9 +3364,9 @@ an identity, i.e. `result` = `operand`.
 // %result1: 1.0
 ```
 
-## or
+### or
 
-### Semantics
+#### Semantics
 
 Performs element-wise OR of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -3374,24 +3374,24 @@ tensor. Depending on the element type, does the following:
 * For booleans: logical OR.
 * For integers: bitwise OR.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                              |
 |-------|-----------------------------------|
 | `lhs` | tensor of integer or boolean type |
 | `rhs` | tensor of integer or boolean type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
 | `result` | tensor of integer or boolean type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors
@@ -3407,9 +3407,9 @@ tensor. Depending on the element type, does the following:
 // %result: [[false, true], [true, true]]
 ```
 
-## outfeed
+### outfeed
 
-### Semantics
+#### Semantics
 
 Writes `inputs` to the outfeed and produces a `result` token.
 
@@ -3418,7 +3418,7 @@ Semantics of `outfeed_config` is implementation-defined.
 The operation takes a token and produces a token to reify its side effects
 as a value that other operations can take a data dependency on.
 
-### Inputs
+#### Inputs
 
 | Name             | Type                       |
 |------------------|----------------------------|
@@ -3426,13 +3426,13 @@ as a value that other operations can take a data dependency on.
 | `token`          | `token`                    |
 | `outfeed_config` | constant of type `string`  |
 
-### Outputs
+#### Outputs
 
 | Name     | Type    |
 |----------|---------|
 | `result` | `token` |
 
-### Examples
+#### Examples
 
 ```mlir
 %result = "stablehlo.outfeed"(%input0, %token) {
@@ -3440,9 +3440,9 @@ as a value that other operations can take a data dependency on.
 } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
-## pad
+### pad
 
-### Semantics
+#### Semantics
 
 Expands `operand` by padding around the tensor as well as between the elements
 of the tensor with the given `padding_value`.
@@ -3464,7 +3464,7 @@ More formally, `result[i0, ..., iR-1]` is equal to:
   `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
 * `padding_value[]` otherwise.
 
-### Inputs
+#### Inputs
 
 | Name                | Type                                         |
 |---------------------|----------------------------------------------|
@@ -3474,13 +3474,13 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 | `edge_padding_high` | 1-dimensional tensor constant of type `si64` |
 | `interior_padding`  | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) `operand`, `padding_value`, `result` have the same element type.
@@ -3492,7 +3492,7 @@ size equal to `operand`'s rank.
 and `di = dim(operand, i)`.
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -3514,48 +3514,48 @@ and `di = dim(operand, i)`.
 //          ]
 ```
 
-## partition_id
+### partition_id
 
-### Semantics
+#### Semantics
 
 Produces `partition_id` of the current process.
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                |
 |----------|-------------------------------------|
 | `result` | 0-dimensional tensor of type `ui32` |
 
-### Examples
+#### Examples
 
 ```mlir
 %result = "stablehlo.partition_id"() : () -> tensor<ui32>
 ```
 
-## popcnt
+### popcnt
 
-### Semantics
+#### Semantics
 
 Performs element-wise count of the number of bits set in the `operand` tensor
 and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                   |
 |-----------|------------------------|
 | `operand` | tensor of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [0, 1, 2, 127]
@@ -3563,9 +3563,9 @@ and produces a `result` tensor.
 // %result: [0, 1, 1, 7]
 ```
 
-## power
+### power
 
-### Semantics
+#### Semantics
 
 Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -3574,24 +3574,24 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `pow` from IEEE-754.
 * For complex numbers: complex exponentiation.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                                               |
 |-------|----------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex type |
 | `rhs` | tensor of integer, floating-point, or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                               |
 |----------|----------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [-2.0, -0.0, -36.0, 5.0, 3.0, 10000.0]
@@ -3600,34 +3600,34 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
 
-## real
+### real
 
-### Semantics
+#### Semantics
 
 Extracts the real part, element-wise, from the `operand` and produces a `result`
 tensor. More formally, for each element `x`:
 `real(x) = is_complex(x) ? x.real : x`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) shape(`result`) = shape(`operand`).
 * (C2) element_type(`result`) $=$
   * element_type(`operand`) if it's a floating-point type.
   * real_type(element_type(`operand`)) otherwise.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [(1.0, 2.0), (3.0, 4.0)]
@@ -3635,9 +3635,9 @@ tensor. More formally, for each element `x`:
 // %result: [1.0, 3.0]
 ```
 
-## recv
+### recv
 
-### Semantics
+#### Semantics
 
 Receives data from a channel with `channel_id` and produces `results`.
 
@@ -3649,7 +3649,7 @@ implementation-defined.
 last. The operation produces a token to reify its side effects as a value that
 other operations can take a data dependency on.
 
-### Inputs
+#### Inputs
 
 | Name               | Type                                            |
 |--------------------|-------------------------------------------------|
@@ -3658,13 +3658,13 @@ other operations can take a data dependency on.
 | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` |
 | `is_host_transfer` | constant of type `i1`                           |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `results` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) [todo](https://github.com/openxla/stablehlo/issues/579)
   `channel_type` must be
@@ -3673,7 +3673,7 @@ other operations can take a data dependency on.
 * (C2) size(`results`) $\ge$ 1.
 * (C3) type(`results`[-1]) $=$ `token`.
 
-### Examples
+#### Examples
 
 ```mlir
 %results0, %results1 = "stablehlo.recv"(%token) {
@@ -3684,9 +3684,9 @@ other operations can take a data dependency on.
 } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
 ```
 
-## reduce
+### reduce
 
-### Semantics
+#### Semantics
 
 Applies a reduction function `body` to `inputs` and `init_values` along the
 `dimensions` and produces a `result` tensor.
@@ -3714,7 +3714,7 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
   * Interspersed with an implementation-defined amount of `init_values`
     at implementation-defined positions.
 
-### Inputs
+#### Inputs
 
 | Name          | Type                                         |
 |---------------|----------------------------------------------|
@@ -3723,13 +3723,13 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 | `dimensions`  | 1-dimensional tensor constant of type `si64` |
 | `body`        | function                                     |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                       |
 |-----------|----------------------------|
 | `results` | variadic number of tensors |
 
-### Constraints
+#### Constraints
 
 * (C1) All `inputs` have the same shape.
 * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
@@ -3745,7 +3745,7 @@ N >= 1.
 * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
 sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
-### Examples
+#### Examples
 
 ```mlir
 // %input = [[0, 1, 2, 3, 4, 5]]
@@ -3760,9 +3760,9 @@ sizes of `inputs[k]` corresponding to `dimensions` are not included.
 // %result = [15]
 ```
 
-## reduce_precision
+### reduce_precision
 
-### Semantics
+#### Semantics
 
 Performs element-wise conversion of `operand` to another floating-point type
 that uses `exponent_bits` and `mantissa_bits` and back to the original
@@ -3780,7 +3780,7 @@ More formally:
   infinity using the original sign or underflows to zero using the
   original sign.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                          |
 |-----------------|-------------------------------|
@@ -3788,19 +3788,19 @@ More formally:
 | `exponent_bits` | constant of type `si32`       |
 | `mantissa_bits` | constant of type `si32`       |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 * (C2) `exponent_bits` $\ge$ 1.
 * (C3) `mantissa_bits` $\ge$ 0.
 
-### Examples
+#### Examples
 
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
@@ -3813,9 +3813,9 @@ More formally:
 // %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
 
-## reduce_scatter
+### reduce_scatter
 
-### Semantics
+#### Semantics
 
 ![](images/spec/reduce_scatter.svg)
 
@@ -3843,7 +3843,7 @@ Afterwards, within each `process_group`:
   where `receiver_index = index_of(receiver, process_group)`.
 <!-- markdownlint-enable line-length -->
 
-### Inputs
+#### Inputs
 
 | Name                    | Type                                         |
 |-------------------------|----------------------------------------------|
@@ -3854,13 +3854,13 @@ Afterwards, within each `process_group`:
 | `use_global_device_ids` | constant of type `i1`                        |
 | `computation`           | function                                     |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) dim(`operand`, `scatter_dimension`) % dim(`process_groups`, 1) $=$ 0.
@@ -3880,7 +3880,7 @@ Afterwards, within each `process_group`:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) / dim(process_groups, 1)`.
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // num_replicas: 2
@@ -3915,9 +3915,9 @@ Afterwards, within each `process_group`:
 //                 ]
 ```
 
-## reduce_window
+### reduce_window
 
-### Semantics
+#### Semantics
 
 Applies a reduction function `body` to windows of `inputs` and `init_values`
 and produces `results`.
@@ -3937,7 +3937,7 @@ where:
 * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
 <!-- markdownlint-enable line-length -->
 
-### Inputs
+#### Inputs
 
 | Name                | Type                                         | Constraints                                     |
 |---------------------|----------------------------------------------|-------------------------------------------------|
@@ -3950,13 +3950,13 @@ where:
 | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
 | `body`              | function                                     | (C13)                                           |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                       | Constraints     |
 |-----------|----------------------------|-----------------|
 | `results` | variadic number of tensors | (C1), (C14-C16) |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
@@ -3985,7 +3985,7 @@ where:
     $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // %input = [[1, 2], [3, 4], [5, 6]]
@@ -4004,9 +4004,9 @@ where:
 // %result = [[0, 0], [3, 4]]
 ```
 
-## remainder
+### remainder
 
-### Semantics
+#### Semantics
 
 Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors and
 produces a `result` tensor.
@@ -4018,24 +4018,24 @@ For floating-point element types, this is in contrast with the `remainder`
 operation from IEEE-754 specification where `d` is an integral value nearest to
 the exact value of `lhs/rhs` with ties to even.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                                              |
 |-------|---------------------------------------------------|
 | `lhs` | tensor of integer, floating-point or complex type |
 | `rhs` | tensor of integer, floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                              |
 |----------|---------------------------------------------------|
 | `result` | tensor of integer, floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [17.1, -17.1, 17.1, -17.1]
@@ -4049,27 +4049,27 @@ the exact value of `lhs/rhs` with ties to even.
 // %result: [2, -2, 2, -2]
 ```
 
-## replica_id
+### replica_id
 
-### Semantics
+#### Semantics
 
 Produces `replica_id` of the current process.
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                |
 |----------|-------------------------------------|
 | `result` | 0-dimensional tensor of type `ui32` |
 
-### Examples
+#### Examples
 
 ```mlir
 %result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
 
-## reshape
+### reshape
 
-### Semantics
+#### Semantics
 
 Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
 amounts to keeping the same canonical representation but potentially changing
@@ -4079,24 +4079,24 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR'-1]` where
 `i` and `j` have the same position in the lexicographic ordering of the index
 spaces of `result` and `operand`.
 
-### Inputs
+#### Inputs
 
 | Name      | Type   |
 |-----------|--------|
 | `operand` | tensor |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) `operand` and `result` have the same number of elements.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[1, 2, 3], [4, 5, 6]]]
@@ -4106,36 +4106,36 @@ spaces of `result` and `operand`.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_reshape.mlir)
 
-## reverse
+### reverse
 
-### Semantics
+#### Semantics
 
 Reverses the order of elements in the `operand` along the specified `dimensions`
 and produces a `result` tensor. More formally,
 `result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
 `ik + ik' = dk - 1` for all dimensions `k` in `dimensions`.
 
-### Inputs
+#### Inputs
 
 | Name         | Type                                         |
 |--------------|----------------------------------------------|
 | `operand`    | tensor                                       |
 | `dimensions` | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 * (C2) All dimensions in `dimensions` are unique.
 * (C3) For all dimensions `k` in `dimensions`, 0 $\le$ `dimensions[k]` $\lt$
 `rank(result)`.
 
-### Examples
+#### Examples
 
 ```mlir
 // Reverse along dimension 0
@@ -4155,9 +4155,9 @@ and produces a `result` tensor. More formally,
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
 
-## rng
+### rng
 
-### Semantics
+#### Semantics
 
 Generates random numbers using the `rng_distribution` algorithm and produces a
 `result` tensor of a given shape `shape`.
@@ -4174,7 +4174,7 @@ The exact way how random numbers are generated is implementation-defined. For
 example, they may or may not be deterministic, and they may or may not use
 hidden state.
 
-### Inputs
+#### Inputs
 
 | Name               | Type                                                             |
 |--------------------|------------------------------------------------------------------|
@@ -4183,20 +4183,20 @@ hidden state.
 | `shape`            | 1-dimensional tensor constant of type `si64`                     |
 | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                               |
 |----------|----------------------------------------------------|
 | `result` | tensor of integer, boolean, or floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `a`, `b`, and `result` have the same element type.
 * (C2) If `rng_distribution = NORMAL`, `a`, `b`, and `result` have the same
   floating-point element type.
 * (C3) shape(`result`) = `shape`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %a = 0
@@ -4212,9 +4212,9 @@ hidden state.
 //          ]
 ```
 
-## rng_bit_generator
+### rng_bit_generator
 
-### Semantics
+#### Semantics
 
 Returns an `output` filled with uniform random bits and an updated output state
 `output_state` given an initial state `initial_state` using the pseudorandom
@@ -4231,21 +4231,21 @@ deterministic between implementations.
 \* See: [Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
 ](http://www.thesalmons.org/john/random123/papers/random123sc11.pdf)
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                         |
 |-----------------|----------------------------------------------|
 | `initial_state` | 1-dimensional tensor of type `ui64`          |
 | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` |
 
-### Outputs
+#### Outputs
 
 | Name           | Type                                     |
 |----------------|------------------------------------------|
 | `output_state` | 1-dimensional tensor of type `ui64`      |
 | `output`       | tensor of integer or floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) type(`initial_state`) $=$ type(`output_state`).
 * (C2) size(`initial_state`) depends on `rng_algorithm`:
@@ -4253,7 +4253,7 @@ deterministic between implementations.
   * `THREE_FRY`: `2`.
   * `PHILOX`: `2` or `3`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %initial_state: [1, 2]
@@ -4267,31 +4267,31 @@ deterministic between implementations.
 //          ]
 ```
 
-## round_nearest_afz
+### round_nearest_afz
 
-### Semantics
+#### Semantics
 
 Performs element-wise rounding towards the nearest integer, breaking ties away
 from zero, on the `operand` tensor and produces a `result` tensor. Implements
 the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                          |
 |-----------|-------------------------------|
 | `operand` | tensor of floating-point type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand = [-2.5, 0.4, 0.5, 0.6, 2.5]
@@ -4299,32 +4299,32 @@ the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 // %result: [-3.0, 0.0, 1.0, 1.0, 3.0]
 ```
 
-## round_nearest_even
+### round_nearest_even
 
-### Semantics
+#### Semantics
 
 Performs element-wise rounding towards the nearest integer, breaking ties
 towards the even integer, on the `operand` tensor and produces a `result`
 tensor. Implements the `roundToIntegralTiesToEven` operation from the IEEE-754
 specification.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                          |
 |-----------|-------------------------------|
 | `operand` | tensor of floating-point type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                          |
 |----------|-------------------------------|
 | `result` | tensor of floating-point type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand = [-2.5, 0.4, 0.5, 0.6, 2.5]
@@ -4332,9 +4332,9 @@ specification.
 // %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
 
-## rsqrt
+### rsqrt
 
-### Semantics
+#### Semantics
 
 Performs element-wise reciprocal square root operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -4342,23 +4342,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `rSqrt` from IEEE-754.
 * For complex numbers: complex reciprocal square root.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[1.0, 4.0], [9.0, 25.0]]
@@ -4370,9 +4370,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [(0.56886448, -0.35157758)]
 ```
 
-## scatter
+### scatter
 
-### Semantics
+#### Semantics
 
 Produces `results` tensors which are equal to `inputs` tensors except that
 several slices specified by `scatter_indices` are updated with the values
@@ -4430,7 +4430,7 @@ If `unique_indices` is `true` then the implementation can assume that all
 is `true` but the indices being scattered to are not unique then the behavior
 is undefined.
 
-### Inputs
+#### Inputs
 
 | Name                           | Type                                         | Constraints                                              |
 |--------------------------------|----------------------------------------------|----------------------------------------------------------|
@@ -4445,13 +4445,13 @@ is undefined.
 | `unique_indices`               | constant of type `i1`                        |                                                          |
 | `update_computation`           | function                                     | (C15)                                                    |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                       |
 |-----------|----------------------------|
 | `results` | variadic number of tensors |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) All `inputs` have the same shape.
@@ -4490,7 +4490,7 @@ is undefined.
 * (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // %input: [
@@ -4523,9 +4523,9 @@ is undefined.
 //          ]
 ```
 
-## select
+### select
 
-### Semantics
+#### Semantics
 
 <!-- markdownlint-disable line-length -->
 Produces a `result` tensor where each element is selected from `on_true` or
@@ -4535,7 +4535,7 @@ More formally,
 where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 <!-- markdownlint-enable line-length -->
 
-### Inputs
+#### Inputs
 
 | Name       | Type                |
 |------------|---------------------|
@@ -4543,18 +4543,18 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 | `on_true`  | tensor              |
 | `on_false` | tensor              |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
 * (C2) `on_true`, `on_false` and `result` have same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %pred: [[false, true], [true, false]]
@@ -4564,9 +4564,9 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %result: [[5, 2], [3, 8]]
 ```
 
-## select_and_scatter
+### select_and_scatter
 
-### Semantics
+#### Semantics
 
 Scatters the values from the `source` tensor using `scatter` based on the
 outcome of `reduce_window` of the `input` tensor using `select` and produces
@@ -4605,7 +4605,7 @@ More formally:
    `selected_values[source_index]` has the `operand` element
    from `operand_index`.
 
-### Inputs
+#### Inputs
 
 | Name                | Type                                         | Constraints                    |
 |---------------------|----------------------------------------------|--------------------------------|
@@ -4618,13 +4618,13 @@ More formally:
 | `select`            | function                                     | (C10)                          |
 | `scatter`           | function                                     | (C11)                          |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
 | `result` | tensor | (C12)       |
 
-### Constraints
+#### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) rank(`operand`) $=$ size(`window_dimensions`).
@@ -4644,7 +4644,7 @@ More formally:
 * (C12) type(`operand`) $=$ type(`result`).
 <!-- markdownlint-enable line-length -->
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[1, 5], [2, 5], [3, 6], [4, 4]]
@@ -4668,9 +4668,9 @@ More formally:
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 ```
 
-## send
+### send
 
-### Semantics
+#### Semantics
 
 Sends `inputs` to a channel `channel_id` and produces a `result` token.
 
@@ -4681,7 +4681,7 @@ If `is_host_transfer` is `true`, then the operation transfers data to the
 host. Otherwise, it transfers data to another device. What this means is
 implementation-defined.
 
-### Inputs
+#### Inputs
 
 | Name               | Type                                            |
 |--------------------|-------------------------------------------------|
@@ -4691,20 +4691,20 @@ implementation-defined.
 | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` |
 | `is_host_transfer` | constant of type `i1`                           |
 
-### Outputs
+#### Outputs
 
 | Name     | Type    |
 |----------|---------|
 | `result` | `token` |
 
-### Constraints
+#### Constraints
 
 * (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
   must be
   * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 
-### Examples
+#### Examples
 
 ```mlir
 %result = "stablehlo.send"(%operand, %token) {
@@ -4715,31 +4715,31 @@ implementation-defined.
 } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
 ```
 
-## shift_left
+### shift_left
 
-### Semantics
+#### Semantics
 
 Performs element-wise left-shift operation on the `lhs` tensor by `rhs` number
 of bits and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                   |
 |-------|------------------------|
 | `lhs` | tensor of integer type |
 | `rhs` | tensor of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [-1, -2, 3, 4, 7, 7]
@@ -4748,31 +4748,31 @@ of bits and produces a `result` tensor.
 // %result: [-2, -8, 24, 0, -128, 0]
 ```
 
-## shift_right_arithmetic
+### shift_right_arithmetic
 
-### Semantics
+#### Semantics
 
 Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 `rhs` number of bits and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                   |
 |-------|------------------------|
 | `lhs` | tensor of integer type |
 | `rhs` | tensor of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [-1, -128, -36, 5, 3, 7]
@@ -4781,31 +4781,31 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 // %result: [-1, -32, -5, 1, 1, 0]
 ```
 
-## shift_right_logical
+### shift_right_logical
 
-### Semantics
+#### Semantics
 
 Performs element-wise logical right-shift operation on the `lhs` tensor by `rhs`
 number of bits and produces a `result` tensor.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                   |
 |-------|------------------------|
 | `lhs` | tensor of integer type |
 | `rhs` | tensor of integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                   |
 |----------|------------------------|
 | `result` | tensor of integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [-1, -128, -36, 5, 3, 7]
@@ -4814,9 +4814,9 @@ number of bits and produces a `result` tensor.
 // %result: [127, 32, 27, 1, 1, 0]
 ```
 
-## sign
+### sign
 
-### Semantics
+#### Semantics
 
 Returns the sign of the `operand` element-wise and produces a `result` tensor.
 More formally, for each element `x`, the semantics can be expressed using
@@ -4843,23 +4843,23 @@ def sign(x):
       return divide(x, abs(x))
 ```
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                                      |
 |-----------|-----------------------------------------------------------|
 | `operand` | tensor of signed integer, floating-point, or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                                      |
 |----------|-----------------------------------------------------------|
 | `result` | tensor of signed integer, floating-point, or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
@@ -4868,9 +4868,9 @@ def sign(x):
 // %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
-## sine
+### sine
 
-### Semantics
+#### Semantics
 
 Performs element-wise sine operation on `operand` tensor and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -4878,23 +4878,23 @@ tensor. Depending on the element type, does the following:
 * For floats: `sin` from IEEE-754.
 * For complex numbers: complex sine.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -4907,9 +4907,9 @@ tensor. Depending on the element type, does the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sine.mlir)
 
-## slice
+### slice
 
-### Semantics
+#### Semantics
 
 Extracts a slice from the `operand` using statically-computed starting indices
 and produces a `result` tensor. `start_indices` contain the starting indices of
@@ -4920,7 +4920,7 @@ for each dimension.
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 `jd = start_indices[d] + id * strides[d]`.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                         |
 |-----------------|----------------------------------------------|
@@ -4929,13 +4929,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 | `limit_indices` | 1-dimensional tensor constant of type `si64` |
 | `strides`       | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) size(`start_indices`) = size(`limit_indices`) = size(`strides`) =
@@ -4947,7 +4947,7 @@ rank(`operand`).
 $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
 dimension `d` in `operand`.
 
-### Examples
+#### Examples
 
 ```mlir
 // 1-dimensional slice
@@ -4978,9 +4978,9 @@ dimension `d` in `operand`.
 //           ]
 ```
 
-## sort
+### sort
 
-### Semantics
+#### Semantics
 
 Sorts a variadic number of tensors in `inputs` together, according to a custom
 `comparator`, along the given `dimension` and produces a variadic number of
@@ -4998,7 +4998,7 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 1. Where `i` $=$ `j` everywhere except for the `d`th dimension.
 1. Where `d` $=$ `dimension >= 0 ? dimension : rank(inputs[0]) + dimension`.
 
-### Inputs
+#### Inputs
 
 | Name         | Type                       |
 |--------------|----------------------------|
@@ -5007,13 +5007,13 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 | `is_stable`  | constant of type `i1`      |
 | `comparator` | function                   |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                       |
 |-----------|----------------------------|
 | `results` | variadic number of tensors |
 
-### Constraints
+#### Constraints
 
 * (C1) `inputs` have at least 1 tensor.
 * (C2) For all `i`, `type(inputs[i])` = `type(results[i])`.
@@ -5023,7 +5023,7 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
   `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
   where `Ei` is element type of `inputs[i]`.
 
-### Examples
+#### Examples
 
 ```mlir
 // Sort along dimension 0
@@ -5062,9 +5062,9 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 // %result1 = [[1, 2, 3], [1, 2, 3]]
 ```
 
-## sqrt
+### sqrt
 
-### Semantics
+#### Semantics
 
 Performs element-wise square root operation on `operand` tensor and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -5072,23 +5072,23 @@ Performs element-wise square root operation on `operand` tensor and produces a
 * For floats: `squareRoot` from IEEE-754.
 * For complex numbers: complex square root.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [[0.0, 1.0], [4.0, 9.0]]
@@ -5100,9 +5100,9 @@ Performs element-wise square root operation on `operand` tensor and produces a
 // %result: [(1.27201965, 0.78615138)]
 ```
 
-## subtract
+### subtract
 
-### Semantics
+#### Semantics
 
 Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 `result` tensor. Depending on the element type, does the following:
@@ -5111,24 +5111,24 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 * For floats: `subtraction` from IEEE-754.
 * For complex numbers: complex subtraction.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                                               |
 |-------|----------------------------------------------------|
 | `lhs` | tensor of integer, floating-point, or complex type |
 | `rhs` | tensor of integer, floating-point, or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                               |
 |----------|----------------------------------------------------|
 | `result` | tensor of integer, floating-point, or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %lhs: [[6, 8], [10, 12]]
@@ -5139,9 +5139,9 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_subtract.mlir)
 
-## tanh
+### tanh
 
-### Semantics
+#### Semantics
 
 Performs element-wise hyperbolic tangent operation on `operand` tensor and
 produces a `result` tensor. Depending on the element type, does the following:
@@ -5149,23 +5149,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For floats: `tanh` from IEEE-754.
 * For complex numbers: complex hyperbolic tangent.
 
-### Inputs
+#### Inputs
 
 | Name      | Type                                     |
 |-----------|------------------------------------------|
 | `operand` | tensor of floating-point or complex type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [-1.0, 0.0, 1.0]
@@ -5175,28 +5175,28 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_tanh.mlir)
 
-## transpose
+### transpose
 
-### Semantics
+#### Semantics
 
 Permutes the dimensions of `operand` tensor using `permutation` and produces a
 `result` tensor. More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]`
 where `i[d] = j[permutation[d]]`.
 
-### Inputs
+#### Inputs
 
 | Name          | Type                                         |
 |---------------|----------------------------------------------|
 | `operand`     | tensor                                       |
 | `permutation` | 1-dimensional tensor constant of type `si64` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type   |
 |----------|--------|
 | `result` | tensor |
 
-### Constraints
+#### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
@@ -5204,7 +5204,7 @@ rank of `operand`.
 * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
 where `j = permutation[i]`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %operand: [
@@ -5222,9 +5222,9 @@ where `j = permutation[i]`.
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_transpose.mlir)
 
-## triangular_solve
+### triangular_solve
 
-### Semantics
+#### Semantics
 
 Solves batches of systems of linear equations with lower or upper triangular
 coefficient matrices.
@@ -5246,7 +5246,7 @@ the values in the other triangle are implementation-defined.
 If `unit_diagonal` is true, then the implementation can assume that the diagonal
 elements of `a` are equal to 1, otherwise the behavior is undefined.
 
-### Inputs
+#### Inputs
 
 | Name            | Type                                               |
 |-----------------|----------------------------------------------------|
@@ -5257,13 +5257,13 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 | `unit_diagonal` | constant of type `i1`                              |
 | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                                     |
 |----------|------------------------------------------|
 | `result` | tensor of floating-point or complex type |
 
-### Constraints
+#### Constraints
 
 * (C1) `a` and `b` have the same element type
 * (C2) rank(`a`) $=$ rank(`b`) $\ge$ 2.
@@ -5272,7 +5272,7 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
   * `dim(a, R-2)` $=$ `dim(a, R-1)` $=$ `dim(b, left_side ? R-2 : R-1)`.
 * (C4) `b` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // %a = [
@@ -5298,30 +5298,30 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 //          ]
 ```
 
-## tuple
+### tuple
 
-### Semantics
+#### Semantics
 
 Produces a `result` tuple from values `val`.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                      |
 |-------|---------------------------|
 | `val` | variadic number of values |
 
-### Outputs
+#### Outputs
 
 | Name     | Type  |
 |----------|-------|
 | `result` | tuple |
 
-### Constraints
+#### Constraints
 
 * (C1) size(`val`) $=$ size(`result`) $=$ N.
 * (C2) `type(val[i])` $=$ `type(result[i])`, for all `i` $\in$ range [0, N).
 
-### Examples
+#### Examples
 
 ```mlir
 // %val0: [1.0, 2.0]
@@ -5330,9 +5330,9 @@ Produces a `result` tuple from values `val`.
 // %result: ([1.0, 2.0], (3))
 ```
 
-## while
+### while
 
-### Semantics
+#### Semantics
 
 Produces the output from executing `body` function 0 or more times while the
 `cond` function outputs `true`. More formally, the semantics can be expressed
@@ -5347,7 +5347,7 @@ results = internal_state
 
 The behavior of an infinite loop is TBD.
 
-### Inputs
+#### Inputs
 
 | Name       | Type                                 |
 |------------|--------------------------------------|
@@ -5355,13 +5355,13 @@ The behavior of an infinite loop is TBD.
 | `cond`     | function                             |
 | `body`     | function                             |
 
-### Outputs
+#### Outputs
 
 | Name      | Type                                 |
 |-----------|--------------------------------------|
 | `results` | variadic number of tensors or tokens |
 
-### Constraints
+#### Constraints
 
 * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
        `Ti` = `type(operands[i])`.
@@ -5369,7 +5369,7 @@ The behavior of an infinite loop is TBD.
        `Ti` = `type(operands[i])`.
 * (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
 
-### Examples
+#### Examples
 
 ```mlir
 // %constant0: 1
@@ -5390,9 +5390,9 @@ The behavior of an infinite loop is TBD.
 // %results1: 10
 ```
 
-## xor
+### xor
 
-### Semantics
+#### Semantics
 
 Performs element-wise XOR of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
@@ -5400,24 +5400,24 @@ tensor. Depending on the element type, does the following:
 * For booleans: logical XOR.
 * For integers: bitwise XOR.
 
-### Inputs
+#### Inputs
 
 | Name  | Type                              |
 |-------|-----------------------------------|
 | `lhs` | tensor of boolean or integer type |
 | `rhs` | tensor of boolean or integer type |
 
-### Outputs
+#### Outputs
 
 | Name     | Type                              |
 |----------|-----------------------------------|
 | `result` | tensor of boolean or integer type |
 
-### Constraints
+#### Constraints
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 
-### Examples
+#### Examples
 
 ```mlir
 // Bitwise operation with with integer tensors
