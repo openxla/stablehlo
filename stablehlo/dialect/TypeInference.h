@@ -432,6 +432,9 @@ LogicalResult verifyReduceWindowOp(
 LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
                               Value result);
 
+LogicalResult verifyReverseOp(Optional<Location> location, Value operand,
+                              DenseIntElementsAttr dimensions);
+
 LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
                           bool isRngDistributionUniform);
 
