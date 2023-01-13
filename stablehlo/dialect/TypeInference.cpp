@@ -2649,8 +2649,15 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 LogicalResult inferSortOp(
     Optional<Location>, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  for (auto resultType : inputs.getTypes())
-    inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  for (auto resultType : inputs.getTypes()) {
+    auto rankedResult = resultType.dyn_cast<RankedTensorType>();
+    if (rankedResult)
+      inferredReturnShapes.emplace_back(rankedResult.getShape(),
+                                        rankedResult.getElementType(),
+                                        rankedResult.getEncoding());
+    else
+      inferredReturnShapes.emplace_back(resultType.cast<ShapedType>());
+  }
   return success();
 }
 
@@ -3575,6 +3582,27 @@ LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
                              ") doesn't match expected number of elements (",
                              numOperandElements, ")");
 
+  return success();
+}
+
+LogicalResult verifyReverseOp(Optional<Location> location, Value operand,
+                              DenseIntElementsAttr dimensions) {
+  auto dims = dimensions.getValues<int64_t>();
+  llvm::SmallDenseSet<int64_t> uniqueDims(dims.begin(), dims.end());
+  if (uniqueDims.size() != dims.size())
+    return emitOptionalError(location,
+                             "dimensions should be unique. Got: ", dims);
+  auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
+  for (int64_t dim : uniqueDims) {
+    if (dim < 0)
+      return emitOptionalError(
+          location,
+          "all dimensions should be non-negative. Got dimension: ", dim, ".");
+    if (operandTy && dim >= operandTy.getRank())
+      return emitOptionalError(
+          location, "all dimensions should be between [0, ",
+          operandTy.getRank(), "). Got dimension: ", dim, ".");
+  }
   return success();
 }
 

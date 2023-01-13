@@ -2663,6 +2663,8 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
     I64ElementsAttr:$dimensions
   );
 
+  let hasVerifier = 1;
+
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
