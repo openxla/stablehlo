@@ -472,7 +472,7 @@ func.func @scatter(%input_tensor: tensor<200x100x300xf32>,
 // -----
 
 // CHECK-LABEL: func @scatter_bounds
-func.func @scatter_bounds(%input_tensor: tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, 101, 301]>>,
+func.func @scatter_bounds(%input_tensor: tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 301]>>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<*xindex> {
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
@@ -488,11 +488,11 @@ func.func @scatter_bounds(%input_tensor: tensor<200x?x?xf32, #stablehlo.type_ext
     >,
     indices_are_sorted = true,
     unique_indices = true
-  } : (tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, 101, 301]>>, tensor<10x2xi32>, tensor<10x300xf32>) ->
+  } : (tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 301]>>, tensor<10x2xi32>, tensor<10x300xf32>) ->
       tensor<200x?x?xf32>
 
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<200x?x?xf32>) -> tensor<*xindex>
-  // CHECK: types0 = tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, 101, 301]>>
+  // CHECK: types0 = tensor<200x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 301]>>
   func.return %1 : tensor<*xindex>
 }
 
