@@ -2495,18 +2495,23 @@ LogicalResult inferReduceWindowOp(
     return failure();
 
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
-    if (!inputArgTypes[i].hasRank()) {
+    auto inputRankedType = inputs[i].getType().dyn_cast<RankedTensorType>();
+    if (!inputRankedType) {
       inferredReturnShapes.emplace_back(inputArgTypes[i].getElementType());
     } else {
-      auto inputRankedType = inputs[i].getType().cast<RankedTensorType>();
       auto resultShape =
           inferWindowOutputShape(inputArgTypes[i].getShape(), inferredWindow);
-      encodingToBounds(inputRankedType.getEncoding()).empty()
-          ? inferredReturnShapes.emplace_back(resultShape,
-                                              inputArgTypes[i].getElementType())
-          : inferredReturnShapes.emplace_back(resultShape,
-                                              inputArgTypes[i].getElementType(),
-                                              inputRankedType.getEncoding());
+      if (encodingToBounds(inputRankedType.getEncoding()).empty()) {
+        inferredReturnShapes.emplace_back(resultShape,
+                                          inputArgTypes[i].getElementType());
+      } else {
+        auto resultBounds = inferWindowOutputShape(
+            encodingToBounds(inputRankedType.getEncoding()).vec(),
+            inferredWindow);
+        inferredReturnShapes.emplace_back(
+            resultShape, inputArgTypes[i].getElementType(),
+            boundsToEncoding(inputRankedType.getEncoding(), resultBounds));
+      }
     }
   }
 
