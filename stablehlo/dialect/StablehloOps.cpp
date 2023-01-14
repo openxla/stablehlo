@@ -105,17 +105,20 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 template <typename OpT>
 static LogicalResult verifyDimAttr(OpT op) {
   int64_t rank = -1;
-  if (auto ty =
-          op.getOperand().getType().template dyn_cast<RankedTensorType>()) {
-    rank = ty.getRank();
+  auto operandTy =
+      op.getOperand().getType().template dyn_cast<RankedTensorType>();
+  if (operandTy) {
+    rank = operandTy.getRank();
   } else if (auto ty = op.getType().template dyn_cast<RankedTensorType>()) {
     rank = ty.getRank();
-  } else {
-    return success();
   }
-
   int64_t dim = op.getDimension();
-  if (dim < 0 || dim >= rank)
+  if (dim < 0) {
+    return op.emitOpError()
+           << "requires non-negative dimension attribute; found (" << dim
+           << ")";
+  }
+  if (operandTy && dim >= rank)
     return op.emitOpError() << "requires dimension attribute in range [0, "
                             << rank << "); found (" << dim << ")";
   return success();
