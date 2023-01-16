@@ -35,6 +35,7 @@ def VHLO_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 #endif

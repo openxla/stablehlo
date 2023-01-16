@@ -374,7 +374,7 @@ LogicalResult ConstantLikeOp::reifyReturnTypeShapes(
                                      &reifiedReturnShapes);
 }
 
-OpFoldResult ConstantLikeOp::fold(ArrayRef<Attribute> /*operands*/) {
+OpFoldResult ConstantLikeOp::fold(FoldAdaptor /*adaptor*/) {
   auto opType = getOperand().getType().cast<ShapedType>();
   if (!opType.hasStaticShape()) return {};
   auto type = RankedTensorType::get(opType.getShape(), getValue().getType());
@@ -497,9 +497,7 @@ LogicalResult TopKOp::inferReturnTypeComponents(
 // ConstantOp
 //===----------------------------------------------------------------------===//
 
-OpFoldResult ConstantOp::fold(ArrayRef<Attribute> /*operands*/) {
-  return getValue();
-}
+OpFoldResult ConstantOp::fold(FoldAdaptor /*adaptor*/) { return getValue(); }
 
 LogicalResult ConstantOp::inferReturnTypes(
     MLIRContext*, std::optional<Location>, ValueRange,

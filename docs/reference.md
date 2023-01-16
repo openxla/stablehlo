@@ -72,7 +72,8 @@ values. The following code snippet demonstrates an idea of the implementation
 for folding `stablehlo::AddOp` with floating-point typed operands:
 
 ```C++
-OpFoldResult AddOp::fold(ArrayRef<Attribute> attrs) {
+OpFoldResult AddOp::fold(FoldAdaptor adaptor) {
+  auto attrs = adaptor.getOperands();
   DenseElementsAttr lhsData = attrs[0].dyn_cast<DenseElementsAttr>();
   DenseElementsAttr rhsData = attrs[1].dyn_cast<DenseElementsAttr>();
   if (!lhsData || !rhsData) return {};
