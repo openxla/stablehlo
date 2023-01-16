@@ -452,7 +452,10 @@ LogicalResult verifyReduceOpInputsAndInferShape(
         }
       }
     }
-    if (!inputBounds.empty()) {
+
+    // Set encoding based on the bounds only if the bounds is not empty.
+    encoding = nullptr;
+    if (!newBounds.empty()) {
       encoding = boundsToEncoding(rankedInput.getEncoding(), newBounds);
     }
   }

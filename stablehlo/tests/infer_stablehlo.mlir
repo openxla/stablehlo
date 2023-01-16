@@ -627,6 +627,27 @@ func.func @reduce_with_bounds(%arg0: tensor<?x?x5xf32, #stablehlo.type_extension
   func.return %2: tensor<*xindex>
 }
 
+// Verifies that bounds are not set for scalar types.
+
+// CHECK-LABEL: func @reduce_with_scalar_result
+func.func @reduce_with_scalar_result(%arg0: tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, %arg1 : tensor<f32>)
+    -> (tensor<*xindex>) {
+  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
+
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
+    "stablehlo.return"(%1) : (tensor<f32>) -> ()
+
+  }) {dimensions = dense<[0]> : tensor<1xi64>}
+      : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>, tensor<f32>)
+          -> tensor<*xf32>
+
+  // CHECK: types0 = tensor<f32>
+  %2 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+
+  func.return %2: tensor<*xindex>
+}
+
 // -----
 
 // CHECK-LABEL: func @unranked_reduce
