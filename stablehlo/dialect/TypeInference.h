@@ -321,7 +321,7 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
 
 LogicalResult inferTriangularSolveOp(
     std::optional<Location> location, Value a, Value b, bool leftSide,
-    bool isTransposeAInvalid, bool isTransposeOrAdjoint,
+    bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferTupleOp(MLIRContext* context,

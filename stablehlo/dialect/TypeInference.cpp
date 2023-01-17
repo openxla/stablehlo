@@ -2818,13 +2818,12 @@ LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
 
 LogicalResult inferTriangularSolveOp(
     std::optional<Location> location, Value a, Value b, bool leftSide,
-    bool isTransposeAInvalid, bool isTransposeOrAdjoint,
+    bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // ODS enforces that a and b are of same element type: float or complex.
   auto elementType = a.getType().cast<ShapedType>().getElementType();
   auto aType = a.getType().dyn_cast<RankedTensorType>();
-  auto bType = b.getType().dyn_cast<RankedTensorType>();
-  if (!aType || !bType) {
+  if (!aType) {
     inferredReturnShapes.emplace_back(elementType);
     return success();
   }
@@ -2839,6 +2838,12 @@ LogicalResult inferTriangularSolveOp(
     return emitOptionalError(location,
                              "two minor dimensions of operand 'a' must ",
                              "be compatible, but got ", aType);
+
+  auto bType = b.getType().dyn_cast<RankedTensorType>();
+  if (!bType) {
+    inferredReturnShapes.emplace_back(elementType);
+    return success();
+  }
 
   auto bRank = bType.getRank();
   if (aRank != bRank)
@@ -2869,34 +2874,13 @@ LogicalResult inferTriangularSolveOp(
     return success();
   }
   auto resultShape = bType.getShape().vec();
-  auto resultBounds = encodingToBounds(aType.getEncoding()).vec();
+  auto resultBounds = encodingToBounds(bType.getEncoding()).vec();
   for (int64_t i = 0; i < aRank - 2; i++) {
     auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
         location, i, aBatchDims[i], bBatchDims[i], aBounds[i], bBounds[i]);
     if (failed(inferredDimAndBoundOrErr)) return failure();
     resultShape[i] = (*inferredDimAndBoundOrErr).first;
     resultBounds[i] = (*inferredDimAndBoundOrErr).second;
-  }
-  if (leftSide) {
-    resultShape[bRank - 2] = bType.getShape()[bRank - 2];
-    resultBounds[bRank - 2] = bBounds[bRank - 2];
-    if (isTransposeOrAdjoint) {
-      resultShape[bRank - 1] = aType.getShape()[aRank - 1];
-      resultBounds[bRank - 1] = aBounds[aRank - 1];
-    } else {
-      resultShape[bRank - 1] = aType.getShape()[aRank - 2];
-      resultBounds[bRank - 1] = aBounds[aRank - 2];
-    }
-  } else {
-    resultShape[bRank - 1] = bType.getShape()[bRank - 1];
-    resultBounds[bRank - 1] = bBounds[bRank - 1];
-    if (isTransposeOrAdjoint) {
-      resultShape[bRank - 2] = aType.getShape()[aRank - 2];
-      resultBounds[bRank - 2] = aBounds[aRank - 2];
-    } else {
-      resultShape[bRank - 2] = aType.getShape()[aRank - 1];
-      resultBounds[bRank - 2] = aBounds[aRank - 1];
-    }
   }
   inferredReturnShapes.emplace_back(
       resultShape, bType.getElementType(),
