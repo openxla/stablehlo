@@ -1332,19 +1332,31 @@ LogicalResult inferAllToAllOp(
 
   // If operand is ranked, size of split dimension should be a multiple of split
   // count.
-  auto splitDimSize = operandRankedType.getDimSize(splitDimension);
-  if (isStaticDimSize(splitDimSize) && splitDimSize % splitCount != 0)
-    return emitOptionalError(
-        location, "split dimension has size ", splitDimSize,
-        ", expected to be a multiple of split_count ", splitCount);
   SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
                                    operandRankedType.getShape().end());
-  if (isStaticDimSize(resultShape[splitDimension]))
-    resultShape[splitDimension] /= splitCount;
-  if (isStaticDimSize(resultShape[concatDimension]))
-    resultShape[concatDimension] *= splitCount;
-  inferredReturnShapes.emplace_back(resultShape,
-                                    operandRankedType.getElementType());
+  if (!isDynamicDimSize(resultShape[splitDimension]) &&
+      resultShape[splitDimension] % splitCount != 0) {
+    return emitOptionalError(
+        location, "split dimension has size ", resultShape[splitDimension],
+        ", expected to be a multiple of split_count ", splitCount);
+  }
+  resultShape[splitDimension] /=
+      isDynamicDimSize(resultShape[splitDimension]) ? 1 : splitCount;
+  resultShape[concatDimension] *=
+      isDynamicDimSize(resultShape[concatDimension]) ? 1 : splitCount;
+
+  SmallVector<int64_t> resultBounds =
+      to_vector(encodingToBounds(operandRankedType.getEncoding()));
+  if (!resultBounds.empty()) {
+    resultBounds[splitDimension] /=
+        isDynamicDimSize(resultBounds[splitDimension]) ? 1 : splitCount;
+    resultBounds[concatDimension] *=
+        isDynamicDimSize(resultBounds[concatDimension]) ? 1 : splitCount;
+  }
+
+  inferredReturnShapes.emplace_back(
+      resultShape, operandRankedType.getElementType(),
+      boundsToEncoding(operandRankedType.getEncoding(), resultBounds));
   return success();
 }
 
