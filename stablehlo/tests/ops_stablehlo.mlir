@@ -4793,7 +4793,7 @@ func.func @batch_norm_train_dynamic(%input: tensor<?x?x2x2xf32>, %scale: tensor<
 // -----
 
 func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects feature_index to be smaller than the rank of multi-dimensional operand; got feature_index 4, and rank 4.}}
+  // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 4, and rank 4.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 4 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
@@ -4801,7 +4801,7 @@ func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2x
 // -----
 
 func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects feature_index to be a non-negative number, got -1.}}
+  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = -1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
@@ -4809,7 +4809,7 @@ func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2x
 // -----
 
 func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<3xf32>, %offset: tensor<3xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects the size of single-dimensional operand to be compatible with feature count, but the size of single-dimensional operand is 3 and the feature count is 2.}}
+  // expected-error@+1 {{expects the size of single-dimensional operands to be compatible with feature count, but the size of single-dimensional operands is 3 and the feature count is 2.}}
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 3 : i64} : (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>) -> (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
@@ -4839,7 +4839,7 @@ func.func @batch_norm_inference_dynamic(%input: tensor<4x?xf32>, %scale: tensor<
 // -----
 
 func.func @error_batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xf32>) {
-  // expected-error@+1 {{expects feature_index to be smaller than the rank of multi-dimensional operand; got feature_index 2, and rank 2.}}
+  // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 2, and rank 2.}}
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 2 : i64} :
       (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>,
         tensor<256xf32>) -> tensor<4x256xf32>
@@ -4849,7 +4849,7 @@ func.func @error_batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<
 // -----
 
 func.func @error_batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<4x256xf32>) {
-  // expected-error@+1 {{expects feature_index to be a non-negative number, got -1.}}
+  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = -1 : i64} :
       (tensor<4x256xf32>, tensor<256xf32>, tensor<256xf32>, tensor<256xf32>,
         tensor<256xf32>) -> tensor<4x256xf32>
@@ -4859,7 +4859,7 @@ func.func @error_batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<
 // -----
 
 func.func @error_batch_norm_inference(%input: tensor<4x256xf32>, %scale: tensor<25xf32>, %offset: tensor<25xf32>, %mean: tensor<25xf32>, %variance: tensor<25xf32>) -> (tensor<4x256xf32>) {
-  // expected-error@+1 {{expects the size of single-dimensional operand to be compatible with feature count, but the size of single-dimensional operand is 25 and the feature count is 256.}}
+  // expected-error@+1 {{expects the size of single-dimensional operands to be compatible with feature count, but the size of single-dimensional operands is 25 and the feature count is 256.}}
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 1 : i64} :
       (tensor<4x256xf32>, tensor<25xf32>, tensor<25xf32>, tensor<25xf32>,
         tensor<25xf32>) -> tensor<4x256xf32>
@@ -4888,7 +4888,7 @@ func.func @batch_norm_grad_dynamic(%input: tensor<?x2x2x2xf32>, %scale: tensor<?
 // -----
 
 func.func @error_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %mean: tensor<2xf32>, %variance: tensor<2xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects feature_index to be smaller than the rank of multi-dimensional operand; got feature_index 4, and rank 4.}}
+  // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 4, and rank 4.}}
   %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = 4 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
@@ -4896,7 +4896,7 @@ func.func @error_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf
 // -----
 
 func.func @error_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %mean: tensor<2xf32>, %variance: tensor<2xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects feature_index to be a non-negative number, got -1.}}
+  // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
   %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = -1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
@@ -4904,7 +4904,7 @@ func.func @error_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf
 // -----
 
 func.func @error_batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<4xf32>, %mean: tensor<4xf32>, %variance: tensor<4xf32>, %grad_output: tensor<2x2x2x2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+1 {{expects the size of single-dimensional operand to be compatible with feature count, but the size of single-dimensional operand is 4 and the feature count is 2.}}
+  // expected-error@+1 {{expects the size of single-dimensional operands to be compatible with feature count, but the size of single-dimensional operands is 4 and the feature count is 2.}}
   %0:3 = "stablehlo.batch_norm_grad" (%input, %scale, %mean, %variance, %grad_output) {epsilon = 0.001 : f32, feature_index = 0 : i64} : (tensor<2x2x2x2xf32>, tensor<4xf32>, tensor<4xf32>, tensor<4xf32>, tensor<2x2x2x2xf32>) -> (tensor<2x2x2x2xf32>, tensor<4xf32>, tensor<4xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }

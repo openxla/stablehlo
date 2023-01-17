@@ -116,17 +116,17 @@ LogicalResult inferAllToAllOp(
 
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale, Value mean,
-    Value variance, Value gradOutput, int64_t feature_index,
+    Value variance, Value gradOutput, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormInferenceOp(
     Optional<Location> location, Value operand, Value scale, Value offset,
-    Value mean, Value variance, int64_t feature_index,
+    Value mean, Value variance, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormTrainingOp(
     Optional<Location> location, Value operand, Value scale, Value offset,
-    int64_t feature_index,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBroadcastOp(

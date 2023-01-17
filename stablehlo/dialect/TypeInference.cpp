@@ -210,7 +210,7 @@ LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
 LogicalResult verifyBatchNorm(Optional<Location> location,
                               ValueRange multiDimOperands,
                               ValueRange singleDimOperands,
-                              int64_t feature_index) {
+                              int64_t featureIndex) {
   if (failed(verifyPairwiseCompatibleShapes(multiDimOperands.getTypes())))
     return emitOptionalError(
         location,
@@ -222,28 +222,28 @@ LogicalResult verifyBatchNorm(Optional<Location> location,
         "expects single-dimensional operands to have compatible shapes.");
 
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
-  if (feature_index >= multiDimType.getRank())
+  if (featureIndex >= multiDimType.getRank())
     return emitOptionalError(
         location,
-        "expects feature_index to be smaller than the rank of "
-        "multi-dimensional operand; got feature_index ",
-        feature_index, ", and rank ", multiDimType.getRank(), ".");
+        "expects featureIndex to be smaller than the rank of "
+        "multi-dimensional operands; got featureIndex ",
+        featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
-  if (feature_index < 0)
-    return emitOptionalError(location, "expects feature_index to be a ",
-                             "non-negative number, got ", feature_index, ".");
+  if (featureIndex < 0)
+    return emitOptionalError(location, "expects featureIndex to be a ",
+                             "non-negative number, got ", featureIndex, ".");
   // Note: the above checks '0 <= feature-index < multiDimType.getRank()'
   // imply 'multiDimType.getRank() >= 1'.
 
-  const int64_t featureCount = multiDimType.getDimSize(feature_index);
+  const int64_t featureCount = multiDimType.getDimSize(featureIndex);
   const int64_t singleDimSize =
       singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
   if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
-        "expects the size of single-dimensional operand to be compatible with "
-        "feature count, but the size of single-dimensional operand is ",
+        "expects the size of single-dimensional operands to be compatible with "
+        "feature count, but the size of single-dimensional operands is ",
         dimSizeToString(singleDimSize), " and the feature count is ",
         dimSizeToString(featureCount), ".");
 
@@ -1403,27 +1403,27 @@ LogicalResult inferAllToAllOp(
 
 LogicalResult inferBatchNormGradOp(
     Optional<Location> location, Value operand, Value scale, Value mean,
-    Value variance, Value gradOutput, int64_t feature_index,
+    Value variance, Value gradOutput, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return inferBatchNormOp(location, {operand, gradOutput},
-                          {scale, mean, variance}, feature_index,
+                          {scale, mean, variance}, featureIndex,
                           inferredReturnShapes, /*is_inference=*/false);
 }
 
 LogicalResult inferBatchNormInferenceOp(
     Optional<Location> location, Value operand, Value scale, Value offset,
-    Value mean, Value variance, int64_t feature_index,
+    Value mean, Value variance, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return inferBatchNormOp(location, {operand}, {scale, offset, mean, variance},
-                          feature_index, inferredReturnShapes,
+                          featureIndex, inferredReturnShapes,
                           /*is_inference=*/true);
 }
 
 LogicalResult inferBatchNormTrainingOp(
     Optional<Location> location, Value operand, Value scale, Value offset,
-    int64_t feature_index,
+    int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  return inferBatchNormOp(location, {operand}, {scale, offset}, feature_index,
+  return inferBatchNormOp(location, {operand}, {scale, offset}, featureIndex,
                           inferredReturnShapes, /*is_inference=*/false);
 }
 
