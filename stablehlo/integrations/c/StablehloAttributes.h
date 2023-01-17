@@ -15,6 +15,8 @@ limitations under the License.
 
 #include <sys/types.h>
 
+#include <optional>
+
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 

@@ -104,8 +104,8 @@ bool verifyCompatibleDims(int64_t dimSize1, int64_t dimSize2) {
 
 // Convert a 1D dense int64 attribute to a list of values.
 FailureOr<SmallVector<int64_t>> convert1DAttribute(
-    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc,
-    StringRef attrName) {
+    std::optional<DenseIntElementsAttr> optionalAttr,
+    std::optional<Location> loc, StringRef attrName) {
   if (!optionalAttr.has_value()) return SmallVector<int64_t>{};
 
   DenseIntElementsAttr attr = *optionalAttr;
@@ -120,7 +120,8 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
 
 // Convert a Nx2 dense int64 padding attribute to a list of tuples.
 FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
-    Optional<DenseIntElementsAttr> optionalAttr, Optional<Location> loc) {
+    std::optional<DenseIntElementsAttr> optionalAttr,
+    std::optional<Location> loc) {
   if (!optionalAttr.has_value())
     return SmallVector<std::pair<int64_t, int64_t>>{};
 
@@ -145,7 +146,7 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
 
 // Convert a 1D dense bool attribute to a list of values.
 FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
-    Optional<DenseElementsAttr> optionalAttr, Optional<Location> loc,
+    std::optional<DenseElementsAttr> optionalAttr, std::optional<Location> loc,
     StringRef attrName) {
   if (!optionalAttr.has_value()) return SmallVector<bool>{};
 
@@ -199,7 +200,7 @@ int64_t stridedBound(int64_t bound, int64_t windowSize, int64_t stride) {
   return (bound - windowSize) / stride + 1;
 }
 
-LogicalResult verifyBatchNorm(Optional<Location> location, Value operand,
+LogicalResult verifyBatchNorm(std::optional<Location> location, Value operand,
                               Value scale, int64_t feature_index) {
   auto operandType = operand.getType().cast<RankedTensorType>();
   if (feature_index >= operandType.getRank())
@@ -240,7 +241,7 @@ verifyWindowAttributesAndInferWindowDimensions(
     ArrayRef<int64_t> windowDimensions, ArrayRef<int64_t> windowStrides,
     ArrayRef<std::pair<int64_t, int64_t>> padding,
     ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
-    ArrayRef<bool> windowReversal, Optional<Location> loc) {
+    ArrayRef<bool> windowReversal, std::optional<Location> loc) {
   const auto verifySize = [&](const size_t attrSize,
                               StringRef attrName) -> LogicalResult {
     if (attrSize == 0 || attrSize == windowDimensions.size()) return success();
@@ -343,11 +344,11 @@ unsigned potentiallyComplexBitwidth(Type type) {
 // P4. All values in `replica_groups` are unique and covers all the values in
 //     the interval [0, N-1], where N is the total number of replica ids.
 // P5. replica group size must be equal to 'expectedGroupSize'.
-LogicalResult verifyReplicaGroups(Optional<Location> location,
+LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
                                   bool allGroupsMustHaveSameSize,
                                   bool useGlobalDeviceIds,
-                                  Optional<size_t> expectedGroupSize) {
+                                  std::optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
   if (replicaGroupType.getRank() != 2)
@@ -397,7 +398,7 @@ LogicalResult verifyReplicaGroups(Optional<Location> location,
 }
 
 LogicalResult verifyReduceOpInputsAndInferShape(
-    Optional<Location> location, SmallVector<TensorType> inputArgTypes,
+    std::optional<Location> location, SmallVector<TensorType> inputArgTypes,
     SmallVector<TensorType> initValueTypes, DenseIntElementsAttr dimensions,
     SmallVector<int64_t>& newDimensions, Attribute& encoding) {
   // Check for unranked tensors in input operands.
@@ -460,7 +461,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 }
 
 // TODO(zhouxin) remove args `allInputsUnranked` and `numInputs`
-LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
+LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  ArrayRef<TensorType> inputArgTypes,
                                  ArrayRef<TensorType> initValueTypes,
                                  int64_t numInputs,
@@ -607,14 +608,14 @@ LogicalResult verifyReducerShape(Optional<Location> loc, Block& block,
 }
 
 LogicalResult verifyReduceWindowOpInputsAndInferWindow(
-    Optional<Location> location, SmallVector<TensorType> inputArgTypes,
+    std::optional<Location> location, SmallVector<TensorType> inputArgTypes,
     SmallVector<TensorType> initValueTypes,
     DenseIntElementsAttr windowDimensions,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> baseDilations,
-    Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding,
-    Optional<DenseElementsAttr> windowReversal,
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> baseDilations,
+    std::optional<DenseIntElementsAttr> windowDilations,
+    std::optional<DenseIntElementsAttr> padding,
+    std::optional<DenseElementsAttr> windowReversal,
     SmallVector<int64_t>& windowDims,
     SmallVector<WindowDimension>& inferredWindow) {
   // Check for unranked tensors in input operands.
@@ -686,7 +687,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
 // which may not guarantee the added region(s) in `odsState.regions` to be
 // non-empty. Need check it here to avoid a crash for the ops that need regions
 // in type inference, i.e. `IfOp/CaseOp/MapOp`.
-LogicalResult verifyRegionNotEmpty(Optional<Location> location,
+LogicalResult verifyRegionNotEmpty(std::optional<Location> location,
                                    Region& region) {
   if (region.empty())
     return emitOptionalError(location, "expect non-empty region");
@@ -708,7 +709,7 @@ LogicalResult isSpatialDimensionsValid(
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
-    Optional<Location> location) {
+    std::optional<Location> location) {
   uint64_t spatialDimNum = inputSpatialDimensions.size();
   // P1.
   if ((spatialDimNum != kernelSpatialDimensions.size()) ||
@@ -769,8 +770,8 @@ LogicalResult isSpatialDimensionsValid(
 }
 
 // Checks if the precision config has a valid size, if provided.
-LogicalResult verifyPrecisionConfig(Optional<Location> loc,
-                                    Optional<ArrayAttr> maybeArrayAttr) {
+LogicalResult verifyPrecisionConfig(std::optional<Location> loc,
+                                    std::optional<ArrayAttr> maybeArrayAttr) {
   if (!maybeArrayAttr.has_value()) return success();
   auto arrayAttr = maybeArrayAttr.value();
   if (!arrayAttr) return success();
@@ -803,14 +804,14 @@ LogicalResult verifyPrecisionConfig(Optional<Location> loc,
 //          dim(rhs, o) (or dim(output, f')) % fgc == 0
 //  P3. Precision config is null, of size 0 or of size 2.
 LogicalResult verifyConvolutionAttributes(
-    Optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Value lhs, Value rhs,
     int64_t inputBatchDimension, int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    Optional<ArrayAttr> precisionConfig) {
+    std::optional<ArrayAttr> precisionConfig) {
   // P1.
   if (failed(isSpatialDimensionsValid(
           lhs, inputBatchDimension, inputFeatureDimension,
@@ -913,7 +914,7 @@ LogicalResult validateScatterDimensionNumbers(
     bool scatterIndicesTypeRanked, bool updatesTypeRanked,
     ArrayRef<int64_t> updateWindowDims, ArrayRef<int64_t> insertedWindowDims,
     ArrayRef<int64_t> scatterDimsToOperandDims, int64_t indexVectorDim,
-    Optional<Location> loc) {
+    std::optional<Location> loc) {
   // P1.
   if (!llvm::is_sorted(updateWindowDims))
     return emitOptionalError(loc,
@@ -1020,7 +1021,7 @@ LogicalResult validateScatterDimensionNumbers(
 //  P9. Verify size(slice_sizes) == rank(operand).
 //  P10. Verify 0 <= collapsed_slice_dims[i] < size(slice_sizes) for all items.
 static LogicalResult verifyGather(
-    Optional<Location> location, ShapeAdaptor operandShape,
+    std::optional<Location> location, ShapeAdaptor operandShape,
     ShapeAdaptor startIndicesShape, ShapeAdaptor sliceSizesShape,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim) {
@@ -1187,7 +1188,7 @@ void reifyGatherDimSizes(int64_t resultRank,
 //  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
 //      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
 static LogicalResult inferGatherReturnTypeComponents(
-    Optional<Location> location, ShapeAdaptor operandShape,
+    std::optional<Location> location, ShapeAdaptor operandShape,
     ShapeAdaptor startIndicesShape,
     llvm::function_ref<int64_t(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
@@ -1228,7 +1229,7 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 // Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(Optional<Location> location,
+LogicalResult inferConditionalOp(std::optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   if (branches.empty())
@@ -1261,7 +1262,7 @@ LogicalResult inferConditionalOp(Optional<Location> location,
 // Shape functions for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult inferAbsOp(Optional<Location>, Value operand,
+LogicalResult inferAbsOp(std::optional<Location>, Value operand,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandTy = operand.getType().cast<ShapedType>();
   Type elementTy = operandTy.getElementType();
@@ -1282,7 +1283,8 @@ LogicalResult inferAbsOp(Optional<Location>, Value operand,
   return success();
 }
 
-LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
+LogicalResult inferAfterAllOp(Dialect* dialect,
+                              std::optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
   inferredReturnTypes.push_back(hloDialect->createTokenType());
@@ -1290,7 +1292,7 @@ LogicalResult inferAfterAllOp(Dialect* dialect, Optional<Location> location,
 }
 
 LogicalResult inferAllToAllOp(
-    Optional<Location> location, Value operand, int64_t splitDimension,
+    std::optional<Location> location, Value operand, int64_t splitDimension,
     int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
@@ -1347,7 +1349,7 @@ LogicalResult inferAllToAllOp(
 }
 
 LogicalResult inferBatchNormGradOp(
-    Optional<Location> location, Value operand, Value scale,
+    std::optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
@@ -1363,7 +1365,7 @@ LogicalResult inferBatchNormGradOp(
 }
 
 LogicalResult inferBatchNormInferenceOp(
-    Optional<Location> location, Value operand, Value scale,
+    std::optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
@@ -1374,7 +1376,7 @@ LogicalResult inferBatchNormInferenceOp(
 }
 
 LogicalResult inferBatchNormTrainingOp(
-    Optional<Location> location, Value operand, Value scale,
+    std::optional<Location> location, Value operand, Value scale,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
@@ -1390,7 +1392,7 @@ LogicalResult inferBatchNormTrainingOp(
 }
 
 LogicalResult inferBroadcastOp(
-    Optional<Location> location, Value operand,
+    std::optional<Location> location, Value operand,
     DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
@@ -1413,7 +1415,8 @@ LogicalResult inferBroadcastOp(
   return success();
 }
 
-LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
+LogicalResult inferCaseOp(std::optional<Location> location,
+                          RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
 }
@@ -1424,7 +1427,7 @@ LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
 //   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
 //   P2. The two minor dimensions of 'a' must have equal size, got %s.
 LogicalResult inferCholeskyOp(
-    Optional<Location> location, Value a,
+    std::optional<Location> location, Value a,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type aType = a.getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
@@ -1453,7 +1456,7 @@ LogicalResult inferCholeskyOp(
 }
 
 LogicalResult inferClampOp(
-    Optional<Location> location, Value min, Value operand, Value max,
+    std::optional<Location> location, Value min, Value operand, Value max,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<RankedTensorType>();
   auto operandShape = operandType.getShape();
@@ -1485,7 +1488,7 @@ LogicalResult inferClampOp(
 }
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, Optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapedTypeComponents& components =
       inferredReturnShapes.emplace_back(IntegerType::get(context, /*width=*/1));
@@ -1497,7 +1500,7 @@ LogicalResult inferCompareOp(
   return success();
 }
 
-LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
+LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   TensorType operandType = lhs.getType().cast<TensorType>();
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
@@ -1505,8 +1508,8 @@ LogicalResult inferComplexOp(Optional<Location> location, Value lhs,
   return success();
 }
 
-LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
-                                 int64_t dimension,
+LogicalResult inferConcatenateOp(std::optional<Location> location,
+                                 ValueRange inputs, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   if (dimension < 0)
     return emitOptionalError(location, "dimension ", dimension, " is negative");
@@ -1606,14 +1609,14 @@ LogicalResult inferConcatenateOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-LogicalResult inferConstantOp(Optional<Location>, ElementsAttr value,
+LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(value.getType());
   return success();
 }
 
 LogicalResult inferConvertOp(
-    Optional<Location> location, Value operand,
+    std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<ShapedType>();
   inferredReturnShapes.emplace_back(
@@ -1631,18 +1634,19 @@ LogicalResult inferConvertOp(
  *      TODO(b/232574102): Verify the element-type of return-value.
  */
 LogicalResult inferConvolutionOp(
-    Optional<Location> location, Value lhs, Value rhs,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> padding,
-    Optional<DenseIntElementsAttr> lhsDilation,
-    Optional<DenseIntElementsAttr> rhsDilation,
-    Optional<DenseElementsAttr> windowReversal, int64_t inputBatchDimension,
-    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> padding,
+    std::optional<DenseIntElementsAttr> lhsDilation,
+    std::optional<DenseIntElementsAttr> rhsDilation,
+    std::optional<DenseElementsAttr> windowReversal,
+    int64_t inputBatchDimension, int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    Optional<ArrayAttr> precisionConfig,
+    std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
   auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
@@ -1740,7 +1744,8 @@ LogicalResult inferConvolutionOp(
   return success();
 }
 
-LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
+LogicalResult inferCreateTokenOp(Dialect* dialect,
+                                 std::optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
   inferredReturnTypes.push_back(hloDialect->createTokenType());
@@ -1748,8 +1753,8 @@ LogicalResult inferCreateTokenOp(Dialect* dialect, Optional<Location> location,
 }
 
 LogicalResult inferDotOp(
-    Optional<Location> location, Value lhs, Value rhs,
-    Optional<ArrayAttr> precisionConfig,
+    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
@@ -1792,12 +1797,12 @@ LogicalResult inferDotOp(
 }
 
 LogicalResult inferDotGeneralOp(
-    Optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Value lhs, Value rhs,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
     ArrayRef<int64_t> rhsContractingDimensions,
-    Optional<ArrayAttr> precisionConfig,
+    std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
@@ -1916,7 +1921,7 @@ LogicalResult inferDotGeneralOp(
 }
 
 LogicalResult inferDynamicGatherOp(
-    Optional<Location> location, Value operand, Value startIndices,
+    std::optional<Location> location, Value operand, Value startIndices,
     Value sliceSizes, ArrayRef<int64_t> offsetDims,
     ArrayRef<int64_t> collapsedSliceDims, ArrayRef<int64_t> startIndexMap,
     int64_t indexVectorDim,
@@ -1938,7 +1943,7 @@ LogicalResult inferDynamicGatherOp(
 }
 
 LogicalResult inferDynamicSliceOp(
-    Optional<Location> location, Value operand, ValueRange startIndices,
+    std::optional<Location> location, Value operand, ValueRange startIndices,
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   int numSliceSizes = sliceSizes.getNumElements();
@@ -1975,7 +1980,7 @@ LogicalResult inferDynamicSliceOp(
 }
 
 LogicalResult inferDynamicUpdateSliceOp(
-    Optional<Location> location, Value operand, Value update,
+    std::optional<Location> location, Value operand, Value update,
     ValueRange startIndices,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<ShapedType>();
@@ -2046,7 +2051,7 @@ LogicalResult inferDynamicUpdateSliceOp(
 // P2. Element types agree with fft_type
 // P3. Operand shape dimensions agree with fft_length for the given fft_type
 LogicalResult inferFftOp(
-    Optional<Location> location, Value operand, bool isFftTypeRfft,
+    std::optional<Location> location, Value operand, bool isFftTypeRfft,
     bool isFftTypeIrfft, DenseIntElementsAttr fftLength,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto fftLengthValues = fftLength.getValues<int64_t>();
@@ -2150,7 +2155,7 @@ LogicalResult inferFftOp(
 //  P3. Verify 0 <= slice_sizes[i] < shape(operand)[i], for every i.
 //  Verifications by inferGatherReturnTypeComponents().
 LogicalResult inferGatherOp(
-    Optional<Location> location, Value operand, Value startIndices,
+    std::optional<Location> location, Value operand, Value startIndices,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     DenseIntElementsAttr sliceSizes,
@@ -2198,7 +2203,7 @@ LogicalResult inferGatherOp(
 }
 
 LogicalResult inferGetDimensionSizeOp(
-    MLIRContext* context, Optional<Location> location,
+    MLIRContext* context, std::optional<Location> location,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
       RankedTensorType::get({}, IntegerType::get(context, 32)));
@@ -2206,7 +2211,7 @@ LogicalResult inferGetDimensionSizeOp(
 }
 
 LogicalResult inferGetTupleElementOp(
-    Optional<Location> location, Value operand, int32_t index,
+    std::optional<Location> location, Value operand, int32_t index,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandType = operand.getType().dyn_cast<TupleType>();
   if (!operandType) return failure();
@@ -2219,14 +2224,15 @@ LogicalResult inferGetTupleElementOp(
   return success();
 }
 
-LogicalResult inferImagOp(Optional<Location> location, Value operand,
+LogicalResult inferImagOp(std::optional<Location> location, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
       createRealType(operand.getType().cast<TensorType>()));
   return success();
 }
 
-LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
+LogicalResult inferIsFiniteOp(MLIRContext* context, std::optional<Location>,
+                              Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
   auto argTy = x.getType().cast<TensorType>();
   Builder b(context);
@@ -2234,13 +2240,13 @@ LogicalResult inferIsFiniteOp(MLIRContext* context, Optional<Location>, Value x,
   return success();
 }
 
-LogicalResult inferIfOp(Optional<Location> location, RegionRange branches,
+LogicalResult inferIfOp(std::optional<Location> location, RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
 }
 
 LogicalResult inferMapOp(
-    Optional<Location> location, ValueRange inputs,
+    std::optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (failed(verifyRegionNotEmpty(location, computation))) return failure();
@@ -2334,7 +2340,7 @@ LogicalResult inferMapOp(
 }
 
 LogicalResult inferOptimizationBarrierOp(
-    Optional<Location> location, ValueRange operand,
+    std::optional<Location> location, ValueRange operand,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   for (auto inputArgType : operand.getTypes()) {
     inferredReturnTypes.emplace_back(inputArgType);
@@ -2343,14 +2349,14 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
-LogicalResult inferOutfeedOp(Dialect* dialect, Optional<Location> location,
+LogicalResult inferOutfeedOp(Dialect* dialect, std::optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
   inferredReturnTypes.push_back(hloDialect->createTokenType());
   return success();
 }
 
-LogicalResult inferPadOp(Optional<Location> location, Value operand,
+LogicalResult inferPadOp(std::optional<Location> location, Value operand,
                          Value paddingValue,
                          DenseIntElementsAttr edgePaddingLow,
                          DenseIntElementsAttr edgePaddingHigh,
@@ -2421,14 +2427,14 @@ LogicalResult inferPadOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult inferPartitionIdOp(MLIRContext* context, Optional<Location>,
+LogicalResult inferPartitionIdOp(MLIRContext* context, std::optional<Location>,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(RankedTensorType::get(
       /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
   return success();
 }
 
-LogicalResult inferRealOp(Optional<Location>, Value operand,
+LogicalResult inferRealOp(std::optional<Location>, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(
       createRealType(operand.getType().cast<TensorType>()));
@@ -2436,7 +2442,7 @@ LogicalResult inferRealOp(Optional<Location>, Value operand,
 }
 
 LogicalResult inferReduceOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
@@ -2466,12 +2472,12 @@ LogicalResult inferReduceOp(
 }
 
 LogicalResult inferReduceWindowOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> baseDilations,
-    Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding,
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> baseDilations,
+    std::optional<DenseIntElementsAttr> windowDilations,
+    std::optional<DenseIntElementsAttr> padding,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
@@ -2500,25 +2506,25 @@ LogicalResult inferReduceWindowOp(
   return success();
 }
 
-LogicalResult inferReplicaIdOp(MLIRContext* context, Optional<Location>,
+LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(RankedTensorType::get(
       /*shape=*/{}, IntegerType::get(context, 32, IntegerType::Unsigned)));
   return success();
 }
 
-LogicalResult inferReturnOp(Optional<Location>, SmallVectorImpl<Type>&) {
+LogicalResult inferReturnOp(std::optional<Location>, SmallVectorImpl<Type>&) {
   return success();
 }
 
-LogicalResult inferScatterOp(Optional<Location>, ValueRange inputs,
+LogicalResult inferScatterOp(std::optional<Location>, ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   llvm::append_range(inferredReturnTypes, inputs.getTypes());
   return success();
 }
 
 LogicalResult inferSelectOp(
-    Optional<Location> location, Value pred, Value onTrue, Value onFalse,
+    std::optional<Location> location, Value pred, Value onTrue, Value onFalse,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto predType = pred.getType().cast<ShapedType>();
   auto trueType = onTrue.getType().cast<ShapedType>();
@@ -2553,7 +2559,7 @@ LogicalResult inferSelectAndScatterOp(
   return success();
 }
 
-LogicalResult inferSendOp(Dialect* dialect, Optional<Location> location,
+LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   auto hloDialect = cast<HloDialectInterface>(dialect);
   inferredReturnTypes.push_back(hloDialect->createTokenType());
@@ -2568,7 +2574,7 @@ LogicalResult inferSendOp(Dialect* dialect, Optional<Location> location,
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
 // Note: for P4, use the bound size than dim size for bounded dynamism case.
-LogicalResult inferSliceOp(Optional<Location> location, Value operand,
+LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
@@ -2650,7 +2656,7 @@ LogicalResult inferSliceOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult inferSortOp(
-    Optional<Location>, ValueRange inputs,
+    std::optional<Location>, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   for (auto resultType : inputs.getTypes()) {
     auto rankedResult = resultType.dyn_cast<RankedTensorType>();
@@ -2664,7 +2670,7 @@ LogicalResult inferSortOp(
   return success();
 }
 
-LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
+LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
                                DenseIntElementsAttr permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes) {
   auto type = operand.getType();
@@ -2710,7 +2716,7 @@ LogicalResult inferTransposeOp(Optional<Location> loc, Value operand,
 }
 
 LogicalResult inferTriangularSolveOp(
-    Optional<Location> location, Value a, Value b, bool leftSide,
+    std::optional<Location> location, Value a, Value b, bool leftSide,
     bool isTransposeAInvalid,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // ODS enforces that a and b are of same element type: float or complex.
@@ -2764,7 +2770,7 @@ LogicalResult inferTriangularSolveOp(
   return success();
 }
 
-LogicalResult inferTupleOp(MLIRContext* context, Optional<Location>,
+LogicalResult inferTupleOp(MLIRContext* context, std::optional<Location>,
                            ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(TupleType::get(context, val.getTypes()));
@@ -2772,7 +2778,7 @@ LogicalResult inferTupleOp(MLIRContext* context, Optional<Location>,
 }
 
 LogicalResult inferUniformDequantizeOp(
-    Optional<Location> location, Value operand,
+    std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<ShapedType>();
   // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
@@ -2783,7 +2789,7 @@ LogicalResult inferUniformDequantizeOp(
 }
 
 LogicalResult inferUniformQuantizeOp(
-    Optional<Location> location, Value operand,
+    std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().dyn_cast<ShapedType>();
   inferredReturnShapes.emplace_back(
@@ -2791,7 +2797,7 @@ LogicalResult inferUniformQuantizeOp(
   return success();
 }
 
-LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
+LogicalResult inferWhileOp(std::optional<Location>, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
   for (const auto& resultType : operand.getType())
     inferredReturnTypes.push_back(resultType);
@@ -2802,7 +2808,7 @@ LogicalResult inferWhileOp(Optional<Location>, ValueRange operand,
 // Verifiers for ops.
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
+LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
                                 int64_t allGatherDim,
                                 DenseIntElementsAttr replicaGroups,
                                 bool useGlobalDeviceIds, Value result) {
@@ -2860,7 +2866,7 @@ LogicalResult verifyAllGatherOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
+LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
                                 bool useGlobalDeviceIds, Region& computation) {
   if (failed(verifyReplicaGroups(location, replicaGroups,
@@ -2891,8 +2897,8 @@ LogicalResult verifyAllReduceOp(Optional<Location> location, Value operand,
  * ... x f32 => [bitcast_convert] => ... x 4 x i8
  * ... x 4 x i8 => [bitcast_convert] => ... x f32
  */
-LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
-                                     Value result) {
+LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
+                                     Value operand, Value result) {
   auto operandTensorType = operand.getType().cast<TensorType>();
   auto targetTensorType = result.getType().cast<TensorType>();
 
@@ -2965,7 +2971,8 @@ LogicalResult verifyBitcastConvertOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
+LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
+                                     Value operand,
                                      DenseIntElementsAttr broadcastDimensions,
                                      Value result) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
@@ -3025,7 +3032,7 @@ LogicalResult verifyBroadcastInDimOp(Optional<Location> location, Value operand,
 }
 
 LogicalResult verifyCollectivePermuteOp(
-    Optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
+    std::optional<Location> location, DenseIntElementsAttr sourceTargetPairs) {
   // Verifies the source target pairs attached to collective permute.
   auto type = sourceTargetPairs.getType().dyn_cast<RankedTensorType>();
   if (type.getRank() != 2)
@@ -3062,18 +3069,19 @@ LogicalResult verifyCollectivePermuteOp(
 }
 
 LogicalResult verifyConvolutionOp(
-    Optional<Location> location, Value lhs, Value rhs,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> padding,
-    Optional<DenseIntElementsAttr> lhsDilation,
-    Optional<DenseIntElementsAttr> rhsDilation,
-    Optional<DenseElementsAttr> windowReversal, int64_t inputBatchDimension,
-    int64_t inputFeatureDimension, ArrayRef<int64_t> inputSpatialDimensions,
+    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> padding,
+    std::optional<DenseIntElementsAttr> lhsDilation,
+    std::optional<DenseIntElementsAttr> rhsDilation,
+    std::optional<DenseElementsAttr> windowReversal,
+    int64_t inputBatchDimension, int64_t inputFeatureDimension,
+    ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    Optional<ArrayAttr> precisionConfig, Value result) {
+    std::optional<ArrayAttr> precisionConfig, Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferConvolutionOp(
           location, lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
@@ -3097,8 +3105,9 @@ LogicalResult verifyConvolutionOp(
   return success();
 }
 
-LogicalResult verifyDotOp(Optional<Location> location, Value lhs, Value rhs,
-                          Optional<ArrayAttr> precisionConfig, Value result) {
+LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
+                          Value rhs, std::optional<ArrayAttr> precisionConfig,
+                          Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferDotOp(location, lhs, rhs, precisionConfig,
                         inferredReturnShapes)))
@@ -3115,13 +3124,13 @@ LogicalResult verifyDotOp(Optional<Location> location, Value lhs, Value rhs,
   return success();
 }
 
-LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
+LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  Value rhs,
                                  ArrayRef<int64_t> lhsBatchingDimensions,
                                  ArrayRef<int64_t> rhsBatchingDimensions,
                                  ArrayRef<int64_t> lhsContractingDimensions,
                                  ArrayRef<int64_t> rhsContractingDimensions,
-                                 Optional<ArrayAttr> precisionConfig,
+                                 std::optional<ArrayAttr> precisionConfig,
                                  Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferDotGeneralOp(location, lhs, rhs, lhsBatchingDimensions,
@@ -3142,10 +3151,11 @@ LogicalResult verifyDotGeneralOp(Optional<Location> location, Value lhs,
 }
 
 LogicalResult verifyDynamicBroadcastInDimOp(
-    Optional<Location> location, Value operand, Value outputDimensions,
+    std::optional<Location> location, Value operand, Value outputDimensions,
     DenseIntElementsAttr broadcastDimensions,
-    Optional<DenseIntElementsAttr> knownExpandingDimensions,
-    Optional<DenseIntElementsAttr> knownNonexpandingDimensions, Value result) {
+    std::optional<DenseIntElementsAttr> knownExpandingDimensions,
+    std::optional<DenseIntElementsAttr> knownNonexpandingDimensions,
+    Value result) {
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
 
@@ -3207,7 +3217,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   int64_t numKnownExpansionBehavior = 0;
   DenseSet<int64_t> knownExpansionBehavior;
   auto collectExpansionBehaviorDims =
-      [&](const Optional<DenseIntElementsAttr>& attr) {
+      [&](const std::optional<DenseIntElementsAttr>& attr) {
         if (!attr) return;
         for (const APInt& it : *attr) {
           numKnownExpansionBehavior++;
@@ -3229,10 +3239,10 @@ LogicalResult verifyDynamicBroadcastInDimOp(
   return success();
 }
 
-LogicalResult verifyDynamicPadOp(Optional<Location> location, Value operand,
-                                 Value paddingValue, Value edgePaddingLow,
-                                 Value edgePaddingHigh, Value interiorPadding,
-                                 Value result) {
+LogicalResult verifyDynamicPadOp(std::optional<Location> location,
+                                 Value operand, Value paddingValue,
+                                 Value edgePaddingLow, Value edgePaddingHigh,
+                                 Value interiorPadding, Value result) {
   auto inputType = operand.getType().dyn_cast<RankedTensorType>();
   // If operand is unranked, there is very little to verify statically.
   if (!inputType) return success();
@@ -3272,7 +3282,7 @@ LogicalResult verifyDynamicPadOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
+LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result) {
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
   auto outputShapeType = outputShape.getType().dyn_cast<RankedTensorType>();
@@ -3287,8 +3297,9 @@ LogicalResult verifyDynamicReshapeOp(Optional<Location> location,
 
 // Checks that the result type is of the form `zero_or_more_type(s),
 // stablehlo::token`
-LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
-                             Optional<ArrayAttr> layout, ValueRange results) {
+LogicalResult verifyInfeedOp(Dialect* dialect, std::optional<Location> location,
+                             std::optional<ArrayAttr> layout,
+                             ValueRange results) {
   auto resultTypes = results.getType();
   if (resultTypes.empty())
     return emitOptionalError(
@@ -3335,8 +3346,8 @@ LogicalResult verifyInfeedOp(Dialect* dialect, Optional<Location> location,
   return success();
 }
 
-LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
-                           Value result) {
+LogicalResult verifyIotaOp(std::optional<Location> location,
+                           int64_t iotaDimension, Value result) {
   auto shape = result.getType().cast<ShapedType>();
   if (!shape.hasRank()) return success();
   if (shape.getRank() == 0)
@@ -3350,7 +3361,7 @@ LogicalResult verifyIotaOp(Optional<Location> location, int64_t iotaDimension,
 }
 
 // Verifies that operand rank matches start_indices/limit_indices/strides size
-LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
+LogicalResult verifyRealDynamicSliceOp(std::optional<Location> location,
                                        Value operand, Value startIndices,
                                        Value limitIndices, Value strides) {
   auto inputType = operand.getType().dyn_cast<RankedTensorType>();
@@ -3381,7 +3392,7 @@ LogicalResult verifyRealDynamicSliceOp(Optional<Location> location,
 
 // Checks that the result type is of the form `zero_or_more_type(s),
 // stablehlo::token`
-LogicalResult verifyRecvOp(Dialect* dialect, Optional<Location> location,
+LogicalResult verifyRecvOp(Dialect* dialect, std::optional<Location> location,
                            ValueRange results) {
   auto resultTypes = results.getTypes();
   if (resultTypes.empty())
@@ -3404,8 +3415,8 @@ LogicalResult verifyRecvOp(Dialect* dialect, Optional<Location> location,
 //      1. the dimensions of reduce-op are in-bounds for the given shape.
 //      2. the dimension-attribute have no duplicate entries.
 //  P3. Verify the inner block defining the reducer function.
-LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
-                             ValueRange initValues,
+LogicalResult verifyReduceOp(std::optional<Location> location,
+                             ValueRange inputs, ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
@@ -3440,7 +3451,7 @@ LogicalResult verifyReduceOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-LogicalResult verifyReducePrecisionOp(Optional<Location> location,
+LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
                                       int32_t exponentBits,
                                       int32_t mantissaBits) {
   // (C2)
@@ -3452,8 +3463,8 @@ LogicalResult verifyReducePrecisionOp(Optional<Location> location,
   return success();
 }
 
-LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
-                                    int64_t scatterDimension,
+LogicalResult verifyReduceScatterOp(std::optional<Location> location,
+                                    Value operand, int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
                                     bool useGlobalDeviceIds,
                                     Region& computation, Value result) {
@@ -3526,12 +3537,12 @@ LogicalResult verifyReduceScatterOp(Optional<Location> location, Value operand,
 //  P3. Verify and collect the window atributes.
 //  P4. Verify the inner block defining the reducer function.
 LogicalResult verifyReduceWindowOp(
-    Optional<Location> location, ValueRange inputs, ValueRange initValues,
+    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> baseDilations,
-    Optional<DenseIntElementsAttr> windowDilations,
-    Optional<DenseIntElementsAttr> padding, Region& body) {
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> baseDilations,
+    std::optional<DenseIntElementsAttr> windowDilations,
+    std::optional<DenseIntElementsAttr> padding, Region& body) {
   SmallVector<TensorType> inputArgTypes{llvm::map_range(
       inputs.getTypes(),
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
@@ -3567,7 +3578,7 @@ LogicalResult verifyReduceWindowOp(
   return success();
 }
 
-LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
+LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
                               Value result) {
   // If the operand type is dynamically shaped there is nothing to verify.
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
@@ -3589,7 +3600,7 @@ LogicalResult verifyReshapeOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyReverseOp(Optional<Location> location, Value operand,
+LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
                               DenseIntElementsAttr dimensions) {
   auto dims = dimensions.getValues<int64_t>();
   llvm::SmallDenseSet<int64_t> uniqueDims(dims.begin(), dims.end());
@@ -3610,7 +3621,7 @@ LogicalResult verifyReverseOp(Optional<Location> location, Value operand,
   return success();
 }
 
-LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
+LogicalResult verifyRngOp(std::optional<Location> location, Value a, Value b,
                           bool isRngDistributionUniform) {
   if (isRngDistributionUniform) return success();
   auto muTy = a.getType().cast<TensorType>().getElementType();
@@ -3619,7 +3630,7 @@ LogicalResult verifyRngOp(Optional<Location> location, Value a, Value b,
   return emitOptionalError(location, "mu and sigma must be floats");
 }
 
-LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
+LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState) {
   auto initialShape = initialState.getType().dyn_cast<RankedTensorType>();
   auto outputShape = outputState.getType().dyn_cast<RankedTensorType>();
@@ -3645,8 +3656,9 @@ LogicalResult verifyRngBitGeneratorOp(Optional<Location> location,
 //  P5. Valide the bounds of each of the 'updates' w.r.t the operands.
 //  P6. Validate the bounds of each of the 'updates' w.r.t the
 //      'scatter_indices'.
-LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
-                              Value scatterIndices, ValueRange updates,
+LogicalResult verifyScatterOp(std::optional<Location> location,
+                              ValueRange inputs, Value scatterIndices,
+                              ValueRange updates,
                               ArrayRef<int64_t> updateWindowDims,
                               ArrayRef<int64_t> insertedWindowDims,
                               ArrayRef<int64_t> scatterDimsToOperandDims,
@@ -3811,10 +3823,11 @@ LogicalResult verifyScatterOp(Optional<Location> location, ValueRange inputs,
 //   P4. Verify and collect the window attributes.
 //   P5. Check if the result type of window operation matches the source type.
 LogicalResult verifySelectAndScatterOp(
-    Optional<Location> location, Value operand, Value source, Value initValue,
-    Optional<DenseIntElementsAttr> windowDimensions,
-    Optional<DenseIntElementsAttr> windowStrides,
-    Optional<DenseIntElementsAttr> padding, Region& select, Region& scatter) {
+    std::optional<Location> location, Value operand, Value source,
+    Value initValue, std::optional<DenseIntElementsAttr> windowDimensions,
+    std::optional<DenseIntElementsAttr> windowStrides,
+    std::optional<DenseIntElementsAttr> padding, Region& select,
+    Region& scatter) {
   auto operandType = operand.getType().cast<TensorType>();
   auto initValueType = initValue.getType().cast<TensorType>();
   auto sourceType = source.getType().cast<TensorType>();
@@ -3909,7 +3922,7 @@ LogicalResult verifySelectAndScatterOp(
   return success();
 }
 
-LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
+LogicalResult verifySortOp(std::optional<Location> location, ValueRange inputs,
                            int64_t dimension, Region& comparator) {
   auto operandTypes = inputs.getTypes();
   for (auto operandType : operandTypes) {
@@ -3961,8 +3974,8 @@ LogicalResult verifySortOp(Optional<Location> location, ValueRange inputs,
   return success();
 }
 
-LogicalResult verifyWhileOp(Optional<Location> location, ValueRange operand,
-                            Region& cond, Region& body) {
+LogicalResult verifyWhileOp(std::optional<Location> location,
+                            ValueRange operand, Region& cond, Region& body) {
   auto operandTypes = operand.getTypes();
   auto condArgsTypes = cond.front().getArgumentTypes();
   auto bodyArgsTypes = body.front().getArgumentTypes();

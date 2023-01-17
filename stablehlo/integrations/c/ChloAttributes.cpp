@@ -13,6 +13,8 @@ limitations under the License.
 
 #include "stablehlo/integrations/c/ChloAttributes.h"
 
+#include <optional>
+
 #include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Support.h"
 #include "stablehlo/dialect/ChloOps.h"
@@ -23,7 +25,7 @@ limitations under the License.
 
 MlirAttribute chloComparisonDirectionAttrGet(MlirContext ctx,
                                              MlirStringRef value) {
-  llvm::Optional<mlir::chlo::ComparisonDirection> comparisonDirection =
+  std::optional<mlir::chlo::ComparisonDirection> comparisonDirection =
       mlir::chlo::symbolizeComparisonDirection(unwrap(value));
   if (!comparisonDirection) llvm_unreachable("Invalid value.");
   return wrap(mlir::chlo::ComparisonDirectionAttr::get(
@@ -44,7 +46,7 @@ MlirStringRef chloComparisonDirectionAttrGetValue(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef value) {
-  llvm::Optional<mlir::chlo::ComparisonType> comparisonType =
+  std::optional<mlir::chlo::ComparisonType> comparisonType =
       mlir::chlo::symbolizeComparisonType(unwrap(value));
   if (!comparisonType) llvm_unreachable("Invalid value.");
   return wrap(

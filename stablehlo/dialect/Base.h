@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_BASE_H
 
 #include <algorithm>
+#include <optional>
 
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
@@ -74,18 +75,18 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
                                                          int64_t rightBound);
 
 FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
-    Optional<Location> location, int64_t dim, int64_t leftSize,
+    std::optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound);
 
 // Infer single most specific return type from inputTypes with support for
 // bounds. (Size, bound) of each dimension of the return type will be merged
 // from corresponding dimensions of every inputType by merging them.
-LogicalResult inferMostSpecificType(Optional<Location> location,
+LogicalResult inferMostSpecificType(std::optional<Location> location,
                                     TypeRange inputTypes,
                                     SmallVectorImpl<Type> &inferredReturnTypes);
 
 LogicalResult inferMostSpecificTypeComponents(
-    Optional<Location> location, TypeRange inputTypes,
+    std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
 // Shape derivation function that computes the shape of the result based on an
@@ -230,7 +231,7 @@ class CompatibleOperandsAndResultType
   }
 
   static LogicalResult inferReturnTypes(
-      MLIRContext * /*context*/, Optional<Location> location,
+      MLIRContext * /*context*/, std::optional<Location> location,
       ValueRange operands, DictionaryAttr /*attributes*/,
       RegionRange /*regions*/, SmallVectorImpl<Type> &inferredReturnTypes) {
     // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
@@ -250,7 +251,7 @@ class CompatibleOperandsAndResultType
   // It needs to be paired with INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS
   // (see examples in StablehloOps.cpp).
   static LogicalResult inferReturnTypeComponentsFromOperands(
-      MLIRContext *context, Optional<Location> location,
+      MLIRContext *context, std::optional<Location> location,
       ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
       SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
     SmallVector<Type> inferredReturnTypes;
