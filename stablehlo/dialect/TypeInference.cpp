@@ -2867,24 +2867,8 @@ LogicalResult inferTriangularSolveOp(
     return emitOptionalError(
         location, "Invalid transpose option value for triangular solve");
 
-  auto aBounds = encodingToBounds(aType.getEncoding()).vec();
-  auto bBounds = encodingToBounds(bType.getEncoding()).vec();
-  if (aBounds.empty() || bBounds.empty()) {
-    inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
-    return success();
-  }
-  auto resultShape = bType.getShape().vec();
-  auto resultBounds = encodingToBounds(bType.getEncoding()).vec();
-  for (int64_t i = 0; i < aRank - 2; i++) {
-    auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
-        location, i, aBatchDims[i], bBatchDims[i], aBounds[i], bBounds[i]);
-    if (failed(inferredDimAndBoundOrErr)) return failure();
-    resultShape[i] = (*inferredDimAndBoundOrErr).first;
-    resultBounds[i] = (*inferredDimAndBoundOrErr).second;
-  }
-  inferredReturnShapes.emplace_back(
-      resultShape, bType.getElementType(),
-      boundsToEncoding(bType.getEncoding(), resultBounds));
+  inferredReturnShapes.emplace_back(bType.getShape(), bType.getElementType(),
+                                    bType.getEncoding());
   return success();
 }
 

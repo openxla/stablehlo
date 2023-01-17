@@ -2251,9 +2251,9 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
   bool isTransposeAInvalid =
       (adaptor.getTransposeA() == Transpose::TRANSPOSE_INVALID);
-  return hlo::inferTriangularSolveOp(
-      location, adaptor.getA(), adaptor.getB(), adaptor.getLeftSide(),
-      isTransposeAInvalid, inferredReturnShapes);
+  return hlo::inferTriangularSolveOp(location, adaptor.getA(), adaptor.getB(),
+                                     adaptor.getLeftSide(), isTransposeAInvalid,
+                                     inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
