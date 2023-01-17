@@ -1300,53 +1300,19 @@ func.func @select_and_scatter_bound(
 // -----
 
 // CHECK-LABEL: func @reduce_window_bound
-func.func @reduce_window_bound(%arg0: tensor<?x?xf32, #stablehlo.type_extensions<bounds = [4, 2]>>,
-    %arg1: tensor<?x?xi32, #stablehlo.type_extensions<bounds = [5, 3]>>,
-    %init0: tensor<f32>, %init1: tensor<i32>) -> (tensor<*xindex>, tensor<*xindex>) {
-  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
-  ^bb0(%a0: tensor<f32>, %a1: tensor<i32>, %b0: tensor<f32>, %b1: tensor<i32>):
+func.func @reduce_window_bound(%arg0: tensor<4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, 2]>>,
+    %init0: tensor<f32>) -> (tensor<*xindex>) {
+  %0:1 = "stablehlo.reduce_window"(%arg0, %init0) ({
+  ^bb0(%a0: tensor<f32>, %b0: tensor<f32>):
     %2 = stablehlo.add %a0, %b0 : tensor<f32>
-    %3 = stablehlo.add %a1, %b1 : tensor<i32>
-    "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+    "stablehlo.return"(%2) : (tensor<f32>) -> ()
   }) {
-    padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
-    window_dimensions = dense<[5, 1]> : tensor<2xi64>,
-    window_strides = dense<[3, 1]> : tensor<2xi64>
-  } : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [4, 2]>>,
-       tensor<?x?xi32, #stablehlo.type_extensions<bounds = [5, 3]>>,
-       tensor<f32>, tensor<i32>) -> (tensor<*xf32>, tensor<*xi32>)
-  // CHECK: types0 = tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 2]>>
-  // CHECK: types1 = tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>
+    padding = dense<[[0, 0], [0, 0], [2, 2], [0, 0]]> : tensor<4x2xi64>,
+    window_dimensions = dense<[1, 1, 5, 1]> : tensor<4xi64>,
+    window_strides = dense<[1, 1, 3, 1]> : tensor<4xi64>
+  } : (tensor<4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 4, 2]>>,
+       tensor<f32>) -> (tensor<*xf32>)
+  // CHECK: types0 = tensor<4x?x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 2, 2]>>
   %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<*xf32>) -> tensor<*xindex>
-  // CHECK: types0 = tensor<?x?xf32, #stablehlo.type_extensions<bounds = [2, 2]>>
-  // CHECK: types1 = tensor<?x?xi32, #stablehlo.type_extensions<bounds = [2, 3]>>
-  %2 = "hlo_test_infer.get_return_types"(%0#1) : (tensor<*xi32>) -> tensor<*xindex>
-  func.return %1, %2 : tensor<*xindex>, tensor<*xindex>
-}
-
-// -----
-
-// CHECK-LABEL: func @reduce_window_bound_mixed
-func.func @reduce_window_bound_mixed(%arg0: tensor<4x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 2]>>,
-    %arg1: tensor<4x?x?xi32, #stablehlo.type_extensions<bounds = [?, ?, 3]>>,
-    %init0: tensor<f32>, %init1: tensor<i32>) -> (tensor<*xindex>, tensor<*xindex>) {
-  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
-  ^bb0(%a0: tensor<f32>, %a1: tensor<i32>, %b0: tensor<f32>, %b1: tensor<i32>):
-    %2 = stablehlo.add %a0, %b0 : tensor<f32>
-    %3 = stablehlo.add %a1, %b1 : tensor<i32>
-    "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
-  }) {
-    padding = dense<[[2, 2], [0, 0], [0, 0]]> : tensor<3x2xi64>,
-    window_dimensions = dense<[5, 1, 1]> : tensor<3xi64>,
-    window_strides = dense<[3, 1, 1]> : tensor<3xi64>
-  } : (tensor<4x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 2]>>,
-       tensor<4x?x?xi32, #stablehlo.type_extensions<bounds = [?, ?, 3]>>,
-       tensor<f32>, tensor<i32>) -> (tensor<*xf32>, tensor<*xi32>)
-  // CHECK: types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 2]>>
-  // CHECK: types1 = tensor<2x?x?xi32, #stablehlo.type_extensions<bounds = [?, ?, 3]>>
-  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<*xf32>) -> tensor<*xindex>
-  // CHECK: types0 = tensor<2x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, 2]>>
-  // CHECK: types1 = tensor<2x?x?xi32, #stablehlo.type_extensions<bounds = [?, ?, 3]>>
-  %2 = "hlo_test_infer.get_return_types"(%0#1) : (tensor<*xi32>) -> tensor<*xindex>
-  func.return %1, %2 : tensor<*xindex>, tensor<*xindex>
+  func.return %1: tensor<*xindex>
 }

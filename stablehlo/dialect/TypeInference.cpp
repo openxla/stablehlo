@@ -2501,13 +2501,12 @@ LogicalResult inferReduceWindowOp(
     } else {
       auto resultShape =
           inferWindowOutputShape(inputArgTypes[i].getShape(), inferredWindow);
-      if (encodingToBounds(inputRankedType.getEncoding()).empty()) {
+      auto inputBounds = encodingToBounds(inputRankedType.getEncoding());
+      if (inputBounds.empty()) {
         inferredReturnShapes.emplace_back(resultShape,
                                           inputArgTypes[i].getElementType());
       } else {
-        auto resultBounds = inferWindowOutputShape(
-            encodingToBounds(inputRankedType.getEncoding()).vec(),
-            inferredWindow);
+        auto resultBounds = inferWindowOutputShape(inputBounds, inferredWindow);
         inferredReturnShapes.emplace_back(
             resultShape, inputArgTypes[i].getElementType(),
             boundsToEncoding(inputRankedType.getEncoding(), resultBounds));
