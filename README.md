@@ -23,9 +23,15 @@ StableHLO programs.
 
 ## Build steps
 
-  Here's how to build the StableHLO repo:
+Here's how to build the StableHLO repo:
 
-1. First clone this repo and the LLVM/MLIR git repository:
+1. Make sure you have the LLVM-based linker `lld` installed:
+
+   ```sh
+   sudo apt update && sudo apt install lld
+   ```
+
+2. Clone this repo and the LLVM git repository:
 
    ```sh
    git clone https://github.com/openxla/stablehlo
@@ -35,16 +41,15 @@ StableHLO programs.
    cd stablehlo && git clone https://github.com/llvm/llvm-project.git
    ```
 
-2. Make sure you check out the correct commit in the LLVM repository:
+3. Make sure you check out the correct commit in the LLVM repository:
 
    ```sh
    (cd llvm-project && git fetch && git checkout $(cat ../build_tools/llvm_version.txt))
    ```
 
-   You need to do this every time you run git pull in the stablehlo repo
-   (in case `llvm_version.txt` changes).
+   You need to do this every time `llvm_version.txt` changes.
 
-3. Configure and build LLVM/MLIR:
+4. Configure and build MLIR:
 
    ```sh
    build_tools/build_mlir.sh ${PWD}/llvm-project/ ${PWD}/llvm-build
@@ -54,7 +59,7 @@ StableHLO programs.
 
    Again, you need to do this every time `llvm_version.txt` changes.
 
-4. Build StableHLO as a standalone library:
+5. Build StableHLO as a standalone library:
 
    ```sh
    mkdir build && cd build
@@ -66,7 +71,7 @@ StableHLO programs.
      -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
    ```
 
-5. Now you can run a series of tests:
+6. Now you can make sure it works by running some tests:
 
    ```sh
    ninja check-stablehlo
@@ -78,6 +83,9 @@ StableHLO programs.
    Testing Time: 5.99s
      Passed: 47
    ```
+
+   This runs all the optimizer and interpreter tests in `stablehlo/tests/`.
+
 
 ## Community
 
