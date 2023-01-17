@@ -17,9 +17,9 @@ limitations under the License.
 #define STABLEHLO_REFERENCE_INDEX_H_
 
 #include <cstdint>
+#include <optional>
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Support/LogicalResult.h"
@@ -42,7 +42,7 @@ class IndexSpaceIterator {
  public:
   /// \name Constructor
   IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
-                     llvm::Optional<llvm::SmallVector<int64_t>> index)
+                     std::optional<llvm::SmallVector<int64_t>> index)
       : shape_(shape), index_(index) {
     if (index && failed(verifyIndex(shape, (*index))))
       llvm::report_fatal_error(
@@ -78,7 +78,7 @@ class IndexSpaceIterator {
 
   /// Current multi-dimensional index.
   /// If the optional is empty, then we're at the end
-  llvm::Optional<llvm::SmallVector<int64_t>> index_;
+  std::optional<llvm::SmallVector<int64_t>> index_;
 };
 
 }  // namespace stablehlo
