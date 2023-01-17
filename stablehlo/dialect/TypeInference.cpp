@@ -200,36 +200,89 @@ int64_t stridedBound(int64_t bound, int64_t windowSize, int64_t stride) {
   return (bound - windowSize) / stride + 1;
 }
 
-LogicalResult verifyBatchNorm(std::optional<Location> location, Value operand,
-                              Value scale, int64_t feature_index) {
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  if (feature_index >= operandType.getRank())
+LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
+  for (auto type1 : values)
+    for (auto type2 : values)
+      if (failed(verifyCompatibleShape(type1, type2))) return failure();
+  return success();
+}
+
+LogicalResult verifyBatchNorm(Optional<Location> location,
+                              ValueRange multiDimOperands,
+                              ValueRange singleDimOperands,
+                              int64_t feature_index) {
+  if (failed(verifyPairwiseCompatibleShapes(multiDimOperands.getTypes())))
+    return emitOptionalError(
+        location,
+        "expects multi-dimensional operands to have compatible shapes.");
+
+  if (failed(verifyPairwiseCompatibleShapes(singleDimOperands.getTypes())))
+    return emitOptionalError(
+        location,
+        "expects single-dimensional operands to have compatible shapes.");
+
+  auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  if (feature_index >= multiDimType.getRank())
     return emitOptionalError(
         location,
         "expects feature_index to be smaller than the rank of "
-        "operand type; got feature_index ",
-        feature_index, ", and rank ", operandType.getRank(), ".");
+        "multi-dimensional operand; got feature_index ",
+        feature_index, ", and rank ", multiDimType.getRank(), ".");
 
   if (feature_index < 0)
     return emitOptionalError(location, "expects feature_index to be a ",
                              "non-negative number, got ", feature_index, ".");
+  // Note: the above checks '0 <= feature-index < multiDimType.getRank()'
+  // imply 'multiDimType.getRank() >= 1'.
 
-  // Note: the above checks '0 <= feature-index < operandType.getRank()'
-  // imply 'operand_type.getRank() >= 1'.
+  const int64_t featureCount = multiDimType.getDimSize(feature_index);
+  const int64_t singleDimSize =
+      singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
-  const int64_t featureCount = operandType.getDimSize(feature_index);
-  const int64_t scaleShape =
-      scale.getType().cast<RankedTensorType>().getDimSize(0);
-  // As ODS enforces `scale`, `mean`, `variance`, `offset` are AllShapesMatch,
-  // this also infers that featureCount is aligned with them.
-  if (scaleShape != featureCount)
+  if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
-        "expects the size of scale factor to be same as the "
-        "feature count, but the size of scale factor is ",
-        dimSizeToString(scaleShape), " and the feature count is ",
+        "expects the size of single-dimensional operand to be compatible with "
+        "feature count, but the size of single-dimensional operand is ",
+        dimSizeToString(singleDimSize), " and the feature count is ",
         dimSizeToString(featureCount), ".");
 
+  return success();
+}
+
+LogicalResult inferBatchNormOp(
+    Optional<Location> location, ValueRange multiDimOperands,
+    ValueRange singleDimOperands, int64_t featureIndex,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
+    bool is_inference) {
+  if (failed(verifyBatchNorm(location, multiDimOperands, singleDimOperands,
+                             featureIndex)))
+    return failure();
+
+  // Batch norm ops require operands to be ranked.
+  auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(multiDimType.getShape(),
+                                    multiDimType.getElementType(),
+                                    multiDimType.getEncoding());
+
+  if (is_inference) return success();
+
+  SmallVector<int64_t> singleDimShape{multiDimType.getDimSize(featureIndex)};
+
+  ArrayRef<int64_t> multiDimBounds =
+      encodingToBounds(multiDimType.getEncoding());
+  SmallVector<int64_t> singleDimBounds;
+  if (!multiDimBounds.empty())
+    singleDimBounds.emplace_back(multiDimBounds[featureIndex]);
+
+  auto singleDimReturnShape = ShapedTypeComponents(
+      singleDimShape, multiDimType.getElementType(),
+      singleDimBounds.empty()
+          ? nullptr
+          : boundsToEncoding(multiDimType.getEncoding(), singleDimBounds));
+
+  inferredReturnShapes.emplace_back(singleDimReturnShape);
+  inferredReturnShapes.emplace_back(singleDimReturnShape);
   return success();
 }
 
@@ -1349,46 +1402,29 @@ LogicalResult inferAllToAllOp(
 }
 
 LogicalResult inferBatchNormGradOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value mean,
+    Value variance, Value gradOutput, int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
-    return failure();
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-
-  const int64_t featureCount = operandType.getDimSize(featureIndex);
-  SmallVector<int64_t> featureShape{featureCount};
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  return success();
+  return inferBatchNormOp(location, {operand, gradOutput},
+                          {scale, mean, variance}, feature_index,
+                          inferredReturnShapes, /*is_inference=*/false);
 }
 
 LogicalResult inferBatchNormInferenceOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value offset,
+    Value mean, Value variance, int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
-    return failure();
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-  return success();
+  return inferBatchNormOp(location, {operand}, {scale, offset, mean, variance},
+                          feature_index, inferredReturnShapes,
+                          /*is_inference=*/true);
 }
 
 LogicalResult inferBatchNormTrainingOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value offset,
+    int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyBatchNorm(location, operand, scale, featureIndex)))
-    return failure();
-  auto operandType = operand.getType().cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
-
-  const int64_t featureCount = operandType.getDimSize(featureIndex);
-  SmallVector<int64_t> featureShape{featureCount};
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  inferredReturnShapes.emplace_back(featureShape, operandType.getElementType());
-  return success();
+  return inferBatchNormOp(location, {operand}, {scale, offset}, feature_index,
+                          inferredReturnShapes, /*is_inference=*/false);
 }
 
 LogicalResult inferBroadcastOp(

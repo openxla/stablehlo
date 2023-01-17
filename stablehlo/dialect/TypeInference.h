@@ -115,18 +115,18 @@ LogicalResult inferAllToAllOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormGradOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value mean,
+    Value variance, Value gradOutput, int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormInferenceOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value offset,
+    Value mean, Value variance, int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBatchNormTrainingOp(
-    std::optional<Location> location, Value operand, Value scale,
-    int64_t featureIndex,
+    Optional<Location> location, Value operand, Value scale, Value offset,
+    int64_t feature_index,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferBroadcastOp(
