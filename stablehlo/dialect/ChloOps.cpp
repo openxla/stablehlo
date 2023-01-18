@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "stablehlo/dialect/ChloOps.h"
 
+#include <optional>
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -43,7 +45,7 @@ namespace chlo {
 // support quantization or sparsity.
 #define INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Op)                        \
   LogicalResult Op::inferReturnTypeComponents(                                \
-      MLIRContext* context, Optional<Location> location,                      \
+      MLIRContext* context, std::optional<Location> location,                 \
       ValueShapeRange operands, DictionaryAttr attributes,                    \
       RegionRange regions,                                                    \
       SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {          \
@@ -132,7 +134,7 @@ ShapedTypeComponents getBroadcastType(
 }
 
 LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, Type elementType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Find broadcast_dimensions.
@@ -188,8 +190,9 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange /*regions*/,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   ShapedType lhsType = operands[0].getType().dyn_cast<ShapedType>();
   if (!lhsType) {
@@ -223,8 +226,9 @@ void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
 }
 
 LogicalResult BroadcastCompareOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange /*regions*/,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   Type elementType = IntegerType::get(context, 1);
   return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
@@ -250,7 +254,7 @@ static Type getIsInfLikeReturnType(Value operand) {
 }
 
 LogicalResult IsInfOp::inferReturnTypes(
-    MLIRContext* /*ctx*/, Optional<Location>, ValueRange operands,
+    MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
@@ -261,7 +265,7 @@ LogicalResult IsInfOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IsNegInfOp::inferReturnTypes(
-    MLIRContext* /*ctx*/, Optional<Location>, ValueRange operands,
+    MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
@@ -272,7 +276,7 @@ LogicalResult IsNegInfOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IsPosInfOp::inferReturnTypes(
-    MLIRContext* /*ctx*/, Optional<Location>, ValueRange operands,
+    MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
@@ -284,7 +288,7 @@ LogicalResult IsPosInfOp::inferReturnTypes(
 
 #define BROADCAST_BINARY_OP_DEFS(Op)                                       \
   LogicalResult Op::inferReturnTypeComponents(                             \
-      MLIRContext* context, Optional<Location> location,                   \
+      MLIRContext* context, std::optional<Location> location,              \
       ValueShapeRange operands, DictionaryAttr attributes,                 \
       RegionRange regions,                                                 \
       SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {        \
@@ -346,7 +350,7 @@ LogicalResult MinimumBroadcastShapesOp::verify() {
 }
 
 LogicalResult ConstantLikeOp::inferReturnTypeComponents(
-    MLIRContext* /*context*/, Optional<Location> location,
+    MLIRContext* /*context*/, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
     RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
@@ -380,7 +384,7 @@ OpFoldResult ConstantLikeOp::fold(ArrayRef<Attribute> /*operands*/) {
 }
 
 LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
@@ -418,7 +422,7 @@ LogicalResult BroadcastSelectOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 void RankSpecializationClusterOp::getSuccessorRegions(
-    Optional<unsigned> index, ArrayRef<Attribute> /*operands*/,
+    std::optional<unsigned> index, ArrayRef<Attribute> /*operands*/,
     SmallVectorImpl<RegionSuccessor>& regions) {
   // RankSpecializationClusterOp has unconditional control flows into the region
   // and back to the parent, so return the correct RegionSuccessor purely based
@@ -455,8 +459,8 @@ LogicalResult RankSpecializationClusterOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult TopKOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Builder builder(context);
   TopKOp::Adaptor adaptor(operands, attributes, regions);
@@ -498,8 +502,9 @@ OpFoldResult ConstantOp::fold(ArrayRef<Attribute> /*operands*/) {
 }
 
 LogicalResult ConstantOp::inferReturnTypes(
-    MLIRContext*, Optional<Location>, ValueRange, DictionaryAttr attributes,
-    RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+    MLIRContext*, std::optional<Location>, ValueRange,
+    DictionaryAttr attributes, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   Type type = attributes.get("value").cast<TypedAttr>().getType();
   inferredReturnTypes.push_back(type);
   return success();

@@ -4013,10 +4013,16 @@ produces a `result` tensor.
 
 More formally, the sign of the result is taken from the dividend, and the
 absolute value of the result is always less than the divisor's absolute value.
-The remainder is calculated as `lhs - d * rhs`, where `d = stablehlo.divide`.
-For floating-point element types, this is in contrast with the `remainder`
-operation from IEEE-754 specification where `d` is an integral value nearest to
-the exact value of `lhs/rhs` with ties to even.
+The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
+
+* For integers: `stablehlo.divide(lhs, rhs)`.
+* For floats: `division(lhs, rhs)` from IEEE-754 with rounding attribute
+  `roundTowardZero`.
+* For complex numbers: TBD
+
+For floating-point element types, this operation is in contrast with the
+`remainder` operation from IEEE-754 specification where `d` is an integral value
+nearest to the exact value of `lhs/rhs` with ties to even.
 
 #### Inputs
 

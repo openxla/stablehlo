@@ -230,7 +230,7 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
 //  c5:  ?              ?, B            ?, B
 //  c6:  ?, B           ?, C            ?, min(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
-    Optional<Location> location, int64_t dim, int64_t leftSize,
+    std::optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
@@ -263,7 +263,7 @@ FailureOr<std::pair<int64_t, int64_t>> inferMergedDimAndBound(
 
 // TODO(zhouxin) Refactor to better handle errors and return single type
 LogicalResult inferMostSpecificType(
-    Optional<Location> location, TypeRange inputTypes,
+    std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
@@ -312,7 +312,7 @@ LogicalResult inferMostSpecificType(
 }
 
 LogicalResult inferMostSpecificTypeComponents(
-    Optional<Location> location, TypeRange inputTypes,
+    std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SmallVector<Type> inferredReturnTypes;
   if (failed(hlo::inferMostSpecificType(location, inputTypes,

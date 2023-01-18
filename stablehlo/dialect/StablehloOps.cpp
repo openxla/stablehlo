@@ -123,7 +123,7 @@ static LogicalResult verifyDimAttr(OpT op) {
 
 // Common shape function helper for RngNormal and RngUniform.
 static LogicalResult rngInferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   if (operands.size() != 3)
@@ -209,7 +209,7 @@ LogicalResult ReduceScatterOp::verify() {
 // support quantization or sparsity.
 #define INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Op)                        \
   LogicalResult Op::inferReturnTypeComponents(                                \
-      MLIRContext* context, Optional<Location> location,                      \
+      MLIRContext* context, std::optional<Location> location,                 \
       ValueShapeRange operands, DictionaryAttr attributes,                    \
       RegionRange regions,                                                    \
       SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {          \
@@ -264,7 +264,7 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(XorOp)
 //===----------------------------------------------------------------------===//
 
 LogicalResult AfterAllOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto dialect = context->getLoadedDialect<StablehloDialect>();
@@ -309,7 +309,7 @@ void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
 }
 
 LogicalResult ConstantOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ConstantOpAdaptor adaptor(operands, attributes);
@@ -381,7 +381,7 @@ void ConstantOp::print(::mlir::OpAsmPrinter& p) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult CreateTokenOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto dialect = context->getLoadedDialect<StablehloDialect>();
@@ -548,7 +548,7 @@ void CustomCallOp::getEffects(
 //===----------------------------------------------------------------------===//
 
 LogicalResult CholeskyOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CholeskyOp::Adaptor adaptor(operands, attributes, regions);
@@ -564,7 +564,7 @@ LogicalResult DotOp::verify() {
                           getResult());
 }
 
-// PrecisionConfig - Optional attribute, print the array as raw enums
+// PrecisionConfig - std::optional attribute, print the array as raw enums
 //
 // {precision_config = [#stablehlo<precision DEFAULT>,
 //                      #stablehlo<precision DEFAULT>]}
@@ -658,7 +658,7 @@ LogicalResult DotGeneralOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult FftOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   FftOp::Adaptor adaptor(operands, attributes, regions);
@@ -764,8 +764,8 @@ LogicalResult GatherOp::reifyReturnTypeShapes(
 }
 
 LogicalResult GatherOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   GatherOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferGatherOp(
@@ -788,8 +788,8 @@ LogicalResult DynamicGatherOp::reifyReturnTypeShapes(
 }
 
 LogicalResult DynamicGatherOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicGatherOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferDynamicGatherOp(
@@ -807,7 +807,7 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
 LogicalResult GetDimensionSizeOp::verify() { return verifyDimAttr(*this); }
 
 LogicalResult GetDimensionSizeOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange,
+    MLIRContext* context, std::optional<Location> location, ValueRange,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   return hlo::inferGetDimensionSizeOp(context, location, inferredReturnTypes);
 }
@@ -846,7 +846,7 @@ LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicUpdateSliceOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicUpdateSliceOp::Adaptor adaptor(operands, attributes, regions);
@@ -860,7 +860,7 @@ LogicalResult DynamicUpdateSliceOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult AbsOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   AbsOp::Adaptor adaptor(operands, attributes, regions);
@@ -917,7 +917,7 @@ void ConvertOp::build(OpBuilder& builder, OperationState& result, Value operand,
 //===----------------------------------------------------------------------===//
 
 LogicalResult AllToAllOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   AllToAllOp::Adaptor adaptor(operands, attributes, regions);
@@ -961,13 +961,14 @@ LogicalResult AllReduceOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult BatchNormGradOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormGradOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferBatchNormGradOp(
-      location, adaptor.getOperand(), adaptor.getScale(),
-      adaptor.getFeatureIndex(), inferredReturnShapes);
+      location, adaptor.getOperand(), adaptor.getScale(), adaptor.getMean(),
+      adaptor.getVariance(), adaptor.getGradOutput(), adaptor.getFeatureIndex(),
+      inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -975,12 +976,12 @@ LogicalResult BatchNormGradOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormTrainingOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferBatchNormTrainingOp(
-      location, adaptor.getOperand(), adaptor.getScale(),
+      location, adaptor.getOperand(), adaptor.getScale(), adaptor.getOffset(),
       adaptor.getFeatureIndex(), inferredReturnShapes);
 }
 
@@ -989,13 +990,14 @@ LogicalResult BatchNormTrainingOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult BatchNormInferenceOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BatchNormInferenceOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferBatchNormInferenceOp(
-      location, adaptor.getOperand(), adaptor.getScale(),
-      adaptor.getFeatureIndex(), inferredReturnShapes);
+      location, adaptor.getOperand(), adaptor.getScale(), adaptor.getOffset(),
+      adaptor.getMean(), adaptor.getVariance(), adaptor.getFeatureIndex(),
+      inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1033,7 +1035,7 @@ LogicalResult BitcastConvertOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult BroadcastOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastOp::Adaptor adaptor(operands, attributes, regions);
@@ -1110,7 +1112,7 @@ LogicalResult DynamicBroadcastInDimOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ClampOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ClampOp::Adaptor adaptor(operands, attributes, regions);
@@ -1131,7 +1133,7 @@ LogicalResult ClampOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ComplexOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ComplexOp::Adaptor adaptor(operands, attributes, regions);
@@ -1143,7 +1145,7 @@ LogicalResult ComplexOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ImagOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ImagOp::Adaptor adaptor(operands, attributes, regions);
@@ -1155,7 +1157,7 @@ LogicalResult ImagOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IsFiniteOp::inferReturnTypes(
-    MLIRContext* ctx, Optional<Location> location, ValueRange operands,
+    MLIRContext* ctx, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   IsFiniteOp::Adaptor adaptor(operands, attributes, regions);
@@ -1168,7 +1170,7 @@ LogicalResult IsFiniteOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult RealOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   RealOp::Adaptor adaptor(operands, attributes, regions);
@@ -1180,7 +1182,7 @@ LogicalResult RealOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult ConcatenateOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ConcatenateOp::Adaptor adaptor(operands, attributes, regions);
@@ -1264,7 +1266,7 @@ LogicalResult DynamicReshapeOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult DynamicSliceOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   DynamicSliceOp::Adaptor adaptor(operands, attributes, regions);
@@ -1343,7 +1345,7 @@ LogicalResult InfeedOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult MapOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   MapOp::Adaptor adaptor(operands, attributes, regions);
@@ -1363,7 +1365,7 @@ LogicalResult MapOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult OutfeedOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto dialect = context->getLoadedDialect<StablehloDialect>();
@@ -1375,7 +1377,7 @@ LogicalResult OutfeedOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SendOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   auto dialect = context->getLoadedDialect<StablehloDialect>();
   return hlo::inferSendOp(dialect, location, inferredReturnTypes);
@@ -1395,7 +1397,7 @@ LogicalResult RecvOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReduceWindowOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceWindowOp::Adaptor adaptor(operands, attributes, regions);
@@ -1601,15 +1603,15 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
     SmallVector<OpAsmParser::UnresolvedOperand, 2> reducerInitOperands;
     SmallVector<Type, 2> reducerTypes;
     SmallVector<Type, 2> reducerInitTypes;
-    SmallVector<Optional<Location>, 2> reducerLocs;
-    SmallVector<Optional<Location>, 2> reducerInitLocs;
+    SmallVector<std::optional<Location>, 2> reducerLocs;
+    SmallVector<std::optional<Location>, 2> reducerInitLocs;
     auto parseBlockOperand =
         [&](SmallVectorImpl<OpAsmParser::UnresolvedOperand>& operands,
             SmallVectorImpl<Type>& types,
-            SmallVectorImpl<Optional<Location>>& locs) -> ParseResult {
+            SmallVectorImpl<std::optional<Location>>& locs) -> ParseResult {
       OpAsmParser::UnresolvedOperand operand;
       Type type;
-      Optional<Location> loc;
+      std::optional<Location> loc;
       if (parser.parseOperand(operand, /*allowResultNumber=*/false) ||
           parser.parseColon() || parser.parseType(type) ||
           parser.parseOptionalLocationSpecifier(loc))
@@ -1637,7 +1639,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
 
     // Derive the SSA-values for reduce-op's operands and parse the region, and
     // the optional trailing location.
-    Optional<Location> trailingLoc;
+    std::optional<Location> trailingLoc;
     if (parser.resolveOperands(operands, reduceOpFntype.getInputs(), loc,
                                result.operands) ||
         parser.parseRegion(*result.addRegion(), reducerArgs))
@@ -1677,7 +1679,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
     return success();
   };
 
-  Optional<Location> explicitLoc;
+  std::optional<Location> explicitLoc;
   FunctionType reduceOpFntype;
   if (parser.parseKeyword("across") || parser.parseKeyword("dimensions") ||
       parser.parseEqual() ||
@@ -1737,7 +1739,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
 }
 
 LogicalResult ReduceOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ReduceOp::Adaptor adaptor(operands, attributes, regions);
@@ -1798,7 +1800,7 @@ LogicalResult ReduceOp::reifyReturnTypeShapes(
 // OptimizationBarrierOp
 //===----------------------------------------------------------------------===//
 LogicalResult OptimizationBarrierOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   OptimizationBarrierOp::Adaptor adaptor(operands, attributes);
@@ -1810,7 +1812,7 @@ LogicalResult OptimizationBarrierOp::inferReturnTypes(
 // ReturnOp
 //===----------------------------------------------------------------------===//
 LogicalResult ReturnOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ReturnOp::Adaptor adaptor(operands, attributes);
@@ -1844,8 +1846,8 @@ LogicalResult RngOp::verify() {
 }
 
 LogicalResult RngOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return rngInferReturnTypeComponents(context, location, operands, attributes,
                                       regions, inferredReturnShapes);
@@ -1865,7 +1867,7 @@ LogicalResult RngOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SelectOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SelectOp::Adaptor op(operands, attributes);
@@ -1897,7 +1899,7 @@ LogicalResult SetDimensionSizeOp::verify() {
 // TODO(b/238903565): Switch to inferReturnTypeComponents after adding support
 // for the encoding upstream.
 LogicalResult SetDimensionSizeOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   Location loc = location.value_or(UnknownLoc::get(context));
@@ -1952,7 +1954,7 @@ LogicalResult SetDimensionSizeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult PadOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   PadOp::Adaptor adaptor(operands, attributes, regions);
@@ -2111,7 +2113,7 @@ LogicalResult ReshapeOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReplicaIdOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
   return hlo::inferReplicaIdOp(context, location, inferredReturnTypes);
 }
@@ -2121,8 +2123,9 @@ LogicalResult ReplicaIdOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult PartitionIdOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange /*operands*/,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+    MLIRContext* context, std::optional<Location> location,
+    ValueRange /*operands*/, DictionaryAttr, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   return hlo::inferPartitionIdOp(context, location, inferredReturnTypes);
 }
 
@@ -2131,7 +2134,7 @@ LogicalResult PartitionIdOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult IfOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
@@ -2143,7 +2146,7 @@ LogicalResult IfOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult CaseOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
@@ -2155,7 +2158,7 @@ LogicalResult CaseOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SliceOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   SliceOpAdaptor adaptor(operands, attributes);
@@ -2180,7 +2183,7 @@ void SortOp::build(OpBuilder& builder, OperationState& state,
 }
 
 LogicalResult SortOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SortOp::Adaptor adaptor(operands, attributes, regions);
@@ -2235,7 +2238,7 @@ LogicalResult TransposeOp::reifyReturnTypeShapes(
 }
 
 LogicalResult TransposeOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> loc, ValueRange operands,
+    MLIRContext*, std::optional<Location> loc, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TransposeOp::Adaptor adaptor(operands, attributes, regions);
@@ -2248,7 +2251,7 @@ LogicalResult TransposeOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult TriangularSolveOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   TriangularSolveOp::Adaptor adaptor(operands, attributes, regions);
@@ -2264,7 +2267,7 @@ LogicalResult TriangularSolveOp::inferReturnTypeComponents(
 //===----------------------------------------------------------------------===//
 
 LogicalResult GetTupleElementOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   GetTupleElementOp::Adaptor adaptor(operands, attributes, regions);
@@ -2277,7 +2280,7 @@ LogicalResult GetTupleElementOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult TupleOp::inferReturnTypes(
-    MLIRContext* context, Optional<Location> location, ValueRange operands,
+    MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   TupleOp::Adaptor adaptor(operands, attributes, regions);
@@ -2298,8 +2301,8 @@ void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
 }
 
 LogicalResult CompareOp::inferReturnTypeComponents(
-    MLIRContext* context, Optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr attributes, RegionRange regions,
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CompareOp::Adaptor adaptor(operands, attributes, regions);
   return hlo::inferCompareOp(context, location, adaptor.getLhs(),
@@ -2318,7 +2321,7 @@ LogicalResult CompareOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SelectAndScatterOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   SelectAndScatterOp::Adaptor adaptor(operands, attributes, regions);
@@ -2338,7 +2341,7 @@ LogicalResult SelectAndScatterOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult ScatterOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   ScatterOp::Adaptor adaptor(operands, attributes, regions);
@@ -2360,7 +2363,7 @@ LogicalResult ScatterOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult WhileOp::inferReturnTypes(
-    MLIRContext*, Optional<Location> location, ValueRange operands,
+    MLIRContext*, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   WhileOp::Adaptor adaptor(operands, attributes, regions);
@@ -2438,7 +2441,7 @@ ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
 }
 
 LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
-    MLIRContext*, Optional<Location> location, ValueShapeRange operands,
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   UniformDequantizeOp::Adaptor adaptor(operands, attributes, regions);
@@ -3288,11 +3291,11 @@ void printWindowAttribute(OpAsmPrinter& p, DenseElementsAttr attribute) {
 }  // namespace
 
 void printWindowAttributes(OpAsmPrinter& p, Operation* /*op*/,
-                           llvm::Optional<DenseIntElementsAttr> windowStrides,
-                           llvm::Optional<DenseIntElementsAttr> padding,
-                           llvm::Optional<DenseIntElementsAttr> lhsDilation,
-                           llvm::Optional<DenseIntElementsAttr> rhsDilation,
-                           llvm::Optional<DenseElementsAttr> windowReversal) {
+                           std::optional<DenseIntElementsAttr> windowStrides,
+                           std::optional<DenseIntElementsAttr> padding,
+                           std::optional<DenseIntElementsAttr> lhsDilation,
+                           std::optional<DenseIntElementsAttr> rhsDilation,
+                           std::optional<DenseElementsAttr> windowReversal) {
   using pair_t = std::pair<DenseElementsAttr, StringRef>;
   std::array<pair_t, 5> printedAttributes = {{
       {windowStrides ? *windowStrides : nullptr, "stride"},
@@ -3417,7 +3420,7 @@ ParseResult parseWindowAttributes(OpAsmParser& parser,
 // arguments.
 static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                                     ComparisonDirection direction,
-                                    llvm::Optional<StringRef> compareType,
+                                    std::optional<StringRef> compareType,
                                     Region* body, OpBuilder* builder) {
   OpBuilder::InsertionGuard insertionPointGurad(*builder);
 
@@ -3451,7 +3454,7 @@ SortOp createSortOp(PatternRewriter* rewriter, const Location& loc,
 
   // Use TOTALORDER comparison type instead of the default comparison if the
   // element type is of type float.
-  llvm::Optional<StringRef> compareType = std::nullopt;
+  std::optional<StringRef> compareType = std::nullopt;
   for (const auto& elementType : elementTypes) {
     if (elementType.isa<FloatType>()) {
       compareType.emplace("TOTALORDER");
