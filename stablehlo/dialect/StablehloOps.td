@@ -645,7 +645,8 @@ def StableHLO_TanhOp: StableHLO_UnaryElementwiseOp<"tanh",
 
 class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
     Type OperandType = HLO_Tensor, Type ResultType = OperandType> :
-    StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface, SameOperandsAndResultShape]> {
+    StableHLO_Op<mnemonic, traits # [InferShapedTypeOpInterface,
+    SameOperandsAndResultShape, Elementwise]> {
   let arguments = (ins
     OperandType:$lhs,
     OperandType:$rhs
@@ -673,7 +674,7 @@ class StableHLO_BinaryElementwiseOp<string mnemonic, list<Trait> traits,
 }
 
 def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Addition operator";
   let description = [{
     Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
@@ -690,7 +691,7 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
 }
 
 def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_FpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
   let summary = "Atan2 operator";
   let description = [{
     Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces
@@ -708,7 +709,7 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
     SameOperandsElementType, SameOperandsAndResultShape,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>, Elementwise]> {
+    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Complex operator";
   let description = [{
     Performs element-wise conversion to a complex value from a pair of real and
@@ -732,7 +733,7 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
 }
 
 def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntFpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
   let summary = "Division operator";
   let description = [{
     Performs element-wise division of dividend `lhs` and divisor `rhs` tensors
@@ -749,7 +750,7 @@ def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
 }
 
 def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Maximum operator";
   let description = [{
     Performs element-wise max operation on tensors `lhs` and `rhs` and produces
@@ -766,7 +767,7 @@ def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
 }
 
 def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Minimum operator";
   let description = [{
     Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
@@ -783,7 +784,7 @@ def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
 }
 
 def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType, Elementwise]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
   let summary = "Multiplication operator";
   let description = [{
     Performs element-wise product of two tensors `lhs` and `rhs` and produces a
@@ -800,7 +801,7 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
 }
 
 def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntFpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
   let summary = "Power operator";
   let description = [{
     Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
@@ -817,7 +818,7 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
 }
 
 def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntFpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
   let summary = "Remainder operator";
   let description = [{
     Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors
@@ -834,7 +835,7 @@ def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
 }
 
 def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "Shift Left operator";
   let description = [{
     Performs element-wise left-shift operation on the `lhs` tensor by `rhs`
@@ -851,7 +852,7 @@ def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
 }
 
 def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_right_arithmetic",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "Shift right arithmetic operator";
   let description = [{
     Performs element-wise arithmetic right-shift operation on the `lhs` tensor
@@ -868,7 +869,7 @@ def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_righ
 }
 
 def StableHLO_ShiftRightLogicalOp : StableHLO_BinaryElementwiseOp<"shift_right_logical",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
   let summary = "Shift right logical operator";
   let description = [{
     Performs element-wise logical right-shift operation on the `lhs` tensor by
@@ -885,7 +886,7 @@ def StableHLO_ShiftRightLogicalOp : StableHLO_BinaryElementwiseOp<"shift_right_l
 }
 
 def StableHLO_SubtractOp : StableHLO_BinaryElementwiseOp<"subtract",
-      [Pure, HLO_CompatibleOperandsAndResultType, Elementwise], HLO_IntFpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
   let summary = "Subtraction operator";
   let description = [{
     Performs element-wise subtraction of two tensors `lhs` and `rhs` and
