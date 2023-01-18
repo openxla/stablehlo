@@ -2236,8 +2236,8 @@ LogicalResult inferFftOp(
   if ((isFftTypeIrfft || isFftTypeRfft) && !resultBounds.empty())
     resultBounds[resultBounds.size() - 1] = ShapedType::kDynamic;
   inferredReturnShapes.emplace_back(
-        resultShape, resultElementType,
-        boundsToEncoding(operandRankedType.getEncoding(), resultBounds));
+      resultShape, resultElementType,
+      boundsToEncoding(operandRankedType.getEncoding(), resultBounds));
   return success();
 }
 
