@@ -1,6 +1,6 @@
 # StableHLO
 
-StableHLO is an operation set for high-level operations (HLO) in machine
+StableHLO is an operator set for high-level operations (HLO) in machine
 learning (ML) models. Essentially, it's a portability layer between different
 ML frameworks and ML compilers: ML frameworks that produce StableHLO programs
 are compatible with ML compilers that consume StableHLO programs.
@@ -9,17 +9,17 @@ Our goal is to simplify and accelerate ML development by creating more
 interoperability between various ML frameworks (such as TensorFlow, JAX and
 PyTorch) and ML compilers (such as XLA and IREE).
 
-StableHLO is based on the MHLO dialect and enhances it with additional
-functionality, including serialization and versioning. This provides
-[backward and forward
+StableHLO is built using [MLIR](https://mlir.llvm.org/) and is based on the MHLO
+dialect but enhances it with additional functionality, including serialization
+and versioning. This provides [backward and forward
 compatibility](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md)
 guarantees for StableHLO programs and ensures compatibility between frameworks
 and compilers, even as StableHLO continues to evolve.
 
 This repository includes the [StableHLO
 specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
-along with implementations in C++ and Python, which you can use to build
-StableHLO programs.
+along with op implementations in C++ and Python, which you can use to build ML
+programs in StableHLO.
 
 ## Build steps
 
