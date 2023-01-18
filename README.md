@@ -18,8 +18,8 @@ and compilers, even as StableHLO continues to evolve.
 
 This repository includes the [StableHLO
 specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
-along with op implementations in C++ and Python, which you can use to build ML
-programs in StableHLO.
+along with op implementations in C++ and Python, which you can use to define ML
+programs in StableHLO for consumption by compilers such as XLA and IREE.
 
 ## Build steps
 
