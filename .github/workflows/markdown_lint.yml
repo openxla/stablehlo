@@ -1,0 +1,19 @@
+# Copyright 2023 The StableHLO Authors.
+
+name: Markdown Lint
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**.md'
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checking out repository
+      uses: actions/checkout@v3
+    - name: Running markdownlint
+      run: |
+        ./build_tools/github_actions/lint_markdown.sh "./**/*.md"
