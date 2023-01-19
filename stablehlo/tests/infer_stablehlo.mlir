@@ -1175,6 +1175,8 @@ func.func @cholesky_bounds(%input: tensor<2x?x?xf32, #stablehlo.type_extensions<
   func.return %1 : tensor<*xindex>
 }
 
+// -----
+
 // CHECK-LABEL: func @concatenate
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<?x?xi32>, %[[ARG1:.*]]: tensor<?x?xi32>, %[[ARG2:.*]]: tensor<?x?xi32>
 func.func @concatenate(%arg0: tensor<?x?xi32>, %arg1: tensor<?x?xi32>, %arg2: tensor<?x?xi32>) -> tensor<2xindex> {
