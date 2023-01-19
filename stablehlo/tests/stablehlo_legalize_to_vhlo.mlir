@@ -720,7 +720,7 @@ func.func @op_dot(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x
     precision_config = []
   } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   //      CHECK: "vhlo.dot"(%arg0, %arg1)
-  // CHECK-SAME: : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
+  // CHECK-SAME: : (!vhlo.tensor<8x16x!vhlo.f32>, !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<8x8x!vhlo.f32>
   %1 = "stablehlo.dot"(%arg0, %arg1) : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   func.return %0 : tensor<8x8xf32>
 }
