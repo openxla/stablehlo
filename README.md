@@ -86,7 +86,6 @@ Here's how to build the StableHLO repo:
 
    This runs all the tests in `stablehlo/tests/`.
 
-
 ## Community
 
 Building an amazing portability layer between ML frameworks and ML compilers
