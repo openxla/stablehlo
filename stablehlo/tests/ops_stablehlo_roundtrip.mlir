@@ -678,12 +678,11 @@ func.func @test_set_dimension_size(%arg: tensor<4x4xf32>, %size: tensor<i32>) ->
   func.return %0 : tensor<4x4xf32>
 }
 
-func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) {
-  %0 = stablehlo.atan2 %arg0, %arg1 : tensor<4xi32>
-  %1 = stablehlo.shift_left %arg0, %arg1 : tensor<4xi32>
-  %2 = stablehlo.shift_right_arithmetic %arg0, %arg1 : tensor<4xi32>
-  %3 = stablehlo.shift_right_logical %arg0, %arg1 : tensor<4xi32>
-  func.return %0, %1, %2, %3 : tensor<4xi32>, tensor<4xi32>, tensor<4xi32>, tensor<4xi32>
+func.func @test_shift(%arg0: tensor<4xi32>, %arg1: tensor<4xi32>) -> (tensor<4xi32>, tensor<4xi32>, tensor<4xi32>) {
+  %0 = stablehlo.shift_left %arg0, %arg1 : tensor<4xi32>
+  %1 = stablehlo.shift_right_arithmetic %arg0, %arg1 : tensor<4xi32>
+  %2 = stablehlo.shift_right_logical %arg0, %arg1 : tensor<4xi32>
+  func.return %0, %1, %2 : tensor<4xi32>, tensor<4xi32>, tensor<4xi32>
 }
 
 func.func @test_slice(%arg: tensor<3x4xi32>) -> tensor<1x2xi32> {

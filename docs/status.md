@@ -49,7 +49,7 @@ one of the following tracking labels.
 | all_reduce               | yes           | revisit      | yes            | no              | no          |
 | all_to_all               | yes           | revisit      | yes            | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
-| atan2                    | yes           | revisit      | yes            | yes             | no          |
+| atan2                    | yes           | yes          | yes            | yes             | no          |
 | batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
 | batch_norm_training      | yes           | revisit      | yes            | no              | no          |
@@ -57,7 +57,7 @@ one of the following tracking labels.
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |
 | case                     | yes           | revisit      | yes            | no              | no          |
-| cbrt                     | yes           | revisit      | yes            | yes             | no          |
+| cbrt                     | yes           | yes          | yes            | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |
 | clamp                    | yes           | revisit      | yes            | yes             | no          |
@@ -114,7 +114,7 @@ one of the following tracking labels.
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
-| power                    | yes           | revisit      | yes            | yes             | no          |
+| power                    | yes           | yes          | yes            | yes             | no          |
 | real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
@@ -137,9 +137,9 @@ one of the following tracking labels.
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes\*        | yes\*          | yes             | no          |
-| shift_left               | yes           | revisit      | yes            | yes             | no          |
-| shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |
-| shift_right_logical      | yes           | revisit      | yes            | yes             | no          |
+| shift_left               | yes           | yes          | yes            | yes             | no          |
+| shift_right_arithmetic   | yes           | yes          | yes            | yes             | no          |
+| shift_right_logical      | yes           | yes          | yes            | yes             | no          |
 | sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | no          |
