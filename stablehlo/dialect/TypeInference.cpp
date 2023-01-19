@@ -87,6 +87,24 @@ bool tensorsHaveSameElType(Type type1, Type type2, bool ignoreFpPrecision) {
   return tensorTy1.getElementType() == tensorTy2.getElementType();
 }
 
+LogicalResult variadicTensorsHaveSameElType(ValueRange tensors,
+                                            std::optional<Location> location) {
+  if (!tensors.empty()) {
+    auto tensorTy1 = tensors[0].getType().cast<ShapedType>();
+    Type tensorEl1 = tensorTy1.getElementType();
+    for (auto otherTensor : llvm::drop_begin(tensors, 1)) {
+      auto tensorTy2 = otherTensor.getType().cast<ShapedType>();
+      Type tensorEl2 = tensorTy2.getElementType();
+      if (tensorEl1 != tensorEl2)
+        return emitOptionalError(
+            location,
+            "start indices must have same element type (encountered mismatch: ",
+            tensorEl1, " vs ", tensorEl2, ")");
+    }
+  }
+  return success();
+}
+
 // Return true if type1 and type2 are shape-compatible and have same element
 // type. If 'ignoreFpPrecision' is True, then allow floats with different
 // precisions while checking element-types.
@@ -1958,6 +1976,7 @@ LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Value operand, ValueRange startIndices,
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // (C2)
   int numSliceSizes = sliceSizes.getNumElements();
   int numStartIndices = startIndices.size();
   if (numStartIndices != numSliceSizes)
@@ -1972,6 +1991,11 @@ LogicalResult inferDynamicSliceOp(
         location, "has mismatched number of start indices (", numStartIndices,
         ") and the rank of operand (", operandType.getRank(), ")");
 
+  // (C3)
+  if (failed(variadicTensorsHaveSameElType(startIndices, location)))
+    return failure();
+
+  // (C4)
   for (int i = 0; i < numSliceSizes; ++i) {
     int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
     if (sliceSize < 0)
@@ -1986,6 +2010,7 @@ LogicalResult inferDynamicSliceOp(
     }
   }
 
+  // (C5)
   inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
                                     operandType.getElementType());
   return success();
@@ -2014,19 +2039,8 @@ LogicalResult inferDynamicUpdateSliceOp(
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
   // (C5)
-  if (!startIndices.empty()) {
-    auto firstIndexType = startIndices[0].getType().cast<ShapedType>();
-    Type firstIndexElement = firstIndexType.getElementType();
-    for (auto otherIndex : llvm::drop_begin(startIndices, 1)) {
-      auto otherIndexType = otherIndex.getType().cast<ShapedType>();
-      Type otherIndexElement = otherIndexType.getElementType();
-      if (firstIndexElement != otherIndexElement)
-        return emitOptionalError(
-            location,
-            "start indices must have same element type (encountered mismatch: ",
-            firstIndexElement, " vs ", otherIndexElement, ")");
-    }
-  }
+  if (failed(variadicTensorsHaveSameElType(startIndices, location)))
+    return failure();
 
   // (C6)
   if (operandType.hasRank() && updateType.hasRank())
