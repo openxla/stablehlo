@@ -23,26 +23,7 @@ include "mlir/IR/OpBase.td"
 // Dialect and Ops
 //===----------------------------------------------------------------------===//
 
-def VHLO_Dialect : Dialect {
-  let name = "vhlo";
-  let cppNamespace = "::mlir::vhlo";
-
-  let description = [{
-    A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
-
-    Version log:
-      0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
-      0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272.
-             Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
-             Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
-             Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
-             Add AllToAllOp::channel_handle: https://github.com/openxla/stablehlo/pull/794.
-  }];
-
-  let useDefaultAttributePrinterParser = 0;
-  let useDefaultTypePrinterParser = 0;
-}
-
+include "stablehlo/dialect/VhloDialect.td"
 include "stablehlo/dialect/VhloTypes.td"
 include "stablehlo/dialect/VhloEnums.td"
 include "stablehlo/dialect/VhloAttrs.td"

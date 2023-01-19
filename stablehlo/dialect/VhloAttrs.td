@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_VHLO_ATTRS
 
 include "stablehlo/dialect/VhloBase.td"
+include "stablehlo/dialect/VhloDialect.td"
 
 include "mlir/IR/AttrTypeBase.td"
 
