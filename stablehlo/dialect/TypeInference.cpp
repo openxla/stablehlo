@@ -31,6 +31,7 @@ limitations under the License.
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallSet.h"
@@ -1298,11 +1299,12 @@ static LogicalResult inferGatherReturnTypeComponents(
       startIndices.getType().cast<RankedTensorType>().getEncoding());
   SmallVector<int64_t> inferredBounds(resultRank, ShapedType::kDynamic);
   if (!startIndicesBounds.empty()) {
-    llvm::SmallDenseSet<int64_t> offsetDimSet(offsetDims.begin(),
-                                              offsetDims.end());
+    llvm::BitVector isOffsetDim(resultRank);
+    for (auto offsetDim : offsetDims) isOffsetDim.set(offsetDim);
+
     int64_t index = 0;
     for (int dim = 0; dim < resultRank; ++dim) {
-      if (offsetDimSet.count(dim)) continue;
+      if (isOffsetDim.test(dim)) continue;
 
       if (index == indexVectorDim) ++index;
       inferredBounds[dim] = startIndicesBounds[index];
