@@ -1298,17 +1298,15 @@ static LogicalResult inferGatherReturnTypeComponents(
       startIndices.getType().cast<RankedTensorType>().getEncoding());
   SmallVector<int64_t> inferredBounds(resultRank, ShapedType::kDynamic);
   if (!startIndicesBounds.empty()) {
-    SmallVector<int64_t> batchDims;
-    for (int dim = 0; dim < resultRank; ++dim)
-      if (!llvm::is_contained(offsetDims, dim)) batchDims.push_back(dim);
+    llvm::SmallDenseSet<int64_t> offsetDimSet(offsetDims.begin(),
+                                              offsetDims.end());
+    int64_t index = 0;
+    for (int dim = 0; dim < resultRank; ++dim) {
+      if (offsetDimSet.count(dim)) continue;
 
-    for (int i = 0; i < resultRank; ++i) {
-      auto* batchDimsIt = std::find(batchDims.begin(), batchDims.end(), i);
-      if (batchDimsIt == batchDims.end()) continue;
-
-      auto index = std::distance(batchDims.begin(), batchDimsIt);
-      if (index >= indexVectorDim) ++index;
-      inferredBounds[i] = startIndicesBounds[index];
+      if (index == indexVectorDim) ++index;
+      inferredBounds[dim] = startIndicesBounds[index];
+      index++;
     }
   }
 
