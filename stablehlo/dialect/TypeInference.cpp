@@ -71,38 +71,28 @@ const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
   return set.size() != nums.size();
 };
 
+bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
+  if (!types.empty()) {
+    auto tensorTy1 = types[0].cast<ShapedType>();
+    Type tensorEl1 = tensorTy1.getElementType();
+    for (auto otherTensor : llvm::drop_begin(types, 1)) {
+      auto tensorTy2 = otherTensor.cast<ShapedType>();
+      Type tensorEl2 = tensorTy2.getElementType();
+      if (ignoreFpPrecision && tensorEl1.isa<FloatType>() &&
+          tensorTy2.getElementType().isa<FloatType>())
+        continue;
+      if (tensorEl1 != tensorEl2) return false;
+    }
+  }
+  return true;
+}
+
 // Return true if type1 and type2 are tensors and have the same
 // element-type, else return false. With float element-types, ignore comparing
 // floating-point precision if ignoreFpPrecision is True.
-bool tensorsHaveSameElType(Type type1, Type type2, bool ignoreFpPrecision) {
-  auto tensorTy1 = type1.dyn_cast<TensorType>();
-  auto tensorTy2 = type2.dyn_cast<TensorType>();
-
-  if (!tensorTy1 || !tensorTy2) return false;
-
-  if (ignoreFpPrecision && tensorTy1.getElementType().isa<FloatType>() &&
-      tensorTy2.getElementType().isa<FloatType>())
-    return true;
-
-  return tensorTy1.getElementType() == tensorTy2.getElementType();
-}
-
-LogicalResult variadicTensorsHaveSameElType(ValueRange tensors,
-                                            std::optional<Location> location) {
-  if (!tensors.empty()) {
-    auto tensorTy1 = tensors[0].getType().cast<ShapedType>();
-    Type tensorEl1 = tensorTy1.getElementType();
-    for (auto otherTensor : llvm::drop_begin(tensors, 1)) {
-      auto tensorTy2 = otherTensor.getType().cast<ShapedType>();
-      Type tensorEl2 = tensorTy2.getElementType();
-      if (tensorEl1 != tensorEl2)
-        return emitOptionalError(
-            location,
-            "start indices must have same element type (encountered mismatch: ",
-            tensorEl1, " vs ", tensorEl2, ")");
-    }
-  }
-  return success();
+bool tensorsHaveSameElType(Type type1, Type type2,
+                           bool ignoreFpPrecision = true) {
+  return tensorsHaveSameElType({type1, type2}, ignoreFpPrecision);
 }
 
 // Return true if type1 and type2 are shape-compatible and have same element
@@ -1992,8 +1982,11 @@ LogicalResult inferDynamicSliceOp(
         ") and the rank of operand (", operandType.getRank(), ")");
 
   // (C3)
-  if (failed(variadicTensorsHaveSameElType(startIndices, location)))
-    return failure();
+  SmallVector<Type> startIndicesTypes;
+  for (auto index : startIndices) startIndicesTypes.push_back(index.getType());
+  if (!tensorsHaveSameElType(startIndicesTypes))
+    return emitOptionalError(location,
+                             "start indices must have same element type");
 
   // (C4)
   for (int i = 0; i < numSliceSizes; ++i) {
@@ -2039,8 +2032,11 @@ LogicalResult inferDynamicUpdateSliceOp(
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
   // (C5)
-  if (failed(variadicTensorsHaveSameElType(startIndices, location)))
-    return failure();
+  SmallVector<Type> startIndicesTypes;
+  for (auto index : startIndices) startIndicesTypes.push_back(index.getType());
+  if (!tensorsHaveSameElType(startIndicesTypes))
+    return emitOptionalError(location,
+                             "start indices must have same element type");
 
   // (C6)
   if (operandType.hasRank() && updateType.hasRank())

@@ -2340,7 +2340,7 @@ func.func @dynamic_slice_mismatch_indices(%arg0: tensor<3x4xi32>, %arg1: tensor<
 // -----
 
 func.func @dynamic_slice_mismatch_indices_element_type(%arg0: tensor<3x4xi32>, %arg1: tensor<i32>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
-  // expected-error@+1 {{start indices must have same element type (encountered mismatch: 'i32' vs 'i64')}}
+  // expected-error@+1 {{start indices must have same element type}}
   %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i32>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
@@ -2444,7 +2444,7 @@ func.func @dynamic_update_slice_invalid_start_size(%input: tensor<3x4xi64>, %upd
 // -----
 
 func.func @dynamic_update_slice_mismatched_start(%input: tensor<11x3x4xi32>, %update: tensor<1x3x4xi32>, %start1: tensor<i32>, %start2: tensor<i64>, %start3: tensor<i64>) -> tensor<11x3x4xi32> {
-  // expected-error@+1 {{start indices must have same element type (encountered mismatch: 'i32' vs 'i64')}}
+  // expected-error@+1 {{start indices must have same element type}}
   %0 = "stablehlo.dynamic_update_slice"(%input, %update, %start1, %start2, %start3) : (tensor<11x3x4xi32>, tensor<1x3x4xi32>, tensor<i32>, tensor<i64>, tensor<i64>) -> tensor<11x3x4xi32>
   func.return %0 : tensor<11x3x4xi32>
 }
