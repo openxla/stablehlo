@@ -1982,9 +1982,7 @@ LogicalResult inferDynamicSliceOp(
         ") and the rank of operand (", operandType.getRank(), ")");
 
   // (C3)
-  SmallVector<Type> startIndicesTypes;
-  for (auto index : startIndices) startIndicesTypes.push_back(index.getType());
-  if (!tensorsHaveSameElType(startIndicesTypes))
+  if (!tensorsHaveSameElType(startIndices.getTypes()))
     return emitOptionalError(location,
                              "start indices must have same element type");
 
@@ -2032,9 +2030,7 @@ LogicalResult inferDynamicUpdateSliceOp(
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
   // (C5)
-  SmallVector<Type> startIndicesTypes;
-  for (auto index : startIndices) startIndicesTypes.push_back(index.getType());
-  if (!tensorsHaveSameElType(startIndicesTypes))
+  if (!tensorsHaveSameElType(startIndices.getTypes()))
     return emitOptionalError(location,
                              "start indices must have same element type");
 
