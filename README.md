@@ -62,7 +62,7 @@ Here's how to build the StableHLO repo:
 5. Build StableHLO as a standalone library:
 
    ```sh
-   mkdir build && cd build
+   mkdir -p build && cd build
 
    cmake .. -GNinja \
      -DLLVM_ENABLE_LLD=ON \
