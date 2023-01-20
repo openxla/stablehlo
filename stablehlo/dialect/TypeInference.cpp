@@ -71,20 +71,28 @@ const auto hasDuplicates = [](const ArrayRef<int64_t> nums) {
   return set.size() != nums.size();
 };
 
+bool tensorsHaveSameElType(TypeRange types, bool ignoreFpPrecision = true) {
+  if (!types.empty()) {
+    auto tensorTy1 = types[0].cast<ShapedType>();
+    Type tensorEl1 = tensorTy1.getElementType();
+    for (auto otherTensor : llvm::drop_begin(types, 1)) {
+      auto tensorTy2 = otherTensor.cast<ShapedType>();
+      Type tensorEl2 = tensorTy2.getElementType();
+      if (ignoreFpPrecision && tensorEl1.isa<FloatType>() &&
+          tensorTy2.getElementType().isa<FloatType>())
+        continue;
+      if (tensorEl1 != tensorEl2) return false;
+    }
+  }
+  return true;
+}
+
 // Return true if type1 and type2 are tensors and have the same
 // element-type, else return false. With float element-types, ignore comparing
 // floating-point precision if ignoreFpPrecision is True.
-bool tensorsHaveSameElType(Type type1, Type type2, bool ignoreFpPrecision) {
-  auto tensorTy1 = type1.dyn_cast<TensorType>();
-  auto tensorTy2 = type2.dyn_cast<TensorType>();
-
-  if (!tensorTy1 || !tensorTy2) return false;
-
-  if (ignoreFpPrecision && tensorTy1.getElementType().isa<FloatType>() &&
-      tensorTy2.getElementType().isa<FloatType>())
-    return true;
-
-  return tensorTy1.getElementType() == tensorTy2.getElementType();
+bool tensorsHaveSameElType(Type type1, Type type2,
+                           bool ignoreFpPrecision = true) {
+  return tensorsHaveSameElType({type1, type2}, ignoreFpPrecision);
 }
 
 // Return true if type1 and type2 are shape-compatible and have same element
@@ -1994,6 +2002,7 @@ LogicalResult inferDynamicSliceOp(
     std::optional<Location> location, Value operand, ValueRange startIndices,
     DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // (C2)
   int numSliceSizes = sliceSizes.getNumElements();
   int numStartIndices = startIndices.size();
   if (numStartIndices != numSliceSizes)
@@ -2008,6 +2017,12 @@ LogicalResult inferDynamicSliceOp(
         location, "has mismatched number of start indices (", numStartIndices,
         ") and the rank of operand (", operandType.getRank(), ")");
 
+  // (C3)
+  if (!tensorsHaveSameElType(startIndices.getTypes()))
+    return emitOptionalError(location,
+                             "start indices must have same element type");
+
+  // (C4)
   for (int i = 0; i < numSliceSizes; ++i) {
     int64_t sliceSize = sliceSizes.getValues<int64_t>()[i];
     if (sliceSize < 0)
@@ -2022,6 +2037,7 @@ LogicalResult inferDynamicSliceOp(
     }
   }
 
+  // (C5)
   inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
                                     operandType.getElementType());
   return success();
@@ -2050,19 +2066,9 @@ LogicalResult inferDynamicUpdateSliceOp(
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
   // (C5)
-  if (!startIndices.empty()) {
-    auto firstIndexType = startIndices[0].getType().cast<ShapedType>();
-    Type firstIndexElement = firstIndexType.getElementType();
-    for (auto otherIndex : llvm::drop_begin(startIndices, 1)) {
-      auto otherIndexType = otherIndex.getType().cast<ShapedType>();
-      Type otherIndexElement = otherIndexType.getElementType();
-      if (firstIndexElement != otherIndexElement)
-        return emitOptionalError(
-            location,
-            "start indices must have same element type (encountered mismatch: ",
-            firstIndexElement, " vs ", otherIndexElement, ")");
-    }
-  }
+  if (!tensorsHaveSameElType(startIndices.getTypes()))
+    return emitOptionalError(location,
+                             "start indices must have same element type");
 
   // (C6)
   if (operandType.hasRank() && updateType.hasRank())
