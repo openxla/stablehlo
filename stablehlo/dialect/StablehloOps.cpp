@@ -100,27 +100,13 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 // Utilities for the canonicalize patterns
 //===----------------------------------------------------------------------===//
 
-// Verifies that dimension attribute for the op correctly indexes in operand or
-// result shape.
-template <typename OpT>
-static LogicalResult verifyDimAttr(OpT op) {
-  int64_t rank = -1;
-  auto operandTy =
-      op.getOperand().getType().template dyn_cast<RankedTensorType>();
-  if (operandTy) {
-    rank = operandTy.getRank();
-  } else if (auto ty = op.getType().template dyn_cast<RankedTensorType>()) {
-    rank = ty.getRank();
-  }
-  int64_t dim = op.getDimension();
-  if (dim < 0) {
-    return op.emitOpError()
-           << "requires non-negative dimension attribute; found (" << dim
-           << ")";
-  }
-  if (operandTy && dim >= rank)
-    return op.emitOpError() << "requires dimension attribute in range [0, "
-                            << rank << "); found (" << dim << ")";
+LogicalResult verifyDimInBounds(Location loc, ShapedType type, int64_t dim) {
+  if (dim < 0)
+    return emitOptionalError(
+        loc, "requires non-negative dimension attribute; found (", dim, ")");
+  if (type.hasRank() && dim >= type.getRank())
+    return emitOptionalError(loc, "requires dimension attribute in range [0, ",
+                             type.getRank(), "); found (", dim, ")");
   return success();
 }
 
@@ -807,7 +793,11 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
 // GetDimensionSizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult GetDimensionSizeOp::verify() { return verifyDimAttr(*this); }
+LogicalResult GetDimensionSizeOp::verify() {
+  auto operandTy = getOperand().getType().cast<ShapedType>();
+  int64_t dim = getDimension();
+  return verifyDimInBounds(getLoc(), operandTy, dim);
+}
 
 LogicalResult GetDimensionSizeOp::inferReturnTypes(
     MLIRContext* context, Optional<Location> location, ValueRange,
@@ -1886,8 +1876,9 @@ LogicalResult SetDimensionSizeOp::verify() {
     if (size.getRank() != 0)
       return emitOpError() << "size operand should be of rank-0";
   }
-
-  return verifyDimAttr(*this);
+  auto operandTy = getOperand().getType().cast<ShapedType>();
+  int64_t dim = getDimension();
+  return verifyDimInBounds(getLoc(), operandTy, dim);
 }
 
 // TODO(b/238903565): Switch to inferReturnTypeComponents after adding support
