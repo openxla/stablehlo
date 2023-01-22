@@ -251,7 +251,7 @@ class CompatibleOperandsAndResultType
     auto inferredTypeOrErr =
         inferMostSpecificType(location, operands.getTypes());
     if (failed(inferredTypeOrErr)) return failure();
-    inferredReturnTypes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
+    inferredReturnTypes.emplace_back(*inferredTypeOrErr);
     return success();
   }
 

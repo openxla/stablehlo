@@ -150,8 +150,6 @@ Type createRealType(TensorType type) {
   return hlo::getSameShapeTensorType(type, elementTy);
 }
 
-// TODO(zhouxin) move this section to TypeInference.h/cpp
-//
 //===----------------------------------------------------------------------===//
 // Utils for shape functions with bounded dynamism.
 //===----------------------------------------------------------------------===//
@@ -211,19 +209,19 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
                                                          int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
-  int64_t size = ShapedType::kDynamic;
-  int64_t bound = ShapedType::kDynamic;
+  int64_t inferredSize = ShapedType::kDynamic;
+  int64_t inferredBound = ShapedType::kDynamic;
 
   if (isLeftStaticDim && isRightStaticDim) {
-    size = leftSize + rightSize;
+    inferredSize = leftSize + rightSize;
   } else {
     int64_t leftSizeOrBound = isLeftStaticDim ? leftSize : leftBound;
     int64_t rightSizeOrBound = isRightStaticDim ? rightSize : rightBound;
     if (!isDynamicDimSize(leftSizeOrBound) &&
         !isDynamicDimSize(rightSizeOrBound))
-      bound = leftSizeOrBound + rightSizeOrBound;
+      inferredBound = leftSizeOrBound + rightSizeOrBound;
   }
-  return {size, bound};
+  return {inferredSize, inferredBound};
 }
 
 // Inference rules to merge dimensions with bounds (lhs/rhs are commutative):
@@ -242,29 +240,29 @@ FailureOr<std::pair<int64_t, int64_t>> inferMostSpecificDimAndBound(
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
   bool isLeftStaticBound = !isDynamicDimSize(leftBound);
   bool isRightStaticBound = !isDynamicDimSize(rightBound);
-  int64_t size = ShapedType::kDynamic;
-  int64_t bound = ShapedType::kDynamic;
+  int64_t inferredSize = ShapedType::kDynamic;
+  int64_t inferredBound = ShapedType::kDynamic;
 
   if (isLeftStaticDim || isRightStaticDim) {
     if (isLeftStaticDim && isRightStaticDim && leftSize != rightSize)
       return emitOptionalError(location, "Mismatched dimension sizes ",
                                leftSize, " and ", rightSize, " in dimension ",
                                dim);
-    size = isLeftStaticDim ? leftSize : rightSize;
+    inferredSize = isLeftStaticDim ? leftSize : rightSize;
     if (isLeftStaticBound || isRightStaticBound) {
       int64_t check_bound = isLeftStaticBound ? leftBound : rightBound;
-      if (size > check_bound)
-        return emitOptionalError(location, "Mismatched dimension size ", size,
-                                 " and bound ", check_bound, " in dimension ",
-                                 dim);
+      if (inferredSize > check_bound)
+        return emitOptionalError(location, "Mismatched dimension size ",
+                                 inferredSize, " and bound ", check_bound,
+                                 " in dimension ", dim);
     }
   } else {
     if (isLeftStaticBound && isRightStaticBound)
-      bound = std::min(leftBound, rightBound);
+      inferredBound = std::min(leftBound, rightBound);
     else
-      bound = isLeftStaticBound ? leftBound : rightBound;
+      inferredBound = isLeftStaticBound ? leftBound : rightBound;
   }
-  return std::make_pair(size, bound);
+  return std::make_pair(inferredSize, inferredBound);
 }
 
 // Inference rules for conditional branches (lhs/rhs are commutative):
@@ -302,32 +300,25 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
   return std::make_pair(inferredSize, inferredBound);
 }
 
-FailureOr<TensorType> inferTypeWithCustomFunc(
+FailureOr<TensorType> inferTypeWithCustomFn(
     Optional<Location> location, SmallVector<RankedTensorType> rankedTypes,
     std::function<FailureOr<std::pair<int64_t, int64_t>>(
         Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
-        inferDimAndBoundFunc) {
+        inferDimAndBoundFn) {
   auto rank = rankedTypes[0].getRank();
-  SmallVector<int64_t> inferredSizes;
+  SmallVector<int64_t> inferredSizes = to_vector(rankedTypes[0].getShape());
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
-  bool anyInputHaveBounds = false;
+  ArrayRef<int64_t> bounds = encodingToBounds(rankedTypes[0].getEncoding());
+  if (!bounds.empty()) inferredBounds = to_vector(bounds);
+  bool anyInputHaveBounds = !bounds.empty();
 
-  for (unsigned i = 0; i < rankedTypes.size(); ++i) {
-    RankedTensorType rankedType = rankedTypes[i];
-    ArrayRef<int64_t> bounds = encodingToBounds(rankedType.getEncoding());
-    if (!bounds.empty()) anyInputHaveBounds = true;
-
-    if (i == 0) {
-      inferredSizes = to_vector(rankedType.getShape());
-      if (!bounds.empty()) inferredBounds = to_vector(bounds);
-      continue;
-    }
-
+  for (unsigned i = 1; i < rankedTypes.size(); ++i) {
+    bounds = encodingToBounds(rankedTypes[i].getEncoding());
     for (int dim = 0; dim < rank; ++dim) {
-      auto inferredDimAndBoundOrErr = inferDimAndBoundFunc(
+      auto inferredDimAndBoundOrErr = inferDimAndBoundFn(
           location, dim,
           /*leftSize=*/inferredSizes[dim],
-          /*rightSize=*/rankedType.getShape()[dim],
+          /*rightSize=*/rankedTypes[i].getShape()[dim],
           /*leftBound=*/inferredBounds[dim],
           /*rightBound=*/bounds.empty() ? ShapedType::kDynamic : bounds[dim]);
       if (failed(inferredDimAndBoundOrErr)) return failure();
@@ -354,8 +345,8 @@ FailureOr<ShapedType> inferLeastSpecificType(Optional<Location> location,
       rankedTypes.push_back(rankedType);
     else
       return inputType.cast<ShapedType>();
-  return inferTypeWithCustomFunc(location, rankedTypes,
-                                 inferLeastSpecificDimAndBound);
+  return inferTypeWithCustomFn(location, rankedTypes,
+                               inferLeastSpecificDimAndBound);
 }
 
 FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
@@ -365,8 +356,8 @@ FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
   if (rankedTypes.empty()) return inputTypes[0].cast<ShapedType>();
-  return inferTypeWithCustomFunc(location, rankedTypes,
-                                 inferMostSpecificDimAndBound);
+  return inferTypeWithCustomFn(location, rankedTypes,
+                               inferMostSpecificDimAndBound);
 }
 
 LogicalResult inferMostSpecificTypeComponents(

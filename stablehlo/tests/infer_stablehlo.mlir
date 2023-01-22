@@ -1029,8 +1029,6 @@ func.func @case_bounds(%index : tensor<i32>,
       "stablehlo.return"(%branch_0_operand) : (tensor<2xf32, #stablehlo.type_extensions<bounds = [?]>>) -> ()
   }, {
       "stablehlo.return"(%branch_2_operand) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> ()
-  }, {
-      "stablehlo.return"(%branch_2_operand) : (tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>) -> ()
   }) : (tensor<i32>) -> tensor<*xf32>
   // CHECK: types0 = tensor<?xf32, #stablehlo.type_extensions<bounds = [3]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
