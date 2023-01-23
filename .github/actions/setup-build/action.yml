@@ -40,9 +40,8 @@ runs:
       key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}
       max-size: 4G
 
-  # Setup Bazel caching using GitHub cache
-  - name: Bazel cache
-    uses: actions/checkout@v3
+  # Setup Bazelisk and caching using GitHub cache
+  - name: Setup Bazelisk
     uses: bazelbuild/setup-bazelisk@v2
   - name: Mount bazel cache
     uses: actions/cache@v3
