@@ -196,3 +196,9 @@ different precision than what is mentioned in the lit CHECK directives. As a
 quick-fix, we allow the lit checks to measure the accuracy up to an arbitrary
 places after the decimal point. But the solution is far from ideal. We plan to
 resolve it using [ticket](https://github.com/openxla/stablehlo/issues/268).
+
+**(G6) Anything about the coding-style of the tests?**
+
+1. Make sure to use the actual name of the inputs/outputs instead of defaulting
+   to SSA values (e.g. %0, %1, etc.)
+1. Make sure the tests use pretty-printed format, if it exists.
