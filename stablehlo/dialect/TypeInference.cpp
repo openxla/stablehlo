@@ -1295,28 +1295,25 @@ static LogicalResult inferGatherReturnTypeComponents(
   // batch dimensions, depends on input `start_indices` and could be dynamic.
   // The corresponding bounds, in that case,  are propagated from the
   // `start_indices`.
-  ArrayRef<int64_t> startIndicesBounds = encodingToBounds(
-      startIndices.getType().cast<RankedTensorType>().getEncoding());
+  Attribute encoding =
+      startIndices.getType().cast<RankedTensorType>().getEncoding();
+  ArrayRef<int64_t> startIndicesBounds = encodingToBounds(encoding);
   SmallVector<int64_t> inferredBounds(resultRank, ShapedType::kDynamic);
   if (!startIndicesBounds.empty()) {
     llvm::BitVector isOffsetDim(resultRank);
     for (auto offsetDim : offsetDims) isOffsetDim.set(offsetDim);
 
-    int64_t index = 0;
-    for (int dim = 0; dim < resultRank; ++dim) {
-      if (isOffsetDim.test(dim)) continue;
+    int64_t startIndicesDim = 0;
+    for (int resultDim = 0; resultDim < resultRank; ++resultDim) {
+      if (isOffsetDim.test(resultDim)) continue;
 
-      if (index == indexVectorDim) ++index;
-      inferredBounds[dim] = startIndicesBounds[index];
-      index++;
+      if (startIndicesDim == indexVectorDim) ++startIndicesDim;
+      inferredBounds[resultDim] = startIndicesBounds[startIndicesDim++];
     }
   }
 
-  inferredReturnShapes.emplace_back(
-      shape, elementType,
-      boundsToEncoding(
-          startIndices.getType().cast<RankedTensorType>().getEncoding(),
-          inferredBounds));
+  inferredReturnShapes.emplace_back(shape, elementType,
+                                    boundsToEncoding(encoding, inferredBounds));
   return success();
 }
 
