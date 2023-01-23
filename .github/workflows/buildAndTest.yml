@@ -71,4 +71,4 @@ jobs:
     - name: Build and Test StableHLO using Bazel
       shell: bash
       run: |
-        ./build_tools/github_actions/ci_build_bazel.sh ."
+        ./build_tools/github_actions/ci_build_bazel.sh .
