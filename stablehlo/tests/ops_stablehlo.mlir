@@ -1193,6 +1193,17 @@ func.func @comp_eq(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
 
 // -----
 
+func.func @comp_bad_type(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType must be SIGNED, but got TOTALORDER}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type TOTALORDER>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
 func.func @comp_bad_direction(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
   // expected-error@+1 {{'comparison_direction' failed to satisfy constraint}}
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = "FOOBAR"} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
