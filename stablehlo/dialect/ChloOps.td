@@ -53,6 +53,7 @@ def CHLO_Dialect : Dialect {
     and provide conversion patterns to fully materialize into lower level
     dialects.
   }];
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
