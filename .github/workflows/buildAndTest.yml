@@ -66,3 +66,9 @@ jobs:
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_stablehlo_python_api.sh "$LLVM_PROJECT_DIR" "$STABLEHLO_PYTHON_BUILD_DIR" "$GITHUB_WORKSPACE"
+
+    # Run Bazel for builds
+    - name: Build and Test StableHLO using Bazel
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_bazel.sh ."

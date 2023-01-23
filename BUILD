@@ -256,6 +256,7 @@ cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:TransformUtils",
     ],
 )
 
@@ -287,7 +288,7 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/dialect/VhloOps.td",
+    td_file = "stablehlo/dialect/VhloAttrs.td",
     deps = [
         ":vhlo_ops_td_files",
     ],
@@ -325,7 +326,7 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/dialect/VhloOps.td",
+    td_file = "stablehlo/dialect/VhloEnums.td",
     deps = [
         ":vhlo_ops_td_files",
     ],
@@ -403,6 +404,7 @@ td_library(
     srcs = [
         "stablehlo/dialect/VhloAttrs.td",
         "stablehlo/dialect/VhloBase.td",
+        "stablehlo/dialect/VhloDialect.td",
         "stablehlo/dialect/VhloEnums.td",
         "stablehlo/dialect/VhloOps.td",
         "stablehlo/dialect/VhloTypes.td",
@@ -427,7 +429,7 @@ gentbl_cc_library(
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/dialect/VhloOps.td",
+    td_file = "stablehlo/dialect/VhloTypes.td",
     deps = [
         ":vhlo_ops_td_files",
     ],
@@ -471,8 +473,8 @@ gentbl_cc_library(
 cc_library(
     name = "stablehlo_passes",
     srcs = [
-        "stablehlo/transforms/LegalizeStablehloToVhlo.cpp",
-        "stablehlo/transforms/LegalizeVhloToStablehlo.cpp",
+        "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
+        "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/VhloToVersion.cpp",
     ],
     hdrs = [
