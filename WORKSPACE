@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors. All Rights Reserved.
+# Copyright 2023 The StableHLO Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ http_archive(
     ],
 )
 
-LLVM_COMMIT = "9b59207a985026c989cd6afb7c34e3926436ddb1"
+LLVM_COMMIT = "afca08a567e3803aeb0c32385e62c84bec58ef46"
 
-LLVM_SHA256 = "48fcb70aa10eca8028f95a424c797e96ceb3fd69d6973d0cb2b2f2470858874e"
+LLVM_SHA256 = "c08c8f6cfec9134dc28464c1d660958cf25bc2186e8459a5d96205e5bd7c4975"
 
 http_archive(
     name = "llvm-raw",
