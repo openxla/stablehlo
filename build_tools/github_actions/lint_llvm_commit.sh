@@ -37,7 +37,7 @@ LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"
 
 update_llvm_commit_and_sha256() {
   echo "Retrieving LLVM Commit..."
-  export LLVM_COMMIT="$(cat $LLVM_VERSION_DIR)"
+  export LLVM_COMMIT=`cat $LLVM_VERSION_DIR`
   echo "LLVM_COMMIT: $LLVM_COMMIT"
   echo "Calculating SHA256..."
   export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
