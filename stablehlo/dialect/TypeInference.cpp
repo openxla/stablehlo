@@ -31,6 +31,7 @@ limitations under the License.
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallSet.h"
@@ -1252,13 +1253,13 @@ void reifyGatherDimSizes(int64_t resultRank,
 //  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
 //      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
 static LogicalResult inferGatherReturnTypeComponents(
-    std::optional<Location> location, ShapeAdaptor operandShape,
-    ShapeAdaptor startIndicesShape,
+    Optional<Location> location, ShapeAdaptor operandShape, Value startIndices,
     llvm::function_ref<int64_t(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type elementType = operandShape.getElementType();
+  ShapeAdaptor startIndicesShape(startIndices.getType());
 
   // We need this to determine the result rank. We could still place bounds on
   // the result rank if that was something ShapedTypeComponents could express.
@@ -1288,7 +1289,31 @@ static LogicalResult inferGatherReturnTypeComponents(
                             offsetDims, collapsedSliceDims, startIndexMap,
                             indexVectorDim, shape);
 
-  inferredReturnShapes.emplace_back(shape, elementType);
+  // The dimension sizes of result, corresponding to offset dimensions, depend
+  // on attributes (like `collapsed_slice_dims` and `slice_sizes`) and hence are
+  // always static. Whereas, the dimension sizes of result, corresponding to
+  // batch dimensions, depends on input `start_indices` and could be dynamic.
+  // The corresponding bounds, in that case,  are propagated from the
+  // `start_indices`.
+  Attribute encoding =
+      startIndices.getType().cast<RankedTensorType>().getEncoding();
+  ArrayRef<int64_t> startIndicesBounds = encodingToBounds(encoding);
+  SmallVector<int64_t> inferredBounds(resultRank, ShapedType::kDynamic);
+  if (!startIndicesBounds.empty()) {
+    llvm::BitVector isOffsetDim(resultRank);
+    for (auto offsetDim : offsetDims) isOffsetDim.set(offsetDim);
+
+    int64_t startIndicesDim = 0;
+    for (int resultDim = 0; resultDim < resultRank; ++resultDim) {
+      if (isOffsetDim.test(resultDim)) continue;
+
+      if (startIndicesDim == indexVectorDim) ++startIndicesDim;
+      inferredBounds[resultDim] = startIndicesBounds[startIndicesDim++];
+    }
+  }
+
+  inferredReturnShapes.emplace_back(shape, elementType,
+                                    boundsToEncoding(encoding, inferredBounds));
   return success();
 }
 
@@ -1997,7 +2022,7 @@ LogicalResult inferDynamicGatherOp(
 
   auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
   return inferGatherReturnTypeComponents(
-      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
 }
 
@@ -2255,7 +2280,7 @@ LogicalResult inferGatherOp(
   };
 
   return inferGatherReturnTypeComponents(
-      location, operandShape, startIndicesShape, getSliceDim, offsetDims,
+      location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
 }
 
