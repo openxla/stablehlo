@@ -5,6 +5,7 @@ name: Bazel Build
 on:
   pull_request:
     paths: ['**.txt', 'WORKSPACE']
+  workflow_dispatch:
 
 jobs:
   bazel-build:
