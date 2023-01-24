@@ -13,28 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-
-if [[ $# -ne 1 ]] ; then
-  echo "Usage: $0 <bazel_workspace_dir>"
+if [[ $# -ne 0 ]] ; then
+  echo "Usage: $0"
   exit 1
 fi
-
-WORKSPACE_DIR="$1"
-
-set -x
-#LLVM version
-echo "=== Retrieving LLVM Commit & Calculating SHA256 ==="
-export LLVM_COMMIT="$(cat $WORKSPACE_DIR/build_tools/llvm_version.txt)"
-echo "LLVM_COMMIT: $LLVM_COMMIT"
-export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
-echo "LLVM_SHA256: $LLVM_SHA256"
-
-cd $WORKSPACE_DIR
-sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' WORKSPACE
-sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' WORKSPACE
 
 # Build StableHLO
 echo "=== Building StableHLO ==="
 bazel build //:all
-set +x
