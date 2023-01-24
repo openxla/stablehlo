@@ -47,7 +47,7 @@ runs:
     uses: actions/cache@v3
     with:
       path: "~/.cache/bazel"
-      key: ${{ runner.os }}-stablehlo_build_assets-bazelbuild
+      key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}-bazelbuild
 
   # Install Python/Numpy for API tests
   - name: Install Python and Pip

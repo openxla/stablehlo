@@ -1,0 +1,30 @@
+# Copyright 2023 The StableHLO Authors.
+
+name: Build Bazel
+
+on:
+  pull_request:
+    paths: ['**.txt']
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout StableHLO
+      uses: actions/checkout@v2
+
+    # Read LLVM version from `build_tools/llvm_version.txt`
+    - name: Get LLVM Version
+      id: llvm-version
+      shell: bash
+      run: |
+        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+
+    # Run Bazel build
+    - name: Build and Test StableHLO using Bazel
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_bazel.sh

@@ -13,7 +13,7 @@
 
 print_usage() {
   echo "Usage: $0 [-f] <path/to/llvm/version>"
-  echo "    -f           Auto-fix whitespace issues."
+  echo "    -f           Auto-fix LLVM commit mismatch."
 }
 
 FORMAT_MODE='validate'
@@ -31,13 +31,13 @@ if [[ $# -ne 1 ]] ; then
   exit 1
 fi
 
-LLVM_VERSION_DIR=$1
+LLVM_VERSION_TXT="$1"
 
-LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $LLVM_VERSION_DIR -)
+LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $LLVM_VERSION_TXT -)
 
 update_llvm_commit_and_sha256() {
   echo "Retrieving LLVM Commit..."
-  export LLVM_COMMIT="$(<$LLVM_VERSION_DIR)"
+  export LLVM_COMMIT="$(<$LLVM_VERSION_TXT)"
   echo "LLVM_COMMIT: $LLVM_COMMIT"
   echo "Calculating SHA256..."
   export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
@@ -49,7 +49,7 @@ update_llvm_commit_and_sha256() {
 
 if [[ $FORMAT_MODE == 'fix' ]]; then
   echo "Updating LLVM Commit & SHA256..."
-  update_llvm_commit_and_sha256 $LLVM_VERSION_DIR
+  update_llvm_commit_and_sha256 $LLVM_VERSION_TXT
 else
   if [ ! -z "$LLVM_DIFF" ]; then
     echo "LLVM commit out of sync:"
