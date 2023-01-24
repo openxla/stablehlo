@@ -7,6 +7,12 @@ on:
     paths: ['**.txt', 'WORKSPACE']
   workflow_dispatch:
 
+inputs:
+  llvm-version:
+    description: |
+      LLVM version for checkout and build. Used for ccache value and checkout.
+    required: true
+
 jobs:
   bazel-build:
     strategy:
@@ -23,6 +29,16 @@ jobs:
       shell: bash
       run: |
         echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+
+    # Setup Bazelisk and caching using GitHub cache
+    - name: Setup Bazelisk
+      uses: bazelbuild/setup-bazelisk@v2
+
+    - name: Mount bazel cache
+      uses: actions/cache@v3
+      with:
+        path: "~/.cache/bazel"
+        key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}-bazelbuild
 
     # Run Bazel build
     - name: Build StableHLO using Bazel
