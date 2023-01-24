@@ -1318,7 +1318,7 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 // Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(std::optional<Location> location,
+LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   if (branches.empty())
@@ -1337,13 +1337,22 @@ LogicalResult inferConditionalOp(std::optional<Location> location,
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!isCompatibleForHloTypeInference(branch0ResultTypes, branchResultTypes))
+    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
+                                              branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-  for (auto resultType : branch0ResultTypes)
-    inferredReturnTypes.push_back(resultType);
+
+  for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
+    SmallVector<Type> inputTypes;
+    for (auto branch : branches)
+      inputTypes.push_back(
+          branch->front().getTerminator()->getOperandTypes()[i]);
+    auto inferredTypeOrErr = inferLeastSpecificType(location, inputTypes);
+    if (failed(inferredTypeOrErr)) return failure();
+    inferredReturnTypes.emplace_back(*inferredTypeOrErr);
+  }
   return success();
 }
 
@@ -1499,8 +1508,7 @@ LogicalResult inferBroadcastOp(
   return success();
 }
 
-LogicalResult inferCaseOp(std::optional<Location> location,
-                          RegionRange branches,
+LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, branches, inferredReturnTypes);
 }
@@ -1672,7 +1680,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
         inferredDimAndBound = inferConcatenatedDimAndBound(
             leftSize, rightSize, leftBound, rightBound);
       } else {
-        auto inferredDimAndBoundOrErr = inferMergedDimAndBound(
+        auto inferredDimAndBoundOrErr = inferMostSpecificDimAndBound(
             location, dim, leftSize, rightSize, leftBound, rightBound);
         if (failed(inferredDimAndBoundOrErr)) return failure();
         inferredDimAndBound = *inferredDimAndBoundOrErr;
