@@ -52,8 +52,8 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::ChannelHandleAttr>()) {
-    return vhlo::ChannelHandleAttr::get(attr.getContext(), attr.getHandle(),
-                                        attr.getType());
+    return vhlo::ChannelHandleV1Attr::get(attr.getContext(), attr.getHandle(),
+                                          attr.getType());
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ComparisonDirectionAttr>()) {
@@ -64,7 +64,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ConvDimensionNumbersAttr>()) {
-    return vhlo::ConvDimensionNumbersAttr::get(
+    return vhlo::ConvDimensionNumbersV1Attr::get(
         attr.getContext(), attr.getInputBatchDimension(),
         attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
         attr.getKernelInputFeatureDimension(),
@@ -74,7 +74,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::DotDimensionNumbersAttr>()) {
-    return vhlo::DotDimensionNumbersAttr::get(
+    return vhlo::DotDimensionNumbersV1Attr::get(
         attr.getContext(), attr.getLhsBatchingDimensions(),
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
         attr.getRhsContractingDimensions());
@@ -84,12 +84,12 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::GatherDimensionNumbersAttr>()) {
-    return vhlo::GatherDimensionNumbersAttr::get(
+    return vhlo::GatherDimensionNumbersV1Attr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::OutputOperandAliasAttr>()) {
-    return vhlo::OutputOperandAliasAttr::get(
+    return vhlo::OutputOperandAliasV1Attr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
@@ -104,7 +104,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ScatterDimensionNumbersAttr>()) {
-    return vhlo::ScatterDimensionNumbersAttr::get(
+    return vhlo::ScatterDimensionNumbersV1Attr::get(
         attr.getContext(), attr.getUpdateWindowDims(),
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
         attr.getIndexVectorDim());
@@ -128,39 +128,39 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     }
     return vhlo::ArrayV1Attr::get(stablehloAttrs.getContext(), vhloAttrs);
   }
-  if (auto elementsAttr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
-    auto vhloType = typeConverter->convertType(elementsAttr.getType());
+  if (auto attr = stablehloAttr.dyn_cast<DenseIntOrFPElementsAttr>()) {
+    auto vhloType = typeConverter->convertType(attr.getType());
     LLVM_DEBUG(llvm::dbgs() << "Converted " << vhloType << '\n');
     if (!vhloType) return {};
-    return vhlo::DenseIntOrFPElementsV1Attr::get(
-        elementsAttr.getContext(), vhloType, elementsAttr.getRawData());
+    return vhlo::DenseIntOrFPElementsV1Attr::get(attr.getContext(), vhloType,
+                                                 attr.getRawData());
   }
-  if (auto flatSymAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
-    auto rootRef =
-        convertAttrToVhlo(flatSymAttr.getRootReference(), typeConverter);
-    if (!rootRef) return {};
-    return vhlo::FlatSymbolRefV1Attr::get(flatSymAttr.getContext(), rootRef);
+  if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
+    auto vhloRootRef =
+        convertAttrToVhlo(attr.getRootReference(), typeConverter);
+    if (!vhloRootRef) return {};
+    return vhlo::FlatSymbolRefV1Attr::get(attr.getContext(), vhloRootRef);
   }
-  if (auto floatAttr = stablehloAttr.dyn_cast<FloatAttr>()) {
-    auto floatType = typeConverter->convertType(floatAttr.getType());
-    if (!floatType) return {};
-    return vhlo::FloatV1Attr::get(floatAttr.getContext(), floatType,
-                                  floatAttr.getValue());
+  if (auto attr = stablehloAttr.dyn_cast<FloatAttr>()) {
+    auto vhloFloatType = typeConverter->convertType(attr.getType());
+    if (!vhloFloatType) return {};
+    return vhlo::FloatV1Attr::get(attr.getContext(), vhloFloatType,
+                                  attr.getValue());
   }
-  if (auto intAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
-    return vhlo::IntegerV1Attr::get(intAttr.getContext(), intAttr);
+  if (auto attr = stablehloAttr.dyn_cast<IntegerAttr>()) {
+    return vhlo::IntegerV1Attr::get(attr.getContext(), attr);
   }
-  if (auto strAttr = stablehloAttr.dyn_cast<StringAttr>()) {
-    if (!strAttr.getType().isa<NoneType>()) {
+  if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
+    if (!attr.getType().isa<NoneType>()) {
       // Don't support custom string types
       LLVM_DEBUG(llvm::dbgs()
-                 << "Failed to convert string with type: " << strAttr << '\n');
+                 << "Failed to convert string with type: " << attr << '\n');
       return {};
     }
-    return vhlo::StringV1Attr::get(strAttr.getContext(), strAttr.getValue());
+    return vhlo::StringV1Attr::get(attr.getContext(), attr.getValue());
   }
-  if (auto unitAttr = stablehloAttr.dyn_cast<UnitAttr>()) {
-    return vhlo::UnitV1Attr::get(unitAttr.getContext());
+  if (auto attr = stablehloAttr.dyn_cast<UnitAttr>()) {
+    return vhlo::UnitV1Attr::get(attr.getContext());
   }
 
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');

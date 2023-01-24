@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
@@ -28,6 +29,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"  // for readEnumAttribute
 #include "stablehlo/dialect/VhloOps.h"
@@ -178,46 +180,42 @@ enum AttributeCode {
   ///   }
   kCustomCallApiVersionAttr = 15,
 
-  // Gap in numbers to separate StableHLO types from forked types //
-
   ///   ArrayAttr {
   ///     elements: Attribute[]
   ///   }
-  ///
-  kArrayAttr = 20,
+  kArrayAttr = 16,
 
   ///   DenseIntOrFPElementsAttr {
-  ///     type: ShapedType,
+  ///     type: Type
   ///     data: blob
   ///   }
-  kDenseIntOrFPElementsAttr = 21,
+  kDenseIntOrFPElementsAttr = 17,
 
   ///   FlatSymbolRefAttr {
   ///     rootReference: StringAttr
   ///   }
-  /// A variant of SymbolRefAttr with no leaf references.
-  kFlatSymbolRefAttr = 22,
+  kFlatSymbolRefAttr = 18,
 
   ///   FloatAttr {
-  ///     type: FloatType
+  ///     type: Type
   ///     value: APFloat
   ///   }
-  kFloatAttr = 23,
+  kFloatAttr = 19,
 
   ///   IntegerAttr {
   ///     type: Type
-  ///     value: APInt,
+  ///     value: APInt
   ///   }
-  kIntegerAttr = 24,
+  kIntegerAttr = 20,
 
   ///   StringAttr {
   ///     value: string
   ///   }
-  kStringAttr = 25,
+  kStringAttr = 21,
 
   ///   UnitAttr {
   ///   }
-  kUnitAttr = 26,
+  kUnitAttr = 22,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -234,71 +232,60 @@ enum TypeCode {
   ///   }
   kTokenType = 0,
 
-  // Gap in numbers to separate StableHLO types from forked types //
+  ///   BFloat16Type {
+  ///   }
+  kBFloat16Type = 1,
 
   ///   ComplexType {
   ///     elementType: Type
   ///   }
-  ///
-  kComplexType = 5,
-
-  ///   BFloat16Type {
-  ///   }
-  ///
-  kBFloat16Type = 6,
+  kComplexType = 2,
 
   ///   Float16Type {
   ///   }
-  ///
-  kFloat16Type = 7,
+  kFloat16Type = 3,
 
   ///   Float32Type {
   ///   }
-  ///
-  kFloat32Type = 8,
+  kFloat32Type = 4,
 
   ///   Float64Type {
   ///   }
-  ///
-  kFloat64Type = 9,
+  kFloat64Type = 5,
 
   ///   FunctionType {
-  ///     inputs: Type[],
+  ///     inputs: Type[]
   ///     results: Type[]
   ///   }
-  ///
-  kFunctionType = 10,
+  kFunctionType = 6,
 
   ///   IndexType {
   ///   }
-  ///
-  kIndexType = 11,
+  kIndexType = 7,
 
   ///   IntegerType {
   ///     widthAndSignedness: varint // (width << 2) | (signedness)
   ///   }
-  ///
-  kIntegerType = 12,
+  kIntegerType = 8,
 
   ///   RankedTensorType {
-  ///     shape: svarint[],
+  ///     shape: svarint[]
   ///     elementType: Type,
   ///   }
-  ///
-  kRankedTensorType = 13,
+  kRankedTensorType = 9,
 
   ///   RankedTensorTypeWithEncoding {
-  ///     encoding: Attribute,
-  ///     shape: svarint[],
+  ///     encoding: Attribute
+  ///     shape: svarint[]
   ///     elementType: Type
   ///   }
   /// Variant of RankedTensorType with an encoding.
-  kRankedTensorTypeWithEncoding = 14,
+  kRankedTensorTypeWithEncoding = 10,
 
   ///   TupleType {
   ///     elementTypes: Type[]
   ///   }
-  kTupleType = 15,
+  kTupleType = 11,
 
   ///   UniformQuantizedType {
   ///     flags: varint
@@ -309,18 +296,16 @@ enum TypeCode {
   ///     storageTypeMin: svarint
   ///     storageTypeMax: svarint
   ///   }
-  ///
-  kUniformQuantizedType = 16,
+  kUniformQuantizedType = 12,
 
   ///   UnrankedTensorType {
   ///     elementType: Type
   ///   }
-  ///
-  kUnrankedTensorType = 17,
+  kUnrankedTensorType = 13,
 
   ///   WitnessType {
   ///   }
-  kWitnessType = 18,
+  kWitnessType = 14,
 };
 
 }  // namespace vhlo_encoding
@@ -350,56 +335,59 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in VHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-  ArgResultAliasAttr readArgResultAliasAttr(
+  ArgResultAliasV1Attr readArgResultAliasAttr(
       DialectBytecodeReader &reader) const;
-  ChannelHandleAttr readChannelHandleAttr(DialectBytecodeReader &reader) const;
+  ChannelHandleV1Attr readChannelHandleAttr(
+      DialectBytecodeReader &reader) const;
   ComparisonDirectionAttr readComparisonDirectionAttr(
       DialectBytecodeReader &reader) const;
   ComparisonTypeAttr readComparisonTypeAttr(
       DialectBytecodeReader &reader) const;
-  ConvDimensionNumbersAttr readConvDimensionNumbersAttr(
+  ConvDimensionNumbersV1Attr readConvDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
   CustomCallApiVersionAttr readCustomCallApiVersionAttr(
       DialectBytecodeReader &reader) const;
-  DotDimensionNumbersAttr readDotDimensionNumbersAttr(
+  DotDimensionNumbersV1Attr readDotDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
   FftTypeAttr readFftTypeAttr(DialectBytecodeReader &reader) const;
-  GatherDimensionNumbersAttr readGatherDimensionNumbersAttr(
+  GatherDimensionNumbersV1Attr readGatherDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
-  OutputOperandAliasAttr readOutputOperandAliasAttr(
+  OutputOperandAliasV1Attr readOutputOperandAliasAttr(
       DialectBytecodeReader &reader) const;
   PrecisionAttr readPrecisionAttr(DialectBytecodeReader &reader) const;
   RngAlgorithmAttr readRngAlgorithmAttr(DialectBytecodeReader &reader) const;
   RngDistributionAttr readRngDistributionAttr(
       DialectBytecodeReader &reader) const;
-  ScatterDimensionNumbersAttr readScatterDimensionNumbersAttr(
+  ScatterDimensionNumbersV1Attr readScatterDimensionNumbersAttr(
       DialectBytecodeReader &reader) const;
   TransposeAttr readTransposeAttr(DialectBytecodeReader &reader) const;
-  TypeExtensionsAttr readTypeExtensionsAttr(
+  TypeExtensionsV1Attr readTypeExtensionsAttr(
       DialectBytecodeReader &reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ArgResultAliasAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ChannelHandleAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ArgResultAliasV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(ChannelHandleV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ConvDimensionNumbersAttr attr,
+  void write(ConvDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(CustomCallApiVersionAttr attr,
              DialectBytecodeWriter &writer) const;
-  void write(DotDimensionNumbersAttr attr, DialectBytecodeWriter &writer) const;
-  void write(FftTypeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(GatherDimensionNumbersAttr attr,
+  void write(DotDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(OutputOperandAliasAttr attr, DialectBytecodeWriter &writer) const;
+  void write(FftTypeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(GatherDimensionNumbersV1Attr attr,
+             DialectBytecodeWriter &writer) const;
+  void write(OutputOperandAliasV1Attr attr,
+             DialectBytecodeWriter &writer) const;
   void write(PrecisionAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngAlgorithmAttr attr, DialectBytecodeWriter &writer) const;
   void write(RngDistributionAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ScatterDimensionNumbersAttr attr,
+  void write(ScatterDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(TransposeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(TypeExtensionsAttr attr, DialectBytecodeWriter &writer) const;
+  void write(TypeExtensionsV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
   // Forked Attributes
@@ -528,16 +516,17 @@ Attribute VhloBytecodeInterface::readAttribute(
 LogicalResult VhloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ArgResultAliasAttr, ChannelHandleAttr, ComparisonDirectionAttr,
-            ComparisonTypeAttr, ConvDimensionNumbersAttr,
-            CustomCallApiVersionAttr, DotDimensionNumbersAttr, FftTypeAttr,
-            GatherDimensionNumbersAttr, OutputOperandAliasAttr, PrecisionAttr,
-            RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
-            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
-        LOG_WRITE_CALL;
-        write(attr, writer);
-        return success();
-      })
+      .Case<ArgResultAliasV1Attr, ChannelHandleV1Attr, ComparisonDirectionAttr,
+            ComparisonTypeAttr, ConvDimensionNumbersV1Attr,
+            CustomCallApiVersionAttr, DotDimensionNumbersV1Attr, FftTypeAttr,
+            GatherDimensionNumbersV1Attr, OutputOperandAliasV1Attr,
+            PrecisionAttr, RngAlgorithmAttr, RngDistributionAttr,
+            ScatterDimensionNumbersV1Attr, TransposeAttr, TypeExtensionsV1Attr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;
+            write(attr, writer);
+            return success();
+          })
       .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, FlatSymbolRefV1Attr,
             FloatV1Attr, IntegerV1Attr, StringV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;  // Forked attrs
@@ -557,7 +546,7 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
 //===----------------------------------------------------------------------===//
 // ArgResultAliasAttr
 
-ArgResultAliasAttr VhloBytecodeInterface::readArgResultAliasAttr(
+ArgResultAliasV1Attr VhloBytecodeInterface::readArgResultAliasAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
 
@@ -570,14 +559,14 @@ ArgResultAliasAttr VhloBytecodeInterface::readArgResultAliasAttr(
       failed(reader.readSignedVarInt(resultIndex)) ||
       failed(reader.readSignedVarInts(resultTupleIndices)) ||
       failed(reader.readVarInt(isMustAliasUint))) {
-    return ArgResultAliasAttr();
+    return ArgResultAliasV1Attr();
   }
-  return ArgResultAliasAttr::get(getContext(), argTupleIndices, resultIndex,
-                                 resultTupleIndices,
-                                 static_cast<bool>(isMustAliasUint));
+  return ArgResultAliasV1Attr::get(getContext(), argTupleIndices, resultIndex,
+                                   resultTupleIndices,
+                                   static_cast<bool>(isMustAliasUint));
 }
 
-void VhloBytecodeInterface::write(ArgResultAliasAttr attr,
+void VhloBytecodeInterface::write(ArgResultAliasV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kArgResultAliasAttr);
   writer.writeSignedVarInts(attr.getArgTupleIndices());
@@ -589,18 +578,18 @@ void VhloBytecodeInterface::write(ArgResultAliasAttr attr,
 //===----------------------------------------------------------------------===//
 // ChannelHandleAttr
 
-ChannelHandleAttr VhloBytecodeInterface::readChannelHandleAttr(
+ChannelHandleV1Attr VhloBytecodeInterface::readChannelHandleAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   int64_t handle, type;
   if (failed(reader.readSignedVarInt(handle)) ||
       failed(reader.readSignedVarInt(type))) {
-    return ChannelHandleAttr();
+    return ChannelHandleV1Attr();
   }
-  return ChannelHandleAttr::get(getContext(), handle, type);
+  return ChannelHandleV1Attr::get(getContext(), handle, type);
 }
 
-void VhloBytecodeInterface::write(ChannelHandleAttr attr,
+void VhloBytecodeInterface::write(ChannelHandleV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kChannelHandleAttr);
   writer.writeSignedVarInt(attr.getHandle());
@@ -644,7 +633,7 @@ void VhloBytecodeInterface::write(ComparisonTypeAttr attr,
 //===----------------------------------------------------------------------===//
 // ConvDimensionNumbersAttr
 
-ConvDimensionNumbersAttr VhloBytecodeInterface::readConvDimensionNumbersAttr(
+ConvDimensionNumbersV1Attr VhloBytecodeInterface::readConvDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   int64_t inputBatchDimension, inputFeatureDimension;
@@ -665,17 +654,17 @@ ConvDimensionNumbersAttr VhloBytecodeInterface::readConvDimensionNumbersAttr(
       failed(reader.readSignedVarInt(outputBatchDimension)) ||
       failed(reader.readSignedVarInt(outputFeatureDimension)) ||
       failed(reader.readSignedVarInts(outputSpatialDimensions))) {
-    return ConvDimensionNumbersAttr();
+    return ConvDimensionNumbersV1Attr();
   }
 
-  return ConvDimensionNumbersAttr::get(
+  return ConvDimensionNumbersV1Attr::get(
       getContext(), inputBatchDimension, inputFeatureDimension,
       inputSpatialDimensions, kernelInputFeatureDimension,
       kernelOutputFeatureDimension, kernelSpatialDimensions,
       outputBatchDimension, outputFeatureDimension, outputSpatialDimensions);
 }
 
-void VhloBytecodeInterface::write(ConvDimensionNumbersAttr attr,
+void VhloBytecodeInterface::write(ConvDimensionNumbersV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kConvDimensionNumbersAttr);
   writer.writeSignedVarInt(attr.getInputBatchDimension());
@@ -709,7 +698,7 @@ void VhloBytecodeInterface::write(CustomCallApiVersionAttr attr,
 //===----------------------------------------------------------------------===//
 // DotDimensionNumbersAttr
 
-DotDimensionNumbersAttr VhloBytecodeInterface::readDotDimensionNumbersAttr(
+DotDimensionNumbersV1Attr VhloBytecodeInterface::readDotDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> lhsBatchingDimensions, rhsBatchingDimensions,
@@ -719,15 +708,15 @@ DotDimensionNumbersAttr VhloBytecodeInterface::readDotDimensionNumbersAttr(
       failed(reader.readSignedVarInts(rhsBatchingDimensions)) ||
       failed(reader.readSignedVarInts(lhsContractingDimensions)) ||
       failed(reader.readSignedVarInts(rhsContractingDimensions))) {
-    return DotDimensionNumbersAttr();
+    return DotDimensionNumbersV1Attr();
   }
 
-  return DotDimensionNumbersAttr::get(
+  return DotDimensionNumbersV1Attr::get(
       getContext(), lhsBatchingDimensions, rhsBatchingDimensions,
       lhsContractingDimensions, rhsContractingDimensions);
 }
 
-void VhloBytecodeInterface::write(DotDimensionNumbersAttr attr,
+void VhloBytecodeInterface::write(DotDimensionNumbersV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kDotDimensionNumbers);
   writer.writeSignedVarInts(attr.getLhsBatchingDimensions());
@@ -754,7 +743,7 @@ void VhloBytecodeInterface::write(FftTypeAttr attr,
 //===----------------------------------------------------------------------===//
 // GatherDimensionNumbersAttr
 
-GatherDimensionNumbersAttr
+GatherDimensionNumbersV1Attr
 VhloBytecodeInterface::readGatherDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
@@ -765,15 +754,15 @@ VhloBytecodeInterface::readGatherDimensionNumbersAttr(
       failed(reader.readSignedVarInts(collapsedSliceDims)) ||
       failed(reader.readSignedVarInts(startIndexMap)) ||
       failed(reader.readSignedVarInt(indexVectorDim))) {
-    return GatherDimensionNumbersAttr();
+    return GatherDimensionNumbersV1Attr();
   }
 
-  return GatherDimensionNumbersAttr::get(getContext(), offsetDims,
-                                         collapsedSliceDims, startIndexMap,
-                                         indexVectorDim);
+  return GatherDimensionNumbersV1Attr::get(getContext(), offsetDims,
+                                           collapsedSliceDims, startIndexMap,
+                                           indexVectorDim);
 }
 
-void VhloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
+void VhloBytecodeInterface::write(GatherDimensionNumbersV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kGatherDimensionNumbers);
   writer.writeSignedVarInts(attr.getOffsetDims());
@@ -785,7 +774,7 @@ void VhloBytecodeInterface::write(GatherDimensionNumbersAttr attr,
 //===----------------------------------------------------------------------===//
 // OutputOperandAliasAttr
 
-OutputOperandAliasAttr VhloBytecodeInterface::readOutputOperandAliasAttr(
+OutputOperandAliasV1Attr VhloBytecodeInterface::readOutputOperandAliasAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> outputTupleIndices, operandTupleIndices;
@@ -794,13 +783,13 @@ OutputOperandAliasAttr VhloBytecodeInterface::readOutputOperandAliasAttr(
   if (failed(reader.readSignedVarInts(outputTupleIndices)) ||
       failed(reader.readSignedVarInt(operandIndex)) ||
       failed(reader.readSignedVarInts(operandTupleIndices))) {
-    return OutputOperandAliasAttr();
+    return OutputOperandAliasV1Attr();
   }
-  return OutputOperandAliasAttr::get(getContext(), outputTupleIndices,
-                                     operandIndex, operandTupleIndices);
+  return OutputOperandAliasV1Attr::get(getContext(), outputTupleIndices,
+                                       operandIndex, operandTupleIndices);
 }
 
-void VhloBytecodeInterface::write(OutputOperandAliasAttr attr,
+void VhloBytecodeInterface::write(OutputOperandAliasV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kOutputOperandAlias);
   writer.writeSignedVarInts(attr.getOutputTupleIndices());
@@ -862,7 +851,7 @@ void VhloBytecodeInterface::write(RngDistributionAttr attr,
 //===----------------------------------------------------------------------===//
 // ScatterDimensionNumbersAttr
 
-ScatterDimensionNumbersAttr
+ScatterDimensionNumbersV1Attr
 VhloBytecodeInterface::readScatterDimensionNumbersAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
@@ -874,15 +863,15 @@ VhloBytecodeInterface::readScatterDimensionNumbersAttr(
       failed(reader.readSignedVarInts(insertedWindowDims)) ||
       failed(reader.readSignedVarInts(scatterDimsToOperandDims)) ||
       failed(reader.readSignedVarInt(indexVectorDim))) {
-    return ScatterDimensionNumbersAttr();
+    return ScatterDimensionNumbersV1Attr();
   }
 
-  return ScatterDimensionNumbersAttr::get(
+  return ScatterDimensionNumbersV1Attr::get(
       getContext(), updateWindowDims, insertedWindowDims,
       scatterDimsToOperandDims, indexVectorDim);
 }
 
-void VhloBytecodeInterface::write(ScatterDimensionNumbersAttr attr,
+void VhloBytecodeInterface::write(ScatterDimensionNumbersV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kScatterDimensionNumbersAttr);
   writer.writeSignedVarInts(attr.getUpdateWindowDims());
@@ -911,17 +900,17 @@ void VhloBytecodeInterface::write(TransposeAttr attr,
 //===----------------------------------------------------------------------===//
 // TypeExtensionsAttr
 
-TypeExtensionsAttr VhloBytecodeInterface::readTypeExtensionsAttr(
+TypeExtensionsV1Attr VhloBytecodeInterface::readTypeExtensionsAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> bounds;
   if (failed(reader.readSignedVarInts(bounds))) {
-    return TypeExtensionsAttr();
+    return TypeExtensionsV1Attr();
   }
-  return TypeExtensionsAttr::get(getContext(), bounds);
+  return TypeExtensionsV1Attr::get(getContext(), bounds);
 }
 
-void VhloBytecodeInterface::write(TypeExtensionsAttr attr,
+void VhloBytecodeInterface::write(TypeExtensionsV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTypeExtensionsAttr);
   writer.writeSignedVarInts(attr.getBounds());
@@ -933,12 +922,13 @@ void VhloBytecodeInterface::write(TypeExtensionsAttr attr,
 
 namespace {
 template <typename AttrOrType>
-bool assertFromVhlo(AttrOrType val) {
-  if (val.getDialect().getNamespace() != "vhlo") {
+void assertFromVhlo(AttrOrType val) {
+  if (val.getDialect().getNamespace() !=
+      vhlo::VhloDialect::getDialectNamespace()) {
     LLVM_DEBUG(llvm::dbgs() << "Not vhlo: " << val << '\n');
-    llvm_unreachable("All types and attributes must be VHLO for bytecode.");
+    llvm::report_fatal_error(
+        "All types and attributes must be VHLO for bytecode.");
   }
-  return true;  // return a value for llvm::all_of use
 }
 }  // namespace
 
@@ -951,13 +941,13 @@ ArrayV1Attr VhloBytecodeInterface::readArrayAttr(
   SmallVector<Attribute> elements;
   if (failed(reader.readAttributes(elements))) return ArrayV1Attr();
 
-  llvm::all_of(elements, assertFromVhlo<Attribute>);
+  llvm::for_each(elements, assertFromVhlo<Attribute>);
   return ArrayV1Attr::get(getContext(), elements);
 }
 
 void VhloBytecodeInterface::write(ArrayV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
-  llvm::all_of(attr.getValue(), assertFromVhlo<Attribute>);
+  llvm::for_each(attr.getValue(), assertFromVhlo<Attribute>);
   writer.writeVarInt(vhlo_encoding::kArrayAttr);
   writer.writeAttributes(attr.getValue());
 }
@@ -972,7 +962,6 @@ DenseIntOrFPElementsV1Attr VhloBytecodeInterface::readDenseIntOrFPElementsAttr(
   ArrayRef<char> blob;
   if (failed(reader.readType(type)) || failed(reader.readBlob(blob)))
     return DenseIntOrFPElementsV1Attr();
-
   assertFromVhlo(type);
   return DenseIntOrFPElementsV1Attr::get(getContext(), type, blob);
 }
@@ -991,10 +980,6 @@ void VhloBytecodeInterface::write(DenseIntOrFPElementsV1Attr attr,
 namespace {
 /// Returns the floating semantics for the given type.
 const llvm::fltSemantics &getFloatSemantics(Type type) {
-  // if (isa<Float8E5M2Type>())
-  //   return APFloat::Float8E5M2();
-  // if (isa<Float8E4M3FNType>())
-  //   return APFloat::Float8E4M3FN();
   if (type.isa<BFloat16V1Type>()) return APFloat::BFloat();
   if (type.isa<Float16V1Type>()) return APFloat::IEEEhalf();
   if (type.isa<Float32V1Type>()) return APFloat::IEEEsingle();
@@ -1008,11 +993,12 @@ FloatV1Attr VhloBytecodeInterface::readFloatAttr(
   LOG_READ_CALL;
   Type type;
   if (failed(reader.readType(type))) return FloatV1Attr();
+  assertFromVhlo(type);
+
   FailureOr<APFloat> value =
       reader.readAPFloatWithKnownSemantics(getFloatSemantics(type));
   if (failed(value)) return FloatV1Attr();
 
-  assertFromVhlo(type);
   return FloatV1Attr::get(getContext(), type, *value);
 }
 
@@ -1032,7 +1018,6 @@ FlatSymbolRefV1Attr VhloBytecodeInterface::readFlatSymbolRefAttr(
   LOG_READ_CALL;
   Attribute rootReference;
   if (failed(reader.readAttribute(rootReference))) return FlatSymbolRefV1Attr();
-
   assertFromVhlo(rootReference);
   return FlatSymbolRefV1Attr::get(getContext(), rootReference);
 }
@@ -1082,7 +1067,10 @@ void VhloBytecodeInterface::write(IntegerV1Attr attr,
     writer.writeType(IndexV1Type::get(getContext()));
   } else {
     assert(intAttr.getType().isa<IntegerType>());
-    // Wrap integer type in vhlo::IntegerV1Type
+
+    // Note, since IntegerV1Type wraps builtin IntegerAttr, we need to
+    // explicitly convert to IntegerV1Type here to avoid calling into builtin
+    // dialect bytecode writer.
     writer.writeType(IntegerV1Type::get(getContext(),
                                         intAttr.getType().cast<IntegerType>()));
   }
@@ -1262,14 +1250,15 @@ RankedTensorV1Type VhloBytecodeInterface::readRankedTensorType(
   Attribute encoding;
   if (hasEncoding && failed(reader.readAttribute(encoding)))
     return RankedTensorV1Type();
+  if (hasEncoding) assertFromVhlo(encoding);
+
   SmallVector<int64_t> shape;
   Type elementType;
   if (failed(reader.readSignedVarInts(shape)) ||
       failed(reader.readType(elementType)))
     return RankedTensorV1Type();
-
-  if (hasEncoding) assertFromVhlo(encoding);
   assertFromVhlo(elementType);
+
   return RankedTensorV1Type::get(getContext(), shape, elementType, encoding);
 }
 
@@ -1296,13 +1285,13 @@ TupleV1Type VhloBytecodeInterface::readTupleType(
   SmallVector<Type> elements;
   if (failed(reader.readTypes(elements))) return TupleV1Type();
 
-  llvm::all_of(elements, assertFromVhlo<Type>);
+  llvm::for_each(elements, assertFromVhlo<Type>);
   return TupleV1Type::get(getContext(), elements);
 }
 
 void VhloBytecodeInterface::write(TupleV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  llvm::all_of(type.getTypes(), assertFromVhlo<Type>);
+  llvm::for_each(type.getTypes(), assertFromVhlo<Type>);
   writer.writeVarInt(vhlo_encoding::kTupleType);
   writer.writeTypes(type.getTypes());
 }

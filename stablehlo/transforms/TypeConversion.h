@@ -44,7 +44,8 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
  public:
   StablehloToVhloTypeConverter() : VersionedTypeConverterBase() {
     addConversion([](Type type) -> Type {
-      if (type.getDialect().getNamespace() == "vhlo") {
+      if (type.getDialect().getNamespace() ==
+          vhlo::VhloDialect::getDialectNamespace()) {
         return type;
       }
       LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
@@ -90,17 +91,17 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
       return vhlo::TupleV1Type::get(type.getContext(), convertedTypes);
     });
     addConversion([&](quant::UniformQuantizedType type) -> Type {
-      Type storage = convertType(type.getStorageType());
-      Type expressed = convertType(type.getExpressedType());
-      if (!storage || !expressed) return {};
+      Type convertedStorageType = convertType(type.getStorageType());
+      Type convertedExpressedType = convertType(type.getExpressedType());
+      if (!convertedStorageType || !convertedExpressedType) return {};
       return vhlo::UniformQuantizedV1Type::get(
-          type.getContext(), type.getFlags(), storage, expressed,
-          APFloat(type.getScale()), type.getZeroPoint(),
+          type.getContext(), type.getFlags(), convertedStorageType,
+          convertedExpressedType, APFloat(type.getScale()), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
     });
     addConversion([&](UnrankedTensorType type) -> Type {
       auto convertedElementType = convertType(type.getElementType());
-      if (!convertedElementType) return {};  // unsupported element type
+      if (!convertedElementType) return {};
       return UnrankedTensorV1Type::get(type.getContext(), convertedElementType);
     });
     addConversion([&](shape::WitnessType type) -> Type {
@@ -108,19 +109,18 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     });
   }
 
-  bool isTargetDialect(Dialect& dialect) {
-    return dialect.getNamespace() == vhlo::VhloDialect::getDialectNamespace();
-  }
-
   Attribute convertEncoding(Attribute attr) final {
     LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n" << attr << '\n');
 
     // Must be VHLO encoding, or convertible to VHLO encoding.
-    if (isTargetDialect(attr.getDialect())) return attr;
+
+    if (attr.getDialect().getNamespace() ==
+        vhlo::VhloDialect::getDialectNamespace())
+      return attr;
     if (auto stablehloAttr =
             attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
-      return vhlo::TypeExtensionsAttr::get(stablehloAttr.getContext(),
-                                           stablehloAttr.getBounds());
+      return vhlo::TypeExtensionsV1Attr::get(stablehloAttr.getContext(),
+                                             stablehloAttr.getBounds());
     }
 
     // Was not VHLO encoding, or convertible.
@@ -180,7 +180,7 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     });
     addConversion([&](UnrankedTensorV1Type type) -> Type {
       auto convertedElementType = convertType(type.getElementType());
-      if (!convertedElementType) return {};  // unsupported element type
+      if (!convertedElementType) return {};
       return UnrankedTensorType::get(convertedElementType);
     });
     addConversion([&](WitnessV1Type type) -> Type {
@@ -189,7 +189,7 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
   }
 
   Attribute convertEncoding(Attribute attr) final {
-    if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsAttr>()) {
+    if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsV1Attr>()) {
       return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
                                                 vhloAttr.getBounds());
     }
@@ -202,7 +202,8 @@ class VhloToVersionConverter : public VersionedTypeConverterBase {
  public:
   VhloToVersionConverter() : VersionedTypeConverterBase() {
     addConversion([](Type type) -> Type {
-      if (type.getDialect().getNamespace() == "vhlo") {
+      if (type.getDialect().getNamespace() ==
+          vhlo::VhloDialect::getDialectNamespace()) {
         return type;
       }
       LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');

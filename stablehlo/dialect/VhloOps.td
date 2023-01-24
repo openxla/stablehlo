@@ -606,7 +606,7 @@ def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution"> {
     (ins
        VHLO_AnyType:$lhs,
        VHLO_AnyType:$rhs),
-    VHLO_ConvolutionAttributes.attributes);
+    VHLO_ConvolutionAttributesV1.attributes);
   let results = (outs VHLO_AnyType);
 }
 
@@ -942,7 +942,7 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv"> {
        VHLO_AnyType:$lhs,
        VHLO_AnyType:$rhs,
        VHLO_AnyType:$d_padding),
-    VHLO_ConvolutionAttributes.attributes);
+    VHLO_ConvolutionAttributesV1.attributes);
   let results = (outs VHLO_AnyType);
 }
 

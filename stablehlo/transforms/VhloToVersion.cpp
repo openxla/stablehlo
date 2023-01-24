@@ -143,6 +143,11 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
       return failure();
     return isLegalType(ranked.getElementType(), targetVersion);
   }
+  if (auto tuple = type.dyn_cast<TupleV1Type>()) {
+    return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion));
+    }));
+  }
   if (auto quant = type.dyn_cast<UniformQuantizedV1Type>()) {
     return success(
         succeeded(isLegalType(quant.getStorageType(), targetVersion)) &&
@@ -150,11 +155,6 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   }
   if (auto unranked = type.dyn_cast<UnrankedTensorV1Type>()) {
     return isLegalType(unranked.getElementType(), targetVersion);
-  }
-  if (auto tuple = type.dyn_cast<TupleV1Type>()) {
-    return success(llvm::all_of(tuple.getTypes(), [&](Type ele) {
-      return succeeded(isLegalType(ele, targetVersion));
-    }));
   }
 
   // Is VHLO and valid version, success.
@@ -169,7 +169,7 @@ bool isLegalOperation(Operation* op, const Version& targetVersion) {
   LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
 
   // Validate attributes
-  auto isLegalAttrFn = [&](NamedAttribute const& attr) {
+  auto isLegalAttrFn = [&](const NamedAttribute& attr) {
     return succeeded(isLegalAttribute(attr.getValue(), targetVersion));
   };
   if (!llvm::all_of(op->getAttrs(), isLegalAttrFn)) return false;

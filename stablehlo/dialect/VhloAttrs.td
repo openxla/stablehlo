@@ -19,6 +19,7 @@ limitations under the License.
 
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloDialect.td"
+include "stablehlo/dialect/VhloTypes.td"
 
 include "mlir/IR/AttrTypeBase.td"
 
@@ -61,7 +62,7 @@ class VHLO_AttrDef<string name,
 // VHLO Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_ScatterDimensionNumbers: VHLO_AttrDef<"ScatterDimensionNumbers"> {
+def VHLO_ScatterDimensionNumbersAttrV1 : VHLO_AttrDef<"ScatterDimensionNumbersV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "scatter";
   let parameters = (ins
@@ -73,7 +74,7 @@ def VHLO_ScatterDimensionNumbers: VHLO_AttrDef<"ScatterDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_GatherDimensionNumbers : VHLO_AttrDef<"GatherDimensionNumbers"> {
+def VHLO_GatherDimensionNumbersAttrV1 : VHLO_AttrDef<"GatherDimensionNumbersV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "gather";
   let parameters = (ins
@@ -85,7 +86,7 @@ def VHLO_GatherDimensionNumbers : VHLO_AttrDef<"GatherDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_DotDimensionNumbers : VHLO_AttrDef<"DotDimensionNumbers"> {
+def VHLO_DotDimensionNumbersAttrV1 : VHLO_AttrDef<"DotDimensionNumbersV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "dot";
   let parameters = (ins
@@ -97,7 +98,7 @@ def VHLO_DotDimensionNumbers : VHLO_AttrDef<"DotDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_OutputOperandAlias : VHLO_AttrDef<"OutputOperandAlias", "0.4.0"> {
+def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "output_operand_alias";
   let parameters = (ins
@@ -108,7 +109,7 @@ def VHLO_OutputOperandAlias : VHLO_AttrDef<"OutputOperandAlias", "0.4.0"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ArgResultAlias : VHLO_AttrDef<"ArgResultAlias"> {
+def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "result_alias";
   let parameters = (ins
@@ -120,21 +121,21 @@ def VHLO_ArgResultAlias : VHLO_AttrDef<"ArgResultAlias"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ChannelHandle : VHLO_AttrDef<"ChannelHandle"> {
+def VHLO_ChannelHandleAttrV1 : VHLO_AttrDef<"ChannelHandleV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "channel_handle";
   let parameters = (ins "int64_t":$handle, "int64_t":$type);
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_TypeExtensions : VHLO_AttrDef<"TypeExtensions"> {
+def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
+def VHLO_ConvDimensionNumbersAttrV1 : VHLO_AttrDef<"ConvDimensionNumbersV1"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "conv";
   let parameters = (ins
@@ -153,7 +154,7 @@ def VHLO_ConvDimensionNumbers : VHLO_AttrDef<"ConvDimensionNumbers"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ConvolutionAttributes {
+def VHLO_ConvolutionAttributesV1 {
   dag attributes = (ins
     OptionalAttr<VHLO_AnyAttr>:$window_strides,
     OptionalAttr<VHLO_AnyAttr>:$padding,
@@ -171,43 +172,43 @@ def VHLO_ConvolutionAttributes {
 // Forked Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_ArrayAttr : VHLO_AttrDef<"ArrayV1"> {
+def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
   let mnemonic = "array";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
-def VHLO_DenseIntOrFPElements : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
+def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
   let mnemonic = "dense";
   let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
   let hasCustomAssemblyFormat = 1;
 }
 
-def VHLO_FlatSymbolRefAttr : VHLO_AttrDef<"FlatSymbolRefV1"> {
+def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
   let mnemonic = "sym";
   let parameters = (ins "::mlir::Attribute":$root_reference);
   let assemblyFormat = "`<` $root_reference `>`";
 }
 
-def VHLO_FloatAttr : VHLO_AttrDef<"FloatV1"> {
+def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
   let mnemonic = "float";
-  let parameters = (ins "mlir::Type":$type, VHLO_Double:$value);
+  let parameters = (ins "mlir::Type":$type, VHLO_DoubleV1:$value);
   let assemblyFormat = "`<` $value `:` $type `>`";
 }
 
-def VHLO_IntegerAttr  : VHLO_AttrDef<"IntegerV1"> {
+def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
   let mnemonic = "integer";
   let parameters = (ins "mlir::IntegerAttr":$value);
   let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_StringAttr : VHLO_AttrDef<"StringV1"> {
+def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
   let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
+def VHLO_UnitAttrV1 : VHLO_AttrDef<"UnitV1"> {
   let mnemonic = "unit";
   let storageType = [{ ::mlir::UnitAttr }];
   let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";

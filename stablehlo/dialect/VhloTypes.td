@@ -119,7 +119,7 @@ def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let assemblyFormat = "`<` $types `>`";
 }
 
-def VHLO_Double : APFloatParameter<""> {
+def VHLO_DoubleV1 : APFloatParameter<""> {
   // Used by UniformQuantizedV1 to have APFloat with custom parser
   let parser = [{
     [&]() -> FailureOr<llvm::APFloat> {
@@ -137,7 +137,7 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
     "unsigned":$flags,
     "::mlir::Type":$storageType,
     "::mlir::Type":$expressedType,
-    VHLO_Double:$scale,
+    VHLO_DoubleV1:$scale,
     "int64_t":$zeroPoint,
     "int64_t":$storageTypeMin,
     "int64_t":$storageTypeMax
@@ -145,7 +145,7 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
-def VHLO_UnankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
+def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
   let parameters = (ins "::mlir::Type":$elementType);
   let assemblyFormat = "`<` $elementType `>`";
 }
