@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file is similar to build_mlir.sh, but passes different flags for
-# caching in GitHub Actions to improve build speeds.
+set -e
 
 if [[ $# -ne 1 ]] ; then
   echo "Usage: $0 <bazel_workspace_dir>"
@@ -24,6 +23,7 @@ fi
 WORKSPACE_DIR="$1"
 
 #LLVM version
+set -x
 echo "=== Retrieving LLVM Commit & Calculating SHA256 ==="
 export LLVM_COMMIT="$(cat $WORKSPACE_DIR/build_tools/llvm_version.txt)"
 echo "LLVM_COMMIT: $LLVM_COMMIT"
@@ -37,3 +37,4 @@ sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' WORKSPACE
 # Build StableHLO
 echo "=== Building StableHLO ==="
 bazel build //:all
+set +x
