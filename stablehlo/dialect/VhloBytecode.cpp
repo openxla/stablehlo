@@ -339,28 +339,29 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
   ChannelHandleV1Attr readChannelHandleV1Attr(
       DialectBytecodeReader &reader) const;
-  ComparisonDirectionAttr readComparisonDirectionV1Attr(
+  ComparisonDirectionV1Attr readComparisonDirectionV1Attr(
       DialectBytecodeReader &reader) const;
-  ComparisonTypeAttr readComparisonTypeV1Attr(
+  ComparisonTypeV1Attr readComparisonTypeV1Attr(
       DialectBytecodeReader &reader) const;
   ConvDimensionNumbersV1Attr readConvDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  CustomCallApiVersionAttr readCustomCallApiVersionV1Attr(
+  CustomCallApiVersionV1Attr readCustomCallApiVersionV1Attr(
       DialectBytecodeReader &reader) const;
   DotDimensionNumbersV1Attr readDotDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  FftTypeAttr readFftTypeV1Attr(DialectBytecodeReader &reader) const;
+  FftTypeV1Attr readFftTypeV1Attr(DialectBytecodeReader &reader) const;
   GatherDimensionNumbersV1Attr readGatherDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
   OutputOperandAliasV1Attr readOutputOperandAliasV1Attr(
       DialectBytecodeReader &reader) const;
-  PrecisionAttr readPrecisionV1Attr(DialectBytecodeReader &reader) const;
-  RngAlgorithmAttr readRngAlgorithmV1Attr(DialectBytecodeReader &reader) const;
-  RngDistributionAttr readRngDistributionV1Attr(
+  PrecisionV1Attr readPrecisionV1Attr(DialectBytecodeReader &reader) const;
+  RngAlgorithmV1Attr readRngAlgorithmV1Attr(
+      DialectBytecodeReader &reader) const;
+  RngDistributionV1Attr readRngDistributionV1Attr(
       DialectBytecodeReader &reader) const;
   ScatterDimensionNumbersV1Attr readScatterDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  TransposeAttr readTransposeV1Attr(DialectBytecodeReader &reader) const;
+  TransposeV1Attr readTransposeV1Attr(DialectBytecodeReader &reader) const;
   TypeExtensionsV1Attr readTypeExtensionsV1Attr(
       DialectBytecodeReader &reader) const;
 
@@ -368,25 +369,26 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
   void write(ArgResultAliasV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ChannelHandleV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(ComparisonDirectionV1Attr attr,
+             DialectBytecodeWriter &writer) const;
+  void write(ComparisonTypeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ConvDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(CustomCallApiVersionAttr attr,
+  void write(CustomCallApiVersionV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(DotDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(FftTypeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(FftTypeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(GatherDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(OutputOperandAliasV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(PrecisionAttr attr, DialectBytecodeWriter &writer) const;
-  void write(RngAlgorithmAttr attr, DialectBytecodeWriter &writer) const;
-  void write(RngDistributionAttr attr, DialectBytecodeWriter &writer) const;
+  void write(PrecisionV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(RngAlgorithmV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(RngDistributionV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ScatterDimensionNumbersV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(TransposeAttr attr, DialectBytecodeWriter &writer) const;
+  void write(TransposeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeExtensionsV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
@@ -516,12 +518,13 @@ Attribute VhloBytecodeInterface::readAttribute(
 LogicalResult VhloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ArgResultAliasV1Attr, ChannelHandleV1Attr, ComparisonDirectionAttr,
-            ComparisonTypeAttr, ConvDimensionNumbersV1Attr,
-            CustomCallApiVersionAttr, DotDimensionNumbersV1Attr, FftTypeAttr,
-            GatherDimensionNumbersV1Attr, OutputOperandAliasV1Attr,
-            PrecisionAttr, RngAlgorithmAttr, RngDistributionAttr,
-            ScatterDimensionNumbersV1Attr, TransposeAttr, TypeExtensionsV1Attr>(
+      .Case<
+          ArgResultAliasV1Attr, ChannelHandleV1Attr, ComparisonDirectionV1Attr,
+          ComparisonTypeV1Attr, ConvDimensionNumbersV1Attr,
+          CustomCallApiVersionV1Attr, DotDimensionNumbersV1Attr, FftTypeV1Attr,
+          GatherDimensionNumbersV1Attr, OutputOperandAliasV1Attr,
+          PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
+          ScatterDimensionNumbersV1Attr, TransposeV1Attr, TypeExtensionsV1Attr>(
           [&](auto attr) {
             LOG_WRITE_CALL;
             write(attr, writer);
@@ -599,35 +602,35 @@ void VhloBytecodeInterface::write(ChannelHandleV1Attr attr,
 //===----------------------------------------------------------------------===//
 // ComparisonDirectionAttr
 
-ComparisonDirectionAttr VhloBytecodeInterface::readComparisonDirectionV1Attr(
+ComparisonDirectionV1Attr VhloBytecodeInterface::readComparisonDirectionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<ComparisonDirectionAttr>(
+  return hlo::bytecode::readEnumAttribute<ComparisonDirectionV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeComparisonDirection(val); });
+      [](uint32_t val) { return symbolizeComparisonDirectionV1(val); });
 }
 
-void VhloBytecodeInterface::write(ComparisonDirectionAttr attr,
+void VhloBytecodeInterface::write(ComparisonDirectionV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kComparisonDirectionAttr);
-  hlo::bytecode::writeEnumAttribute<ComparisonDirection>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<ComparisonDirectionV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
 // ComparisonTypeAttr
 
-ComparisonTypeAttr VhloBytecodeInterface::readComparisonTypeV1Attr(
+ComparisonTypeV1Attr VhloBytecodeInterface::readComparisonTypeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<ComparisonTypeAttr>(
+  return hlo::bytecode::readEnumAttribute<ComparisonTypeV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeComparisonType(val); });
+      [](uint32_t val) { return symbolizeComparisonTypeV1(val); });
 }
 
-void VhloBytecodeInterface::write(ComparisonTypeAttr attr,
+void VhloBytecodeInterface::write(ComparisonTypeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kComparisonTypeAttr);
-  hlo::bytecode::writeEnumAttribute<ComparisonType>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<ComparisonTypeV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
@@ -682,18 +685,19 @@ void VhloBytecodeInterface::write(ConvDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // CustomCallApiVersionAttr
 
-CustomCallApiVersionAttr VhloBytecodeInterface::readCustomCallApiVersionV1Attr(
+CustomCallApiVersionV1Attr
+VhloBytecodeInterface::readCustomCallApiVersionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<CustomCallApiVersionAttr>(
+  return hlo::bytecode::readEnumAttribute<CustomCallApiVersionV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeCustomCallApiVersion(val); });
+      [](uint32_t val) { return symbolizeCustomCallApiVersionV1(val); });
 }
 
-void VhloBytecodeInterface::write(CustomCallApiVersionAttr attr,
+void VhloBytecodeInterface::write(CustomCallApiVersionV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kCustomCallApiVersionAttr);
-  hlo::bytecode::writeEnumAttribute<CustomCallApiVersion>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<CustomCallApiVersionV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
@@ -729,16 +733,17 @@ void VhloBytecodeInterface::write(DotDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // FftTypeAttr
 
-FftTypeAttr VhloBytecodeInterface::readFftTypeV1Attr(
+FftTypeV1Attr VhloBytecodeInterface::readFftTypeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<FftTypeAttr>(
-      reader, getContext(), [](uint32_t val) { return symbolizeFftType(val); });
+  return hlo::bytecode::readEnumAttribute<FftTypeV1Attr>(
+      reader, getContext(),
+      [](uint32_t val) { return symbolizeFftTypeV1(val); });
 }
-void VhloBytecodeInterface::write(FftTypeAttr attr,
+void VhloBytecodeInterface::write(FftTypeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kFftTypeAttr);
-  hlo::bytecode::writeEnumAttribute<FftType>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<FftTypeV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
@@ -801,52 +806,52 @@ void VhloBytecodeInterface::write(OutputOperandAliasV1Attr attr,
 //===----------------------------------------------------------------------===//
 // PrecisionAttr
 
-PrecisionAttr VhloBytecodeInterface::readPrecisionV1Attr(
+PrecisionV1Attr VhloBytecodeInterface::readPrecisionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<PrecisionAttr>(
+  return hlo::bytecode::readEnumAttribute<PrecisionV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizePrecision(val); });
+      [](uint32_t val) { return symbolizePrecisionV1(val); });
 }
 
-void VhloBytecodeInterface::write(PrecisionAttr attr,
+void VhloBytecodeInterface::write(PrecisionV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kPrecisionAttr);
-  hlo::bytecode::writeEnumAttribute<Precision>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<PrecisionV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
 // RngAlgorithmAttr
 
-RngAlgorithmAttr VhloBytecodeInterface::readRngAlgorithmV1Attr(
+RngAlgorithmV1Attr VhloBytecodeInterface::readRngAlgorithmV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<RngAlgorithmAttr>(
+  return hlo::bytecode::readEnumAttribute<RngAlgorithmV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeRngAlgorithm(val); });
+      [](uint32_t val) { return symbolizeRngAlgorithmV1(val); });
 }
 
-void VhloBytecodeInterface::write(RngAlgorithmAttr attr,
+void VhloBytecodeInterface::write(RngAlgorithmV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kRngAlgorithmAttr);
-  hlo::bytecode::writeEnumAttribute<RngAlgorithm>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<RngAlgorithmV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
 // RngDistributionAttr
 
-RngDistributionAttr VhloBytecodeInterface::readRngDistributionV1Attr(
+RngDistributionV1Attr VhloBytecodeInterface::readRngDistributionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<RngDistributionAttr>(
+  return hlo::bytecode::readEnumAttribute<RngDistributionV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeRngDistribution(val); });
+      [](uint32_t val) { return symbolizeRngDistributionV1(val); });
 }
 
-void VhloBytecodeInterface::write(RngDistributionAttr attr,
+void VhloBytecodeInterface::write(RngDistributionV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kRngDistributionAttr);
-  hlo::bytecode::writeEnumAttribute<RngDistribution>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<RngDistributionV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//
@@ -884,18 +889,18 @@ void VhloBytecodeInterface::write(ScatterDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // TransposeAttr
 
-TransposeAttr VhloBytecodeInterface::readTransposeV1Attr(
+TransposeV1Attr VhloBytecodeInterface::readTransposeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
-  return hlo::bytecode::readEnumAttribute<TransposeAttr>(
+  return hlo::bytecode::readEnumAttribute<TransposeV1Attr>(
       reader, getContext(),
-      [](uint32_t val) { return symbolizeTranspose(val); });
+      [](uint32_t val) { return symbolizeTransposeV1(val); });
 }
 
-void VhloBytecodeInterface::write(TransposeAttr attr,
+void VhloBytecodeInterface::write(TransposeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTransposeAttr);
-  hlo::bytecode::writeEnumAttribute<Transpose>(attr, writer);
+  hlo::bytecode::writeEnumAttribute<TransposeV1>(attr, writer);
 }
 
 //===----------------------------------------------------------------------===//

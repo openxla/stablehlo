@@ -187,8 +187,6 @@ VhloDialect::VhloDialect(MLIRContext* context)
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
       >();
-  // context->loadDialect<shape::ShapeDialect>();
-  // context->loadDialect<quant::QuantizationDialect>();
 }
 
 Type VhloDialect::parseType(DialectAsmParser& parser) const {

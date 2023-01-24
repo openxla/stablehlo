@@ -33,15 +33,15 @@ namespace stablehlo {
 
 namespace {
 
-#define RETURN_CONVERTED_ENUM_ATTR(Name)                             \
+#define RETURN_CONVERTED_ENUM_ATTR(Name, Version)                    \
   auto stablehloValue = stablehlo::stringify##Name(attr.getValue()); \
-  auto vhloValue = vhlo::symbolize##Name(stablehloValue);            \
+  auto vhloValue = vhlo::symbolize##Name##Version(stablehloValue);   \
   if (!vhloValue.has_value()) return {};                             \
-  return vhlo::Name##Attr::get(attr.getContext(), vhloValue.value())
+  return vhlo::Name##Version##Attr::get(attr.getContext(), vhloValue.value())
 
 Attribute convertCustomCallApiVersion(Attribute stablehloAttr) {
   if (auto attr = stablehloAttr.dyn_cast<CustomCallApiVersionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
+    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
   return {};
 }
@@ -57,10 +57,10 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ComparisonDirectionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection);
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::ComparisonTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonType);
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ConvDimensionNumbersAttr>()) {
@@ -80,7 +80,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
         attr.getRhsContractingDimensions());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::FftTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(FftType);
+    RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::GatherDimensionNumbersAttr>()) {
@@ -94,13 +94,13 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
         attr.getOperandTupleIndices());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::PrecisionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Precision);
+    RETURN_CONVERTED_ENUM_ATTR(Precision, V1);
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::RngAlgorithmAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm);
+    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm, V1);
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::RngDistributionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngDistribution);
+    RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
   if (auto attr =
           stablehloAttr.dyn_cast<stablehlo::ScatterDimensionNumbersAttr>()) {
@@ -110,7 +110,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
         attr.getIndexVectorDim());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::TransposeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Transpose);
+    RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
   if (stablehloAttr.getDialect().getNamespace() ==
       stablehlo::StablehloDialect::getDialectNamespace()) {

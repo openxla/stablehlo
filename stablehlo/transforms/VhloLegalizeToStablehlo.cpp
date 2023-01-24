@@ -34,10 +34,10 @@ namespace {
 //////////////////////////
 /// VHLO --> StableHLO ///
 //////////////////////////
-#define RETURN_CONVERTED_ENUM_ATTR(Name)                       \
-  auto vhloValue = vhlo::stringify##Name(attr.getValue());     \
-  auto stablehloValue = stablehlo::symbolize##Name(vhloValue); \
-  if (!stablehloValue.has_value()) return {};                  \
+#define RETURN_CONVERTED_ENUM_ATTR(Name, Version)                   \
+  auto vhloValue = vhlo::stringify##Name##Version(attr.getValue()); \
+  auto stablehloValue = stablehlo::symbolize##Name(vhloValue);      \
+  if (!stablehloValue.has_value()) return {};                       \
   return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
 
 Attribute convertAttrToStablehlo(Attribute vhloAttr,
@@ -47,11 +47,11 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonType);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersV1Attr>()) {
     return stablehlo::ConvDimensionNumbersAttr::get(
@@ -62,8 +62,8 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
         attr.getKernelSpatialDimensions(), attr.getOutputBatchDimension(),
         attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::DotDimensionNumbersV1Attr>()) {
     return stablehlo::DotDimensionNumbersAttr::get(
@@ -71,8 +71,8 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
         attr.getRhsContractingDimensions());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(FftType);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::GatherDimensionNumbersV1Attr>()) {
     return stablehlo::GatherDimensionNumbersAttr::get(
@@ -84,14 +84,14 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Precision);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(Precision, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngDistribution);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::ScatterDimensionNumbersV1Attr>()) {
     return stablehlo::ScatterDimensionNumbersAttr::get(
@@ -99,8 +99,8 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
         attr.getIndexVectorDim());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Transpose);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
 
   // Forked attributes
