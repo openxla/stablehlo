@@ -42,4 +42,4 @@ jobs:
 
       - name: Running lint_llvm_commit.sh on source files
         run: |
-          ./build_tools/github_actions/lint_llvm_commit.sh -f .
+          ./build_tools/github_actions/lint_llvm_commit.sh -f ./build_tools/llvm_version.txt
