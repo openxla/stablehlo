@@ -18,10 +18,10 @@ limitations under the License.
 #define STABLEHLO_DIALECT_VHLO_ENUMS
 
 include "stablehlo/dialect/VhloBase.td"
+include "stablehlo/dialect/VhloAttrs.td"
 
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/PatternBase.td"
-
 
 //===----------------------------------------------------------------------===//
 // Enum Versioning

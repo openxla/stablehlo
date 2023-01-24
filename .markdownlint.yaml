@@ -1,0 +1,67 @@
+# Copyright 2022 The StableHLO Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# markdownlint-cli configuration file.
+# To run markdownlint, use the following bash script:
+#   bash build_tools/github_actions/lint_markdown.sh <file>
+
+# Enable all markdownlint rules by default
+default: true
+
+# List formatting:
+#
+# 1. Lists must have a blank line before AND after the list.
+# 2. Lists start aligned to the left (do not indent the top level list items).
+#    NOTE: markdownlint currently checks indentation for unordered lists only.
+#          Please manually verify that your ordered lists are not indented.
+#          See https://github.com/DavidAnson/markdownlint/issues/138.
+# 3. You may use one or zero blank lines between list items.
+# 4. Nested list items should be indented to align with the first character of
+#    the first line. For bullet lists, that means 2 spaces. For numbered
+#    lists, that's 3 spaces (but 4 spaces is okay if that's easier).
+# 5. In multiline list items, subsequent lines are indented by 2 spaces.
+#    This is not checked automatically, so we're documenting this convention
+#    to make sure the codebase stays consistent.
+#
+# Examples:
+#
+# * This is a list item that has multiple
+#   lines and each line aligns with the text from the first line.
+#   * This is a nested list, also aligned with the first line.
+#
+# For ordered lists, that means three spaces for wrapped lines:
+#
+# 1. This is an ordered list item.
+#    1. The nested list aligns with the first line.
+ul-indent:
+  indent: 2
+
+# Limit to 80-char line length, except for tables and code blocks
+line-length:
+  line_length: 80
+  tables: false
+  code_blocks: false
+
+# Allow inline HTML
+no-inline-html: false
+
+# Allow dupe heading names only if they're not siblings
+no-duplicate-heading:
+  siblings_only: true
+
+# Allow images w/o alt-text
+no-alt-text: false
+
+# TODO(smain): Remove this once this error is resolved:
+# https://github.com/DavidAnson/markdownlint/issues/686
+reference-links-images: false

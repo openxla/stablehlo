@@ -361,7 +361,7 @@ FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
 }
 
 LogicalResult inferMostSpecificTypeComponents(
-    Optional<Location> location, TypeRange inputTypes,
+    std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto inferredTypeOrErr = inferMostSpecificType(location, inputTypes);
   if (failed(inferredTypeOrErr)) return failure();

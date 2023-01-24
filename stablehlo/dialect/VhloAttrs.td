@@ -18,13 +18,25 @@ limitations under the License.
 #define STABLEHLO_DIALECT_VHLO_ATTRS
 
 include "stablehlo/dialect/VhloBase.td"
-include "stablehlo/dialect/VhloEnums.td"
+include "stablehlo/dialect/VhloDialect.td"
 
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
 // Attribute Versioning
 //===----------------------------------------------------------------------===//
+
+def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      "Returns the minimum version of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMinVersion">,
+    InterfaceMethod<
+      "Returns the maximum version (inclusive) of the VHLO dialect an attribute is supported in.",
+      "mlir::vhlo::Version", "getMaxVersion">,
+  ];
+}
 
 class VHLO_AttrDef<string name,
                    string minVersion = "0.3.0",
@@ -188,7 +200,7 @@ def VHLO_ConvolutionAttributes {
     VHLO_AnyAttr:$dimension_numbers,
     VHLO_AnyAttr:$feature_group_count,
     VHLO_AnyAttr:$batch_group_count,
-    VHLO_AnyAttr:$precision_config
+    OptionalAttr<VHLO_AnyAttr>:$precision_config
   );
 }
 

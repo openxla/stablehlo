@@ -27,10 +27,9 @@ MlirAttribute stablehloScatterDimensionNumbersGet(
     const int64_t *insertedWindowDims, intptr_t nScatteredDimsToOperandDims,
     const int64_t *scatteredDimsToOperandDims, int64_t indexVectorDim) {
   return wrap(mlir::stablehlo::ScatterDimensionNumbersAttr::get(
-      unwrap(ctx), llvm::makeArrayRef(updateWindowDims, nUpdateWindowDims),
-      llvm::makeArrayRef(insertedWindowDims, nInsertedWindowDims),
-      llvm::makeArrayRef(scatteredDimsToOperandDims,
-                         nScatteredDimsToOperandDims),
+      unwrap(ctx), llvm::ArrayRef(updateWindowDims, nUpdateWindowDims),
+      llvm::ArrayRef(insertedWindowDims, nInsertedWindowDims),
+      llvm::ArrayRef(scatteredDimsToOperandDims, nScatteredDimsToOperandDims),
       indexVectorDim));
 }
 
@@ -99,9 +98,9 @@ MlirAttribute stablehloGatherDimensionNumbersGet(
     intptr_t nStartIndexMap, const int64_t *startIndexMap,
     int64_t indexVectorDim) {
   return wrap(mlir::stablehlo::GatherDimensionNumbersAttr::get(
-      unwrap(ctx), llvm::makeArrayRef(offsetDims, nOffsetDims),
-      llvm::makeArrayRef(collapsedSliceDims, nCollapsedSliceDims),
-      llvm::makeArrayRef(startIndexMap, nStartIndexMap), indexVectorDim));
+      unwrap(ctx), llvm::ArrayRef(offsetDims, nOffsetDims),
+      llvm::ArrayRef(collapsedSliceDims, nCollapsedSliceDims),
+      llvm::ArrayRef(startIndexMap, nStartIndexMap), indexVectorDim));
 }
 
 bool stablehloAttributeIsAGatherDimensionNumbers(MlirAttribute attr) {
@@ -170,10 +169,10 @@ MlirAttribute stablehloDotDimensionNumbersGet(
     const int64_t *rhsContractingDimensions) {
   return wrap(mlir::stablehlo::DotDimensionNumbersAttr::get(
       unwrap(ctx),
-      llvm::makeArrayRef(lhsBatchingDimensions, nLhsBatchingDimensions),
-      llvm::makeArrayRef(rhsBatchingDimensions, nRhsBatchingDimensions),
-      llvm::makeArrayRef(lhsContractingDimensions, nLhsContractingDimensions),
-      llvm::makeArrayRef(rhsContractingDimensions, nRhsContractingDimensions)));
+      llvm::ArrayRef(lhsBatchingDimensions, nLhsBatchingDimensions),
+      llvm::ArrayRef(rhsBatchingDimensions, nRhsBatchingDimensions),
+      llvm::ArrayRef(lhsContractingDimensions, nLhsContractingDimensions),
+      llvm::ArrayRef(rhsContractingDimensions, nRhsContractingDimensions)));
 }
 
 bool stablehloAttributeIsADotDimensionNumbers(MlirAttribute attr) {
@@ -253,11 +252,11 @@ MlirAttribute stablehloConvDimensionNumbersGet(
     intptr_t nOutputSpatialDimensions, const int64_t *outputSpatialDimensions) {
   return wrap(mlir::stablehlo::ConvDimensionNumbersAttr::get(
       unwrap(ctx), inputBatchDimension, inputFeatureDimension,
-      llvm::makeArrayRef(inputSpatialDimensions, nInputSpatialDimensions),
+      llvm::ArrayRef(inputSpatialDimensions, nInputSpatialDimensions),
       kernelInputFeatureDimension, kernelOutputFeatureDimension,
-      llvm::makeArrayRef(kernelSpatialDimensions, nKernelSpatialDimensions),
+      llvm::ArrayRef(kernelSpatialDimensions, nKernelSpatialDimensions),
       outputBatchDimension, outputFeatureDimension,
-      llvm::makeArrayRef(outputSpatialDimensions, nOutputSpatialDimensions)));
+      llvm::ArrayRef(outputSpatialDimensions, nOutputSpatialDimensions)));
 }
 
 bool stablehloAttributeIsAConvDimensionNumbers(MlirAttribute attr) {
@@ -360,9 +359,8 @@ MLIR_CAPI_EXPORTED MlirAttribute stablehloOutputOperandAliasGet(
     const int64_t *outputTupleIndices, int64_t operandIndex,
     intptr_t nOperandTupleIndices, const int64_t *operandTupleIndices) {
   return wrap(mlir::stablehlo::OutputOperandAliasAttr::get(
-      unwrap(ctx), llvm::makeArrayRef(outputTupleIndices, nOutputTupleIndices),
-      operandIndex,
-      llvm::makeArrayRef(operandTupleIndices, nOperandTupleIndices)));
+      unwrap(ctx), llvm::ArrayRef(outputTupleIndices, nOutputTupleIndices),
+      operandIndex, llvm::ArrayRef(operandTupleIndices, nOperandTupleIndices)));
 }
 
 bool stablehloAttributeIsAOutputOperandAlias(MlirAttribute attr) {
@@ -411,7 +409,7 @@ int64_t stablehloOutputOperandAliasGetOperandTupleIndicesElem(
 
 MlirAttribute stablehloComparisonDirectionAttrGet(MlirContext ctx,
                                                   MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::ComparisonDirection> comparisonDirection =
+  std::optional<mlir::stablehlo::ComparisonDirection> comparisonDirection =
       mlir::stablehlo::symbolizeComparisonDirection(unwrap(value));
   if (!comparisonDirection) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonDirectionAttr::get(
@@ -435,7 +433,7 @@ MlirStringRef stablehloComparisonDirectionAttrGetValue(MlirAttribute attr) {
 
 MlirAttribute stablehloComparisonTypeAttrGet(MlirContext ctx,
                                              MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::ComparisonType> comparisonType =
+  std::optional<mlir::stablehlo::ComparisonType> comparisonType =
       mlir::stablehlo::symbolizeComparisonType(unwrap(value));
   if (!comparisonType) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonTypeAttr::get(unwrap(ctx),
@@ -456,7 +454,7 @@ MlirStringRef stablehloComparisonTypeAttrGetValue(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx, MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::Precision> precision =
+  std::optional<mlir::stablehlo::Precision> precision =
       mlir::stablehlo::symbolizePrecision(unwrap(value));
   if (!precision) llvm_unreachable("Invalid value.");
   return wrap(
@@ -477,7 +475,7 @@ MlirStringRef stablehloPrecisionAttrGetValue(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx, MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::FftType> fftType =
+  std::optional<mlir::stablehlo::FftType> fftType =
       mlir::stablehlo::symbolizeFftType(unwrap(value));
   if (!fftType) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::FftTypeAttr::get(unwrap(ctx), fftType.value()));
@@ -497,7 +495,7 @@ MlirStringRef stablehloFftTypeAttrGetValue(MlirAttribute attr) {
 //===----------------------------------------------------------------------===//
 
 MlirAttribute stablehloTransposeAttrGet(MlirContext ctx, MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::Transpose> transpose =
+  std::optional<mlir::stablehlo::Transpose> transpose =
       mlir::stablehlo::symbolizeTranspose(unwrap(value));
   if (!transpose) llvm_unreachable("Invalid value.");
   return wrap(
@@ -519,7 +517,7 @@ MlirStringRef stablehloTransposeAttrGetValue(MlirAttribute attr) {
 
 MlirAttribute stablehloRngDistributionAttrGet(MlirContext ctx,
                                               MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::RngDistribution> rngDistribution =
+  std::optional<mlir::stablehlo::RngDistribution> rngDistribution =
       mlir::stablehlo::symbolizeRngDistribution(unwrap(value));
   if (!rngDistribution) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::RngDistributionAttr::get(
@@ -541,7 +539,7 @@ MlirStringRef stablehloRngDistributionAttrGetValue(MlirAttribute attr) {
 
 MlirAttribute stablehloRngAlgorithmAttrGet(MlirContext ctx,
                                            MlirStringRef value) {
-  llvm::Optional<mlir::stablehlo::RngAlgorithm> rngAlgorithm =
+  std::optional<mlir::stablehlo::RngAlgorithm> rngAlgorithm =
       mlir::stablehlo::symbolizeRngAlgorithm(unwrap(value));
   if (!rngAlgorithm) llvm_unreachable("Invalid value.");
   return wrap(mlir::stablehlo::RngAlgorithmAttr::get(unwrap(ctx),
@@ -586,7 +584,7 @@ int64_t stablehloChannelHandleGetType(MlirAttribute attr) {
 MlirAttribute stablehloTypeExtensionsGet(MlirContext ctx, intptr_t nBounds,
                                          const int64_t *bounds) {
   return wrap(mlir::stablehlo::TypeExtensionsAttr::get(
-      unwrap(ctx), llvm::makeArrayRef(bounds, nBounds)));
+      unwrap(ctx), llvm::ArrayRef(bounds, nBounds)));
 }
 
 bool stablehloAttributeIsTypeExtensions(MlirAttribute attr) {

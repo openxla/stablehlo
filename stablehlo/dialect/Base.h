@@ -18,6 +18,7 @@ limitations under the License.
 #define STABLEHLO_DIALECT_BASE_H
 
 #include <algorithm>
+#include <optional>
 
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
@@ -96,7 +97,7 @@ FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
                                             TypeRange inputTypes);
 
 LogicalResult inferMostSpecificTypeComponents(
-    Optional<Location> location, TypeRange inputTypes,
+    std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
 // Shape derivation function that computes the shape of the result based on an
@@ -146,6 +147,9 @@ class HloDialectInterface : public DialectInterface::Base<HloDialectInterface> {
   // Creates a TokenType type, specific to this dialect.
   // See docs for the particular type in the corresponding dialect.
   virtual Type createTokenType() const = 0;
+
+  // Check whether the type is of TokenType in the corresponding dialect.
+  virtual bool isTokenType(Type type) const = 0;
 
   // Creates a TypeExtensions attribute, specific to this dialect.
   // See docs for the particular attribute in the corresponding dialect.
@@ -238,7 +242,7 @@ class CompatibleOperandsAndResultType
   }
 
   static LogicalResult inferReturnTypes(
-      MLIRContext * /*context*/, Optional<Location> location,
+      MLIRContext * /*context*/, std::optional<Location> location,
       ValueRange operands, DictionaryAttr /*attributes*/,
       RegionRange /*regions*/, SmallVectorImpl<Type> &inferredReturnTypes) {
     // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
@@ -259,7 +263,7 @@ class CompatibleOperandsAndResultType
   // It needs to be paired with INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS
   // (see examples in StablehloOps.cpp).
   static LogicalResult inferReturnTypeComponentsFromOperands(
-      MLIRContext *context, Optional<Location> location,
+      MLIRContext *context, std::optional<Location> location,
       ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
       SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes) {
     SmallVector<Type> inferredReturnTypes;

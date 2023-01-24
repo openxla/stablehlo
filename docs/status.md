@@ -19,9 +19,9 @@ one of the following tracking labels.
 - Generic labels
   - **yes**: there is a comprehensive implementation.
   - **no**: there is no implementation, but working on that is part of
-      [the roadmap](https://github.com/openxla/stablehlo#roadmap).
-      Note that Verifier can never be labeled as "no" because the ODS already
-      implements some verification.
+    [the roadmap](https://github.com/openxla/stablehlo#roadmap).
+    Note that Verifier can never be labeled as "no" because the ODS already
+    implements some verification.
 - Customized labels for Verifier and Type Inference
   - **yes**: there is an implementation, and it's in sync with
     [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
@@ -32,11 +32,11 @@ one of the following tracking labels.
     and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
     as the reference.
   - **revisit**: there is an implementation, but it doesn't fall under "yes"
-      or "yes\*" - either because we haven't audited it yet, or because we have
-      and found issues.
+    or "yes\*" - either because we haven't audited it yet, or because we have
+    and found issues.
   - **infeasible**: there is no implementation, because it's infeasible.
-      For example, because the result type of an op cannot be inferred from
-      its operands and attributes.
+    For example, because the result type of an op cannot be inferred from
+    its operands and attributes.
 
 ## Status
 
@@ -49,7 +49,7 @@ one of the following tracking labels.
 | all_reduce               | yes           | revisit      | yes            | no              | no          |
 | all_to_all               | yes           | revisit      | yes            | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
-| atan2                    | yes           | revisit      | yes            | yes             | no          |
+| atan2                    | yes           | yes          | yes            | yes             | no          |
 | batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
 | batch_norm_training      | yes           | revisit      | yes            | no              | no          |
@@ -57,7 +57,7 @@ one of the following tracking labels.
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |
 | case                     | yes           | revisit      | yes            | no              | no          |
-| cbrt                     | yes           | revisit      | yes            | yes             | no          |
+| cbrt                     | yes           | yes          | yes            | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |
 | clamp                    | yes           | revisit      | yes            | yes             | no          |
@@ -68,7 +68,7 @@ one of the following tracking labels.
 | concatenate              | yes           | yes          | yes            | yes             | no          |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | no          |
-| convolution              | revisit       | yes          | infeasible     | revisit         | no          |
+| convolution              | yes           | yes          | infeasible     | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | no          |
 | create_token             | no            | yes\*        | yes\*          | yes             | no          |
@@ -84,7 +84,7 @@ one of the following tracking labels.
 | dynamic_iota             | no            | revisit      | infeasible     | yes             | no          |
 | dynamic_pad              | no            | revisit      | no             | yes             | no          |
 | dynamic_reshape          | no            | revisit      | infeasible     | yes             | no          |
-| dynamic_slice            | yes           | revisit      | yes            | yes             | no          |
+| dynamic_slice            | yes           | yes          | yes            | yes             | no          |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | no          |
 | einsum                   | no            | revisit      | no             | yes             | no          |
 | exponential              | yes           | yes          | yes            | yes             | no          |
@@ -92,7 +92,7 @@ one of the following tracking labels.
 | fft                      | yes           | revisit      | yes            | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
 | gather                   | yes           | yes          | yes            | no              | no          |
-| get_dimension_size       | yes           | revisit      | yes            | yes             | no          |
+| get_dimension_size       | yes           | yes          | yes            | yes             | no          |
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | no          |
 | imag                     | yes           | yes          | yes            | yes             | no          |
@@ -114,7 +114,7 @@ one of the following tracking labels.
 | pad                      | yes           | yes          | yes            | yes             | no          |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
-| power                    | yes           | revisit      | yes            | yes             | no          |
+| power                    | yes           | yes          | yes            | yes             | no          |
 | real                     | yes           | yes          | yes            | yes             | no          |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
@@ -126,7 +126,7 @@ one of the following tracking labels.
 | replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
 | return                   | no            | revisit      | yes            | yes             | no          |
-| reverse                  | yes           | revisit      | yes            | yes             | no          |
+| reverse                  | yes           | yes          | yes            | yes             | no          |
 | rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | yes           | revisit      | infeasible     | yes             | no          |
 | round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
@@ -137,9 +137,9 @@ one of the following tracking labels.
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes\*        | yes\*          | yes             | no          |
-| shift_left               | yes           | revisit      | yes            | yes             | no          |
-| shift_right_arithmetic   | yes           | revisit      | yes            | yes             | no          |
-| shift_right_logical      | yes           | revisit      | yes            | yes             | no          |
+| shift_left               | yes           | yes          | yes            | yes             | no          |
+| shift_right_arithmetic   | yes           | yes          | yes            | yes             | no          |
+| shift_right_logical      | yes           | yes          | yes            | yes             | no          |
 | sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | no          |

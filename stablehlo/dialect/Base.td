@@ -135,11 +135,6 @@ def HLO_DimensionValue : AnyTypeOf<[Index, HLO_Int]>;
 // Dynamic representation of a shape vector as a tensor.
 def HLO_DimensionTensor : 1DTensorOf<[HLO_DimensionValue]>;
 
-// In general, static shaped tensor constraints should be avoided unless
-// it is for a legacy op which is only correct with static shapes.
-def HLO_StaticShapeTensor : StaticShapeTensorOf<[
-      HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
-
 //===----------------------------------------------------------------------===//
 // HLO combined type definitions.
 //===----------------------------------------------------------------------===//
@@ -158,6 +153,22 @@ def HLO_IntFpOrComplexTensor : TensorOf<[HLO_Int, HLO_Float, HLO_Complex]>;
 
 // Any pred, int or floating-point tensor types
 def HLO_PredIntOrFpTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
+
+//===----------------------------------------------------------------------===//
+// HLO static shape type definitions.
+//===----------------------------------------------------------------------===//
+
+// In general, static shaped tensor constraints should be avoided unless
+// it is for a legacy op which is only correct with static shapes.
+def HLO_StaticShapeTensor : StaticShapeTensorOf<[
+      HLO_Float, HLO_Pred, HLO_Int, HLO_Complex, HLO_QuantizedInt]>;
+
+def HLO_StaticShapeTensorOrToken : AnyTypeOf<[HLO_StaticShapeTensor, HLO_Token]>;
+
+def HLO_StaticShapeIntOrFpTensor : StaticShapeTensorOf<[HLO_Int, HLO_Float]>;
+
+def HLO_StaticShapeIntFpOrComplexTensor :
+  StaticShapeTensorOf<[HLO_Int, HLO_Float, HLO_Complex]>;
 
 //===----------------------------------------------------------------------===//
 // HLO traits

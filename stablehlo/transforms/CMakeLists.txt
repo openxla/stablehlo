@@ -30,8 +30,8 @@ add_mlir_dialect_library(StablehloTypeConversion
 
 add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
-  LegalizeStablehloToVhlo.cpp
-  LegalizeVhloToStablehlo.cpp
+  StablehloLegalizeToVhlo.cpp
+  VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
 
   DEPENDS
