@@ -14,12 +14,6 @@ on:
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
-inputs:
-  llvm-version:
-    description: |
-      LLVM version for checkout and build. Used for ccache value and checkout.
-    required: true
-
 # Ensure that only a single job or workflow using the same
 # concurrency group will run at a time. This would cancel
 # any in-progress jobs in the same github workflow and github
@@ -55,7 +49,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: "~/.cache/bazel"
-        key: ${{ runner.os }}-stablehlo_build_assets-${{ inputs.llvm-version }}-bazelbuild
+        key: ${{ runner.os }}-stablehlo_build_assets-${{ steps.llvm-version.outputs.version }}-bazelbuild
 
     # Run Bazel build
     - name: Build StableHLO using Bazel
