@@ -1318,7 +1318,7 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 // Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(std::optional<Location> location,
+LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   if (branches.empty())
@@ -1337,13 +1337,22 @@ LogicalResult inferConditionalOp(std::optional<Location> location,
                                region->getNumArguments());
 
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!isCompatibleForHloTypeInference(branch0ResultTypes, branchResultTypes))
+    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
+                                              branchResultTypes))
       return emitOptionalError(location, "branch 0 and ", branchName,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-  for (auto resultType : branch0ResultTypes)
-    inferredReturnTypes.push_back(resultType);
+
+  for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
+    SmallVector<Type> inputTypes;
+    for (auto branch : branches)
+      inputTypes.push_back(
+          branch->front().getTerminator()->getOperandTypes()[i]);
+    auto inferredTypeOrErr = inferLeastSpecificType(location, inputTypes);
+    if (failed(inferredTypeOrErr)) return failure();
+    inferredReturnTypes.emplace_back(*inferredTypeOrErr);
+  }
   return success();
 }
 
@@ -1496,45 +1505,6 @@ LogicalResult inferBroadcastOp(
   llvm::append_range(shapeValues, operandType.getShape());
 
   inferredReturnShapes.emplace_back(shapeValues, operandType.getElementType());
-  return success();
-}
-
-// Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(Optional<Location> location,
-                                 RegionRange branches,
-                                 SmallVectorImpl<Type>& inferredReturnTypes) {
-  if (branches.empty())
-    return emitOptionalError(location, "expect at least one branch");
-  for (auto region : branches)
-    if (failed(verifyRegionNotEmpty(location, *region))) return failure();
-
-  ValueTypeRange<OperandRange> branch0ResultTypes =
-      branches[0]->front().getTerminator()->getOperandTypes();
-  for (unsigned i = 0; i < branches.size(); ++i) {
-    Twine branchName = "branch " + Twine(i);
-    Region* region = branches[i];
-    if (region->getNumArguments() != 0)
-      return emitOptionalError(location, branchName,
-                               " must have 0 arguments, but found ",
-                               region->getNumArguments());
-
-    auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
-    if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
-                                              branchResultTypes))
-      return emitOptionalError(location, "branch 0 and ", branchName,
-                               " have mismatched return types: ",
-                               branch0ResultTypes, " vs ", branchResultTypes);
-  }
-
-  for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
-    SmallVector<Type> inputTypes;
-    for (auto branch : branches)
-      inputTypes.push_back(
-          branch->front().getTerminator()->getOperandTypes()[i]);
-    auto inferredTypeOrErr = inferLeastSpecificType(location, inputTypes);
-    if (failed(inferredTypeOrErr)) return failure();
-    inferredReturnTypes.emplace_back(*inferredTypeOrErr);
-  }
   return success();
 }
 
