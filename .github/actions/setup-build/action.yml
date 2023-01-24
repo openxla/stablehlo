@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 
 # The setup-build action gets everything needed by buildAndTest into the workspace.
 name: "Setup build environment (ninja, bazel, ccache, llvm, lld)"
@@ -47,7 +47,7 @@ runs:
     uses: actions/cache@v3
     with:
       path: "~/.cache/bazel"
-      key: bazel
+      key: ${{ runner.os }}-stablehlo_build_assets-bazelbuild
 
   # Install Python/Numpy for API tests
   - name: Install Python and Pip
