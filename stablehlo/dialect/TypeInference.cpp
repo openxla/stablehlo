@@ -2867,7 +2867,8 @@ LogicalResult inferTriangularSolveOp(
     return emitOptionalError(
         location, "Invalid transpose option value for triangular solve");
 
-  inferredReturnShapes.emplace_back(bType.cast<ShapedType>());
+  inferredReturnShapes.emplace_back(bType.getShape(), bType.getElementType(),
+                                    bType.getEncoding());
   return success();
 }
 

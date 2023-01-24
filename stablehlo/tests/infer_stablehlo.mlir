@@ -1498,3 +1498,21 @@ func.func @reduce_window_bound(%arg0: tensor<4x?x?x?xf32, #stablehlo.type_extens
   %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1: tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: func @triangular_solve_bounds
+func.func @triangular_solve_bounds(
+    %arg0: tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 5, ?]>>,
+    %arg1: tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {
+    left_side = false,
+    lower = true,
+    transpose_a = #stablehlo<transpose NO_TRANSPOSE>,
+    unit_diagonal = true
+  } : (tensor<10x5x?x4xf32, #stablehlo.type_extensions<bounds = [?, ?, 5, ?]>>,
+       tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<10x5x?x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
