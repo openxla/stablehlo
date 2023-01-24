@@ -4,7 +4,14 @@ name: Bazel Build
 
 on:
   pull_request:
+    branches: [ main ]
     paths: ['**.txt', 'WORKSPACE']
+  push:
+    branches: [ main ]
+    paths: ['**.txt', 'WORKSPACE']
+  schedule:
+    # Run buildAndTest workflow once a day
+    - cron:  '0 12 * * *'
   workflow_dispatch:
 
 inputs:
@@ -13,6 +20,16 @@ inputs:
       LLVM version for checkout and build. Used for ccache value and checkout.
     required: true
 
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Build using Bazel build.
+# Use Cached build to improve build times.
 jobs:
   bazel-build:
     strategy:
