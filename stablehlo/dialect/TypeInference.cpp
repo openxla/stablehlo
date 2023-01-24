@@ -2671,9 +2671,24 @@ LogicalResult inferSelectOp(
 
   // The output shape should be derived from the most specific parts of the
   // `onTrue` and `onFalse` (see documentation for details).
-  SmallVector<Type> inferredReturnTypes;
-  return inferMostSpecificTypeComponents(location, {trueType, falseType},
-                                         inferredReturnShapes);
+  auto onTrueRankedTy = onTrue.getType().dyn_cast<RankedTensorType>();
+  auto onFalseRankedTy = onFalse.getType().dyn_cast<RankedTensorType>();
+  if (!onTrueRankedTy || !onFalseRankedTy ||
+      (encodingToBounds(onTrueRankedTy.getEncoding()).empty() &&
+       encodingToBounds(onFalseRankedTy.getEncoding()).empty()))
+    return inferMostSpecificTypeComponents(location, {trueType, falseType},
+                                           inferredReturnShapes);
+
+  // The output shape and bounds are derived using the least specifc rules for
+  // `onTrue` and `onFalse` (see documentation for details).
+  auto inferredTypeOrErr =
+      inferLeastSpecificType(location, {onTrueRankedTy, onFalseRankedTy});
+  if (failed(inferredTypeOrErr)) return failure();
+  auto resultType = (*inferredTypeOrErr).cast<RankedTensorType>();
+  inferredReturnShapes.emplace_back(resultType.getShape(),
+                                    resultType.getElementType(),
+                                    resultType.getEncoding());
+  return success();
 }
 
 LogicalResult inferSelectAndScatterOp(
