@@ -2717,7 +2717,6 @@ Produces the size of the given `dimension` of the `operand`.
 #### Constraints
 
 * (C1) 0 $\le$ `dimension` $\lt$ `rank(operand)`.
-  [todo](https://github.com/openxla/stablehlo/issues/790)
 
 #### Examples
 
