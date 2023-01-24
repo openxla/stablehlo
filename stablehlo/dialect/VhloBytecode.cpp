@@ -335,33 +335,33 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in VHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-  ArgResultAliasV1Attr readArgResultAliasAttr(
+  ArgResultAliasV1Attr readArgResultAliasV1Attr(
       DialectBytecodeReader &reader) const;
-  ChannelHandleV1Attr readChannelHandleAttr(
+  ChannelHandleV1Attr readChannelHandleV1Attr(
       DialectBytecodeReader &reader) const;
-  ComparisonDirectionAttr readComparisonDirectionAttr(
+  ComparisonDirectionAttr readComparisonDirectionV1Attr(
       DialectBytecodeReader &reader) const;
-  ComparisonTypeAttr readComparisonTypeAttr(
+  ComparisonTypeAttr readComparisonTypeV1Attr(
       DialectBytecodeReader &reader) const;
-  ConvDimensionNumbersV1Attr readConvDimensionNumbersAttr(
+  ConvDimensionNumbersV1Attr readConvDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  CustomCallApiVersionAttr readCustomCallApiVersionAttr(
+  CustomCallApiVersionAttr readCustomCallApiVersionV1Attr(
       DialectBytecodeReader &reader) const;
-  DotDimensionNumbersV1Attr readDotDimensionNumbersAttr(
+  DotDimensionNumbersV1Attr readDotDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  FftTypeAttr readFftTypeAttr(DialectBytecodeReader &reader) const;
-  GatherDimensionNumbersV1Attr readGatherDimensionNumbersAttr(
+  FftTypeAttr readFftTypeV1Attr(DialectBytecodeReader &reader) const;
+  GatherDimensionNumbersV1Attr readGatherDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  OutputOperandAliasV1Attr readOutputOperandAliasAttr(
+  OutputOperandAliasV1Attr readOutputOperandAliasV1Attr(
       DialectBytecodeReader &reader) const;
-  PrecisionAttr readPrecisionAttr(DialectBytecodeReader &reader) const;
-  RngAlgorithmAttr readRngAlgorithmAttr(DialectBytecodeReader &reader) const;
-  RngDistributionAttr readRngDistributionAttr(
+  PrecisionAttr readPrecisionV1Attr(DialectBytecodeReader &reader) const;
+  RngAlgorithmAttr readRngAlgorithmV1Attr(DialectBytecodeReader &reader) const;
+  RngDistributionAttr readRngDistributionV1Attr(
       DialectBytecodeReader &reader) const;
-  ScatterDimensionNumbersV1Attr readScatterDimensionNumbersAttr(
+  ScatterDimensionNumbersV1Attr readScatterDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
-  TransposeAttr readTransposeAttr(DialectBytecodeReader &reader) const;
-  TypeExtensionsV1Attr readTypeExtensionsAttr(
+  TransposeAttr readTransposeV1Attr(DialectBytecodeReader &reader) const;
+  TypeExtensionsV1Attr readTypeExtensionsV1Attr(
       DialectBytecodeReader &reader) const;
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
@@ -391,15 +391,15 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   //===--------------------------------------------------------------------===//
   // Forked Attributes
-  ArrayV1Attr readArrayAttr(DialectBytecodeReader &reader) const;
-  DenseIntOrFPElementsV1Attr readDenseIntOrFPElementsAttr(
+  ArrayV1Attr readArrayV1Attr(DialectBytecodeReader &reader) const;
+  DenseIntOrFPElementsV1Attr readDenseIntOrFPElementsV1Attr(
       DialectBytecodeReader &reader) const;
-  FlatSymbolRefV1Attr readFlatSymbolRefAttr(
+  FlatSymbolRefV1Attr readFlatSymbolRefV1Attr(
       DialectBytecodeReader &reader) const;
-  FloatV1Attr readFloatAttr(DialectBytecodeReader &reader) const;
-  IntegerV1Attr readIntegerAttr(DialectBytecodeReader &reader) const;
-  StringV1Attr readStringAttr(DialectBytecodeReader &reader) const;
-  // UnitV1Attr readUnitAttr(DialectBytecodeReader &reader) const; // inlined
+  FloatV1Attr readFloatV1Attr(DialectBytecodeReader &reader) const;
+  IntegerV1Attr readIntegerV1Attr(DialectBytecodeReader &reader) const;
+  StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
+  // UnitV1Attr readUnitV1Attr(DialectBytecodeReader &reader) const; // inlined
 
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(DenseIntOrFPElementsV1Attr attr,
@@ -458,50 +458,50 @@ Attribute VhloBytecodeInterface::readAttribute(
   if (failed(reader.readVarInt(code))) return Attribute();
   switch (code) {
     case vhlo_encoding::kArgResultAliasAttr:
-      return readArgResultAliasAttr(reader);
+      return readArgResultAliasV1Attr(reader);
     case vhlo_encoding::kChannelHandleAttr:
-      return readChannelHandleAttr(reader);
+      return readChannelHandleV1Attr(reader);
     case vhlo_encoding::kComparisonDirectionAttr:
-      return readComparisonDirectionAttr(reader);
+      return readComparisonDirectionV1Attr(reader);
     case vhlo_encoding::kComparisonTypeAttr:
-      return readComparisonTypeAttr(reader);
+      return readComparisonTypeV1Attr(reader);
     case vhlo_encoding::kConvDimensionNumbersAttr:
-      return readConvDimensionNumbersAttr(reader);
+      return readConvDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kCustomCallApiVersionAttr:
-      return readCustomCallApiVersionAttr(reader);
+      return readCustomCallApiVersionV1Attr(reader);
     case vhlo_encoding::kDotDimensionNumbers:
-      return readDotDimensionNumbersAttr(reader);
+      return readDotDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kFftTypeAttr:
-      return readFftTypeAttr(reader);
+      return readFftTypeV1Attr(reader);
     case vhlo_encoding::kGatherDimensionNumbers:
-      return readGatherDimensionNumbersAttr(reader);
+      return readGatherDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kOutputOperandAlias:
-      return readOutputOperandAliasAttr(reader);
+      return readOutputOperandAliasV1Attr(reader);
     case vhlo_encoding::kPrecisionAttr:
-      return readPrecisionAttr(reader);
+      return readPrecisionV1Attr(reader);
     case vhlo_encoding::kRngAlgorithmAttr:
-      return readRngAlgorithmAttr(reader);
+      return readRngAlgorithmV1Attr(reader);
     case vhlo_encoding::kRngDistributionAttr:
-      return readRngDistributionAttr(reader);
+      return readRngDistributionV1Attr(reader);
     case vhlo_encoding::kScatterDimensionNumbersAttr:
-      return readScatterDimensionNumbersAttr(reader);
+      return readScatterDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kTransposeAttr:
-      return readTransposeAttr(reader);
+      return readTransposeV1Attr(reader);
     case vhlo_encoding::kTypeExtensionsAttr:
-      return readTypeExtensionsAttr(reader);
+      return readTypeExtensionsV1Attr(reader);
     // Forked Attributes
     case vhlo_encoding::kArrayAttr:
-      return readArrayAttr(reader);
+      return readArrayV1Attr(reader);
     case vhlo_encoding::kDenseIntOrFPElementsAttr:
-      return readDenseIntOrFPElementsAttr(reader);
+      return readDenseIntOrFPElementsV1Attr(reader);
     case vhlo_encoding::kFlatSymbolRefAttr:
-      return readFlatSymbolRefAttr(reader);
+      return readFlatSymbolRefV1Attr(reader);
     case vhlo_encoding::kFloatAttr:
-      return readFloatAttr(reader);
+      return readFloatV1Attr(reader);
     case vhlo_encoding::kIntegerAttr:
-      return readIntegerAttr(reader);
+      return readIntegerV1Attr(reader);
     case vhlo_encoding::kStringAttr:
-      return readStringAttr(reader);
+      return readStringV1Attr(reader);
     case vhlo_encoding::kUnitAttr:
       return UnitV1Attr::get(getContext());
     default:
@@ -546,7 +546,7 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
 //===----------------------------------------------------------------------===//
 // ArgResultAliasAttr
 
-ArgResultAliasV1Attr VhloBytecodeInterface::readArgResultAliasAttr(
+ArgResultAliasV1Attr VhloBytecodeInterface::readArgResultAliasV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
 
@@ -578,7 +578,7 @@ void VhloBytecodeInterface::write(ArgResultAliasV1Attr attr,
 //===----------------------------------------------------------------------===//
 // ChannelHandleAttr
 
-ChannelHandleV1Attr VhloBytecodeInterface::readChannelHandleAttr(
+ChannelHandleV1Attr VhloBytecodeInterface::readChannelHandleV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   int64_t handle, type;
@@ -599,7 +599,7 @@ void VhloBytecodeInterface::write(ChannelHandleV1Attr attr,
 //===----------------------------------------------------------------------===//
 // ComparisonDirectionAttr
 
-ComparisonDirectionAttr VhloBytecodeInterface::readComparisonDirectionAttr(
+ComparisonDirectionAttr VhloBytecodeInterface::readComparisonDirectionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<ComparisonDirectionAttr>(
@@ -616,7 +616,7 @@ void VhloBytecodeInterface::write(ComparisonDirectionAttr attr,
 //===----------------------------------------------------------------------===//
 // ComparisonTypeAttr
 
-ComparisonTypeAttr VhloBytecodeInterface::readComparisonTypeAttr(
+ComparisonTypeAttr VhloBytecodeInterface::readComparisonTypeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<ComparisonTypeAttr>(
@@ -633,7 +633,8 @@ void VhloBytecodeInterface::write(ComparisonTypeAttr attr,
 //===----------------------------------------------------------------------===//
 // ConvDimensionNumbersAttr
 
-ConvDimensionNumbersV1Attr VhloBytecodeInterface::readConvDimensionNumbersAttr(
+ConvDimensionNumbersV1Attr
+VhloBytecodeInterface::readConvDimensionNumbersV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   int64_t inputBatchDimension, inputFeatureDimension;
@@ -681,7 +682,7 @@ void VhloBytecodeInterface::write(ConvDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // CustomCallApiVersionAttr
 
-CustomCallApiVersionAttr VhloBytecodeInterface::readCustomCallApiVersionAttr(
+CustomCallApiVersionAttr VhloBytecodeInterface::readCustomCallApiVersionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<CustomCallApiVersionAttr>(
@@ -698,7 +699,7 @@ void VhloBytecodeInterface::write(CustomCallApiVersionAttr attr,
 //===----------------------------------------------------------------------===//
 // DotDimensionNumbersAttr
 
-DotDimensionNumbersV1Attr VhloBytecodeInterface::readDotDimensionNumbersAttr(
+DotDimensionNumbersV1Attr VhloBytecodeInterface::readDotDimensionNumbersV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> lhsBatchingDimensions, rhsBatchingDimensions,
@@ -728,7 +729,7 @@ void VhloBytecodeInterface::write(DotDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // FftTypeAttr
 
-FftTypeAttr VhloBytecodeInterface::readFftTypeAttr(
+FftTypeAttr VhloBytecodeInterface::readFftTypeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<FftTypeAttr>(
@@ -744,7 +745,7 @@ void VhloBytecodeInterface::write(FftTypeAttr attr,
 // GatherDimensionNumbersAttr
 
 GatherDimensionNumbersV1Attr
-VhloBytecodeInterface::readGatherDimensionNumbersAttr(
+VhloBytecodeInterface::readGatherDimensionNumbersV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> offsetDims, collapsedSliceDims, startIndexMap;
@@ -774,7 +775,7 @@ void VhloBytecodeInterface::write(GatherDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // OutputOperandAliasAttr
 
-OutputOperandAliasV1Attr VhloBytecodeInterface::readOutputOperandAliasAttr(
+OutputOperandAliasV1Attr VhloBytecodeInterface::readOutputOperandAliasV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> outputTupleIndices, operandTupleIndices;
@@ -800,7 +801,7 @@ void VhloBytecodeInterface::write(OutputOperandAliasV1Attr attr,
 //===----------------------------------------------------------------------===//
 // PrecisionAttr
 
-PrecisionAttr VhloBytecodeInterface::readPrecisionAttr(
+PrecisionAttr VhloBytecodeInterface::readPrecisionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<PrecisionAttr>(
@@ -817,7 +818,7 @@ void VhloBytecodeInterface::write(PrecisionAttr attr,
 //===----------------------------------------------------------------------===//
 // RngAlgorithmAttr
 
-RngAlgorithmAttr VhloBytecodeInterface::readRngAlgorithmAttr(
+RngAlgorithmAttr VhloBytecodeInterface::readRngAlgorithmV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<RngAlgorithmAttr>(
@@ -834,7 +835,7 @@ void VhloBytecodeInterface::write(RngAlgorithmAttr attr,
 //===----------------------------------------------------------------------===//
 // RngDistributionAttr
 
-RngDistributionAttr VhloBytecodeInterface::readRngDistributionAttr(
+RngDistributionAttr VhloBytecodeInterface::readRngDistributionV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<RngDistributionAttr>(
@@ -852,7 +853,7 @@ void VhloBytecodeInterface::write(RngDistributionAttr attr,
 // ScatterDimensionNumbersAttr
 
 ScatterDimensionNumbersV1Attr
-VhloBytecodeInterface::readScatterDimensionNumbersAttr(
+VhloBytecodeInterface::readScatterDimensionNumbersV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> updateWindowDims, insertedWindowDims,
@@ -883,7 +884,7 @@ void VhloBytecodeInterface::write(ScatterDimensionNumbersV1Attr attr,
 //===----------------------------------------------------------------------===//
 // TransposeAttr
 
-TransposeAttr VhloBytecodeInterface::readTransposeAttr(
+TransposeAttr VhloBytecodeInterface::readTransposeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   return hlo::bytecode::readEnumAttribute<TransposeAttr>(
@@ -900,7 +901,7 @@ void VhloBytecodeInterface::write(TransposeAttr attr,
 //===----------------------------------------------------------------------===//
 // TypeExtensionsAttr
 
-TypeExtensionsV1Attr VhloBytecodeInterface::readTypeExtensionsAttr(
+TypeExtensionsV1Attr VhloBytecodeInterface::readTypeExtensionsV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> bounds;
@@ -935,7 +936,7 @@ void assertFromVhlo(AttrOrType val) {
 //===----------------------------------------------------------------------===//
 // ArrayV1Attr
 
-ArrayV1Attr VhloBytecodeInterface::readArrayAttr(
+ArrayV1Attr VhloBytecodeInterface::readArrayV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   SmallVector<Attribute> elements;
@@ -955,7 +956,8 @@ void VhloBytecodeInterface::write(ArrayV1Attr attr,
 //===----------------------------------------------------------------------===//
 // DenseIntOrFPElementsV1Attr
 
-DenseIntOrFPElementsV1Attr VhloBytecodeInterface::readDenseIntOrFPElementsAttr(
+DenseIntOrFPElementsV1Attr
+VhloBytecodeInterface::readDenseIntOrFPElementsV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type type;
@@ -988,7 +990,7 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
 }
 }  // namespace
 
-FloatV1Attr VhloBytecodeInterface::readFloatAttr(
+FloatV1Attr VhloBytecodeInterface::readFloatV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type type;
@@ -1013,7 +1015,7 @@ void VhloBytecodeInterface::write(FloatV1Attr attr,
 //===----------------------------------------------------------------------===//
 // FlatSymbolRefV1Attr
 
-FlatSymbolRefV1Attr VhloBytecodeInterface::readFlatSymbolRefAttr(
+FlatSymbolRefV1Attr VhloBytecodeInterface::readFlatSymbolRefV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Attribute rootReference;
@@ -1032,7 +1034,7 @@ void VhloBytecodeInterface::write(FlatSymbolRefV1Attr attr,
 //===----------------------------------------------------------------------===//
 // IntegerV1Attr
 
-IntegerV1Attr VhloBytecodeInterface::readIntegerAttr(
+IntegerV1Attr VhloBytecodeInterface::readIntegerV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type type;
@@ -1080,7 +1082,7 @@ void VhloBytecodeInterface::write(IntegerV1Attr attr,
 //===----------------------------------------------------------------------===//
 // StringV1Attr
 
-StringV1Attr VhloBytecodeInterface::readStringAttr(
+StringV1Attr VhloBytecodeInterface::readStringV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   StringRef string;
