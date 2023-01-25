@@ -5,12 +5,10 @@ name: Bazel Build
 on:
   pull_request:
     branches: [ main ]
-    paths: ['**.txt', 'WORKSPACE']
   push:
     branches: [ main ]
-    paths: ['**.txt', 'WORKSPACE']
   schedule:
-    # Run buildAndTest workflow once a day
+    # Run build_bazel workflow once a day
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
@@ -22,9 +20,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Build using Bazel build.
-# Use Cached build to improve build times.
 jobs:
+  check-stale-llvm-commit:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v2
+
+      - name: Running lint_llvm_commit.sh on source files
+        run: |
+          ./build_tools/github_actions/lint_llvm_commit.sh .
+
   bazel-build:
     strategy:
       fail-fast: false
@@ -34,14 +41,12 @@ jobs:
     - name: Checkout StableHLO
       uses: actions/checkout@v2
 
-    # Read LLVM version from `build_tools/llvm_version.txt`
     - name: Get LLVM Version
       id: llvm-version
       shell: bash
       run: |
         echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
-    # Setup Bazelisk and caching using GitHub cache
     - name: Setup Bazelisk
       uses: bazelbuild/setup-bazelisk@v2
 
@@ -51,7 +56,6 @@ jobs:
         path: "~/.cache/bazel"
         key: ${{ runner.os }}-stablehlo_build_assets-${{ steps.llvm-version.outputs.version }}-bazelbuild
 
-    # Run Bazel build
     - name: Build StableHLO using Bazel
       shell: bash
       run: |

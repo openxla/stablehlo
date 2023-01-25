@@ -12,7 +12,7 @@
 # limitations under the License.
 
 print_usage() {
-  echo "Usage: $0 [-f] <path/to/llvm/version>"
+  echo "Usage: $0 [-f] <path/to/stablehlo/root>"
   echo "    -f           Auto-fix LLVM commit mismatch."
 }
 
@@ -31,32 +31,34 @@ if [[ $# -ne 1 ]] ; then
   exit 1
 fi
 
-LLVM_VERSION_TXT="$1"
+PATH_TO_STABLEHLO_ROOT="$1"
+PATH_TO_LLVM_VERSION_TXT="$PATH_TO_STABLEHLO_ROOT/build_tools/llvm_version.txt"
+PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE"
 
-LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $LLVM_VERSION_TXT -)
+LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $PATH_TO_LLVM_VERSION_TXT -)
 
 update_llvm_commit_and_sha256() {
   echo "Retrieving LLVM Commit..."
-  export LLVM_COMMIT="$(<$LLVM_VERSION_TXT)"
+  export LLVM_COMMIT="$(<$PATH_TO_LLVM_VERSION_TXT)"
   echo "LLVM_COMMIT: $LLVM_COMMIT"
   echo "Calculating SHA256..."
   export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
   echo "LLVM_SHA256: $LLVM_SHA256"
 
-  sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' WORKSPACE
-  sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' WORKSPACE
+  sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
+  sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
 }
 
 if [[ $FORMAT_MODE == 'fix' ]]; then
   echo "Updating LLVM Commit & SHA256..."
-  update_llvm_commit_and_sha256 $LLVM_VERSION_TXT
+  update_llvm_commit_and_sha256 $PATH_TO_LLVM_VERSION_TXT
 else
   if [ ! -z "$LLVM_DIFF" ]; then
     echo "LLVM commit out of sync:"
     echo $LLVM_DIFF
     echo
     echo "Auto-fix using:"
-    echo "  $ lint_llvm_commit.sh -f <path/to/llvm/version>"
+    echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
     exit 1
   else
     echo "No llvm commit mismatches found."

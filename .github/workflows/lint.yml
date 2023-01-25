@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 
 name: Lint
 
@@ -31,15 +31,3 @@ jobs:
       - name: Running lint_whitespace_checks.sh on source files
         run: |
           ./build_tools/github_actions/lint_whitespace_checks.sh
-
-  llvm-integrate:
-    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
-    if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checking out repository
-        uses: actions/checkout@v2
-
-      - name: Running lint_llvm_commit.sh on source files
-        run: |
-          ./build_tools/github_actions/lint_llvm_commit.sh ./build_tools/llvm_version.txt
