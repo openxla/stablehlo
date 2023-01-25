@@ -2670,7 +2670,8 @@ LogicalResult inferSelectOp(
                                "requires the same shape for all operands");
 
   // The output shape should be derived from the most specific parts of the
-  // `onTrue` and `onFalse` (see documentation for details).
+  // `onTrue` and `onFalse` when the bounds are missing (see documantation for
+  // `inferMostSpecificTypeComponents` for details).
   auto onTrueRankedTy = onTrue.getType().dyn_cast<RankedTensorType>();
   auto onFalseRankedTy = onFalse.getType().dyn_cast<RankedTensorType>();
   if (!onTrueRankedTy || !onFalseRankedTy ||
@@ -2680,7 +2681,8 @@ LogicalResult inferSelectOp(
                                            inferredReturnShapes);
 
   // The output shape and bounds are derived using the least specifc rules for
-  // `onTrue` and `onFalse` (see documentation for details).
+  // `onTrue` and `onFalse` when the bounds are present (see documentation for
+  // `inferLeastSpecificType` for details).
   auto inferredTypeOrErr =
       inferLeastSpecificType(location, {onTrueRankedTy, onFalseRankedTy});
   if (failed(inferredTypeOrErr)) return failure();
