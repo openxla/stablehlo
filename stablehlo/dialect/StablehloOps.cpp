@@ -2305,34 +2305,14 @@ LogicalResult CompareOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CompareOp::Adaptor adaptor(operands, attributes, regions);
-  if (adaptor.getCompareType().has_value() &&
-      adaptor.getCompareType().value() != ComparisonType::NOTYPE) {
-    auto elementType =
-        adaptor.getLhs().getType().cast<ShapedType>().getElementType();
-    ComparisonType compareType = adaptor.getCompareType().value();
-    if (elementType.isa<FloatType>() && compareType != ComparisonType::FLOAT &&
-        compareType != ComparisonType::TOTALORDER)
-      return emitOptionalError(
-          location, "compareType must be FLOAT or TOTALORDER, but got ",
-          stringifyEnum(compareType));
-    else if (elementType.isa<ComplexType>() &&
-             compareType != ComparisonType::FLOAT)
-      return emitOptionalError(location, "compareType must be FLOAT, but got ",
-                               stringifyEnum(compareType));
-    else if (elementType.isa<IntegerType>() &&
-             elementType.isUnsignedInteger() &&
-             compareType != ComparisonType::UNSIGNED)
-      return emitOptionalError(location,
-                               "compareType must be UNSIGNED, but got ",
-                               stringifyEnum(compareType));
-    else if (elementType.isa<IntegerType>() &&
-             elementType.isSignlessInteger() &&
-             compareType != ComparisonType::SIGNED)
-      return emitOptionalError(location, "compareType must be SIGNED, but got ",
-                               stringifyEnum(compareType));
-  }
-  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
-                             inferredReturnShapes);
+  auto compareType = adaptor.getCompareType();
+  return hlo::inferCompareOp(context, location, compareType.has_value(),
+                             compareType == ComparisonType::NOTYPE,
+                             compareType == ComparisonType::FLOAT,
+                             compareType == ComparisonType::TOTALORDER,
+                             compareType == ComparisonType::UNSIGNED,
+                             compareType == ComparisonType::SIGNED,
+                             adaptor.getLhs(), inferredReturnShapes);
 }
 
 LogicalResult CompareOp::reifyReturnTypeShapes(

@@ -147,7 +147,9 @@ LogicalResult inferClampOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location>, bool compareTypeHasValue,
+    bool isNoType, bool isFloat, bool isTotalOrder, bool isUnsigned,
+    bool isSigned, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
