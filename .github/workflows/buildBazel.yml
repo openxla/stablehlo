@@ -5,10 +5,12 @@ name: Bazel Build
 on:
   pull_request:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   push:
     branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
   schedule:
-    # Run build_bazel workflow once a day
+    # Run buildBazel workflow once a day
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
@@ -30,7 +32,7 @@ jobs:
     - name: Checkout StableHLO
       uses: actions/checkout@v2
 
-    - name: Running lint_llvm_commit.sh on source files
+    - name: Validate LLVM Commit
       run: |
         ./build_tools/github_actions/lint_llvm_commit.sh .
 
