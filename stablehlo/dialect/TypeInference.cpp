@@ -1604,6 +1604,7 @@ LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
 LogicalResult inferConcatenateOp(std::optional<Location> location,
                                  TypeRange inputTypes, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
+  // concatenate_c4
   if (dimension < 0)
     return emitOptionalError(location, "dimension ", dimension, " is negative");
   RankedTensorType firstRankedType;
@@ -1611,19 +1612,21 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
   for (uint64_t i = 0; i < inputTypes.size(); i++) {
     auto secondType = inputTypes[i].dyn_cast<ShapedType>();
     if (!secondType.hasRank()) continue;
-
     if (!firstRankedType) {
       firstRankedType = secondType.cast<RankedTensorType>();
       firstRankedIndex = i;
+      // concatenate_c4
       if (firstRankedType.getRank() == 0)
         return emitOptionalError(location,
                                  "rank-0 values cannot be concatenated");
+      // concatenate_c4
       if (dimension >= firstRankedType.getRank())
         return emitOptionalError(location, "dimension ", dimension,
                                  " is out-of-bounds for input rank ",
                                  firstRankedType.getRank());
       continue;
     }
+    // concatenate_c2
     if (firstRankedType.getRank() != secondType.getRank())
       return emitOptionalError(location, "operands (", firstRankedIndex,
                                ") and (", i, ") do not match rank");
@@ -1631,6 +1634,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
     auto firstShape = firstRankedType.getShape();
     auto secondShape = secondType.getShape();
     for (int d = 0; d < firstRankedType.getRank(); ++d) {
+      // concatenate_c2, concatenate_c6
       if (d != dimension &&
           !verifyCompatibleDims(firstShape[d], secondShape[d]))
         return emitOptionalError(
@@ -1642,7 +1646,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
             ") at non-concat index ", d);
     }
   }
-
+  // concatenate_c1, concatenate_c5
   auto elementType = inputTypes[0].cast<ShapedType>().getElementType();
   if (!firstRankedType) {
     inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
@@ -1690,7 +1694,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
       inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
-
+  // concatenate_c1, concatenate_c5, concatenate_c6
   inferredReturnTypes.push_back(RankedTensorType::get(
       inferredSizes, elementType,
       boundsToEncoding(

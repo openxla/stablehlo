@@ -1976,9 +1976,9 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
 }
 
 def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
-    [Pure, SameOperandsAndResultElementType,
+    [Pure, SameOperandsAndResultElementType /*concatenate_c1, concatenate_c3, concatenate_c5*/,
      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "XLA's concatenate op";
+  let summary = "Concatenate operation";
   let description = [{
     Concatenates a variadic number of tensors in `inputs` along `dimension`
     dimension in the same order as the given arguments and produces a `result`
@@ -1989,7 +1989,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
     Example:
     ```mlir
-     %result = stablehlo.concatenate %input0, %input1, dim = 1 : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
+    %result = stablehlo.concatenate %input0, %input1, dim = 0 : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
     ```
    }];
 

@@ -1747,6 +1747,8 @@ tensor. More formally,
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_concatenate.mlir)
+
 ### constant
 
 #### Semantics
