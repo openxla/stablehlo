@@ -19,8 +19,8 @@ func.func @broadcast_add_reify(%arg0: tensor<?xf32>, %arg1: tensor<?xf32>) -> te
 // CHECK-LABEL: @broadcast_add_different_operand_size
 func.func @broadcast_add_different_operand_size(%arg1: tensor<1xi32>, %arg2: tensor<1x2xi32>) -> tensor<1x2xi32> {
   %0 = "chlo.broadcast_add"(%arg1, %arg2) {broadcast_dimensions = dense<1> : tensor<i64>} : (tensor<1xi32>, tensor<1x2xi32>) -> tensor<1x2xi32>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, 2]", element_type0 = i32}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<1x2xi32>) -> tensor<1x2xi32>
+  // CHECK: types0 = tensor<1x2xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x2xi32>) -> tensor<1x2xi32>
   return %1: tensor<1x2xi32>
 }
 
@@ -28,8 +28,8 @@ func.func @broadcast_add_different_operand_size(%arg1: tensor<1xi32>, %arg2: ten
 // CHECK-LABEL: @broadcast_complex_ranked_components
 func.func @broadcast_complex_ranked_components(%arg0: tensor<?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>> {
   %0 = chlo.broadcast_complex %arg0, %arg1 : (tensor<?xf32>, tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[?, ?]", element_type0 = complex<f32>}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xcomplex<f32>>
+  // CHECK: types0 = tensor<?x?xcomplex<f32>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xcomplex<f32>>
   func.return %1 : tensor<?x?xcomplex<f32>>
 }
 
@@ -48,7 +48,7 @@ func.func @broadcast_complex_reify(%arg0: tensor<?xf32>, %arg1: tensor<?x?xf32>)
 func.func @broadcast_complex_mismatch(%arg0: tensor<2xf64>, %arg1: tensor<2xf32>) -> tensor<2xcomplex<f32>> {
   // expected-error @+1 {{mismatched operand types}}
   %0 = "chlo.broadcast_complex"(%arg0, %arg1) : (tensor<2xf64>, tensor<2xf32>) -> tensor<2xcomplex<f32>>
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
   return %0: tensor<2xcomplex<f32>>
 }
 
@@ -56,8 +56,8 @@ func.func @broadcast_complex_mismatch(%arg0: tensor<2xf64>, %arg1: tensor<2xf32>
 // CHECK-LABEL: @broadcast_compare_ranked_components
 func.func @broadcast_compare_ranked_components(%arg0: tensor<?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xi1> {
   %0 = chlo.broadcast_compare %arg0, %arg1 {comparison_direction = #chlo<comparison_direction EQ>} : (tensor<?xf32>, tensor<?x?xf32>) -> tensor<?x?xi1>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[?, ?]", element_type0 = i1}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<?x?xi1>) -> tensor<?x?xi1>
+  // CHECK: types0 = tensor<?x?xi1>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x?xi1>) -> tensor<?x?xi1>
   func.return %0 : tensor<?x?xi1>
 }
 
@@ -93,8 +93,8 @@ func.func @broadcast_add_ranked_components_r1(%arg0: tensor<?xf32>, %arg1: tenso
 // CHECK-LABEL: @broadcast_add_ranked_components_r1x2
 func.func @broadcast_add_ranked_components_r1x2(%arg0: tensor<?xf32>, %arg1: tensor<?x3xf32>) -> tensor<?x3xf32> {
   %0 = chlo.broadcast_add %arg0, %arg1 : (tensor<?xf32>, tensor<?x3xf32>) -> tensor<?x3xf32>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[?, 3]", element_type0 = f32}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<?x3xf32>) -> tensor<?x3xf32>
+  // CHECK: types0 = tensor<?x3xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x3xf32>) -> tensor<?x3xf32>
   func.return %1 : tensor<?x3xf32>
 }
 
@@ -102,8 +102,8 @@ func.func @broadcast_add_ranked_components_r1x2(%arg0: tensor<?xf32>, %arg1: ten
 // CHECK-LABEL: @broadcast_add_ranked_components_with_zero_r1x2
 func.func @broadcast_add_ranked_components_with_zero_r1x2(%arg0: tensor<0xf32>, %arg1: tensor<?x1xf32>) -> tensor<?x0xf32> {
   %0 = chlo.broadcast_add %arg0, %arg1 : (tensor<0xf32>, tensor<?x1xf32>) -> tensor<?x0xf32>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[?, 0]", element_type0 = f32}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<?x0xf32>) -> tensor<?x0xf32>
+  // CHECK: types0 = tensor<?x0xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<?x0xf32>) -> tensor<?x0xf32>
   func.return %1 : tensor<?x0xf32>
 }
 
@@ -111,7 +111,7 @@ func.func @broadcast_add_ranked_components_with_zero_r1x2(%arg0: tensor<0xf32>, 
 func.func @broadcast_select_branch_mismatch(%arg0: tensor<2xi1>, %arg1: tensor<2xi32>, %arg2: tensor<2xf32>) -> tensor<2xi32> {
   // expected-error @+1 {{mismatched operand types}}
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<2xi1>, tensor<2xi32>, tensor<2xf32>) -> tensor<2xi32>
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xi32>) -> tensor<2xi32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2xi32>) -> tensor<2xi32>
   return %0: tensor<2xi32>
 }
 
@@ -131,7 +131,7 @@ func.func @broadcast_select_reify(%arg0: tensor<2xi1>, %arg1: tensor<?xi32>, %ar
 // CHECK-LABEL: @constant_ranked
 func.func @constant_ranked() -> (tensor<i32>) {
   %0 = "chlo.constant"() { value = dense<1> : tensor<i32> } : () -> tensor<i32>
-  // CHECK: "hlo_test_infer.return_types"(%0) {types0 = tensor<i32>}
+  // CHECK: types0 = tensor<i32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<i32>) -> tensor<i32>
   func.return %1 : tensor<i32>
 }
@@ -140,8 +140,8 @@ func.func @constant_ranked() -> (tensor<i32>) {
 // CHECK-LABEL: @constant_like_ranked
 func.func @constant_like_ranked(%arg0: tensor<1x?xi64>) -> (tensor<1x?xf32>) {
   %0 = "chlo.constant_like"(%arg0) { value = 3.2 : f32 } : (tensor<1x?xi64>) -> tensor<1x?xf32>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {dims0 = "[1, ?]", element_type0 = f32}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<1x?xf32>) -> tensor<1x?xf32>
+  // CHECK: types0 = tensor<1x?xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<1x?xf32>) -> tensor<1x?xf32>
   func.return %1 : tensor<1x?xf32>
 }
 
@@ -149,8 +149,8 @@ func.func @constant_like_ranked(%arg0: tensor<1x?xi64>) -> (tensor<1x?xf32>) {
 // CHECK-LABEL: @constant_like_unranked
 func.func @constant_like_unranked(%arg0: tensor<*xi64>) -> (tensor<*xf32>) {
   %0 = "chlo.constant_like"(%arg0) { value = 3.2 : f32 } : (tensor<*xi64>) -> tensor<*xf32>
-  // CHECK: "hlo_test_infer.return_type_components"(%0) {element_type0 = f32}
-  %1 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<*xf32>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<*xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xf32>
   func.return %1 : tensor<*xf32>
 }
 
@@ -169,9 +169,9 @@ func.func @is_inf_ops_return_types(%arg : tensor<f32>) -> tensor<i1> {
   %0 = chlo.is_inf %arg : tensor<f32> -> tensor<i1>
   %1 = chlo.is_neg_inf %arg : tensor<f32> -> tensor<i1>
   %2 = chlo.is_pos_inf %arg : tensor<f32> -> tensor<i1>
-  // CHECK:      "hlo_test_infer.return_types"(%0) {types0 = tensor<i1>}
-  // CHECK-NEXT: "hlo_test_infer.return_types"(%1) {types0 = tensor<i1>}
-  // CHECK-NEXT: "hlo_test_infer.return_types"(%2) {types0 = tensor<i1>}
+  // CHECK:      types0 = tensor<i1>
+  // CHECK-NEXT: types0 = tensor<i1>
+  // CHECK-NEXT: types0 = tensor<i1>
   %3 = "hlo_test_infer.get_return_types"(%0) : (tensor<i1>) -> tensor<i1>
   %4 = "hlo_test_infer.get_return_types"(%1) : (tensor<i1>) -> tensor<i1>
   %5 = "hlo_test_infer.get_return_types"(%2) : (tensor<i1>) -> tensor<i1>
@@ -199,41 +199,41 @@ func.func @infer_type_components_from_operands(%arg : tensor<2xf32>) -> tensor<2
   %15 = "chlo.sinh"(%14) : (tensor<2xf32>) -> tensor<2xf32>
   %16 = "chlo.tan"(%15) : (tensor<2xf32>) -> tensor<2xf32>
   %17 = "chlo.zeta"(%16, %16) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
-  // CHECK:      "hlo_test_infer.return_type_components"(%0) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%1) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%2) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%3) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%4) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%5) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%6) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%7) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%8) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%9) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%10) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%11) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%12) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%13) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%14) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%15) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%16) {dims0 = "[2]", element_type0 = f32}
-  // CHECK-NEXT: "hlo_test_infer.return_type_components"(%17) {dims0 = "[2]", element_type0 = f32}
-  %r0 = "hlo_test_infer.get_return_type_components"(%0) : (tensor<2xf32>) -> tensor<2xf32>
-  %r1 = "hlo_test_infer.get_return_type_components"(%1) : (tensor<2xf32>) -> tensor<2xf32>
-  %r2 = "hlo_test_infer.get_return_type_components"(%2) : (tensor<2xf32>) -> tensor<2xf32>
-  %r3 = "hlo_test_infer.get_return_type_components"(%3) : (tensor<2xf32>) -> tensor<2xf32>
-  %r4 = "hlo_test_infer.get_return_type_components"(%4) : (tensor<2xf32>) -> tensor<2xf32>
-  %r5 = "hlo_test_infer.get_return_type_components"(%5) : (tensor<2xf32>) -> tensor<2xf32>
-  %r6 = "hlo_test_infer.get_return_type_components"(%6) : (tensor<2xf32>) -> tensor<2xf32>
-  %r7 = "hlo_test_infer.get_return_type_components"(%7) : (tensor<2xf32>) -> tensor<2xf32>
-  %r8 = "hlo_test_infer.get_return_type_components"(%8) : (tensor<2xf32>) -> tensor<2xf32>
-  %r9 = "hlo_test_infer.get_return_type_components"(%9) : (tensor<2xf32>) -> tensor<2xf32>
-  %r10 = "hlo_test_infer.get_return_type_components"(%10) : (tensor<2xf32>) -> tensor<2xf32>
-  %r11 = "hlo_test_infer.get_return_type_components"(%11) : (tensor<2xf32>) -> tensor<2xf32>
-  %r12 = "hlo_test_infer.get_return_type_components"(%12) : (tensor<2xf32>) -> tensor<2xf32>
-  %r13 = "hlo_test_infer.get_return_type_components"(%13) : (tensor<2xf32>) -> tensor<2xf32>
-  %r14 = "hlo_test_infer.get_return_type_components"(%14) : (tensor<2xf32>) -> tensor<2xf32>
-  %r15 = "hlo_test_infer.get_return_type_components"(%15) : (tensor<2xf32>) -> tensor<2xf32>
-  %r16 = "hlo_test_infer.get_return_type_components"(%16) : (tensor<2xf32>) -> tensor<2xf32>
-  %r17 = "hlo_test_infer.get_return_type_components"(%17) : (tensor<2xf32>) -> tensor<2xf32>
+  // CHECK: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  // CHECK-NEXT: types0 = tensor<2xf32>
+  %r0 = "hlo_test_infer.get_return_types"(%0) : (tensor<2xf32>) -> tensor<2xf32>
+  %r1 = "hlo_test_infer.get_return_types"(%1) : (tensor<2xf32>) -> tensor<2xf32>
+  %r2 = "hlo_test_infer.get_return_types"(%2) : (tensor<2xf32>) -> tensor<2xf32>
+  %r3 = "hlo_test_infer.get_return_types"(%3) : (tensor<2xf32>) -> tensor<2xf32>
+  %r4 = "hlo_test_infer.get_return_types"(%4) : (tensor<2xf32>) -> tensor<2xf32>
+  %r5 = "hlo_test_infer.get_return_types"(%5) : (tensor<2xf32>) -> tensor<2xf32>
+  %r6 = "hlo_test_infer.get_return_types"(%6) : (tensor<2xf32>) -> tensor<2xf32>
+  %r7 = "hlo_test_infer.get_return_types"(%7) : (tensor<2xf32>) -> tensor<2xf32>
+  %r8 = "hlo_test_infer.get_return_types"(%8) : (tensor<2xf32>) -> tensor<2xf32>
+  %r9 = "hlo_test_infer.get_return_types"(%9) : (tensor<2xf32>) -> tensor<2xf32>
+  %r10 = "hlo_test_infer.get_return_types"(%10) : (tensor<2xf32>) -> tensor<2xf32>
+  %r11 = "hlo_test_infer.get_return_types"(%11) : (tensor<2xf32>) -> tensor<2xf32>
+  %r12 = "hlo_test_infer.get_return_types"(%12) : (tensor<2xf32>) -> tensor<2xf32>
+  %r13 = "hlo_test_infer.get_return_types"(%13) : (tensor<2xf32>) -> tensor<2xf32>
+  %r14 = "hlo_test_infer.get_return_types"(%14) : (tensor<2xf32>) -> tensor<2xf32>
+  %r15 = "hlo_test_infer.get_return_types"(%15) : (tensor<2xf32>) -> tensor<2xf32>
+  %r16 = "hlo_test_infer.get_return_types"(%16) : (tensor<2xf32>) -> tensor<2xf32>
+  %r17 = "hlo_test_infer.get_return_types"(%17) : (tensor<2xf32>) -> tensor<2xf32>
   func.return %r17 : tensor<2xf32>
 }
