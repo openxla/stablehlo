@@ -21,17 +21,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-stale-llvm-commit:
-    if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checking out repository
-        uses: actions/checkout@v2
-
-      - name: Running lint_llvm_commit.sh on source files
-        run: |
-          ./build_tools/github_actions/lint_llvm_commit.sh .
-
   bazel-build:
     strategy:
       fail-fast: false
@@ -40,6 +29,10 @@ jobs:
     steps:
     - name: Checkout StableHLO
       uses: actions/checkout@v2
+
+    - name: Running lint_llvm_commit.sh on source files
+      run: |
+        ./build_tools/github_actions/lint_llvm_commit.sh .
 
     - name: Get LLVM Version
       id: llvm-version
