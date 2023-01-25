@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 
 # The setup-build action gets everything needed by buildAndTest into the workspace.
 name: "Setup build environment (ninja, ccache, llvm, lld)"

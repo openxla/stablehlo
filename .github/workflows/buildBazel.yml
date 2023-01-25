@@ -1,0 +1,57 @@
+# Copyright 2023 The StableHLO Authors.
+
+name: Bazel Build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
+  push:
+    branches: [ main ]
+    paths-ignore: ['**.md', 'docs/**']
+  schedule:
+    # Run buildBazel workflow once a day
+    - cron:  '0 12 * * *'
+  workflow_dispatch:
+
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bazel-build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout StableHLO
+      uses: actions/checkout@v2
+
+    - name: Validate LLVM Commit
+      run: |
+        ./build_tools/github_actions/lint_llvm_commit.sh .
+
+    - name: Get LLVM Version
+      id: llvm-version
+      shell: bash
+      run: |
+        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+
+    - name: Setup Bazelisk
+      uses: bazelbuild/setup-bazelisk@v2
+
+    - name: Mount bazel cache
+      uses: actions/cache@v3
+      with:
+        path: "~/.cache/bazel"
+        key: ${{ runner.os }}-stablehlo_build_assets-${{ steps.llvm-version.outputs.version }}-bazelbuild
+
+    - name: Build StableHLO using Bazel
+      shell: bash
+      run: |
+        ./build_tools/github_actions/ci_build_bazel.sh

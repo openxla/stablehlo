@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 
 name: Lint
 
@@ -15,7 +15,7 @@ jobs:
       - name: Checking out repository
         uses: actions/checkout@v2
 
-      - name: Running clang-format on changed source files
+      - name: Run clang-format
         run: |
           git fetch --no-tags --prune --depth=1 origin "${GITHUB_BASE_REF?}:${GITHUB_BASE_REF?}"
           ./build_tools/github_actions/lint_clang_format.sh -b "${GITHUB_BASE_REF}"
@@ -28,6 +28,6 @@ jobs:
       - name: Checking out repository
         uses: actions/checkout@v2
 
-      - name: Running lint_whitespace_checks.sh on source files
+      - name: Run Whitespace Checks
         run: |
           ./build_tools/github_actions/lint_whitespace_checks.sh

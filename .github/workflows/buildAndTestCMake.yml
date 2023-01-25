@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 
 name: Build and Test
 
@@ -11,7 +11,7 @@ on:
     paths-ignore: ['**.md', 'docs/**']
   schedule:
     # Run buildAndTest workflow once a day
-    - cron:  '* 12 * * *'
+    - cron:  '0 12 * * *'
   workflow_dispatch:
 
 # Ensure that only a single job or workflow using the same
