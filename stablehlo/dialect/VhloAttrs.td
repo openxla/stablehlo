@@ -178,9 +178,14 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
+
+def VHLO_DenseIntOrFPElementsData : TypeParameter<"::llvm::ArrayRef<char>", "Array of int"> {
+  // Custom allocator to copy dense elements data into MLIR Context
+  let allocator = "$_dst = $_allocator.copyInto($_self);";
+}
 def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
   let mnemonic = "dense";
-  let parameters = (ins "::mlir::Type":$type, "ArrayRef<char>":$raw_data);
+  let parameters = (ins "::mlir::Type":$type, VHLO_DenseIntOrFPElementsData:$raw_data);
   let hasCustomAssemblyFormat = 1;
 }
 
