@@ -18,17 +18,10 @@ limitations under the License.
 #define STABLEHLO_DIALECT_VHLO_OPS_H
 
 #include "llvm/ADT/StringRef.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/OpDefinition.h"
 #include "stablehlo/dialect/Version.h"
 
 namespace mlir {
