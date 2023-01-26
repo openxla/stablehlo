@@ -142,7 +142,7 @@ one of the following tracking labels.
 | shift_right_logical      | yes           | yes          | yes            | yes             | no          |
 | sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
-| slice                    | yes           | yes          | yes            | no              | no          |
+| slice                    | yes           | yes          | yes            | no              | yes         |
 | sort                     | yes           | yes          | yes            | no              | no          |
 | sqrt                     | yes           | yes          | yes            | yes             | no          |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
