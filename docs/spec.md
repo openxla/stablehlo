@@ -2418,6 +2418,8 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_dynamic_update_slice.mlir)
+
 ### exponential
 
 #### Semantics

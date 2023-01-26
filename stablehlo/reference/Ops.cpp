@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
@@ -37,6 +39,13 @@ SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
   SmallVector<int64_t> result(array.size());
   for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
   return result;
+}
+
+SmallVector<int64_t> addIndices(ArrayRef<int64_t> lhs, ArrayRef<int64_t> rhs) {
+  SmallVector<int64_t> combined;
+  for (auto [lhsIdx, rhsIdx] : llvm::zip(lhs, rhs))
+    combined.push_back(lhsIdx + rhsIdx);
+  return combined;
 }
 
 }  // namespace
@@ -81,6 +90,28 @@ Tensor evalCosineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, cosine(operand.get(*it)));
+  return result;
+}
+
+Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
+                                const ArrayRef<Tensor> &startIndices,
+                                Type resultType) {
+  Tensor result(resultType);
+  auto operandShape = operand.getType().getShape();
+  auto updateShape = update.getType().getShape();
+  SmallVector<int64_t> adjustedStartIndices;
+  for (size_t i = 0; i < startIndices.size(); ++i)
+    adjustedStartIndices.push_back(std::min(
+        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
+        operandShape[i] - updateShape[i]));
+  for (auto resItr = result.index_begin(), updItr = update.index_begin();
+       resItr != result.index_end(); ++resItr) {
+    if (updItr != update.index_end() &&
+        llvm::equal(*resItr, addIndices(*updItr, adjustedStartIndices)))
+      result.set(*resItr, update.get(*updItr++));
+    else
+      result.set(*resItr, operand.get(*resItr));
+  }
   return result;
 }
 
@@ -296,6 +327,15 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       Tensor runtimeOperand = scope.find(cosineOp.getOperand());
       Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
+      Tensor runtimeOperand = scope.find(dynamicUpdateSliceOp.getOperand());
+      Tensor runtimeUpdate = scope.find(dynamicUpdateSliceOp.getUpdate());
+      SmallVector<Tensor> runtimeStartIndices =
+          scope.find(dynamicUpdateSliceOp.getStartIndices());
+      Tensor runtimeResult = evalDynamicUpdateSliceOp(
+          runtimeOperand, runtimeUpdate, runtimeStartIndices,
+          dynamicUpdateSliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = scope.find(floorOp.getOperand());
