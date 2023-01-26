@@ -17,36 +17,75 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_CHECK_OPS
 #define STABLEHLO_DIALECT_CHECK_OPS
 
-include "mlir/IR/OpBase.td"
 include "stablehlo/dialect/Base.td"
+
+//===----------------------------------------------------------------------===//
+// CHECK dialect.
+//===----------------------------------------------------------------------===//
 
 def CHECK_Dialect : Dialect {
   let name = "check";
-  let cppNamespace = "::mlir::stablehlo";
+  let cppNamespace = "::mlir::stablehlo::check";
 
-  let summary = [{
-    A dialect implementing test assertions for StableHLO interpreter.
+  let description = [{
+    Opset to implement test assertions for StableHLO interpreter.
   }];
+
+  let useDefaultAttributePrinterParser = 0;
+  let useDefaultTypePrinterParser = 0;
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
-def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq"> {
-  let summary = [{Checks that the tensor or buffer view operands are equal}];
-  let description = [{
-    Verifies that the operands are exactly equal.
+//===----------------------------------------------------------------------===//
+// CHECK op definitions.
+//===----------------------------------------------------------------------===//
+
+def CHECK_EqOp :
+    Op<CHECK_Dialect, "eq", [AllTypesMatch<["lhs", "value"]>]> {
+  let summary = [{Checks that the tensor operand is equal to some constant}];
+  let description =  [{
+    Verifies that the tensor operand is exactly equal to a constant attribute.
+    For floating-point and complex types, uses bitwise comparison for equality.
 
     Issues a non-fatal failure if the verification fails.
 
     ```mlir
-    check.expect_eq(%arg0, %arg1) : tensor<5xi32>
+    check.eq %arg0, dense<[1, 2]> : tensor<2xi32>
     ```
   }];
 
   let arguments = (ins
-      HLO_Tensor:$lhs,
-      ElementsAttr:$rhs
+    HLO_Tensor:$lhs,
+    ElementsAttr:$value
   );
 
-  let assemblyFormat = "`(` $lhs `,` $rhs `)` attr-dict `:` type($lhs)";
+  // let assemblyFormat = " $lhs `,` $value attr-dict `:` type($lhs)";
+  let assemblyFormat = " $lhs `,` $value attr-dict";
+}
+
+def CHECK_AlmostEqOp :
+    Op<CHECK_Dialect,
+       "almost_eq", [AllTypesMatch<["lhs", "value"]>]> {
+  let summary = [{Checks that the tensor operand is almost equal to some constant}];
+  let description =  [{
+    Verifies that the tensor operand with floating-point or complex element
+    type is almost equal to the constant attribute within an
+    implementation-defined tolerance.
+
+    Issues a non-fatal failure if the verification fails.
+
+    ```mlir
+    check.expect_almost_eq_const(%arg0, dense<[0.999999, 2.0]> : tensor<5xf32>) : tensor<5xf32>
+    ```
+  }];
+
+  let arguments = (ins
+    TensorOf<[AnyFloat, AnyComplex]>:$lhs,
+    ElementsAttr:$value
+  );
+
+  // let assemblyFormat = " $lhs `,` $value attr-dict `:` type($lhs)";
+  let assemblyFormat = " $lhs `,` $value attr-dict";
 }
 
 #endif  // STABLEHLO_DIALECT_CHECK_OPS

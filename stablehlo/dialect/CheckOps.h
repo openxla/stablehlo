@@ -18,12 +18,15 @@ limitations under the License.
 #define STABLEHLO_DIALECT_CHECKOPS_H_
 
 #include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OpDefinition.h"
 
 namespace mlir {
 namespace stablehlo {
+namespace check {
 
 class CheckDialect : public Dialect {
  public:
@@ -31,6 +34,7 @@ class CheckDialect : public Dialect {
   static StringRef getDialectNamespace() { return "check"; }
 };
 
+}  // namespace check
 }  // namespace stablehlo
 }  // namespace mlir
 

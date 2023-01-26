@@ -17,6 +17,7 @@ limitations under the License.
 #define STABLEHLO_REFERENCE_OPS_H
 
 #include "mlir/IR/BuiltinAttributes.h"
+#include "stablehlo/dialect/CheckOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Scope.h"

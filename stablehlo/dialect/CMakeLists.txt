@@ -234,6 +234,5 @@ add_mlir_dialect_library(CheckOps
   LINK_LIBS PUBLIC
   StablehloBase
   MLIRIR
-  MLIRQuantDialect
   MLIRSupport
 )

@@ -65,6 +65,13 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Overloaded equality operator. For floating-point or complex element types
+  /// uses bitwise comparision for equality.
+  bool operator==(const Element &other) const;
+
+  /// Overloaded inequality operator.
+  bool operator!=(const Element &other) const;
+
   /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
 
@@ -138,6 +145,10 @@ Element sqrt(const Element &e);
 
 /// Returns tanh of Element object.
 Element tanh(const Element &e);
+
+/// Checks if the underlying float or complex value stored in Element objects,
+/// e1 and e2, are almost equal within an implementation-defined tolerance.
+bool areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Print utilities for Element objects.
 inline raw_ostream &operator<<(raw_ostream &os, Element element) {

@@ -27,9 +27,6 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        os << "\nEvaluated results of function: " << funcOp.getSymName()
-           << "\n";
-
         // Run the test model.
         auto results = stablehlo::eval(funcOp.getBody(), {});
 
@@ -42,7 +39,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
-      registry.insert<stablehlo::CheckDialect>();
+      registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
 

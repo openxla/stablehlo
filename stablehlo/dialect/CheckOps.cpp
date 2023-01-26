@@ -21,6 +21,7 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
+namespace check {
 
 //===----------------------------------------------------------------------===//
 // Check Dialect Constructor
@@ -34,5 +35,6 @@ CheckDialect::CheckDialect(MLIRContext* context)
       >();
 }
 
+}  // namespace check
 }  // namespace stablehlo
 }  // namespace mlir
