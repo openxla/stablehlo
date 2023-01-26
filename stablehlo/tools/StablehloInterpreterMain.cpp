@@ -17,6 +17,7 @@ limitations under the License.
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include "stablehlo/dialect/CheckOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Ops.h"
 
@@ -41,6 +42,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
+      registry.insert<stablehlo::CheckDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
 

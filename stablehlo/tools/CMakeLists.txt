@@ -43,6 +43,7 @@ target_link_libraries(stablehlo-interpreter PRIVATE
   MLIRIR
   MLIRSupport
   MLIRTranslateLib
+  CheckOps
   StablehloOps
   StablehloReferenceOps
   StablehloReferenceTensor
