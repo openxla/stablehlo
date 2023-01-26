@@ -95,11 +95,11 @@ def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
       llvm::SmallVector<unsigned> validWidths{4, 8, 16, 32, 64};
       bool isPred = (value.getWidth() == 1 && value.isSignless());
       if (!isPred && !llvm::is_contained(validWidths, value.getWidth())) {
-        // return emitError() << "invalid integer width " << value;
+        return emitError() << "invalid integer width " << value;
       }
-      //if (!value.isSignless() && !value.isUnsigned()) {
-      //  return emitError() << "invalid integer signedness " << value;
-      //}
+      if (!value.isSignless() && !value.isUnsigned()) {
+        return emitError() << "invalid integer signedness " << value;
+      }
       return success();
     }
   }];
