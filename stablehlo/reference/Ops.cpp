@@ -92,6 +92,21 @@ Tensor evalCeilOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
+Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max, 
+                   Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    Element min_element =
+        min.getNumElements() > 1 ? min.get(*it) : min.get(*(min.index_begin()));
+    Element max_element =
+        max.getNumElements() > 1 ? max.get(*it) : max.get(*(max.index_begin()));
+    result.set(*it,
+               stablehlo::min(stablehlo::max(operand.get(*it), min_element),
+                              max_element));
+  }
+  return result;
+}
+
 Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
 }
