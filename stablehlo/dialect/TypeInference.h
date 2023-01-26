@@ -148,8 +148,9 @@ LogicalResult inferClampOp(
 
 LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location>, bool compareTypeHasValue,
-    bool isNoType, bool isFloat, bool isTotalOrder, bool isUnsigned,
-    bool isSigned, Value lhs,
+    bool isCompareTypeNoType, bool isCompareTypeFloat,
+    bool isCompareTypeTotalOrder, bool isCompareTypeUnsigned,
+    bool isCompareTypeSigned, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,

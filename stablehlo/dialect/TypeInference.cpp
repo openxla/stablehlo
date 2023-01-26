@@ -1548,19 +1548,23 @@ LogicalResult inferClampOp(
 
 LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location> location,
-    bool compareTypeHasValue, bool isNoType, bool isFloat, bool isTotalOrder,
-    bool isUnsigned, bool isSigned, Value lhs,
+    bool compareTypeHasValue, bool isCompareTypeNoType, bool isCompareTypeFloat,
+    bool isCompareTypeTotalOrder, bool isCompareTypeUnsigned,
+    bool isCompareTypeSigned, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (compareTypeHasValue && !isNoType) {
+  if (compareTypeHasValue) {
+    if (isCompareTypeNoType)
+      return emitOptionalError(location, "compareType cannot be NOTYPE");
     auto elementType = lhs.getType().cast<ShapedType>().getElementType();
-    if (elementType.isa<FloatType>() && !isFloat && !isTotalOrder)
+    if (elementType.isa<FloatType>() && !isCompareTypeFloat &&
+        !isCompareTypeTotalOrder)
       return emitOptionalError(location,
                                "compareType must be FLOAT or TOTALORDER");
-    else if (elementType.isa<ComplexType>() && !isFloat)
+    if (elementType.isa<ComplexType>() && !isCompareTypeFloat)
       return emitOptionalError(location, "compareType must be FLOAT");
-    else if (elementType.isUnsignedInteger() && !isUnsigned)
+    if (elementType.isUnsignedInteger() && !isCompareTypeUnsigned)
       return emitOptionalError(location, "compareType must be UNSIGNED");
-    else if (elementType.isSignlessInteger() && !isSigned)
+    if (elementType.isSignlessInteger() && !isCompareTypeSigned)
       return emitOptionalError(location, "compareType must be SIGNED");
   }
   ShapedTypeComponents& components =

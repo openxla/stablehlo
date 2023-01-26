@@ -59,16 +59,6 @@ func.func @attr_comparison_direction_lt(%arg0: tensor<f32>, %arg1: tensor<f32>) 
 }
 // CHECK-LABEL: "attr_comparison_direction_lt"
 
-func.func @attr_comparison_type_notype(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
-  %0 = "stablehlo.compare"(%arg0, %arg1) {
-    comparison_direction = #stablehlo<comparison_direction EQ>,
-    // CHECK: compare_type = #vhlo<comparison_type NOTYPE>,
-    compare_type = #stablehlo<comparison_type NOTYPE>
-  } : (tensor<f32>, tensor<f32>) -> tensor<i1>
-  func.return %0 : tensor<i1>
-}
-// CHECK-LABEL: "attr_comparison_type_notype"
-
 func.func @attr_comparison_type_float(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {
     comparison_direction = #stablehlo<comparison_direction EQ>,
