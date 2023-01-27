@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -334,6 +335,13 @@ void printDimSizes(AsmPrinter& p, ArrayRef<int64_t> dimSizes) {
 
 FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {
   SmallVector<int64_t> dimSizes;
+  if (failed(parseDimSizes(parser, dimSizes))) {
+    return failure();
+  }
+  return dimSizes;
+}
+
+ParseResult parseDimSizes(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
   auto parseElt = [&]() -> ParseResult {
     if (!parser.parseOptionalQuestion()) {
       dimSizes.push_back(ShapedType::kDynamic);
@@ -341,21 +349,7 @@ FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {
     }
     return parser.parseInteger(dimSizes.emplace_back());
   };
-  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Square,
-                                            parseElt))) {
-    return failure();
-  }
-  return dimSizes;
-}
-
-ParseResult parseDimSizes(AsmParser& parser,
-                          FailureOr<SmallVector<int64_t>>& dimSizes) {
-  auto failOrDimSizes = parseDimSizes(parser);
-  if (failed(failOrDimSizes)) {
-    return failure();
-  }
-  dimSizes = std::move(*failOrDimSizes);
-  return success();
+  return parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
 }
 
 // Print attributes as e#m#
