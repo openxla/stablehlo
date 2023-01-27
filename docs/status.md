@@ -111,7 +111,7 @@ one of the following tracking labels.
 | optimization_barrier     | yes           | yes          | yes            | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | yes           | yes          | yes            | no              | no          |
-| pad                      | yes           | yes          | yes            | yes             | no          |
+| pad                      | yes           | yes          | yes            | yes             | yes         |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | yes           | yes          | yes            | yes             | no          |

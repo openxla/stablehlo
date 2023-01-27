@@ -3592,6 +3592,8 @@ and `di = dim(operand, i)`.
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_pad.mlir)
+
 ### partition_id
 
 #### Semantics

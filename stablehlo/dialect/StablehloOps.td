@@ -2671,7 +2671,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
       [Pure, SameOperandsAndResultElementType,
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Pad operator";
+  let summary = "Pad operation";
   let description = [{
     Expands `operand` by padding around the tensor as well as between the
     elements of the tensor with the given `padding_value`.

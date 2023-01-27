@@ -169,6 +169,25 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   return result;
 }
 
+Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
+                 ArrayRef<int64_t> edgePaddingLow,
+                 ArrayRef<int64_t> interiorPadding, Type resultType) {
+  Tensor result(resultType);
+  for (auto resItr = result.index_begin(); resItr != result.index_end();
+       ++resItr)
+    result.set(*resItr, paddingValue.get({}));
+  for (auto opItr = operand.index_begin(); opItr != operand.index_end();
+       ++opItr) {
+    SmallVector<int64_t> adjustedIdx(result.getType().getRank());
+    for (int64_t i = 0; i < operand.getType().getRank(); ++i)
+      adjustedIdx[i] =
+          edgePaddingLow[i] + (*opItr)[i] * (interiorPadding[i] + 1);
+    if (failed(verifyIndex(result.getType().getShape(), adjustedIdx))) continue;
+    result.set(adjustedIdx, operand.get(*opItr));
+  }
+  return result;
+}
+
 Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
@@ -333,6 +352,17 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeLhs = scope.find(orOp.getLhs());
       Tensor runtimeRhs = scope.find(orOp.getRhs());
       Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto padOp = dyn_cast<PadOp>(op)) {
+      Tensor runtimeOperand = scope.find(padOp.getOperand());
+      Tensor runtimePaddingValue = scope.find(padOp.getPaddingValue());
+      auto edgePaddingLow =
+          llvm::to_vector(padOp.getEdgePaddingLow().getValues<int64_t>());
+      auto interiorPadding =
+          llvm::to_vector(padOp.getInteriorPadding().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalPadOp(runtimeOperand, runtimePaddingValue, edgePaddingLow,
+                    interiorPadding, padOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
       SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
