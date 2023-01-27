@@ -100,6 +100,9 @@ class Element {
   std::variant<APInt, bool, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
+/// Returns element-wise abs of Element object.
+Element abs(const Element &e);
+
 /// Returns element-wise ceil of Element object.
 Element ceil(const Element &e);
 

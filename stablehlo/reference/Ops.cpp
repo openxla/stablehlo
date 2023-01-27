@@ -48,6 +48,14 @@ SmallVector<int64_t> addIndices(ArrayRef<int64_t> lhs, ArrayRef<int64_t> rhs) {
 
 }  // namespace
 
+Tensor evalAbsOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    result.set(*it, abs(operand.get(*it)));
+  }
+  return result;
+}
+
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

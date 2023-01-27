@@ -42,7 +42,7 @@ one of the following tracking labels.
 
 | StableHLO Op             | Specification | Verification | Type Inference | Pretty Printing | Interpreter |
 |:-------------------------|:--------------|:-------------|:---------------|:----------------|:------------|
-| abs                      | yes           | yes          | yes            | yes             | no          |
+| abs                      | yes           | yes          | yes            | yes             | yes         |
 | add                      | yes           | yes          | yes            | yes             | yes         |
 | after_all                | yes           | yes          | yes            | yes             | no          |
 | all_gather               | yes           | revisit      | no             | no              | no          |

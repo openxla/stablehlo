@@ -61,6 +61,7 @@ endif()
 
 if(STABLEHLO_STANDALONE_BUILD)
   message(STATUS "Building StableHLO standalone")
+  set(MLIR_DIR /usr/local/google/home/subhankarshah/Desktop/stablehlo/llvm-build/lib/cmake/mlir)
   find_package(MLIR REQUIRED CONFIG)
   message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
   message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")

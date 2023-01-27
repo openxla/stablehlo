@@ -494,6 +494,8 @@ tensor. Depending on the element type, does the following:
 // %result: [2, 0, 2]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_abs.mlir)
+
 ### add
 
 #### Semantics
