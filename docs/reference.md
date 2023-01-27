@@ -153,10 +153,10 @@ We can use a combination of following rules to decide it:
    representative test. To avoid ambiguity in selecting the representative, we
    should use the following guidelines:
 
-     - If all the types, handled uniformaly, have the same primitive type
+     - If all the types, handled uniformly, have the same primitive type
        (i.e., if all are integer, or floating-point, or complex types), then
        choose the one with maximum bit-width.
-     - If all the types, handled uniformaly, have a mix of primitive types, then
+     - If all the types, handled uniformly, have a mix of primitive types, then
        choose the one with the following primitive type, in decreasing order of
        preference: integer, floating-point, boolean, complex.
 
@@ -202,3 +202,6 @@ resolve it using [ticket](https://github.com/openxla/stablehlo/issues/268).
 1. Make sure to use the actual name of the inputs/outputs instead of defaulting
    to SSA values (e.g. %0, %1, etc.)
 1. Make sure the tests use pretty-printed format, if it exists.
+
+**(G7) Should we include the example already provided in the spec?**
+Yes (for completeness of testing).
