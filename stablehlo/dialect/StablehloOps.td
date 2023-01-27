@@ -2640,7 +2640,7 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
 
 def StableHLO_ReverseOp: StableHLO_Op<"reverse",
       [Pure, HLO_CompatibleOperandsAndResultType]> {
-  let summary = "Reverse operator";
+  let summary = "Reverse operation";
   let description = [{
     Reverses the order of elements in the `operand` along the specified
     `dimensions` and produces a `result` tensor.
@@ -2650,7 +2650,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
 
     Example:
     ```mlir
-    %0 = stablehlo.reverse %arg0, dims = [1] : tensor<3x2xi32>
+    %result = stablehlo.reverse %operand, dims = [1] : tensor<3x2xi32>
     ```
   }];
   let arguments = (ins

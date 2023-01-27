@@ -3036,7 +3036,17 @@ func.func @reshape_invalid_shapes(%operand: tensor<2x4xf32>) -> tensor<3x3xf32> 
 
 // -----
 
-func.func @reverse_duplicate_dimensions(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
+// CHECK-LABEL: func @reverse
+func.func @reverse(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
+  %0 = "stablehlo.reverse"(%operand) {
+    dimensions = dense<[0, 1]> : tensor<2xi64>
+  } : (tensor<3x2xi32>) -> tensor<3x2xi32>
+  func.return %0 : tensor<3x2xi32>
+}
+
+// -----
+
+func.func @reverse_C2(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{dimensions should be unique. Got: 0, 0}}
   %0 = "stablehlo.reverse"(%operand) {
     dimensions = dense<[0, 0]> : tensor<2xi64>
@@ -3046,7 +3056,7 @@ func.func @reverse_duplicate_dimensions(%operand: tensor<3x2xi32>) -> tensor<3x2
 
 // -----
 
-func.func @reverse_invalid_dimensions_unranked(%operand: tensor<*xi32>) -> tensor<*xi32> {
+func.func @reverse_C3(%operand: tensor<*xi32>) -> tensor<*xi32> {
   // expected-error @+1 {{all dimensions should be non-negative. Got dimension: -1.}}
   %0 = "stablehlo.reverse"(%operand) {
     dimensions = dense<-1> : tensor<i64>
@@ -3056,7 +3066,7 @@ func.func @reverse_invalid_dimensions_unranked(%operand: tensor<*xi32>) -> tenso
 
 // -----
 
-func.func @reverse_invalid_dimensions_negative(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
+func.func @reverse_C3(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{all dimensions should be non-negative. Got dimension: -1.}}
   %0 = "stablehlo.reverse"(%operand) {
     dimensions = dense<-1> : tensor<i64>
@@ -3066,7 +3076,7 @@ func.func @reverse_invalid_dimensions_negative(%operand: tensor<3x2xi32>) -> ten
 
 // -----
 
-func.func @reverse_invalid_dimensions(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
+func.func @reverse_C3(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{all dimensions should be between [0, 2). Got dimension: 2.}}
   %0 = "stablehlo.reverse"(%operand) {
     dimensions = dense<2> : tensor<i64>

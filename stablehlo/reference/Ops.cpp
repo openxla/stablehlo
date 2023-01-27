@@ -165,6 +165,21 @@ Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
+Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
+                     Type resultType) {
+  Tensor result(resultType);
+  auto shape = result.getType().getShape();
+  for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
+       resultIt != result.index_end(); ++resultIt, ++operandIt) {
+    auto operandIdx = (*operandIt).vec();
+    for (auto dim : dimensions) {
+      operandIdx[dim] = -(operandIdx[dim] - (shape[dim] - 1));
+    }
+    result.set(*resultIt, operand.get(operandIdx));
+  }
+  return result;
+}
+
 Tensor evalSineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
