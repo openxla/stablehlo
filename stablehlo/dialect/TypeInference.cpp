@@ -2689,15 +2689,7 @@ LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
   return success();
 }
 
-// The following properties are already enforced by the ODS:
-//  type(start_indices) == type(limit_indices) == type(strides).
-// Verify the following properties:
-//  P1. Verify rank(start_indices) == 1.
-//  P2. Verify size(start_indices) == rank(operand).
-//  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
-//  P6. Verify stride[i] > 0.
-// Note: for P4, use the bound size than dim size for bounded dynamism case.
-LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
+LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
@@ -2711,23 +2703,19 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
     return success();
   }
 
+  // SliceOp_C2
   ShapedType attrTy = startIndices.getType();
-  // P1.
-  // Note: ODS has type(start_indices) == type(limit_indices) == type(strides)
-  // So this implies rank(limit_indices) == rank(strides) == 1 also.
-  if (attrTy.getRank() != 1) {
+  if (attrTy.getRank() != 1)
     return emitOptionalError(location, "start_indices has rank ",
                              attrTy.getRank(), " instead of required rank 1");
-  }
 
-  // P2.
+  // SliceOp_C2
   int64_t rank = rankedTy.getRank();
-  if (attrTy.getNumElements() != rank) {
+  if (attrTy.getNumElements() != rank)
     return emitOptionalError(
         location, "the number of elements in start_indices (",
         attrTy.getNumElements(), ") does not match the rank of the operand (",
         rank, ")");
-  }
 
   SmallVector<int64_t, 4> start(startIndices.getValues<int64_t>());
   SmallVector<int64_t, 4> limit(limitIndices.getValues<int64_t>());
@@ -2738,12 +2726,12 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
   SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int64_t i = 0, e = rank; i != e; i++) {
-    // P3.
+    // SliceOp_C3
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
 
-    // P4.
+    // SliceOp_C3
     bool isStaticDim = !isDynamicDimSize(rankedTy.getDimSize(i));
     bool isStaticBound =
         !inputBounds.empty() && !isDynamicDimSize(inputBounds[i]);
@@ -2757,20 +2745,22 @@ LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                                  operandSizeOrBound, " in dimension ", i);
     }
 
-    // P5.
+    // SliceOp_C3
     if (start[i] > limit[i])
       return emitOptionalError(location, "start index ", start[i],
                                " is larger than limit index ", limit[i],
                                " in dimension ", i);
-    // P6.
+    // SliceOp_C4
     if (strideVals[i] <= 0)
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
+    // SliceOp_C5
     shape[i] = static_cast<int64_t>(
         llvm::divideCeil(limit[i] - start[i], strideVals[i]));
   }
 
+  // SliceOp_C1
   inferredReturnTypes.push_back(RankedTensorType::get(
       shape, rankedTy.getElementType(),
       boundsToEncoding(rankedTy.getEncoding(), resultBounds)));

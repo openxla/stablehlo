@@ -1587,7 +1587,7 @@ def StableHLO_SliceOp: StableHLO_Op<
       [Pure, SameOperandsAndResultElementType,
        AllTypesMatch<["start_indices", "limit_indices", "strides"]>,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Slice operator";
+  let summary = "Slice operation";
   let description = [{
     Extracts a slice from the `operand` using statically-computed starting
     indices and produces a `result` tensor.
