@@ -1193,6 +1193,61 @@ func.func @comp_eq(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
 
 // -----
 
+func.func @comp_bad_type(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType cannot be NOTYPE}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type NOTYPE>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @comp_bad_type(%arg0: tensor<3xf32>, %arg1: tensor<3xf32>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType must be FLOAT or TOTALORDER}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type UNSIGNED>
+  } : (tensor<3xf32>, tensor<3xf32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @comp_bad_type(%arg0: tensor<3xcomplex<f32>>, %arg1: tensor<3xcomplex<f32>>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType must be FLOAT}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type UNSIGNED>
+  } : (tensor<3xcomplex<f32>>, tensor<3xcomplex<f32>>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @comp_bad_type(%arg0: tensor<3xui32>, %arg1: tensor<3xui32>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType must be UNSIGNED}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type TOTALORDER>
+  } : (tensor<3xui32>, tensor<3xui32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
+func.func @comp_bad_type(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  // expected-error@+1 {{compareType must be SIGNED}}
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type TOTALORDER>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  func.return %0 : tensor<3xi1>
+}
+
+// -----
+
 func.func @comp_bad_direction(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
   // expected-error@+1 {{'comparison_direction' failed to satisfy constraint}}
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = "FOOBAR"} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>

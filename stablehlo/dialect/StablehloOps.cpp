@@ -2299,8 +2299,14 @@ LogicalResult CompareOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   CompareOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferCompareOp(context, location, adaptor.getLhs(),
-                             inferredReturnShapes);
+  auto compareType = adaptor.getCompareType();
+  return hlo::inferCompareOp(context, location, compareType.has_value(),
+                             compareType == ComparisonType::NOTYPE,
+                             compareType == ComparisonType::FLOAT,
+                             compareType == ComparisonType::TOTALORDER,
+                             compareType == ComparisonType::UNSIGNED,
+                             compareType == ComparisonType::SIGNED,
+                             adaptor.getLhs(), inferredReturnShapes);
 }
 
 LogicalResult CompareOp::reifyReturnTypeShapes(

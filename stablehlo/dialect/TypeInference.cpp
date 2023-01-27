@@ -1580,8 +1580,26 @@ LogicalResult inferClampOp(
 }
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, Value lhs,
+    MLIRContext* context, std::optional<Location> location,
+    bool compareTypeHasValue, bool isCompareTypeNoType, bool isCompareTypeFloat,
+    bool isCompareTypeTotalOrder, bool isCompareTypeUnsigned,
+    bool isCompareTypeSigned, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (compareTypeHasValue) {
+    if (isCompareTypeNoType)
+      return emitOptionalError(location, "compareType cannot be NOTYPE");
+    auto elementType = lhs.getType().cast<ShapedType>().getElementType();
+    if (elementType.isa<FloatType>() && !isCompareTypeFloat &&
+        !isCompareTypeTotalOrder)
+      return emitOptionalError(location,
+                               "compareType must be FLOAT or TOTALORDER");
+    if (elementType.isa<ComplexType>() && !isCompareTypeFloat)
+      return emitOptionalError(location, "compareType must be FLOAT");
+    if (elementType.isUnsignedInteger() && !isCompareTypeUnsigned)
+      return emitOptionalError(location, "compareType must be UNSIGNED");
+    if (elementType.isSignlessInteger() && !isCompareTypeSigned)
+      return emitOptionalError(location, "compareType must be SIGNED");
+  }
   ShapedTypeComponents& components =
       inferredReturnShapes.emplace_back(IntegerType::get(context, /*width=*/1));
   auto argTy = lhs.getType().cast<TensorType>();

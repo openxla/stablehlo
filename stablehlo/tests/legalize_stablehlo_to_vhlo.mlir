@@ -59,16 +59,6 @@ func.func @attr_comparison_direction_lt(%arg0: tensor<f32>, %arg1: tensor<f32>) 
 }
 // CHECK-LABEL: "attr_comparison_direction_lt"
 
-func.func @attr_comparison_type_notype(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
-  %0 = "stablehlo.compare"(%arg0, %arg1) {
-    comparison_direction = #stablehlo<comparison_direction EQ>,
-    // CHECK: compare_type = #vhlo<comparison_type NOTYPE>,
-    compare_type = #stablehlo<comparison_type NOTYPE>
-  } : (tensor<f32>, tensor<f32>) -> tensor<i1>
-  func.return %0 : tensor<i1>
-}
-// CHECK-LABEL: "attr_comparison_type_notype"
-
 func.func @attr_comparison_type_float(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {
     comparison_direction = #stablehlo<comparison_direction EQ>,
@@ -89,22 +79,22 @@ func.func @attr_comparison_type_totalorder(%arg0: tensor<f32>, %arg1: tensor<f32
 }
 // CHECK-LABEL: "attr_comparison_type_totalorder"
 
-func.func @attr_comparison_type_signed(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
+func.func @attr_comparison_type_signed(%arg0: tensor<i32>, %arg1: tensor<i32>) -> tensor<i1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {
     comparison_direction = #stablehlo<comparison_direction EQ>,
     // CHECK: compare_type = #vhlo<comparison_type SIGNED>,
     compare_type = #stablehlo<comparison_type SIGNED>
-  } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  } : (tensor<i32>, tensor<i32>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
 // CHECK-LABEL: "attr_comparison_type_signed"
 
-func.func @attr_comparison_type_unsigned(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
+func.func @attr_comparison_type_unsigned(%arg0: tensor<ui32>, %arg1: tensor<ui32>) -> tensor<i1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {
     comparison_direction = #stablehlo<comparison_direction EQ>,
     // CHECK: compare_type = #vhlo<comparison_type UNSIGNED>,
     compare_type = #stablehlo<comparison_type UNSIGNED>
-  } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+  } : (tensor<ui32>, tensor<ui32>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
 // CHECK-LABEL: "attr_comparison_type_unsigned"
