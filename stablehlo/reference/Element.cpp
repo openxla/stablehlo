@@ -289,7 +289,7 @@ Element abs(const Element &el) {
     bool roundingErr;
     APFloat result(resultVal);
     result.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type.dyn_cast<ComplexType>().getElementType(), result);
+    return Element(type.cast<ComplexType>().getElementType(), result);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
