@@ -128,3 +128,31 @@ func.func @pad_negative_padding_with_interior_dim_1() -> tensor<2x7xi64> {
   // CHECK-NEXT: 6 : i64
   // CHECK-NEXT: 0 : i64
 }
+
+// CHECK-LABEL: Evaluated results of function: pad_negative_padding_value
+func.func @pad_negative_padding_value() -> tensor<3x5xi64> {
+  %operand = stablehlo.constant dense<[[0, 1, 2, 3, 0],
+                                       [0, 4, 5, 6, 0],
+                                       [0, 0, 0, 0, 0],
+                                       [0, 0, 0, 0, 0]]> : tensor<4x5xi64>
+  %padding_value = stablehlo.constant dense<-1> : tensor<i64>
+  %result = stablehlo.pad %operand, %padding_value, low = [1, 0], high = [-2, 0], interior = [0, 0]
+    : (tensor<4x5xi64>, tensor<i64>) -> tensor<3x5xi64>
+  func.return %result : tensor<3x5xi64>
+  // CHECK-NEXT: tensor<3x5xi64>
+  // CHECK-NEXT: -1 : i64
+  // CHECK-NEXT: -1 : i64
+  // CHECK-NEXT: -1 : i64
+  // CHECK-NEXT: -1 : i64
+  // CHECK-NEXT: -1 : i64
+  // CHECK-NEXT: 0 : i64
+  // CHECK-NEXT: 1 : i64
+  // CHECK-NEXT: 2 : i64
+  // CHECK-NEXT: 3 : i64
+  // CHECK-NEXT: 0 : i64
+  // CHECK-NEXT: 0 : i64
+  // CHECK-NEXT: 4 : i64
+  // CHECK-NEXT: 5 : i64
+  // CHECK-NEXT: 6 : i64
+  // CHECK-NEXT: 0 : i64
+}
