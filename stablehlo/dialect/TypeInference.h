@@ -291,9 +291,6 @@ LogicalResult inferReduceWindowOp(
 LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferReturnOp(std::optional<Location> location,
-                            SmallVectorImpl<Type>& inferredReturnTypes);
-
 LogicalResult inferScatterOp(std::optional<Location> location,
                              ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes);

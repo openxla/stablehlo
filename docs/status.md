@@ -125,7 +125,7 @@ one of the following tracking labels.
 | remainder                | yes           | yes          | yes            | yes             | no          |
 | replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
-| return                   | no            | revisit      | yes            | yes             | no          |
+| return                   | no            | revisit      | infeasible     | yes             | no          |
 | reverse                  | yes           | yes          | yes            | yes             | no          |
 | rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | yes           | revisit      | infeasible     | yes             | no          |
