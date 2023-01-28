@@ -204,7 +204,7 @@ def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
     [Pure,
      DeclareOpInterfaceMethods<InferTypeOpInterface>],
      TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]>> {
-  let summary = "Absolute value operator";
+  let summary = "Absolute value operation";
   let description = [{
     Performs element-wise abs operation on `operand` tensor and produces a
     `result` tensor.

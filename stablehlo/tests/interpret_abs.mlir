@@ -2,13 +2,13 @@
 
 // CHECK-LABEL: Evaluated results of function: abs_op_test_si32
 func.func @abs_op_test_si32() -> tensor<3xi32> {
-  %0 = stablehlo.constant dense<[23, -23, -1]> : tensor<3xi32>
+  %0 = stablehlo.constant dense<[-2, 0, 2]> : tensor<3xi32>
   %1 = stablehlo.abs %0 : tensor<3xi32>
   func.return %1 : tensor<3xi32>
   // CHECK-NEXT: tensor<3xi32>
-  // CHECK-NEXT: 23 : i32
-  // CHECK-NEXT: 23 : i32
-  // CHECK-NEXT: 1 : i32
+  // CHECK-NEXT: 2 : i32
+  // CHECK-NEXT: 0 : i32
+  // CHECK-NEXT: 2 : i32
 }
 
 // -----

@@ -5636,18 +5636,34 @@ func.func @abs_complex(%arg0: tensor<1x2xcomplex<f32>>) -> tensor<1x2xf32> {
 
 // -----
 
-// CHECK-LABEL: func @round_even
-func.func @round_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {
-  %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2xf32>) -> tensor<2xf32>
-  func.return %0 : tensor<2xf32>
+func.func @abs_C1(%arg0: tensor<1x2xf32>) -> tensor<2x2xf32> {
+  // expected-error@+1 {{'stablehlo.abs' op all non-scalar operands/results must have the same shape and base type}}
+  %0 = "stablehlo.abs"(%arg0) {} : (tensor<1x2xf32>) -> tensor<2x2xf32>
+  func.return %0 : tensor<2x2xf32>
 }
 
 // -----
 
-func.func @abs_mismatch_element_type(%arg0: tensor<1x2xcomplex<f32>>) -> tensor<1x2xf64> {
+func.func @abs_C2(%arg0: tensor<1x2xf32>) -> tensor<1x2xf64> {
+  // expected-error@+1 {{'stablehlo.abs' op inferred type(s) 'tensor<1x2xf32>' are incompatible with return type(s) of operation 'tensor<1x2xf64>'}}
+  %0 = "stablehlo.abs"(%arg0) {} : (tensor<1x2xf32>) -> tensor<1x2xf64>
+  func.return %0 : tensor<1x2xf64>
+}
+
+// -----
+
+func.func @abs_C2(%arg0: tensor<1x2xcomplex<f32>>) -> tensor<1x2xf64> {
 // expected-error@+1 {{'stablehlo.abs' op inferred type(s) 'tensor<1x2xf32>' are incompatible with return type(s) of operation 'tensor<1x2xf64>'}}
   %0 = "stablehlo.abs"(%arg0) {} : (tensor<1x2xcomplex<f32>>) -> tensor<1x2xf64>
   func.return %0 : tensor<1x2xf64>
+}
+
+// -----
+
+// CHECK-LABEL: func @round_even
+func.func @round_even(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.round_nearest_even"(%arg0) {} : (tensor<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
 }
 
 // -----
