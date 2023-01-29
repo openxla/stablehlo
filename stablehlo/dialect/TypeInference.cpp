@@ -1619,14 +1619,14 @@ LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
 }
 
 LogicalResult inferConcatenateOp(std::optional<Location> location,
-                                 ValueRange inputs, int64_t dimension,
+                                 TypeRange inputTypes, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   if (dimension < 0)
     return emitOptionalError(location, "dimension ", dimension, " is negative");
   RankedTensorType firstRankedType;
   int firstRankedIndex = -1;
-  for (uint64_t i = 0; i < inputs.size(); i++) {
-    auto secondType = inputs[i].getType().dyn_cast<ShapedType>();
+  for (uint64_t i = 0; i < inputTypes.size(); i++) {
+    auto secondType = inputTypes[i].dyn_cast<ShapedType>();
     if (!secondType.hasRank()) continue;
 
     if (!firstRankedType) {
@@ -1660,7 +1660,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
     }
   }
 
-  auto elementType = inputs[0].getType().cast<ShapedType>().getElementType();
+  auto elementType = inputTypes[0].cast<ShapedType>().getElementType();
   if (!firstRankedType) {
     inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
     return success();
@@ -1679,7 +1679,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
   // c0: (<5x?xf32>, <*xf32>) with concat dim 0 should infer <?x?xf32>
   // c1: (<5x?xf32>, <*xf32>) with concat dim 1 should infer <5x?xf32>
   // Instead, they should be replaced with dynamic tensors: tensor<?x...?x>
-  for (const auto& it : llvm::enumerate(inputs.getTypes())) {
+  for (const auto& it : llvm::enumerate(inputTypes)) {
     RankedTensorType rankedType = it.value().dyn_cast<RankedTensorType>();
     SmallVector<int64_t> bounds;
     if (rankedType)
@@ -1907,7 +1907,7 @@ LogicalResult inferDotOp(
 }
 
 LogicalResult inferDotGeneralOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
@@ -1963,8 +1963,8 @@ LogicalResult inferDotGeneralOp(
                                " is out of range: ", "[0, ", rank, ")");
     return success();
   };
-  auto lhsRankedType = lhs.getType().dyn_cast<RankedTensorType>();
-  auto rhsRankedType = rhs.getType().dyn_cast<RankedTensorType>();
+  auto lhsRankedType = lhsType.dyn_cast<RankedTensorType>();
+  auto rhsRankedType = rhsType.dyn_cast<RankedTensorType>();
 
   if (lhsRankedType) {
     if (failed(checkDimsInRange(lhsRankedType.getRank(), lhsBatchingDimensions,
@@ -2004,24 +2004,22 @@ LogicalResult inferDotGeneralOp(
     }
   }
 
-  auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
-  auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
-  if (!lhsType || !rhsType) {
+  if (!lhsRankedType || !rhsRankedType) {
     inferredReturnShapes.push_back({});
     return success();
   }
 
   // Infer the output dimensions of the operation.
-  auto lhsShape = lhsType.getShape();
-  auto rhsShape = rhsType.getShape();
+  auto lhsShape = lhsRankedType.getShape();
+  auto rhsShape = rhsRankedType.getShape();
   SmallVector<int64_t> dimensions;
   for (const int64_t lhsBatchingDim : lhsBatchingDimensions)
     dimensions.push_back(lhsShape[lhsBatchingDim]);
-  for (int64_t i = 0; i < lhsType.getRank(); i++)
+  for (int64_t i = 0; i < lhsRankedType.getRank(); i++)
     if (!llvm::is_contained(lhsBatchingDimensions, i) &&
         !llvm::is_contained(lhsContractingDimensions, i))
       dimensions.push_back(lhsShape[i]);
-  for (int64_t i = 0; i < rhsType.getRank(); i++)
+  for (int64_t i = 0; i < rhsRankedType.getRank(); i++)
     if (!llvm::is_contained(rhsBatchingDimensions, i) &&
         !llvm::is_contained(rhsContractingDimensions, i))
       dimensions.push_back(rhsShape[i]);
@@ -2554,25 +2552,24 @@ LogicalResult inferRealOp(std::optional<Location>, Value operand,
 }
 
 LogicalResult inferReduceOp(
-    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr dimensions,
+    std::optional<Location> location, TypeRange inputTypes,
+    TypeRange initValueTypes, DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  SmallVector<TensorType> inputArgTypes{llvm::map_range(
-      inputs.getTypes(),
-      [](Type t) -> TensorType { return t.cast<TensorType>(); })};
-  SmallVector<TensorType> initValueTypes{llvm::map_range(
-      initValues.getTypes(),
+  SmallVector<TensorType> inputArgTensorTypes{llvm::map_range(
+      inputTypes, [](Type t) -> TensorType { return t.cast<TensorType>(); })};
+  SmallVector<TensorType> initValueTensorTypes{llvm::map_range(
+      initValueTypes,
       [](Type t) -> TensorType { return t.cast<TensorType>(); })};
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
-  if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
-                                               initValueTypes, dimensions,
+  if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTensorTypes,
+                                               initValueTensorTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
 
-  for (uint64_t inputIdx = 0; inputIdx < inputs.size(); ++inputIdx) {
-    TensorType inputType = inputArgTypes[inputIdx];
+  for (uint64_t inputIdx = 0; inputIdx < inputTypes.size(); ++inputIdx) {
+    TensorType inputType = inputArgTensorTypes[inputIdx];
     Type elementType = inputType.getElementType();
     if (inputType.hasRank())
       inferredReturnShapes.emplace_back(newDimensions, elementType, encoding);
@@ -2697,18 +2694,17 @@ LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
 //  P3~5. Verify 0 <= start_indices[i] <= limit_indices[i] <= shape(operand)[i].
 //  P6. Verify stride[i] > 0.
 // Note: for P4, use the bound size than dim size for bounded dynamism case.
-LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
+LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
-  Type ty = operand.getType();
-  RankedTensorType rankedTy = ty.dyn_cast<RankedTensorType>();
+  RankedTensorType rankedTy = operandType.dyn_cast<RankedTensorType>();
   if (!rankedTy) {
     // The operand type is unranked, so the best we can infer for the result
     // type is an unranked tensor with the same element type as the operand
     // type.
-    inferredReturnTypes.assign({ty});
+    inferredReturnTypes.assign({operandType});
     return success();
   }
 
@@ -3257,10 +3253,10 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
                                  std::optional<ArrayAttr> precisionConfig,
                                  Value result) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
-  if (failed(inferDotGeneralOp(location, lhs, rhs, lhsBatchingDimensions,
-                               rhsBatchingDimensions, lhsContractingDimensions,
-                               rhsContractingDimensions, precisionConfig,
-                               inferredReturnShapes)))
+  if (failed(inferDotGeneralOp(
+          location, lhs.getType(), rhs.getType(), lhsBatchingDimensions,
+          rhsBatchingDimensions, lhsContractingDimensions,
+          rhsContractingDimensions, precisionConfig, inferredReturnShapes)))
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];

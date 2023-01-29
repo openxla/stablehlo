@@ -157,7 +157,7 @@ LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConcatenateOp(std::optional<Location> location,
-                                 ValueRange inputs, int64_t dimension,
+                                 TypeRange inputTypes, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
@@ -193,7 +193,7 @@ LogicalResult inferDotOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDotGeneralOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
@@ -275,8 +275,8 @@ LogicalResult inferRealOp(std::optional<Location> location, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
-    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr dimensions,
+    std::optional<Location> location, TypeRange inputTypes,
+    TypeRange initValueTypes, DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
@@ -308,7 +308,7 @@ LogicalResult inferSelectAndScatterOp(
 LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
+LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
