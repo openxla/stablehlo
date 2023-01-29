@@ -2843,16 +2843,19 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       build($_builder, $_state, TypeRange(result_type), ValueRange(operand),
             ValueRange(init_value), window_dimensions, window_strides,
             base_dilations, window_dilations, padding);
-    }]>
+    }]>,
+    OpBuilder<(ins "ValueRange":$operands,
+      "ValueRange":$init_values,
+      "DenseIntElementsAttr":$window_dimensions,
+      "DenseIntElementsAttr":$window_strides,
+      "DenseIntElementsAttr":$base_dilations,
+      "DenseIntElementsAttr":$window_dilations,
+      "DenseIntElementsAttr":$padding,
+      "function_ref<void(OpBuilder &, Location, ValueRange)>":$bodyBuilder
+    )>,
   ];
 
   // TODO(hinsu): Implement custom printer and parser.
-
-  let extraClassDeclaration = [{
-    static bool isCompatibleReturnTypes(TypeRange l, TypeRange r) {
-      return mlir::hlo::isCompatibleForHloTypeInference(l, r);
-    }
-  }];
 }
 
 def StableHLO_ReturnOp : StableHLO_Op<"return",
