@@ -1189,14 +1189,13 @@ func.func @while_bounds(
 
 // CHECK-LABEL: @gather
 // CHECK-SAME: (%[[ARG0:.*]]: tensor<3x4x2xi32>, %[[ARG1:.*]]: tensor<?x3x2xi64>
-func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xi64> {
-  // CHECK: %[[C2:.*]] = arith.constant 2 : i64
+func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi64>) -> tensor<4xindex> {
+  // CHECK: %[[C2:.*]] = arith.constant 2 : index
   // CHECK: %[[C0:.*]] = arith.constant 0 : index
-  // CHECK: %[[C3:.*]] = arith.constant 3 : i64
+  // CHECK: %[[C3:.*]] = arith.constant 3 : index
   // CHECK: %[[DIM:.*]] = tensor.dim %[[ARG1]], %[[C0]] : tensor<?x3x2xi64>
-  // CHECK: %[[V0:.*]] = arith.index_cast %[[DIM]] : index to i64
-  // CHECK: %[[RES:.*]] = tensor.from_elements %[[V0]], %[[C3]], %[[C2]], %[[C2]] : tensor<4xi64>
-  // CHECK: return %[[RES]] : tensor<4xi64>
+  // CHECK: %[[RES:.*]] = tensor.from_elements %[[DIM]], %[[C3]], %[[C2]], %[[C2]] : tensor<4xindex>
+  // CHECK: return %[[RES]] : tensor<4xindex>
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2, 3],
@@ -1206,8 +1205,8 @@ func.func @gather(%operand : tensor<3x4x2xi32>, %start_indices : tensor<?x3x2xi6
       slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
       indices_are_sorted = false
   } : (tensor<3x4x2xi32>, tensor<?x3x2xi64>) -> tensor<?x3x2x2xi32>
-  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x3x2x2xi32>) -> tensor<4xi64>
-  func.return %1 : tensor<4xi64>
+  %1 = "hlo_test_infer.reify_return_type_shapes"(%result) : (tensor<?x3x2x2xi32>) -> tensor<4xindex>
+  func.return %1 : tensor<4xindex>
 }
 
 // -----

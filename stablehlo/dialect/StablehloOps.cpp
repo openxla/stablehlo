@@ -712,7 +712,7 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
 
   Location loc = op->getLoc();
   int resultRank = resultTy.getRank();
-  Type shapeElTy = startIndices.getType().cast<ShapedType>().getElementType();
+  Type shapeElTy = builder.getIndexType();
   auto toShapeElType = [&](Value v) {
     return maybeCastTo(builder, loc, v, shapeElTy);
   };
@@ -739,6 +739,7 @@ LogicalResult reifyGatherShape(Op* op, OpBuilder& builder, ValueRange operands,
 
   Value outputShape = builder.create<tensor::FromElementsOp>(
       loc, RankedTensorType::get({resultRank}, shapeElTy), shapeValues);
+
   reifiedReturnShapes.push_back(outputShape);
 
   return success();
