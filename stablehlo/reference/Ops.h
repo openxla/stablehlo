@@ -23,25 +23,26 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-Tensor eval(AddOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(AndOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(CeilOp op, const Tensor &operand);
-Tensor eval(ConstantOp op);
-Tensor eval(CosineOp op, const Tensor &operand);
-Tensor eval(FloorOp op, const Tensor &operand);
-Tensor eval(IotaOp op);
-Tensor eval(MaxOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(MinOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(MulOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(NegOp op, const Tensor &operand);
-Tensor eval(NotOp op, const Tensor &operand);
-Tensor eval(OrOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(ReshapeOp op, const Tensor &operand);
-Tensor eval(SineOp op, const Tensor &operand);
-Tensor eval(SubtractOp op, const Tensor &lhs, const Tensor &rhs);
-Tensor eval(TanhOp op, const Tensor &operand);
-Tensor eval(TransposeOp op, const Tensor &operand);
-Tensor eval(XorOp op, const Tensor &lhs, const Tensor &rhs);
+Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalCeilOp(const Tensor &operand, Type resultType);
+Tensor evalConstantOp(ElementsAttr value);
+Tensor evalCosineOp(const Tensor &operand, Type resultType);
+Tensor evalFloorOp(const Tensor &operand, Type resultType);
+Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
+Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalNegOp(const Tensor &operand, Type resultType);
+Tensor evalNotOp(const Tensor &operand, Type resultType);
+Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalReshapeOp(const Tensor &operand, Type resultType);
+Tensor evalSineOp(const Tensor &operand, Type resultType);
+Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalTanhOp(const Tensor &operand, Type resultType);
+Tensor evalTransposeOp(Type resultType, const Tensor &operand,
+                       DenseIntElementsAttr permutation);
+Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 
 }  // namespace stablehlo
 }  // namespace mlir

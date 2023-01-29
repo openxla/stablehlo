@@ -69,62 +69,64 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     if (auto addOp = dyn_cast<AddOp>(op)) {
       Tensor runtimeLhs = fetchOperand(addOp.getLhs());
       Tensor runtimeRhs = fetchOperand(addOp.getRhs());
-      Tensor runtimeResult = eval(addOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalAddOp(runtimeLhs, runtimeRhs, addOp.getType());
       populateResults({runtimeResult});
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
       Tensor runtimeLhs = fetchOperand(andOp.getLhs());
       Tensor runtimeRhs = fetchOperand(andOp.getRhs());
-      Tensor runtimeResult = eval(andOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
       populateResults({runtimeResult});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
       Tensor runtimeOperand = fetchOperand(ceilOp.getOperand());
-      Tensor runtimeResult = eval(ceilOp, runtimeOperand);
+      Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
       populateResults({runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
-      Tensor runtimeResult = eval(constantOp);
+      Tensor runtimeResult = evalConstantOp(constantOp.getValue());
       populateResults({runtimeResult});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       Tensor runtimeOperand = fetchOperand(cosineOp.getOperand());
-      Tensor runtimeResult = eval(cosineOp, runtimeOperand);
+      Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
       populateResults({runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = fetchOperand(floorOp.getOperand());
-      Tensor runtimeResult = eval(floorOp, runtimeOperand);
+      Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
       populateResults({runtimeResult});
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
-      Tensor runtimeResult = eval(iotaOp);
+      Tensor runtimeResult =
+          evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
       populateResults({runtimeResult});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       Tensor runtimeLhs = fetchOperand(maxOp.getLhs());
       Tensor runtimeRhs = fetchOperand(maxOp.getRhs());
-      Tensor runtimeResult = eval(maxOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalMaxOp(runtimeLhs, runtimeRhs, maxOp.getType());
       populateResults({runtimeResult});
     } else if (auto minOp = dyn_cast<MinOp>(op)) {
       Tensor runtimeLhs = fetchOperand(minOp.getLhs());
       Tensor runtimeRhs = fetchOperand(minOp.getRhs());
-      Tensor runtimeResult = eval(minOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalMinOp(runtimeLhs, runtimeRhs, minOp.getType());
       populateResults({runtimeResult});
     } else if (auto multiplyOp = dyn_cast<MulOp>(op)) {
       Tensor runtimeLhs = fetchOperand(multiplyOp.getLhs());
       Tensor runtimeRhs = fetchOperand(multiplyOp.getRhs());
-      Tensor runtimeResult = eval(multiplyOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult =
+          evalMultiplyOp(runtimeLhs, runtimeRhs, multiplyOp.getType());
       populateResults({runtimeResult});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
       Tensor runtimeOperand = fetchOperand(negOp.getOperand());
-      Tensor runtimeResult = eval(negOp, runtimeOperand);
+      Tensor runtimeResult = evalNegOp(runtimeOperand, negOp.getType());
       populateResults({runtimeResult});
     } else if (auto notOp = dyn_cast<NotOp>(op)) {
       Tensor runtimeOperand = fetchOperand(notOp.getOperand());
-      Tensor runtimeResult = eval(notOp, runtimeOperand);
+      Tensor runtimeResult = evalNotOp(runtimeOperand, notOp.getType());
       populateResults({runtimeResult});
     } else if (auto orOp = dyn_cast<OrOp>(op)) {
       Tensor runtimeLhs = fetchOperand(orOp.getLhs());
       Tensor runtimeRhs = fetchOperand(orOp.getRhs());
-      Tensor runtimeResult = eval(orOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
       populateResults({runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       Tensor runtimeOperand = fetchOperand(reshapeOp.getOperand());
-      Tensor runtimeResult = eval(reshapeOp, runtimeOperand);
+      Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
       populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
@@ -134,25 +136,27 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       return runtimeOperands;
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = fetchOperand(sineOp.getOperand());
-      Tensor runtimeResult = eval(sineOp, runtimeOperand);
+      Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
       populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = fetchOperand(subtractOp.getLhs());
       Tensor runtimeRhs = fetchOperand(subtractOp.getRhs());
-      Tensor runtimeResult = eval(subtractOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult =
+          evalSubtractOp(runtimeLhs, runtimeRhs, subtractOp.getType());
       populateResults({runtimeResult});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
       Tensor runtimeOperand = fetchOperand(tanhOp.getOperand());
-      Tensor runtimeResult = eval(tanhOp, runtimeOperand);
+      Tensor runtimeResult = evalTanhOp(runtimeOperand, tanhOp.getType());
       populateResults({runtimeResult});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
       Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
-      Tensor runtimeResult = eval(transposeOp, runtimeOperand);
+      Tensor runtimeResult = evalTransposeOp(
+          transposeOp.getType(), runtimeOperand, transposeOp.getPermutation());
       populateResults({runtimeResult});
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       Tensor runtimeLhs = fetchOperand(xorOp.getLhs());
       Tensor runtimeRhs = fetchOperand(xorOp.getRhs());
-      Tensor runtimeResult = eval(xorOp, runtimeLhs, runtimeRhs);
+      Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
       populateResults({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
