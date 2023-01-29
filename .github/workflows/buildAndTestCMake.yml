@@ -1,6 +1,18 @@
 # Copyright 2023 The StableHLO Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-name: Build and Test
+name: CMake Build
 
 on:
   pull_request:
@@ -10,7 +22,7 @@ on:
     branches: [ main ]
     paths-ignore: ['**.md', 'docs/**']
   schedule:
-    # Run buildAndTest workflow once a day
+    # Run once a day
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
@@ -22,10 +34,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Build using CMake and run tests.
-# Use Cached LLVM to improve build times.
 jobs:
-  build-test:
+  cmake-build:
     env:
       LLVM_PROJECT_DIR: "llvm-project"
       LLVM_BUILD_DIR: "llvm-build"
@@ -39,14 +49,12 @@ jobs:
     - name: Checkout StableHLO
       uses: actions/checkout@v2
 
-    # Read LLVM version from `build_tools/llvm_version.txt`
     - name: Get LLVM Version
       id: llvm-version
       shell: bash
       run: |
         echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
 
-    # Check out LLVM, and install tools for compilation
     - name: Setup workspace
       uses: ./.github/actions/setup-build
       with:
