@@ -3037,7 +3037,7 @@ def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequan
 }
 
 def StableHLO_ReducePrecisionOp :
-    StableHLO_Op<"reduce_precision", [HLO_CompatibleOperandsAndResultType]> {
+    StableHLO_Op<"reduce_precision", [HLO_CompatibleOperandsAndResultType, Pure]> {
   let summary = "Reduce precision operator";
   let description = [{
     Performs element-wise conversion of `operand` to another floating-point type
