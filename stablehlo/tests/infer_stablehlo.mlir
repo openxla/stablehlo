@@ -1547,7 +1547,7 @@ func.func @select(%pred : tensor<i1>,
   %0 = "stablehlo.select"(%pred, %a, %b) : (tensor<i1>,
       tensor<?x2x3x?xf32, #stablehlo.type_extensions<bounds = [5, ?, ?, 7]>>,
       tensor<1x?x3x?xf32, #stablehlo.type_extensions<bounds = [?, 6, ?, 8]>>) -> tensor<*xf32>
-  // CHECK: types0 = tensor<?x?x3x?xf32, #stablehlo.type_extensions<bounds = [5, 6, ?, 8]>>
+  // CHECK: types0 = tensor<1x2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }

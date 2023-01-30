@@ -2671,20 +2671,14 @@ LogicalResult inferSelectOp(
 
   // The output shape should be derived from the most specific parts of the
   // `onTrue` and `onFalse` when the bounds are missing (see documantation for
-  // `inferMostSpecificTypeComponents` for details).
+  // `inferMostSpecificTypeComponents` or `inferMostSpecificType` for details).
   auto onTrueRankedTy = onTrue.getType().dyn_cast<RankedTensorType>();
   auto onFalseRankedTy = onFalse.getType().dyn_cast<RankedTensorType>();
-  if (!onTrueRankedTy || !onFalseRankedTy ||
-      (encodingToBounds(onTrueRankedTy.getEncoding()).empty() &&
-       encodingToBounds(onFalseRankedTy.getEncoding()).empty()))
+  if (!onTrueRankedTy || !onFalseRankedTy)
     return inferMostSpecificTypeComponents(location, {trueType, falseType},
                                            inferredReturnShapes);
-
-  // The output shape and bounds are derived using the least specifc rules for
-  // `onTrue` and `onFalse` when the bounds are present (see documentation for
-  // `inferLeastSpecificType` for details).
   auto inferredTypeOrErr =
-      inferLeastSpecificType(location, {onTrueRankedTy, onFalseRankedTy});
+      inferMostSpecificType(location, {onTrueRankedTy, onFalseRankedTy});
   if (failed(inferredTypeOrErr)) return failure();
   auto resultType = (*inferredTypeOrErr).cast<RankedTensorType>();
   inferredReturnShapes.emplace_back(resultType.getShape(),
