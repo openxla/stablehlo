@@ -1867,17 +1867,6 @@ LogicalResult OptimizationBarrierOp::inferReturnTypes(
 }
 
 //===----------------------------------------------------------------------===//
-// ReturnOp
-//===----------------------------------------------------------------------===//
-LogicalResult ReturnOp::inferReturnTypes(
-    MLIRContext*, std::optional<Location> location, ValueRange operands,
-    DictionaryAttr attributes, RegionRange,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
-  ReturnOp::Adaptor adaptor(operands, attributes);
-  return hlo::inferReturnOp(location, inferredReturnTypes);
-}
-
-//===----------------------------------------------------------------------===//
 // ReverseOp
 //===----------------------------------------------------------------------===//
 LogicalResult ReverseOp::verify() {

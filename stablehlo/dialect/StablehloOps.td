@@ -2858,9 +2858,7 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
   // TODO(hinsu): Implement custom printer and parser.
 }
 
-def StableHLO_ReturnOp : StableHLO_Op<"return",
-      [Pure, Terminator,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
   let summary = [{
     The `hlo.return` operation terminates a region and returns values.
 

@@ -2636,10 +2636,6 @@ LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
   return success();
 }
 
-LogicalResult inferReturnOp(std::optional<Location>, SmallVectorImpl<Type>&) {
-  return success();
-}
-
 LogicalResult inferScatterOp(std::optional<Location>, ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   llvm::append_range(inferredReturnTypes, inputs.getTypes());
