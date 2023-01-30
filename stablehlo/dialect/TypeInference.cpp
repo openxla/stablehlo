@@ -2731,7 +2731,6 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
 
-    // SliceOp_C3
     bool isStaticDim = !isDynamicDimSize(rankedTy.getDimSize(i));
     bool isStaticBound =
         !inputBounds.empty() && !isDynamicDimSize(inputBounds[i]);
@@ -2739,6 +2738,7 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
       int64_t operandSizeOrBound =
           isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
       StringRef sizeOrBound = isStaticDim ? "size" : "bound";
+      // SliceOp_C3
       if (limit[i] > operandSizeOrBound)
         return emitOptionalError(location, "limit index ", limit[i],
                                  " is larger than dimension ", sizeOrBound, " ",

@@ -38,12 +38,6 @@ SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
   return result;
 }
 
-SmallVector<int64_t> getSExtValues(DenseIntElementsAttr attr) {
-  SmallVector<int64_t> values;
-  for (APInt val : attr) values.push_back(val.getSExtValue());
-  return values;
-}
-
 }  // namespace
 
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
@@ -179,19 +173,17 @@ Tensor evalSineOp(const Tensor &operand, Type resultType) {
 }
 
 Tensor evalSliceOp(const Tensor &operand, DenseIntElementsAttr startIndicesAttr,
-    DenseIntElementsAttr limitIndicesAttr, DenseIntElementsAttr stridesAttr,
-    Type resultType) {
+                   DenseIntElementsAttr stridesAttr, Type resultType) {
   Tensor result(resultType);
-  auto startIndices = getSExtValues(startIndicesAttr);
-  auto limitIndices = getSExtValues(limitIndicesAttr);
-  auto strides = getSExtValues(stridesAttr);
+  auto startIndices = startIndicesAttr.getValues<int64_t>();
+  auto strides = stridesAttr.getValues<int64_t>();
 
-  for (auto resItr = result.index_begin(); resItr != result.index_end();
-       ++resItr) {
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
     SmallVector<int64_t> opIdx;
-    for (auto i = 0; i < operand.getType().getRank(); ++i)
-      opIdx.push_back(startIndices[i] + (*resItr)[i] * strides[i]);
-    result.set(*resItr, operand.get(opIdx));
+    for (auto dim = 0; dim < operand.getType().getRank(); ++dim)
+      opIdx.push_back(startIndices[dim] + (*resultIt)[dim] * strides[dim]);
+    result.set(*resultIt, operand.get(opIdx));
   }
   return result;
 }
