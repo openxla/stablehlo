@@ -2250,34 +2250,6 @@ func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 
 // -----
 
-// CHECK-LABEL: func @slice_dynamic_dim
-func.func @slice_dynamic_dim(%arg0: tensor<3x?xi32>) -> tensor<1x?xi32> {
-  %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 1]> : tensor<2xi64>,
-    limit_indices = dense<[2, 2]> : tensor<2xi64>,
-    strides = dense<[1, 1]> : tensor<2xi64>
-  } : (tensor<3x?xi32>) -> tensor<1x?xi32>
-  func.return %0 : tensor<1x?xi32>
-}
-
-// -----
-
-func.func @slice_indices_mismatch(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
-  // expected-error@+1 {{failed to verify that all of {start_indices, limit_indices, strides} have same type}}
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 2]> : tensor<2xi64>, limit_indices = dense<[2, 4, 1]> : tensor<3xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x4xi32>
-  func.return %0 : tensor<1x4xi32>
-}
-
-// -----
-
-// CHECK-LABEL: func @slice_unranked
-func.func @slice_unranked(%arg0: tensor<*xi32>) -> tensor<*xi32> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<*xi32>) -> tensor<*xi32>
-  func.return %0 : tensor<*xi32>
-}
-
-// -----
-
 func.func @slice_C1(%arg0: tensor<3x4xi32>) -> tensor<1x4xf32> {
   // expected-error@+1 {{requires the same element type for all operands and results}}
   %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x4xf32>
@@ -2366,6 +2338,34 @@ func.func @slice_C4(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
     strides = dense<[0, 2]> : tensor<2xi64>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @slice_dynamic_dim
+func.func @slice_dynamic_dim(%arg0: tensor<3x?xi32>) -> tensor<1x?xi32> {
+  %0 = "stablehlo.slice"(%arg0) {
+    start_indices = dense<[1, 1]> : tensor<2xi64>,
+    limit_indices = dense<[2, 2]> : tensor<2xi64>,
+    strides = dense<[1, 1]> : tensor<2xi64>
+  } : (tensor<3x?xi32>) -> tensor<1x?xi32>
+  func.return %0 : tensor<1x?xi32>
+}
+
+// -----
+
+func.func @slice_indices_mismatch(%arg0: tensor<3x4xi32>) -> tensor<1x4xi32> {
+  // expected-error@+1 {{failed to verify that all of {start_indices, limit_indices, strides} have same type}}
+  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 2]> : tensor<2xi64>, limit_indices = dense<[2, 4, 1]> : tensor<3xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x4xi32>
+  func.return %0 : tensor<1x4xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @slice_unranked
+func.func @slice_unranked(%arg0: tensor<*xi32>) -> tensor<*xi32> {
+  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<*xi32>) -> tensor<*xi32>
+  func.return %0 : tensor<*xi32>
 }
 
 // -----

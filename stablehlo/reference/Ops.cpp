@@ -177,13 +177,12 @@ Tensor evalSliceOp(const Tensor &operand, DenseIntElementsAttr startIndicesAttr,
   Tensor result(resultType);
   auto startIndices = startIndicesAttr.getValues<int64_t>();
   auto strides = stridesAttr.getValues<int64_t>();
-
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    SmallVector<int64_t> opIdx;
+    SmallVector<int64_t> operandIdx;
     for (auto dim = 0; dim < operand.getType().getRank(); ++dim)
-      opIdx.push_back(startIndices[dim] + (*resultIt)[dim] * strides[dim]);
-    result.set(*resultIt, operand.get(opIdx));
+      operandIdx.push_back(startIndices[dim] + (*resultIt)[dim] * strides[dim]);
+    result.set(*resultIt, operand.get(operandIdx));
   }
   return result;
 }
