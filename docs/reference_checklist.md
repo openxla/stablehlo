@@ -20,26 +20,31 @@ After implementing the interpreter:
 1. In [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td):
     1. Make sure that the `summary` in op's ODS follows the standard format.
        (related [ticket](https://github.com/openxla/stablehlo/issues/611))
-    1. Add comments that reference constraint labels, from the spec, in the
-       format `<op_name>_Cn`, e.g. `SliceOp_C1`, to identify the correspondence between constrainst in ODS and the specification. The following example shows how to add the constraint labels as comments alongside mlir `Traits` and
-       `TypeConstraints`. 
-      ```
-       def StableHLO_XyzOp: StableHLO_Op<"xyz", [Trait1,
-           Trait2 /*XyzOp_C1, XyzOp_C2*/]> {
-            ...
-         let arguments = (ins
-            1DTensorOf<[HLO_Float]>:$operand, /*XyzOp_C3*/
-            ....
-            )
-      );
-      ```
+    1. Add comments referencing constraint labels (e.g. `Cn`) from the spec in
+       the format `xyz_cn`, for op `XyzOp`, to identify the correspondence
+       between constraints in ODS and specification. The following example shows
+       how to add the constraint labels as comments alongside mlir `Traits` and
+       `TypeConstraints`.
+
+       ```td
+        def StableHLO_XyzOp: StableHLO_Op<"xyz", [Trait1,
+            Trait2 /*xyz_c1, xyz_c2*/]> {
+             ...
+          let arguments = (ins
+             1DTensorOf<[HLO_Float]>:$operand, /*xyz_c3*/
+             ....
+          );
+       );
+       ```
+
 1. In [TypeInference.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.cpp)
    and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp):
     1. Delete comments that say things like "Verify the following properties:
        ...".
-    1. Add comments that reference constraint labels from the spec in the format
-       `<op_name>_Cn`, e.g. `SliceOp_C1`, to identify which parts of verifiers
-       and shape functions correspond to which constraints in the specification.
+    1. Add comments that reference constraint labels (e.g. `Cn`) from the spec
+       in the format `xyz_cn`, for op `XyzOp`, to identify which parts of
+       verifiers and shape functions correspond to which constraints in the
+       specification.
         1. It is OK to have a comment with multiple constraint labels or to have
            multiple comments with the same constraint label. It all depends on
            how the constraints are implemented.
@@ -61,9 +66,9 @@ After implementing the interpreter:
        together.
     1. Make sure that all the tests related to the op under test, are
        prepended with `CHECK-LABEL` lit macro.
-    1. Chose the function name of the tests using the format
-       `op_mnemonic_C1_C2_...` for a function testing constraints `C1`, `C2`,
-       etc. for op `op_mnemonic`. In cases when the proposed format does not
+    1. Choose the function name of the tests using the format
+       `xyz_c1_c2_...` for a function testing constraints `C1`, `C2`,
+       etc. for op `XyzOp`. In cases when the proposed format does not
        apply, keep the existing name.
     1. Once the above step is complete, sort all the tests related to the op
        under test alphabetically based on the function name.
