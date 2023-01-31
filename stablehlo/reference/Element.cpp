@@ -134,10 +134,9 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 template <class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
 almost_equal(T x, T y, int ulp) {
-  // the machine epsilon has to be scaled to the magnitude of the values used
-  // and multiplied by the desired precision in ULPs (units in the last place)
+  // The machine epsilon has to be scaled to the magnitude of the values used,
   return std::fabs(x - y) <=
-             std::numeric_limits<T>::epsilon() * std::fabs(x + y) * ulp ||
+             std::numeric_limits<T>::epsilon() * std::fmax(x, y) ||
          // unless the result is subnormal
          std::fabs(x - y) < std::numeric_limits<T>::min();
 }
@@ -151,8 +150,8 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
   if (f.isInfinity() != g.isInfinity()) return false;
 
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
-  if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
   if (cmpResult == APFloat::cmpEqual) return true;
+  if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
 
   // Both f and g are finite numbers.
   if (&f.getSemantics() == &llvm::APFloat::IEEEdouble())

@@ -363,6 +363,7 @@ cc_library(
         ":reference_scope",
         ":reference_tensor",
         ":reference_types",
+        ":check_ops",
         ":stablehlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
@@ -740,6 +741,7 @@ cc_binary(
     ],
     deps = [
         ":reference_ops",
+        ":check_ops",
         ":stablehlo_ops",
         ":test_utils",
         "@llvm-project//mlir:FuncDialect",

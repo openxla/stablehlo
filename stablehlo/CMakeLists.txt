@@ -14,7 +14,7 @@
 
 add_subdirectory(dialect)
 add_subdirectory(integrations)
-add_subdirectory(reference)
 add_subdirectory(tests)
+add_subdirectory(reference)
 add_subdirectory(tools)
 add_subdirectory(transforms)

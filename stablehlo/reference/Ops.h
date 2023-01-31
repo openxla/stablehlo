@@ -17,12 +17,12 @@ limitations under the License.
 #define STABLEHLO_REFERENCE_OPS_H
 
 #include "mlir/IR/BuiltinAttributes.h"
-#include "stablehlo/dialect/CheckOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Sizes.h"
 #include "stablehlo/reference/Tensor.h"
+#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 namespace stablehlo {

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/dialect/CheckOps.h"
+#include "stablehlo/tests/CheckOps.h"
 
 #define GET_OP_CLASSES
-#include "stablehlo/dialect/CheckOps.cpp.inc"
+#include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {
 namespace stablehlo {
@@ -31,7 +31,7 @@ CheckDialect::CheckDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context, TypeID::get<CheckDialect>()) {
   addOperations<
 #define GET_OP_LIST
-#include "stablehlo/dialect/CheckOps.cpp.inc"
+#include "stablehlo/tests/CheckOps.cpp.inc"
       >();
 }
 

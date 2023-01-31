@@ -17,9 +17,9 @@ limitations under the License.
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
-#include "stablehlo/dialect/CheckOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Ops.h"
+#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 

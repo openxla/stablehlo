@@ -39,6 +39,6 @@ class CheckDialect : public Dialect {
 }  // namespace mlir
 
 #define GET_OP_CLASSES
-#include "stablehlo/dialect/CheckOps.h.inc"
+#include "stablehlo/tests/CheckOps.h.inc"
 
 #endif  // STABLEHLO_DIALECT_CHECKOPS_H_
