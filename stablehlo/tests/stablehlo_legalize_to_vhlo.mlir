@@ -404,7 +404,7 @@ func.func @op_atan2(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<f32> {
 
 func.func @op_batch_norm_grad(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>, %arg3: tensor<16xf32>, %arg4: tensor<16x16x16x16xf32>) -> (tensor<16x16x16x16xf32>, tensor<16xf32>, tensor<16xf32>) {
   //      CHECK: "vhlo.batch_norm_grad"(%arg0, %arg1, %arg2, %arg3, %arg4) {
-  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : !vhlo.f32>,
+  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : f32>,
   // CHECK-SAME:   feature_index = #vhlo.integer<0 : i64>
   // CHECK-SAME: } : (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x16x16x16x!vhlo.f32>) -> (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>)
   %0:3 = "stablehlo.batch_norm_grad"(%arg0, %arg1, %arg2, %arg3, %arg4) {
@@ -417,7 +417,7 @@ func.func @op_batch_norm_grad(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf
 
 func.func @op_batch_norm_inference(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>, %arg3: tensor<16xf32>, %arg4: tensor<16xf32>) -> tensor<16x16x16x16xf32> {
   //      CHECK: "vhlo.batch_norm_inference"(%arg0, %arg1, %arg2, %arg3, %arg4) {
-  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : !vhlo.f32>,
+  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : f32>,
   // CHECK-SAME:   feature_index = #vhlo.integer<0 : i64>
   // CHECK-SAME: } : (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>) -> !vhlo.tensor<16x16x16x16x!vhlo.f32>
   %0 = "stablehlo.batch_norm_inference"(%arg0, %arg1, %arg2, %arg3, %arg4) {
@@ -430,7 +430,7 @@ func.func @op_batch_norm_inference(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor
 
 func.func @op_batch_norm_training(%arg0: tensor<16x16x16x16xf32>, %arg1: tensor<16xf32>, %arg2: tensor<16xf32>) -> (tensor<16x16x16x16xf32>, tensor<16xf32>, tensor<16xf32>) {
   //      CHECK: "vhlo.batch_norm_training"(%arg0, %arg1, %arg2) {
-  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : !vhlo.f32>,
+  // CHECK-SAME:   epsilon = #vhlo.float<1.000000e-03 : f32>,
   // CHECK-SAME:   feature_index = #vhlo.integer<0 : i64>
   // CHECK-SAME: } : (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>) -> (!vhlo.tensor<16x16x16x16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>, !vhlo.tensor<16x!vhlo.f32>)
   %0:3 = "stablehlo.batch_norm_training"(%arg0, %arg1, %arg2) {

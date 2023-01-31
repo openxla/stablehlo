@@ -148,7 +148,10 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
                                   attr.getValue());
   }
   if (auto attr = stablehloAttr.dyn_cast<IntegerAttr>()) {
-    return vhlo::IntegerV1Attr::get(attr.getContext(), attr);
+    auto vhloIntegerType = typeConverter->convertType(attr.getType());
+    if (!vhloIntegerType) return {};
+    return vhlo::IntegerV1Attr::get(attr.getContext(), vhloIntegerType,
+                                    attr.getValue());
   }
   if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
     if (!attr.getType().isa<NoneType>()) {

@@ -133,7 +133,9 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return FloatAttr::get(builtinFloatType, attr.getValue().convertToDouble());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
-    return attr.getValue();
+    auto builtinIntegerType = typeConverter->convertType(attr.getType());
+    if (!builtinIntegerType) return {};
+    return IntegerAttr::get(builtinIntegerType, attr.getValue());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(attr.getContext(), attr.getValue());

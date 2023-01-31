@@ -26,6 +26,7 @@ limitations under the License.
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
@@ -123,6 +124,38 @@ static void printFloatValue(const APFloat& apValue, AsmPrinter& os) {
   apInt.toString(str, /*Radix=*/16, /*Signed=*/false,
                  /*formatAsCLiteral=*/true);
   os << str;
+}
+
+void IntegerV1Attr::print(mlir::AsmPrinter& p) const {
+  VhloToStablehloTypeConverter conv;
+  p << '<' << IntegerAttr::get(conv.convertType(getType()), getValue()) << '>';
+}
+
+Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
+  StablehloToVhloTypeConverter conv;
+  IntegerAttr attr;
+  if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
+      failed(parser.parseGreater())) {
+    return IntegerV1Attr();
+  }
+  return IntegerV1Attr::get(parser.getContext(),
+                            conv.convertType(attr.getType()), attr.getValue());
+}
+
+void FloatV1Attr::print(mlir::AsmPrinter& p) const {
+  VhloToStablehloTypeConverter conv;
+  p << '<' << FloatAttr::get(conv.convertType(getType()), getValue()) << '>';
+}
+
+Attribute FloatV1Attr::parse(AsmParser& parser, mlir::Type) {
+  StablehloToVhloTypeConverter conv;
+  FloatAttr attr;
+  if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
+      failed(parser.parseGreater())) {
+    return FloatV1Attr();
+  }
+  return FloatV1Attr::get(parser.getContext(), conv.convertType(attr.getType()),
+                          attr.getValue());
 }
 
 void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {

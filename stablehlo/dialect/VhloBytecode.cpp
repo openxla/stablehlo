@@ -1078,14 +1078,14 @@ void VhloBytecodeInterface::write(FlatSymbolRefV1Attr attr,
 // IntegerV1Attr
 
 namespace {
-// Since IntegerAttr is wrapped
-Type convertIntegerTypeToVhlo(IntegerType type) {
-  StablehloToVhloTypeConverter cvt;
-  return cvt.convertIntegerType(type);
-}
-Type convertIntegerTypeToBuiltin(Type type) {
-  VhloToStablehloTypeConverter cvt;
-  return cvt.convertType(type);
+unsigned getBitWidthForIntegerType(Type type) {
+  if (type.isa<IntegerI1V1Type>()) return 1;
+  if (type.isa<IntegerI4V1Type>() || type.isa<IntegerUI4V1Type>()) return 4;
+  if (type.isa<IntegerI8V1Type>() || type.isa<IntegerUI8V1Type>()) return 8;
+  if (type.isa<IntegerI16V1Type>() || type.isa<IntegerUI16V1Type>()) return 16;
+  if (type.isa<IntegerI32V1Type>() || type.isa<IntegerUI32V1Type>()) return 32;
+  if (type.isa<IntegerI64V1Type>() || type.isa<IntegerUI64V1Type>()) return 64;
+  llvm_unreachable("unsupported integer type used in IntegerV1Attr");
 }
 }  // namespace
 
@@ -1096,49 +1096,25 @@ IntegerV1Attr VhloBytecodeInterface::readIntegerV1Attr(
   if (failed(reader.readType(type))) return IntegerV1Attr();
   assertFromVhlo(type);
 
-  // Must be integer or index
-  Type convertedType = convertIntegerTypeToBuiltin(type);
-  if (!convertedType.dyn_cast<IntegerType>() &&
-      !convertedType.dyn_cast<IndexType>()) {
-    reader.emitError()
-        << "expected integer or index type for IntegerAttr, but got: "
-        << convertedType;
-    return IntegerV1Attr();
-  }
-
   // Extract the value storage width from the type.
   unsigned bitWidth;
   if (type.isa<IndexV1Type>()) {
     bitWidth = IndexType::kInternalStorageBitWidth;
   } else {
-    bitWidth = convertedType.cast<IntegerType>().getWidth();
+    bitWidth = getBitWidthForIntegerType(type);
   }
 
   FailureOr<APInt> value = reader.readAPIntWithKnownWidth(bitWidth);
   if (failed(value)) return IntegerV1Attr();
-  return IntegerV1Attr::get(getContext(),
-                            IntegerAttr::get(convertedType, *value));
+  return IntegerV1Attr::get(getContext(), type, *value);
 }
 
 void VhloBytecodeInterface::write(IntegerV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
+  assertFromVhlo(attr.getType());
   writer.writeVarInt(vhlo_encoding::kIntegerAttr);
-  LLVM_DEBUG(llvm::dbgs() << "IntegerAttr: " << attr << '\n');
-  auto intAttr = attr.getValue();
-  if (intAttr.getType().isa<IndexType>()) {
-    writer.writeType(IndexV1Type::get(getContext()));
-  } else {
-    assert(intAttr.getType().isa<IntegerType>());
-
-    // Note, since IntegerVAttr wraps builtin IntegerAttr, we need to
-    // explicitly convert to a vhlo IntegerType here to avoid calling
-    // into builtin dialect bytecode writer.
-    Type convertedType =
-        convertIntegerTypeToVhlo(intAttr.getType().cast<IntegerType>());
-    assertFromVhlo(convertedType);
-    writer.writeType(convertedType);
-  }
-  writer.writeAPIntWithKnownWidth(intAttr.getValue());
+  writer.writeType(attr.getType());
+  writer.writeAPIntWithKnownWidth(attr.getValue());
 }
 
 //===----------------------------------------------------------------------===//
