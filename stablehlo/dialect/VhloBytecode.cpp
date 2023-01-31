@@ -33,7 +33,6 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"  // for readEnumAttribute
 #include "stablehlo/dialect/VhloOps.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 //===----------------------------------------------------------------------===//
 // Debug Trace Helpers

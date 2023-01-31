@@ -36,6 +36,18 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
+// Helper functions for VHLO verifiers
+template <typename TypeOrAttr>
+bool isFromVhlo(TypeOrAttr t) {
+  return t.getDialect().getNamespace() == VhloDialect::getDialectNamespace();
+}
+
+template <typename TypeOrAttr>
+bool allFromVhlo(ArrayRef<TypeOrAttr> range) {
+  return llvm::all_of(range, isFromVhlo<TypeOrAttr>);
+}
+
+// Helper functions for VHLO printers and parsers
 static void printEncoding(AsmPrinter& os, Attribute encoding) {
   if (!encoding) return;
   os << ", " << encoding;

@@ -175,9 +175,16 @@ def VHLO_ConvolutionAttributesV1 {
 def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
   let mnemonic = "array";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult ArrayV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, ArrayRef<mlir::Attribute> value) {
+      if (!allFromVhlo(value)) return errFn() << "expected array of VHLO attriutes";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
-
 
 def VHLO_DenseIntOrFPElementsData : AttrParameter<"::llvm::ArrayRef<char>", "Array of int"> {
   // Custom allocator to copy dense elements data into MLIR Context
@@ -186,24 +193,56 @@ def VHLO_DenseIntOrFPElementsData : AttrParameter<"::llvm::ArrayRef<char>", "Arr
 def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
   let mnemonic = "dense";
   let parameters = (ins "::mlir::Type":$type, VHLO_DenseIntOrFPElementsData:$raw_data);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult DenseIntOrFPElementsV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
+      if (!isFromVhlo(type)) errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
   let hasCustomAssemblyFormat = 1;
 }
 
 def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
   let mnemonic = "sym";
   let parameters = (ins "::mlir::Attribute":$root_reference);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult FlatSymbolRefV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Attribute rootReference) {
+      if (!isFromVhlo(rootReference)) return errFn() << "expected VHLO attribute";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $root_reference `>`";
 }
 
 def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
   let mnemonic = "float";
   let parameters = (ins "mlir::Type":$type, VHLO_DoubleV1:$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult FloatV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, APFloat value) {
+      if (!isFromVhlo(type)) return errFn() << "expected VHLO float type";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $value `:` $type `>`";
 }
 
 def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
   let mnemonic = "integer";
   let parameters = (ins "mlir::Type":$type, "APInt":$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult IntegerV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, APInt value) {
+      if (!isFromVhlo(type)) return errFn() << "expected VHLO integer type";
+      return success();
+    }
+  }];
   let hasCustomAssemblyFormat = 1;
 }
 

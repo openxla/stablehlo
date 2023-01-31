@@ -74,6 +74,14 @@ def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
 
 def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType"> {
   let parameters = (ins "Type":$elementType);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult ComplexV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()>, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return failure();
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $elementType `>`";
 }
 
@@ -101,11 +109,28 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
     "::mlir::Type":$elementType,
     "::mlir::Attribute":$encoding
   );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult RankedTensorV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()>,
+        ArrayRef<int64_t> shape, ::mlir::Type elementType, ::mlir::Attribute encoding) {
+      if (!isFromVhlo(elementType) || (encoding && !isFromVhlo(encoding))) return failure();
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` custom<TensorShape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
 }
 
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TupleV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()>, ArrayRef<mlir::Type> types) {
+      if (!allFromVhlo(types)) return failure();
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $types `>`";
 }
 
@@ -132,11 +157,29 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
     "int64_t":$storageTypeMin,
     "int64_t":$storageTypeMax
   );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult UniformQuantizedV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()>,
+        unsigned int, mlir::Type storageType, mlir::Type expressedType,
+        llvm::APFloat, long, long, long) {
+      if (!isFromVhlo(storageType) || !isFromVhlo(expressedType)) return failure();
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
 def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
   let parameters = (ins "::mlir::Type":$elementType);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult UnrankedTensorV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()>, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return failure();
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $elementType `>`";
 }
 
