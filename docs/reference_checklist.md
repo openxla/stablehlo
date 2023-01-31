@@ -20,7 +20,19 @@ After implementing the interpreter:
 1. In [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td):
     1. Make sure that the `summary` in op's ODS follows the standard format.
        (related [ticket](https://github.com/openxla/stablehlo/issues/611))
-
+    1. Add comments that reference constraint labels, from the spec, in the
+       format `<op_name>_Cn`, e.g. `SliceOp_C1`, to identify the correspondence between constrainst in ODS and the specification. The following example shows how to add the constraint labels as comments alongside mlir `Traits` and
+       `TypeConstraints`. 
+      ```
+       def StableHLO_XyzOp: StableHLO_Op<"xyz", [Trait1,
+           Trait2 /*XyzOp_C1, XyzOp_C2*/]> {
+            ...
+         let arguments = (ins
+            1DTensorOf<[HLO_Float]>:$operand, /*XyzOp_C3*/
+            ....
+            )
+      );
+      ```
 1. In [TypeInference.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.cpp)
    and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp):
     1. Delete comments that say things like "Verify the following properties:
