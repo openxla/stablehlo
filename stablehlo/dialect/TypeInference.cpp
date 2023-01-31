@@ -48,6 +48,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Location.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/TypeUtilities.h"
@@ -2046,7 +2047,13 @@ LogicalResult inferDynamicGatherOp(
                           collapsedSliceDims, startIndexMap, indexVectorDim)))
     return failure();
 
-  auto getSliceDim = [](int64_t index) { return ShapedType::kDynamic; };
+  auto getSliceDim = [&](int64_t index) {
+    DenseIntElementsAttr sliceSizesAttr;
+    if (!matchPattern(sliceSizes, m_Constant(&sliceSizesAttr))) {
+      return ShapedType::kDynamic;
+    }
+    return sliceSizesAttr.getValues<APInt>()[index].getSExtValue();
+  };
   return inferGatherReturnTypeComponents(
       location, operandShape, startIndices, getSliceDim, offsetDims,
       collapsedSliceDims, startIndexMap, indexVectorDim, inferredReturnShapes);
