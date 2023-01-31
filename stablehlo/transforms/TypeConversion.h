@@ -74,9 +74,7 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     });
     addConversion(
         [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
-    addConversion([&](IntegerType type) {
-      return IntegerV1Type::get(type.getContext(), type);
-    });
+    addConversion([&](IntegerType type) { return convertIntegerType(type); });
     addConversion([&](RankedTensorType type) -> Type {
       auto encoding = type.getEncoding();
       auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
@@ -126,6 +124,36 @@ class StablehloToVhloTypeConverter : public VersionedTypeConverterBase {
     // Was not VHLO encoding, or convertible.
     return {};
   }
+
+  Type convertIntegerType(IntegerType type) {
+    if (!type.isSignless() && !type.isUnsigned()) return {};
+
+    if (type.getWidth() == 1 && type.isSignless()) {  // Predicate
+      return IntegerI1V1Type::get(type.getContext());
+    }
+
+    // Has valid signedness, check for valid widths
+    bool isSignless = type.isSignless();
+    auto ctx = type.getContext();
+    switch (type.getWidth()) {
+      case 4:
+        return isSignless ? IntegerI4V1Type::get(ctx).cast<Type>()
+                          : IntegerUI4V1Type::get(ctx).cast<Type>();
+      case 8:
+        return isSignless ? IntegerI8V1Type::get(ctx).cast<Type>()
+                          : IntegerUI8V1Type::get(ctx).cast<Type>();
+      case 16:
+        return isSignless ? IntegerI16V1Type::get(ctx).cast<Type>()
+                          : IntegerUI16V1Type::get(ctx).cast<Type>();
+      case 32:
+        return isSignless ? IntegerI32V1Type::get(ctx).cast<Type>()
+                          : IntegerUI32V1Type::get(ctx).cast<Type>();
+      case 64:
+        return isSignless ? IntegerI64V1Type::get(ctx).cast<Type>()
+                          : IntegerUI64V1Type::get(ctx).cast<Type>();
+    }
+    return {};
+  }
 };
 
 class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
@@ -155,7 +183,41 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     });
     addConversion(
         [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
-    addConversion([&](IntegerV1Type type) { return type.getValue(); });
+    addConversion([&](IntegerI1V1Type type) {
+      return Builder(type.getContext()).getI1Type();
+    });
+    addConversion([&](IntegerI4V1Type type) {
+      return Builder(type.getContext()).getI4Type();
+    });
+    addConversion([&](IntegerI8V1Type type) {
+      return Builder(type.getContext()).getI8Type();
+    });
+    addConversion([&](IntegerI16V1Type type) {
+      return Builder(type.getContext()).getI16Type();
+    });
+    addConversion([&](IntegerI32V1Type type) {
+      return Builder(type.getContext()).getI32Type();
+    });
+    addConversion([&](IntegerI64V1Type type) {
+      return Builder(type.getContext()).getI64Type();
+    });
+    addConversion([&](IntegerUI4V1Type type) {
+      return Builder(type.getContext()).getIntegerType(4, /*isSigned=*/false);
+    });
+    addConversion([&](IntegerUI8V1Type type) {
+      return Builder(type.getContext()).getIntegerType(8, /*isSigned=*/false);
+    });
+    addConversion([&](IntegerUI16V1Type type) {
+      return Builder(type.getContext()).getIntegerType(16, /*isSigned=*/false);
+    });
+    addConversion([&](IntegerUI32V1Type type) {
+      return Builder(type.getContext()).getIntegerType(32, /*isSigned=*/false);
+    });
+    addConversion([&](IntegerUI64V1Type type) {
+      return Builder(type.getContext()).getIntegerType(64, /*isSigned=*/false);
+    });
+    // FIXME: addConversion([&](IntegerV1Type type) { return type.getValue();
+    // });
     addConversion([&](RankedTensorV1Type type) -> Type {
       auto encoding = type.getEncoding();
       auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
@@ -228,5 +290,7 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       TypeConverter& converter);
 }  // namespace vhlo
 }  // namespace mlir
+
+#undef DEBUG_TYPE
 
 #endif  // STABLEHLO_TRANSFORMS_MAPSTABLEHLOTOVHLO_H

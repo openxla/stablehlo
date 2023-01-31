@@ -78,32 +78,22 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType">
 }
 
 def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
-
 def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
-
 def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
 
 def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
 
-def VHLO_IntegerType : VHLO_TypeDef<"IntegerV1", "integer"> {
-  let parameters = (ins "::mlir::IntegerType":$value);
-  let assemblyFormat = "`<` $value `>`";
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    ::mlir::LogicalResult IntegerV1Type::verify(::llvm::function_ref<InFlightDiagnostic()> emitError,
-                     ::mlir::IntegerType value) {
-      llvm::SmallVector<unsigned> validWidths{4, 8, 16, 32, 64};
-      bool isPred = (value.getWidth() == 1 && value.isSignless());
-      if (!isPred && !llvm::is_contained(validWidths, value.getWidth())) {
-        return emitError() << "invalid integer width " << value;
-      }
-      if (!value.isSignless() && !value.isUnsigned()) {
-        return emitError() << "invalid integer signedness " << value;
-      }
-      return success();
-    }
-  }];
-}
+def VHLO_IntegerI1V1 : VHLO_TypeDef<"IntegerI1V1", "i1">;
+def VHLO_IntegerI4V1 : VHLO_TypeDef<"IntegerI4V1", "i4">;
+def VHLO_IntegerI8V1 : VHLO_TypeDef<"IntegerI8V1", "i8">;
+def VHLO_IntegerI16V1 : VHLO_TypeDef<"IntegerI16V1", "i16">;
+def VHLO_IntegerI32V1 : VHLO_TypeDef<"IntegerI32V1", "i32">;
+def VHLO_IntegerI64V1 : VHLO_TypeDef<"IntegerI64V1", "i64">;
+def VHLO_IntegerUI4V1 : VHLO_TypeDef<"IntegerUI4V1", "ui4">;
+def VHLO_IntegerUI8V1 : VHLO_TypeDef<"IntegerUI8V1", "ui8">;
+def VHLO_IntegerUI16V1 : VHLO_TypeDef<"IntegerUI16V1", "ui16">;
+def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32">;
+def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64">;
 
 def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
   let parameters = (ins

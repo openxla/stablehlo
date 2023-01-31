@@ -33,6 +33,7 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/Base.h"  // for readEnumAttribute
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/transforms/TypeConversion.h"
 
 //===----------------------------------------------------------------------===//
 // Debug Trace Helpers
@@ -259,20 +260,59 @@ enum TypeCode {
   ///   }
   kFunctionType = 6,
 
+  ///   IntegerI1Type {
+  ///   }
+  kIntegerI1Type = 7,
+
+  ///   IntegerI4Type {
+  ///   }
+  kIntegerI4Type = 8,
+
+  ///   IntegerI8Type {
+  ///   }
+  kIntegerI8Type = 9,
+
+  ///   IntegerI16Type {
+  ///   }
+  kIntegerI16Type = 10,
+
+  ///   IntegerI32Type {
+  ///   }
+  kIntegerI32Type = 11,
+
+  ///   IntegerI64Type {
+  ///   }
+  kIntegerI64Type = 12,
+
+  ///   IntegerUI4Type {
+  ///   }
+  kIntegerUI4Type = 13,
+
+  ///   IntegerUI8Type {
+  ///   }
+  kIntegerUI8Type = 14,
+
+  ///   IntegerUI16Type {
+  ///   }
+  kIntegerUI16Type = 15,
+
+  ///   IntegerUI32Type {
+  ///   }
+  kIntegerUI32Type = 16,
+
+  ///   IntegerUI64Type {
+  ///   }
+  kIntegerUI64Type = 17,
+
   ///   IndexType {
   ///   }
-  kIndexType = 7,
-
-  ///   IntegerType {
-  ///     widthAndSignedness: varint // (width << 2) | (signedness)
-  ///   }
-  kIntegerType = 8,
+  kIndexType = 18,
 
   ///   RankedTensorType {
   ///     shape: svarint[]
   ///     elementType: Type,
   ///   }
-  kRankedTensorType = 9,
+  kRankedTensorType = 19,
 
   ///   RankedTensorTypeWithEncoding {
   ///     encoding: Attribute
@@ -280,12 +320,12 @@ enum TypeCode {
   ///     elementType: Type
   ///   }
   /// Variant of RankedTensorType with an encoding.
-  kRankedTensorTypeWithEncoding = 10,
+  kRankedTensorTypeWithEncoding = 20,
 
   ///   TupleType {
   ///     elementTypes: Type[]
   ///   }
-  kTupleType = 11,
+  kTupleType = 21,
 
   ///   UniformQuantizedType {
   ///     flags: varint
@@ -296,16 +336,16 @@ enum TypeCode {
   ///     storageTypeMin: svarint
   ///     storageTypeMax: svarint
   ///   }
-  kUniformQuantizedType = 12,
+  kUniformQuantizedType = 22,
 
   ///   UnrankedTensorType {
   ///     elementType: Type
   ///   }
-  kUnrankedTensorType = 13,
+  kUnrankedTensorType = 23,
 
   ///   WitnessType {
   ///   }
-  kWitnessType = 14,
+  kWitnessType = 24,
 };
 
 }  // namespace vhlo_encoding
@@ -432,7 +472,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Forked Types
   ComplexV1Type readComplexType(DialectBytecodeReader &reader) const;
-  IntegerV1Type readIntegerType(DialectBytecodeReader &reader) const;
   RankedTensorV1Type readRankedTensorType(DialectBytecodeReader &reader,
                                           bool hasEncoding) const;
   TupleV1Type readTupleType(DialectBytecodeReader &reader) const;
@@ -442,7 +481,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
 
   void write(ComplexV1Type type, DialectBytecodeWriter &writer) const;
-  void write(IntegerV1Type type, DialectBytecodeWriter &writer) const;
   void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
@@ -1039,6 +1077,18 @@ void VhloBytecodeInterface::write(FlatSymbolRefV1Attr attr,
 //===----------------------------------------------------------------------===//
 // IntegerV1Attr
 
+namespace {
+// Since IntegerAttr is wrapped
+Type convertIntegerTypeToVhlo(IntegerType type) {
+  StablehloToVhloTypeConverter cvt;
+  return cvt.convertIntegerType(type);
+}
+Type convertIntegerTypeToBuiltin(Type type) {
+  VhloToStablehloTypeConverter cvt;
+  return cvt.convertType(type);
+}
+}  // namespace
+
 IntegerV1Attr VhloBytecodeInterface::readIntegerV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
@@ -1046,23 +1096,28 @@ IntegerV1Attr VhloBytecodeInterface::readIntegerV1Attr(
   if (failed(reader.readType(type))) return IntegerV1Attr();
   assertFromVhlo(type);
 
+  // Must be integer or index
+  Type convertedType = convertIntegerTypeToBuiltin(type);
+  if (!convertedType.dyn_cast<IntegerType>() &&
+      !convertedType.dyn_cast<IndexType>()) {
+    reader.emitError()
+        << "expected integer or index type for IntegerAttr, but got: "
+        << convertedType;
+    return IntegerV1Attr();
+  }
+
   // Extract the value storage width from the type.
   unsigned bitWidth;
-  if (auto intType = type.dyn_cast<IntegerV1Type>()) {
-    bitWidth = intType.getValue().getWidth();
-    type = intType.getValue();
-  } else if (type.isa<IndexV1Type>()) {
+  if (type.isa<IndexV1Type>()) {
     bitWidth = IndexType::kInternalStorageBitWidth;
-    type = IndexType::get(getContext());
   } else {
-    reader.emitError()
-        << "expected integer or index type for IntegerAttr, but got: " << type;
-    return IntegerV1Attr();
+    bitWidth = convertedType.cast<IntegerType>().getWidth();
   }
 
   FailureOr<APInt> value = reader.readAPIntWithKnownWidth(bitWidth);
   if (failed(value)) return IntegerV1Attr();
-  return IntegerV1Attr::get(getContext(), IntegerAttr::get(type, *value));
+  return IntegerV1Attr::get(getContext(),
+                            IntegerAttr::get(convertedType, *value));
 }
 
 void VhloBytecodeInterface::write(IntegerV1Attr attr,
@@ -1075,11 +1130,13 @@ void VhloBytecodeInterface::write(IntegerV1Attr attr,
   } else {
     assert(intAttr.getType().isa<IntegerType>());
 
-    // Note, since IntegerV1Type wraps builtin IntegerAttr, we need to
-    // explicitly convert to IntegerV1Type here to avoid calling into builtin
-    // dialect bytecode writer.
-    writer.writeType(IntegerV1Type::get(getContext(),
-                                        intAttr.getType().cast<IntegerType>()));
+    // Note, since IntegerVAttr wraps builtin IntegerAttr, we need to
+    // explicitly convert to a vhlo IntegerType here to avoid calling
+    // into builtin dialect bytecode writer.
+    Type convertedType =
+        convertIntegerTypeToVhlo(intAttr.getType().cast<IntegerType>());
+    assertFromVhlo(convertedType);
+    writer.writeType(convertedType);
   }
   writer.writeAPIntWithKnownWidth(intAttr.getValue());
 }
@@ -1126,8 +1183,28 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return Float64V1Type::get(getContext());
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
-    case vhlo_encoding::kIntegerType:
-      return readIntegerType(reader);
+    case vhlo_encoding::kIntegerI1Type:
+      return IntegerI1V1Type::get(getContext());
+    case vhlo_encoding::kIntegerI4Type:
+      return IntegerI4V1Type::get(getContext());
+    case vhlo_encoding::kIntegerI8Type:
+      return IntegerI8V1Type::get(getContext());
+    case vhlo_encoding::kIntegerI16Type:
+      return IntegerI16V1Type::get(getContext());
+    case vhlo_encoding::kIntegerI32Type:
+      return IntegerI32V1Type::get(getContext());
+    case vhlo_encoding::kIntegerI64Type:
+      return IntegerI64V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI4Type:
+      return IntegerUI4V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI8Type:
+      return IntegerUI8V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI16Type:
+      return IntegerUI16V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI32Type:
+      return IntegerUI32V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI64Type:
+      return IntegerUI64V1Type::get(getContext());
     case vhlo_encoding::kRankedTensorType:
       return readRankedTensorType(reader, /*hasEncoding=*/false);
     case vhlo_encoding::kRankedTensorTypeWithEncoding:
@@ -1155,7 +1232,7 @@ LogicalResult VhloBytecodeInterface::writeType(
         write(type, writer);
         return success();
       })
-      .Case<ComplexV1Type, IntegerV1Type, RankedTensorV1Type, TupleV1Type,
+      .Case<ComplexV1Type, RankedTensorV1Type, TupleV1Type,
             UnrankedTensorV1Type, UniformQuantizedV1Type>([&](auto type) {
         LOG_WRITE_CALL;
         return write(type, writer), success();
@@ -1179,6 +1256,50 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kIndexType), success();
+      })
+      .Case([&](IntegerI1V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI1Type), success();
+      })
+      .Case([&](IntegerI4V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI4Type), success();
+      })
+      .Case([&](IntegerI8V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI8Type), success();
+      })
+      .Case([&](IntegerI16V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI16Type), success();
+      })
+      .Case([&](IntegerI32V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI32Type), success();
+      })
+      .Case([&](IntegerI64V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerI64Type), success();
+      })
+      .Case([&](IntegerUI4V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI4Type), success();
+      })
+      .Case([&](IntegerUI8V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI8Type), success();
+      })
+      .Case([&](IntegerUI16V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI16Type), success();
+      })
+      .Case([&](IntegerUI32V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI32Type), success();
+      })
+      .Case([&](IntegerUI64V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI64Type), success();
       })
       .Case([&](WitnessV1Type) {
         LOG_WRITE_CALL;
@@ -1224,28 +1345,6 @@ void VhloBytecodeInterface::write(ComplexV1Type type,
   assertFromVhlo(type.getElementType());
   writer.writeVarInt(vhlo_encoding::kComplexType);
   writer.writeType(type.getElementType());
-}
-
-//===----------------------------------------------------------------------===//
-// IntegerV1Type
-
-IntegerV1Type VhloBytecodeInterface::readIntegerType(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  uint64_t encoding;
-  if (failed(reader.readVarInt(encoding))) return IntegerV1Type();
-  return IntegerV1Type::get(
-      getContext(),
-      IntegerType::get(
-          getContext(), encoding >> 2,
-          static_cast<IntegerType::SignednessSemantics>(encoding & 0x3)));
-}
-
-void VhloBytecodeInterface::write(IntegerV1Type type,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kIntegerType);
-  writer.writeVarInt((type.getValue().getWidth() << 2) |
-                     type.getValue().getSignedness());
 }
 
 //===----------------------------------------------------------------------===//

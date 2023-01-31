@@ -84,8 +84,8 @@ func.func @illegal_type_quantized_storage(%arg0: !vhlo.tensor<!vhlo.quant<i16:!v
 
 // -----
 
-func.func @illegal_type_quantized_expressed(%arg0: !vhlo.tensor<!vhlo.quant<!vhlo.integer<i8>:i16, 3.400000e+01:16, -128:127, 1>>) -> () {
+func.func @illegal_type_quantized_expressed(%arg0: !vhlo.tensor<!vhlo.quant<!vhlo.i8:i16, 3.400000e+01:16, -128:127, 1>>) -> () {
   // expected-error @+1 {{failed to legalize operation 'vhlo.uniform_dequantize' that was explicitly marked illegal}}
-  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<!vhlo.integer<i8>:i16, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
+  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<!vhlo.i8:i16, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
   func.return
 }
