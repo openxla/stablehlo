@@ -1943,7 +1943,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
 def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
   SameOperandsAndResultElementType, HLO_BroadcastingElementwise,
   InferTensorType]> {
-  let summary = "Clamp operator";
+  let summary = "Clamp operation";
   let description = [{
     Clamps every element of the `operand` tensor between a minimum and maximum
     value and produces a `result` tensor.

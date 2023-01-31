@@ -1404,7 +1404,7 @@ func.func @clamp_invalid_clamp_element_type(%arg0: tensor<1xi32>, %arg1: tensor<
 
 // -----
 
-func.func @clamp_invalid_clamp_min_shape(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>) -> tensor<1xi32> {
+func.func @clamp_invalid_clamp_min_shape_C1(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>) -> tensor<1xi32> {
   // expected-error@+1 {{min shape [2] is not scalar and is not compatible to operand shape [1]}}
   %0 = "stablehlo.clamp"(%arg1, %arg0, %arg0) : (tensor<2xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<1xi32>
   func.return %0: tensor<1xi32>
@@ -1412,7 +1412,7 @@ func.func @clamp_invalid_clamp_min_shape(%arg0: tensor<1xi32>, %arg1: tensor<2xi
 
 // -----
 
-func.func @clamp_invalid_clamp_max_shape(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>) -> tensor<1xi32> {
+func.func @clamp_invalid_clamp_max_shape_C2(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>) -> tensor<1xi32> {
   // expected-error@+1 {{max shape [2] is not scalar and is not compatible to operand shape [1]}}
   %0 = "stablehlo.clamp"(%arg0, %arg0, %arg1) : (tensor<1xi32>, tensor<1xi32>, tensor<2xi32>) -> tensor<1xi32>
   func.return %0: tensor<1xi32>
