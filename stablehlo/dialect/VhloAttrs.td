@@ -197,8 +197,8 @@ def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
 
 def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
   let mnemonic = "float";
-  let parameters = (ins "mlir::Type":$type, APFloatParameter<"">:$value);
-  let hasCustomAssemblyFormat = 1;
+  let parameters = (ins "mlir::Type":$type, VHLO_DoubleV1:$value);
+  let assemblyFormat = "`<` $value `:` $type `>`";
 }
 
 def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {

@@ -120,7 +120,7 @@ def VHLO_DoubleV1 : APFloatParameter<""> {
       return APFloat(value);
     }()
   }];
-  let printer = "printFloatValue($_self, $_printer)";
+  let printer = "$_printer.printFloat($_self);";
 }
 def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let parameters = (ins

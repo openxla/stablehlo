@@ -119,6 +119,9 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
   if (auto floatAttr = attr.dyn_cast<FloatV1Attr>()) {
     return isLegalType(floatAttr.getType(), targetVersion);
   }
+  if (auto intAttr = attr.dyn_cast<IntegerV1Attr>()) {
+    return isLegalType(intAttr.getType(), targetVersion);
+  }
 
   // Is VHLO and valid version, success.
   return success();
