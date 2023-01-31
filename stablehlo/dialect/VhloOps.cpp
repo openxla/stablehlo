@@ -40,14 +40,11 @@ static void printEncoding(AsmPrinter& os, Attribute encoding) {
   os << ", " << encoding;
 }
 
-ParseResult parseEncoding(AsmParser& parser, FailureOr<Attribute>& encoding) {
-  Attribute attr;
+ParseResult parseEncoding(AsmParser& parser, Attribute& encoding) {
   if (failed(parser.parseOptionalComma())) {
-    encoding = attr;
     return success();
   }
-  if (failed(parser.parseAttribute(attr))) return failure();
-  encoding = attr;
+  if (failed(parser.parseAttribute(encoding))) return failure();
   return success();
 }
 
@@ -59,12 +56,10 @@ static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
 }
 
 ParseResult parseTensorShape(AsmParser& parser,
-                             FailureOr<SmallVector<int64_t>>& dimSizes) {
-  SmallVector<int64_t> sizes;
-  if (failed(parser.parseDimensionList(sizes))) {
+                             SmallVector<int64_t>& dimSizes) {
+  if (failed(parser.parseDimensionList(dimSizes))) {
     return failure();
   }
-  dimSizes = sizes;
   return success();
 }
 
@@ -73,13 +68,12 @@ static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
 }
 
 ParseResult parseAttributeArray(AsmParser& parser,
-                                FailureOr<SmallVector<Attribute>>& arrayAttr) {
+                                SmallVector<Attribute>& arrayAttr) {
   ArrayAttr array;
   if (failed(parser.parseAttribute(array))) {
     return failure();
   }
-  SmallVector<Attribute> values(array.begin(), array.end());
-  arrayAttr = values;
+  arrayAttr.append(array.begin(), array.end());
   return success();
 }
 

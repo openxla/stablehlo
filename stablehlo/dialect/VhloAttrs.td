@@ -179,7 +179,7 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
 }
 
 
-def VHLO_DenseIntOrFPElementsData : TypeParameter<"::llvm::ArrayRef<char>", "Array of int"> {
+def VHLO_DenseIntOrFPElementsData : AttrParameter<"::llvm::ArrayRef<char>", "Array of int"> {
   // Custom allocator to copy dense elements data into MLIR Context
   let allocator = "$_dst = $_allocator.copyInto($_self);";
 }

@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <memory>
 
+#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 

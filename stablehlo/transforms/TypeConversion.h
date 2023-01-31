@@ -170,11 +170,11 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
       return TupleType::get(type.getContext(), convertedTypes);
     });
     addConversion([&](UniformQuantizedV1Type type) -> Type {
-      Type storage = convertType(type.getStorageType());
-      Type expressed = convertType(type.getExpressedType());
-      if (!storage || !expressed) return {};
+      Type convertedStorageType = convertType(type.getStorageType());
+      Type convertedExpressedType = convertType(type.getExpressedType());
+      if (!convertedStorageType || !convertedExpressedType) return {};
       return quant::UniformQuantizedType::get(
-          type.getFlags(), storage, expressed,
+          type.getFlags(), convertedStorageType, convertedExpressedType,
           type.getScale().convertToDouble(), type.getZeroPoint(),
           type.getStorageTypeMin(), type.getStorageTypeMax());
     });
