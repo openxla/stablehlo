@@ -3082,6 +3082,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 
   auto operandRank = operandType.getRank();
   if (!broadcastDimensions) {
+    // broadcast_in_dim_c2
     if (operandRank == 0) return success();
     return emitOptionalError(location,
                              "broadcast_dimensions is absent, but required "
@@ -3091,10 +3092,11 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
 
   auto dimensionsType = broadcastDimensions.getType();
   auto dimensionsRank = dimensionsType.getRank();
+  // broadcast_in_dim_i2
   if (dimensionsRank != 1)
     return emitOptionalError(location, "broadcast_dimensions has rank ",
                              dimensionsRank, " instead of rank 1");
-
+  // broadcast_in_dim_c2
   auto dimensionsSize = dimensionsType.getNumElements();
   if (dimensionsSize != operandRank)
     return emitOptionalError(location, "broadcast_dimensions size (",
@@ -3102,6 +3104,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                              operandRank, ")");
 
   auto dimensions = llvm::to_vector(broadcastDimensions.getValues<int64_t>());
+  // broadcast_in_dim_c4
   if (hasDuplicates(dimensions))
     return emitOptionalError(location,
                              "broadcast_dimensions should not have duplicates");
@@ -3110,7 +3113,8 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
   auto resultRank = resultType.getRank();
   for (int i = 0; i != dimensionsSize; ++i) {
     auto dimIndex = dimensions[i];
-    if (dimIndex >= resultRank)
+    // broadcast_in_dim_c3
+    if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
                                "broadcast_dimensions contains invalid value ",
                                dimIndex, " for result with rank ", resultRank);
@@ -3118,6 +3122,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     if (!operandType.isDynamicDim(i)) {
       auto dimSize = operandType.getDimSize(i);
       auto resultDimSize = resultType.getDimSize(dimIndex);
+      // broadcast_in_dim_c5
       if (dimSize != 1 && dimSize != resultDimSize)
         return emitOptionalError(
             location, "size of operand dimension ", i, " (", dimSize,

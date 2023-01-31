@@ -55,6 +55,22 @@ Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   return result;
 }
 
+Tensor evalBroadcastInDimOp(const Tensor &operand,
+                            ArrayRef<int64_t> broadcastDimensions,
+                            Type resultType) {
+  Tensor result(resultType);
+  auto operandShape = operand.getType().getShape();
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    SmallVector<int64_t> operandIdx;
+    for (auto [operandDim, resultDim] : llvm::enumerate(broadcastDimensions))
+      operandIdx.push_back(
+          operandShape[operandDim] == 1 ? 0 : (*resultIt)[resultDim]);
+    result.set(*resultIt, operand.get(operandIdx));
+  }
+  return result;
+}
+
 Tensor evalCeilOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -281,6 +297,13 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeLhs = scope.find(andOp.getLhs());
       Tensor runtimeRhs = scope.find(andOp.getRhs());
       Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
+      Tensor runtimeOperand = scope.find(broadcastInDimOp.getOperand());
+      auto broadcastDimensions = llvm::to_vector(
+          broadcastInDimOp.getBroadcastDimensions().getValues<int64_t>());
+      Tensor runtimeResult = evalBroadcastInDimOp(
+          runtimeOperand, broadcastDimensions, broadcastInDimOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
       Tensor runtimeOperand = scope.find(ceilOp.getOperand());

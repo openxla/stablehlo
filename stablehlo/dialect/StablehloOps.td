@@ -1844,8 +1844,8 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
 }
 
 def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
-      [Pure, SameOperandsAndResultElementType]> {
-  let summary = "Broadcast a tensor into the given shape by adding dimensions.";
+      [Pure, SameOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
+  let summary = "BroadcastInDim operation";
   let description = [{
     Expands the dimensions and/or rank of an input tensor by duplicating the
     data in the `operand` tensor and produces a `result` tensor.

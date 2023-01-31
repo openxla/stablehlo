@@ -27,6 +27,9 @@ namespace stablehlo {
 // Evaluators for StableHLO ops.
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalBroadcastInDimOp(const Tensor &operand,
+                            ArrayRef<int64_t> broadcastDimensions,
+                            Type resultType);
 Tensor evalCeilOp(const Tensor &operand, Type resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, Type resultType);
