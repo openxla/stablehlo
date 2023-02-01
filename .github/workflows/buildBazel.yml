@@ -1,4 +1,16 @@
 # Copyright 2023 The StableHLO Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 name: Bazel Build
 
@@ -10,7 +22,7 @@ on:
     branches: [ main ]
     paths-ignore: ['**.md', 'docs/**']
   schedule:
-    # Run buildBazel workflow once a day
+    # Run once a day
     - cron:  '0 12 * * *'
   workflow_dispatch:
 
@@ -45,13 +57,13 @@ jobs:
     - name: Setup Bazelisk
       uses: bazelbuild/setup-bazelisk@v2
 
-    - name: Mount bazel cache
+    - name: Mount Bazel Cache
       uses: actions/cache@v3
       with:
         path: "~/.cache/bazel"
         key: ${{ runner.os }}-stablehlo_build_assets-${{ steps.llvm-version.outputs.version }}-bazelbuild
 
-    - name: Build StableHLO using Bazel
+    - name: Build StableHLO
       shell: bash
       run: |
         ./build_tools/github_actions/ci_build_bazel.sh
