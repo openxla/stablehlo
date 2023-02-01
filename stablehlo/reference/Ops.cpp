@@ -96,13 +96,12 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    Element min_element =
+    Element minElement =
         min.getNumElements() > 1 ? min.get(*it) : min.get(*(min.index_begin()));
-    Element max_element =
+    Element maxElement =
         max.getNumElements() > 1 ? max.get(*it) : max.get(*(max.index_begin()));
-    result.set(*it,
-               stablehlo::min(stablehlo::max(operand.get(*it), min_element),
-                              max_element));
+    result.set(*it, stablehlo::min(stablehlo::max(operand.get(*it), minElement),
+                                   maxElement));
   }
   return result;
 }
