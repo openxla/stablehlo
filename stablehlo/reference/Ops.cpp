@@ -92,7 +92,7 @@ Tensor evalCeilOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
-Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max, 
+Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {

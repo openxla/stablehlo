@@ -1941,7 +1941,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
 }
 
 def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
-  SameOperandsAndResultElementType, HLO_BroadcastingElementwise,
+  SameOperandsAndResultElementType, HLO_BroadcastingElementwise, /* Clamp_C3 */
   InferTensorType]> {
   let summary = "Clamp operation";
   let description = [{

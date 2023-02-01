@@ -1,31 +1,31 @@
 // RUN: stablehlo-interpreter --interpret -split-input-file %s | FileCheck %s
 
-// CHECK-LABEL: Evaluated results of function: clamp_op_test_si4
-func.func @clamp_op_test_si4() -> tensor<3xi4> {
-  %0 = stablehlo.constant dense<[1, 5, -5]> : tensor<3xi4>
-  %1 = stablehlo.constant dense<[2, 3, -1]> : tensor<3xi4>
-  %2 = stablehlo.constant dense<[3, 7, -3]> : tensor<3xi4>
-  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xi4>, tensor<3xi4>, tensor<3xi4>) -> tensor<3xi4>
-  func.return %3 : tensor<3xi4>
-  // CHECK-NEXT: tensor<3xi4>
-  // CHECK-NEXT: 2 : i4
-  // CHECK-NEXT: 5 : i4
-  // CHECK-NEXT: -3 : i4
+// CHECK-LABEL: Evaluated results of function: clamp_op_test_si64
+func.func @clamp_op_test_si64() -> tensor<3xi64> {
+  %0 = stablehlo.constant dense<[1, 5, -5]> : tensor<3xi64>
+  %1 = stablehlo.constant dense<[2, 3, -1]> : tensor<3xi64>
+  %2 = stablehlo.constant dense<[3, 7, -3]> : tensor<3xi64>
+  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xi64>, tensor<3xi64>, tensor<3xi64>) -> tensor<3xi64>
+  func.return %3 : tensor<3xi64>
+  // CHECK-NEXT: tensor<3xi64>
+  // CHECK-NEXT: 2 : i64
+  // CHECK-NEXT: 5 : i64
+  // CHECK-NEXT: -3 : i64
 }
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: clamp_op_test_si4_scalar
-func.func @clamp_op_test_si4_scalar() -> tensor<3xi4> {
-  %0 = stablehlo.constant dense<0> : tensor<i4>
-  %1 = stablehlo.constant dense<[2, 3, -1]> : tensor<3xi4>
-  %2 = stablehlo.constant dense<1> : tensor<i4>
-  %3 = stablehlo.clamp %0, %1, %2 : (tensor<i4>, tensor<3xi4>, tensor<i4>) -> tensor<3xi4>
-  func.return %3 : tensor<3xi4>
-  // CHECK-NEXT: tensor<3xi4>
-  // CHECK-NEXT: 1 : i4
-  // CHECK-NEXT: 1 : i4
-  // CHECK-NEXT: 0 : i4
+// CHECK-LABEL: Evaluated results of function: clamp_op_test_si64_scalar
+func.func @clamp_op_test_si64_scalar() -> tensor<3xi64> {
+  %0 = stablehlo.constant dense<0> : tensor<i64>
+  %1 = stablehlo.constant dense<[2, 3, -1]> : tensor<3xi64>
+  %2 = stablehlo.constant dense<1> : tensor<i64>
+  %3 = stablehlo.clamp %0, %1, %2 : (tensor<i64>, tensor<3xi64>, tensor<i64>) -> tensor<3xi64>
+  func.return %3 : tensor<3xi64>
+  // CHECK-NEXT: tensor<3xi64>
+  // CHECK-NEXT: 1 : i64
+  // CHECK-NEXT: 1 : i64
+  // CHECK-NEXT: 0 : i64
 }
 
 // -----
@@ -45,30 +45,30 @@ func.func @clamp_op_test_i1() -> tensor<3xi1> {
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: clamp_op_test_f16
-func.func @clamp_op_test_f16() -> tensor<3xf16> {
-  %0 = stablehlo.constant dense<[0.0, 0.7, 0x7C80]> : tensor<3xf16>
-  %1 = stablehlo.constant dense<[0.0, 0.3, 0x9C80]> : tensor<3xf16>
-  %2 = stablehlo.constant dense<[-0.0, 1.0, 0x8C80]> : tensor<3xf16>
-  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xf16>, tensor<3xf16>, tensor<3xf16>) -> tensor<3xf16>
-  func.return %3 : tensor<3xf16>
-  // CHECK-NEXT: tensor<3xf16>
-  // CHECK-NEXT: -0.000000e+00 : f16
-  // CHECK-NEXT: 7.001950e-01 : f16
-  // CHECK-NEXT: 0x7C80 : f16
+// CHECK-LABEL: Evaluated results of function: clamp_op_test_f64
+func.func @clamp_op_test_f64() -> tensor<3xf64> {
+  %0 = stablehlo.constant dense<[0.0, 0.7, 0xFFF0000000000001]> : tensor<3xf64>
+  %1 = stablehlo.constant dense<[0.0, 0.3, 0xFFF0000000000003]> : tensor<3xf64>
+  %2 = stablehlo.constant dense<[-0.0, 1.0, 0xFFF0000000000002]> : tensor<3xf64>
+  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xf64>, tensor<3xf64>, tensor<3xf64>) -> tensor<3xf64>
+  func.return %3 : tensor<3xf64>
+  // CHECK-NEXT: tensor<3xf64>
+  // CHECK-NEXT: -0.000000e+00 : f64
+  // CHECK-NEXT: 0.69999999999999996 : f64
+  // CHECK-NEXT: 0xFFF0000000000003 : f64
 }
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: clamp_op_test_c64
-func.func @clamp_op_test_c64() -> tensor<3xcomplex<f32>> {
-  %0 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5), (10.0, 10.0)]> : tensor<3xcomplex<f32>>
-  %1 = stablehlo.constant dense<[(2.0, 0.0), (7.5, -5.5), (20.0, 100.0)]> : tensor<3xcomplex<f32>>
-  %2 = stablehlo.constant dense<[(2.5, 3.5), (7.5, 6.6), (20.0, 20.0)]> : tensor<3xcomplex<f32>>
-  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xcomplex<f32>>, tensor<3xcomplex<f32>>, tensor<3xcomplex<f32>>) -> tensor<3xcomplex<f32>>
-  func.return %3 : tensor<3xcomplex<f32>>
-  // CHECK-NEXT: tensor<3xcomplex<f32>>
-  // CHECK-NEXT: [2.000000e+00 : f32, 0.000000e+00 : f32]
-  // CHECK-NEXT: [7.500000e+00 : f32, 5.500000e+00 : f32]
-  // CHECK-NEXT: [2.000000e+01 : f32, 2.000000e+01 : f32]
+// CHECK-LABEL: Evaluated results of function: clamp_op_test_c128
+func.func @clamp_op_test_c128() -> tensor<3xcomplex<f64>> {
+  %0 = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5), (10.0, 10.0)]> : tensor<3xcomplex<f64>>
+  %1 = stablehlo.constant dense<[(2.0, 0.0), (7.5, -5.5), (20.0, 100.0)]> : tensor<3xcomplex<f64>>
+  %2 = stablehlo.constant dense<[(2.5, 3.5), (7.5, 6.6), (20.0, 20.0)]> : tensor<3xcomplex<f64>>
+  %3 = stablehlo.clamp %0, %1, %2 : (tensor<3xcomplex<f64>>, tensor<3xcomplex<f64>>, tensor<3xcomplex<f64>>) -> tensor<3xcomplex<f64>>
+  func.return %3 : tensor<3xcomplex<f64>>
+  // CHECK-NEXT: tensor<3xcomplex<f64>>
+  // CHECK-NEXT: [2.000000e+00 : f64, 0.000000e+00 : f64]
+  // CHECK-NEXT: [7.500000e+00 : f64, 5.500000e+00 : f64]
+  // CHECK-NEXT: [2.000000e+01 : f64, 2.000000e+01 : f64]
 }
