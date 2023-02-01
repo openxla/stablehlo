@@ -35,23 +35,41 @@ PATH_TO_STABLEHLO_ROOT="$1"
 PATH_TO_LLVM_VERSION_TXT="$PATH_TO_STABLEHLO_ROOT/build_tools/llvm_version.txt"
 PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE.bazel"
 
-LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $PATH_TO_LLVM_VERSION_TXT -)
-
-update_llvm_commit_and_sha256() {
+retrieve_llvm_commit() {
   echo "Retrieving LLVM Commit..."
   export LLVM_COMMIT="$(<$PATH_TO_LLVM_VERSION_TXT)"
   echo "LLVM_COMMIT: $LLVM_COMMIT"
-  echo "Calculating SHA256..."
-  export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
-  echo "LLVM_SHA256: $LLVM_SHA256"
+}
 
+calculate_llvm_commit_sha256() {
+  echo "Calculating SHA256..."
+  if [[ $(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | tr '\0' '\n') != "404: Not Found" ]]; then
+    export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
+    echo "LLVM_SHA256: $LLVM_SHA256"
+  else
+    echo "LLVM_COMMIT: $LLVM_COMMIT in $PATH_TO_LLVM_VERSION_TXT not found."
+    exit 1
+  fi
+}
+
+calculate_diff() {
+  export LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $PATH_TO_LLVM_VERSION_TXT -)
+  export LLVM_SHA256_DIFF=$(sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE  | sed 's/LLVM_SHA256 = //; s/\"//g' | diff <(echo $LLVM_SHA256) -)
+}
+
+update_llvm_commit_and_sha256() {
   sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
   sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
 }
 
+retrieve_llvm_commit
+calculate_llvm_commit_sha256
+calculate_diff
+
 if [[ $FORMAT_MODE == 'fix' ]]; then
   echo "Updating LLVM Commit & SHA256..."
-  update_llvm_commit_and_sha256 $PATH_TO_LLVM_VERSION_TXT
+  update_llvm_commit_and_sha256
+  echo "Done."
 else
   if [ ! -z "$LLVM_DIFF" ]; then
     echo "LLVM commit out of sync:"
@@ -62,5 +80,15 @@ else
     exit 1
   else
     echo "No llvm commit mismatches found."
+    if [ ! -z "$LLVM_SHA256_DIFF" ]; then
+      echo "LLVM SHA256 out of sync:"
+      echo $LLVM_SHA256_DIFF
+      echo $(sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_SHA256 = //; s/\"//g')
+      echo "Auto-fix using:"
+      echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
+      exit 1
+    else
+      echo "No sha256 mismatches found."
+    fi
   fi
 fi
