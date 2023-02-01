@@ -42,7 +42,7 @@ def CHECK_Dialect : Dialect {
 
 def CHECK_EqOp :
     Op<CHECK_Dialect, "eq", [AllTypesMatch<["lhs", "value"]>]> {
-  let summary = [{Checks that the tensor operand is equal to some constant}];
+  let summary = [{Checks the tensor operand is equal to some constant}];
   let description =  [{
     Verifies that the tensor operand is exactly equal to a constant attribute.
     For floating-point and complex types, uses bitwise comparison for equality.
@@ -59,14 +59,13 @@ def CHECK_EqOp :
     ElementsAttr:$value
   );
 
-  // let assemblyFormat = " $lhs `,` $value attr-dict `:` type($lhs)";
-  let assemblyFormat = " $lhs `,` $value attr-dict";
+  let assemblyFormat = "$lhs `,` $value attr-dict";
 }
 
 def CHECK_AlmostEqOp :
     Op<CHECK_Dialect,
        "almost_eq", [AllTypesMatch<["lhs", "value"]>]> {
-  let summary = [{Checks that the tensor operand is almost equal to some constant}];
+  let summary = [{Checks the tensor operand is almost equal to some constant}];
   let description =  [{
     Verifies that the tensor operand with floating-point or complex element
     type is almost equal to the constant attribute within an
@@ -75,7 +74,7 @@ def CHECK_AlmostEqOp :
     Issues a non-fatal failure if the verification fails.
 
     ```mlir
-    check.expect_almost_eq_const(%arg0, dense<[0.999999, 2.0]> : tensor<5xf32>) : tensor<5xf32>
+    check.almost_eq %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
     ```
   }];
 
@@ -84,8 +83,7 @@ def CHECK_AlmostEqOp :
     ElementsAttr:$value
   );
 
-  // let assemblyFormat = " $lhs `,` $value attr-dict `:` type($lhs)";
-  let assemblyFormat = " $lhs `,` $value attr-dict";
+  let assemblyFormat = "$lhs `,` $value attr-dict";
 }
 
 #endif  // STABLEHLO_DIALECT_CHECK_OPS

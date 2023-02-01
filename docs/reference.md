@@ -207,8 +207,9 @@ atmost 1 ULP apart. However, this may not work for transcendental functions
 
 Given that there is no silver bullet to compare two float numbers for near
 equality, we used a solution based on relative epsilons and a special case to
-work with values close to zero, which expects the following relation between the
-values of actual result `a` and expected result `r` to hold true:
+work with values close to zero, which expects the following relation, between
+the values of actual result `a` and expected result `r`, to hold true:
+
 ```c++
   std::fabs(x - y) <= std::numeric_limits<T>::epsilon() * std::fmax(x, y) ||
   std::fabs(x - y) < std::numeric_limits<T>::min();
