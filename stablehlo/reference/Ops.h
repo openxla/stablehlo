@@ -32,7 +32,7 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
                             ArrayRef<int64_t> broadcastDimensions,
                             Type resultType);
 Tensor evalCeilOp(const Tensor &operand, Type resultType);
-Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max, 
+Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    Type resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, Type resultType);
