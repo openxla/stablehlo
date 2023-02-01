@@ -220,12 +220,12 @@ def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
 
 def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
   let mnemonic = "float";
-  let parameters = (ins "mlir::Type":$type, VHLO_DoubleV1:$value);
+  let parameters = (ins "mlir::Type":$type, VHLO_APFloatV1:$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult FloatV1Attr::verify(
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, APFloat value) {
-      if (!isFromVhlo(type)) return errFn() << "expected VHLO float type";
+      if (!isFromVhlo(type)) return errFn() << "expected VHLO type";
       return success();
     }
   }];
@@ -239,7 +239,7 @@ def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
   let extraClassDefinition = [{
     LogicalResult IntegerV1Attr::verify(
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, APInt value) {
-      if (!isFromVhlo(type)) return errFn() << "expected VHLO integer type";
+      if (!isFromVhlo(type)) return errFn() << "expected VHLO type";
       return success();
     }
   }];

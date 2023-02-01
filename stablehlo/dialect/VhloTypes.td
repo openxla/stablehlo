@@ -77,8 +77,8 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "::mlir::ComplexType">
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult ComplexV1Type::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()>, mlir::Type elementType) {
-      if (!isFromVhlo(elementType)) return failure();
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return errFn() << "expected VHLO type";
       return success();
     }
   }];
@@ -112,9 +112,10 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult RankedTensorV1Type::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()>,
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
         ArrayRef<int64_t> shape, ::mlir::Type elementType, ::mlir::Attribute encoding) {
-      if (!isFromVhlo(elementType) || (encoding && !isFromVhlo(encoding))) return failure();
+      if (!isFromVhlo(elementType) || (encoding && !isFromVhlo(encoding)))
+        return errFn() << "expected VHLO type or attribute";
       return success();
     }
   }];
@@ -126,15 +127,15 @@ def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult TupleV1Type::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()>, ArrayRef<mlir::Type> types) {
-      if (!allFromVhlo(types)) return failure();
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, ArrayRef<mlir::Type> types) {
+      if (!allFromVhlo(types)) return errFn() << "expected VHLO types";
       return success();
     }
   }];
   let assemblyFormat = "`<` $types `>`";
 }
 
-def VHLO_DoubleV1 : APFloatParameter<""> {
+def VHLO_APFloatV1 : APFloatParameter<""> {
   // Used by UniformQuantizedV1 to have APFloat with custom parser
   let parser = [{
     [&]() -> FailureOr<llvm::APFloat> {
@@ -152,7 +153,7 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
     "unsigned":$flags,
     "::mlir::Type":$storageType,
     "::mlir::Type":$expressedType,
-    VHLO_DoubleV1:$scale,
+    VHLO_APFloatV1:$scale,
     "int64_t":$zeroPoint,
     "int64_t":$storageTypeMin,
     "int64_t":$storageTypeMax
@@ -160,10 +161,11 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult UniformQuantizedV1Type::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()>,
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
         unsigned int, mlir::Type storageType, mlir::Type expressedType,
         llvm::APFloat, long, long, long) {
-      if (!isFromVhlo(storageType) || !isFromVhlo(expressedType)) return failure();
+      if (!isFromVhlo(storageType) || !isFromVhlo(expressedType))
+        return errFn() << "expected VHLO type";
       return success();
     }
   }];
@@ -175,8 +177,8 @@ def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> 
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult UnrankedTensorV1Type::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()>, mlir::Type elementType) {
-      if (!isFromVhlo(elementType)) return failure();
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return errFn() << "expected VHLO type";
       return success();
     }
   }];
