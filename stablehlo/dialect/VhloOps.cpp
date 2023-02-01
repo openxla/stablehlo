@@ -61,15 +61,14 @@ ParseResult parseEncoding(AsmParser& parser, Attribute& encoding) {
   return success();
 }
 
-static void printTensorShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
+static void printShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
   if (dimSizes.empty()) return;
   for (int64_t dimSize : dimSizes) {
     os << hlo::dimSizeToString(dimSize) << 'x';
   }
 }
 
-ParseResult parseTensorShape(AsmParser& parser,
-                             SmallVector<int64_t>& dimSizes) {
+ParseResult parseShape(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
   if (failed(parser.parseDimensionList(dimSizes))) {
     return failure();
   }

@@ -118,7 +118,7 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
       return success();
     }
   }];
-  let assemblyFormat = "`<` custom<TensorShape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
+  let assemblyFormat = "`<` custom<Shape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
 }
 
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {

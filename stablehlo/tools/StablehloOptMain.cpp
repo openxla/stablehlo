@@ -29,7 +29,6 @@ int main(int argc, char **argv) {
   mlir::registerAllDialects(registry);
   mlir::stablehlo::registerAllDialects(registry);
 
-  return failed(mlir::MlirOptMain(argc, argv, "StableHLO optimizer driver\n",
-                                  registry,
-                                  /*preloadDialectsInContext=*/false));
+  return failed(
+      mlir::MlirOptMain(argc, argv, "StableHLO optimizer driver\n", registry));
 }
