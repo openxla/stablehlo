@@ -348,12 +348,10 @@ enum TypeCode {
 
   ///   Float8E4M3FN {
   ///   }
-  ///
   kFloat8E4M3FN = 25,
 
   ///   Float8E5M2 {
   ///   }
-  ///
   kFloat8E5M2 = 26,
 };
 
