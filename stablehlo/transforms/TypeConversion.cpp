@@ -38,5 +38,14 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
   populateReturnOpTypeConversionPattern(patterns, converter);
 }
 
+Type convertTypeToBuiltinForPrint(Type type) {
+  VhloToStablehloTypeConverter conv;
+  return conv.convertType(type);
+}
+Type convertTypeToVhloForParse(Type type) {
+  StablehloToVhloTypeConverter conv;
+  return conv.convertType(type);
+}
+
 }  // namespace vhlo
 }  // namespace mlir

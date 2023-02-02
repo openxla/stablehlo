@@ -31,7 +31,6 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 namespace mlir {
 namespace vhlo {
@@ -90,38 +89,38 @@ ParseResult parseAttributeArray(AsmParser& parser,
 }
 
 void IntegerV1Attr::print(mlir::AsmPrinter& p) const {
-  VhloToStablehloTypeConverter conv;
-  p << '<' << IntegerAttr::get(conv.convertType(getType()), getValue()) << '>';
+  p << '<'
+    << IntegerAttr::get(convertTypeToBuiltinForPrint(getType()), getValue())
+    << '>';
 }
 
 Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
-  StablehloToVhloTypeConverter conv;
   IntegerAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
       failed(parser.parseGreater())) {
     return IntegerV1Attr();
   }
   return IntegerV1Attr::get(parser.getContext(),
-                            conv.convertType(attr.getType()), attr.getValue());
+                            convertTypeToVhloForParse(attr.getType()),
+                            attr.getValue());
 }
 
 void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
-  VhloToStablehloTypeConverter conv;
   p << '<'
-    << DenseIntOrFPElementsAttr::getFromRawBuffer(conv.convertType(getType()),
-                                                  getRawData())
+    << DenseIntOrFPElementsAttr::getFromRawBuffer(
+           convertTypeToBuiltinForPrint(getType()), getRawData())
     << '>';
 }
 
 Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
-  StablehloToVhloTypeConverter conv;
   DenseIntOrFPElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
       failed(parser.parseGreater())) {
     return DenseIntOrFPElementsV1Attr();
   }
   return DenseIntOrFPElementsV1Attr::get(
-      parser.getContext(), conv.convertType(attr.getType()), attr.getRawData());
+      parser.getContext(), convertTypeToVhloForParse(attr.getType()),
+      attr.getRawData());
 }
 
 }  // namespace vhlo
