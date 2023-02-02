@@ -361,10 +361,10 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
            << values.size() << " types, got " << types.size();
     });
 
-  // Check whether `maybeRefinedReturnTypes` contain any new information with
-  // respect to existing return types. Even if just a single dimension size
-  // out of an entire tensor type got updated, using `inferMostSpecificType`
-  // ensures that we don't miss that.
+  // Check whether `types` contain any new information with respect to existing
+  // return types. Even if just a single dimension size out of an entire tensor
+  // type got updated, using `inferMostSpecificType` ensures that we don't
+  // miss that.
   bool needsRefinement = false;
   SmallVector<Type> refinedTypes;
   for (auto it : llvm::zip(values.getTypes(), types)) {
@@ -450,8 +450,9 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     return failure();
 
   // This `replaceOpWithIf` call doesn't actually change the IR, but
-  // it does ask the rewriter to visit all the users of this op. I haven't
-  // found a direct way of doing that.
+  // it does ask the rewriter to visit all the users of this op. There is no
+  // upstream API to achieve this directly, but if it's introduced in the
+  // future, we could use it here.
   rewriter.replaceOpWithIf(op, op->getResults(),
                            [](OpOperand& use) { return false; });
   return success();
