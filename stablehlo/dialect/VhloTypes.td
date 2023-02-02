@@ -97,6 +97,16 @@ def VHLO_FunctionTypeV1 : VHLO_TypeDef<"FunctionV1", "func"> {
     ArrayRefParameter<"::mlir::Type">:$inputs,
     ArrayRefParameter<"mlir::Type">:$results
   );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult FunctionV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<mlir::Type> inputs, ArrayRef<mlir::Type> results) {
+      if (!allFromVhlo(inputs) || !allFromVhlo(results))
+        return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` `(` custom<TypeArray>($inputs) `)` `->` custom<TypeArray>($results) `>`";
 }
 

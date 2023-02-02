@@ -207,6 +207,17 @@ def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
 def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
   let mnemonic = "dict";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult DictionaryV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<std::pair<mlir::Attribute, mlir::Attribute>> value) {
+      for (auto & entry : value)
+        if (!isFromVhlo(entry.first) || !isFromVhlo(entry.second))
+          errFn() << "expected VHLO attribute";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` custom<Dictionary>($value) `>`";
 }
 

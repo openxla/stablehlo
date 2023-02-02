@@ -16,16 +16,16 @@ set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls)
 add_public_tablegen_target(PassesIncGen)
 
-add_mlir_dialect_library(StablehloTypeConversion	
-  PARTIAL_SOURCES_INTENDED	
+add_mlir_dialect_library(StablehloTypeConversion
+  PARTIAL_SOURCES_INTENDED
   TypeConversion.cpp
-  
-  LINK_LIBS PUBLIC	
-  MLIRIR	
-  MLIRSupport	
-  MLIRFuncDialect	
-  StablehloOps	
-  VhloOps	
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+  MLIRFuncDialect
+  StablehloOps
+  VhloOps
 )
 
 add_mlir_dialect_library(StablehloPasses
