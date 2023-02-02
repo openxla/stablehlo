@@ -18,27 +18,5 @@ limitations under the License.
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
 
 namespace mlir {
-namespace vhlo {
-
-// TODO (gleasonk): Remove this function once VHLO support for func, call, and
-// return are implemented
-void registerFuncOpsForTypeConversion(ConversionTarget& target,
-                                      RewritePatternSet& patterns,
-                                      TypeConverter& converter) {
-  /*
-  // FIXME
-  target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
-    return converter.isSignatureLegal(op.getFunctionType()); // FIXME
-  });
-  target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp op) {
-    return converter.isLegal(op.getOperandTypes());
-  });
-  */
-  populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(patterns,
-                                                                 converter);
-  populateCallOpTypeConversionPattern(patterns, converter);
-  populateReturnOpTypeConversionPattern(patterns, converter);
-}
-
-}  // namespace vhlo
+namespace vhlo {}  // namespace vhlo
 }  // namespace mlir

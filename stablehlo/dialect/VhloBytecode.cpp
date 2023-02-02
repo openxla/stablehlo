@@ -1033,6 +1033,35 @@ void VhloBytecodeInterface::write(DenseIntOrFPElementsV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
+// DictionaryV1Attr
+
+DictionaryV1Attr VhloBytecodeInterface::readDictionaryV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  auto readNamedAttr = [&]() -> FailureOr<std::pair<Attribute, Attribute>> {
+    Attribute name;
+    Attribute value;
+    if (failed(reader.readAttribute(name)) ||
+        failed(reader.readAttribute(value)))
+      return failure();
+    return {{name, value}};
+  };
+  SmallVector<std::pair<Attribute, Attribute>> attrs;
+  if (failed(reader.readList(attrs, readNamedAttr))) return DictionaryV1Attr();
+
+  return DictionaryV1Attr::get(getContext(), attrs);
+}
+
+void VhloBytecodeInterface::write(DictionaryV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kDictionaryAttr);
+  writer.writeList(attr.getValue(), [&](auto attrPair) {
+    writer.writeAttribute(attrPair.first);
+    writer.writeAttribute(attrPair.second);
+  });
+}
+
+//===----------------------------------------------------------------------===//
 // FloatV1Attr
 
 namespace {
@@ -1159,35 +1188,6 @@ void VhloBytecodeInterface::write(TypeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTypeAttr);
   writer.writeType(attr.getValue());
-}
-
-//===----------------------------------------------------------------------===//
-// DictionaryV1Attr
-
-DictionaryV1Attr VhloBytecodeInterface::readDictionaryV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  auto readNamedAttr = [&]() -> FailureOr<std::pair<Attribute, Attribute>> {
-    Attribute name;
-    Attribute value;
-    if (failed(reader.readAttribute(name)) ||
-        failed(reader.readAttribute(value)))
-      return failure();
-    return {{name, value}};
-  };
-  SmallVector<std::pair<Attribute, Attribute>> attrs;
-  if (failed(reader.readList(attrs, readNamedAttr))) return DictionaryV1Attr();
-
-  return DictionaryV1Attr::get(getContext(), attrs);
-}
-
-void VhloBytecodeInterface::write(DictionaryV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kDictionaryAttr);
-  writer.writeList(attr.getValue(), [&](auto attrPair) {
-    writer.writeAttribute(attrPair.first);
-    writer.writeAttribute(attrPair.second);
-  });
 }
 
 //===----------------------------------------------------------------------===//
