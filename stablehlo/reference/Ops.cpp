@@ -42,25 +42,22 @@ SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
 
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) + rhs.get(*it));
-  }
   return result;
 }
 
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) & rhs.get(*it));
-  }
   return result;
 }
 
 Tensor evalCeilOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ceil(operand.get(*it)));
-  }
   return result;
 }
 
@@ -70,17 +67,15 @@ Tensor evalConstantOp(ElementsAttr value) {
 
 Tensor evalCosineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, cosine(operand.get(*it)));
-  }
   return result;
 }
 
 Tensor evalFloorOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, floor(operand.get(*it)));
-  }
   return result;
 }
 
@@ -122,82 +117,72 @@ Tensor evalIotaOp(int64_t iotaDimension, Type resultType) {
 
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, max(lhs.get(*it), rhs.get(*it)));
-  }
   return result;
 }
 
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, min(lhs.get(*it), rhs.get(*it)));
-  }
   return result;
 }
 
 Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) * rhs.get(*it));
-  }
   return result;
 }
 
 Tensor evalNegOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, -operand.get(*it));
-  }
   return result;
 }
 
 Tensor evalNotOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it) {
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
     result.set(*it, ~operand.get(*it));
-  }
   return result;
 }
 
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) | rhs.get(*it));
-  }
   return result;
 }
 
 Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
-       resultIt != result.index_end(); ++resultIt, ++operandIt) {
+       resultIt != result.index_end(); ++resultIt, ++operandIt)
     result.set(*resultIt, operand.get(*operandIt));
-  }
   return result;
 }
 
 Tensor evalSineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sine(operand.get(*it)));
-  }
   return result;
 }
 
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) - rhs.get(*it));
-  }
   return result;
 }
 
 Tensor evalTanhOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, tanh(operand.get(*it)));
-  }
   return result;
 }
 
@@ -214,9 +199,8 @@ Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
 
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it) {
+  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) ^ rhs.get(*it));
-  }
   return result;
 }
 

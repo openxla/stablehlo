@@ -31,26 +31,24 @@ namespace stablehlo {
 
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
-  if (func->getNumRegions() != 1) {
+  if (func->getNumRegions() != 1)
     return invalidArgument("Expected one region in func %s",
                            func.getName().str().c_str());
-  }
-  if (!func.getBody().hasOneBlock()) {
+
+  if (!func.getBody().hasOneBlock())
     return invalidArgument("Expected one block in func %s",
                            func.getName().str().c_str());
-  }
 
   Block &block = func.front();
-  if (block.getNumArguments() != args.size()) {
+  if (block.getNumArguments() != args.size())
     return invalidArgument(
         "Expected same amount of func arguments in %s "
         "and runtime arguments (%d)",
         func.getName().str().c_str(), args.size());
-  }
+
   llvm::DenseMap<Value, Tensor> stackFrame;
-  for (auto [ssaArg, runtimeArg] : llvm::zip(block.getArguments(), args)) {
+  for (auto [ssaArg, runtimeArg] : llvm::zip(block.getArguments(), args))
     stackFrame[ssaArg] = runtimeArg;
-  }
 
   for (Operation &op : block) {
     auto fetchOperand = [&](Value value) -> Tensor {
@@ -130,9 +128,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
-      for (Value ssaOperand : returnOp.getOperands()) {
+      for (Value ssaOperand : returnOp.getOperands())
         runtimeOperands.push_back(fetchOperand(ssaOperand));
-      }
       return runtimeOperands;
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = fetchOperand(sineOp.getOperand());
