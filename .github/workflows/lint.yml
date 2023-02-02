@@ -22,7 +22,7 @@ jobs:
   clang-format:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-64core
     steps:
       - name: Checking out repository
         uses: actions/checkout@v2
@@ -35,7 +35,7 @@ jobs:
   whitespace-checks:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-64core
     steps:
       - name: Checking out repository
         uses: actions/checkout@v2
