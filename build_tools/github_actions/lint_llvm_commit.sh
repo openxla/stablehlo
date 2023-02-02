@@ -43,13 +43,13 @@ retrieve_llvm_commit() {
 
 calculate_llvm_commit_sha256() {
   echo "Calculating SHA256..."
-  if [[ $(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | tr '\0' '\n') != "404: Not Found" ]]; then
-    export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
-    echo "LLVM_SHA256: $LLVM_SHA256"
-  else
+  HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | grep HTTP | grep -oe "404")
+  if [[ ! -z $HTTP_CODE ]]; then
     echo "LLVM_COMMIT: $LLVM_COMMIT in $PATH_TO_LLVM_VERSION_TXT not found."
     exit 1
   fi
+  export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
+  echo "LLVM_SHA256: $LLVM_SHA256"
 }
 
 calculate_diff() {
@@ -78,17 +78,15 @@ else
     echo "Auto-fix using:"
     echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
     exit 1
-  else
-    echo "No llvm commit mismatches found."
-    if [ ! -z "$LLVM_SHA256_DIFF" ]; then
-      echo "LLVM SHA256 out of sync:"
-      echo $LLVM_SHA256_DIFF
-      echo $(sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_SHA256 = //; s/\"//g')
-      echo "Auto-fix using:"
-      echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
-      exit 1
-    else
-      echo "No sha256 mismatches found."
-    fi
   fi
+  echo "No llvm commit mismatches found."
+  if [ ! -z "$LLVM_SHA256_DIFF" ]; then
+    echo "LLVM SHA256 out of sync:"
+    echo $LLVM_SHA256_DIFF
+    echo $(sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_SHA256 = //; s/\"//g')
+    echo "Auto-fix using:"
+    echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
+    exit 1
+  fi
+  echo "No sha256 mismatches found."
 fi
