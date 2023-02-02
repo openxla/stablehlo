@@ -19,9 +19,9 @@ func.func @illegal_type_tensor_element(%arg0: !vhlo.tensor<4x16x!vhlo.f8E5M2>) -
 // -----
 
 // This following type tests simulate version validation if a new numeric type is introduced.
-func.func @illegal_type_unranked_tensor_element(%arg0: !vhlo.unranked_tensor<f8E4M3FN>) -> () {
+func.func @illegal_type_unranked_tensor_element(%arg0: !vhlo.unranked_tensor<!vhlo.f8E4M3FN>) -> () {
   // expected-error @+1 {{failed to legalize operation 'vhlo.add' that was explicitly marked illegal}}
-  %0 = "vhlo.add"(%arg0, %arg0) : (!vhlo.unranked_tensor<f8E4M3FN>, !vhlo.unranked_tensor<f8E4M3FN>) -> !vhlo.unranked_tensor<f8E4M3FN>
+  %0 = "vhlo.add"(%arg0, %arg0) : (!vhlo.unranked_tensor<!vhlo.f8E4M3FN>, !vhlo.unranked_tensor<!vhlo.f8E4M3FN>) -> !vhlo.unranked_tensor<!vhlo.f8E4M3FN>
   func.return
 }
 
@@ -43,17 +43,17 @@ func.func @illegal_type_tuple_element(%arg0: !vhlo.tuple<!vhlo.tensor<!vhlo.f32>
 
 // -----
 
-func.func @illegal_type_quantized_storage(%arg0: !vhlo.tensor<!vhlo.quant<i16:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>) -> () {
+func.func @illegal_type_quantized_storage(%arg0: !vhlo.tensor<!vhlo.quant<!vhlo.f8E4M3FN:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>) -> () {
   // expected-error @+1 {{failed to legalize operation 'vhlo.uniform_dequantize' that was explicitly marked illegal}}
-  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<i16:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
+  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<!vhlo.f8E4M3FN:!vhlo.f32, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
   func.return
 }
 
 // -----
 
-func.func @illegal_type_quantized_expressed(%arg0: !vhlo.tensor<!vhlo.quant<!vhlo.integer<i8>:!vhlo.f8E5M2, 3.400000e+01:16, -128:127, 1>>) -> () {
+func.func @illegal_type_quantized_expressed(%arg0: !vhlo.tensor<!vhlo.quant<!vhlo.i8:!vhlo.f8E5M2, 3.400000e+01:16, -128:127, 1>>) -> () {
   // expected-error @+1 {{failed to legalize operation 'vhlo.uniform_dequantize' that was explicitly marked illegal}}
-  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<!vhlo.integer<i8>:!vhlo.f8E5M2, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
+  %0 = "vhlo.uniform_dequantize"(%arg0) : (!vhlo.tensor<!vhlo.quant<!vhlo.i8:!vhlo.f8E5M2, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor<!vhlo.f32>
   func.return
 }
 
@@ -66,7 +66,7 @@ func.func @illegal_attr_array_element(%arg0: !vhlo.tensor<!vhlo.f32>) -> !vhlo.t
     api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
     backend_config = #vhlo.string<"">,
     call_target_name = #vhlo.string<"foo">,
-    called_computations = #vhlo.array<[dense<1> : tensor<i16>]>
+    called_computations = #vhlo.array<[#vhlo.float< 1.0 : !vhlo.f8E4M3FN>]>
   } : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
   return %0 : !vhlo.tensor<!vhlo.f32>
 }
@@ -80,7 +80,7 @@ func.func @vhlo_illegal_attr_symbolref(%arg0: !vhlo.tensor<!vhlo.f32>) -> !vhlo.
     api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
     backend_config = #vhlo.string<"">,
     call_target_name = #vhlo.string<"foo">,
-    called_computations = #vhlo.array<[#vhlo.sym<dense<1> : tensor<i16>>]>
+    called_computations = #vhlo.array<[#vhlo.sym<#vhlo.float<1.0 : !vhlo.f8E4M3FN>>]>
   } : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
   return %0 : !vhlo.tensor<!vhlo.f32>
 }
