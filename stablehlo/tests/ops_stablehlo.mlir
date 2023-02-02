@@ -1376,12 +1376,6 @@ func.func @clamp(%arg0: tensor<1xi32>) -> tensor<1xi32> {
 
 // -----
 
-// CHECK-LABEL: func @clamp_scalar
-func.func @clamp_scalar(%arg0: tensor<1xi32>, %arg1: tensor<i32>) -> tensor<1xi32> {
-  %0 = "stablehlo.clamp"(%arg1, %arg0, %arg1) : (tensor<i32>, tensor<1xi32>, tensor<i32>) -> tensor<1xi32>
-  func.return %0: tensor<1xi32>
-}
-
 // CHECK-LABEL: func @clamp_compatible_dynamic
 func.func @clamp_compatible_dynamic(%arg0: tensor<?xi32>, %arg1: tensor<i32>, %arg2: tensor<3xi32>) -> tensor<?xi32> {
   %0 = "stablehlo.clamp"(%arg1, %arg0, %arg2) : (tensor<i32>, tensor<?xi32>, tensor<3xi32>) -> tensor<?xi32>
@@ -1392,14 +1386,6 @@ func.func @clamp_compatible_dynamic(%arg0: tensor<?xi32>, %arg1: tensor<i32>, %a
 func.func @clamp_compatible_dynamic_match_static(%arg0: tensor<?xi32>, %arg1: tensor<i32>, %arg2: tensor<3xi32>) -> tensor<3xi32> {
   %0 = "stablehlo.clamp"(%arg1, %arg0, %arg2) : (tensor<i32>, tensor<?xi32>, tensor<3xi32>) -> tensor<3xi32>
   func.return %0: tensor<3xi32>
-}
-
-// -----
-
-func.func @clamp_c3(%arg0: tensor<1xi32>, %arg1: tensor<1xf32>) -> tensor<1xi32> {
-  // expected-error@+1 {{'stablehlo.clamp' op requires the same element type for all operands and results}}
-  %0 = "stablehlo.clamp"(%arg1, %arg0, %arg0) : (tensor<1xf32>, tensor<1xi32>, tensor<1xi32>) -> tensor<1xi32>
-  func.return %0: tensor<1xi32>
 }
 
 // -----
@@ -1420,10 +1406,26 @@ func.func @clamp_c2(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>) -> tensor<1xi32>
 
 // -----
 
+func.func @clamp_c3(%arg0: tensor<1xi32>, %arg1: tensor<1xf32>) -> tensor<1xi32> {
+  // expected-error@+1 {{'stablehlo.clamp' op requires the same element type for all operands and results}}
+  %0 = "stablehlo.clamp"(%arg1, %arg0, %arg0) : (tensor<1xf32>, tensor<1xi32>, tensor<1xi32>) -> tensor<1xi32>
+  func.return %0: tensor<1xi32>
+}
+
+// -----
+
 func.func @clamp_c4(%arg0: tensor<1xi32>) -> tensor<1x2xi32> {
   // // expected-error@+1{{inferred type(s) 'tensor<1xi32>' are incompatible with return type(s) of operation 'tensor<1x2xi32>'}}
   %0 = "stablehlo.clamp"(%arg0, %arg0, %arg0) : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<1x2xi32>
   func.return %0: tensor<1x2xi32>
+}
+
+// -----
+
+// CHECK-LABEL: func @clamp_scalar
+func.func @clamp_scalar(%arg0: tensor<1xi32>, %arg1: tensor<i32>) -> tensor<1xi32> {
+  %0 = "stablehlo.clamp"(%arg1, %arg0, %arg1) : (tensor<i32>, tensor<1xi32>, tensor<i32>) -> tensor<1xi32>
+  func.return %0: tensor<1xi32>
 }
 
 // -----

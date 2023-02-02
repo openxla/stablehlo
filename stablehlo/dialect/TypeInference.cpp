@@ -1555,7 +1555,7 @@ LogicalResult inferClampOp(
   auto operandShape = operandType.getShape();
   auto minType = min.getType().cast<RankedTensorType>();
 
-  // ClampOp_C1
+  // clamp_c1
   auto minShape = minType.getShape();
   if (failed(verifyCompatibleShape(minType, operandType)) &&
       minType.getRank() != 0)
@@ -1565,7 +1565,7 @@ LogicalResult inferClampOp(
         "] is not scalar and is not compatible to operand shape [",
         llvm::make_range(operandShape.begin(), operandShape.end()), "]");
 
-  // ClampOp_C2
+  // clampOp_c2
   auto maxType = max.getType().cast<RankedTensorType>();
   auto maxShape = maxType.getShape();
   if (failed(verifyCompatibleShape(maxType, operandType)) &&
