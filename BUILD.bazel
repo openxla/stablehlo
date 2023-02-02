@@ -360,6 +360,7 @@ cc_library(
     hdrs = [
         "stablehlo/dialect/VhloBytecode.h",
         "stablehlo/dialect/VhloOps.h",
+        "stablehlo/transforms/VhloBuiltinTypeConversion.h",
     ],
     deps = [
         ":base",
@@ -377,6 +378,7 @@ cc_library(
         "@llvm-project//mlir:QuantOps",
         "@llvm-project//mlir:ShapeDialect",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
     ],
 )
 

@@ -31,10 +31,12 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/transforms/VhloBuiltinTypeConversion.h"
 
 namespace mlir {
 namespace vhlo {
 
+namespace {
 // Helper functions for VHLO verifiers
 template <typename TypeOrAttr>
 bool isFromVhlo(TypeOrAttr t) {
@@ -46,6 +48,29 @@ bool allFromVhlo(ArrayRef<TypeOrAttr> range) {
   return llvm::all_of(range, isFromVhlo<TypeOrAttr>);
 }
 
+Type convertTypeToBuiltinForPrint(Type type) {
+  struct VhloToBuiltinPrintConverter : VhloBuiltinTypeConverter {
+    VhloToBuiltinPrintConverter() : VhloBuiltinTypeConverter() {
+      addVhloToBuiltinConversions();
+    }
+    Attribute convertEncoding(Attribute attr) override { return attr; }
+  };
+  VhloToBuiltinPrintConverter conv;
+  return conv.convertType(type);
+}
+
+Type convertTypeToVhloForParse(Type type) {
+  struct BuiltinToVhloParseConverter : VhloBuiltinTypeConverter {
+    BuiltinToVhloParseConverter() : VhloBuiltinTypeConverter() {
+      addBuiltinToVhloConversions();
+    }
+    Attribute convertEncoding(Attribute attr) override { return attr; }
+  };
+  BuiltinToVhloParseConverter conv;
+  return conv.convertType(type);
+}
+
+}  // namespace
 // Helper functions for VHLO printers and parsers
 static void printEncoding(AsmPrinter& os, Attribute encoding) {
   if (!encoding) return;

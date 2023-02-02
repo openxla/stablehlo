@@ -51,9 +51,6 @@ class VhloDialect : public Dialect {
   static Version getMinimumVersion() { return Version(0, 3, 0); }
 };
 
-Type convertTypeToBuiltinForPrint(Type type);
-Type convertTypeToVhloForParse(Type type);
-
 }  // namespace vhlo
 }  // end namespace mlir
 
