@@ -29,16 +29,6 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-namespace {
-
-SmallVector<int64_t> getSExtValues(DenseIntElementsAttr attr) {
-  SmallVector<int64_t> values;
-  for (auto i : attr) values.push_back(i.getSExtValue());
-  return values;
-}
-
-}  // namespace
-
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
   if (func->getNumRegions() != 1) {
@@ -160,7 +150,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       populateResults({runtimeResult});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
       Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
-      auto permutation = getSExtValues(transposeOp.getPermutation());
+      auto permutation =
+          llvm::to_vector(transposeOp.getPermutation().getValues<int64_t>());
       Tensor runtimeResult =
           evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
       populateResults({runtimeResult});
