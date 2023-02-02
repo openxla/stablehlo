@@ -38,6 +38,8 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, TensorType resultType);
 Tensor evalCosineOp(const Tensor &operand, TensorType resultType);
+Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
+                    TensorType resultType);
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           Sizes sliceSizes, TensorType resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,

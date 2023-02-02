@@ -71,6 +71,9 @@ class Element {
   /// Overloaded add operator.
   Element operator+(const Element &other) const;
 
+  /// Overloaded divide operator.
+  Element operator/(const Element &other) const;
+
   /// Overloaded multiply operator.
   Element operator*(const Element &other) const;
 

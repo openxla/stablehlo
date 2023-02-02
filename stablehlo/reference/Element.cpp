@@ -317,6 +317,19 @@ Element Element::operator+(const Element &other) const {
       });
 }
 
+Element Element::operator/(const Element &other) const {
+  return mapWithUpcastToDouble(
+      *this, other, [&](APInt lhs, APInt rhs) { return lhs.sdiv(rhs); },
+      [&](APInt lhs, APInt rhs) { return lhs.udiv(rhs); },
+      [](bool lhs, bool rhs) -> bool {
+        llvm::report_fatal_error("-bool is unsupported");
+      },
+      [](double lhs, double rhs) { return lhs / rhs; },
+      [](std::complex<double> lhs, std::complex<double> rhs) {
+        return lhs / rhs;
+      });
+}
+
 Element Element::operator*(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },

@@ -116,6 +116,14 @@ Tensor evalCosineOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
+Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
+                    TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, lhs.get(*it) / rhs.get(*it));
+  return result;
+}
+
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           Sizes sliceSizes, TensorType resultType) {
   Tensor result(resultType);
