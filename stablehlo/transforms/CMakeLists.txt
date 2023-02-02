@@ -31,6 +31,7 @@ add_mlir_dialect_library(StablehloTypeConversion
 add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
   StablehloLegalizeToVhlo.cpp
+  StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
   VhloToVersion.cpp
 
@@ -38,10 +39,16 @@ add_mlir_dialect_library(StablehloPasses
   PassesIncGen
 
   LINK_LIBS PUBLIC
+  ChloOps
+  MLIRFuncDialect
+  MLIRInferTypeOpInterface
   MLIRIR
   MLIRSupport
   MLIRQuantDialect
+  MLIRTensorDialect
+  MLIRTransformUtils
   StablehloTypeConversion
+  StablehloTypeInference
   StablehloOps
   VhloOps
 )

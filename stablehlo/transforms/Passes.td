@@ -20,6 +20,20 @@ def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp">
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
 }
 
+def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
+  let summary = "Refines shapes across a StableHLO program.";
+  let description = [{
+    Walks through a StableHLO program refining shapes within ops.
+
+    The flagship use case for this pass is specializing dynamically-shaped
+    programs to static shapes. If a dynamically-shaped StableHLO program has the
+    right structure, then updating its argument types from dynamic shapes to
+    static shapes and running this pass will propagate static shapes across
+    the program.
+  }];
+  let dependentDialects = ["mlir::tensor::TensorDialect"];
+}
+
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
   let dependentDialects = ["mlir::stablehlo::StablehloDialect"];

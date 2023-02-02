@@ -209,8 +209,8 @@ LogicalResult inferDynamicGatherOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicSliceOp(
-    std::optional<Location> location, Value operand, ValueRange startIndices,
-    DenseIntElementsAttr sliceSizes,
+    std::optional<Location> location, Type operandType,
+    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicUpdateSliceOp(

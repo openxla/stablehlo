@@ -2058,26 +2058,26 @@ LogicalResult inferDynamicGatherOp(
 }
 
 LogicalResult inferDynamicSliceOp(
-    std::optional<Location> location, Value operand, ValueRange startIndices,
-    DenseIntElementsAttr sliceSizes,
+    std::optional<Location> location, Type operandType,
+    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // (C2)
   int numSliceSizes = sliceSizes.getNumElements();
-  int numStartIndices = startIndices.size();
+  int numStartIndices = startIndicesTypes.size();
   if (numStartIndices != numSliceSizes)
     return emitOptionalError(location, "has mismatched number of slice sizes (",
                              numSliceSizes, ") and number of start indices (",
                              numStartIndices, ")");
-  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandType) return failure();
+  auto rankedOperandType = operandType.dyn_cast<RankedTensorType>();
+  if (!rankedOperandType) return failure();
 
-  if (operandType.getRank() != numStartIndices)
+  if (rankedOperandType.getRank() != numStartIndices)
     return emitOptionalError(
         location, "has mismatched number of start indices (", numStartIndices,
-        ") and the rank of operand (", operandType.getRank(), ")");
+        ") and the rank of operand (", rankedOperandType.getRank(), ")");
 
   // (C3)
-  if (!tensorsHaveSameElType(startIndices.getTypes()))
+  if (!tensorsHaveSameElType(startIndicesTypes))
     return emitOptionalError(location,
                              "start indices must have same element type");
 
@@ -2087,8 +2087,8 @@ LogicalResult inferDynamicSliceOp(
     if (sliceSize < 0)
       return emitOptionalError(
           location, "has negative size index to dynamic slice: ", sliceSize);
-    if (!operandType.isDynamicDim(i)) {
-      int64_t dimSize = operandType.getDimSize(i);
+    if (!rankedOperandType.isDynamicDim(i)) {
+      int64_t dimSize = rankedOperandType.getDimSize(i);
       if (sliceSize > dimSize)
         return emitOptionalError(location, "has slice size ", sliceSize,
                                  " greater than dimension size ", dimSize,
@@ -2098,7 +2098,7 @@ LogicalResult inferDynamicSliceOp(
 
   // (C5)
   inferredReturnShapes.emplace_back(sliceSizes.getValues<int64_t>(),
-                                    operandType.getElementType());
+                                    rankedOperandType.getElementType());
   return success();
 }
 
