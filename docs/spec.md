@@ -2237,7 +2237,7 @@ contain the sizes of the slice for each dimension.
 
 More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
-* `jd = adjusted_start_indices[d][] + id`.
+* `jd = adjusted_start_indices[d] + id`.
 * `adjusted_start_indices = clamp(0, start_indices, shape(operand) -`
   `slice_sizes)`.
 
@@ -2293,7 +2293,7 @@ the slice starting at `start_indices` is updated with the values in `update`.
 
 More formally, `result[i0, ..., iR-1]` is defined as:
 
-* `update[j0, ..., jR-1]` if `jd = adjusted_start_indices[d][] + id` where
+* `update[j0, ..., jR-1]` if `id = adjusted_start_indices[d] + jd` where
   `adjusted_start_indices =
   clamp(0, start_indices, shape(operand) - shape(update))`.
 * `operand[i0, ..., iR-1]` otherwise.
