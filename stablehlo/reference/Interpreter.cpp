@@ -59,9 +59,8 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
     auto populateResults = [&](ArrayRef<Tensor> runtimeValues) {
       assert(op.getNumResults() == runtimeValues.size());
       for (auto [ssaResult, runtimeResult] :
-           llvm::zip(op.getResults(), runtimeValues)) {
+           llvm::zip(op.getResults(), runtimeValues))
         stackFrame[ssaResult] = runtimeResult;
-      }
     };
 
     if (auto addOp = dyn_cast<AddOp>(op)) {

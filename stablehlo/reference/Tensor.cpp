@@ -60,17 +60,14 @@ int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
   // Example: For a tensor shape [1,2,3], strides = [6,3,1]
   std::vector<int64_t> strides(shape.size());
   strides[shape.size() - 1] = 1;
-  for (int i = shape.size() - 2; i >= 0; --i) {
+  for (int i = shape.size() - 2; i >= 0; --i)
     strides[i] = strides[i + 1] * shape[i + 1];
-  }
 
   // Use the computed strides to flatten the multi-dimensional index 'index'
   // to a linearized index.
   // Example: For a tensor with shape [1,2,3], strides = [6,3,1], and index =
   // [0, 1, 2], the flattened index = 0*6 + 1*3 + 2*1 = 5
-  for (size_t i = 0; i < index.size(); i++) {
-    idx += strides[i] * index[i];
-  }
+  for (size_t i = 0; i < index.size(); i++) idx += strides[i] * index[i];
   return idx;
 }
 

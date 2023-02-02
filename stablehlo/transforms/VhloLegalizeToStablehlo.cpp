@@ -189,10 +189,9 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
 
   // All VHLO Attributes must be converted by now.
   if (vhloAttr.getDialect().getNamespace() ==
-      vhlo::VhloDialect::getDialectNamespace()) {
+      vhlo::VhloDialect::getDialectNamespace())
     // All VHLO attributes must have counterparts in StableHLO.
     return {};
-  }
 
   // This should be unreachable unless program is a mix of VHLO and other
   // due to user edits to textual assembly format.
@@ -265,14 +264,13 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     // vhlo.case that uses a variadic number of regions which means an
     // additional argument for the generic builder.
     VhloToStablehloOp<VhloOpTy> stablehloOp;
-    if constexpr (std::is_same<VhloOpTy, vhlo::CaseOpV1>::value) {
+    if constexpr (std::is_same<VhloOpTy, vhlo::CaseOpV1>::value)
       stablehloOp = rewriter.replaceOpWithNewOp<stablehlo::CaseOp>(
           vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs,
           vhloOp.getBranches().size());
-    } else {
+    else
       stablehloOp = rewriter.replaceOpWithNewOp<VhloToStablehloOp<VhloOpTy>>(
           vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
-    }
 
     for (auto [vhloRegion, stablehloRegion] :
          llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {

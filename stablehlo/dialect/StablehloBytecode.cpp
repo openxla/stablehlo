@@ -355,9 +355,9 @@ ArgResultAliasAttr StablehloBytecodeInterface::readArgResultAliasAttr(
   if (failed(reader.readSignedVarInts(argTupleIndices)) ||
       failed(reader.readSignedVarInt(resultIndex)) ||
       failed(reader.readSignedVarInts(resultTupleIndices)) ||
-      failed(reader.readVarInt(isMustAliasUint))) {
+      failed(reader.readVarInt(isMustAliasUint)))
     return ArgResultAliasAttr();
-  }
+
   return ArgResultAliasAttr::get(getContext(), argTupleIndices, resultIndex,
                                  resultTupleIndices,
                                  static_cast<bool>(isMustAliasUint));
@@ -380,9 +380,9 @@ ChannelHandleAttr StablehloBytecodeInterface::readChannelHandleAttr(
   LOG_READ_CALL;
   int64_t handle, type;
   if (failed(reader.readSignedVarInt(handle)) ||
-      failed(reader.readSignedVarInt(type))) {
+      failed(reader.readSignedVarInt(type)))
     return ChannelHandleAttr();
-  }
+
   return ChannelHandleAttr::get(getContext(), handle, type);
 }
 
@@ -451,9 +451,8 @@ StablehloBytecodeInterface::readConvDimensionNumbersAttr(
       failed(reader.readSignedVarInts(kernelSpatialDimensions)) ||
       failed(reader.readSignedVarInt(outputBatchDimension)) ||
       failed(reader.readSignedVarInt(outputFeatureDimension)) ||
-      failed(reader.readSignedVarInts(outputSpatialDimensions))) {
+      failed(reader.readSignedVarInts(outputSpatialDimensions)))
     return ConvDimensionNumbersAttr();
-  }
 
   return ConvDimensionNumbersAttr::get(
       getContext(), inputBatchDimension, inputFeatureDimension,
@@ -488,9 +487,8 @@ DotDimensionNumbersAttr StablehloBytecodeInterface::readDotDimensionNumbersAttr(
   if (failed(reader.readSignedVarInts(lhsBatchingDimensions)) ||
       failed(reader.readSignedVarInts(rhsBatchingDimensions)) ||
       failed(reader.readSignedVarInts(lhsContractingDimensions)) ||
-      failed(reader.readSignedVarInts(rhsContractingDimensions))) {
+      failed(reader.readSignedVarInts(rhsContractingDimensions)))
     return DotDimensionNumbersAttr();
-  }
 
   return DotDimensionNumbersAttr::get(
       getContext(), lhsBatchingDimensions, rhsBatchingDimensions,
@@ -534,9 +532,8 @@ StablehloBytecodeInterface::readGatherDimensionNumbersAttr(
   if (failed(reader.readSignedVarInts(offsetDims)) ||
       failed(reader.readSignedVarInts(collapsedSliceDims)) ||
       failed(reader.readSignedVarInts(startIndexMap)) ||
-      failed(reader.readSignedVarInt(indexVectorDim))) {
+      failed(reader.readSignedVarInt(indexVectorDim)))
     return GatherDimensionNumbersAttr();
-  }
 
   return GatherDimensionNumbersAttr::get(getContext(), offsetDims,
                                          collapsedSliceDims, startIndexMap,
@@ -563,9 +560,9 @@ OutputOperandAliasAttr StablehloBytecodeInterface::readOutputOperandAliasAttr(
 
   if (failed(reader.readSignedVarInts(outputTupleIndices)) ||
       failed(reader.readSignedVarInt(operandIndex)) ||
-      failed(reader.readSignedVarInts(operandTupleIndices))) {
+      failed(reader.readSignedVarInts(operandTupleIndices)))
     return OutputOperandAliasAttr();
-  }
+
   return OutputOperandAliasAttr::get(getContext(), outputTupleIndices,
                                      operandIndex, operandTupleIndices);
 }
@@ -643,9 +640,8 @@ StablehloBytecodeInterface::readScatterDimensionNumbersAttr(
   if (failed(reader.readSignedVarInts(updateWindowDims)) ||
       failed(reader.readSignedVarInts(insertedWindowDims)) ||
       failed(reader.readSignedVarInts(scatterDimsToOperandDims)) ||
-      failed(reader.readSignedVarInt(indexVectorDim))) {
+      failed(reader.readSignedVarInt(indexVectorDim)))
     return ScatterDimensionNumbersAttr();
-  }
 
   return ScatterDimensionNumbersAttr::get(
       getContext(), updateWindowDims, insertedWindowDims,
@@ -685,9 +681,7 @@ TypeExtensionsAttr StablehloBytecodeInterface::readTypeExtensionsAttr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   llvm::SmallVector<int64_t> bounds;
-  if (failed(reader.readSignedVarInts(bounds))) {
-    return TypeExtensionsAttr();
-  }
+  if (failed(reader.readSignedVarInts(bounds))) return TypeExtensionsAttr();
   return TypeExtensionsAttr::get(getContext(), bounds);
 }
 
