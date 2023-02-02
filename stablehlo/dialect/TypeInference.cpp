@@ -2703,13 +2703,13 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
     return success();
   }
 
-  // SliceOp_C2
+  // slice_c2
   ShapedType attrTy = startIndices.getType();
   if (attrTy.getRank() != 1)
     return emitOptionalError(location, "start_indices has rank ",
                              attrTy.getRank(), " instead of required rank 1");
 
-  // SliceOp_C2
+  // slice_c2
   int64_t rank = rankedTy.getRank();
   if (attrTy.getNumElements() != rank)
     return emitOptionalError(
@@ -2726,7 +2726,7 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
   SmallVector<int64_t> resultBounds(inputBounds.size(), ShapedType::kDynamic);
 
   for (int64_t i = 0, e = rank; i != e; i++) {
-    // SliceOp_C3
+    // slice_c3
     if (start[i] < 0)
       return emitOptionalError(location, "negative start index ", start[i],
                                " in dimension ", i);
@@ -2738,29 +2738,29 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
       int64_t operandSizeOrBound =
           isStaticDim ? rankedTy.getDimSize(i) : inputBounds[i];
       StringRef sizeOrBound = isStaticDim ? "size" : "bound";
-      // SliceOp_C3
+      // slice_c3
       if (limit[i] > operandSizeOrBound)
         return emitOptionalError(location, "limit index ", limit[i],
                                  " is larger than dimension ", sizeOrBound, " ",
                                  operandSizeOrBound, " in dimension ", i);
     }
 
-    // SliceOp_C3
+    // slice_c3
     if (start[i] > limit[i])
       return emitOptionalError(location, "start index ", start[i],
                                " is larger than limit index ", limit[i],
                                " in dimension ", i);
-    // SliceOp_C4
+    // slice_c4
     if (strideVals[i] <= 0)
       return emitOptionalError(location, "stride must be positive but got ",
                                strideVals[i], " in dimension ", i);
 
-    // SliceOp_C5
+    // slice_c5
     shape[i] = static_cast<int64_t>(
         llvm::divideCeil(limit[i] - start[i], strideVals[i]));
   }
 
-  // SliceOp_C1
+  // slice_c1
   inferredReturnTypes.push_back(RankedTensorType::get(
       shape, rankedTy.getElementType(),
       boundsToEncoding(rankedTy.getEncoding(), resultBounds)));

@@ -1584,8 +1584,8 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
 
 def StableHLO_SliceOp: StableHLO_Op<
       "slice",
-      [Pure, SameOperandsAndResultElementType,
-       AllTypesMatch<["start_indices", "limit_indices", "strides"]>,
+      [Pure, SameOperandsAndResultElementType /*slice_c1*/,
+       AllTypesMatch<["start_indices", "limit_indices", "strides"]> /*slice_c2*/,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Slice operation";
   let description = [{
