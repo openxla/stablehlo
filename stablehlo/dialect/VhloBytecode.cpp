@@ -1137,16 +1137,16 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return BFloat16V1Type::get(getContext());
     case vhlo_encoding::kComplexType:
       return readComplexType(reader);
-    case vhlo_encoding::kFloat8E5M2:
-      return Float8E5M2V1Type::get(getContext());
-    case vhlo_encoding::kFloat8E4M3FN:
-      return Float8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kFloat16Type:
       return Float16V1Type::get(getContext());
     case vhlo_encoding::kFloat32Type:
       return Float32V1Type::get(getContext());
     case vhlo_encoding::kFloat64Type:
       return Float64V1Type::get(getContext());
+    case vhlo_encoding::kFloat8E5M2:
+      return Float8E5M2V1Type::get(getContext());
+    case vhlo_encoding::kFloat8E4M3FN:
+      return Float8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
     case vhlo_encoding::kIntegerI1Type:
@@ -1207,14 +1207,6 @@ LogicalResult VhloBytecodeInterface::writeType(
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kBFloat16Type), success();
       })
-      .Case([&](Float8E4M3FNV1Type) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat8E4M3FN), success();
-      })
-      .Case([&](Float8E5M2V1Type) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat8E5M2), success();
-      })
       .Case([&](Float16V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloat16Type), success();
@@ -1226,6 +1218,14 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](Float64V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloat64Type), success();
+      })
+      .Case([&](Float8E4M3FNV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloat8E4M3FN), success();
+      })
+      .Case([&](Float8E5M2V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloat8E5M2), success();
       })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
