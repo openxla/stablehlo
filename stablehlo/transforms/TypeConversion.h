@@ -216,8 +216,6 @@ class VhloToStablehloTypeConverter : public VersionedTypeConverterBase {
     addConversion([&](IntegerUI64V1Type type) {
       return Builder(type.getContext()).getIntegerType(64, /*isSigned=*/false);
     });
-    // FIXME: addConversion([&](IntegerV1Type type) { return type.getValue();
-    // });
     addConversion([&](RankedTensorV1Type type) -> Type {
       auto encoding = type.getEncoding();
       auto convertedEncoding = encoding ? convertEncoding(encoding) : encoding;
