@@ -2689,12 +2689,12 @@ LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
   return success();
 }
 
-LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
+LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
-  RankedTensorType rankedTy = operandType.dyn_cast<RankedTensorType>();
+  auto rankedTy = operandType.dyn_cast<RankedTensorType>();
   if (!rankedTy) {
     // The operand type is unranked, so the best we can infer for the result
     // type is an unranked tensor with the same element type as the operand
@@ -2703,7 +2703,7 @@ LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
     return success();
   }
 
-  // slice_c2
+  // slice_i2
   ShapedType attrTy = startIndices.getType();
   if (attrTy.getRank() != 1)
     return emitOptionalError(location, "start_indices has rank ",
