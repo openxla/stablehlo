@@ -32,8 +32,8 @@ namespace {
 
 // Appies the permutation `perm` to an array `array` where perm[i] indicates the
 // location where the current array[i] goes.
-std::vector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
-  std::vector<int64_t> result(array.size());
+SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
+  SmallVector<int64_t> result(array.size());
   for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
   return result;
 }
@@ -201,13 +201,12 @@ Tensor evalTanhOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
-Tensor evalTransposeOp(Type resultType, const Tensor &operand,
-                       DenseIntElementsAttr permutation) {
+Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
+                       Type resultType) {
   Tensor result(resultType);
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    auto resultIndex =
-        permute(*operandIt, llvm::to_vector(permutation.getValues<int64_t>()));
+    auto resultIndex = permute(*operandIt, permutation);
     result.set(resultIndex, operand.get(*operandIt));
   }
   return result;
