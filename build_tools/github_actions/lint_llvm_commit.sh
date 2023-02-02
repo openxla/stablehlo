@@ -43,8 +43,9 @@ retrieve_llvm_commit() {
 
 calculate_llvm_commit_sha256() {
   echo "Calculating SHA256..."
-  HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | grep HTTP | grep -oe "404")
-  if [[ ! -z $HTTP_CODE ]]; then
+  HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz -o /dev/null -w "%{http_code}")
+  echo "HTTP Code: $HTTP_CODE"
+  if [[ "$HTTP_CODE" == "404" ]]; then
     echo "LLVM_COMMIT: $LLVM_COMMIT in $PATH_TO_LLVM_VERSION_TXT not found."
     exit 1
   fi
