@@ -40,8 +40,8 @@ Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
-Tensor evalTransposeOp(Type resultType, const Tensor &operand,
-                       DenseIntElementsAttr permutation);
+Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
+                       Type resultType);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 
 }  // namespace stablehlo

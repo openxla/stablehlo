@@ -150,8 +150,10 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       populateResults({runtimeResult});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
       Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
-      Tensor runtimeResult = evalTransposeOp(
-          transposeOp.getType(), runtimeOperand, transposeOp.getPermutation());
+      auto permutation =
+          llvm::to_vector(transposeOp.getPermutation().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
       populateResults({runtimeResult});
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       Tensor runtimeLhs = fetchOperand(xorOp.getLhs());
