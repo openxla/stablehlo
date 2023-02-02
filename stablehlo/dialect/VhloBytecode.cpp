@@ -196,38 +196,38 @@ enum AttributeCode {
   ///   DictionaryAttr {
   ///     attrs: <StringAttr, Attribute>[]
   ///   }
-  kDictionaryAttr = 22,
+  kDictionaryAttr = 18,
 
   ///   FlatSymbolRefAttr {
   ///     rootReference: StringAttr
   ///   }
-  kFlatSymbolRefAttr = 18,
+  kFlatSymbolRefAttr = 19,
 
   ///   FloatAttr {
   ///     type: Type
   ///     value: APFloat
   ///   }
-  kFloatAttr = 19,
+  kFloatAttr = 20,
 
   ///   IntegerAttr {
   ///     type: Type
   ///     value: APInt
   ///   }
-  kIntegerAttr = 20,
+  kIntegerAttr = 21,
 
   ///   StringAttr {
   ///     value: string
   ///   }
-  kStringAttr = 21,
+  kStringAttr = 22,
 
   ///   TypeAttr {
   ///     value: Type
   ///   }
-  kTypeAttr = 27,
+  kTypeAttr = 23,
 
   ///   UnitAttr {
   ///   }
-  kUnitAttr = 28,
+  kUnitAttr = 24,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -461,6 +461,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   FloatV1Attr readFloatV1Attr(DialectBytecodeReader &reader) const;
   IntegerV1Attr readIntegerV1Attr(DialectBytecodeReader &reader) const;
   StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
+  TypeV1Attr readTypeV1Attr(DialectBytecodeReader &reader) const;
   // UnitV1Attr readUnitV1Attr(DialectBytecodeReader &reader) const; // inlined
 
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
@@ -596,8 +597,9 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             write(attr, writer);
             return success();
           })
-      .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, DictionaryV1Attr, FlatSymbolRefV1Attr,
-            FloatV1Attr, IntegerV1Attr, StringV1Attr, TypeV1Attr>([&](auto attr) {
+      .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, DictionaryV1Attr,
+            FlatSymbolRefV1Attr, FloatV1Attr, IntegerV1Attr, StringV1Attr,
+            TypeV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;  // Forked attrs
         write(attr, writer);
         return success();
@@ -1144,19 +1146,17 @@ void VhloBytecodeInterface::write(StringV1Attr attr,
 //===----------------------------------------------------------------------===//
 // TypeV1Attr
 
-TypeV1Attr VhloBytecodeInterface::readTypeAttr(
+TypeV1Attr VhloBytecodeInterface::readTypeV1Attr(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type type;
   if (failed(reader.readType(type))) return TypeV1Attr();
 
-  assertFromVhlo(type);
   return TypeV1Attr::get(getContext(), type);
 }
 
 void VhloBytecodeInterface::write(TypeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
-  assertFromVhlo(attr.getValue());
   writer.writeVarInt(vhlo_encoding::kTypeAttr);
   writer.writeType(attr.getValue());
 }
@@ -1164,16 +1164,15 @@ void VhloBytecodeInterface::write(TypeV1Attr attr,
 //===----------------------------------------------------------------------===//
 // DictionaryV1Attr
 
-DictionaryV1Attr VhloBytecodeInterface::readDictionaryAttr(
+DictionaryV1Attr VhloBytecodeInterface::readDictionaryV1Attr(
     DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
   auto readNamedAttr = [&]() -> FailureOr<std::pair<Attribute, Attribute>> {
     Attribute name;
     Attribute value;
     if (failed(reader.readAttribute(name)) ||
         failed(reader.readAttribute(value)))
       return failure();
-    assertFromVhlo(name);
-    assertFromVhlo(value);
     return {{name, value}};
   };
   SmallVector<std::pair<Attribute, Attribute>> attrs;
@@ -1186,8 +1185,6 @@ void VhloBytecodeInterface::write(DictionaryV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kDictionaryAttr);
   writer.writeList(attr.getValue(), [&](auto attrPair) {
-    assertFromVhlo(attrPair.first);
-    assertFromVhlo(attrPair.second);
     writer.writeAttribute(attrPair.first);
     writer.writeAttribute(attrPair.second);
   });
@@ -1406,15 +1403,11 @@ FunctionV1Type VhloBytecodeInterface::readFunctionType(
   if (failed(reader.readTypes(inputs)) || failed(reader.readTypes(results)))
     return FunctionV1Type();
 
-  llvm::all_of(inputs, assertFromVhlo<Type>);
-  llvm::all_of(results, assertFromVhlo<Type>);
   return FunctionV1Type::get(getContext(), inputs, results);
 }
 
 void VhloBytecodeInterface::write(FunctionV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  llvm::all_of(type.getInputs(), assertFromVhlo<Type>);
-  llvm::all_of(type.getResults(), assertFromVhlo<Type>);
   writer.writeVarInt(vhlo_encoding::kFunctionType);
   writer.writeTypes(type.getInputs());
   writer.writeTypes(type.getResults());

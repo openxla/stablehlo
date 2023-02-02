@@ -258,9 +258,17 @@ def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1"> {
   let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_TypeAttr : VHLO_AttrDef<"TypeV1"> {
+def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1"> {
   let mnemonic = "type";
   let parameters = (ins "::mlir::Type":$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TypeV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type value) {
+      if (!isFromVhlo(value)) return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $value `>`";
 }
 

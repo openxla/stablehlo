@@ -118,9 +118,7 @@ static void printDictionary(AsmPrinter& os,
 
 // Parse array of NVPs in braces: {key = value, key = value}
 ParseResult parseDictionary(
-    AsmParser& parser,
-    FailureOr<SmallVector<std::pair<Attribute, Attribute>>>& values) {
-  SmallVector<std::pair<Attribute, Attribute>> nvps;
+    AsmParser& parser, SmallVector<std::pair<Attribute, Attribute>>& values) {
   auto parseEle = [&]() {
     Attribute name;
     Attribute value;
@@ -128,14 +126,54 @@ ParseResult parseDictionary(
         failed(parser.parseAttribute(value))) {
       return failure();
     }
-    nvps.push_back({name, value});
+    values.push_back({name, value});
     return success();
   };
   if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Braces,
                                             parseEle))) {
     return failure();
   }
-  values = nvps;
+  return success();
+}
+
+// Print function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
+                       Region& region, Attribute funcType) {
+  p.printSymbolName(name.cast<vhlo::StringV1Attr>().getValue());
+  p << '(';
+  llvm::interleaveComma(region.getArguments(), p,
+                        [&](auto arg) { p.printRegionArgument(arg); });
+  p << ") -> (";
+  auto fnType =
+      funcType.cast<TypeV1Attr>().getValue().cast<vhlo::FunctionV1Type>();
+  llvm::interleaveComma(fnType.getResults(), p,
+                        [&](auto res) { p.printType(res); });
+  p << ") ";
+  p.printRegion(region, false, true, true);
+}
+
+// Parse function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
+                              Region& region, Attribute& funcType) {
+  StringAttr strName;
+  SmallVector<OpAsmParser::Argument> args;
+  SmallVector<Type> inputTypes;
+  SmallVector<Type> resultTypes;
+  if (failed(parser.parseSymbolName(strName)) ||
+      failed(
+          parser.parseArgumentList(args, AsmParser::Delimiter::Paren, true)) ||
+      failed(parser.parseArrowTypeList(resultTypes)) ||
+      failed(parser.parseRegion(region, args))) {
+    return failure();
+  }
+  name = vhlo::StringV1Attr::get(parser.getContext(), strName.getValue());
+  for (OpAsmParser::Argument arg : args) {
+    inputTypes.push_back(arg.type);
+  }
+  funcType = TypeV1Attr::get(
+      parser.getContext(),
+      FunctionV1Type::get(parser.getContext(), inputTypes, resultTypes));
+
   return success();
 }
 
