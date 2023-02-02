@@ -38,8 +38,9 @@ Tensor evalNotOp(const Tensor &operand, Type resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
-Tensor evalSliceOp(const Tensor &operand, DenseIntElementsAttr startIndices,
-                   DenseIntElementsAttr strides, Type resultType);
+Tensor evalSliceOp(const Tensor &operand,
+                   const SmallVector<int64_t> startIndices,
+                   const SmallVector<int64_t> strides, Type resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
 Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,

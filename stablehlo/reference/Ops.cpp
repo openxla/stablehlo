@@ -172,11 +172,10 @@ Tensor evalSineOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
-Tensor evalSliceOp(const Tensor &operand, DenseIntElementsAttr startIndicesAttr,
-                   DenseIntElementsAttr stridesAttr, Type resultType) {
+Tensor evalSliceOp(const Tensor &operand,
+                   const SmallVector<int64_t> startIndices,
+                   const SmallVector<int64_t> strides, Type resultType) {
   Tensor result(resultType);
-  auto startIndices = startIndicesAttr.getValues<int64_t>();
-  auto strides = stridesAttr.getValues<int64_t>();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     SmallVector<int64_t> operandIdx;

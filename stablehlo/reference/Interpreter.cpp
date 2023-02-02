@@ -50,6 +50,12 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
   for (auto [ssaArg, runtimeArg] : llvm::zip(block.getArguments(), args))
     stackFrame[ssaArg] = runtimeArg;
 
+  auto getSExtValues = [](const DenseIntElementsAttr &attr) {
+    SmallVector<int64_t> values;
+    for (auto i : attr) values.push_back(i.getSExtValue());
+    return values;
+  };
+
   for (Operation &op : block) {
     auto fetchOperand = [&](Value value) -> Tensor {
       auto it = stackFrame.find(value);
@@ -137,9 +143,10 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       populateResults({runtimeResult});
     } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
       Tensor runtimeOperand = fetchOperand(sliceOp.getOperand());
+      auto startIndices = getSExtValues(sliceOp.getStartIndices());
+      auto strides = getSExtValues(sliceOp.getStrides());
       Tensor runtimeResult =
-          evalSliceOp(runtimeOperand, sliceOp.getStartIndices(),
-                      sliceOp.getStrides(), sliceOp.getType());
+          evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
       populateResults({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = fetchOperand(subtractOp.getLhs());
