@@ -1537,3 +1537,17 @@ func.func @dynamic_gather(%arg0: tensor<?x4xf32>, %arg1: tensor<1xi64>) -> tenso
   %2 = "hlo_test_infer.get_return_types"(%1) : (tensor<*xf32>) -> tensor<*xindex>
   func.return %2 : tensor<*xindex>
 }
+
+// -----
+
+// CHECK-LABEL: @select
+func.func @select(%pred : tensor<i1>,
+    %a : tensor<?x2x3x?xf32, #stablehlo.type_extensions<bounds = [5, ?, ?, 7]>>,
+    %b : tensor<1x?x3x?xf32, #stablehlo.type_extensions<bounds = [?, 6, ?, 8]>>) -> tensor<*xindex> {
+  %0 = "stablehlo.select"(%pred, %a, %b) : (tensor<i1>,
+      tensor<?x2x3x?xf32, #stablehlo.type_extensions<bounds = [5, ?, ?, 7]>>,
+      tensor<1x?x3x?xf32, #stablehlo.type_extensions<bounds = [?, 6, ?, 8]>>) -> tensor<*xf32>
+  // CHECK: types0 = tensor<1x2x3x?xf32, #stablehlo.type_extensions<bounds = [?, ?, ?, 7]>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
