@@ -474,6 +474,7 @@ cc_library(
     name = "stablehlo_passes",
     srcs = [
         "stablehlo/transforms/StablehloLegalizeToVhlo.cpp",
+        "stablehlo/transforms/StablehloRefineShapes.cpp",
         "stablehlo/transforms/VhloLegalizeToStablehlo.cpp",
         "stablehlo/transforms/VhloToVersion.cpp",
     ],
@@ -482,17 +483,23 @@ cc_library(
         "stablehlo/transforms/Passes.h",
     ],
     deps = [
+        ":chlo_ops",
         ":stablehlo_ops",
         ":stablehlo_ops_inc_gen",
         ":stablehlo_pass_inc_gen",
         ":stablehlo_type_conversion",
+        ":stablehlo_type_inference",
         ":version",
         ":vhlo_ops",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:TensorDialect",
         "@llvm-project//mlir:Transforms",
+        "@llvm-project//mlir:TransformUtils",
     ],
 )
 
