@@ -1565,13 +1565,6 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
   );
   let results = (outs HLO_PredTensor);
 
-  let builders = [
-    OpBuilder<(ins "Value":$lhs, "Value":$rhs,
-      "::mlir::stablehlo::ComparisonDirection":$comparison_direction,
-      CArg<"::mlir::stablehlo::ComparisonType",
-      "::mlir::stablehlo::ComparisonType::NOTYPE">:$compare_type)>,
-  ];
-
   let assemblyFormat = [{
     $comparison_direction `,` $lhs `,` $rhs (`,` $compare_type^)?
       attr-dict `:` functional-type(operands, results)

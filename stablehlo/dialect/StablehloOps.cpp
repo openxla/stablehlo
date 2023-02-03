@@ -2340,14 +2340,6 @@ LogicalResult TupleOp::inferReturnTypes(
 // CompareOp
 //===----------------------------------------------------------------------===//
 
-void CompareOp::build(OpBuilder& builder, OperationState& result, Value lhs,
-                      Value rhs, ComparisonDirection comparisonDirection,
-                      ComparisonType compareType) {
-  build(builder, result, lhs, rhs,
-        ComparisonDirectionAttr::get(builder.getContext(), comparisonDirection),
-        ComparisonTypeAttr::get(builder.getContext(), compareType));
-}
-
 LogicalResult CompareOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
@@ -3486,13 +3478,20 @@ static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                         SmallVector<Location, 2>(2, loc));
   }
 
-  ComparisonType typeAttr;
-  if (compareType)
-    typeAttr = symbolizeComparisonType(*compareType).value();
-  else
-    typeAttr = ComparisonType::NOTYPE;
-  Value compare = builder->create<CompareOp>(
-      loc, block->getArgument(0), block->getArgument(1), direction, typeAttr);
+  auto comparisonDirection =
+      ComparisonDirectionAttr::get(builder->getContext(), direction);
+  Value compare;
+  if (compareType) {
+    ComparisonType typeAttr = symbolizeComparisonType(*compareType).value();
+    auto compareType = ComparisonTypeAttr::get(builder->getContext(), typeAttr);
+    compare = builder->create<CompareOp>(loc, block->getArgument(0),
+                                         block->getArgument(1),
+                                         comparisonDirection, compareType);
+  } else {
+    compare = builder->create<CompareOp>(loc, block->getArgument(0),
+                                         block->getArgument(1),
+                                         comparisonDirection, nullptr);
+  }
 
   builder->create<ReturnOp>(loc, compare);
 }
