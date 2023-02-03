@@ -5349,6 +5349,54 @@ func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16
   func.return %0 : tensor<2x4x7xf16>
 }
 
+
+// -----
+
+func.func @pad_c2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
+  // expected-error@+1 {{edge_padding_low length (2) must match operand rank (3)}}
+  %0 = "stablehlo.pad"(%arg0, %arg1) {
+    edge_padding_high = dense<[1, 1]> : tensor<2xi64>,
+    edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
+    interior_padding = dense<[0, 0]> : tensor<2xi64>
+  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
+  func.return %0 : tensor<2x4x7xf16>
+}
+
+// -----
+
+func.func @pad_c3(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x3xf16> {
+  // expected-error@+1 {{Interior padding cannot be negative: -1}}
+  %0 = "stablehlo.pad"(%arg0, %arg1) {
+    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
+    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
+    interior_padding = dense<[0, 0, -1]> : tensor<3xi64>
+  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x3xf16>
+  func.return %0 : tensor<2x4x3xf16>
+}
+
+// -----
+
+func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
+  // expected-error@+1 {{Padding result in negative size for dimension 2}}
+  %0 = "stablehlo.pad"(%arg0, %arg1) {
+    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
+    edge_padding_low = dense<[0, 1, -4]> : tensor<3xi64>,
+    interior_padding = dense<[0, 0, 0]> : tensor<3xi64>
+  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
+  func.return %0 : tensor<2x4x7xf16>
+}
+// -----
+
+func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<8x8x8xf16> {
+  // expected-error@+1 {{'stablehlo.pad' op inferred type(s) 'tensor<2x4x7xf16>' are incompatible with return type(s) of operation 'tensor<8x8x8xf16>'}}
+  %0 = "stablehlo.pad"(%arg0, %arg1) {
+    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
+    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
+    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<8x8x8xf16>
+  func.return %0 : tensor<8x8x8xf16>
+}
+
 // -----
 
 // CHECK-LABEL: func @pad_dynamic
@@ -5364,97 +5412,13 @@ func.func @pad_dynamic(%arg0: tensor<?x48x48x32xf32>) -> tensor<?x48x48x48xf32> 
 
 // -----
 
-func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<8x8x8xf16> {
-  // expected-error@+1 {{'stablehlo.pad' op inferred type(s) 'tensor<2x4x7xf16>' are incompatible with return type(s) of operation 'tensor<8x8x8xf16>'}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<8x8x8xf16>
-  func.return %0 : tensor<8x8x8xf16>
-}
-
-// -----
-
-func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<2xf16>) -> tensor<2x4x7xf16> {
+func.func @pad_i1(%arg0: tensor<1x2x3xf16>, %arg1: tensor<2xf16>) -> tensor<2x4x7xf16> {
   // expected-error@+1 {{padding value type should be a rank-0 tensor, is rank 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
     edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
     edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
     interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
   } : (tensor<1x2x3xf16>, tensor<2xf16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_C1(%arg0: tensor<1x2x3xf16>, %arg1: tensor<i64>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{'stablehlo.pad' op requires the same element type for all operands and results}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<i64>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_C2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{edge_padding_low length (2) must match operand rank (3)}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_C2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{edge_padding_high length (2) must match operand rank (3)}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1]> : tensor<2xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_C2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{interior_padding length (2) must match operand rank (3)}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0]> : tensor<2xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_C3(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x3xf16> {
-  // expected-error@+1 {{Interior padding cannot be negative: -1}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, -1]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x3xf16>
-  func.return %0 : tensor<2x4x3xf16>
-}
-
-// -----
-
-func.func @pad_C4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{Padding result in negative size for dimension 2}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    edge_padding_low = dense<[0, 1, -4]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 0]> : tensor<3xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
 

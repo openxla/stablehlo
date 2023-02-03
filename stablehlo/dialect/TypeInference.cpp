@@ -2435,23 +2435,17 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
                              "tensor, is rank ",
                              padType.getRank());
 
-  // PadOp_C2
+  // pad_i3
+  if (edgePaddingLow.getType().getRank() != 1)
+    return emitOptionalError(location, "start_indices has rank ",
+                             edgePaddingLow.getType().getRank(),
+                             " instead of required rank 1");
+
+  // pad_c2
   int64_t rank = inputType.getRank();
   if (edgePaddingLow.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_low length (",
                              edgePaddingLow.getType().getNumElements(),
-                             ") must match operand rank (", rank, ")");
-
-  // PadOp_C2
-  if (edgePaddingHigh.getType().getNumElements() != rank)
-    return emitOptionalError(location, "edge_padding_high length (",
-                             edgePaddingHigh.getType().getNumElements(),
-                             ") must match operand rank (", rank, ")");
-
-  // PadOp_C2
-  if (interiorPadding.getType().getNumElements() != rank)
-    return emitOptionalError(location, "interior_padding length (",
-                             interiorPadding.getType().getNumElements(),
                              ") must match operand rank (", rank, ")");
 
   auto inputShape = inputType.getShape();
@@ -2465,7 +2459,7 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
         edgePaddingHigh.getValues<APInt>()[i].getSExtValue();
     int64_t paddingInteriorVal =
         interiorPadding.getValues<APInt>()[i].getSExtValue();
-    // PadOp_C3
+    // pad_c3
     if (paddingInteriorVal < 0)
       return emitOptionalError(
           location,
@@ -2480,7 +2474,7 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
           operandSizeOrBound + paddingLowVal + paddingHighVal +
           std::max<int64_t>(operandSizeOrBound - 1, 0LL) * paddingInteriorVal;
 
-      // PadOp_C4
+      // pad_c4
       if (resultSizeOrBound < 0) {
         auto sizeOrBound = isStaticDim ? "size" : "bound";
         return emitOptionalError(location, "Padding result in negative ",
@@ -2490,7 +2484,7 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
     }
   }
 
-  // PadOp_C1
+  // pad_c1
   inferredReturnTypes.push_back(RankedTensorType::get(
       resultShape, inputType.getElementType(),
       boundsToEncoding(inputType.getEncoding(), resultBounds)));
