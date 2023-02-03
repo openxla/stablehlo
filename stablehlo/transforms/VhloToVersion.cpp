@@ -36,7 +36,6 @@ limitations under the License.
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 #define DEBUG_TYPE "compat-passes"
 
