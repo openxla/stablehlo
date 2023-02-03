@@ -76,7 +76,14 @@ void VhloTypeConverter::addBuiltinToVhloConversions() {
   addConversion([&](Float8E5M2Type type) {
     return Float8E5M2V1Type::get(type.getContext());
   });
-
+  addConversion([&](FunctionType type) -> Type {
+    SmallVector<Type> convertedInputs;
+    SmallVector<Type> convertedResults;
+    if (failed(convertTypes(type.getInputs(), convertedInputs))) return {};
+    if (failed(convertTypes(type.getResults(), convertedResults))) return {};
+    return FunctionV1Type::get(type.getContext(), convertedInputs,
+                               convertedResults);
+  });
   addConversion(
       [&](IndexType type) { return IndexV1Type::get(type.getContext()); });
   addConversion(
@@ -131,6 +138,13 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion([&](Float8E5M2V1Type type) {
     return Float8E5M2Type::get(type.getContext());
+  addConversion([&](FunctionV1Type type) -> Type {
+    SmallVector<Type> convertedInputs;
+    SmallVector<Type> convertedResults;
+    if (failed(convertTypes(type.getInputs(), convertedInputs))) return {};
+    if (failed(convertTypes(type.getResults(), convertedResults))) return {};
+    return FunctionType::get(type.getContext(), convertedInputs,
+                             convertedResults);
   });
   addConversion(
       [&](IndexV1Type type) { return IndexType::get(type.getContext()); });
