@@ -36,7 +36,7 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
 
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
   let summary = "Legalize VHLO to StableHLO.";
-  let dependentDialects = ["mlir::stablehlo::StablehloDialect"];
+  let dependentDialects = ["mlir::stablehlo::StablehloDialect", "mlir::shape::ShapeDialect", "mlir::quant::QuantizationDialect"];
 }
 
 def VhloToVersionPass : Pass<"vhlo-to-version"> {

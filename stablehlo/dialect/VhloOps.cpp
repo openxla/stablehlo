@@ -16,11 +16,139 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloOps.h"
 
+#include <cstdint>
+
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+
+namespace mlir {
+namespace vhlo {
+
+namespace {
+// Helper functions for VHLO verifiers
+template <typename TypeOrAttr>
+bool isFromVhlo(TypeOrAttr t) {
+  return t.getDialect().getNamespace() == VhloDialect::getDialectNamespace();
+}
+
+template <typename TypeOrAttr>
+bool allFromVhlo(ArrayRef<TypeOrAttr> range) {
+  return llvm::all_of(range, isFromVhlo<TypeOrAttr>);
+}
+
+Type convertTypeToBuiltinForPrint(Type type) {
+  struct VhloToBuiltinPrintConverter : VhloTypeConverter {
+    VhloToBuiltinPrintConverter() : VhloTypeConverter() {
+      addVhloToBuiltinConversions();
+    }
+    Attribute convertEncoding(Attribute attr) override { return attr; }
+  };
+  VhloToBuiltinPrintConverter conv;
+  return conv.convertType(type);
+}
+
+Type convertTypeToVhloForParse(Type type) {
+  struct BuiltinToVhloParseConverter : VhloTypeConverter {
+    BuiltinToVhloParseConverter() : VhloTypeConverter() {
+      addBuiltinToVhloConversions();
+    }
+    Attribute convertEncoding(Attribute attr) override { return attr; }
+  };
+  BuiltinToVhloParseConverter conv;
+  return conv.convertType(type);
+}
+
+}  // namespace
+// Helper functions for VHLO printers and parsers
+static void printEncoding(AsmPrinter& os, Attribute encoding) {
+  if (!encoding) return;
+  os << ", " << encoding;
+}
+
+ParseResult parseEncoding(AsmParser& parser, Attribute& encoding) {
+  if (failed(parser.parseOptionalComma())) {
+    return success();
+  }
+  if (failed(parser.parseAttribute(encoding))) return failure();
+  return success();
+}
+
+static void printShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
+  if (dimSizes.empty()) return;
+  for (int64_t dimSize : dimSizes) {
+    os << hlo::dimSizeToString(dimSize) << 'x';
+  }
+}
+
+ParseResult parseShape(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
+  if (failed(parser.parseDimensionList(dimSizes))) {
+    return failure();
+  }
+  return success();
+}
+
+static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
+  os << '[' << arrayAttr << ']';
+}
+
+ParseResult parseAttributeArray(AsmParser& parser,
+                                SmallVector<Attribute>& arrayAttr) {
+  ArrayAttr array;
+  if (failed(parser.parseAttribute(array))) {
+    return failure();
+  }
+  arrayAttr.append(array.begin(), array.end());
+  return success();
+}
+
+void IntegerV1Attr::print(mlir::AsmPrinter& p) const {
+  p << '<'
+    << IntegerAttr::get(convertTypeToBuiltinForPrint(getType()), getValue())
+    << '>';
+}
+
+Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
+  IntegerAttr attr;
+  if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
+      failed(parser.parseGreater())) {
+    return IntegerV1Attr();
+  }
+  return IntegerV1Attr::get(parser.getContext(),
+                            convertTypeToVhloForParse(attr.getType()),
+                            attr.getValue());
+}
+
+void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
+  p << '<'
+    << DenseIntOrFPElementsAttr::getFromRawBuffer(
+           convertTypeToBuiltinForPrint(getType()), getRawData())
+    << '>';
+}
+
+Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
+  DenseIntOrFPElementsAttr attr;
+  if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
+      failed(parser.parseGreater())) {
+    return DenseIntOrFPElementsV1Attr();
+  }
+  return DenseIntOrFPElementsV1Attr::get(
+      parser.getContext(), convertTypeToVhloForParse(attr.getType()),
+      attr.getRawData());
+}
+
+}  // namespace vhlo
+}  // namespace mlir
 
 // Include order matters
 #include "stablehlo/dialect/VhloTypeInterfaces.cpp.inc"

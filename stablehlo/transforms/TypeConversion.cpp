@@ -20,6 +20,8 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
+// TODO (gleasonk): Remove this function once VHLO support for func, call, and
+// return are implemented
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter) {

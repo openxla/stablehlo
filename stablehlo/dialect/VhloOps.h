@@ -17,19 +17,12 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_OPS_H
 #define STABLEHLO_DIALECT_VHLO_OPS_H
 
-#include "llvm/ADT/StringRef.h"
-#include "mlir/Dialect/Quant/QuantTypes.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/OpDefinition.h"
 #include "stablehlo/dialect/Version.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 namespace mlir {
 namespace vhlo {
@@ -50,21 +43,10 @@ class VhloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
-
-  /// Return a Version representing the current dialect version.
-  static Version getCurrentVersion() { return Version(0, 4, 0); }
-
-  /// Return a Version representing the minimum supported dialect version.
-  static Version getMinimumVersion() { return Version(0, 3, 0); }
 };
 
 }  // namespace vhlo
-}  // end namespace mlir
-
-// Types
-#include "stablehlo/dialect/VhloTypeInterfaces.h.inc"
-#define GET_TYPEDEF_CLASSES
-#include "stablehlo/dialect/VhloTypeDefs.h.inc"
+}  // namespace mlir
 
 // Attrs and Enums
 #include "stablehlo/dialect/VhloAttrInterfaces.h.inc"
