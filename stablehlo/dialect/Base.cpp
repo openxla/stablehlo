@@ -365,10 +365,16 @@ LogicalResult inferMostSpecificTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto inferredTypeOrErr = inferMostSpecificType(location, inputTypes);
   if (failed(inferredTypeOrErr)) return failure();
-  auto resultType = (*inferredTypeOrErr).cast<RankedTensorType>();
-  inferredReturnShapes.emplace_back(resultType.getShape(),
-                                    resultType.getElementType(),
-                                    resultType.getEncoding());
+
+  auto rankedResultType = (*inferredTypeOrErr).dyn_cast<RankedTensorType>();
+  if (!rankedResultType) {
+    inferredReturnShapes.emplace_back(*inferredTypeOrErr);
+  } else {
+    inferredReturnShapes.emplace_back(rankedResultType.getShape(),
+                                      rankedResultType.getElementType(),
+                                      rankedResultType.getEncoding());
+  }
+
   return success();
 }
 
