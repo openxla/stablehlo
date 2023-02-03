@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_TRANSFORMS_VHLOTYPES_H
-#define STABLEHLO_TRANSFORMS_VHLOTYPES_H
+#ifndef STABLEHLO_DIALECT_VHLOTYPES_H
+#define STABLEHLO_DIALECT_VHLOTYPES_H
 
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/Version.h"
@@ -59,4 +59,4 @@ class VhloTypeConverter : public VhloTypeConverterBase {
 #define GET_TYPEDEF_CLASSES
 #include "stablehlo/dialect/VhloTypeDefs.h.inc"
 
-#endif  // STABLEHLO_TRANSFORMS_VHLOTYPES_H
+#endif  // STABLEHLO_DIALECT_VHLOTYPES_H
