@@ -168,12 +168,12 @@ Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType) {
   Tensor result(resultType);
-  auto shape = result.getType().getShape();
+  auto resultShape = result.getType().getShape();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     SmallVector<int64_t> operandIdx(*resultIt);
     for (auto dim : dimensions)
-      operandIdx[dim] = (shape[dim] - 1) - operandIdx[dim];
+      operandIdx[dim] = (resultShape[dim] - 1) - operandIdx[dim];
     result.set(*resultIt, operand.get(operandIdx));
   }
   return result;

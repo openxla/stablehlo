@@ -4150,6 +4150,8 @@ and produces a `result` tensor. More formally,
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_reverse.mlir)
+
 ### rng
 
 #### Semantics
