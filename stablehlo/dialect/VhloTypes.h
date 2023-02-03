@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/Version.h"
-#include "stablehlo/dialect/VhloDialect.h"
 
 namespace mlir {
 namespace vhlo {

@@ -68,7 +68,7 @@ class VhloToVersionConverter : public TypeConverter {
 
 FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
   if (versionRef == "current") {
-    return VhloDialect::getCurrentVersion();
+    return Version::getCurrentVersion();
   }
   return Version::fromString(versionRef);
 }
@@ -90,15 +90,15 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   }
 
   Version targetVersion = *failOrVersion;
-  if (targetVersion < VhloDialect::getMinimumVersion()) {
+  if (targetVersion < Version::getMinimumVersion()) {
     return emitError(op->getLoc()) << "target version " << targetVersion
                                    << " is less than minimum supported "
-                                   << VhloDialect::getMinimumVersion();
+                                   << Version::getMinimumVersion();
   }
-  if (VhloDialect::getCurrentVersion() < targetVersion) {
+  if (Version::getCurrentVersion() < targetVersion) {
     return emitError(op->getLoc()) << "target version " << targetVersion
                                    << " is greater than current version "
-                                   << VhloDialect::getCurrentVersion();
+                                   << Version::getCurrentVersion();
   }
   return targetVersion;
 }

@@ -53,7 +53,7 @@ class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = 
       return *version;
     }
     mlir::vhlo::Version $cppClass::getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
       if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # mnemonic # [{");
       return *version;

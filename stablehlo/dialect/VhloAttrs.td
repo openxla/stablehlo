@@ -50,7 +50,7 @@ class VHLO_AttrDef<string name,
       return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
       if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
       return *version;

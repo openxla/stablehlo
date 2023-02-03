@@ -352,17 +352,6 @@ gentbl_cc_library(
 )
 
 cc_library(
-    name = "vhlo_dialect",
-    srcs = [],
-    hdrs = [
-        "stablehlo/dialect/VhloDialect.h",
-    ],
-    deps = [
-        "@llvm-project//mlir:IR",
-    ],
-)
-
-cc_library(
     name = "vhlo_types",
     srcs = [
         "stablehlo/dialect/VhloTypes.cpp",
@@ -372,7 +361,6 @@ cc_library(
     ],
     deps = [
         ":version",
-        ":vhlo_dialect",
         ":vhlo_type_interfaces_inc_gen",
         ":vhlo_types_inc_gen",
         "@llvm-project//llvm:Support",
@@ -400,7 +388,6 @@ cc_library(
         ":version",
         ":vhlo_attr_interfaces_inc_gen",
         ":vhlo_attrs_inc_gen",
-        ":vhlo_dialect",
         ":vhlo_enums_inc_gen",
         ":vhlo_op_interfaces_inc_gen",
         ":vhlo_ops_inc_gen",

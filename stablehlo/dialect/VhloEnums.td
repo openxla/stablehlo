@@ -37,7 +37,7 @@ class VHLO_EnumAttr<EnumAttrInfo enumInfo,
       return *mlir::vhlo::Version::fromString("}] #  minVersion # [{");
     }
     mlir::vhlo::Version getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       return *mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
     }
   }];
