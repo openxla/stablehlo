@@ -21,8 +21,9 @@ on:
 jobs:
   clang-format:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
+    # In forks, run this on public GH runners. 64core infra will ignore jobs from forks.
     if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-22.04-64core
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-latest'  }}
     steps:
       - name: Checking out repository
         uses: actions/checkout@v2
@@ -35,7 +36,7 @@ jobs:
   whitespace-checks:
     # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
     if: "github.event_name == 'pull_request'"
-    runs-on: ubuntu-22.04-64core
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-latest'  }}
     steps:
       - name: Checking out repository
         uses: actions/checkout@v2
