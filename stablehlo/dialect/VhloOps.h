@@ -17,7 +17,6 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_OPS_H
 #define STABLEHLO_DIALECT_VHLO_OPS_H
 
-#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"

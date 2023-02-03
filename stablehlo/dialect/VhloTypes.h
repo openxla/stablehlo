@@ -37,10 +37,6 @@ class VhloTypeConverter : public VhloTypeConverterBase {
  public:
   VhloTypeConverter() : VhloTypeConverterBase() {}
 
-  virtual ~VhloTypeConverter() = default;
-
-  virtual Attribute convertEncoding(Attribute attr) override = 0;
-
   // A subclass can call this method to add conversions from VHLO -> Builtin
   // types. Note that conversions are applied in reverse order, with the most
   // recently added conversion attempted to be applied first. Because of this,
