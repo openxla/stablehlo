@@ -161,8 +161,6 @@ struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
         case ComparisonDirection::LT:
           result = isResultUnsigned ? lhs.ult(rhs) : lhs.slt(rhs);
           break;
-        default:
-          llvm::report_fatal_error("unsupported direction");
       }
       return APInt(/*numBits=*/1, result);
     });
