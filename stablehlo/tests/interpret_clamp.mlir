@@ -1,5 +1,20 @@
 // RUN: stablehlo-interpreter --interpret -split-input-file %s | FileCheck %s
 
+// CHECK-LABEL: Evaluated results of function: clamp_op_test_i1
+func.func @clamp_op_test_i1() -> tensor<3xi1> {
+  %min = stablehlo.constant dense<[false, false, true]> : tensor<3xi1>
+  %operand = stablehlo.constant dense<[false, true, false]> : tensor<3xi1>
+  %max = stablehlo.constant dense<[true, true, true]> : tensor<3xi1>
+  %result = stablehlo.clamp %min, %operand, %max : (tensor<3xi1>, tensor<3xi1>, tensor<3xi1>) -> tensor<3xi1>
+  func.return %result : tensor<3xi1>
+  // CHECK-NEXT: tensor<3xi1>
+  // CHECK-NEXT: false
+  // CHECK-NEXT: true
+  // CHECK-NEXT: true
+}
+
+// -----
+
 // CHECK-LABEL: Evaluated results of function: clamp_op_test_si64
 func.func @clamp_op_test_si64() -> tensor<3xi64> {
   %min = stablehlo.constant dense<[1, 5, -5]> : tensor<3xi64>
@@ -26,21 +41,6 @@ func.func @clamp_op_test_si64_scalar() -> tensor<3xi64> {
   // CHECK-NEXT: 1 : i64
   // CHECK-NEXT: 1 : i64
   // CHECK-NEXT: 0 : i64
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: clamp_op_test_i1
-func.func @clamp_op_test_i1() -> tensor<3xi1> {
-  %min = stablehlo.constant dense<[false, false, true]> : tensor<3xi1>
-  %operand = stablehlo.constant dense<[false, true, false]> : tensor<3xi1>
-  %max = stablehlo.constant dense<[true, true, true]> : tensor<3xi1>
-  %result = stablehlo.clamp %min, %operand, %max : (tensor<3xi1>, tensor<3xi1>, tensor<3xi1>) -> tensor<3xi1>
-  func.return %result : tensor<3xi1>
-  // CHECK-NEXT: tensor<3xi1>
-  // CHECK-NEXT: false
-  // CHECK-NEXT: true
-  // CHECK-NEXT: true
 }
 
 // -----
