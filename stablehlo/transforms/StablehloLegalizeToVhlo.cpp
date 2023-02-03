@@ -19,6 +19,7 @@ limitations under the License.
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/TypeConversion.h"
@@ -32,6 +33,45 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
+
+///////////////////////////////////////////////
+/// StableHLO --> VHLO Types and Attributes ///
+///////////////////////////////////////////////
+
+class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
+ public:
+  StablehloToVhloTypeConverter() : vhlo::VhloTypeConverter() {
+    addConversion([](Type type) -> Type {
+      if (type.getDialect().getNamespace() ==
+          vhlo::VhloDialect::getDialectNamespace()) {
+        return type;
+      }
+      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
+      return {};
+    });
+    addConversion([](TokenType token) -> Type {
+      return vhlo::TokenV1Type::get(token.getContext());
+    });
+    addBuiltinToVhloConversions();
+  }
+
+  Attribute convertEncoding(Attribute attr) final {
+    LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n" << attr << '\n');
+    // Must be VHLO encoding, or convertible to VHLO encoding.
+    if (attr.getDialect().getNamespace() ==
+        vhlo::VhloDialect::getDialectNamespace())
+      return attr;
+
+    if (auto stablehloAttr =
+            attr.dyn_cast_or_null<stablehlo::TypeExtensionsAttr>()) {
+      return vhlo::TypeExtensionsV1Attr::get(stablehloAttr.getContext(),
+                                             stablehloAttr.getBounds());
+    }
+
+    // Was not VHLO encoding, or convertible.
+    return {};
+  }
+};
 
 #define RETURN_CONVERTED_ENUM_ATTR(Name, Version)                    \
   auto stablehloValue = stablehlo::stringify##Name(attr.getValue()); \
@@ -244,9 +284,9 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
 
 }  // namespace
 
-//////////////////////////
-/// StableHLO --> VHLO ///
-//////////////////////////
+/////////////////////////////////////
+/// StableHLO --> VHLO Operations ///
+/////////////////////////////////////
 
 struct StablehloLegalizeToVhloPass
     : public impl::StablehloLegalizeToVhloPassBase<
@@ -256,7 +296,7 @@ struct StablehloLegalizeToVhloPass
     target.addIllegalDialect<stablehlo::StablehloDialect>();
     target.addLegalDialect<vhlo::VhloDialect>();
 
-    vhlo::StablehloToVhloTypeConverter converter;
+    StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
                                                &getContext());

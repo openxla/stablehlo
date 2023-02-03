@@ -12,11 +12,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Debug.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
 #include "stablehlo/transforms/TypeConversion.h"
@@ -31,9 +33,31 @@ namespace stablehlo {
 
 namespace {
 
-//////////////////////////
-/// VHLO --> StableHLO ///
-//////////////////////////
+///////////////////////////////////////////////
+/// VHLO --> StableHLO Types and Attributes ///
+///////////////////////////////////////////////
+
+class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
+ public:
+  VhloToStablehloTypeConverter() : vhlo::VhloTypeConverter() {
+    addConversion([](Type type) -> Type { return type; });
+    addConversion([](vhlo::TokenV1Type token) -> Type {
+      LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
+      return stablehlo::TokenType::get(token.getContext());
+    });
+    addVhloToBuiltinConversions();
+  }
+
+  Attribute convertEncoding(Attribute attr) final {
+    if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsV1Attr>()) {
+      return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
+                                                vhloAttr.getBounds());
+    }
+    // All encodings supported in StableHLO.
+    return attr;
+  }
+};
+
 #define RETURN_CONVERTED_ENUM_ATTR(Name, Version)                   \
   auto vhloValue = vhlo::stringify##Name##Version(attr.getValue()); \
   auto stablehloValue = stablehlo::symbolize##Name(vhloValue);      \
@@ -158,6 +182,10 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
 
 #undef RETURN_CONVERTED_ENUM_ATTR
 
+/////////////////////////////////////
+/// VHLO --> StableHLO Operations ///
+/////////////////////////////////////
+
 struct VhloLegalizeToStablehloPass
     : public impl::VhloLegalizeToStablehloPassBase<
           VhloLegalizeToStablehloPass> {
@@ -166,7 +194,7 @@ struct VhloLegalizeToStablehloPass
     target.addIllegalDialect<vhlo::VhloDialect>();
     target.addLegalDialect<stablehlo::StablehloDialect>();
 
-    vhlo::VhloToStablehloTypeConverter converter;
+    VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
                                                &getContext());

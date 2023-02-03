@@ -31,7 +31,6 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
-#include "stablehlo/transforms/VhloBuiltinTypeConversion.h"
 
 namespace mlir {
 namespace vhlo {
@@ -49,8 +48,8 @@ bool allFromVhlo(ArrayRef<TypeOrAttr> range) {
 }
 
 Type convertTypeToBuiltinForPrint(Type type) {
-  struct VhloToBuiltinPrintConverter : VhloBuiltinTypeConverter {
-    VhloToBuiltinPrintConverter() : VhloBuiltinTypeConverter() {
+  struct VhloToBuiltinPrintConverter : VhloTypeConverter {
+    VhloToBuiltinPrintConverter() : VhloTypeConverter() {
       addVhloToBuiltinConversions();
     }
     Attribute convertEncoding(Attribute attr) override { return attr; }
@@ -60,8 +59,8 @@ Type convertTypeToBuiltinForPrint(Type type) {
 }
 
 Type convertTypeToVhloForParse(Type type) {
-  struct BuiltinToVhloParseConverter : VhloBuiltinTypeConverter {
-    BuiltinToVhloParseConverter() : VhloBuiltinTypeConverter() {
+  struct BuiltinToVhloParseConverter : VhloTypeConverter {
+    BuiltinToVhloParseConverter() : VhloTypeConverter() {
       addBuiltinToVhloConversions();
     }
     Attribute convertEncoding(Attribute attr) override { return attr; }

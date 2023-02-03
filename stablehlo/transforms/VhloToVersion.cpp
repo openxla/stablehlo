@@ -50,6 +50,22 @@ namespace stablehlo {
 namespace vhlo {
 namespace {
 
+// Currently there are no type-to-version conversions so this class
+// simply validates that all types are from the VHLO dialect.
+class VhloToVersionConverter : public TypeConverter {
+ public:
+  VhloToVersionConverter() : TypeConverter() {
+    addConversion([](Type type) -> Type {
+      if (type.getDialect().getNamespace() ==
+          vhlo::VhloDialect::getDialectNamespace()) {
+        return type;
+      }
+      LLVM_DEBUG(llvm::dbgs() << "Invalid type: " << type << '\n');
+      return {};
+    });
+  }
+};
+
 FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
   if (versionRef == "current") {
     return VhloDialect::getCurrentVersion();

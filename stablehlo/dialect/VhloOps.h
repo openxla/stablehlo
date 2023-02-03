@@ -23,41 +23,8 @@ limitations under the License.
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/MLIRContext.h"
 #include "stablehlo/dialect/Version.h"
-
-namespace mlir {
-namespace vhlo {
-
-class VhloDialect : public Dialect {
- public:
-  explicit VhloDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "vhlo"; }
-
-  // Parses a type registered to this dialect.
-  Type parseType(DialectAsmParser &parser) const override;
-
-  // Prints a type registered to this dialect.
-  void printType(Type type, DialectAsmPrinter &os) const override;
-
-  // Parses an attribute registered to this dialect.
-  Attribute parseAttribute(DialectAsmParser &parser, Type type) const override;
-
-  // Prints an attribute registered to this dialect.
-  void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
-
-  /// Return a Version representing the current dialect version.
-  static Version getCurrentVersion() { return Version(0, 4, 0); }
-
-  /// Return a Version representing the minimum supported dialect version.
-  static Version getMinimumVersion() { return Version(0, 3, 0); }
-};
-
-}  // namespace vhlo
-}  // end namespace mlir
-
-// Types
-#include "stablehlo/dialect/VhloTypeInterfaces.h.inc"
-#define GET_TYPEDEF_CLASSES
-#include "stablehlo/dialect/VhloTypeDefs.h.inc"
+#include "stablehlo/dialect/VhloDialect.h"
+#include "stablehlo/dialect/VhloTypes.h"
 
 // Attrs and Enums
 #include "stablehlo/dialect/VhloAttrInterfaces.h.inc"

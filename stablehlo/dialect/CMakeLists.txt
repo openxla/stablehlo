@@ -174,15 +174,37 @@ mlir_tablegen(VhloTypeDefs.cpp.inc -gen-typedef-defs --typedefs-dialect=vhlo)
 add_public_tablegen_target(VhloOpsIncGen)
 add_dependencies(mlir-headers VhloOpsIncGen)
 
+
+add_mlir_dialect_library(VhloVersion
+  PARTIAL_SOURCES_INTENDED
+  Version.cpp
+)
+
+add_mlir_dialect_library(VhloTypes
+  PARTIAL_SOURCES_INTENDED
+  VhloTypes.cpp
+
+  DEPENDS
+  VhloOpsIncGen
+
+  LINK_LIBS PUBLIC
+  VhloVersion
+  MLIRIR
+  MLIRSupport
+  MLIRTransformUtils
+)
+
 add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
+  Version.cpp
   VhloBytecode.cpp
   VhloOps.cpp
-  Version.cpp
 
   DEPENDS
   VhloOpsIncGen
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
+  MLIRSupport
+  MLIRIR
 )

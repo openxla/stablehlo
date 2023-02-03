@@ -16,11 +16,12 @@ limitations under the License.
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Func/Transforms/FuncConversions.h"
-#include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {
 namespace vhlo {
 
+// TODO (gleasonk): Remove this function once VHLO support for func, call, and
+// return are implemented
 void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                       RewritePatternSet& patterns,
                                       TypeConverter& converter) {
@@ -37,15 +38,6 @@ void registerFuncOpsForTypeConversion(ConversionTarget& target,
                                                                  converter);
   populateCallOpTypeConversionPattern(patterns, converter);
   populateReturnOpTypeConversionPattern(patterns, converter);
-}
-
-Type convertTypeToBuiltinForPrint(Type type) {
-  VhloToStablehloTypeConverter conv;
-  return conv.convertType(type);
-}
-Type convertTypeToVhloForParse(Type type) {
-  StablehloToVhloTypeConverter conv;
-  return conv.convertType(type);
 }
 
 }  // namespace vhlo

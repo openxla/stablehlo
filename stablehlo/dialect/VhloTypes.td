@@ -64,7 +64,7 @@ class VHLO_TypeDef<string cppName,
 // VHLO Type Definitions.
 //===----------------------------------------------------------------------===//
 
-def VHLO_Token : VHLO_TypeDef<"Token", "token">;
+def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token">;
 
 //===----------------------------------------------------------------------===//
 // Forked Types
@@ -124,6 +124,7 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
 
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  /*
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult TupleV1Type::verify(
@@ -131,7 +132,7 @@ def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
       if (!allFromVhlo(types)) return errFn() << "expected VHLO types";
       return success();
     }
-  }];
+  }];*/
   let assemblyFormat = "`<` $types `>`";
 }
 

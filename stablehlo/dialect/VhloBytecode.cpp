@@ -42,7 +42,7 @@ limitations under the License.
 //   stablehlo-opt -debug-only=vhlo-bytecode [...]
 //
 // Extract after function name, remove namespace.
-//   Called: write(mlir::vhlo::TokenType, mlir::DialectBytecodeWriter ...
+//   Called: write(mlir::vhlo::TokenV1Type, mlir::DialectBytecodeWriter ...
 //   ***Not Implemened: write(...
 #define _EXTRACT_AFTER(a, b) \
   llvm::StringRef(a).substr(llvm::StringRef(a).find(b))
@@ -462,11 +462,11 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD TYPE: Include a read method for each type in VHLO
   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
-  TokenType readTokenType(DialectBytecodeReader &reader) const;
+  TokenV1Type readTokenV1Type(DialectBytecodeReader &reader) const;
 
   // TO ADD TYPE: Include a write method for each type in VHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
-  void write(TokenType type, DialectBytecodeWriter &writer) const;
+  void write(TokenV1Type type, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
   // Forked Types
@@ -1121,7 +1121,7 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 
   switch (code) {
     case vhlo_encoding::kTokenType:
-      return readTokenType(reader);
+      return readTokenV1Type(reader);
     // Forked Types:
     case vhlo_encoding::kBFloat16Type:
       return BFloat16V1Type::get(getContext());
@@ -1179,7 +1179,7 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
-      .Case<TokenType>([&](auto type) {
+      .Case<TokenV1Type>([&](auto type) {
         LOG_WRITE_CALL;
         write(type, writer);
         return success();
@@ -1264,14 +1264,15 @@ LogicalResult VhloBytecodeInterface::writeType(
 }
 
 //===----------------------------------------------------------------------===//
-// TokenType
+// TokenV1Type
 
-TokenType VhloBytecodeInterface::readTokenType(DialectBytecodeReader &) const {
+TokenV1Type VhloBytecodeInterface::readTokenV1Type(
+    DialectBytecodeReader &) const {
   LOG_READ_CALL;
-  return TokenType::get(getContext());
+  return TokenV1Type::get(getContext());
 }
 
-void VhloBytecodeInterface::write(TokenType type,
+void VhloBytecodeInterface::write(TokenV1Type type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kTokenType);
 }
