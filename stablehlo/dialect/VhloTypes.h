@@ -23,20 +23,20 @@ limitations under the License.
 namespace mlir {
 namespace vhlo {
 
-class VersionedTypeConverterBase : public TypeConverter {
+class VhloTypeConverterBase : public TypeConverter {
  public:
-  VersionedTypeConverterBase() : TypeConverter(){};
+  VhloTypeConverterBase() : TypeConverter(){};
 
-  virtual ~VersionedTypeConverterBase() = default;
+  virtual ~VhloTypeConverterBase() = default;
 
   virtual Attribute convertEncoding(Attribute attr) = 0;
 };
 
 // This class is used to manage conversions between VHLO and Builtin
 // dialects.
-class VhloTypeConverter : public VersionedTypeConverterBase {
+class VhloTypeConverter : public VhloTypeConverterBase {
  public:
-  VhloTypeConverter() : VersionedTypeConverterBase() {}
+  VhloTypeConverter() : VhloTypeConverterBase() {}
 
   virtual ~VhloTypeConverter() = default;
 
