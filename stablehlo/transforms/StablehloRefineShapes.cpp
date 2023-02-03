@@ -889,9 +889,16 @@ struct StablehloRefineShapesPass
     // The algorithm behind this pass consists of a single traversal of the
     // function. This is sufficient because we only support one function per
     // program at the moment.
-    // TODO(#622): Find out why .maxIterations = 1 no longer works.
+    // TODO(#1048): Find out why .maxIterations = 1 no longer works.
     // There have been recent refactorings in applyPatternsAndFoldGreedily
     // upstream, and that might be the reason.
+    GreedyRewriteConfig config;
+    config.useTopDownTraversal = true;
+    config.enableRegionSimplification = true;
+    config.maxIterations = 2;
+    config.maxNumRewrites = GreedyRewriteConfig::kNoLimit;
+    config.strictMode = GreedyRewriteStrictness::AnyOp;
+
     RewritePatternSet patterns(&getContext());
     patterns.add<EvalAddOpPattern>(&getContext());
     patterns.add<EvalAndOpPattern>(&getContext());
@@ -922,10 +929,6 @@ struct StablehloRefineShapesPass
     patterns.add<RefineWhileOpPattern>(&getContext());
     patterns.add<UpdateFunctionTypePattern>(&getContext());
     patterns.add<UpdateRegionTypePattern>(&getContext());
-    GreedyRewriteConfig config{.useTopDownTraversal = true,
-                               .enableRegionSimplification = true,
-                               .maxIterations = 2,
-                               .maxNumRewrites = GreedyRewriteConfig::kNoLimit};
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns),
                                             config))) {
       return signalPassFailure();
