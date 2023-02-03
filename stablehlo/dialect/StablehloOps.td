@@ -2328,7 +2328,8 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   }];
 }
 
-def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]> {
+def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify,
+    AllElementTypesMatch<["operand", "result"]> /*gather_c14*/, Pure]> {
   let summary = "Gather operation";
   let description = [{
     Gathers slices from `operand` tensor from offsets specified in
@@ -2343,23 +2344,23 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
       dimension_numbers = #stablehlo.gather<
         offset_dims = [2, 3],
         collapsed_slice_dims = [0],
-        start_index_map = [0, 2],
+        start_index_map = [1, 0],
         index_vector_dim = 2>,
-      slice_sizes = dense<[0, 2, 2]> : tensor<3xi64>,
+      slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
       indices_are_sorted = false
     } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi32>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_IntTensor:$start_indices,
-    StableHLO_GatherDimensionNumbers:$dimension_numbers,
-    I64ElementsAttr:$slice_sizes,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted
+    HLO_Tensor:$operand /*gather_i1*/,
+    HLO_IntTensor:$start_indices /*gather_i2*/,
+    StableHLO_GatherDimensionNumbers:$dimension_numbers /*gather_i3, gather_i4, gather_i5, gather_i6*/,
+    I64ElementsAttr:$slice_sizes /*gather_i7*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$indices_are_sorted /*gather_i8*/
   );
 
-  let results = (outs HLO_Tensor);
+  let results = (outs HLO_Tensor:$result);
 }
 
 def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",

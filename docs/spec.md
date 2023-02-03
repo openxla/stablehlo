@@ -2873,7 +2873,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
     in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C15) `operand` and `result` have the same element type.
+* (C14) `operand` and `result` have the same element type.
 
 #### Examples
 
@@ -2909,6 +2909,8 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //            ]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_gather.mlir)
 
 ### get_dimension_size
 

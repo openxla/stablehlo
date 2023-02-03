@@ -91,7 +91,7 @@ one of the following tracking labels.
 | exponential_minus_one    | yes           | yes          | yes            | yes             | yes         |
 | fft                      | yes           | revisit      | yes            | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |
-| gather                   | yes           | yes          | yes            | no              | no          |
+| gather                   | yes           | yes          | yes            | no              | yes         |
 | get_dimension_size       | yes           | yes          | yes            | yes             | yes         |
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | yes         |

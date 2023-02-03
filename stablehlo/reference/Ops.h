@@ -71,6 +71,12 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
 Tensor evalExpm1Op(const Tensor &operand, ShapedType resultType);
 Tensor evalExponentialOp(const Tensor &operand, ShapedType resultType);
 Tensor evalFloorOp(const Tensor &operand, ShapedType resultType);
+Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
+                    ArrayRef<int64_t> offsetDims,
+                    ArrayRef<int64_t> collapsedSliceDims,
+                    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+                    Sizes sliceSizes, bool indicesAreSorted,
+                    ShapedType resultType);
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,

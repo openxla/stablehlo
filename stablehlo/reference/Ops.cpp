@@ -300,6 +300,17 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(floorOp.getOperand());
       auto result = evalFloorOp(operand, floorOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto gatherOp = dyn_cast<GatherOp>(op)) {
+      auto operand = scope.find(gatherOp.getOperand());
+      auto startIndices = scope.find(gatherOp.getStartIndices());
+      auto dimNumbers = gatherOp.getDimensionNumbers();
+      auto sliceSizes = Sizes(gatherOp.getSliceSizes());
+      auto result = evalGatherOp(
+          operand, startIndices, dimNumbers.getOffsetDims(),
+          dimNumbers.getCollapsedSliceDims(), dimNumbers.getStartIndexMap(),
+          dimNumbers.getIndexVectorDim(), sliceSizes,
+          gatherOp.getIndicesAreSorted(), gatherOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto getDimensionSizeOp = dyn_cast<GetDimensionSizeOp>(op)) {
       auto operand = scope.find(getDimensionSizeOp.getOperand());
       auto dimension = getDimensionSizeOp.getDimension();
@@ -897,6 +908,66 @@ Tensor evalFloorOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
+                    ArrayRef<int64_t> offsetDims,
+                    ArrayRef<int64_t> collapsedSliceDims,
+                    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
+                    Sizes sliceSizes, bool indicesAreSorted,
+                    ShapedType resultType) {
+  Tensor result(resultType);
+
+  SmallVector<int64_t> batchDims;
+  for (auto i = 0; i < result.getType().getRank(); ++i)
+    if (!llvm::is_contained(offsetDims, i)) batchDims.push_back(i);
+
+  SmallVector<int64_t> nonCollapsedSliceDims;
+  for (auto i = 0; i < operand.getType().getRank(); ++i)
+    if (!llvm::is_contained(collapsedSliceDims, i))
+      nonCollapsedSliceDims.push_back(i);
+
+  Sizes startIndicesShape(startIndices.getType().getShape());
+  if (indexVectorDim < static_cast<int64_t>(startIndicesShape.size()))
+    startIndicesShape[indexVectorDim] = 1;
+
+  Index startIndicesBeginIndex(startIndicesShape.size());
+  auto startIndicesIt =
+      IndexSpaceIterator(startIndicesShape, startIndicesBeginIndex);
+  auto startIndicesItEnd = IndexSpaceIterator(startIndicesShape, {});
+  for (; startIndicesIt != startIndicesItEnd; ++startIndicesIt) {
+    Index operandBaseIdx(operand.getType().getRank());
+    Index startIndicesIndex(*startIndicesIt);
+    for (auto [i, dim] : llvm::enumerate(startIndexMap)) {
+      if (indexVectorDim < startIndices.getType().getRank())
+        startIndicesIndex[indexVectorDim] = i;
+      operandBaseIdx[dim] = std::max<int64_t>(
+          0, std::min(startIndices.get(startIndicesIndex)
+                          .getIntegerValue()
+                          .getSExtValue(),
+                      operand.getType().getShape()[dim] - sliceSizes[dim]));
+    }
+    Index sliceSizesBeginIdx(sliceSizes.size());
+    auto sliceSizesIt = IndexSpaceIterator(sliceSizes, sliceSizesBeginIdx);
+    auto sliceSizesItEnd = IndexSpaceIterator(sliceSizes, {});
+    for (; sliceSizesIt != sliceSizesItEnd; ++sliceSizesIt) {
+      Index operandIdx;
+      for (auto i = 0; i < operand.getType().getRank(); ++i)
+        operandIdx.push_back(operandBaseIdx[i] + (*sliceSizesIt)[i]);
+
+      Index resultIdx(result.getType().getRank());
+      for (auto [outputDim, sliceDim] :
+           llvm::zip(offsetDims, nonCollapsedSliceDims))
+        resultIdx[outputDim] = (*sliceSizesIt)[sliceDim];
+      for (auto [batchIndex, outputDim] : llvm::enumerate(batchDims))
+        resultIdx[outputDim] =
+            (*startIndicesIt)[static_cast<int64_t>(batchIndex) >= indexVectorDim
+                                  ? batchIndex + 1
+                                  : batchIndex];
+      result.set(resultIdx, operand.get(operandIdx));
+    }
+  }
+  return result;
+}
+
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType) {
   Tensor result(resultType);
@@ -1246,12 +1317,12 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
     // only needs to be done once per slice.
     if ((*resultIt)[adjustedDimension] != 0) continue;
 
-    // Instead of literally putting the slices together into a vector of tuples,
-    // we're representing these tuples with integer handles, with each handle
-    // being an index within the slice.
-    // Then, instead of sorting a vector of tuples, we're sorting a vector of
-    // handles, and the comparator knows how to use these handles to fetch
-    // the actual input elements being compared.
+    // Instead of literally putting the slices together into a vector of
+    // tuples, we're representing these tuples with integer handles, with each
+    // handle being an index within the slice. Then, instead of sorting a
+    // vector of tuples, we're sorting a vector of handles, and the comparator
+    // knows how to use these handles to fetch the actual input elements being
+    // compared.
     Index inputsTogether(inputs[0].getShape()[adjustedDimension]);
     std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
     auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {
