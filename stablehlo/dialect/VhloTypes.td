@@ -124,7 +124,6 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
 
 def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
-  /*
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult TupleV1Type::verify(
@@ -132,7 +131,7 @@ def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
       if (!allFromVhlo(types)) return errFn() << "expected VHLO types";
       return success();
     }
-  }];*/
+  }];
   let assemblyFormat = "`<` $types `>`";
 }
 
