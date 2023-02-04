@@ -126,6 +126,13 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       Tensor runtimeOperand = fetchOperand(reshapeOp.getOperand());
       Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
       populateResults({runtimeResult});
+    } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
+      Tensor runtimeOperand = fetchOperand(reverseOp.getOperand());
+      auto dimensions =
+          llvm::to_vector(reverseOp.getDimensions().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
+      populateResults({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
       for (Value ssaOperand : returnOp.getOperands())

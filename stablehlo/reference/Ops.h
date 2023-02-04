@@ -37,6 +37,8 @@ Tensor evalNegOp(const Tensor &operand, Type resultType);
 Tensor evalNotOp(const Tensor &operand, Type resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
+Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
+                     Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
