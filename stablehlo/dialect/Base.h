@@ -86,15 +86,15 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
 // bounds. (Size, bound) of each dimension of the return type will be merged
 // from corresponding dimensions of every inputType by extracting the least
 // specific one. Return unranked tensor if any input is unranked.
-FailureOr<ShapedType> inferLeastSpecificType(Optional<Location> location,
-                                             TypeRange inputTypes);
+FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
+                                       TypeRange inputTypes);
 
 // Infer single most specific return type from inputTypes with support for
 // bounds. (Size, bound) of each dimension of the return type will be merged
 // from corresponding dimensions of every inputType by extracting the most
 // specific one. Return unranked tensor if all inputs are unranked.
-FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
-                                            TypeRange inputTypes);
+FailureOr<Type> inferMostSpecificType(Optional<Location> location,
+                                      TypeRange inputTypes);
 
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,

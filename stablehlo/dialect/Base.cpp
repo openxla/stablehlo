@@ -337,25 +337,25 @@ FailureOr<TensorType> inferTypeWithCustomFn(
           anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
 }
 
-FailureOr<ShapedType> inferLeastSpecificType(Optional<Location> location,
-                                             TypeRange inputTypes) {
+FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
+                                       TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
     else
-      return inputType.cast<ShapedType>();
+      return inputType;
   return inferTypeWithCustomFn(location, rankedTypes,
                                inferLeastSpecificDimAndBound);
 }
 
-FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
-                                            TypeRange inputTypes) {
+FailureOr<Type> inferMostSpecificType(Optional<Location> location,
+                                      TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
-  if (rankedTypes.empty()) return inputTypes[0].cast<ShapedType>();
+  if (rankedTypes.empty()) return inputTypes[0];
   return inferTypeWithCustomFn(location, rankedTypes,
                                inferMostSpecificDimAndBound);
 }
@@ -368,7 +368,7 @@ LogicalResult inferMostSpecificTypeComponents(
 
   auto rankedResultType = (*inferredTypeOrErr).dyn_cast<RankedTensorType>();
   if (!rankedResultType) {
-    inferredReturnShapes.emplace_back(*inferredTypeOrErr);
+    inferredReturnShapes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
   } else {
     inferredReturnShapes.emplace_back(rankedResultType.getShape(),
                                       rankedResultType.getElementType(),
