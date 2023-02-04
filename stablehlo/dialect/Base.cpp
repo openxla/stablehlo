@@ -368,7 +368,9 @@ LogicalResult inferMostSpecificTypeComponents(
 
   auto rankedResultType = (*inferredTypeOrErr).dyn_cast<RankedTensorType>();
   if (!rankedResultType) {
-    inferredReturnShapes.emplace_back((*inferredTypeOrErr).cast<ShapedType>());
+    auto inferredShapeType = (*inferredTypeOrErr).dyn_cast<ShapedType>();
+    if(!inferedShapeType) return failure();
+    inferredReturnShapes.emplace_back(inferredShapeType);
   } else {
     inferredReturnShapes.emplace_back(rankedResultType.getShape(),
                                       rankedResultType.getElementType(),
