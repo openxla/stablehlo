@@ -424,6 +424,7 @@ cc_library(
         "stablehlo/dialect/VhloTypes.h",
     ],
     deps = [
+        ":stablehlo_assembly_format",
         ":version",
         ":vhlo_type_interfaces_inc_gen",
         ":vhlo_types_inc_gen",
