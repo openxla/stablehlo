@@ -92,9 +92,10 @@ ShapedTypeComponents getBroadcastType(
   // If no broadcast dimensions, assume "numpy" broadcasting.
   if (shapeX.size() == shapeY.size() || !broadcastDimensionsAttr) {
     llvm::SmallVector<int64_t, 4> outShape;
-    if (!mlir::OpTrait::util::getBroadcastedShape(shapeX, shapeY, outShape))
+    if (!mlir::OpTrait::util::getBroadcastedShape(shapeX, shapeY, outShape)) {
       // Signal illegal broadcast_dimensions as unranked.
       return {elementType};
+    }
     return {outShape, elementType};
   }
 
@@ -102,10 +103,10 @@ ShapedTypeComponents getBroadcastType(
   auto shapeSmall = shapeX.size() <= shapeY.size() ? shapeX : shapeY;
 
   auto broadcastDimensions = broadcastDimensionsAttr.getValues<APInt>();
-  if (broadcastDimensions.size() != shapeSmall.size())
+  if (broadcastDimensions.size() != shapeSmall.size()) {
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
-
+  }
   llvm::SmallVector<int64_t, 4> shapeLargeFiltered;
   shapeLargeFiltered.reserve(shapeSmall.size());
   for (const auto& dim : broadcastDimensions) {
