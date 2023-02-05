@@ -160,7 +160,19 @@ We can use a combination of following rules to decide it:
        choose the one with the following primitive type, in decreasing order of
        preference: integer, floating-point, boolean, complex.
 
-**(G2) How about adding tests dedicated for testing the interpreter
+**(G2) How do we decide on the number of tests needed to cover an op's
+behavior?**
+
+The goal is to comprehensively cover the logic of the interpreter for the op
+(i.e. all corner cases of the implementation) with a minimal number of tests.
+Minimizing the number of tests is important for maintainability. The fewer tests
+we have, the easier it is to review them and to make sure that they
+comprehensively cover the op. As a result, we expect that most of the simpler
+ops will end up having just one test. If due to some good reason comprehensive
+coverage is impractical, then it is fine to stop at >= 90%. This will be decided
+on case-by-case basis during pull request review.
+
+**(G3) How about adding tests dedicated for testing the interpreter
 infrastructure?**
 
 The interpreter infrastructure is mostly straightforward and can be added to
@@ -172,14 +184,14 @@ variants of integer/floating-point types, might not get fully covered during
 testing. To ensure that we can choose an op, like `constant`, which supports all
 the StableHLO element types and write exhaustive tests.
 
-**(G3) If the implementation of an op depends other ops, should be write tests
+**(G4) If the implementation of an op depends other ops, should be write tests
 for the latter?**
 
 No. For example, the implementation of `batch_norm_grad` can be based on
 `divide`, `subtract`, `multiply` and others, we should avoid testing the latter
 ops while testing the former.
 
-**(G4) Should we write tests to exercise the implementation-defined / undefined
+**(G5) Should we write tests to exercise the implementation-defined / undefined
 behaviors?**
 
 We should not write tests which exercise the implementation defined or
@@ -188,7 +200,7 @@ demonstrate a local behavior of the interpreter which should not be
 generalized. Tests exercising undefined behavior do not contribute towards
 the understanding of the op's behavior.
 
-**(G5) While writing tests for floating-point type, to what precision the
+**(G6) While writing tests for floating-point type, to what precision the
 results need to be specified in llvm lit checks?**
 
 The current lit-based interpreter testing fails if the result is computed with a
@@ -197,11 +209,11 @@ quick-fix, we allow the lit checks to measure the accuracy up to an arbitrary
 places after the decimal point. But the solution is far from ideal. We plan to
 resolve it using [ticket](https://github.com/openxla/stablehlo/issues/268).
 
-**(G6) Anything about the coding-style of the tests?**
+**(G7) Anything about the coding-style of the tests?**
 
 1. Make sure to use the actual name of the inputs/outputs instead of defaulting
    to SSA values (e.g. %0, %1, etc.)
 1. Make sure the tests use pretty-printed format, if it exists.
 
-**(G7) Should we include the example already provided in the spec?**
+**(G8) Should we include the example already provided in the spec?**
 Yes (for completeness of testing).
