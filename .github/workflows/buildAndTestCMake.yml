@@ -43,7 +43,7 @@ jobs:
       STABLEHLO_PYTHON_BUILD_DIR: "stablehlo-python-build"
     strategy:
       fail-fast: false
-    runs-on: ubuntu-22.04-64core
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
 
     steps:
     - name: Checkout StableHLO
