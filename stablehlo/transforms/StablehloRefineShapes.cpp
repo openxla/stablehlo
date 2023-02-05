@@ -202,7 +202,7 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
     SmallVector<APInt> operand, result;
     if (failed(matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
-    for (auto operandEl : operand) {
+    for (const auto& operandEl : operand) {
       auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
       auto resultEl =
           APSInt(operandEl, isOperandUnsigned).extOrTrunc(resultBitwidth);
@@ -869,7 +869,7 @@ struct StablehloRefineShapesPass
     // future work.
     ModuleOp module = getOperation();
     auto funcs = llvm::to_vector(module.getOps<func::FuncOp>());
-    if (funcs.size() == 0) return;
+    if (funcs.empty()) return;
     if (funcs.size() != 1) {
       module.emitOpError() << "must have no more than one function";
       return signalPassFailure();
