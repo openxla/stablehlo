@@ -2640,6 +2640,47 @@ LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
   return success();
 }
 
+LogicalResult inferRngOp(
+    std::optional<Location> location, Value a, Value b, Value shape,
+    bool isRngDistributionUniform,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (!isRngDistributionUniform) {
+    auto muTy = a.getType().cast<TensorType>().getElementType();
+    auto sigmaTy = b.getType().cast<TensorType>().getElementType();
+    if (!muTy.isa<FloatType>() || !sigmaTy.isa<FloatType>())
+      return emitOptionalError(location, "mu and sigma must be floats");
+  }
+
+  SmallVector<int64_t> shapeVector;
+  auto shapeOperandType = shape.getType().cast<ShapedType>();
+  Type elementType = getElementTypeOrSelf(b);
+
+  // Operand `shape` (1D by ODS) may be a constant or not, if `shape` is:
+  // 1, not constant and have dynimic dim (tensor<?x>): infer tensor<*x>.
+  // 2. not constant nor dynimic (e.g. tensor<3xi64>): infer tensor<?x?x?x>.
+  // 3. constant (e.g. dense<[2, 3, 5]>): infer tensor<2x3x5x>.
+
+  // Match to check whether the `shape` operand is a constant.
+  DenseIntElementsAttr shapeAttr;
+  if (!matchPattern(shape, m_Constant(&shapeAttr))) {
+    int size = shapeOperandType.getDimSize(0);
+    if (isDynamicDimSize(size)) {
+      inferredReturnShapes.emplace_back(elementType);
+      return success();
+    }
+    shapeVector.resize(size, ShapedType::kDynamic);
+    inferredReturnShapes.emplace_back(shapeVector, elementType);
+    return success();
+  }
+
+  // `shape` operand is a constant.
+  shapeVector.reserve(shapeAttr.size());
+  for (const APInt& fp : shapeAttr.getValues<APInt>())
+    shapeVector.push_back(fp.getSExtValue());
+  inferredReturnShapes.emplace_back(shapeVector, elementType);
+  return success();
+}
+
 LogicalResult inferScatterOp(std::optional<Location>, ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   llvm::append_range(inferredReturnTypes, inputs.getTypes());
@@ -3742,15 +3783,6 @@ LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
           operandTy.getRank(), "). Got dimension: ", dim, ".");
   }
   return success();
-}
-
-LogicalResult verifyRngOp(std::optional<Location> location, Value a, Value b,
-                          bool isRngDistributionUniform) {
-  if (isRngDistributionUniform) return success();
-  auto muTy = a.getType().cast<TensorType>().getElementType();
-  auto sigmaTy = b.getType().cast<TensorType>().getElementType();
-  if (muTy.isa<FloatType>() && sigmaTy.isa<FloatType>()) return success();
-  return emitOptionalError(location, "mu and sigma must be floats");
 }
 
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,

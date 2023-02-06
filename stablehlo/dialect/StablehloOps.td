@@ -2981,8 +2981,6 @@ def StableHLO_RngOp : StableHLO_Op<"rng", [InferTensorTypeWithReify, AllElementT
 
   let results = (outs HLO_PredIntOrFpTensor:$result);
 
-  let hasVerifier = 1;
-
   let assemblyFormat = [{
     $a `,` $b `,` $shape `,` `distribution` `=` $rng_distribution
       attr-dict `:` functional-type(operands, results)
