@@ -2251,18 +2251,6 @@ func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 // -----
 
 func.func @slice_c2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  // expected-error@+1 {{start_indices has rank 2 instead of required rank 1}}
-  %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[[1, 0]]> : tensor<1x2xi64>,
-    limit_indices = dense<[[2, 4]]> : tensor<1x2xi64>,
-    strides = dense<[[1, 2]]> : tensor<1x2xi64>
-  } : (tensor<3x4xi32>) -> tensor<1x2xi32>
-  func.return %0 : tensor<1x2xi32>
-}
-
-// -----
-
-func.func @slice_c2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+1 {{the number of elements in start_indices (3) does not match the rank of the operand (2)}}
   %0 = "stablehlo.slice"(%arg0) {
     start_indices = dense<[1, 0, 0]> : tensor<3xi64>,
@@ -2330,6 +2318,18 @@ func.func @slice_dynamic_dim(%arg0: tensor<3x?xi32>) -> tensor<1x?xi32> {
     strides = dense<[1, 1]> : tensor<2xi64>
   } : (tensor<3x?xi32>) -> tensor<1x?xi32>
   func.return %0 : tensor<1x?xi32>
+}
+
+// -----
+
+func.func @slice_i2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
+  // expected-error@+1 {{start_indices has rank 2 instead of required rank 1}}
+  %0 = "stablehlo.slice"(%arg0) {
+    start_indices = dense<[[1, 0]]> : tensor<1x2xi64>,
+    limit_indices = dense<[[2, 4]]> : tensor<1x2xi64>,
+    strides = dense<[[1, 2]]> : tensor<1x2xi64>
+  } : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  func.return %0 : tensor<1x2xi32>
 }
 
 // -----
