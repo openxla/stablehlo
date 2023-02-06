@@ -254,6 +254,26 @@ ParseResult parseShape(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
   return success();
 }
 
+// Print types in parentheses: (!vhlo.type, !vhlo.type)
+static void printTypeArray(AsmPrinter& os, ArrayRef<Type> typeArray) {
+  if (typeArray.empty()) os << "()";
+  os << typeArray;
+}
+
+// Parse types in parentheses: (!vhlo.type, !vhlo.type)
+ParseResult parseTypeArray(AsmParser& parser, SmallVector<Type>& typeArray) {
+  if (succeeded(parser.parseOptionalLParen()) &&
+      succeeded(parser.parseOptionalRParen())) {
+    return success();
+  }
+
+  auto parseEle = [&]() { return parser.parseType(typeArray.emplace_back()); };
+  if (failed(parser.parseCommaSeparatedList(parseEle))) {
+    return failure();
+  }
+  return success();
+}
+
 }  // namespace vhlo
 }  // namespace mlir
 
