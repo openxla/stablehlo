@@ -291,6 +291,11 @@ LogicalResult inferReduceWindowOp(
 LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
+LogicalResult inferRngOp(
+    std::optional<Location> location, Value a, Value b, Value shape,
+    bool isRngDistributionUniform,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferScatterOp(std::optional<Location> location,
                              ValueRange inputs,
                              SmallVectorImpl<Type>& inferredReturnTypes);
@@ -447,9 +452,6 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
                               DenseIntElementsAttr dimensions);
-
-LogicalResult verifyRngOp(std::optional<Location> location, Value a, Value b,
-                          bool isRngDistributionUniform);
 
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState);
