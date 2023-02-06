@@ -5175,11 +5175,9 @@ Performs element-wise square root operation on `operand` tensor and produces a
 // %operand: [[0.0, 1.0], [4.0, 9.0]]
 %result = "stablehlo.sqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[0.0, 1.0], [2.0, 3.0]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.sqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(1.27201965, 0.78615138)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_square_root.mlir)
 
 ### subtract
 
