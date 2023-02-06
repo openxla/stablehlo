@@ -175,15 +175,15 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return vhlo::DenseIntOrFPElementsV1Attr::get(attr.getContext(), vhloType,
                                                  attr.getRawData());
   }
-  if (auto dictAttr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
+  if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
     SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
-    for (auto namedAttr : dictAttr.getValue()) {
+    for (auto namedAttr : attr.getValue()) {
       auto vhloName = convertAttrToVhlo(namedAttr.getName(), typeConverter);
       auto vhloValue = convertAttrToVhlo(namedAttr.getValue(), typeConverter);
       if (!vhloName || !vhloValue) return {};
       vhloAttrs.push_back({vhloName, vhloValue});
     }
-    return vhlo::DictionaryV1Attr::get(dictAttr.getContext(), vhloAttrs);
+    return vhlo::DictionaryV1Attr::get(attr.getContext(), vhloAttrs);
   }
   if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
     auto vhloRootRef =
