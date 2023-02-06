@@ -740,7 +740,7 @@ def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
 
 def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
       [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
-  let summary = "Division operator";
+  let summary = "Division operation";
   let description = [{
     Performs element-wise division of dividend `lhs` and divisor `rhs` tensors
     and produces a `result` tensor.
@@ -750,7 +750,7 @@ def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
 
     Example:
     ```mlir
-    %result = stablehlo.divide %lhs, %rhs : tensor<2xi32>
+    %result = stablehlo.divide %lhs, %rhs : tensor<4xf32>
     ```
   }];
 }
