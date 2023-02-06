@@ -1565,7 +1565,7 @@ LogicalResult inferClampOp(
         "] is not scalar and is not compatible to operand shape [",
         llvm::make_range(operandShape.begin(), operandShape.end()), "]");
 
-  // clampOp_c2
+  // clamp_c2
   auto maxType = max.getType().cast<RankedTensorType>();
   auto maxShape = maxType.getShape();
   if (failed(verifyCompatibleShape(maxType, operandType)) &&
@@ -1576,6 +1576,7 @@ LogicalResult inferClampOp(
         "] is not scalar and is not compatible to operand shape [",
         llvm::make_range(operandShape.begin(), operandShape.end()), "]");
 
+  // clamp_c4
   inferredReturnShapes.emplace_back(operandType.cast<ShapedType>());
   return success();
 }
