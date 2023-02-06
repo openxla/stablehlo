@@ -30,21 +30,15 @@ namespace stablehlo {
 
 namespace {
 
-template <typename SignedIntegerFn, typename UnignedIntegerFn,
-          typename BooleanFn, typename FloatFn, typename ComplexFn>
-Element map(const Element &el, SignedIntegerFn signedIntegerFn,
-            UnignedIntegerFn unignedIntegerFn, BooleanFn boolFn,
+template <typename IntegerFn, typename BooleanFn, typename FloatFn,
+          typename ComplexFn>
+Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
             FloatFn floatFn, ComplexFn complexFn) {
   Type type = el.getType();
 
-  if (isSupportedSignedIntegerType(type)) {
+  if (isSupportedIntegerType(type)) {
     auto intEl = el.getIntegerValue();
-    return Element(type, signedIntegerFn(intEl));
-  }
-
-  if (isSupportedUnsignedIntegerType(type)) {
-    auto intEl = el.getIntegerValue();
-    return Element(type, unignedIntegerFn(intEl));
+    return Element(type, integerFn(intEl));
   }
 
   if (isSupportedBooleanType(type)) {
@@ -69,15 +63,7 @@ Element map(const Element &el, SignedIntegerFn signedIntegerFn,
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
-            FloatFn floatFn, ComplexFn complexFn) {
-  return map(el, integerFn, integerFn, boolFn, floatFn, complexFn);
-}
-
-template <typename SignedIntegerFn, typename UnignedIntegerFn,
-          typename BooleanFn, typename FloatFn, typename ComplexFn>
-Element map(const Element &lhs, const Element &rhs,
-            SignedIntegerFn signedIntegerFn, UnignedIntegerFn unignedIntegerFn,
+Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
             BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
   Type type = lhs.getType();
   if (lhs.getType() != rhs.getType())
@@ -85,16 +71,10 @@ Element map(const Element &lhs, const Element &rhs,
                                        debugString(lhs.getType()).c_str(),
                                        debugString(rhs.getType()).c_str()));
 
-  if (isSupportedSignedIntegerType(type)) {
+  if (isSupportedIntegerType(type)) {
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
-    return Element(type, signedIntegerFn(intLhs, intRhs));
-  }
-
-  if (isSupportedUnsignedIntegerType(type)) {
-    auto intLhs = lhs.getIntegerValue();
-    auto intRhs = rhs.getIntegerValue();
-    return Element(type, unignedIntegerFn(intLhs, intRhs));
+    return Element(type, integerFn(intLhs, intRhs));
   }
 
   if (isSupportedBooleanType(type)) {
@@ -122,28 +102,14 @@ Element map(const Element &lhs, const Element &rhs,
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
-            BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
-  return map(lhs, rhs, integerFn, integerFn, boolFn, floatFn, complexFn);
-}
-
-template <typename SignedIntegerFn, typename UnignedIntegerFn,
-          typename BooleanFn, typename FloatFn, typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &el,
-                              SignedIntegerFn signedIntegerFn,
-                              UnignedIntegerFn unignedIntegerFn,
+Element mapWithUpcastToDouble(const Element &el, IntegerFn integerFn,
                               BooleanFn boolFn, FloatFn floatFn,
                               ComplexFn complexFn) {
   Type type = el.getType();
 
-  if (isSupportedSignedIntegerType(type)) {
+  if (isSupportedIntegerType(type)) {
     auto intEl = el.getIntegerValue();
-    return Element(type, signedIntegerFn(intEl));
-  }
-
-  if (isSupportedUnsignedIntegerType(type)) {
-    auto intEl = el.getIntegerValue();
-    return Element(type, unignedIntegerFn(intEl));
+    return Element(type, integerFn(intEl));
   }
 
   if (isSupportedBooleanType(type)) {
@@ -179,36 +145,19 @@ Element mapWithUpcastToDouble(const Element &el,
 
 template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &el, IntegerFn integerFn,
-                              BooleanFn boolFn, FloatFn floatFn,
-                              ComplexFn complexFn) {
-  return mapWithUpcastToDouble(el, integerFn, integerFn, boolFn, floatFn,
-                               complexFn);
-}
-
-template <typename SignedIntegerFn, typename UnignedIntegerFn,
-          typename BooleanFn, typename FloatFn, typename ComplexFn>
 Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
-                              SignedIntegerFn signedIntegerFn,
-                              UnignedIntegerFn unignedIntegerFn,
-                              BooleanFn boolFn, FloatFn floatFn,
-                              ComplexFn complexFn) {
+                              IntegerFn integerFn, BooleanFn boolFn,
+                              FloatFn floatFn, ComplexFn complexFn) {
   Type type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(lhs.getType()).c_str(),
                                        debugString(rhs.getType()).c_str()));
 
-  if (isSupportedSignedIntegerType(type)) {
+  if (isSupportedIntegerType(type)) {
     auto intLhs = lhs.getIntegerValue();
     auto intRhs = rhs.getIntegerValue();
-    return Element(type, signedIntegerFn(intLhs, intRhs));
-  }
-
-  if (isSupportedUnsignedIntegerType(type)) {
-    auto intLhs = lhs.getIntegerValue();
-    auto intRhs = rhs.getIntegerValue();
-    return Element(type, unignedIntegerFn(intLhs, intRhs));
+    return Element(type, integerFn(intLhs, intRhs));
   }
 
   if (isSupportedBooleanType(type)) {
@@ -247,15 +196,6 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
-}
-
-template <typename IntegerFn, typename BooleanFn, typename FloatFn,
-          typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
-                              IntegerFn integerFn, BooleanFn boolFn,
-                              FloatFn floatFn, ComplexFn complexFn) {
-  return mapWithUpcastToDouble(lhs, rhs, integerFn, integerFn, boolFn, floatFn,
-                               complexFn);
 }
 
 }  // namespace
@@ -319,8 +259,11 @@ Element Element::operator+(const Element &other) const {
 
 Element Element::operator/(const Element &other) const {
   return mapWithUpcastToDouble(
-      *this, other, [&](APInt lhs, APInt rhs) { return lhs.sdiv(rhs); },
-      [&](APInt lhs, APInt rhs) { return lhs.udiv(rhs); },
+      *this, other,
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(other.getType()) ? lhs.sdiv(rhs)
+                                                             : lhs.udiv(rhs);
+      },
       [](bool lhs, bool rhs) -> bool {
         llvm::report_fatal_error("-bool is unsupported");
       },
@@ -474,8 +417,11 @@ Element log(const Element &el) {
 Element max(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
-      [&](APInt lhs, APInt rhs) { return llvm::APIntOps::smax(lhs, rhs); },
-      [&](APInt lhs, APInt rhs) { return llvm::APIntOps::umax(lhs, rhs); },
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smax(lhs, rhs)
+                   : llvm::APIntOps::umax(lhs, rhs);
+      },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
@@ -489,8 +435,11 @@ Element max(const Element &e1, const Element &e2) {
 Element min(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
-      [&](APInt lhs, APInt rhs) { return llvm::APIntOps::smin(lhs, rhs); },
-      [&](APInt lhs, APInt rhs) { return llvm::APIntOps::umin(lhs, rhs); },
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType())
+                   ? llvm::APIntOps::smin(lhs, rhs)
+                   : llvm::APIntOps::umin(lhs, rhs);
+      },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
       [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
