@@ -336,6 +336,13 @@ Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
   return result;
 }
 
+Tensor evalSqrtOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, sqrt(operand.get(*it)));
+  return result;
+}
+
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

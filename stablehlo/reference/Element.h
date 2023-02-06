@@ -109,7 +109,7 @@ Element ceil(const Element &e);
 /// Returns cosine of Element object.
 Element cosine(const Element &e);
 
-/// Returns element-wise exponential of Element object.
+/// Returns exponential of Element object.
 Element exponential(const Element &el);
 
 /// Returns floor of Element object.
@@ -123,6 +123,9 @@ Element min(const Element &e1, const Element &e2);
 
 /// Returns sine of Element object.
 Element sine(const Element &e);
+
+/// Returns square root of Element object.
+Element sqrt(const Element &e);
 
 /// Returns tanh of Element object.
 Element tanh(const Element &e);
