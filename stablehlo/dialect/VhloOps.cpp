@@ -71,33 +71,6 @@ Type convertTypeToVhloForParse(Type type) {
 
 }  // namespace
 // Helper functions for VHLO printers and parsers
-static void printEncoding(AsmPrinter& os, Attribute encoding) {
-  if (!encoding) return;
-  os << ", " << encoding;
-}
-
-ParseResult parseEncoding(AsmParser& parser, Attribute& encoding) {
-  if (failed(parser.parseOptionalComma())) {
-    return success();
-  }
-  if (failed(parser.parseAttribute(encoding))) return failure();
-  return success();
-}
-
-static void printShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
-  if (dimSizes.empty()) return;
-  for (int64_t dimSize : dimSizes) {
-    os << hlo::dimSizeToString(dimSize) << 'x';
-  }
-}
-
-ParseResult parseShape(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
-  if (failed(parser.parseDimensionList(dimSizes))) {
-    return failure();
-  }
-  return success();
-}
-
 static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }
@@ -151,11 +124,8 @@ Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
 }  // namespace mlir
 
 // Include order matters
-#include "stablehlo/dialect/VhloTypeInterfaces.cpp.inc"
-#define GET_TYPEDEF_CLASSES
 #include "stablehlo/dialect/VhloAttrInterfaces.cpp.inc"
 #include "stablehlo/dialect/VhloEnums.cpp.inc"
-#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
 #define GET_ATTRDEF_CLASSES
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
 #include "stablehlo/dialect/VhloOpInterfaces.cpp.inc"
@@ -176,20 +146,39 @@ VhloDialect::VhloDialect(MLIRContext* context)
 #include "stablehlo/dialect/VhloOps.cpp.inc"
       >();
   addBytecodeInterface(this);
-  addTypes<
-#define GET_TYPEDEF_LIST
-#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
-      >();
+  addVhloTypes();
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/VhloAttrs.cpp.inc"
       >();
 }
 
+void VhloDialect::addVhloTypes() {
+  // Idiomatically, this functionality is expressed as shown below:
+  //
+  //     addTypes<
+  //   #define GET_TYPEDEF_LIST
+  //   #include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
+  //         >();
+  //
+  // However, Dialect::addTypes doesn't work for our situation where we want
+  // to decouple the vhlo_ops and vhlo_types targets. VhloTypeDefs.h.inc only
+  // includes forward declarations of TypeStorage structs, and that's not enough
+  // for Dialect::addTypes to compile.
+  //
+  // Therefore, we work around by introducing this function and then
+  // reimplementing Dialect::addTypes as shown below.
+  addTypesWithoutRegistering<
+#define GET_TYPEDEF_LIST
+#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
+      >();
+  registerVhloTypes(getContext());
+}
+
 Type VhloDialect::parseType(DialectAsmParser& parser) const {
   StringRef dataType;
   Type type;
-  auto parseResultOpt = generatedTypeParser(parser, &dataType, type);
+  auto parseResultOpt = parseVhloType(parser, &dataType, type);
   if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) {
     return type;
   }
@@ -198,7 +187,7 @@ Type VhloDialect::parseType(DialectAsmParser& parser) const {
 }
 
 void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
-  if (succeeded(generatedTypePrinter(type, os))) {
+  if (succeeded(printVhloType(type, os))) {
     return;
   }
   os << "<unknown vhlo type>";

@@ -43,6 +43,18 @@ class VhloDialect : public Dialect {
 
   // Prints an attribute registered to this dialect.
   void printAttribute(Attribute attr, DialectAsmPrinter &os) const override;
+
+ private:
+  // Adds VHLO types to this dialect.
+  // See implementation comments for additional details.
+  void addVhloTypes();
+
+  // Does the same this as Dialect::addTypes but without calling registerType.
+  // See comments for `addVhloTypes` for additional details.
+  template <typename... Types>
+  void addTypesWithoutRegistering() {
+    (addType(Types::getTypeID(), AbstractType::get<Types>(*this)), ...);
+  }
 };
 
 }  // namespace vhlo

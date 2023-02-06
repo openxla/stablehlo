@@ -15,9 +15,12 @@ limitations under the License.
 
 #include "stablehlo/dialect/VhloTypes.h"
 
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/DialectImplementation.h"
+#include "stablehlo/dialect/AssemblyFormat.h"
 
 namespace mlir {
 namespace vhlo {
@@ -181,6 +184,81 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   addConversion([&](WitnessV1Type type) -> Type {
     return shape::WitnessType::get(type.getContext());
   });
+}
+
+namespace {
+// Helper functions for VHLO verifiers
+template <typename TypeOrAttr>
+bool isFromVhlo(TypeOrAttr t) {
+  return t.getDialect().getNamespace() == "vhlo";
+}
+
+template <typename TypeOrAttr>
+bool allFromVhlo(ArrayRef<TypeOrAttr> range) {
+  return llvm::all_of(range, isFromVhlo<TypeOrAttr>);
+}
+}  // namespace
+
+// Helper functions for VHLO type printers and parsers.
+void printEncoding(AsmPrinter& os, Attribute encoding) {
+  if (!encoding) return;
+  os << ", " << encoding;
+}
+
+ParseResult parseEncoding(AsmParser& parser, Attribute& encoding) {
+  if (failed(parser.parseOptionalComma())) {
+    return success();
+  }
+  if (failed(parser.parseAttribute(encoding))) return failure();
+  return success();
+}
+
+void printShape(AsmPrinter& os, ArrayRef<int64_t> dimSizes) {
+  if (dimSizes.empty()) return;
+  for (int64_t dimSize : dimSizes) {
+    os << hlo::dimSizeToString(dimSize) << 'x';
+  }
+}
+
+ParseResult parseShape(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
+  if (failed(parser.parseDimensionList(dimSizes))) {
+    return failure();
+  }
+  return success();
+}
+
+}  // namespace vhlo
+}  // namespace mlir
+
+// Include order matters
+#include "stablehlo/dialect/VhloTypeInterfaces.cpp.inc"
+#define GET_TYPEDEF_CLASSES
+#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
+
+namespace mlir {
+namespace vhlo {
+
+LogicalResult printVhloType(Type type, AsmPrinter& printer) {
+  return generatedTypePrinter(type, printer);
+}
+
+OptionalParseResult parseVhloType(mlir::AsmParser& parser,
+                                  llvm::StringRef* mnemonic, mlir::Type& type) {
+  return generatedTypeParser(parser, mnemonic, type);
+}
+
+namespace {
+template <typename... Types>
+void registerVhloTypes(MLIRContext* context) {
+  (mlir::detail::TypeUniquer::registerType<Types>(context), ...);
+}
+}  // namespace
+
+void registerVhloTypes(MLIRContext* context) {
+  registerVhloTypes<
+#define GET_TYPEDEF_LIST
+#include "stablehlo/dialect/VhloTypeDefs.cpp.inc"
+      >(context);
 }
 
 }  // namespace vhlo
