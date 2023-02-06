@@ -39,5 +39,4 @@ def VHLO_Dialect : Dialect {
   let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
-
 #endif
