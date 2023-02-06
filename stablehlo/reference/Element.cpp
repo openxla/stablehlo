@@ -265,7 +265,7 @@ Element Element::operator/(const Element &other) const {
                                                              : lhs.udiv(rhs);
       },
       [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("-bool is unsupported");
+        llvm::report_fatal_error("bool / bool is unsupported");
       },
       [](double lhs, double rhs) { return lhs / rhs; },
       [](std::complex<double> lhs, std::complex<double> rhs) {
@@ -401,9 +401,9 @@ Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
       el,
       [&](APInt e) -> APInt {
-        llvm::report_fatal_error("~int is unsupported");
+        llvm::report_fatal_error("cosine(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("~bool is unsupported"); },
+      [](bool e) -> bool { llvm::report_fatal_error("cosine(bool) is unsupported"); },
       [](double e) { return std::cos(e); },
       [](std::complex<double> e) { return std::cos(e); });
 }
@@ -454,9 +454,9 @@ Element sine(const Element &el) {
   return mapWithUpcastToDouble(
       el,
       [&](APInt e) -> APInt {
-        llvm::report_fatal_error("~int is unsupported");
+        llvm::report_fatal_error("sine(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("~bool is unsupported"); },
+      [](bool e) -> bool { llvm::report_fatal_error("sine(bool) is unsupported"); },
       [](double e) { return std::sin(e); },
       [](std::complex<double> e) { return std::sin(e); });
 }
@@ -471,9 +471,9 @@ Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
       el,
       [&](APInt e) -> APInt {
-        llvm::report_fatal_error("~int is unsupported");
+        llvm::report_fatal_error("tanh(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("~bool is unsupported"); },
+      [](bool e) -> bool { llvm::report_fatal_error("tanh(bool) is unsupported"); },
       [](double e) { return std::tanh(e); },
       [](std::complex<double> e) { return std::tanh(e); });
 }
