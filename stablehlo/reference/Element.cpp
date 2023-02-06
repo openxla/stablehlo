@@ -403,7 +403,9 @@ Element cosine(const Element &el) {
       [&](APInt e) -> APInt {
         llvm::report_fatal_error("cosine(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("cosine(bool) is unsupported"); },
+      [](bool e) -> bool {
+        llvm::report_fatal_error("cosine(bool) is unsupported");
+      },
       [](double e) { return std::cos(e); },
       [](std::complex<double> e) { return std::cos(e); });
 }
@@ -456,7 +458,9 @@ Element sine(const Element &el) {
       [&](APInt e) -> APInt {
         llvm::report_fatal_error("sine(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("sine(bool) is unsupported"); },
+      [](bool e) -> bool {
+        llvm::report_fatal_error("sine(bool) is unsupported");
+      },
       [](double e) { return std::sin(e); },
       [](std::complex<double> e) { return std::sin(e); });
 }
@@ -473,7 +477,9 @@ Element tanh(const Element &el) {
       [&](APInt e) -> APInt {
         llvm::report_fatal_error("tanh(int) is unsupported");
       },
-      [](bool e) -> bool { llvm::report_fatal_error("tanh(bool) is unsupported"); },
+      [](bool e) -> bool {
+        llvm::report_fatal_error("tanh(bool) is unsupported");
+      },
       [](double e) { return std::tanh(e); },
       [](std::complex<double> e) { return std::tanh(e); });
 }
