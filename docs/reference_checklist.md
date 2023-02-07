@@ -7,6 +7,12 @@ those fronts alongside the interpreter implementation.
 
 While implementing the interpreter:
 
+1. Provide an explicitly written down testing strategy (in a PR description)
+   similar to
+   [this](https://github.com/openxla/stablehlo/pull/996#issue-1558631158) to use
+   it as a reference while reviewing the verification and type inference
+   methods, and the corresponding tests. The reviewer will double check that the
+   description is comprehensive.
 1. Consult
    [hlo_evaluator](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/hlo/evaluator)
    and
@@ -41,10 +47,10 @@ After implementing the interpreter:
    and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp):
     1. Delete comments that say things like "Verify the following properties:
        ...".
-    1. Add comments that reference constraint labels (e.g. `Cn`) from the spec
-       in the format `xyz_cn`, for op `XyzOp`, to identify which parts of
-       verifiers and shape functions correspond to which constraints in the
-       specification.
+    1. Add comments that reference constraint labels (e.g. `Cn`or `In`) from the
+       spec in the format `xyz_cn` or `xyz_in`, for op `XyzOp`, to identify
+       which parts of verifiers and shape functions correspond to which
+       constraints in the specification.
         1. It is OK to have a comment with multiple constraint labels or to have
            multiple comments with the same constraint label. It all depends on
            how the constraints are implemented.
@@ -55,19 +61,19 @@ After implementing the interpreter:
     1. Add file called `interpret_<op_mnemonic>.mlir`.
     1. Write tests following the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
 1. In [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir):
-    1. Make sure that there is at least one test for each constraint in
-       verifier and type inference methods. These tests will mostly be
-       negative tests exercising the fact that the constraints are not met.
-       Make sure to add at least one positive tests in case there are none.
-       Note that it is out of scope to revisit the correctness of type
-       inference as in
+    1. Make sure that there is at least one test for each constraint in verifier
+       and type inference methods; constraints covered in ODS will not be
+       tested. These tests will mostly be negative tests exercising the fact
+       that the constraints are not met. Make sure to add at least one positive
+       tests in case there are none. Note that it is out of scope to revisit
+       the correctness of type inference as in
        [file](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).
     1. Make sure that all the tests related to the op under test, are placed
        together.
     1. Make sure that all the tests related to the op under test, are
        prepended with `CHECK-LABEL` lit macro.
     1. Choose the function name of the tests using the format
-       `xyz_c1_c2_...` for a function testing constraints `C1`, `C2`,
+       `xyz_cn_im_...` for a function testing constraints `Cn`, `Im`,
        etc. for op `XyzOp`. In cases when the proposed format does not
        apply, keep the existing name.
     1. Once the above step is complete, sort all the tests related to the op
