@@ -306,7 +306,7 @@ def StableHLO_CosineOp: StableHLO_UnaryElementwiseOp<"cosine",
 }
 
 def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
-    [Pure, HLO_CompatibleOperandsAndResultType /* exponential_c1 */], 
+    [Pure, HLO_CompatibleOperandsAndResultType /* exponential_c1 */],
      HLO_FpOrComplexTensor> {
   let summary = "Exponential operation";
   let description = [{
