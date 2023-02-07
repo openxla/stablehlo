@@ -163,7 +163,7 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
     LogicalResult UniformQuantizedV1Type::verify(
         llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
         unsigned int, mlir::Type storageType, mlir::Type expressedType,
-        llvm::APFloat, long, long, long) {
+        llvm::APFloat, int64_t, int64_t, int64_t) {
       if (!isFromVhlo(storageType) || !isFromVhlo(expressedType))
         return errFn() << "expected VHLO type";
       return success();
