@@ -1,5 +1,5 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo %s | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo -vhlo-to-version='target=current' %s | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
@@ -1688,6 +1688,20 @@ func.func @type_ui64(%arg0: tensor<ui64>, %arg1: tensor<ui64>) -> tensor<ui64> {
   func.return %0 : tensor<ui64>
 }
 // CHECK-LABEL: "type_ui64"
+
+func.func @type_f8E4M3FN(%arg0: tensor<f8E4M3FN>, %arg1: tensor<f8E4M3FN>) -> tensor<f8E4M3FN> {
+  // CHECK: "vhlo.add"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.f8E4M3FN>, !vhlo.tensor<!vhlo.f8E4M3FN>) -> !vhlo.tensor<!vhlo.f8E4M3FN>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f8E4M3FN>, tensor<f8E4M3FN>) -> tensor<f8E4M3FN>
+  func.return %0 : tensor<f8E4M3FN>
+}
+// CHECK-LABEL: "type_f8E4M3FN"
+
+func.func @type_f8E5M2(%arg0: tensor<f8E5M2>, %arg1: tensor<f8E5M2>) -> tensor<f8E5M2> {
+  // CHECK: "vhlo.add"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.f8E5M2>, !vhlo.tensor<!vhlo.f8E5M2>) -> !vhlo.tensor<!vhlo.f8E5M2>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f8E5M2>, tensor<f8E5M2>) -> tensor<f8E5M2>
+  func.return %0 : tensor<f8E5M2>
+}
+// CHECK-LABEL: "type_f8E5M2"
 
 func.func @type_bf16(%arg0: tensor<bf16>, %arg1: tensor<bf16>) -> tensor<bf16> {
   // CHECK: "vhlo.add"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.bf16>, !vhlo.tensor<!vhlo.bf16>) -> !vhlo.tensor<!vhlo.bf16>

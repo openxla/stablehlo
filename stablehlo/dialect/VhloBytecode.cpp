@@ -345,6 +345,14 @@ enum TypeCode {
   ///   WitnessType {
   ///   }
   kWitnessType = 24,
+
+  ///   Float8E4M3FN {
+  ///   }
+  kFloat8E4M3FN = 25,
+
+  ///   Float8E5M2 {
+  ///   }
+  kFloat8E5M2 = 26,
 };
 
 }  // namespace vhlo_encoding
@@ -1007,6 +1015,8 @@ void VhloBytecodeInterface::write(DenseIntOrFPElementsV1Attr attr,
 namespace {
 /// Returns the floating semantics for the given type.
 const llvm::fltSemantics &getFloatSemantics(Type type) {
+  if (type.isa<Float8E4M3FNV1Type>()) return APFloat::Float8E4M3FN();
+  if (type.isa<Float8E5M2V1Type>()) return APFloat::Float8E5M2();
   if (type.isa<BFloat16V1Type>()) return APFloat::BFloat();
   if (type.isa<Float16V1Type>()) return APFloat::IEEEhalf();
   if (type.isa<Float32V1Type>()) return APFloat::IEEEsingle();
@@ -1133,6 +1143,10 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return Float32V1Type::get(getContext());
     case vhlo_encoding::kFloat64Type:
       return Float64V1Type::get(getContext());
+    case vhlo_encoding::kFloat8E5M2:
+      return Float8E5M2V1Type::get(getContext());
+    case vhlo_encoding::kFloat8E4M3FN:
+      return Float8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
     case vhlo_encoding::kIntegerI1Type:
@@ -1204,6 +1218,14 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](Float64V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloat64Type), success();
+      })
+      .Case([&](Float8E4M3FNV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloat8E4M3FN), success();
+      })
+      .Case([&](Float8E5M2V1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloat8E5M2), success();
       })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
