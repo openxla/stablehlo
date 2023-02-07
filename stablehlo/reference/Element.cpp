@@ -277,8 +277,8 @@ Element abs(const Element &el) {
   }
 
   if (isSupportedFloatType(type)) {
-    APFloat elVal = el.getFloatValue();
-    return Element(type, elVal.isNegative() ? -elVal : elVal);
+    auto elVal = el.getFloatValue();
+    return Element(type, abs(elVal));
   }
 
   if (isSupportedComplexType(type)) {

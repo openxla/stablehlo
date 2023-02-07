@@ -15,13 +15,13 @@ func.func @abs_op_test_si64() -> tensor<3xi64> {
 
 // CHECK-LABEL: Evaluated results of function: abs_op_test_f64
 func.func @abs_op_test_f64() -> tensor<3xf64> {
-  %operand = stablehlo.constant dense<[23.1, -23.1, -1.1]> : tensor<3xf64>
+  %operand = stablehlo.constant dense<[23.1, -23.1, -0.0]> : tensor<3xf64>
   %result = stablehlo.abs %operand : tensor<3xf64>
   func.return %result : tensor<3xf64>
   // CHECK-NEXT: tensor<3xf64>
   // CHECK-NEXT: 2.310000e+01 : f64
   // CHECK-NEXT: 2.310000e+01 : f64
-  // CHECK-NEXT: 1.100000e+00 : f64
+  // CHECK-NEXT: 0.000000e+00 : f64
 }
 
 // -----
