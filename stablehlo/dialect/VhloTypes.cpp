@@ -138,6 +138,7 @@ void VhloTypeConverter::addVhloToBuiltinConversions() {
   });
   addConversion([&](Float8E5M2V1Type type) {
     return Float8E5M2Type::get(type.getContext());
+  });
   addConversion([&](FunctionV1Type type) -> Type {
     SmallVector<Type> convertedInputs;
     SmallVector<Type> convertedResults;

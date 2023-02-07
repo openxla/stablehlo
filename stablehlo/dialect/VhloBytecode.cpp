@@ -1218,7 +1218,7 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
     case vhlo_encoding::kFloat8E4M3FN:
       return Float8E4M3FNV1Type::get(getContext());
     case vhlo_encoding::kFunctionType:
-      return readFunctionV1Type(reader);
+      return readFunctionType(reader);
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
     case vhlo_encoding::kIntegerI1Type:
