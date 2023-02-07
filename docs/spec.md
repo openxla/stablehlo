@@ -172,7 +172,7 @@ values of type `tensor<T>`).
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
   (both parts are of type `f64`).
-* In the future, we are also planning to introduce **quantized types* that
+* In the future, we are also planning to introduce **quantized types** that
   represent integer values obtained via uniform quantization of floating-point
   values using given scales and zero points
   ([#588](https://github.com/openxla/stablehlo/issues/588)).
@@ -2199,7 +2199,7 @@ More formally, `result[result_index] = dot_product`, where:
 computations on accelerator backends. This can be one of the following (at the
 moment, the semantics of these enum values is underspecified, but we are
 planning to address this in
-[#755](https://github.com/openxla/stablehlo/issues/755):
+[#755](https://github.com/openxla/stablehlo/issues/755)):
 
 * `DEFAULT`: Fastest calculation, but least accurate approximation to the
   original number.
@@ -4662,7 +4662,7 @@ More formally:
    exactly like `reduce_window`, except that the `schedule` of the underlying
    `reduce` doesn't include init values. It is currently unspecified what
    happens if the corresponding window doesn't have values
-   [#731](https://github.com/openxla/stablehlo/issues/731).
+   ([#731](https://github.com/openxla/stablehlo/issues/731)).
 * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
  where:
   * `source_values` $=$ [`source[source_index]` for `source_index` in
@@ -5537,7 +5537,7 @@ type `ui32`.
 
 The size of the process grid is known statically for every program (in the
 future, we are planning to make it an explicit part of StableHLO programs
-([#650](https://github.com/openxla/stablehlo/issues/650))), and the position
+[#650](https://github.com/openxla/stablehlo/issues/650)), and the position
 within the process grid is known statically for every process. Each process has
 access to its position within the process grid via the `replica_id` and
 `partition_id` ops.
