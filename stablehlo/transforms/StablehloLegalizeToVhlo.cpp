@@ -131,7 +131,7 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::OutputOperandAliasAttr>()) {
     return vhlo::OutputOperandAliasV1Attr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
-      attr.getOperandTupleIndices());
+        attr.getOperandTupleIndices());
   }
   if (auto attr = stablehloAttr.dyn_cast<stablehlo::PrecisionAttr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Precision, V1);

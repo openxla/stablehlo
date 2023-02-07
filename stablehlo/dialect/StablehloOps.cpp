@@ -1869,9 +1869,10 @@ LogicalResult SelectOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult SetDimensionSizeOp::verify() {
-  if (auto size = this->getSize().getType().dyn_cast<RankedTensorType>())
+  if (auto size = this->getSize().getType().dyn_cast<RankedTensorType>()) {
     if (size.getRank() != 0)
       return emitOpError() << "size operand should be of rank-0";
+  }
   auto operandTy = getOperand().getType().cast<ShapedType>();
   int64_t dim = getDimension();
   return verifyDimInBounds(getLoc(), operandTy, dim);
@@ -2404,10 +2405,10 @@ ParseResult WhileOp::parse(OpAsmParser& parser, OperationState& result) {
     if (succeeded(parser.parseOptionalRParen())) break;
     if (failed(parser.parseComma())) return failure();
   } while (true);
-  if (!operands.empty())
+  if (!operands.empty()) {
     if (parser.parseColon() || parser.parseTypeList(result.types))
       return failure();
-
+  }
   SmallVector<OpAsmParser::Argument> args;
   createArgs(iterArgs, result.types, args);
   if (parser.resolveOperands(operands, result.types, loc, result.operands) ||
@@ -2606,8 +2607,9 @@ static ParseResult parseStruct(
       if (seen[index])
         return parser.emitError(parser.getCurrentLocation())
                << "duplicated `" << keyword << "` entry";
-      if (parseEqual.empty() || parseEqual[index])
+      if (parseEqual.empty() || parseEqual[index]) {
         if (failed(parser.parseEqual())) return failure();
+      }
       if (failed(parseFuncs[index]())) return failure();
       if (failed(parser.parseOptionalComma())) return parser.parseGreater();
       seen[index] = true;

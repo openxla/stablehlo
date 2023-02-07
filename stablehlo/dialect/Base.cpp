@@ -86,11 +86,12 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   // Individual ops may introduce additional constraints.
   auto qtp1 = tp1.dyn_cast<quant::QuantizedType>();
   auto qtp2 = tp2.dyn_cast<quant::QuantizedType>();
-  if (qtp1 && qtp2)
+  if (qtp1 && qtp2) {
     if (qtp1.getStorageType() != qtp2.getStorageType() ||
         qtp1.getStorageTypeMin() != qtp2.getStorageTypeMin() ||
         qtp1.getStorageTypeMax() != qtp2.getStorageTypeMax())
       return false;
+  }
   auto etp1 = getExpressedTypeOrSelf(tp1);
   auto etp2 = getExpressedTypeOrSelf(tp2);
 

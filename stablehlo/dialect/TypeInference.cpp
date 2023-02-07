@@ -2086,7 +2086,7 @@ LogicalResult inferDynamicUpdateSliceOp(
                              "start indices must have same element type");
 
   // (C6)
-  if (operandType.hasRank() && updateType.hasRank())
+  if (operandType.hasRank() && updateType.hasRank()) {
     for (auto [index, dims] : llvm::enumerate(
              llvm::zip(operandType.getShape(), updateType.getShape()))) {
       auto [operandDim, updateDim] = dims;
@@ -2103,7 +2103,7 @@ LogicalResult inferDynamicUpdateSliceOp(
               " of update to be non-negative. Got: ", updateDim, ".");
       }
     }
-
+  }
   // (C1)
   if (operandType.hasRank())
     inferredReturnShapes.emplace_back(
@@ -3772,7 +3772,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
   bool scatterIndicesTypeRanked = scatterIndicesType.isa<RankedTensorType>();
 
   // P1.
-  if (scatterIndicesTypeRanked)
+  if (scatterIndicesTypeRanked) {
     if (indexVectorDim > scatterIndicesType.getRank() || indexVectorDim < 0)
       return emitOptionalError(
           location,
@@ -3780,7 +3780,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
           "rank(scatter_indices) + 1. rank(scatter_indices) is ",
           scatterIndicesType.getRank(), " and scatter index leaf dimension is ",
           indexVectorDim, ".");
-
+  }
   // P2.
   Block& block = updateComputation.front();
   SmallVector<TensorType> inputTypes, initValueTypes;
@@ -3972,7 +3972,7 @@ LogicalResult verifySelectAndScatterOp(
   auto windowDimsOrErr =
       convert1DAttribute(windowDimensions, location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
-  if (operandType.hasRank())
+  if (operandType.hasRank()) {
     if (operandType.getRank() !=
         static_cast<int64_t>((*windowDimsOrErr).size()))
       return emitOptionalError(
@@ -3981,7 +3981,7 @@ LogicalResult verifySelectAndScatterOp(
           "window-dimensions size: ",
           (*windowDimsOrErr).size(), " and operand-type: ", operandType,
           " with rank = ", operandType.getRank(), ".");
-
+  }
   // P4.
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
