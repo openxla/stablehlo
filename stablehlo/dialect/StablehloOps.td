@@ -1648,7 +1648,7 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
 }
 
 def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
-      [Pure, AllElementTypesMatch<["operand", "update", "result"]>,
+      [Pure, AllElementTypesMatch<["operand", "update", "result"]> /*dynamic_update_slice_c1, dynamic_update_slice_c2*/,
        InferTensorType]> {
   let summary = "DynamicUpdateSlice operation";
   let description = [{
