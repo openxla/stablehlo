@@ -40,6 +40,8 @@ Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
+Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
+                   ArrayRef<int64_t> strides, Type resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
 Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,

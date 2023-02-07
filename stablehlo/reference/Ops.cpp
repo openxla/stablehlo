@@ -186,6 +186,19 @@ Tensor evalSineOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
+Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
+                   ArrayRef<int64_t> strides, Type resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    SmallVector<int64_t> operandIdx;
+    for (auto dim = 0; dim < operand.getType().getRank(); ++dim)
+      operandIdx.push_back(startIndices[dim] + (*resultIt)[dim] * strides[dim]);
+    result.set(*resultIt, operand.get(operandIdx));
+  }
+  return result;
+}
+
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

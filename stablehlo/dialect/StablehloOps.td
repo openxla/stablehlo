@@ -1584,10 +1584,10 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
 
 def StableHLO_SliceOp: StableHLO_Op<
       "slice",
-      [Pure, SameOperandsAndResultElementType,
-       AllTypesMatch<["start_indices", "limit_indices", "strides"]>,
+      [Pure, SameOperandsAndResultElementType /*slice_c1*/,
+       AllTypesMatch<["start_indices", "limit_indices", "strides"]> /*slice_c2*/,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Slice operator";
+  let summary = "Slice operation";
   let description = [{
     Extracts a slice from the `operand` using statically-computed starting
     indices and produces a `result` tensor.
@@ -1598,10 +1598,10 @@ def StableHLO_SliceOp: StableHLO_Op<
     Example:
     ```mlir
     %result = "stablehlo.slice" (%operand) {
-      start_indices = dense<2> : tensor<1xi64>,
-      limit_indices = dense<4> : tensor<1xi64>,
-      strides = dense<1> : tensor<1xi64>
-    } : (tensor<5xi64>) -> tensor<2xi64>
+      start_indices = dense<[1, 2]> : tensor<2xi64>,
+      limit_indices = dense<[3, 4]> : tensor<2xi64>,
+      strides = dense<1> : tensor<2xi64>
+    } : (tensor<3x4xi64>) -> tensor<2x2xi64>
     ```
   }];
 

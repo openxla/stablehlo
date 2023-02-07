@@ -5027,18 +5027,6 @@ dimension `d` in `operand`.
 #### Examples
 
 ```mlir
-// 1-dimensional slice
-
-// %operand: [0, 1, 2, 3, 4]
-%result = "stablehlo.slice"(%operand) {
-  start_indices = dense<2> : tensor<1xi64>,
-  limit_indices = dense<4> : tensor<1xi64>,
-  strides = dense<1> : tensor<1xi64>
-} : (tensor<5xi64>) -> tensor<2xi64>
-// %result: [2, 3]
-
-// 2-dimensional slice
-
 // %operand: [
 //            [0, 0, 0, 0],
 //            [0, 0, 1, 1],
@@ -5054,6 +5042,8 @@ dimension `d` in `operand`.
 //            [1, 1]
 //           ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_slice.mlir)
 
 ### sort
 
