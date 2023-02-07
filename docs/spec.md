@@ -469,8 +469,8 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                                      | Constraints |
-|---|-----------|-----------------------------------------------------------|-------------|
- | (I1) | `operand` | tensor of signed integer, floating-point, or complex type | (C1), (C2)  |
+|-------|-----------|-----------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of signed integer, floating-point, or complex type | (C1), (C2)  |
 
 #### Outputs
 
@@ -509,9 +509,9 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 #### Inputs
 
 | Label | Name  | Type   | Constraints |
-|---|-------|--------|-------------|
- | (I1) | `lhs` | tensor | (C1)        |
- | (I2) | `rhs` | tensor | (C1)        |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
@@ -545,8 +545,8 @@ it only exists to establish data dependencies from `result` to `inputs`.
 #### Inputs
 
 | Label | Name     | Type                       |
-|---|----------|----------------------------|
- | (I1) | `inputs` | variadic number of `token` |
+|-------|----------|----------------------------|
+| (I1)  | `inputs` | variadic number of `token` |
 
 #### Outputs
 
@@ -588,12 +588,12 @@ Afterwards, within each `process_group`:
 #### Inputs
 
 | Label | Name                    | Type                                         | Constraints |
-|---|-------------------------|----------------------------------------------|-------------|
- | (I1) | `operand`               | tensor                                       | (C1), (C6)  |
- | (I2) | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
- | (I3) | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
- | (I4) | `channel_id`            | constant of type `si64`                      | (C5)        |
- | (I5) | `use_global_device_ids` | constant of type `i1`                        | (C5)        |
+|-------|-------------------------|----------------------------------------------|-------------|
+| (I1)  | `operand`               | tensor                                       | (C1), (C6)  |
+| (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
+| (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C5)        |
 
 #### Outputs
 
@@ -673,12 +673,12 @@ Afterwards, within each `process_group`:
 #### Inputs
 
 | Label | Name                    | Type                                                             | Constraints |
-|---|-------------------------|------------------------------------------------------------------|-------------|
- | (I1) | `operand`               | tensor                                                           | (C5), (C6)  |
- | (I2) | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
- | (I3) | `channel_id`            | constant of type `si64`                                          | (C4)        |
- | (I4) | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
- | (I5) | `computation`           | function                                                         | (C5)        |
+|-------|-------------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
+| (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
+| (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
+| (I5)  | `computation`           | function                                                         | (C5)        |
 
 #### Outputs
 
@@ -772,13 +772,13 @@ Afterwards, within each `process_group`:
 #### Inputs
 
 | Label | Name               | Type                                         | Constraints      |
-|---|--------------------|----------------------------------------------|------------------|
- | (I1) | `operand`          | tensor                                       | (C1)             |
- | (I2) | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
- | (I3) | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
- | (I4) | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
- | (I5) | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C7)             |
- | (I6) | `channel_id`       | constant of type `si64`                      |                  |
+|-------|--------------------|----------------------------------------------|------------------|
+| (I1)  | `operand`          | tensor                                       | (C1)             |
+| (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
+| (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
+| (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
+| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C7)             |
+| (I6)  | `channel_id`       | constant of type `si64`                      |                  |
 
 #### Outputs
 
@@ -850,9 +850,9 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name  | Type                              | Constraints |
-|---|-------|-----------------------------------|-------------|
- | (I1) | `lhs` | tensor of boolean or integer type | (C1)        |
- | (I2) | `rhs` | tensor of boolean or integer type | (C1)        |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of boolean or integer type | (C1)        |
+| (I2)  | `rhs` | tensor of boolean or integer type | (C1)        |
 
 #### Outputs
 
@@ -886,9 +886,9 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 #### Inputs
 
 | Label | Name  | Type                                     | Constraints |
-|---|-------|------------------------------------------|-------------|
- | (I1) | `lhs` | tensor of floating-point or complex type | (C1)        |
- | (I2) | `rhs` | tensor of floating-point or complex type | (C1)        |
+|-------|-------|------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -973,14 +973,14 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 #### Inputs
 
 | Label | Name            | Type                                        | Constraints      |
-|---|-----------------|---------------------------------------------|------------------|
- | (I1) | `operand`       | tensor of floating-point type               | (C1-C3), (C5)    |
- | (I2) | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C4), (C5) |
- | (I3) | `mean`          | 1-dimensional tensor of floating-point type | (C2), (C4)       |
- | (I4) | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C4)       |
- | (I5) | `grad_output`   | tensor of floating-point type               | (C2), (C3)       |
- | (I6) | `epsilon`       | constant of type `f32`                      |                  |
- | (I7) | `feature_index` | constant of type `si64`                     | (C1), (C5)       |
+|-------|-----------------|---------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor of floating-point type               | (C1-C3), (C5)    |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C4), (C5) |
+| (I3)  | `mean`          | 1-dimensional tensor of floating-point type | (C2), (C4)       |
+| (I4)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C4)       |
+| (I5)  | `grad_output`   | tensor of floating-point type               | (C2), (C3)       |
+| (I6)  | `epsilon`       | constant of type `f32`                      |                  |
+| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C5)       |
 
 #### Outputs
 
@@ -1057,14 +1057,14 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 #### Inputs
 
 | Label | Name            | Type                                        | Constraints   |
-|---|-----------------|---------------------------------------------|---------------|
- | (I1) | `operand`       | tensor of floating-point type               | (C1-C7)       |
- | (I2) | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
- | (I3) | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
- | (I4) | `mean`          | 1-dimensional tensor of floating-point type | (C5)          |
- | (I5) | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C6)    |
- | (I6) | `epsilon`       | constant of type `f32`                      |               |
- | (I7) | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+|-------|-----------------|---------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type               | (C1-C7)       |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
+| (I4)  | `mean`          | 1-dimensional tensor of floating-point type | (C5)          |
+| (I5)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C6)    |
+| (I6)  | `epsilon`       | constant of type `f32`                      |               |
+| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
 
 #### Outputs
 
@@ -1141,12 +1141,12 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 #### Inputs
 
 | Label | Name            | Type                                        | Constraints   |
-|---|-----------------|---------------------------------------------|---------------|
- | (I1) | `operand`       | tensor of floating-point type               | (C1)          |
- | (I2) | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
- | (I3) | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
- | (I4) | `epsilon`       | constant of type `f32`                      | (C1), (C3-C6) |
- | (I5) | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+|-------|-----------------|---------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type               | (C1)          |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
+| (I4)  | `epsilon`       | constant of type `f32`                      | (C1), (C3-C6) |
+| (I5)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
 
 #### Outputs
 
@@ -1213,8 +1213,8 @@ representation of element types is implementation-defined as well.
 #### Inputs
 
 | Label | Name      | Type   | Constraints |
-|---|-----------|--------|-------------|
- | (I1) | `operand` | tensor | (C1), (C2)  |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1), (C2)  |
 
 #### Outputs
 
@@ -1261,9 +1261,9 @@ dimensions `k` in `operand`.
 #### Inputs
 
 | Label | Name                   | Type                                         | Constraints   |
-|---|------------------------|----------------------------------------------|---------------|
- | (I1) | `operand`              | tensor                                       | (C1-C3), (C5) |
- | (I2) | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
+|-------|------------------------|----------------------------------------------|---------------|
+| (I1)  | `operand`              | tensor                                       | (C1-C3), (C5) |
+| (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
 
 #### Outputs
 
@@ -1317,9 +1317,9 @@ returned.
 #### Inputs
 
 | Label | Name       | Type                                | Constraints |
-|---|------------|-------------------------------------|-------------|
- | (I1) | `index`    | 1-dimensional tensor of type `si32` |             |
- | (I2) | `branches` | variadic number of functions        | (C1-C4)     |
+|-------|------------|-------------------------------------|-------------|
+| (I1)  | `index`    | 1-dimensional tensor of type `si32` |             |
+| (I2)  | `branches` | variadic number of functions        | (C1-C4)     |
 
 #### Outputs
 
@@ -1361,8 +1361,8 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -1393,8 +1393,8 @@ specification.
 #### Inputs
 
 | Label | Name      | Type                          | Constraints |
-|---|-----------|-------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point type | (C1)        |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
@@ -1435,9 +1435,9 @@ matrix, then the behavior is undefined.
 #### Inputs
 
 | Label | Name    | Type                                       | Constraints |
-|---|---------|--------------------------------------------|-------------|
- | (I1) | `a`     | tensor of floating-point or complex type   | (C1-C3)     |
- | (I2) | `lower` | 0-dimensional tensor constant of type `i1` |             |
+|-------|---------|--------------------------------------------|-------------|
+| (I1)  | `a`     | tensor of floating-point or complex type   | (C1-C3)     |
+| (I2)  | `lower` | 0-dimensional tensor constant of type `i1` |             |
 
 #### Outputs
 
@@ -1486,10 +1486,10 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 #### Inputs
 
 | Label | Name      | Type   | Constraints |
-|---|-----------|--------|-------------|
- | (I1) | `min`     | tensor | (C1), (C3)  |
- | (I2) | `operand` | tensor | (C1-C4)     |
- | (I3) | `max`     | tensor | (C2), (C3)  |
+|-------|-----------|--------|-------------|
+| (I1)  | `min`     | tensor | (C1), (C3)  |
+| (I2)  | `operand` | tensor | (C1-C4)     |
+| (I3)  | `max`     | tensor | (C2), (C3)  |
 
 #### Outputs
 
@@ -1539,10 +1539,10 @@ Afterwards, `result@process` is given by:
 #### Inputs
 
 | Label | Name                  | Type                                         | Constraints |
-|---|-----------------------|----------------------------------------------|-------------|
- | (I1) | `operand`             | tensor                                       | (C5)        |
- | (I2) | `source_target_pairs` | 2-dimensional tensor constant of type `si64` | (C1-C4)     |
- | (I3) | `channel_id`          | constant of type `si64`                      |             |
+|-------|-----------------------|----------------------------------------------|-------------|
+| (I1)  | `operand`             | tensor                                       | (C5)        |
+| (I2)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64` | (C1-C4)     |
+| (I3)  | `channel_id`          | constant of type `si64`                      |             |
 
 #### Outputs
 
@@ -1621,11 +1621,11 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 #### Inputs
 
 | Label | Name                   | Type                                                    | Constraints |
-|---|------------------------|---------------------------------------------------------|-------------|
- | (I1) | `lhs`                  | tensor                                                  | (C1-C3)     |
- | (I2) | `rhs`                  | tensor                                                  | (C1), (C2)  |
- | (I3) | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
- | (I4) | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
+|-------|------------------------|---------------------------------------------------------|-------------|
+| (I1)  | `lhs`                  | tensor                                                  | (C1-C3)     |
+| (I2)  | `rhs`                  | tensor                                                  | (C1), (C2)  |
+| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
+| (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
 
 #### Outputs
 
@@ -1667,9 +1667,9 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 #### Inputs
 
 | Label | Name  | Type                          | Constraints |
-|---|-------|-------------------------------|-------------|
- | (I1) | `lhs` | tensor of type `f32` or `f64` | (C1-C3)     |
- | (I2) | `rhs` | tensor of type `f32` or `f64` | (C1)        |
+|-------|-------|-------------------------------|-------------|
+| (I1)  | `lhs` | tensor of type `f32` or `f64` | (C1-C3)     |
+| (I2)  | `rhs` | tensor of type `f32` or `f64` | (C1)        |
 
 #### Outputs
 
@@ -1708,9 +1708,9 @@ tensor. More formally,
 #### Inputs
 
 | Label | Name        | Type                       | Constraints      |
-|---|-------------|----------------------------|------------------|
- | (I1) | `inputs`    | variadic number of tensors | (C1-C6)          |
- | (I2) | `dimension` | constant of type `si64`    | (C2), (C4), (C6) |
+|-------|-------------|----------------------------|------------------|
+| (I1)  | `inputs`    | variadic number of tensors | (C1-C6)          |
+| (I2)  | `dimension` | constant of type `si64`    | (C2), (C4), (C6) |
 
 #### Outputs
 
@@ -1750,8 +1750,8 @@ Produces an `output` tensor from a constant `value`.
 #### Inputs
 
 | Label | Name    | Type     | Constraints |
-|---|---------|----------|-------------|
- | (I1) | `value` | constant | (C1)        |
+|-------|---------|----------|-------------|
+| (I1)  | `value` | constant | (C1)        |
 
 #### Outputs
 
@@ -1823,8 +1823,8 @@ converted to zero, and the value `true` is converted to one. For
 #### Inputs
 
 | Label | Name      | Type   | Constraints |
-|---|-----------|--------|-------------|
- | (I1) | `operand` | tensor | (C1)        |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1)        |
 
 #### Outputs
 
@@ -1901,26 +1901,26 @@ If `batch_group_count > 1`:
 #### Inputs
 
 | Label | Name                              | Type                                                        | Constraints                                  |
-|---|-----------------------------------|-------------------------------------------------------------|----------------------------------------------|
- | (I1) | `lhs`                             | tensor                                                      | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
- | (I2) | `rhs`                             | tensor                                                      | (C1), (C2), (C15-C17), (C26)                 |
- | (I3) | `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                            |
- | (I4) | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                                  |
- | (I5) | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                            |
- | (I6) | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                            |
- | (I7) | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                  | (C10)                                        |
- | (I8) | `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                          |
- | (I9) | `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14), (C15)                          |
- | (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                          |
- | (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                     | (C15), (C19)                                 |
- | (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                     | (C16), (C17), (C19), (C26)                   |
- | (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C18), (C19), (C26)                          |
- | (I14) | `output_batch_dimension`          | constant of type `si64`                                     | (C21), (C26)                                 |
- | (I15) | `output_feature_dimension`        | constant of type `si64`                                     | (C21), (C26)                                 |
- | (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C20), (C21), (C26)                          |
- | (I17) | `feature_group_count`             | constant of type `si64`                                     | (C12), (C15), (C17), (C22), (C24)            |
- | (I18) | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)            |
- | (I19) | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
+|-------|-----------------------------------|-------------------------------------------------------------|----------------------------------------------|
+| (I1)  | `lhs`                             | tensor                                                      | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
+| (I2)  | `rhs`                             | tensor                                                      | (C1), (C2), (C15-C17), (C26)                 |
+| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                            |
+| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                                  |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                            |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                            |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                  | (C10)                                        |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                          |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14), (C15)                          |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                          |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                     | (C15), (C19)                                 |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                     | (C16), (C17), (C19), (C26)                   |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C18), (C19), (C26)                          |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                     | (C21), (C26)                                 |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                     | (C21), (C26)                                 |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C20), (C21), (C26)                          |
+| (I17) | `feature_group_count`             | constant of type `si64`                                     | (C12), (C15), (C17), (C22), (C24)            |
+| (I18) | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)            |
+| (I19) | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
 
 #### Outputs
 
@@ -2038,8 +2038,8 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -2074,8 +2074,8 @@ tensor and produces a `result` tensor.
 #### Inputs
 
 | Label | Name      | Type                   | Constraints |
-|---|-----------|------------------------|-------------|
- | (I1) | `operand` | tensor of integer type | (C1)        |
+|-------|-----------|------------------------|-------------|
+| (I1)  | `operand` | tensor of integer type | (C1)        |
 
 #### Outputs
 
@@ -2107,13 +2107,13 @@ implementation-defined metadata.
 #### Inputs
 
 | Label | Name                  | Type                         |
-|---|-----------------------|------------------------------|
- | (I1) | `inputs`              | variadic number of values    |
- | (I2) | `call_target_name`    | constant of type `string`    |
- | (I3) | `has_side_effect`     | constant of type `i1`        |
- | (I4) | `backend_config`      | constant of type `string`    |
- | (I5) | `api_version`         | constant of type `si32`      |
- | (I6) | `called_computations` | variadic number of functions |
+|-------|-----------------------|------------------------------|
+| (I1)  | `inputs`              | variadic number of values    |
+| (I2)  | `call_target_name`    | constant of type `string`    |
+| (I3)  | `has_side_effect`     | constant of type `i1`        |
+| (I4)  | `backend_config`      | constant of type `string`    |
+| (I5)  | `api_version`         | constant of type `si32`      |
+| (I6)  | `called_computations` | variadic number of functions |
 
 #### Outputs
 
@@ -2147,9 +2147,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name  | Type                                              | Constraints |
-|---|-------|---------------------------------------------------|-------------|
- | (I1) | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
- | (I2) | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -2220,14 +2220,14 @@ planning to address this in
 #### Inputs
 
 | Label | Name                         | Type                                                        | Constraints                           |
-|---|------------------------------|-------------------------------------------------------------|---------------------------------------|
- | (I1) | `lhs`                        | tensor                                                      | (C1), (C6), (C7), (C10), (C11), (C13) |
- | (I2) | `rhs`                        | tensor                                                      | (C1), (C8), (C9), (C10), (C11), (C13) |
- | (I3) | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C4), (C6), (C10), (C13)        |
- | (I4) | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C5), (C8), (C10)               |
- | (I5) | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C7), (C11)               |
- | (I6) | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C5), (C9), (C11)               |
- | (I7) | `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+|-------|------------------------------|-------------------------------------------------------------|---------------------------------------|
+| (I1)  | `lhs`                        | tensor                                                      | (C1), (C6), (C7), (C10), (C11), (C13) |
+| (I2)  | `rhs`                        | tensor                                                      | (C1), (C8), (C9), (C10), (C11), (C13) |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C4), (C6), (C10), (C13)        |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C5), (C8), (C10)               |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C7), (C11)               |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C5), (C9), (C11)               |
+| (I7)  | `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
 
 #### Outputs
 
@@ -2315,10 +2315,10 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 #### Inputs
 
 | Label | Name            | Type                                                     | Constraints      |
-|---|-----------------|----------------------------------------------------------|------------------|
- | (I1) | `operand`       | tensor                                                   | (C1), (C2), (C4) |
- | (I2) | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
- | (I3) | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
+|-------|-----------------|----------------------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor                                                   | (C1), (C2), (C4) |
+| (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
+| (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
 
 #### Outputs
 
@@ -2372,10 +2372,10 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 #### Inputs
 
 | Label | Name            | Type                                                     | Constraints      |
-|---|-----------------|----------------------------------------------------------|------------------|
- | (I1) | `operand`       | tensor                                                   | (C1-C4), (C6)    |
- | (I2) | `update`        | tensor                                                   | (C3), (C3), (C6) |
- | (I3) | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C4), (C5)       |
+|-------|-----------------|----------------------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor                                                   | (C1-C4), (C6)    |
+| (I2)  | `update`        | tensor                                                   | (C3), (C3), (C6) |
+| (I3)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C4), (C5)       |
 
 #### Outputs
 
@@ -2431,8 +2431,8 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -2469,8 +2469,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -2562,10 +2562,10 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 #### Inputs
 
 | Label | Name         | Type                                         | Constraints            |
-|---|--------------|----------------------------------------------|------------------------|
- | (I1) | `operand`    | tensor of floating-point or complex type     | (C1), (C2), (C4), (C5) |
- | (I2) | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   | (C2), (C5)             |
- | (I3) | `fft_length` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C4)       |
+|-------|--------------|----------------------------------------------|------------------------|
+| (I1)  | `operand`    | tensor of floating-point or complex type     | (C1), (C2), (C4), (C5) |
+| (I2)  | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   | (C2), (C5)             |
+| (I3)  | `fft_length` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C4)       |
 
 #### Outputs
 
@@ -2618,8 +2618,8 @@ specification.
 #### Inputs
 
 | Label | Name      | Type                          | Constraints |
-|---|-----------|-------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point type | (C1)        |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
@@ -2682,15 +2682,15 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 #### Inputs
 
 | Label | Name                   | Type                                         | Constraints                   |
-|---|------------------------|----------------------------------------------|-------------------------------|
- | (I1) | `operand`              | tensor                                       | (C1), (C10-C12), (C15)        |
- | (I2) | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
- | (I3) | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
- | (I4) | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
- | (I5) | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)             |
- | (I6) | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)             |
- | (I7) | `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11-C13)         |
- | (I8) | `indices_are_sorted`   | constant of type `i1`                        |                               |
+|-------|------------------------|----------------------------------------------|-------------------------------|
+| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C15)        |
+| (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
+| (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
+| (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
+| (I5)  | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)             |
+| (I6)  | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)             |
+| (I7)  | `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11-C13)         |
+| (I8)  | `indices_are_sorted`   | constant of type `i1`                        |                               |
 
 #### Outputs
 
@@ -2775,9 +2775,9 @@ Produces the size of the given `dimension` of the `operand`.
 #### Inputs
 
 | Label | Name        | Type                    | Constraints |
-|---|-------------|-------------------------|-------------|
- | (I1) | `operand`   | tensor                  | (C1)        |
- | (I2) | `dimension` | constant of type `si64` | (C1)        |
+|-------|-------------|-------------------------|-------------|
+| (I1)  | `operand`   | tensor                  | (C1)        |
+| (I2)  | `dimension` | constant of type `si64` | (C1)        |
 
 #### Outputs
 
@@ -2809,9 +2809,9 @@ Extracts element at `index` position of the `operand` tuple and produces a
 #### Inputs
 
 | Label | Name      | Type                    | Constraints |
-|---|-----------|-------------------------|-------------|
- | (I1) | `operand` | tuple                   | (C1), (C2)  |
- | (I2) | `index`   | constant of type `si32` | (C1), (C2)  |
+|-------|-----------|-------------------------|-------------|
+| (I1)  | `operand` | tuple                   | (C1), (C2)  |
+| (I2)  | `index`   | constant of type `si32` | (C1), (C2)  |
 
 #### Outputs
 
@@ -2846,10 +2846,10 @@ output of `true_branch` is returned, else if pred is `false`, output of
 #### Inputs
 
 | Label | Name           | Type                                       | Constraints |
-|---|----------------|--------------------------------------------|-------------|
- | (I1) | `pred`         | 1-dimensional tensor constant of type `i1` |             |
- | (I2) | `true_branch`  | function                                   | (C1-C3)     |
- | (I3) | `false_branch` | function                                   | (C1), (C2)  |
+|-------|----------------|--------------------------------------------|-------------|
+| (I1)  | `pred`         | 1-dimensional tensor constant of type `i1` |             |
+| (I2)  | `true_branch`  | function                                   | (C1-C3)     |
+| (I3)  | `false_branch` | function                                   | (C1), (C2)  |
 
 #### Outputs
 
@@ -2888,8 +2888,8 @@ Extracts the imaginary part, element-wise, from the `operand` and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1), (C2)  |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1), (C2)  |
 
 #### Outputs
 
@@ -2927,9 +2927,9 @@ as a value that other operations can take a data dependency on.
 #### Inputs
 
 | Label | Name            | Type                      | Constraints |
-|---|-----------------|---------------------------|-------------|
- | (I1) | `token`         | `token`                   | (C2)        |
- | (I2) | `infeed_config` | constant of type `string` |             |
+|-------|-----------------|---------------------------|-------------|
+| (I1)  | `token`         | `token`                   | (C2)        |
+| (I2)  | `infeed_config` | constant of type `string` |             |
 
 #### Outputs
 
@@ -2963,8 +2963,8 @@ along the `iota_dimension` dimension. More formally,
 #### Inputs
 
 | Label | Name             | Type   | Constraints |
-|---|------------------|--------|-------------|
- | (I1) | `iota_dimension` | `si64` | (C1)        |
+|-------|------------------|--------|-------------|
+| (I1)  | `iota_dimension` | `si64` | (C1)        |
 
 #### Outputs
 
@@ -3013,8 +3013,8 @@ operation from the IEEE-754 specification.
 #### Inputs
 
 | Label | Name | Type                          | Constraints |
-|---|------|-------------------------------|-------------|
- | (I1) | `x`  | tensor of floating-point type | (C1)        |
+|-------|------|-------------------------------|-------------|
+| (I1)  | `x`  | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
@@ -3048,8 +3048,8 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -3086,8 +3086,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -3120,8 +3120,8 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -3160,10 +3160,10 @@ and will likely be removed in the future
 #### Inputs
 
 | Label | Name          | Type                                         | Constraints |
-|---|---------------|----------------------------------------------|-------------|
- | (I1) | `inputs`      | variadic number of tensors                   | (C1-C4)     |
- | (I2) | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C3)        |
- | (I3) | `computation` | function                                     | (C4)        |
+|-------|---------------|----------------------------------------------|-------------|
+| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4)     |
+| (I2)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C3)        |
+| (I3)  | `computation` | function                                     | (C4)        |
 
 #### Outputs
 
@@ -3213,9 +3213,9 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 #### Inputs
 
 | Label | Name  | Type   | Constraints |
-|---|-------|--------|-------------|
- | (I1) | `lhs` | tensor | (C1)        |
- | (I2) | `rhs` | tensor | (C1)        |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
@@ -3256,9 +3256,9 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 #### Inputs
 
 | Label | Name  | Type   | Constraints |
-|---|-------|--------|-------------|
- | (I1) | `lhs` | tensor | (C1)        |
- | (I2) | `rhs` | tensor | (C1)        |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
@@ -3296,9 +3296,9 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 #### Inputs
 
 | Label | Name  | Type   | Constraints |
-|---|-------|--------|-------------|
- | (I1) | `lhs` | tensor | (C1)        |
- | (I2) | `rhs` | tensor | (C1)        |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
@@ -3337,8 +3337,8 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                               | Constraints |
-|---|-----------|----------------------------------------------------|-------------|
- | (I1) | `operand` | tensor of integer, floating-point, or complex type | (C1)        |
+|-------|-----------|----------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
@@ -3455,9 +3455,9 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name  | Type                              | Constraints |
-|---|-------|-----------------------------------|-------------|
- | (I1) | `lhs` | tensor of integer or boolean type | (C1)        |
- | (I2) | `rhs` | tensor of integer or boolean type | (C1)        |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer or boolean type | (C1)        |
+| (I2)  | `rhs` | tensor of integer or boolean type | (C1)        |
 
 #### Outputs
 
@@ -3499,10 +3499,10 @@ as a value that other operations can take a data dependency on.
 #### Inputs
 
 | Label | Name             | Type                       |
-|---|------------------|----------------------------|
- | (I1) | `inputs`         | variadic number of tensors |
- | (I2) | `token`          | `token`                    |
- | (I3) | `outfeed_config` | constant of type `string`  |
+|-------|------------------|----------------------------|
+| (I1)  | `inputs`         | variadic number of tensors |
+| (I2)  | `token`          | `token`                    |
+| (I3)  | `outfeed_config` | constant of type `string`  |
 
 #### Outputs
 
@@ -3545,12 +3545,12 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 #### Inputs
 
 | Label | Name                | Type                                         | Constraints      |
-|---|---------------------|----------------------------------------------|------------------|
- | (I1) | `operand`           | tensor                                       | (C1), (C2), (C4) |
- | (I2) | `padding_value`     | 0-dimensional tensor                         | (C1)             |
- | (I3) | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
- | (I4) | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
- | (I5) | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)          |
+|-------|---------------------|----------------------------------------------|------------------|
+| (I1)  | `operand`           | tensor                                       | (C1), (C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor                         | (C1)             |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
+| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)          |
 
 #### Outputs
 
@@ -3620,8 +3620,8 @@ and produces a `result` tensor.
 #### Inputs
 
 | Label | Name      | Type                   | Constraints |
-|---|-----------|------------------------|-------------|
- | (I1) | `operand` | tensor of integer type | (C1)        |
+|-------|-----------|------------------------|-------------|
+| (I1)  | `operand` | tensor of integer type | (C1)        |
 
 #### Outputs
 
@@ -3655,9 +3655,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name  | Type                                               | Constraints |
-|---|-------|----------------------------------------------------|-------------|
- | (I1) | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
- | (I2) | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
+|-------|-------|----------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
@@ -3689,8 +3689,8 @@ tensor. More formally, for each element `x`:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1), (C2)  |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1), (C2)  |
 
 #### Outputs
 
@@ -3730,11 +3730,11 @@ other operations can take a data dependency on.
 #### Inputs
 
 | Label | Name               | Type                                            | Constraints |
-|---|--------------------|-------------------------------------------------|-------------|
- | (I1) | `token`            | `token`                                         | (C3)        |
- | (I2) | `channel_id`       | constant of type `si64`                         |             |
- | (I3) | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` | (C1)        |
- | (I4) | `is_host_transfer` | constant of type `i1`                           | (C1)        |
+|-------|--------------------|-------------------------------------------------|-------------|
+| (I1)  | `token`            | `token`                                         | (C3)        |
+| (I2)  | `channel_id`       | constant of type `si64`                         |             |
+| (I3)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` | (C1)        |
+| (I4)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
 
 #### Outputs
 
@@ -3794,11 +3794,11 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 #### Inputs
 
 | Label | Name          | Type                                         | Constraints         |
-|---|---------------|----------------------------------------------|---------------------|
- | (I1) | `inputs`      | variadic number of tensors                   | (C1-C4), (C6), (C7) |
- | (I2) | `init_values` | variadic number of 0-dimensional tensors     | (C2), (C3)          |
- | (I3) | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C7)    |
- | (I4) | `body`        | function                                     | (C6)                |
+|-------|---------------|----------------------------------------------|---------------------|
+| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4), (C6), (C7) |
+| (I2)  | `init_values` | variadic number of 0-dimensional tensors     | (C2), (C3)          |
+| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C7)    |
+| (I4)  | `body`        | function                                     | (C6)                |
 
 #### Outputs
 
@@ -3860,10 +3860,10 @@ More formally:
 #### Inputs
 
 | Label | Name            | Type                          | Constraints |
-|---|-----------------|-------------------------------|-------------|
- | (I1) | `operand`       | tensor of floating-point type | (C1)        |
- | (I2) | `exponent_bits` | constant of type `si32`       | (C2)        |
- | (I3) | `mantissa_bits` | constant of type `si32`       | (C3)        |
+|-------|-----------------|-------------------------------|-------------|
+| (I1)  | `operand`       | tensor of floating-point type | (C1)        |
+| (I2)  | `exponent_bits` | constant of type `si32`       | (C2)        |
+| (I3)  | `mantissa_bits` | constant of type `si32`       | (C3)        |
 
 #### Outputs
 
@@ -3923,13 +3923,13 @@ Afterwards, within each `process_group`:
 #### Inputs
 
 | Label | Name                    | Type                                         | Constraints            |
-|---|-------------------------|----------------------------------------------|------------------------|
- | (I1) | `operand`               | tensor                                       | (C1), (C2), (C7), (C8) |
- | (I2) | `scatter_dimension`     | constant of type `si64`                      | (C1), (C2), (C8)       |
- | (I3) | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)                |
- | (I4) | `channel_id`            | constant of type `si64`                      | (C6)                   |
- | (I5) | `use_global_device_ids` | constant of type `i1`                        | (C6)                   |
- | (I6) | `computation`           | function                                     | (C7)                   |
+|-------|-------------------------|----------------------------------------------|------------------------|
+| (I1)  | `operand`               | tensor                                       | (C1), (C2), (C7), (C8) |
+| (I2)  | `scatter_dimension`     | constant of type `si64`                      | (C1), (C2), (C8)       |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)                |
+| (I4)  | `channel_id`            | constant of type `si64`                      | (C6)                   |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C6)                   |
+| (I6)  | `computation`           | function                                     | (C7)                   |
 
 #### Outputs
 
@@ -4017,15 +4017,15 @@ where:
 #### Inputs
 
 | Label | Name                | Type                                         | Constraints                                     |
-|---|---------------------|----------------------------------------------|-------------------------------------------------|
- | (I1) | `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
- | (I2) | `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
- | (I3) | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
- | (I4) | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
- | (I5) | `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
- | (I6) | `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
- | (I7) | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
- | (I8) | `body`              | function                                     | (C13)                                           |
+|-------|---------------------|----------------------------------------------|-------------------------------------------------|
+| (I1)  | `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
+| (I2)  | `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
+| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
+| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
+| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
+| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
+| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
+| (I8)  | `body`              | function                                     | (C13)                                           |
 
 #### Outputs
 
@@ -4105,9 +4105,9 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 #### Inputs
 
 | Label | Name  | Type                                              | Constraints |
-|---|-------|---------------------------------------------------|-------------|
- | (I1) | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
- | (I2) | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -4166,8 +4166,8 @@ spaces of `result` and `operand`.
 #### Inputs
 
 | Label | Name      | Type   | Constraints |
-|---|-----------|--------|-------------|
- | (I1) | `operand` | tensor | (C1), (C2)  |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1), (C2)  |
 
 #### Outputs
 
@@ -4202,9 +4202,9 @@ and produces a `result` tensor. More formally,
 #### Inputs
 
 | Label | Name         | Type                                         | Constraints |
-|---|--------------|----------------------------------------------|-------------|
- | (I1) | `operand`    | tensor                                       | (C1)        |
- | (I2) | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
+|-------|--------------|----------------------------------------------|-------------|
+| (I1)  | `operand`    | tensor                                       | (C1)        |
+| (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
@@ -4253,11 +4253,11 @@ hidden state.
 #### Inputs
 
 | Label | Name               | Type                                                             | Constraints |
-|---|--------------------|------------------------------------------------------------------|-------------|
- | (I1) | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
- | (I2) | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
- | (I3) | `shape`            | 1-dimensional tensor constant of type `si64`                     | (C3)        |
- | (I4) | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   | (C2)        |
+|-------|--------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
+| (I2)  | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
+| (I3)  | `shape`            | 1-dimensional tensor constant of type `si64`                     | (C3)        |
+| (I4)  | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   | (C2)        |
 
 #### Outputs
 
@@ -4310,9 +4310,9 @@ deterministic between implementations.
 #### Inputs
 
 | Label | Name            | Type                                         | Constraints |
-|---|-----------------|----------------------------------------------|-------------|
- | (I1) | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
- | (I2) | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
+|-------|-----------------|----------------------------------------------|-------------|
+| (I1)  | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
+| (I2)  | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
 
 #### Outputs
 
@@ -4354,8 +4354,8 @@ the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 #### Inputs
 
 | Label | Name      | Type                          | Constraints |
-|---|-----------|-------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point type | (C1)        |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
@@ -4387,8 +4387,8 @@ specification.
 #### Inputs
 
 | Label | Name      | Type                          | Constraints |
-|---|-----------|-------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point type | (C1)        |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
@@ -4421,8 +4421,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -4509,17 +4509,17 @@ undefined.
 #### Inputs
 
 | Label | Name                           | Type                                         | Constraints                                     |
-|---|--------------------------------|----------------------------------------------|-------------------------------------------------|
- | (I1) | `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
- | (I2) | `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                              |
- | (I3) | `updates`                      | variadic number of tensors                   | (C3-C6), (C8)                                   |
- | (I4) | `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                          |
- | (I5) | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                         |
- | (I6) | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11-C13)                                       |
- | (I7) | `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                              |
- | (I8) | `indices_are_sorted`           | constant of type `i1`                        |                                                 |
- | (I9) | `unique_indices`               | constant of type `i1`                        |                                                 |
- | (I10) | `update_computation`           | function                                     | (C15)                                           |
+|-------|--------------------------------|----------------------------------------------|-------------------------------------------------|
+| (I1)  | `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
+| (I2)  | `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                              |
+| (I3)  | `updates`                      | variadic number of tensors                   | (C3-C6), (C8)                                   |
+| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                          |
+| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                         |
+| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11-C13)                                       |
+| (I7)  | `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                              |
+| (I8)  | `indices_are_sorted`           | constant of type `i1`                        |                                                 |
+| (I9)  | `unique_indices`               | constant of type `i1`                        |                                                 |
+| (I10) | `update_computation`           | function                                     | (C15)                                           |
 
 #### Outputs
 
@@ -4614,10 +4614,10 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 #### Inputs
 
 | Label | Name       | Type                | Constraints |
-|---|------------|---------------------|-------------|
- | (I1) | `pred`     | tensor of type `i1` | (C1)        |
- | (I2) | `on_true`  | tensor              | (C1), (C2)  |
- | (I3) | `on_false` | tensor              | (C2)        |
+|-------|------------|---------------------|-------------|
+| (I1)  | `pred`     | tensor of type `i1` | (C1)        |
+| (I2)  | `on_true`  | tensor              | (C1), (C2)  |
+| (I3)  | `on_false` | tensor              | (C2)        |
 
 #### Outputs
 
@@ -4685,15 +4685,15 @@ More formally:
 #### Inputs
 
 | Label | Name                | Type                                         | Constraints             |
-|---|---------------------|----------------------------------------------|-------------------------|
- | (I1) | `operand`           | tensor                                       | (C1-C5), (C7), (C9-C12) |
- | (I2) | `source`            | tensor                                       | (C2), (C3)              |
- | (I3) | `init_value`        | 0-dimensional tensor                         | (C4)                    |
- | (I4) | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)  |
- | (I5) | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)        |
- | (I6) | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)              |
- | (I7) | `select`            | function                                     | (C10)                   |
- | (I8) | `scatter`           | function                                     | (C11)                   |
+|-------|---------------------|----------------------------------------------|-------------------------|
+| (I1)  | `operand`           | tensor                                       | (C1-C5), (C7), (C9-C12) |
+| (I2)  | `source`            | tensor                                       | (C2), (C3)              |
+| (I3)  | `init_value`        | 0-dimensional tensor                         | (C4)                    |
+| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)  |
+| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)        |
+| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)              |
+| (I7)  | `select`            | function                                     | (C10)                   |
+| (I8)  | `scatter`           | function                                     | (C11)                   |
 
 #### Outputs
 
@@ -4761,12 +4761,12 @@ implementation-defined.
 #### Inputs
 
 | Label | Name               | Type                                            | Constraints |
-|---|--------------------|-------------------------------------------------|-------------|
- | (I1) | `inputs`           | variadic number of tensors                      |             |
- | (I2) | `token`            | `token`                                         |             |
- | (I3) | `channel_id`       | constant of type `si64`                         |             |
- | (I4) | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
- | (I5) | `is_host_transfer` | constant of type `i1`                           | (C1)        |
+|-------|--------------------|-------------------------------------------------|-------------|
+| (I1)  | `inputs`           | variadic number of tensors                      |             |
+| (I2)  | `token`            | `token`                                         |             |
+| (I3)  | `channel_id`       | constant of type `si64`                         |             |
+| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
+| (I5)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
 
 #### Outputs
 
@@ -4802,9 +4802,9 @@ of bits and produces a `result` tensor.
 #### Inputs
 
 | Label | Name  | Type                   | Constraints |
-|---|-------|------------------------|-------------|
- | (I1) | `lhs` | tensor of integer type | (C1)        |
- | (I2) | `rhs` | tensor of integer type | (C1)        |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
@@ -4835,9 +4835,9 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 #### Inputs
 
 | Label | Name  | Type                   | Constraints |
-|---|-------|------------------------|-------------|
- | (I1) | `lhs` | tensor of integer type | (C1)        |
- | (I2) | `rhs` | tensor of integer type | (C1)        |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
@@ -4868,9 +4868,9 @@ number of bits and produces a `result` tensor.
 #### Inputs
 
 | Label | Name  | Type                   | Constraints |
-|---|-------|------------------------|-------------|
- | (I1) | `lhs` | tensor of integer type | (C1)        |
- | (I2) | `rhs` | tensor of integer type | (C1)        |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
@@ -4923,8 +4923,8 @@ def sign(x):
 #### Inputs
 
 | Label | Name      | Type                                                      | Constraints |
-|---|-----------|-----------------------------------------------------------|-------------|
- | (I1) | `operand` | tensor of signed integer, floating-point, or complex type | (C1)        |
+|-------|-----------|-----------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of signed integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
@@ -4958,8 +4958,8 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -5000,11 +5000,11 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 #### Inputs
 
 | Label | Name            | Type                                         | Constraints      |
-|---|-----------------|----------------------------------------------|------------------|
- | (I1) | `operand`       | tensor                                       | (C1-C3), (C5)    |
- | (I2) | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
- | (I3) | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
- | (I4) | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
+|-------|-----------------|----------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor                                       | (C1-C3), (C5)    |
+| (I2)  | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
+| (I3)  | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
+| (I4)  | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 
 #### Outputs
 
@@ -5078,11 +5078,11 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 #### Inputs
 
 | Label | Name         | Type                       | Constraints |
-|---|--------------|----------------------------|-------------|
- | (I1) | `inputs`     | variadic number of tensors | (C1)        |
- | (I2) | `dimension`  | constant of type `si64`    | (C4)        |
- | (I3) | `is_stable`  | constant of type `i1`      |             |
- | (I4) | `comparator` | function                   | (C5)        |
+|-------|--------------|----------------------------|-------------|
+| (I1)  | `inputs`     | variadic number of tensors | (C1)        |
+| (I2)  | `dimension`  | constant of type `si64`    | (C4)        |
+| (I3)  | `is_stable`  | constant of type `i1`      |             |
+| (I4)  | `comparator` | function                   | (C5)        |
 
 #### Outputs
 
@@ -5152,8 +5152,8 @@ Performs element-wise square root operation on `operand` tensor and produces a
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -5191,9 +5191,9 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 #### Inputs
 
 | Label | Name  | Type                                               | Constraints |
-|---|-------|----------------------------------------------------|-------------|
- | (I1) | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
- | (I2) | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
+|-------|-------|----------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
@@ -5229,8 +5229,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name      | Type                                     | Constraints |
-|---|-----------|------------------------------------------|-------------|
- | (I1) | `operand` | tensor of floating-point or complex type | (C1)        |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
@@ -5263,9 +5263,9 @@ where `i[d] = j[permutation[d]]`.
 #### Inputs
 
 | Label | Name          | Type                                         | Constraints |
-|---|---------------|----------------------------------------------|-------------|
- | (I1) | `operand`     | tensor                                       | (C1-C3)     |
- | (I2) | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
+|-------|---------------|----------------------------------------------|-------------|
+| (I1)  | `operand`     | tensor                                       | (C1-C3)     |
+| (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
@@ -5326,13 +5326,13 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 #### Inputs
 
 | Label | Name            | Type                                               | Constraints |
-|---|-----------------|----------------------------------------------------|-------------|
- | (I1) | `a`             | tensor of floating-point or complex type           | (C1-C3)     |
- | (I2) | `b`             | tensor of floating-point or complex type           | (C1-C4)     |
- | (I3) | `left_side`     | constant of type `i1`                              | (C3)        |
- | (I4) | `lower`         | constant of type `i1`                              |             |
- | (I5) | `unit_diagonal` | constant of type `i1`                              |             |
- | (I6) | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |             |
+|-------|-----------------|----------------------------------------------------|-------------|
+| (I1)  | `a`             | tensor of floating-point or complex type           | (C1-C3)     |
+| (I2)  | `b`             | tensor of floating-point or complex type           | (C1-C4)     |
+| (I3)  | `left_side`     | constant of type `i1`                              | (C3)        |
+| (I4)  | `lower`         | constant of type `i1`                              |             |
+| (I5)  | `unit_diagonal` | constant of type `i1`                              |             |
+| (I6)  | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |             |
 
 #### Outputs
 
@@ -5384,8 +5384,8 @@ Produces a `result` tuple from values `val`.
 #### Inputs
 
 | Label | Name  | Type                      | Constraints |
-|---|-------|---------------------------|-------------|
- | (I1) | `val` | variadic number of values | (C1), (C2)  |
+|-------|-------|---------------------------|-------------|
+| (I1)  | `val` | variadic number of values | (C1), (C2)  |
 
 #### Outputs
 
@@ -5428,10 +5428,10 @@ The behavior of an infinite loop is TBD
 #### Inputs
 
 | Label | Name       | Type                                 | Constraints |
-|---|------------|--------------------------------------|-------------|
- | (I1) | `operands` | variadic number of tensors or tokens | (C1-C3)     |
- | (I2) | `cond`     | function                             | (C1)        |
- | (I3) | `body`     | function                             | (C2)        |
+|-------|------------|--------------------------------------|-------------|
+| (I1)  | `operands` | variadic number of tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`     | function                             | (C1)        |
+| (I3)  | `body`     | function                             | (C2)        |
 
 #### Outputs
 
@@ -5481,9 +5481,9 @@ tensor. Depending on the element type, does the following:
 #### Inputs
 
 | Label | Name  | Type                              | Constraints |
-|---|-------|-----------------------------------|-------------|
- | (I1) | `lhs` | tensor of boolean or integer type | (C1)        |
- | (I2) | `rhs` | tensor of boolean or integer type | (C1)        |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of boolean or integer type | (C1)        |
+| (I2)  | `rhs` | tensor of boolean or integer type | (C1)        |
 
 #### Outputs
 
