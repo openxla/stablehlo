@@ -219,13 +219,19 @@ absorb these operations into the StableHLO opset or prohibit them from appearing
 in StableHLO programs. In the meanwhile, here is the list of these operations:
 
 * `chlo` operations ([#602](https://github.com/openxla/stablehlo/issues/602)).
-* `func.func`, `func.call` and `func.return`
+* `builtin.module`, `func.func`, `func.call` and `func.return`
   ([#425](https://github.com/openxla/stablehlo/issues/425)).
-* `stablehlo` operations that were initially part of the StableHLO opset but
-  have been later deemed to not fit it well: `broadcast`, `create_token`,
-  `cross-replica-sum`, `dot`, `einsum`, `torch_index_select`, `unary_einsum`
+* "Dynamism" category of StableHLO operations: `compute_reshape_shape`,
+  `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
+  `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
+  `real_dynamic_slice`, `set_dimension_size`
+  ([#8](https://github.com/openxla/stablehlo/issues/8)).
+* "Not in HLO" category of StableHLO operations - they were initially part of
+  the StableHLO opset but have been later deemed to not fit it well:
+  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
+  `torch_index_select`, `unary_einsum`
   ([#3](https://github.com/openxla/stablehlo/issues/3)).
-* `stablehlo.uniform_quantize`
+* "Quantization" category of StableHLO operations: `stablehlo.uniform_quantize`
   ([#531](https://github.com/openxla/stablehlo/issues/531)) and
   `stablehlo.uniform_dequantize`
   ([#530](https://github.com/openxla/stablehlo/issues/530)).
