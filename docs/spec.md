@@ -57,7 +57,10 @@ FuncBody    ::= {Op}
 **StableHLO functions** (which are also called **named functions**) have
 an identifier, inputs/outputs and a body. In the future, we are planning to
 introduce additional metadata for functions to achieve better compatibility
-with HLO ([#425](https://github.com/openxla/stablehlo/issues/425)).
+with HLO ([#425](https://github.com/openxla/stablehlo/issues/425),
+[#626](https://github.com/openxla/stablehlo/issues/626),
+[#740](https://github.com/openxla/stablehlo/issues/740),
+[#744](https://github.com/openxla/stablehlo/issues/744)).
 
 ### Identifiers
 
@@ -104,6 +107,15 @@ type with shape `2x3` and element type `f32`. It has two dimensions (or,
 in other words, two axes) - 0th dimension and 1st dimension - whose sizes are
 2 and 3. Its rank is 2.
 
+This defines support for **static shapes** where dimension sizes are statically
+known. In the future, we are planning to also introduce support for
+**dynamic shapes** where dimension sizes are either partially or fully unknown
+([#8](https://github.com/openxla/stablehlo/issues/8)). Furthermore, we are
+planning to explore extending tensor types beyond dimension sizes and element
+types, for example, to include layouts
+([#629](https://github.com/openxla/stablehlo/issues/629)) and sparsity
+([#1078](https://github.com/openxla/stablehlo/issues/1078)).
+
 ```ebnf
 TokenType ::= 'token'
 ```
@@ -122,7 +134,9 @@ used to represent variadic inputs and outputs. In StableHLO, variadic inputs and
 outputs are supported natively, and the only use of tuples in StableHLO is to
 comprehensively represent HLO ABI where e.g. `T`, `tuple<T>` and
 `tuple<tuple<T>>` may be materially different depending on a particular
-implementation.
+implementation. In the future, we are planning to make changes to HLO ABI
+which may allow us to remove tuple types from StableHLO
+([#598](https://github.com/openxla/stablehlo/issues/598)).
 
 ```ebnf
 ElementType ::= BooleanType | IntegerType | FloatType | ComplexType
@@ -159,6 +173,10 @@ values of type `tensor<T>`).
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
   (both parts are of type `f64`).
+* In the future, we are also planning to introduce **quantized types** that
+  represent integer values obtained via uniform quantization of floating-point
+  values using given scales and zero points
+  ([#588](https://github.com/openxla/stablehlo/issues/588)).
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
@@ -195,6 +213,33 @@ OpMnemonic    ::= 'abs' | 'add' | ...
 inputs/outputs and a signature. The name consists of the `stablehlo.` prefix and
 a **mnemonic** which uniquely identifies one of the supported ops. See below for
 a comprehensive list of all supported ops.
+
+At the moment, StableHLO programs in the wild sometimes contain operations that
+are not described in this document. In the future, we are planning to either
+absorb these operations into the StableHLO opset or prohibit them from appearing
+in StableHLO programs. In the meanwhile, here is the list of these operations:
+
+* `builtin.module`, `func.func`, `func.call` and `func.return`
+  ([#425](https://github.com/openxla/stablehlo/issues/425)).
+* `chlo` operations ([#602](https://github.com/openxla/stablehlo/issues/602)).
+* "Not in HLO" category of StableHLO operations - they were initially part of
+  the StableHLO opset but have been later deemed to not fit it well:
+  `broadcast`, `create_token`, `cross-replica-sum`, `dot`, `einsum`,
+  `torch_index_select`, `unary_einsum`
+  ([#3](https://github.com/openxla/stablehlo/issues/3)).
+* "Dynamism" category of StableHLO operations - they were bootstrapped from
+   MHLO, but we haven't specced them yet: `compute_reshape_shape`,
+  `cstr_reshapable`, `dynamic_broadcast_in_dim`, `dynamic_conv`,
+  `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
+  `real_dynamic_slice`, `set_dimension_size`
+  ([#8](https://github.com/openxla/stablehlo/issues/8)).
+* "Quantization" category of StableHLO operations - they were bootstrapped from
+  MHLO, but we haven't specced them yet: `uniform_quantize`
+  ([#531](https://github.com/openxla/stablehlo/issues/531)) and
+  `uniform_dequantize`
+  ([#530](https://github.com/openxla/stablehlo/issues/530)).
+* Shape computations, including `arith`, `shape` and `tensor` operations
+  ([#8](https://github.com/openxla/stablehlo/issues/8)).
 
 ```ebnf
 OpInputs        ::= OpInputValues OpInputFuncs OpInputAttrs
@@ -246,6 +291,20 @@ elements. For example, the `concatenate` op uses the attribute `dimension` to
 specify the dimension along which its input values are concatenated. Similarly,
 the `slice` op uses multiple attributes like `start_indices` and `limit_indices`
 to specify the bounds that are used to slice the input value.
+
+At the moment, StableHLO programs in the wild sometimes contain attributes
+which are not described in this document. In the future, we are planning to
+either absorb these attributes into the StableHLO opset or prohibit them from
+appearing in StableHLO programs. In the meanwhile, here is the list of these
+attributes:
+
+* `layout` ([#629](https://github.com/openxla/stablehlo/issues/629)).
+* `mhlo.frontend_attributes`
+  ([#628](https://github.com/openxla/stablehlo/issues/628)).
+* `mhlo.sharding` ([#619](https://github.com/openxla/stablehlo/issues/619)).
+* `output_operand_aliases`
+  ([#740](https://github.com/openxla/stablehlo/issues/740)).
+* Location metadata ([#594](https://github.com/openxla/stablehlo/issues/594)).
 
 ```ebnf
 OpSignature ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
@@ -1420,6 +1479,10 @@ value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
 where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 `max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`.
 
+Imposing an ordering on complex numbers involves surprising semantics,
+so in the future we are planning to remove support for complex numbers
+for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
+
 #### Inputs
 
 | Name      | Type   | Constraints |
@@ -1550,6 +1613,10 @@ IEEE-754.
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
+Imposing an ordering on complex numbers involves surprising semantics,
+so in the future we are planning to remove support for complex numbers
+when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
+([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
@@ -1726,7 +1793,7 @@ overflow, the result is implementation-defined and one of the following:
 For conversions involving **floating-point-to-floating-point** or
 **integer-to-floating-point**, if the source value can be exactly represented in
 the destination type, the result value is that exact representation. Otherwise,
-the behavior is TBD.
+the behavior is TBD ([#180](https://github.com/openxla/stablehlo/issues/180)).
 
 Conversion involving **complex-to-complex** follows the same behavior of
 **floating-point-to-floating-point** conversions for converting real and
@@ -1743,9 +1810,10 @@ destination real part. The destination imaginary part is zeroed.
 
 For conversions involving **floating-point-to-integer**, the fractional part is
 truncated. If the truncated value cannot be represented in the destination type,
-the behavior is TBD. Conversions involving **complex-to-integer** follows the
-same behavior while converting the source real part to destination integer. The
-source imaginary part is ignored.
+the behavior is TBD ([#180](https://github.com/openxla/stablehlo/issues/180)).
+Conversions involving **complex-to-integer** follows the same behavior while
+converting the source real part to destination integer. The source imaginary
+part is ignored.
 
 For **boolean-to-any-supported-type** conversions, the value `false` is
 converted to zero, and the value `true` is converted to one. For
@@ -2137,7 +2205,10 @@ More formally, `result[result_index] = dot_product`, where:
 <!-- markdownlint-enable line-length -->
 
 `precision_config` controls the tradeoff between speed and accuracy for
-computations on accelerator backends. This can be one of the following:
+computations on accelerator backends. This can be one of the following (at the
+moment, the semantics of these enum values is underspecified, but we are
+planning to address this in
+[#755](https://github.com/openxla/stablehlo/issues/755)):
 
 * `DEFAULT`: Fastest calculation, but least accurate approximation to the
   original number.
@@ -3082,7 +3153,9 @@ Applies a map function `computation` to `inputs` along the `dimensions` and
 produces a `result` tensor.
 
 More formally, `result[i0, ..., iR-1] = computation(inputs[0][i0, ..., iR-1],`
-`..., inputs[N-1][i0, ..., iR-1])`.
+`..., inputs[N-1][i0, ..., iR-1])`. Note that `dimensions` are currently unused
+and will likely be removed in the future
+([#487](https://github.com/openxla/stablehlo/issues/487)).
 
 #### Inputs
 
@@ -3133,6 +3206,9 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 * For integers: integer maximum.
 * For floats: `maximum` from IEEE-754.
 * For complex numbers: lexicographic maximum for the `(real, imaginary)` pair.
+  Imposing an ordering on complex numbers involves surprising semantics,
+  so in the future we are planning to remove support for complex numbers
+  for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
@@ -3173,6 +3249,9 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 * For integers: integer minimum.
 * For floats: `minimum` from IEEE-754.
 * For complex numbers: lexicographic minimum for the `(real, imaginary)` pair.
+  Imposing an ordering on complex numbers involves surprising semantics,
+  so in the future we are planning to remove support for complex numbers
+  for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
@@ -3692,11 +3771,10 @@ Applies a reduction function `body` to `inputs` and `init_values` along the
 
 The order of reductions is implementation-defined, which means that `body` and
 `init_values` must form a monoid to guarantee that the operation produces the
-same results for all inputs on all implementations.
-
-However, this condition doesn't hold for many popular reductions. E.g.
-floating-point addition for `body` and zero for `init_values` don't actually
-form a monoid because floating-point addition is not associative.
+same results for all inputs on all implementations. However, this condition
+doesn't hold for many popular reductions. E.g. floating-point addition for
+`body` and zero for `init_values` don't actually form a monoid because
+floating-point addition is not associative.
 
 More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
@@ -4018,6 +4096,7 @@ The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
 * For floats: `division(lhs, rhs)` from IEEE-754 with rounding attribute
   `roundTowardZero`.
 * For complex numbers: TBD
+  ([#997](https://github.com/openxla/stablehlo/issues/997)).
 
 For floating-point element types, this operation is in contrast with the
 `remainder` operation from IEEE-754 specification where `d` is an integral value
@@ -4588,10 +4667,11 @@ More formally:
    }
    ```
 
-   where `E = element_type(operand)`.
- where `reduce_window_without_init` works exactly like `reduce_window`,
- except that the `schedule` of the underlying `reduce` doesn't include
- init values.
+   where `E = element_type(operand)`, and `reduce_window_without_init` works
+   exactly like `reduce_window`, except that the `schedule` of the underlying
+   `reduce` doesn't include init values. It is currently unspecified what
+   happens if the corresponding window doesn't have values
+   ([#731](https://github.com/openxla/stablehlo/issues/731)).
 * `result[result_index] = reduce([source_values], [init_value], [0], scatter)`
  where:
   * `source_values` $=$ [`source[source_index]` for `source_index` in
@@ -5342,7 +5422,8 @@ while cond(internal_state) == True:
 results = internal_state
 ```
 
-The behavior of an infinite loop is TBD.
+The behavior of an infinite loop is TBD
+([#383](https://github.com/openxla/stablehlo/issues/383)).
 
 #### Inputs
 
@@ -5448,7 +5529,8 @@ More formally, a **StableHLO process** is a combination of:
 already executed), and 3) intermediate values that the process is working on.
 The process starts with input values to the `main` function, progresses through
 the graph of ops updating operation statuses and intermediate values and
-finishes with output values. Further formalization is TBD.
+finishes with output values. Further formalization is TBD
+([#484](https://github.com/openxla/stablehlo/issues/484)).
 
 ### Parallel execution
 
@@ -5462,14 +5544,18 @@ processes are executing at the same time. Each process has a unique
 `partition_id ∊ partition_ids = [0, ..., num_partitions-1]` which both have
 type `ui32`.
 
-The size of the process grid is known statically for every program, and the
-position within the process grid is known statically for every process. Each
-process has access to its position within the process grid via the `replica_id`
-and `partition_id` ops.
+The size of the process grid is known statically for every program (in the
+future, we are planning to make it an explicit part of StableHLO programs
+[#650](https://github.com/openxla/stablehlo/issues/650)), and the position
+within the process grid is known statically for every process. Each process has
+access to its position within the process grid via the `replica_id` and
+`partition_id` ops.
 
 Within the process grid, the programs can all be the same (in the "Single
 Program, Multiple Data" style), can all be different (in the "Multiple Program,
-Multiple Data" style) or something in between.
+Multiple Data" style) or something in between. In the future, we are planning
+to introduce support for other idioms of defining parallel StableHLO programs,
+including GSPMD ([#619](https://github.com/openxla/stablehlo/issues/619)).
 
 Within the process grid, the processes are mostly independent from each other -
 they have separate operation statuses, separate input/intermediate/output values
@@ -5496,7 +5582,8 @@ receive them from channels.
 
 Further formalization, e.g. where these channel ids are coming from, how
 processes programs become aware of them and what kind of synchronization is
-introduced by them, is TBD.
+introduced by them, is TBD
+([#484](https://github.com/openxla/stablehlo/issues/484)).
 
 ### Streaming communication
 
@@ -5510,7 +5597,8 @@ have processes at both of their ends, infeeds and outfeeds have their other
 end implementation-defined.
 
 Further formalization, e.g. how streaming communication influences execution
-order and what kind of synchronization is introduced by it, is TBD.
+order and what kind of synchronization is introduced by it, is TBD
+([#484](https://github.com/openxla/stablehlo/issues/484)).
 
 ### Collective ops
 
@@ -5523,7 +5611,8 @@ other process groups.
 Within each process group, collective ops may introduce a synchronization
 barrier. Further formalization, e.g. elaborating on when exactly this
 synchronization happens, how exactly the processes arrive at this barrier,
-and what happens if they don't, is TBD.
+and what happens if they don't, is TBD
+([#484](https://github.com/openxla/stablehlo/issues/484)).
 
 If the process group involves cross-partition communication, i.e. there are
 processes in the process group whose partition ids are different, then execution
