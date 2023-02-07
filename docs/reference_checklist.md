@@ -7,6 +7,12 @@ those fronts alongside the interpreter implementation.
 
 While implementing the interpreter:
 
+1. Provide an explicitly written down testing strategy (in a PR description)
+   similar to
+   [this](https://github.com/openxla/stablehlo/pull/996#issue-1558631158) to use
+   it as a reference while reviewing the verification and type inference
+   methods, and the corresponding tests. The reviewer will double check that the
+   description is comprehensive.
 1. Consult
    [hlo_evaluator](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/hlo/evaluator)
    and
@@ -37,12 +43,6 @@ After implementing the interpreter:
        );
        ```
 
-1. The author of the PR to provide an explicitly written down testing strategy
-   (in a PR description) similar to
-   [this](https://github.com/openxla/stablehlo/pull/996#issue-1558631158) to use
-   it as a reference while reviewing the verification and type inference methods,
-   and the corresponding tests. The reviewer will make sure that the description
-   is comprehensive.
 1. In [TypeInference.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.cpp)
    and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp):
     1. Delete comments that say things like "Verify the following properties:
