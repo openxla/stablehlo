@@ -173,17 +173,17 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  ArrayRef<int64_t> edgePaddingLow,
                  ArrayRef<int64_t> interiorPadding, Type resultType) {
   Tensor result(resultType);
-  for (auto resItr = result.index_begin(); resItr != result.index_end();
-       ++resItr)
-    result.set(*resItr, paddingValue.get({}));
-  for (auto opItr = operand.index_begin(); opItr != operand.index_end();
-       ++opItr) {
-    SmallVector<int64_t> adjustedIdx(result.getType().getRank());
-    for (int64_t i = 0; i < operand.getType().getRank(); ++i)
-      adjustedIdx[i] =
-          edgePaddingLow[i] + (*opItr)[i] * (interiorPadding[i] + 1);
-    if (failed(verifyIndex(result.getType().getShape(), adjustedIdx))) continue;
-    result.set(adjustedIdx, operand.get(*opItr));
+  for (auto resultItr = result.index_begin(); resultItr != result.index_end();
+       ++resultItr)
+    result.set(*resultItr, paddingValue.get({}));
+  for (auto operandItr = operand.index_begin();
+       operandItr != operand.index_end(); ++operandItr) {
+    SmallVector<int64_t> resultIdx(result.getType().getRank());
+    for (auto i = 0; i < operand.getType().getRank(); ++i)
+      resultIdx[i] =
+          edgePaddingLow[i] + (*operandItr)[i] * (interiorPadding[i] + 1);
+    if (succeeded(verifyIndex(result.getType().getShape(), resultIdx)))
+      result.set(resultIdx, operand.get(*operandItr));
   }
   return result;
 }

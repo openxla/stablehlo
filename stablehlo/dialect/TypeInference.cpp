@@ -2429,20 +2429,30 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
   auto inputType = operand.getType().cast<RankedTensorType>();
   auto padType = paddingValue.getType().cast<RankedTensorType>();
 
+  // pad_i2
   if (padType.getRank() != 0)
     return emitOptionalError(location,
                              "padding value type should be a rank-0 "
                              "tensor, is rank ",
                              padType.getRank());
 
+  // pad_c2, pad_i3, pad_i4, pad_i5
+  if (edgePaddingLow.getType() != edgePaddingHigh.getType() ||
+      edgePaddingLow.getType() != interiorPadding.getType())
+    return emitOptionalError(
+        location, "edge_padding_low, edge_padding_high, ",
+        "and interior_padding must have the same type but got: ",
+        edgePaddingLow.getType(), ", ", edgePaddingHigh.getType(), ", and ",
+        interiorPadding.getType());
+
   // pad_i3
   if (edgePaddingLow.getType().getRank() != 1)
-    return emitOptionalError(location, "start_indices has rank ",
+    return emitOptionalError(location, "edge_padding_low has rank ",
                              edgePaddingLow.getType().getRank(),
                              " instead of required rank 1");
 
-  // pad_c2
   int64_t rank = inputType.getRank();
+  // pad_c2
   if (edgePaddingLow.getType().getNumElements() != rank)
     return emitOptionalError(location, "edge_padding_low length (",
                              edgePaddingLow.getType().getNumElements(),
