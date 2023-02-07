@@ -92,7 +92,7 @@ Tensor evalCosineOp(const Tensor &operand, Type resultType) {
 }
 
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
-                                const ArrayRef<Tensor> &startIndices,
+                                ArrayRef<Tensor> startIndices,
                                 Type resultType) {
   Tensor result(resultType);
   auto operandShape = operand.getType().getShape();

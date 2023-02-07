@@ -32,8 +32,7 @@ Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, Type resultType);
 Tensor evalCosineOp(const Tensor &operand, Type resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
-                                const ArrayRef<Tensor> &startIndices,
-                                Type resultType);
+                                ArrayRef<Tensor> startIndices, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
 Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
