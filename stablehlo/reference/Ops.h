@@ -39,6 +39,7 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           ArrayRef<int64_t> sliceSizes, Type resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices, Type resultType);
+Tensor evalExponentialOp(const Tensor &operand, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                              Region &falseBranch, Scope &scope);

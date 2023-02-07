@@ -151,6 +151,13 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   return result;
 }
 
+Tensor evalExponentialOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, exponential(operand.get(*it)));
+  return result;
+}
+
 Tensor evalFloorOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

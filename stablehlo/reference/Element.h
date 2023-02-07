@@ -112,6 +112,9 @@ Element cosine(const Element &e);
 /// Returns floor of Element object.
 Element floor(const Element &e);
 
+/// Returns element-wise exponential of Element object.
+Element exponential(const Element &el);
+
 /// Returns the maximum between two Element objects.
 Element max(const Element &e1, const Element &e2);
 

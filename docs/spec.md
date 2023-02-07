@@ -2464,6 +2464,8 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 // %result: (-1.13120438, 2.47172667)
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_exponential.mlir)
+
 ### exponential_minus_one
 
 #### Semantics
