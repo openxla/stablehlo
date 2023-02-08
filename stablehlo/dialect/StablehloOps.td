@@ -398,7 +398,8 @@ def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
 }
 
 def StableHLO_LogOp: StableHLO_UnaryElementwiseOp<"log",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /* log_c1 */],
+     HLO_FpOrComplexTensor> {
   let summary = "Logarithm operation";
   let description = [{
     Performs element-wise logarithm operation on `operand` tensor and produces a
