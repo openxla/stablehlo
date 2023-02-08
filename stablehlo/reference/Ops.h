@@ -52,6 +52,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);
+Tensor evalSelectOp(const Tensor &pred, const Tensor &on_true,
+                    const Tensor &on_false, Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
 Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
                    ArrayRef<int64_t> strides, Type resultType);

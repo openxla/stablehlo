@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "stablehlo/reference/Ops.h"
 
+#include "Element.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Errc.h"
@@ -270,6 +271,19 @@ Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
   return result;
 }
 
+Tensor evalSelectOp(const Tensor &pred, const Tensor &on_true,
+                    const Tensor &on_false, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    Element pred_value = pred.getType().getRank() != 0
+                             ? pred.get(*it)
+                             : pred.get(*(pred.index_begin()));
+    result.set(*it, pred_value.getBooleanValue() ? on_true.get(*it)
+                                                 : on_false.get(*it));
+  }
+  return result;
+}
+
 Tensor evalSineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -471,6 +485,13 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       return scope.find(returnOp.getOperands());
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       return scope.find(returnOp.getResults());
+    } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
+      Tensor runtimePred = fetchOperand(selectOp.getPred());
+      Tensor runtimeOnTrue = fetchOperand(selectOp.getOnTrue());
+      Tensor runtimeOnFalse = fetchOperand(selectOp.getOnFalse());
+      Tensor runtimeResult = evalSelectOp(runtimePred, runtimeOnTrue,
+                                          runtimeOnFalse, selectOp.getType());
+      populateResults({runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());

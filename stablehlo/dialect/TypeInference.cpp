@@ -2648,24 +2648,19 @@ LogicalResult inferSelectOp(
   auto trueType = onTrue.getType().cast<ShapedType>();
   auto falseType = onFalse.getType().cast<ShapedType>();
 
-  // The operands `onTrue` and `onFalse` should have compatible types, i.e.,
-  //   (a) have the same element type, and
-  //   (b) have compatible shapes (i.e. the same shape and/or at least one
-  //       dynamic shape)
+  // select_c2
   if (!compatibleShapeAndElementType(trueType, falseType))
     return emitOptionalError(
         location, "requires compatible types for non-predicate operands");
 
-  // The predicate, if not-scalar, should have the same shape as the remaining
-  // operands.
+  // select_c1 
   bool predCannotBeScalar = predType.hasRank() && predType.getRank() != 0;
   if (predCannotBeScalar)
     if (failed(verifyCompatibleShape(predType, trueType)))
       return emitOptionalError(location,
                                "requires the same shape for all operands");
 
-  // The output shape should be derived from the most specific parts of the
-  // `onTrue` and `onFalse` (see documentation for details).
+  // select_c2
   SmallVector<Type> inferredReturnTypes;
   return inferMostSpecificTypeComponents(location, {trueType, falseType},
                                          inferredReturnShapes);

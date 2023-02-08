@@ -133,7 +133,7 @@ one of the following tracking labels.
 | round_nearest_even       | yes           | yes          | yes            | yes             | no          |
 | rsqrt                    | yes           | yes          | yes            | yes             | no          |
 | scatter                  | yes           | revisit      | yes            | no              | no          |
-| select                   | yes           | yes          | yes            | yes             | no          |
+| select                   | yes           | yes          | yes            | yes             | yes         |
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes\*        | yes\*          | yes             | no          |
