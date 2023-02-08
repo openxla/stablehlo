@@ -609,7 +609,7 @@ def StableHLO_SineOp: StableHLO_UnaryElementwiseOp<"sine",
 
 def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt", [Pure,
     HLO_CompatibleOperandsAndResultType /*sqrt_c1*/], HLO_FpOrComplexTensor> {
-  let summary = "Square-root operation";
+  let summary = "Sqrt operation";
   let description = [{
     Performs element-wise square root operation on `operand` tensor and produces
     a `result` tensor.
