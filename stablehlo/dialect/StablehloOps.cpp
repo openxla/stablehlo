@@ -2546,7 +2546,6 @@ StablehloDialect::StablehloDialect(MLIRContext* context)
 #define GET_ATTRDEF_LIST
 #include "stablehlo/dialect/StablehloAttrs.cpp.inc"
       >();
-  context->loadDialect<tensor::TensorDialect>();
 }
 
 Type StablehloDialect::parseType(DialectAsmParser& parser) const {
