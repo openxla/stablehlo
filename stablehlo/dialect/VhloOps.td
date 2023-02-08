@@ -956,4 +956,19 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
   let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
 }
 
+def VHLO_FuncOpV1 : VHLO_Op<"func"> {
+  let arguments = (ins VHLO_AnyAttr:$sym_name,
+                       VHLO_AnyAttr:$function_type,
+                       OptionalAttr<VHLO_AnyAttr>:$sym_visibility,
+                       OptionalAttr<VHLO_AnyAttr>:$arg_attrs,
+                       OptionalAttr<VHLO_AnyAttr>:$res_attrs);
+  let regions = (region VHLO_AnyRegion:$body);
+  let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
+}
+
+def VHLO_CallOpV1 : VHLO_Op<"call"> {
+  let arguments = (ins VHLO_AnyAttr:$callee, Variadic<VHLO_AnyType>:$operands);
+  let results = (outs Variadic<VHLO_AnyType>);
+}
+
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

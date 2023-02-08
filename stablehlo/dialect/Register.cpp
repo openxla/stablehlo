@@ -29,10 +29,7 @@ namespace stablehlo {
 
 void registerAllDialects(mlir::DialectRegistry &registry) {
   // clang-format off
-  registry.insert<mlir::shape::ShapeDialect,
-                  mlir::sparse_tensor::SparseTensorDialect,
-                  mlir::tensor::TensorDialect,
-                  mlir::quant::QuantizationDialect>();
+  registry.insert<mlir::sparse_tensor::SparseTensorDialect>();
   registry.insert<mlir::chlo::ChloDialect,
                   mlir::stablehlo::StablehloDialect,
                   mlir::vhlo::VhloDialect>();

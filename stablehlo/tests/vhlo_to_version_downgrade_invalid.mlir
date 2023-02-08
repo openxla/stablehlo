@@ -99,16 +99,16 @@ func.func @all_to_all_to_v1(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
+// expected-error @+1 {{failed to legalize operation 'vhlo.func' that was explicitly marked illegal}}
 func.func @type_fp8_E5M2(%arg0: tensor<f8E5M2>) -> tensor<f8E5M2> {
-  // expected-error @+1 {{failed to legalize operation 'vhlo.add' that was explicitly marked illegal}}
   %0 = stablehlo.add %arg0, %arg0 : tensor<f8E5M2>
   func.return %0 : tensor<f8E5M2>
 }
 
 // -----
 
+// expected-error @+1 {{failed to legalize operation 'vhlo.func' that was explicitly marked illegal}}
 func.func @type_fp8_E4M3FN(%arg0: tensor<f8E4M3FN>) -> tensor<f8E4M3FN> {
-  // expected-error @+1 {{failed to legalize operation 'vhlo.add' that was explicitly marked illegal}}
   %0 = stablehlo.add %arg0, %arg0 : tensor<f8E4M3FN>
   func.return %0 : tensor<f8E4M3FN>
 }

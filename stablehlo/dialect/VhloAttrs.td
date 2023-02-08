@@ -204,6 +204,23 @@ def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
+  let mnemonic = "dict";
+  let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult DictionaryV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<std::pair<mlir::Attribute, mlir::Attribute>> value) {
+      for (auto & entry : value)
+        if (!isFromVhlo(entry.first) || !isFromVhlo(entry.second))
+          errFn() << "expected VHLO attribute";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` custom<AttributeDictionary>($value) `>`";
+}
+
 def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
   let mnemonic = "sym";
   let parameters = (ins "::mlir::Attribute":$root_reference);
@@ -249,6 +266,20 @@ def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
 def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
+def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1"> {
+  let mnemonic = "type";
+  let parameters = (ins "::mlir::Type":$value);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TypeV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type value) {
+      if (!isFromVhlo(value)) return errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
   let assemblyFormat = "`<` $value `>`";
 }
 

@@ -12,8 +12,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -21,7 +24,6 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -143,6 +145,18 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
                                                       attr.getRawData());
   }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
+    SmallVector<NamedAttribute> vhloAttrs;
+    for (auto namedAttr : attr.getValue()) {
+      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter)
+                             .dyn_cast_or_null<StringAttr>();
+      auto builtinValue =
+          convertAttrToStablehlo(namedAttr.second, typeConverter);
+      if (!builtinName || !builtinValue) return {};
+      vhloAttrs.push_back({builtinName, builtinValue});
+    }
+    return DictionaryAttr::get(attr.getContext(), vhloAttrs);
+  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::FlatSymbolRefV1Attr>()) {
     auto builtinRootRef =
         convertAttrToStablehlo(attr.getRootReference(), typeConverter);
@@ -163,6 +177,11 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(attr.getContext(), attr.getValue());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
+    auto builtinType = typeConverter->convertType(attr.getValue());
+    if (!builtinType) return {};
+    return TypeAttr::get(builtinType);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
     return UnitAttr::get(attr.getContext());
@@ -193,12 +212,12 @@ struct VhloLegalizeToStablehloPass
     ConversionTarget target(getContext());
     target.addIllegalDialect<vhlo::VhloDialect>();
     target.addLegalDialect<stablehlo::StablehloDialect>();
+    target.addLegalDialect<func::FuncDialect>();
 
     VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // VHLO should always be convertible to StableHLO if upgraded.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -230,6 +249,15 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           convertAttrToStablehlo(vhloAttr.getValue(), this->getTypeConverter());
       if (!stablehloAttr) return failure();
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
+    }
+
+    // Replace vhlo.return --> func.return if direct parent is a func op.
+    if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
+      if (llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
+        rewriter.replaceOpWithNewOp<func::ReturnOp>(
+            vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
+        return success();
+      }
     }
 
     // Convert the vhlo operation to a StableHLO equivalent.
@@ -276,7 +304,8 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
   populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp>(patterns, converter, context);
+  // Omit ReturnOp since it is handled during conversion of vhlo::ReturnOp
 }
 
 }  // namespace stablehlo

@@ -24,10 +24,14 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/FunctionImplementation.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/IR/Value.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
@@ -75,6 +79,7 @@ static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }
 
+// Parse attributes in brackets: [#vhlo.attr, #vhlo.attr]
 ParseResult parseAttributeArray(AsmParser& parser,
                                 SmallVector<Attribute>& arrayAttr) {
   ArrayAttr array;
@@ -102,6 +107,75 @@ Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
                             attr.getValue());
 }
 
+static void printAttributeDictionary(
+    AsmPrinter& os, ArrayRef<std::pair<Attribute, Attribute>> values) {
+  os << '{';
+  for (auto nvp : values) {
+    os << nvp.first << " = " << nvp.second;
+  }
+  os << '}';
+}
+
+// Parse array of NVPs in braces: {key = value, key = value}
+ParseResult parseAttributeDictionary(
+    AsmParser& parser, SmallVector<std::pair<Attribute, Attribute>>& values) {
+  auto parseEle = [&]() {
+    Attribute name;
+    Attribute value;
+    if (failed(parser.parseAttribute(name)) || failed(parser.parseEqual()) ||
+        failed(parser.parseAttribute(value))) {
+      return failure();
+    }
+    values.push_back({name, value});
+    return success();
+  };
+  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::Braces,
+                                            parseEle))) {
+    return failure();
+  }
+  return success();
+}
+
+// Print function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
+                       Region& region, Attribute funcType) {
+  p.printSymbolName(name.cast<StringV1Attr>().getValue());
+  p << '(';
+  llvm::interleaveComma(region.getArguments(), p,
+                        [&](auto arg) { p.printRegionArgument(arg); });
+  p << ") -> (";
+  auto fnType = funcType.cast<TypeV1Attr>().getValue().cast<FunctionV1Type>();
+  llvm::interleaveComma(fnType.getResults(), p,
+                        [&](auto res) { p.printType(res); });
+  p << ") ";
+  p.printRegion(region, false, true, true);
+}
+
+// Parse function using: @name(arg : type, ...) -> (res_type...) { body_ops }
+ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
+                              Region& region, Attribute& funcType) {
+  StringAttr strName;
+  SmallVector<OpAsmParser::Argument> args;
+  SmallVector<Type> inputTypes;
+  SmallVector<Type> resultTypes;
+  if (failed(parser.parseSymbolName(strName)) ||
+      failed(
+          parser.parseArgumentList(args, AsmParser::Delimiter::Paren, true)) ||
+      failed(parser.parseArrowTypeList(resultTypes)) ||
+      failed(parser.parseRegion(region, args))) {
+    return failure();
+  }
+  name = StringV1Attr::get(parser.getContext(), strName.getValue());
+  for (OpAsmParser::Argument arg : args) {
+    inputTypes.push_back(arg.type);
+  }
+  funcType = TypeV1Attr::get(
+      parser.getContext(),
+      FunctionV1Type::get(parser.getContext(), inputTypes, resultTypes));
+
+  return success();
+}
+
 void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
   p << '<'
     << DenseIntOrFPElementsAttr::getFromRawBuffer(
@@ -109,6 +183,7 @@ void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
     << '>';
 }
 
+// Parse dense elements using DenseIntOrFPElementsAttr printing.
 Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
   DenseIntOrFPElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||

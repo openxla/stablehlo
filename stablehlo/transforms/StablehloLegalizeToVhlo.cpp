@@ -13,6 +13,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -22,7 +23,6 @@ limitations under the License.
 #include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -175,6 +175,16 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return vhlo::DenseIntOrFPElementsV1Attr::get(attr.getContext(), vhloType,
                                                  attr.getRawData());
   }
+  if (auto attr = stablehloAttr.dyn_cast<DictionaryAttr>()) {
+    SmallVector<std::pair<Attribute, Attribute>> vhloAttrs;
+    for (auto namedAttr : attr.getValue()) {
+      auto vhloName = convertAttrToVhlo(namedAttr.getName(), typeConverter);
+      auto vhloValue = convertAttrToVhlo(namedAttr.getValue(), typeConverter);
+      if (!vhloName || !vhloValue) return {};
+      vhloAttrs.push_back({vhloName, vhloValue});
+    }
+    return vhlo::DictionaryV1Attr::get(attr.getContext(), vhloAttrs);
+  }
   if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
     auto vhloRootRef =
         convertAttrToVhlo(attr.getRootReference(), typeConverter);
@@ -201,6 +211,11 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
       return {};
     }
     return vhlo::StringV1Attr::get(attr.getContext(), attr.getValue());
+  }
+  if (auto attr = stablehloAttr.dyn_cast<TypeAttr>()) {
+    auto vhloType = typeConverter->convertType(attr.getValue());
+    if (!vhloType) return {};
+    return vhlo::TypeV1Attr::get(attr.getContext(), vhloType);
   }
   if (auto attr = stablehloAttr.dyn_cast<UnitAttr>()) {
     return vhlo::UnitV1Attr::get(attr.getContext());
@@ -294,13 +309,13 @@ struct StablehloLegalizeToVhloPass
   void runOnOperation() override {
     ConversionTarget target(getContext());
     target.addIllegalDialect<stablehlo::StablehloDialect>();
+    target.addIllegalDialect<func::FuncDialect>();
     target.addLegalDialect<vhlo::VhloDialect>();
 
     StablehloToVhloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateStablehloToVhloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // StableHLO is a subset of VHLO.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -317,7 +332,8 @@ void populateStablehloToVhloPatterns(RewritePatternSet* patterns,
   populateStablehloToVhloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp, func::ReturnOp>(patterns, converter,
+                                                    context);
 }
 }  // namespace stablehlo
 }  // namespace mlir

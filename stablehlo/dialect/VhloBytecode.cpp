@@ -26,6 +26,7 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
@@ -191,31 +192,42 @@ enum AttributeCode {
   ///   }
   kDenseIntOrFPElementsAttr = 17,
 
+  ///   ArrayAttr {
+  ///   DictionaryAttr {
+  ///     attrs: <Attribute, Attribute>[]
+  ///   }
+  kDictionaryAttr = 18,
+
   ///   FlatSymbolRefAttr {
   ///     rootReference: StringAttr
   ///   }
-  kFlatSymbolRefAttr = 18,
+  kFlatSymbolRefAttr = 19,
 
   ///   FloatAttr {
   ///     type: Type
   ///     value: APFloat
   ///   }
-  kFloatAttr = 19,
+  kFloatAttr = 20,
 
   ///   IntegerAttr {
   ///     type: Type
   ///     value: APInt
   ///   }
-  kIntegerAttr = 20,
+  kIntegerAttr = 21,
 
   ///   StringAttr {
   ///     value: string
   ///   }
-  kStringAttr = 21,
+  kStringAttr = 22,
+
+  ///   TypeAttr {
+  ///     value: Type
+  ///   }
+  kTypeAttr = 23,
 
   ///   UnitAttr {
   ///   }
-  kUnitAttr = 22,
+  kUnitAttr = 24,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -443,20 +455,24 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   ArrayV1Attr readArrayV1Attr(DialectBytecodeReader &reader) const;
   DenseIntOrFPElementsV1Attr readDenseIntOrFPElementsV1Attr(
       DialectBytecodeReader &reader) const;
+  DictionaryV1Attr readDictionaryV1Attr(DialectBytecodeReader &reader) const;
   FlatSymbolRefV1Attr readFlatSymbolRefV1Attr(
       DialectBytecodeReader &reader) const;
   FloatV1Attr readFloatV1Attr(DialectBytecodeReader &reader) const;
   IntegerV1Attr readIntegerV1Attr(DialectBytecodeReader &reader) const;
   StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
+  TypeV1Attr readTypeV1Attr(DialectBytecodeReader &reader) const;
   // UnitV1Attr readUnitV1Attr(DialectBytecodeReader &reader) const; // inlined
 
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(DenseIntOrFPElementsV1Attr attr,
              DialectBytecodeWriter &writer) const;
+  void write(DictionaryV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(FlatSymbolRefV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(FloatV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(IntegerV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(StringV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(TypeV1Attr attr, DialectBytecodeWriter &writer) const;
   // void write(UnitV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
@@ -479,6 +495,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Forked Types
   ComplexV1Type readComplexType(DialectBytecodeReader &reader) const;
+  FunctionV1Type readFunctionType(DialectBytecodeReader &reader) const;
   RankedTensorV1Type readRankedTensorType(DialectBytecodeReader &reader,
                                           bool hasEncoding) const;
   TupleV1Type readTupleType(DialectBytecodeReader &reader) const;
@@ -488,6 +505,7 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
       DialectBytecodeReader &reader) const;
 
   void write(ComplexV1Type type, DialectBytecodeWriter &writer) const;
+  void write(FunctionV1Type type, DialectBytecodeWriter &writer) const;
   void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
@@ -541,6 +559,8 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readArrayV1Attr(reader);
     case vhlo_encoding::kDenseIntOrFPElementsAttr:
       return readDenseIntOrFPElementsV1Attr(reader);
+    case vhlo_encoding::kDictionaryAttr:
+      return readDictionaryV1Attr(reader);
     case vhlo_encoding::kFlatSymbolRefAttr:
       return readFlatSymbolRefV1Attr(reader);
     case vhlo_encoding::kFloatAttr:
@@ -549,6 +569,8 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readIntegerV1Attr(reader);
     case vhlo_encoding::kStringAttr:
       return readStringV1Attr(reader);
+    case vhlo_encoding::kTypeAttr:
+      return readTypeV1Attr(reader);
     case vhlo_encoding::kUnitAttr:
       return UnitV1Attr::get(getContext());
     default:
@@ -575,8 +597,9 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             write(attr, writer);
             return success();
           })
-      .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, FlatSymbolRefV1Attr,
-            FloatV1Attr, IntegerV1Attr, StringV1Attr>([&](auto attr) {
+      .Case<ArrayV1Attr, DenseIntOrFPElementsV1Attr, DictionaryV1Attr,
+            FlatSymbolRefV1Attr, FloatV1Attr, IntegerV1Attr, StringV1Attr,
+            TypeV1Attr>([&](auto attr) {
         LOG_WRITE_CALL;  // Forked attrs
         write(attr, writer);
         return success();
@@ -1010,6 +1033,35 @@ void VhloBytecodeInterface::write(DenseIntOrFPElementsV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
+// DictionaryV1Attr
+
+DictionaryV1Attr VhloBytecodeInterface::readDictionaryV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  auto readNamedAttr = [&]() -> FailureOr<std::pair<Attribute, Attribute>> {
+    Attribute name;
+    Attribute value;
+    if (failed(reader.readAttribute(name)) ||
+        failed(reader.readAttribute(value)))
+      return failure();
+    return {{name, value}};
+  };
+  SmallVector<std::pair<Attribute, Attribute>> attrs;
+  if (failed(reader.readList(attrs, readNamedAttr))) return DictionaryV1Attr();
+
+  return DictionaryV1Attr::get(getContext(), attrs);
+}
+
+void VhloBytecodeInterface::write(DictionaryV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kDictionaryAttr);
+  writer.writeList(attr.getValue(), [&](auto attrPair) {
+    writer.writeAttribute(attrPair.first);
+    writer.writeAttribute(attrPair.second);
+  });
+}
+
+//===----------------------------------------------------------------------===//
 // FloatV1Attr
 
 namespace {
@@ -1121,6 +1173,24 @@ void VhloBytecodeInterface::write(StringV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
+// TypeV1Attr
+
+TypeV1Attr VhloBytecodeInterface::readTypeV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  Type type;
+  if (failed(reader.readType(type))) return TypeV1Attr();
+
+  return TypeV1Attr::get(getContext(), type);
+}
+
+void VhloBytecodeInterface::write(TypeV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kTypeAttr);
+  writer.writeType(attr.getValue());
+}
+
+//===----------------------------------------------------------------------===//
 // Types
 //===----------------------------------------------------------------------===//
 
@@ -1147,6 +1217,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return Float8E5M2V1Type::get(getContext());
     case vhlo_encoding::kFloat8E4M3FN:
       return Float8E4M3FNV1Type::get(getContext());
+    case vhlo_encoding::kFunctionType:
+      return readFunctionType(reader);
     case vhlo_encoding::kIndexType:
       return IndexV1Type::get(getContext());
     case vhlo_encoding::kIntegerI1Type:
@@ -1198,7 +1270,7 @@ LogicalResult VhloBytecodeInterface::writeType(
         write(type, writer);
         return success();
       })
-      .Case<ComplexV1Type, RankedTensorV1Type, TupleV1Type,
+      .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TupleV1Type,
             UnrankedTensorV1Type, UniformQuantizedV1Type>([&](auto type) {
         LOG_WRITE_CALL;
         return write(type, writer), success();
@@ -1318,6 +1390,27 @@ void VhloBytecodeInterface::write(ComplexV1Type type,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kComplexType);
   writer.writeType(type.getElementType());
+}
+
+//===----------------------------------------------------------------------===//
+// FunctionV1Type
+
+FunctionV1Type VhloBytecodeInterface::readFunctionType(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  SmallVector<Type> inputs;
+  SmallVector<Type> results;
+  if (failed(reader.readTypes(inputs)) || failed(reader.readTypes(results)))
+    return FunctionV1Type();
+
+  return FunctionV1Type::get(getContext(), inputs, results);
+}
+
+void VhloBytecodeInterface::write(FunctionV1Type type,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kFunctionType);
+  writer.writeTypes(type.getInputs());
+  writer.writeTypes(type.getResults());
 }
 
 //===----------------------------------------------------------------------===//
