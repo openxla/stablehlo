@@ -148,12 +148,12 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
     SmallVector<NamedAttribute> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
-      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter);
+      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter)
+                             .dyn_cast_or_null<StringAttr>();
       auto builtinValue =
           convertAttrToStablehlo(namedAttr.second, typeConverter);
-      if (!builtinName || !builtinValue || !builtinName.isa<StringAttr>())
-        return {};
-      vhloAttrs.push_back({builtinName.cast<StringAttr>(), builtinValue});
+      if (!builtinName || !builtinValue) return {};
+      vhloAttrs.push_back({builtinName, builtinValue});
     }
     return DictionaryAttr::get(attr.getContext(), vhloAttrs);
   }

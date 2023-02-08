@@ -194,7 +194,7 @@ enum AttributeCode {
 
   ///   ArrayAttr {
   ///   DictionaryAttr {
-  ///     attrs: <StringAttr, Attribute>[]
+  ///     attrs: <Attribute, Attribute>[]
   ///   }
   kDictionaryAttr = 18,
 

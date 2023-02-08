@@ -969,9 +969,6 @@ def VHLO_FuncOpV1 : VHLO_Op<"func"> {
 def VHLO_CallOpV1 : VHLO_Op<"call"> {
   let arguments = (ins VHLO_AnyAttr:$callee, Variadic<VHLO_AnyType>:$operands);
   let results = (outs Variadic<VHLO_AnyType>);
-  let assemblyFormat = [{
-    $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
-  }];
 }
 
 #endif // STABLEHLO_DIALECT_STABLEHLO_OPS

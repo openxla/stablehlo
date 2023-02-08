@@ -107,8 +107,8 @@ Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
                             attr.getValue());
 }
 
-static void printDictionary(AsmPrinter& os,
-                            ArrayRef<std::pair<Attribute, Attribute>> values) {
+static void printAttributeDictionary(
+    AsmPrinter& os, ArrayRef<std::pair<Attribute, Attribute>> values) {
   os << '{';
   for (auto nvp : values) {
     os << nvp.first << " = " << nvp.second;
@@ -117,7 +117,7 @@ static void printDictionary(AsmPrinter& os,
 }
 
 // Parse array of NVPs in braces: {key = value, key = value}
-ParseResult parseDictionary(
+ParseResult parseAttributeDictionary(
     AsmParser& parser, SmallVector<std::pair<Attribute, Attribute>>& values) {
   auto parseEle = [&]() {
     Attribute name;
@@ -139,13 +139,12 @@ ParseResult parseDictionary(
 // Print function using: @name(arg : type, ...) -> (res_type...) { body_ops }
 void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
                        Region& region, Attribute funcType) {
-  p.printSymbolName(name.cast<vhlo::StringV1Attr>().getValue());
+  p.printSymbolName(name.cast<StringV1Attr>().getValue());
   p << '(';
   llvm::interleaveComma(region.getArguments(), p,
                         [&](auto arg) { p.printRegionArgument(arg); });
   p << ") -> (";
-  auto fnType =
-      funcType.cast<TypeV1Attr>().getValue().cast<vhlo::FunctionV1Type>();
+  auto fnType = funcType.cast<TypeV1Attr>().getValue().cast<FunctionV1Type>();
   llvm::interleaveComma(fnType.getResults(), p,
                         [&](auto res) { p.printType(res); });
   p << ") ";
@@ -166,7 +165,7 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
       failed(parser.parseRegion(region, args))) {
     return failure();
   }
-  name = vhlo::StringV1Attr::get(parser.getContext(), strName.getValue());
+  name = StringV1Attr::get(parser.getContext(), strName.getValue());
   for (OpAsmParser::Argument arg : args) {
     inputTypes.push_back(arg.type);
   }
@@ -184,7 +183,7 @@ void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
     << '>';
 }
 
-// Parse dense elements using DenseIntOfFPElementsAttr printing.
+// Parse dense elements using DenseIntOrFPElementsAttr printing.
 Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
   DenseIntOrFPElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||

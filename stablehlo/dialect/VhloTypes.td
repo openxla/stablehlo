@@ -92,7 +92,7 @@ def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0">;
 
 def VHLO_Float8E5M2V1 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0">;
 
-def VHLO_FunctionTypeV1 : VHLO_TypeDef<"FunctionV1", "func"> {
+def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func"> {
   let parameters = (ins
     ArrayRefParameter<"::mlir::Type">:$inputs,
     ArrayRefParameter<"mlir::Type">:$results
