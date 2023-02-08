@@ -18,8 +18,13 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
+<<<<<<< HEAD
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/tests/CheckOps.h"
+=======
+#include "stablehlo/tests/ReferenceCheckOps.h"
+#include "stablehlo/tools/Interpreter.h"
+>>>>>>> f8f76db (Refactored the class hierarchy)
 
 namespace mlir {
 

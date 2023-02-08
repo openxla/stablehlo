@@ -16,6 +16,7 @@
 set(LLVM_OPTIONAL_SOURCES
   StablehloOptMain.cpp
   StablehloInterpreterMain.cpp
+  Interpreter.cpp
 )
 
 # stablehlo-opt
@@ -44,6 +45,21 @@ target_link_libraries(stablehlo-interpreter PRIVATE
   MLIRSupport
   MLIRTranslateLib
   CheckOps
+  StablehloOps
+  StablehloReferenceOps
+  StablehloReferenceTensor
+)
+
+add_mlir_library(StablehloReferenceInterpreter
+  PARTIAL_SOURCES_INTENDED
+  Interpreter.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRFuncDialect
+  MLIRIR
+  MLIRSupport
+  CheckOps
+  CheckReferenceOps
   StablehloOps
   StablehloReferenceOps
   StablehloReferenceTensor

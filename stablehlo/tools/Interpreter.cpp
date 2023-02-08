@@ -26,6 +26,7 @@ limitations under the License.
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/tests/CheckOps.h"
+#include "stablehlo/tests/ReferenceCheckOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -88,11 +89,12 @@ llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
       populateResults({runtimeResult});
     } else if (auto almostEqOp = dyn_cast<check::AlmostEqOp>(op)) {
       Tensor runtimeOperand = fetchOperand(almostEqOp.getLhs());
-      auto status = evalAlmostEqOp(runtimeOperand, almostEqOp.getValue());
+      auto status =
+          check::evalAlmostEqOp(runtimeOperand, almostEqOp.getValue());
       if (status) return status;
     } else if (auto eqOp = dyn_cast<check::EqOp>(op)) {
       Tensor runtimeOperand = fetchOperand(eqOp.getLhs());
-      auto status = evalEqOp(runtimeOperand, eqOp.getValue());
+      auto status = check::evalEqOp(runtimeOperand, eqOp.getValue());
       if (status) return status;
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = fetchOperand(floorOp.getOperand());

@@ -22,7 +22,6 @@ limitations under the License.
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Sizes.h"
 #include "stablehlo/reference/Tensor.h"
-#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 namespace stablehlo {

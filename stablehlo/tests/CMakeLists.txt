@@ -74,3 +74,12 @@ add_mlir_dialect_library(CheckOps
   MLIRIR
   MLIRSupport
 )
+
+add_mlir_library(CheckReferenceOps
+  PARTIAL_SOURCES_INTENDED
+  ReferenceCheckOps.cpp
+
+  LINK_LIBS PUBLIC
+  CheckOps
+  StablehloReferenceTensor
+)
