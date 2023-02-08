@@ -3083,6 +3083,8 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 // %result: (0.80471896, 1.10714871)
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_log.mlir)
+
 ### log_plus_one
 
 #### Semantics

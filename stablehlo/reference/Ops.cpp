@@ -200,6 +200,13 @@ Tensor evalIotaOp(int64_t iotaDimension, Type resultType) {
   return result;
 }
 
+Tensor evalLogOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, log(operand.get(*it)));
+  return result;
+}
+
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
