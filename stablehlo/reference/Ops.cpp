@@ -289,6 +289,13 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
   return result;
 }
 
+Tensor evalRsqrtOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, rsqrt(operand.get(*it)));
+  return result;
+}
+
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, TensorType resultType) {
   Tensor result(resultType);
@@ -300,7 +307,7 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
   return result;
 }
 
-Tensor evalSineOp(const Tensor &operand, TensorType resultType) {
+Tensor evalSineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sine(operand.get(*it)));

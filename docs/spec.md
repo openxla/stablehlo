@@ -4450,11 +4450,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %operand: [[1.0, 4.0], [9.0, 25.0]]
 %result = "stablehlo.rsqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[1.0, 0.5], [0.33333343, 0.2]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(0.56886448, -0.35157758)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_rsqrt.mlir)
 
 ### scatter
 
