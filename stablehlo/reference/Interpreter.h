@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -31,6 +32,9 @@ namespace stablehlo {
 /// similarly to what's required by constant folding.
 llvm::Expected<llvm::SmallVector<Tensor>> eval(func::FuncOp func,
                                                llvm::ArrayRef<Tensor> args);
+llvm::Expected<llvm::SmallVector<Tensor>> eval(Region &region,
+                                               llvm::ArrayRef<Tensor> args,
+                                               const Scope *const parentScope);
 
 }  // namespace stablehlo
 }  // namespace mlir

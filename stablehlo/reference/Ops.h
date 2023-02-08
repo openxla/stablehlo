@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -36,6 +37,7 @@ Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalNegOp(const Tensor &operand, Type resultType);
 Tensor evalNotOp(const Tensor &operand, Type resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalReduceOp(const Tensor &input, const Tensor &initValue, Region &region, const Scope& scope, Type resultType);
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);

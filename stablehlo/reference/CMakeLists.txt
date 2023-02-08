@@ -39,6 +39,14 @@ add_mlir_library(StablehloReferenceIndex
   MLIRSupport
 )
 
+add_mlir_library(StablehloReferenceScope
+  PARTIAL_SOURCES_INTENDED
+  Scope.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRSupport
+)
+
 add_mlir_library(StablehloReferenceTensor
   PARTIAL_SOURCES_INTENDED
   Tensor.cpp
@@ -70,5 +78,6 @@ add_mlir_library(StablehloReferenceInterpreter
   MLIRSupport
   StablehloOps
   StablehloReferenceOps
+  StablehloReferenceScope
   StablehloReferenceTensor
 )

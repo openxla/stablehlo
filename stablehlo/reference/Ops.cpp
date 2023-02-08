@@ -24,6 +24,7 @@ limitations under the License.
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
+#include "stablehlo/reference/Interpreter.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -155,6 +156,14 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) | rhs.get(*it));
   return result;
+}
+
+Tensor evalReduceOp(const Tensor &input, const Tensor &initValue, Region &region, const Scope& scope, Type resultType) {
+  SmallVector<Tensor> runtimeArgs({initValue, initValue});
+
+  auto runtimeResultsOrErr = eval(region, runtimeArgs, &scope);
+  assert(runtimeResultsOrErr);
+  return (*runtimeResultsOrErr)[0];
 }
 
 Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
