@@ -5177,7 +5177,7 @@ Performs element-wise square root operation on `operand` tensor and produces a
 // %result: [[0.0, 1.0], [2.0, 3.0]]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_square_root.mlir)
+&nbsp;[More Examples](../stablehlo/tests/interpret_sqrt.mlir)
 
 ### subtract
 
