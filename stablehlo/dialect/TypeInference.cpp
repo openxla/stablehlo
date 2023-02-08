@@ -2653,7 +2653,7 @@ LogicalResult inferSelectOp(
     return emitOptionalError(
         location, "requires compatible types for non-predicate operands");
 
-  // select_c1 
+  // select_c1
   bool predCannotBeScalar = predType.hasRank() && predType.getRank() != 0;
   if (predCannotBeScalar)
     if (failed(verifyCompatibleShape(predType, trueType)))
