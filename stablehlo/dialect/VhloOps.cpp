@@ -79,7 +79,7 @@ static void printAttributeArray(AsmPrinter& os, ArrayRef<Attribute> arrayAttr) {
   os << '[' << arrayAttr << ']';
 }
 
-// Parse attributes in brackets: [#vhlo.attr, !vhlo.attr]
+// Parse attributes in brackets: [#vhlo.attr, #vhlo.attr]
 ParseResult parseAttributeArray(AsmParser& parser,
                                 SmallVector<Attribute>& arrayAttr) {
   ArrayAttr array;

@@ -283,7 +283,7 @@ def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1"> {
   let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_UnitAttr : VHLO_AttrDef<"UnitV1"> {
+def VHLO_UnitAttrV1 : VHLO_AttrDef<"UnitV1"> {
   let mnemonic = "unit";
   let storageType = [{ ::mlir::UnitAttr }];
   let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";

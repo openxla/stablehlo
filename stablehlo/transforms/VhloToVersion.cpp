@@ -35,6 +35,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/Passes.h"
 
 #define DEBUG_TYPE "compat-passes"
@@ -166,6 +167,13 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   // Recursively check types if VHLO type is a container.
   if (auto complex = type.dyn_cast<ComplexV1Type>()) {
     return isLegalType(complex.getElementType(), targetVersion);
+  }
+  if (auto func = type.dyn_cast<FunctionV1Type>()) {
+    auto validateType = [&](Type ele) {
+      return succeeded(isLegalType(ele, targetVersion));
+    };
+    return success(llvm::all_of(func.getInputs(), validateType) &&
+                   llvm::all_of(func.getResults(), validateType));
   }
   if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
     auto encoding = ranked.getEncoding();
