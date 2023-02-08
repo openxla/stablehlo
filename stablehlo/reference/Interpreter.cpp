@@ -29,6 +29,28 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+class Scope {
+ public:
+Tensor findInScope(Value value) {
+       auto it = stackFrame.find(value);
+      if (it != stackFrame.end()) return it->second;
+      assert(parentScope && "value not found");
+      return parentScope->findInScope(value);
+  }
+
+ void addToScope(Operation &op, ArrayRef<Tensor> runtimeValues)
+      assert(op.getNumResults() == runtimeValues.size());
+      for (auto [ssaResult, runtimeResult] : llvm::zip(op.getResults(), runtimeValues)) {
+        stackFrame[ssaResult] = runtimeResult;
+      }
+
+ private:
+  llvm::DenseMap<Value, Tensor> stackFrame;
+  Scope *parentScope;
+
+
+};
+
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
   if (func->getNumRegions() != 1)
