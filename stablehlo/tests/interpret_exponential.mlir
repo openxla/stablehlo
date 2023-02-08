@@ -22,7 +22,7 @@ func.func @exponential_op_test_c128() -> tensor<4xcomplex<f64>> {
   func.return %result : tensor<4xcomplex<f64>>
   // CHECK-NEXT: tensor<4xcomplex<f64>>
   // CHECK-NEXT: [1.000000e+00 : f64, -0.000000e+00 : f64]
-  // CHECK-NEXT: [0.54030230586813977 : f64, -0.000000e+00 : f64]
-  // CHECK-NEXT: [0.43378099760770306 : f64, -6.0350486377665726 : f64]
-  // CHECK-NEXT: [42.41014116569557 : f64, -114.75859669464516 : f64]
+  // CHECK-NEXT: [2.7182818284590451 : f64, 0.000000e+00 : f64]
+  // CHECK-NEXT: [-3.5904765855678131 : f64, 2.6821660671324894 : f64]
+  // CHECK-NEXT: [3.9195417575668896E-4 : f64, 3.902233265819977E-4 : f64]
 }
