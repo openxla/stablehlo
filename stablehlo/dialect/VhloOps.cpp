@@ -254,17 +254,13 @@ Type VhloDialect::parseType(DialectAsmParser& parser) const {
   StringRef dataType;
   Type type;
   auto parseResultOpt = parseVhloType(parser, &dataType, type);
-  if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) {
-    return type;
-  }
+  if (parseResultOpt.has_value() && succeeded(*parseResultOpt)) return type;
   parser.emitError(parser.getNameLoc()) << "unknown vhlo type: " << dataType;
   return nullptr;
 }
 
 void VhloDialect::printType(Type type, DialectAsmPrinter& os) const {
-  if (succeeded(printVhloType(type, os))) {
-    return;
-  }
+  if (succeeded(printVhloType(type, os))) return;
   os << "<unknown vhlo type>";
 }
 
