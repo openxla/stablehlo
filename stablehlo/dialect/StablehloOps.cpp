@@ -2821,7 +2821,7 @@ void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
         for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
              non_spatialDims)
           dims[nonSpatialDim.first] = nonSpatialDim.second;
-        for (auto spatial_dim : llvm::enumerate(spatialDims))
+        for (const auto& spatial_dim : llvm::enumerate(spatialDims))
           dims[spatial_dim.value()] = static_cast<int64_t>(spatial_dim.index());
 
         // Each dimension numbers will be printed as a comma separated list
