@@ -295,6 +295,12 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
     if (resultIdx.inBounds(result.getShape()))
       result.set(resultIdx, operand.get(*operandIt));
   }
+}
+
+Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, rem(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 

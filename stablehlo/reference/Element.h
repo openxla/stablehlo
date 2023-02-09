@@ -152,6 +152,9 @@ Element min(const Element &e1, const Element &e2);
 /// or complex type.
 Element real(const Element &e);
 
+/// Returns the reminder for two Element objects.
+Element rem(const Element &e1, const Element &e2);
+
 /// Returns reverse square root of Element object.
 Element rsqrt(const Element &e);
 

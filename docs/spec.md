@@ -4146,6 +4146,8 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 // %result: [2, -2, 2, -2]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_remainder.mlir)
+
 ### replica_id
 
 #### Semantics

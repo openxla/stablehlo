@@ -520,6 +520,27 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
+Element rem(const Element &e1, const Element &e2) {
+  return map(
+      e1, e2,
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
+                                                          : lhs.urem(rhs);
+      },
+      [](bool lhs, bool rhs) -> bool {
+        llvm::report_fatal_error("bool \% bool is unsupported");
+      },
+      [](APFloat lhs, APFloat rhs) {
+        lhs.mod(rhs);
+        return lhs;
+      },
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        // TODO(#997): remove support for complex
+        llvm::report_fatal_error("complex \% complex is unsupported");
+      });
+}
+
 Element rsqrt(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return 1.0 / std::sqrt(e); },
