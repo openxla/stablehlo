@@ -23,16 +23,16 @@ limitations under the License.
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/Types.h"
 #include "stablehlo/reference/Interpreter.h"
+#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
 
 namespace {
 
-// Appies the permutation `perm` to an array `array` where perm[i] indicates the
-// location where the current array[i] goes.
+// Applies the permutation `perm` to an array `array` where perm[i] indicates
+// the location where the current array[i] goes.
 SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
   SmallVector<int64_t> result(array.size());
   for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
@@ -158,12 +158,23 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   return result;
 }
 
-Tensor evalReduceOp(const Tensor &input, const Tensor &initValue, Region &region, const Scope& scope, Type resultType) {
-  SmallVector<Tensor> runtimeArgs({initValue, initValue});
+// ***********************************************************************
+// This is an incorrect, implementation of reduce op semantics, while is, to
+// evaluate all the ops in the associated region. This is done in order to test
+// the region evaluation.
+// TODO(#982): THIS SHOULD BE UPDATED WITH CORRECT IMPLEMENTATION.
+// ***********************************************************************
+SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
+                                 ArrayRef<Tensor> initValues, Region &region,
+                                 const InterpreterScope &scope) {
+  assert(inputs.size() == initValues.size() && initValues.size() == 1);
 
+  SmallVector<Tensor> runtimeArgs({initValues[0], initValues[0]});
   auto runtimeResultsOrErr = eval(region, runtimeArgs, &scope);
-  assert(runtimeResultsOrErr);
-  return (*runtimeResultsOrErr)[0];
+  if (!runtimeResultsOrErr)
+    llvm::report_fatal_error("Error in reduce op evaluation");
+  assert((*runtimeResultsOrErr).size() == 1);
+  return to_vector(*runtimeResultsOrErr);
 }
 
 Tensor evalReshapeOp(const Tensor &operand, Type resultType) {

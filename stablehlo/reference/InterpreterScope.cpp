@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "Scope.h"
+#include "InterpreterScope.h"
 
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Support/DebugStringHelper.h"
@@ -21,25 +21,27 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-void Scope::add(Value ssaValue, Tensor runtimeValue) {
+void InterpreterScope::add(Value ssaValue, Tensor runtimeValue) {
+  // We are instantiating a new `InterpreterScope` object every time the
+  // interpreter evaluates a region. With that, the `stackFrame` should not have
+  // any duplicates.
   assert(!stackFrame.count(ssaValue));
   stackFrame[ssaValue] = runtimeValue;
 }
 
-Tensor Scope::fetchOperandInScope(Value value) const {
-  auto it = stackFrame.find(value);
+Tensor InterpreterScope::find(Value ssaValue) const {
+  auto it = stackFrame.find(ssaValue);
 
   if (it != stackFrame.end()) {
-    assert(value.getType() == it->second.getType());
     return it->second;
   }
 
   if (!parentScope)
     llvm::report_fatal_error(
         llvm::formatv("Expected the value {0} to be already evaluated",
-                      debugString(value).c_str()));
+                      debugString(ssaValue).c_str()));
 
-  return parentScope->fetchOperandInScope(value);
+  return parentScope->find(ssaValue);
 }
 
 }  // namespace stablehlo
