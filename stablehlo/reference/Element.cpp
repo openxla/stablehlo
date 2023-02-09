@@ -520,10 +520,15 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
+// These cases are implementation-defined, and the behavior of this interpreter:
+// For integers: if rhs is 0, the result is the same as `lhs`.
+//   For signed integers, if lhs is INT_MAX and rhs is -1, the result is 0.
+// For floats: use APFloat.mod(). If rhs is 0, the result is 0x7FF8000000000000
 Element rem(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
+        if (rhs == 0) return lhs;
         return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
                                                           : lhs.urem(rhs);
       },
