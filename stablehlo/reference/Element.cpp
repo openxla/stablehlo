@@ -533,7 +533,7 @@ Element rem(const Element &e1, const Element &e2) {
                                                           : lhs.urem(rhs);
       },
       [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("bool \% bool is unsupported");
+        llvm::report_fatal_error("reminder of two bool numbers is unsupported");
       },
       [](APFloat lhs, APFloat rhs) {
         lhs.mod(rhs);
@@ -542,7 +542,8 @@ Element rem(const Element &e1, const Element &e2) {
       [](std::complex<APFloat> lhs,
          std::complex<APFloat> rhs) -> std::complex<APFloat> {
         // TODO(#997): remove support for complex
-        llvm::report_fatal_error("complex \% complex is unsupported");
+        llvm::report_fatal_error(
+            "reminder of two complex numbers is unsupported");
       });
 }
 
