@@ -37,8 +37,8 @@ After implementing the interpreter:
             Trait2 /*xyz_c1, xyz_c2*/]> {
              ...
           let arguments = (ins
-             1DTensorOf<[HLO_Float]>:$a, /*xyz_c3*/
-             HLO_Tensor:$b, /*xyz_i1*/
+             1DTensorOf<[HLO_Float]>:$a, /*xyz_c3, xyz_i1*/
+             HLO_Tensor:$b, /*xyz_i2*/
              ....
           );
        );
