@@ -2686,11 +2686,11 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$padding_value,
-    I64ElementsAttr:$edge_padding_low,
-    I64ElementsAttr:$edge_padding_high,
-    I64ElementsAttr:$interior_padding
+    HLO_Tensor:$operand /*pad_i1*/,
+    HLO_Tensor:$padding_value /*pad_i2*/,
+    I64ElementsAttr:$edge_padding_low /*pad_i3*/,
+    I64ElementsAttr:$edge_padding_high /*pad_i4*/,
+    I64ElementsAttr:$interior_padding /*pad_i5*/
   );
 
   let results = (outs HLO_Tensor);
