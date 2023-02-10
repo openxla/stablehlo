@@ -17,8 +17,3 @@
 # pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
 from ._vhlo_ops_gen import *
 from .._mlir_libs._vhlo import *
-
-
-# Backward compatibility with the old way of registering VHLO dialect
-def register_vhlo_dialect(context, load=True):
-  register_dialect(context, load)
