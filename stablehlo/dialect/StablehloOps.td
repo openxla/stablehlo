@@ -1860,8 +1860,8 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    BroadcastDimAttr:$broadcast_dimensions
+    HLO_Tensor:$operand /*broadcast_in_dim_i1*/,
+    BroadcastDimAttr:$broadcast_dimensions /*broadcast_in_dim_i2*/
   );
 
   let results = (outs HLO_StaticShapeTensor);
