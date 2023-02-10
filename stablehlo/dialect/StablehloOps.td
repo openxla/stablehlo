@@ -1994,8 +1994,8 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
    }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    I64Attr:$dimension
+    Variadic<HLO_Tensor>:$inputs /*concatenate_i1*/,
+    I64Attr:$dimension /*concatenate_i2*/
   );
 
   let results = (outs HLO_Tensor);
