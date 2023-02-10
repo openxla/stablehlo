@@ -37,9 +37,6 @@ Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalNegOp(const Tensor &operand, Type resultType);
 Tensor evalNotOp(const Tensor &operand, Type resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
-                                 ArrayRef<Tensor> initValues, Region &region,
-                                 const InterpreterScope &scope);
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);
@@ -50,6 +47,8 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
 Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
                        Type resultType);
+SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> inputs, Region &cond,
+                                Region &body, const InterpreterScope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 
 }  // namespace stablehlo

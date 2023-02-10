@@ -153,13 +153,11 @@ llvm::Expected<SmallVector<Tensor>> eval(
       Tensor runtimeRhs = fetchOperandInScope(orOp.getRhs(), scope);
       Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
       addOpResultsToScope(op, {runtimeResult}, scope);
-    } else if (auto reduceOp = dyn_cast<ReduceOp>(op)) {
+    } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
       auto runtimeInputs =
-          fetchVariadicOperandInScope(reduceOp.getInputs(), scope);
-      auto runtimeInitValues =
-          fetchVariadicOperandInScope(reduceOp.getInitValues(), scope);
-      auto runtimeResults = evalReduceOp(runtimeInputs, runtimeInitValues,
-                                         reduceOp.getBody(), scope);
+          fetchVariadicOperandInScope(whileOp.getOperand(), scope);
+      auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
+                                        whileOp.getBody(), scope);
       addOpResultsToScope(op, runtimeResults, scope);
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       Tensor runtimeOperand =

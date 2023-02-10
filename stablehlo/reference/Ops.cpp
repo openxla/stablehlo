@@ -158,25 +158,6 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   return result;
 }
 
-// ***********************************************************************
-// This is an incorrect, implementation of reduce op semantics, while is, to
-// evaluate all the ops in the associated region. This is done in order to test
-// the region evaluation.
-// TODO(#982): THIS SHOULD BE UPDATED WITH CORRECT IMPLEMENTATION.
-// ***********************************************************************
-SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
-                                 ArrayRef<Tensor> initValues, Region &region,
-                                 const InterpreterScope &scope) {
-  assert(inputs.size() == initValues.size() && initValues.size() == 1);
-
-  SmallVector<Tensor> runtimeArgs({initValues[0], initValues[0]});
-  auto runtimeResultsOrErr = eval(region, runtimeArgs, &scope);
-  if (!runtimeResultsOrErr)
-    llvm::report_fatal_error("Error in reduce op evaluation");
-  assert((*runtimeResultsOrErr).size() == 1);
-  return to_vector(*runtimeResultsOrErr);
-}
-
 Tensor evalReshapeOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
@@ -242,6 +223,42 @@ Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
     result.set(resultIndex, operand.get(*operandIt));
   }
   return result;
+}
+
+// ***********************************************************************
+// This is an simplified implementation of while op semantics. The
+// simplification is basd on iterating the loop `dummy_limit` number of times
+// if the loop condition is true. The simplifiction is done as compare op is
+// nnot supported.
+// TODO(#982): THIS SHOULD BE UPDATED WITH CORRECT IMPLEMENTATION.
+// ***********************************************************************
+SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> runtimeInputs, Region &cond,
+                                Region &body, const InterpreterScope &scope) {
+  SmallVector<Tensor> runtimeResults(runtimeInputs);
+  auto runtimeCondResultsOrErr = eval(cond, runtimeInputs, &scope);
+  if (!runtimeCondResultsOrErr)
+    llvm::report_fatal_error("Error in while op evaluation");
+
+  int dummy_induction_var = 0;
+  const int dummy_limit = 2;
+
+  auto runtimeCondResult = (*runtimeCondResultsOrErr)[0];
+  while (runtimeCondResult.get(*runtimeCondResult.index_begin())
+             .getBooleanValue()) {
+    auto runtimeBodyResultsOrErr = eval(body, runtimeResults, &scope);
+    if (!runtimeBodyResultsOrErr)
+      llvm::report_fatal_error("Error in while op evaluation");
+
+    runtimeResults = *runtimeBodyResultsOrErr;
+    runtimeCondResultsOrErr = eval(cond, runtimeResults, &scope);
+    if (!runtimeCondResultsOrErr)
+      llvm::report_fatal_error("Error in while op evaluation");
+
+    runtimeCondResult = (*runtimeCondResultsOrErr)[0];
+
+    if (++dummy_induction_var >= dummy_limit) break;
+  }
+  return runtimeResults;
 }
 
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
