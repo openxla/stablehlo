@@ -95,7 +95,7 @@ one of the following tracking labels.
 | get_dimension_size       | yes           | yes          | yes            | yes             | no          |
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
 | if                       | yes           | revisit      | yes            | no              | yes         |
-| imag                     | yes           | yes          | yes            | yes             | no          |
+| imag                     | yes           | yes          | yes            | yes             | yes         |
 | infeed                   | yes           | revisit      | infeasible     | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | no          |

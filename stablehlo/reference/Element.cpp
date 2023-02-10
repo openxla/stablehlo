@@ -448,6 +448,21 @@ Element floor(const Element &el) {
   return Element(el.getType(), val);
 }
 
+Element imag(const Element &el) {
+  if (isSupportedFloatType(el.getType())) {
+    const llvm::fltSemantics &elSemantics = el.getFloatValue().getSemantics();
+    bool roundingErr;
+    APFloat resultImag(0.0);
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(el.getType(), resultImag);
+  }
+  if (isSupportedComplexType(el.getType()))
+    return Element(el.getType().cast<ComplexType>().getElementType(),
+                   el.getComplexValue().imag());
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(el.getType()).c_str()));
+}
+
 Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cos(e); },

@@ -359,8 +359,8 @@ def StableHLO_FloorOp: StableHLO_UnaryElementwiseOp<"floor",
 
 def StableHLO_ImagOp: StableHLO_UnaryElementwiseOp<"imag",
     [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>],
-    HLO_FpOrComplexTensor, HLO_FpTensor> {
-  let summary = "Imag operator";
+    HLO_FpOrComplexTensor /*imag_i1*/, HLO_FpTensor> {/*imag_c1*/
+  let summary = "Imag operation";
   let description = [{
     Extracts the imaginary part, element-wise, from the `operand` and produces a
     `result` tensor.

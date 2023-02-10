@@ -135,6 +135,9 @@ Element exponential(const Element &el);
 /// Returns floor of Element object.
 Element floor(const Element &e);
 
+/// Returns the imaginary part extracted from the Element object.
+Element imag(const Element &el);
+
 /// Returns log of Element object.
 Element log(const Element &el);
 

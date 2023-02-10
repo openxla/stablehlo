@@ -171,6 +171,13 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                                         : eval(falseBranch, {}, &scope);
 }
 
+Tensor evalImagOp(const Tensor &operand, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+    result.set(*it, imag(operand.get(*it)));
+  return result;
+}
+
 Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
   Tensor result(resultType);
   Type elType = result.getElementType();
@@ -484,6 +491,10 @@ SmallVector<Tensor> eval(
       auto runtimeResults = evalIfOp(runtimePred, ifOp.getTrueBranch(),
                                      ifOp.getFalseBranch(), scope);
       scope.add(op.getResults(), runtimeResults);
+    } else if (auto imagOp = dyn_cast<ImagOp>(op)) {
+      Tensor runtimeOperand = scope.find(imagOp.getOperand());
+      Tensor runtimeResult = evalImagOp(runtimeOperand, imagOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
       Tensor runtimeResult =
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
