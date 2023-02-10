@@ -26,18 +26,19 @@ After implementing the interpreter:
 1. In [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td):
     1. Make sure that the `summary` in op's ODS follows the standard format.
        (related [ticket](https://github.com/openxla/stablehlo/issues/611))
-    1. Add comments referencing constraint labels (e.g. `Cn`) from the spec in
-       the format `xyz_cn`, for op `XyzOp`, to identify the correspondence
-       between constraints in ODS and specification. The following example shows
-       how to add the constraint labels as comments alongside mlir `Traits` and
-       `TypeConstraints`.
+    1. Add comments referencing constraint labels (e.g. `Cn`or `In`) from the
+       spec in the format `xyz_cn` or `xyz_in`, for op `XyzOp`, to identify the
+       correspondence between constraints in ODS and specification. The
+       following example shows how to add the constraint labels as comments
+       alongside mlir `Traits` and `TypeConstraints`.
 
        ```td
         def StableHLO_XyzOp: StableHLO_Op<"xyz", [Trait1,
             Trait2 /*xyz_c1, xyz_c2*/]> {
              ...
           let arguments = (ins
-             1DTensorOf<[HLO_Float]>:$operand, /*xyz_c3*/
+             1DTensorOf<[HLO_Float]>:$a, /*xyz_c3, xyz_i1*/
+             HLO_Tensor:$b, /*xyz_i2*/
              ....
           );
        );
@@ -47,7 +48,7 @@ After implementing the interpreter:
    and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp):
     1. Delete comments that say things like "Verify the following properties:
        ...".
-    1. Add comments that reference constraint labels (e.g. `Cn`or `In`) from the
+    1. Add comments referencing constraint labels (e.g. `Cn`or `In`) from the
        spec in the format `xyz_cn` or `xyz_in`, for op `XyzOp`, to identify
        which parts of verifiers and shape functions correspond to which
        constraints in the specification.

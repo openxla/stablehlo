@@ -15,8 +15,9 @@
 # If passing the files as a glob, be sure to wrap in quotes. For more info,
 # see https://github.com/igorshubovych/markdownlint-cli#globbing
 
-if [[ $# -ne 1 ]] ; then
-  echo "Usage: $0 <files|directories|globs>"
+if [[ $# -gt 2 ]] ; then
+  echo "Usage: $0 [-f] <files|directories|globs>"
+  echo "  -f  Autofix markdown issues."
   echo " "
   echo "All file/directory/glob paths must be relative to the repo root."
   echo "Glob patterns must be wrapped in quotes."
@@ -31,7 +32,6 @@ readonly STABLEHLO_ROOT_DIR="${SCRIPT_DIR}/../.."
 # These must be relative to the repo root because that's the context
 # in which the Docker container will mount and find all files
 readonly CONFIG=".markdownlint.yaml"
-readonly FILES="$1"
 
 # Verify Docker is available
 if ! command -v docker &> /dev/null
@@ -43,4 +43,4 @@ fi
 # Run markdownlint-cli in Docker to avoid node versioning issues
 docker run -v $STABLEHLO_ROOT_DIR:/workdir \
     ghcr.io/igorshubovych/markdownlint-cli:v0.32.2 \
-    --config $CONFIG "$FILES"
+    --config $CONFIG "$@"
