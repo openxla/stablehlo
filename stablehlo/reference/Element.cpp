@@ -496,6 +496,15 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
+Element real(const Element &el) {
+  if (isSupportedFloatType(el.getType())) return el;
+  if (isSupportedComplexType(el.getType()))
+    return Element(el.getType().cast<ComplexType>().getElementType(),
+                   el.getComplexValue().real());
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(el.getType()).c_str()));
+}
+
 Element rsqrt(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return 1.0 / std::sqrt(e); },

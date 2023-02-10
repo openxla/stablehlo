@@ -115,7 +115,7 @@ one of the following tracking labels.
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | yes           | yes          | yes            | yes             | no          |
-| real                     | yes           | yes          | yes            | yes             | no          |
+| real                     | yes           | yes          | yes            | yes             | yes         |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | no          |

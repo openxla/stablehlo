@@ -3720,6 +3720,8 @@ tensor. More formally, for each element `x`:
 // %result: [1.0, 3.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_real.mlir)
+
 ### recv
 
 #### Semantics
