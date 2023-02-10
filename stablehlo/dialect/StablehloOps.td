@@ -1628,9 +1628,9 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    Variadic<HLO_ScalarIntTensor>:$start_indices,
-    I64ElementsAttr:$slice_sizes
+    HLO_Tensor:$operand /*dynamic_slice_i1*/,
+    Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_slice_i2*/,
+    I64ElementsAttr:$slice_sizes /*dynamic_slice_i3*/
   );
 
   let results = (outs HLO_Tensor:$result);
