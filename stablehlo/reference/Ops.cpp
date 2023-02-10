@@ -19,11 +19,11 @@ limitations under the License.
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/Interpreter.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
@@ -64,6 +64,17 @@ Tensor evalCeilOp(const Tensor &operand, Type resultType) {
 
 Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
+}
+
+// This is an simplified implementation of convert op semantics dealing only
+// with integer to bool conversion. To be updated as part of #969.
+Tensor evalConvertOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  Type elType = result.getType().getElementType();
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, Element(elType,
+                            operand.get(*it).getIntegerValue().getBoolValue()));
+  return result;
 }
 
 Tensor evalCosineOp(const Tensor &operand, Type resultType) {
@@ -225,43 +236,27 @@ Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
   return result;
 }
 
-// ***********************************************************************
-// This is an simplified implementation of while op semantics. The
-// simplification is based on iterating the loop `dummy_limit` number of times
-// if the loop condition is `true`. The simplifiction is done as compare op is
-// not supported. To be corrected and improved as part of #967 and #992
-// respectively.
-// ***********************************************************************
-SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> runtimeInputs, Region &cond,
-                                Region &body, const InterpreterScope &scope) {
-  SmallVector<Tensor> runtimeResults(runtimeInputs);
-  bool isIsolatedFromAbove =
-      cond.getParentOp()->hasTrait<OpTrait::IsIsolatedFromAbove>();
+SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
+                                Region &body, const Scope &scope) {
+  SmallVector<Tensor> runtimeResults(operand);
 
-  auto runtimeCondResultsOrErr =
-      eval(cond, runtimeInputs, isIsolatedFromAbove ? nullptr : &scope);
-  if (!runtimeCondResultsOrErr)
-    llvm::report_fatal_error("Error in while op evaluation");
-
-  int dummy_induction_var = 0;
-  const int dummy_limit = 2;
+  auto runtimeCondResultsOrErr = evalRegion(cond, operand, &scope);
+  if (!runtimeCondResultsOrErr || runtimeCondResultsOrErr->size() != 1)
+    llvm::report_fatal_error("Failed to evaluate cond");
 
   auto runtimeCondResult = (*runtimeCondResultsOrErr)[0];
   while (runtimeCondResult.get(*runtimeCondResult.index_begin())
              .getBooleanValue()) {
-    auto runtimeBodyResultsOrErr = eval(body, runtimeResults, &scope);
+    auto runtimeBodyResultsOrErr = evalRegion(body, runtimeResults, &scope);
     if (!runtimeBodyResultsOrErr)
-      llvm::report_fatal_error("Error in while op evaluation");
+      llvm::report_fatal_error("Failed to evaluate body");
 
     runtimeResults = *runtimeBodyResultsOrErr;
-    runtimeCondResultsOrErr =
-        eval(cond, runtimeResults, isIsolatedFromAbove ? nullptr : &scope);
-    if (!runtimeCondResultsOrErr)
-      llvm::report_fatal_error("Error in while op evaluation");
+    runtimeCondResultsOrErr = evalRegion(cond, runtimeResults, &scope);
+    if (!runtimeCondResultsOrErr || runtimeCondResultsOrErr->size() != 1)
+      llvm::report_fatal_error("Failed to evaluate cond");
 
     runtimeCondResult = (*runtimeCondResultsOrErr)[0];
-
-    if (++dummy_induction_var >= dummy_limit) break;
   }
   return runtimeResults;
 }
@@ -271,6 +266,156 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) ^ rhs.get(*it));
   return result;
+}
+
+llvm::Expected<SmallVector<Tensor>> evalRegion(Region &region,
+                                               ArrayRef<Tensor> args,
+                                               const Scope *const parentScope) {
+  if (!region.hasOneBlock())
+    return invalidArgument("Expected single block region");
+
+  Block &block = region.front();
+  if (block.getArguments().size() != args.size())
+    report_fatal_error(invalidArgument(
+        "Expected same amount of block arguments and runtime arguments (%d)",
+        args.size()));
+
+  Scope scope(parentScope);
+  for (auto [ssaArg, runtimeArg] : llvm::zip(block.getArguments(), args)) {
+    assert(ssaArg.getType() == runtimeArg.getType());
+    scope.add(ssaArg, runtimeArg);
+  }
+
+  for (Operation &op : block) {
+    SmallVector<Value> results(op.getResults().begin(), op.getResults().end());
+    if (auto addOp = dyn_cast<AddOp>(op)) {
+      Tensor runtimeLhs = scope.find(addOp.getLhs());
+      Tensor runtimeRhs = scope.find(addOp.getRhs());
+      Tensor runtimeResult = evalAddOp(runtimeLhs, runtimeRhs, addOp.getType());
+
+      scope.add(results, {runtimeResult});
+    } else if (auto andOp = dyn_cast<AndOp>(op)) {
+      Tensor runtimeLhs = scope.find(andOp.getLhs());
+      Tensor runtimeRhs = scope.find(andOp.getRhs());
+      Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
+      Tensor runtimeOperand = scope.find(ceilOp.getOperand());
+      Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
+      Tensor runtimeResult = evalConstantOp(constantOp.getValue());
+      scope.add(results, {runtimeResult});
+    } else if (auto convertOp = dyn_cast<ConvertOp>(op)) {
+      Tensor runtimeOperand = scope.find(convertOp.getOperand());
+      Tensor runtimeResult = evalConvertOp(runtimeOperand, convertOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
+      Tensor runtimeOperand = scope.find(cosineOp.getOperand());
+      Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
+      Tensor runtimeOperand = scope.find(floorOp.getOperand());
+      Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
+      Tensor runtimeResult =
+          evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
+      Tensor runtimeLhs = scope.find(maxOp.getLhs());
+      Tensor runtimeRhs = scope.find(maxOp.getRhs());
+      Tensor runtimeResult = evalMaxOp(runtimeLhs, runtimeRhs, maxOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto minOp = dyn_cast<MinOp>(op)) {
+      Tensor runtimeLhs = scope.find(minOp.getLhs());
+      Tensor runtimeRhs = scope.find(minOp.getRhs());
+      Tensor runtimeResult = evalMinOp(runtimeLhs, runtimeRhs, minOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto multiplyOp = dyn_cast<MulOp>(op)) {
+      Tensor runtimeLhs = scope.find(multiplyOp.getLhs());
+      Tensor runtimeRhs = scope.find(multiplyOp.getRhs());
+      Tensor runtimeResult =
+          evalMultiplyOp(runtimeLhs, runtimeRhs, multiplyOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto negOp = dyn_cast<NegOp>(op)) {
+      Tensor runtimeOperand = scope.find(negOp.getOperand());
+      Tensor runtimeResult = evalNegOp(runtimeOperand, negOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto notOp = dyn_cast<NotOp>(op)) {
+      Tensor runtimeOperand = scope.find(notOp.getOperand());
+      Tensor runtimeResult = evalNotOp(runtimeOperand, notOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto orOp = dyn_cast<OrOp>(op)) {
+      Tensor runtimeLhs = scope.find(orOp.getLhs());
+      Tensor runtimeRhs = scope.find(orOp.getRhs());
+      Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
+      SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
+                                         whileOp.getOperand().end());
+      auto runtimeInputs = scope.find(runtimeOperands);
+      auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
+                                        whileOp.getBody(), scope);
+      scope.add(results, runtimeResults);
+    } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
+      Tensor runtimeOperand = scope.find(reshapeOp.getOperand());
+      Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
+      Tensor runtimeOperand = scope.find(reverseOp.getOperand());
+      auto dimensions =
+          llvm::to_vector(reverseOp.getDimensions().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
+      SmallVector<Value> runtimeOperands(returnOp.getOperands());
+      return scope.find(runtimeOperands);
+    } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
+      SmallVector<Value> runtimeOperands(returnOp.getResults().begin(),
+                                         returnOp.getResults().end());
+      return scope.find(runtimeOperands);
+    } else if (auto sineOp = dyn_cast<SineOp>(op)) {
+      Tensor runtimeOperand = scope.find(sineOp.getOperand());
+      Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
+      Tensor runtimeOperand = scope.find(sliceOp.getOperand());
+      auto startIndices =
+          llvm::to_vector(sliceOp.getStartIndices().getValues<int64_t>());
+      auto strides = llvm::to_vector(sliceOp.getStrides().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
+      Tensor runtimeLhs = scope.find(subtractOp.getLhs());
+      Tensor runtimeRhs = scope.find(subtractOp.getRhs());
+      Tensor runtimeResult =
+          evalSubtractOp(runtimeLhs, runtimeRhs, subtractOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
+      Tensor runtimeOperand = scope.find(tanhOp.getOperand());
+      Tensor runtimeResult = evalTanhOp(runtimeOperand, tanhOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
+      Tensor runtimeOperand = scope.find(transposeOp.getOperand());
+      auto permutation =
+          llvm::to_vector(transposeOp.getPermutation().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
+      scope.add(results, {runtimeResult});
+    } else if (auto xorOp = dyn_cast<XorOp>(op)) {
+      Tensor runtimeLhs = scope.find(xorOp.getLhs());
+      Tensor runtimeRhs = scope.find(xorOp.getRhs());
+      Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
+      scope.add(results, {runtimeResult});
+    } else {
+      return invalidArgument("Unsupported op: %s", debugString(op).c_str());
+    }
+  }
+
+  return invalidArgument("Expected a terminator when evaluating func");
 }
 
 }  // namespace stablehlo
