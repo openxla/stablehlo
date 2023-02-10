@@ -27,5 +27,6 @@ endfunction()
 add_stablehlo_python_test(stablehlo-python-chlo chlo.py)
 add_stablehlo_python_test(stablehlo-python-smoketest smoketest.py)
 add_stablehlo_python_test(stablehlo-python-stablehlo stablehlo.py)
+add_stablehlo_python_test(stablehlo-python-vhlo vhlo.py)
 
 add_dependencies(check-stablehlo check-stablehlo-python)
