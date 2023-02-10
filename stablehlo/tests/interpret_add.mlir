@@ -110,6 +110,26 @@ func.func @add_op_test_i1() {
 
 // -----
 
+func.func @add_op_test_f8_e4m3_fnuz() {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.25, 0x80, 0.0,  0x80, 0x7F, 0x01]> : tensor<11xf8E4M3FNUZ>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75,  0.3, 3.25, 0.0,  0x80, 0x80, 0x7F, 0x81]> : tensor<11xf8E4M3FNUZ>
+  %2 = stablehlo.add %0, %1 : tensor<11xf8E4M3FNUZ>
+  check.expect_almost_eq_const %2, dense<[0.0, 0.0, 8.0, 0.875, 0.4, 6.5, 0x80, 0x80, 0x80, 0x80, 0.0]> : tensor<11xf8E4M3FNUZ>
+  func.return
+}
+
+// -----
+
+func.func @add_op_test_f8_e5m2_fnuz() {
+  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.25, 0x80, 0.0,  0x80, 0x7F, 0x01]> : tensor<11xf8E5M2FNUZ>
+  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75,  0.3, 3.25, 0.0,  0x80, 0x80, 0x7F, 0x81]> : tensor<11xf8E5M2FNUZ>
+  %2 = stablehlo.add %0, %1 : tensor<11xf8E5M2FNUZ>
+  check.expect_almost_eq_const %2, dense<[0.0, 0.0, 8.0, 0.875, 0.4, 6.5, 0x80, 0x80, 0x80, 0x80, 0.0]> : tensor<11xf8E5M2FNUZ>
+  func.return
+}
+
+// -----
+
 func.func @add_op_test_bf16() {
   %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.140625, 0x7F80, 0x7F80, 0xFF80, 0x7F80, 0x0001]> : tensor<11xbf16>
   %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.140625, 0.0, 0x7F80, 0xFF80, 0xFF80, 0x8001]> : tensor<11xbf16>

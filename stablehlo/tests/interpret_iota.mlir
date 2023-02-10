@@ -104,6 +104,38 @@ func.func @iota_op_test_ui64_dim_2() {
 
 // -----
 
+func.func @iota_op_test_f8_e4m3_fnuz_dim_0() {
+  %0 = stablehlo.iota dim = 0 : tensor<3x4xf8E4M3FNUZ>
+  check.expect_almost_eq_const %0, dense<[[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0], [2.0, 2.0, 2.0, 2.0]]> : tensor<3x4xf8E4M3FNUZ>
+  func.return
+}
+
+// -----
+
+func.func @iota_op_test_f8_e4m3_fnuz_dim_1() {
+  %0 = stablehlo.iota dim = 1 : tensor<3x4xf8E4M3FNUZ>
+  check.expect_almost_eq_const %0, dense<[[0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0]]> : tensor<3x4xf8E4M3FNUZ>
+  func.return
+}
+
+// -----
+
+func.func @iota_op_test_f8_e5m2_fnuz_dim_0() {
+  %0 = stablehlo.iota dim = 0 : tensor<3x4xf8E5M2FNUZ>
+  check.expect_almost_eq_const %0, dense<[[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0], [2.0, 2.0, 2.0, 2.0]]> : tensor<3x4xf8E5M2FNUZ>
+  func.return
+}
+
+// -----
+
+func.func @iota_op_test_f8_e5m2_fnuz_dim_1() {
+  %0 = stablehlo.iota dim = 1 : tensor<3x4xf8E5M2FNUZ>
+  check.expect_almost_eq_const %0, dense<[[0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0]]> : tensor<3x4xf8E5M2FNUZ>
+  func.return
+}
+
+// -----
+
 func.func @iota_op_test_bf16_dim_0() {
   %0 = stablehlo.iota dim = 0 : tensor<3x4xbf16>
   check.expect_almost_eq_const %0, dense<[[0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00], [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00], [2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00]]> : tensor<3x4xbf16>
