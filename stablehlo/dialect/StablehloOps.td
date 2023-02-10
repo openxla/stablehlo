@@ -1666,8 +1666,8 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$update,
+    HLO_Tensor:$operand /*dynamic_update_slice_i1*/,
+    HLO_Tensor:$update /*dynamic_update_slice_i2*/,
     Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_update_slice_i3*/
   );
   let results = (outs HLO_Tensor:$result);
