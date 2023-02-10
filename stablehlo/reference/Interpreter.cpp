@@ -30,34 +30,6 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-namespace {
-
-Tensor fetchOperandInScope(Value value, const InterpreterScope &scope) {
-  return scope.find(value);
-}
-
-SmallVector<Tensor> fetchVariadicOperandInScope(OperandRange values,
-                                                const InterpreterScope &scope) {
-  return llvm::to_vector(llvm::map_range(
-      values, [&](Value value) { return fetchOperandInScope(value, scope); }));
-}
-
-void addOpResultsToScope(Operation &op, ArrayRef<Tensor> runtimeResults,
-                         InterpreterScope &scope) {
-  assert(op.getNumResults() == runtimeResults.size());
-  for (auto [ssaResult, runtimeResult] :
-       llvm::zip(op.getResults(), runtimeResults)) {
-    if (ssaResult.getType() != runtimeResult.getType()) {
-      llvm::errs() << ssaResult.getType() << " " << runtimeResult.getType()
-                   << "\n";
-      assert(ssaResult.getType() == runtimeResult.getType());
-    }
-    scope.add(ssaResult, runtimeResult);
-  }
-}
-
-}  // namespace
-
 llvm::Expected<SmallVector<Tensor>> eval(func::FuncOp func,
                                          ArrayRef<Tensor> args) {
   if (func->getNumRegions() != 1)
@@ -94,129 +66,144 @@ llvm::Expected<SmallVector<Tensor>> eval(
     scope.add(ssaArg, runtimeArg);
   }
 
+  auto fetchOperand = [&](Value value) -> Tensor { return scope.find(value); };
+
+  auto fetchVariadicOperands = [&](OperandRange values) {
+    return llvm::to_vector(llvm::map_range(
+        values, [&](Value value) { return fetchOperand(value); }));
+  };
+
   for (Operation &op : block) {
+    auto addOpResultsToScope = [&](ArrayRef<Tensor> runtimeResults) {
+      assert(op.getNumResults() == runtimeResults.size());
+      for (auto [ssaResult, runtimeResult] :
+           llvm::zip(op.getResults(), runtimeResults)) {
+        if (ssaResult.getType() != runtimeResult.getType()) {
+          llvm::report_fatal_error(
+              "Expected same value for an SSA register and its evalted value");
+        }
+        scope.add(ssaResult, runtimeResult);
+      }
+    };
+
     if (auto addOp = dyn_cast<AddOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(addOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(addOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(addOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(addOp.getRhs());
       Tensor runtimeResult = evalAddOp(runtimeLhs, runtimeRhs, addOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(andOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(andOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(andOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(andOp.getRhs());
       Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(ceilOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(ceilOp.getOperand());
       Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       Tensor runtimeResult = evalConstantOp(constantOp.getValue());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(cosineOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(cosineOp.getOperand());
       Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(floorOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(floorOp.getOperand());
       Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
       Tensor runtimeResult =
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(maxOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(maxOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(maxOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(maxOp.getRhs());
       Tensor runtimeResult = evalMaxOp(runtimeLhs, runtimeRhs, maxOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto minOp = dyn_cast<MinOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(minOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(minOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(minOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(minOp.getRhs());
       Tensor runtimeResult = evalMinOp(runtimeLhs, runtimeRhs, minOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto multiplyOp = dyn_cast<MulOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(multiplyOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(multiplyOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(multiplyOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(multiplyOp.getRhs());
       Tensor runtimeResult =
           evalMultiplyOp(runtimeLhs, runtimeRhs, multiplyOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(negOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(negOp.getOperand());
       Tensor runtimeResult = evalNegOp(runtimeOperand, negOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto notOp = dyn_cast<NotOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(notOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(notOp.getOperand());
       Tensor runtimeResult = evalNotOp(runtimeOperand, notOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto orOp = dyn_cast<OrOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(orOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(orOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(orOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(orOp.getRhs());
       Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
-      auto runtimeInputs =
-          fetchVariadicOperandInScope(whileOp.getOperand(), scope);
+      auto runtimeInputs = fetchVariadicOperands(whileOp.getOperand());
       auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
                                         whileOp.getBody(), scope);
-      addOpResultsToScope(op, runtimeResults, scope);
+      addOpResultsToScope(runtimeResults);
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
-      Tensor runtimeOperand =
-          fetchOperandInScope(reshapeOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(reshapeOp.getOperand());
       Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
-      Tensor runtimeOperand =
-          fetchOperandInScope(reverseOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(reverseOp.getOperand());
       auto dimensions =
           llvm::to_vector(reverseOp.getDimensions().getValues<int64_t>());
       Tensor runtimeResult =
           evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
       for (Value ssaOperand : returnOp.getOperands())
-        runtimeOperands.push_back(fetchOperandInScope(ssaOperand, scope));
+        runtimeOperands.push_back(fetchOperand(ssaOperand));
       return runtimeOperands;
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       SmallVector<Tensor> runtimeOperands;
       for (Value ssaOperand : returnOp.getOperands())
-        runtimeOperands.push_back(fetchOperandInScope(ssaOperand, scope));
+        runtimeOperands.push_back(fetchOperand(ssaOperand));
       return runtimeOperands;
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(sineOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(sliceOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(sliceOp.getOperand());
       auto startIndices =
           llvm::to_vector(sliceOp.getStartIndices().getValues<int64_t>());
       auto strides = llvm::to_vector(sliceOp.getStrides().getValues<int64_t>());
       Tensor runtimeResult =
           evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(subtractOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(subtractOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(subtractOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(subtractOp.getRhs());
       Tensor runtimeResult =
           evalSubtractOp(runtimeLhs, runtimeRhs, subtractOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
-      Tensor runtimeOperand = fetchOperandInScope(tanhOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(tanhOp.getOperand());
       Tensor runtimeResult = evalTanhOp(runtimeOperand, tanhOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
-      Tensor runtimeOperand =
-          fetchOperandInScope(transposeOp.getOperand(), scope);
+      Tensor runtimeOperand = fetchOperand(transposeOp.getOperand());
       auto permutation =
           llvm::to_vector(transposeOp.getPermutation().getValues<int64_t>());
       Tensor runtimeResult =
           evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
-      Tensor runtimeLhs = fetchOperandInScope(xorOp.getLhs(), scope);
-      Tensor runtimeRhs = fetchOperandInScope(xorOp.getRhs(), scope);
+      Tensor runtimeLhs = fetchOperand(xorOp.getLhs());
+      Tensor runtimeRhs = fetchOperand(xorOp.getRhs());
       Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
-      addOpResultsToScope(op, {runtimeResult}, scope);
+      addOpResultsToScope({runtimeResult});
     } else {
       return invalidArgument("Unsupported op: %s", debugString(op).c_str());
     }

@@ -22,6 +22,7 @@ func.func @region_test() -> tensor<i64> {
       }, {
         ^bb0(%arg6: tensor<i64>, %arg7: tensor<i64>):
           %v4 = stablehlo.add %v2, %arg6 :  tensor<i64> // 70 + 70, 70 + 140
+          %v5 = stablehlo.add %v4, %iter :  tensor<i64> // 70 + 70 + 0, 70 + 140 + 0
           stablehlo.return %v4, %arg7 : tensor<i64>, tensor<i64>
       }) : (tensor<i64>, tensor<i64>) -> (tensor<i64>, tensor<i64>)
 

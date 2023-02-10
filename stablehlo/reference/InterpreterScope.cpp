@@ -32,9 +32,7 @@ void InterpreterScope::add(Value ssaValue, Tensor runtimeValue) {
 Tensor InterpreterScope::find(Value ssaValue) const {
   auto it = stackFrame.find(ssaValue);
 
-  if (it != stackFrame.end()) {
-    return it->second;
-  }
+  if (it != stackFrame.end()) return it->second;
 
   if (!parentScope)
     llvm::report_fatal_error(

@@ -227,15 +227,19 @@ Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
 
 // ***********************************************************************
 // This is an simplified implementation of while op semantics. The
-// simplification is basd on iterating the loop `dummy_limit` number of times
-// if the loop condition is true. The simplifiction is done as compare op is
-// nnot supported.
-// TODO(#982): THIS SHOULD BE UPDATED WITH CORRECT IMPLEMENTATION.
+// simplification is based on iterating the loop `dummy_limit` number of times
+// if the loop condition is `true`. The simplifiction is done as compare op is
+// not supported. To be corrected and improved as part of #967 and #992
+// respectively.
 // ***********************************************************************
 SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> runtimeInputs, Region &cond,
                                 Region &body, const InterpreterScope &scope) {
   SmallVector<Tensor> runtimeResults(runtimeInputs);
-  auto runtimeCondResultsOrErr = eval(cond, runtimeInputs, &scope);
+  bool isIsolatedFromAbove =
+      cond.getParentOp()->hasTrait<OpTrait::IsIsolatedFromAbove>();
+
+  auto runtimeCondResultsOrErr =
+      eval(cond, runtimeInputs, isIsolatedFromAbove ? nullptr : &scope);
   if (!runtimeCondResultsOrErr)
     llvm::report_fatal_error("Error in while op evaluation");
 
@@ -250,7 +254,8 @@ SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> runtimeInputs, Region &cond,
       llvm::report_fatal_error("Error in while op evaluation");
 
     runtimeResults = *runtimeBodyResultsOrErr;
-    runtimeCondResultsOrErr = eval(cond, runtimeResults, &scope);
+    runtimeCondResultsOrErr =
+        eval(cond, runtimeResults, isIsolatedFromAbove ? nullptr : &scope);
     if (!runtimeCondResultsOrErr)
       llvm::report_fatal_error("Error in while op evaluation");
 

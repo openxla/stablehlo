@@ -22,18 +22,18 @@ namespace mlir {
 namespace stablehlo {
 
 /// Represents the runtime scope corresponding to a region of a program under
-/// evaluation. Holds a (1) mapping from SSA values, defined in the current
-/// region, to runtime `Tensor` values, and (2) a handle to `InterpreterScope`
-/// object corresponding to the enclosing region (i.e. the region of the
-/// parent).
+/// evaluation. Holds (1) mapping from SSA values, defined in the current
+/// region, to their evaluated runtime `Tensor` values, and (2) handle to
+/// `InterpreterScope` object corresponding to the syntactically enclosing
+/// region.
 ///
 /// Note:
 /// 1. A `InterpreterScope` object is instantiated every time a region is
 ///    evaluated.
 /// 2. A `InterpreterScope` object treats the `parentScope` as immutable to
-/// align
-///    with the fact that a StableHLO program, in pure SSA form, disallows
-///    mutating the scope of the parent from within a region.
+///    align with the fact that a StableHLO program, in pure SSA form (without
+///    memory allocation/load/store ops), disallows mutating the `parentScope`
+///    object from within a region.
 class InterpreterScope {
  public:
   InterpreterScope(const InterpreterScope *const pScope)
@@ -41,8 +41,8 @@ class InterpreterScope {
 
   InterpreterScope(const InterpreterScope &Scope) = delete;
 
-  /// Add the mapping SSA value (`ssaValue`) to runtime value (`runtimeValue`)
-  /// in the current scope.
+  /// Add the mapping from SSA value (`ssaValue`), defined in a region, to
+  /// its evaluated runtime value (`runtimeValue`).
   void add(Value ssaValue, Tensor runtimeValue);
 
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
@@ -54,8 +54,7 @@ class InterpreterScope {
   /// Internal store for mapping from SSA values to runtime `Tensor` values.
   llvm::DenseMap<Value, Tensor> stackFrame;
 
-  /// A handle to the parent's scope. This member is assigned based on the
-  /// hierarchy of regions as defined in the program text.
+  /// A handle to the parent's scope.
   const InterpreterScope *const parentScope = nullptr;
 };
 
