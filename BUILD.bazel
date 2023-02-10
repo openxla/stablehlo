@@ -798,6 +798,86 @@ cc_library(
     ],
 )
 
+VHLO_CAPI_SOURCES = [
+    "stablehlo/integrations/c/VhloDialect.cpp",
+]
+
+VHLO_CAPI_HEADERS = [
+    "stablehlo/integrations/c/VhloDialect.h",
+]
+
+cc_library(
+    name = "vhlo_capi",
+    srcs = VHLO_CAPI_SOURCES,
+    hdrs = VHLO_CAPI_HEADERS,
+    strip_include_prefix = ".",
+    deps = [
+        ":vhlo_ops",
+        "@llvm-project//mlir:CAPIIR",
+    ],
+)
+
+# Header-only target, used when using the C API from a separate shared library.
+cc_library(
+    name = "vhlo_capi_headers",
+    hdrs = VHLO_CAPI_HEADERS,
+    strip_include_prefix = ".",
+    deps = [
+        "@llvm-project//mlir:CAPIIRHeaders",
+    ],
+)
+
+# Alwayslink target, used when exporting the C API from a shared library.
+cc_library(
+    name = "vhlo_capi_objects",
+    srcs = VHLO_CAPI_SOURCES,
+    hdrs = VHLO_CAPI_HEADERS,
+    strip_include_prefix = ".",
+    deps = [
+        ":vhlo_ops",
+        "@llvm-project//mlir:CAPIIRObjects",
+    ],
+    alwayslink = True,
+)
+
+filegroup(
+    name = "vhlo_ops_py_files",
+    srcs = [
+        "stablehlo/integrations/python/mlir/dialects/vhlo.py",
+        ":vhlo_ops_py_gen",
+    ],
+)
+
+gentbl_filegroup(
+    name = "vhlo_ops_py_gen",
+    tbl_outs = [
+        (
+            [
+                "-gen-python-op-bindings",
+                "-bind-dialect=vhlo",
+            ],
+            "stablehlo/integrations/python/mlir/dialects/_vhlo_ops_gen.py",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/integrations/python/mlir/dialects/VhloOps.td",
+    deps = [
+        ":vhlo_ops_py_td_files",
+    ],
+)
+
+td_library(
+    name = "vhlo_ops_py_td_files",
+    srcs = [
+        "@llvm-project//mlir:include/mlir/Bindings/Python/Attributes.td",
+    ],
+    includes = ["include", "."],
+    deps = [
+        ":vhlo_ops_td_files",
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
 gentbl_cc_library(
     name = "vhlo_attr_interfaces_inc_gen",
     tbl_outs = [
