@@ -638,8 +638,6 @@ cc_library(
     ],
 )
 
-
-
 cc_library(
     name = "stablehlo_type_inference",
     srcs = [
