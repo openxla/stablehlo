@@ -165,36 +165,13 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 
 Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
   Tensor result(resultType);
-  Type elType = result.getElementType();
+  Type elementTy = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    auto iota = (*it)[iotaDimension];
-    if (isSupportedSignedIntegerType(elType)) {
-      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
-                                            iota, /*isSigned=*/true)));
-    } else if (isSupportedUnsignedIntegerType(elType)) {
-      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
-                                            iota, /*isSigned=*/false)));
-    } else if (isSupportedFloatType(elType)) {
-      APFloat val = APFloat((double)iota);
-      bool roundingErr;
-      val.convert(elType.cast<FloatType>().getFloatSemantics(),
-                  APFloat::rmNearestTiesToEven, &roundingErr);
-      result.set(*it, Element(elType, val));
-    } else if (isSupportedComplexType(elType)) {
-      APFloat real((double)iota);
-      APFloat imag((double)0.0);
-      FloatType flType =
-          elType.cast<ComplexType>().getElementType().cast<FloatType>();
-      bool roundingErr;
-      real.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      imag.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
-    } else {
+    if (isSupportedType(elementTy))
+      result.set(*it, Element::getValue(elementTy, (*it)[iotaDimension]));
+    else
       report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(elType).c_str()));
-    }
+                                         debugString(elementTy).c_str()));
   }
   return result;
 }

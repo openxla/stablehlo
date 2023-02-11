@@ -23,6 +23,9 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -41,6 +44,38 @@ class Element {
       : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
 
   Element(const Element &other) = default;
+  Element() = default;
+
+  template <class V>
+  static Element getValue(Type type, V value) {
+    if (isSupportedSignedIntegerType(type)) {
+      return Element(
+          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
+    } else if (isSupportedUnsignedIntegerType(type)) {
+      return Element(
+          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
+    } else if (isSupportedFloatType(type)) {
+      APFloat floatVal((double)value);
+      bool roundingErr;
+      floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
+                       APFloat::rmNearestTiesToEven, &roundingErr);
+      return Element(type, floatVal);
+    } else if (isSupportedComplexType(type)) {
+      APFloat real((double)value);
+      APFloat imag((double)0.0);
+      auto floatTy =
+          type.cast<ComplexType>().getElementType().cast<FloatType>();
+      bool roundingErr;
+      real.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
+      imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                   &roundingErr);
+      return Element(type, std::complex<APFloat>(real, imag));
+    } else {
+      report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                         debugString(type).c_str()));
+    }
+  }
   /// @}
 
   /// Assignment operator.

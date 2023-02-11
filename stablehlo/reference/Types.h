@@ -46,6 +46,10 @@ bool isSupportedFloatType(Type type);
 /// StableHLO specification. Such types are: complex<f32> and complex<f64>.
 bool isSupportedComplexType(Type type);
 
+/// Check if the type 'type' is a supported element type per the
+/// StableHLO specification.
+bool isSupportedType(Type type);
+
 }  // namespace stablehlo
 }  // namespace mlir
 
