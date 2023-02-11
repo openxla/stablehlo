@@ -102,14 +102,13 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
     adjustedStartIndices.push_back(std::min(
         std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
         operandShape[i] - updateShape[i]));
-  for (auto resItr = result.index_begin(), updItr = update.index_begin();
-       resItr != result.index_end(); ++resItr) {
-    if (updItr != update.index_end() &&
-        llvm::equal(*resItr, addIndices(*updItr, adjustedStartIndices)))
-      result.set(*resItr, update.get(*updItr++));
-    else
-      result.set(*resItr, operand.get(*resItr));
-  }
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, operand.get(*resultIt));
+  for (auto updateIt = update.index_begin(); updateIt != update.index_end();
+       ++updateIt)
+    result.set(addIndices(*updateIt, adjustedStartIndices),
+               update.get(*updateIt));
   return result;
 }
 
