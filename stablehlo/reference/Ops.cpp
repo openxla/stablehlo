@@ -15,7 +15,6 @@ limitations under the License.
 
 #include "stablehlo/reference/Ops.h"
 
-#include "Element.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Errc.h"
