@@ -2110,7 +2110,7 @@ def StableHLO_CrossReplicaSumOp : StableHLO_Op<"cross-replica-sum",
     Example:
 
     ```mlir
-    %result = "stablehlo.all_reduce"(%operand) {
+    %result = "stablehlo.cross-replica-sum"(%operand) {
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
     } : (tensor<4xf32>) -> tensor<4xf32>
     ```
