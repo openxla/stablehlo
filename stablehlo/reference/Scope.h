@@ -21,24 +21,18 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-/// Represents the runtime scope corresponding to a region of a program under
+/// Represents the scope corresponding to a region of a program under
 /// evaluation. Holds (1) mapping from SSA values, defined in the current
 /// region, to their evaluated runtime `Tensor` values, and (2) handle to
-/// `Scope` object corresponding to the syntactically enclosing
-/// region.
-///
-/// Note:
-/// 1. A `Scope` object is instantiated every time a region is
-///    evaluated.
-/// 2. A `Scope` object treats the `parent` as immutable to
-///    align with the fact that a StableHLO program, in pure SSA form (without
-///    memory allocation/load/store ops), disallows mutating the `parent`
-///    object from within a region.
+/// `Scope` object corresponding to the syntactically enclosing region.
 class Scope {
  public:
-  Scope(const Scope *const parentScope) : parent(parentScope) {}
+  Scope(Scope *parentScope) : parent_(parentScope) {}
 
-  Scope(const Scope &Scope) = delete;
+  Scope(Scope &&other) = default;
+  Scope &operator=(Scope &&other) = default;
+
+  Scope(const Scope &) = delete;
   Scope &operator=(const Scope &) = delete;
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to
@@ -47,22 +41,23 @@ class Scope {
 
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to
   /// its evaluated runtime values (`runtimeValues`).
-  void add(ArrayRef<Value> ssaValues, ArrayRef<Tensor> runtimeValues);
+  void add(ValueRange ssaValues, ArrayRef<Tensor> runtimeValues);
 
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
   /// with the current scope and then recursively continues over to the scope
-  /// defined by `parent`.
+  /// defined by `parent_`.
   Tensor find(Value ssaValue) const;
 
   /// Find the runtime values mapped to SSA values `ssaValues`.
-  SmallVector<Tensor> find(ArrayRef<Value> ssaValues) const;
+  // SmallVector<Tensor> find(ArrayRef<Value> ssaValues) const;
+  SmallVector<Tensor> find(ValueRange ssaValues) const;
 
  private:
   /// Internal store for mapping from SSA values to runtime `Tensor` values.
-  llvm::DenseMap<Value, Tensor> stackFrame;
+  llvm::DenseMap<Value, Tensor> stack_frame_;
 
   /// A handle to the parent's scope.
-  const Scope *const parent = nullptr;
+  Scope *parent_ = nullptr;
 };
 
 }  // namespace stablehlo

@@ -49,17 +49,16 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
 Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
                        Type resultType);
-SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> inputs, Region &cond,
-                                Region &body, const Scope &scope);
+SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
+                                Region &body, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `runtimeArgs`
 /// corresponding to the arguments of the containing block, assuming that the
 /// region has only one block. Interprets the operations within the block and
 /// returns the runtime values for the terminator's arguments.
-llvm::Expected<llvm::SmallVector<Tensor>> evalRegion(
-    Region &region, llvm::ArrayRef<Tensor> runtimeArgs,
-    const Scope *const parentScope = nullptr);
+llvm::SmallVector<Tensor> eval(Region &region, llvm::ArrayRef<Tensor> args,
+                               Scope *parentScope = nullptr);
 
 }  // namespace stablehlo
 }  // namespace mlir

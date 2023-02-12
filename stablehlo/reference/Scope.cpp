@@ -23,35 +23,37 @@ namespace stablehlo {
 
 void Scope::add(Value ssaValue, Tensor runtimeValue) {
   // We are instantiating a new `Scope` object every time the
-  // interpreter evaluates a region. With that, the `stackFrame` should not have
-  // any duplicates.
-  assert(!stackFrame.count(ssaValue));  // TODO
-  if (ssaValue.getType() != runtimeValue.getType()) {
+  // interpreter evaluates a region. With that, the `stack_frame_` should not
+  // have any duplicates.
+  if (stack_frame_.count(ssaValue))
+    llvm::report_fatal_error("Duplicate SSA register found in scope");
+
+  if (ssaValue.getType() != runtimeValue.getType())
     llvm::report_fatal_error(
         "Expected same type for an SSA register and its evaluated value");
-  }
-  stackFrame[ssaValue] = runtimeValue;
+
+  stack_frame_[ssaValue] = runtimeValue;
 }
 
-void Scope::add(ArrayRef<Value> ssaValues, ArrayRef<Tensor> runtimeValues) {
+void Scope::add(ValueRange ssaValues, ArrayRef<Tensor> runtimeValues) {
   assert(ssaValues.size() == runtimeValues.size());
   for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
     add(ssaValue, runtimeValue);
 }
 
 Tensor Scope::find(Value ssaValue) const {
-  auto it = stackFrame.find(ssaValue);
+  auto it = stack_frame_.find(ssaValue);
 
-  if (it != stackFrame.end()) return it->second;
+  if (it != stack_frame_.end()) return it->second;
 
-  if (!parent)
+  if (!parent_)
     llvm::report_fatal_error(llvm::formatv("value {0} not found in scope",
                                            debugString(ssaValue).c_str()));
 
-  return parent->find(ssaValue);
+  return parent_->find(ssaValue);
 }
 
-SmallVector<Tensor> Scope::find(ArrayRef<Value> ssaValues) const {
+SmallVector<Tensor> Scope::find(ValueRange ssaValues) const {
   return llvm::to_vector(
       llvm::map_range(ssaValues, [&](Value value) { return find(value); }));
 }

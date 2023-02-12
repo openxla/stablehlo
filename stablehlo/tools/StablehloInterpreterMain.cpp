@@ -30,15 +30,10 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
            << "\n";
 
         // Run the test model.
-        auto results = stablehlo::evalRegion(funcOp.getBody(), {});
-
-        if (!results) {
-          llvm::errs() << toString(results.takeError());
-          return WalkResult::interrupt();
-        }
+        auto results = stablehlo::eval(funcOp.getBody(), {});
 
         // Dump the results.
-        for (auto &result : *results) result.print(os);
+        for (auto &result : results) result.print(os);
         return WalkResult::advance();
       });
 
