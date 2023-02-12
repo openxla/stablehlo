@@ -2269,7 +2269,7 @@ def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]> {
   }];
 }
 
-def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp {
+def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]> {
   let summary = "UnaryEinsum operation";
   let description = [{
     This operation is on its way out of StableHLO, so it is not included in
