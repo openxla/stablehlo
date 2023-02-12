@@ -125,13 +125,14 @@ def StableHLO_IotaOp : StableHLO_Op<"iota", [Pure]> {
 }
 
 def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]> {
-  let summary = "Create linear increasing values from 0 to length -1.";
+  let summary = "DynamicIota operation";
   let description = [{
-    Produces an HLO Tensor of the specified shape, with an incremental set of
-    values along the specified dimension starting at 0.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-    Requires:
-    - The output length of the tensor result.
+    Informally, this operation does the same thing as IotaOp except that the
+    result shape is specified dynamically via `output_shape`:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#iota
 
     Example:
 
@@ -150,17 +151,18 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
 
 def StableHLO_CreateTokenOp : StableHLO_Op<"create_token", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Create Token operator";
-
+  let summary = "CreateToken operation";
   let description = [{
-    Produces a HLO token. Tokens are used for ordering side-effecting operations.
-    This is exported to HLO as an AfterAll operation with no operands to
-    generate a token.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
+
+    Informally, this operation does the same thing as AfterAllOp with 0 inputs:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#after_all
 
     Example:
 
     ```mlir
-    %1 = stablehlo.create_token : !stablehlo.token
+    %output = stablehlo.create_token : !stablehlo.token
     ```
   }];
 
@@ -1812,22 +1814,18 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
 
 def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
     [Pure, SameOperandsAndResultElementType, InferTensorType]> {
-  let summary = "Broadcast a tensor to a higher rank by prepending dimensions";
+  let summary = "Broadcast operation";
   let description = [{
-    Broadcasts the operand tensor to a higher rank by prepending
-    `broadcast_sizes` to the dimensions. The current values of the operand are
-    copied into the other dimensions.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
 
-    This is a more limited form of broadcasting, that corresponds to the XLA
-    client Broadcast method. For a more general form of broadcasting, see the
-    BroadcastInDimOp.
-
-    See https://www.tensorflow.org/xla/operation_semantics#broadcast.
+    Informally, this operation does the same thing as XLA's Broadcast:
+    https://www.tensorflow.org/xla/operation_semantics#broadcast
 
     Example:
 
     ```mlir
-    %0 = stablehlo.broadcast %arg1, sizes = [1, 2] : (tensor<3xi32>) -> tensor<1x2x3xi32>
+    %result = stablehlo.broadcast %operand, sizes = [1, 2] : (tensor<3xi32>) -> tensor<1x2x3xi32>
     ```
   }];
   let arguments = (ins
@@ -1876,14 +1874,16 @@ def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
 
 def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
     "dynamic_broadcast_in_dim", [Pure]> {
-  let summary = "Broadcast a tensor into the given dynamic shape by adding dimensions.";
+  let summary = "DynamicBroadcastInDim operation";
   let description = [{
-    This is a generalization of the BroadcastInDimOp which accepts its output
-    dimensions as an argument. It should eventually supercede the statically
-    shaped original, but is being phased as a separate op in order to support
-    compatibility with lowerings and translations that precede dynamic shapes.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-    The op accepts optional attributes to express static knowledge about the
+    Informally, this operation does the same thing as BroadcastInDimOp except
+    that the result shape is specified dynamically via `output_dimensions`:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#broadcast_in_dim
+
+    It also accepts optional attributes to express static knowledge about the
     expanding behavior of dimensions. If not specified, all dimensions are
     assumed to be possibly expanding. The sets of dimensions that are known to
     be expanding and the set of dimensions that are known to be non-expanding
@@ -2097,18 +2097,24 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
 
 def StableHLO_CrossReplicaSumOp : StableHLO_Op<"cross-replica-sum",
     [Pure, HLO_CompatibleOperandsAndResultType]> {
-  let summary = "Sums input across replicated instances.";
+  let summary = "CrossReplicaSum operation";
   let description = [{
-     For each of the replica groups, operands of the group devices are summed
-     so that each device has the sum.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
 
-     For example, suppose there are 8 TPU devices: `[A, B, C, D, E, F, G, H]`.
-     Passing group_assignment=`[[0,2,4,6],[1,3,5,7]]` sets `A, C, E, G` as group 0,
-     and `B, D, F, H` as group 1. Thus we get the outputs:
-     `[A+C+E+G, B+D+F+H, A+C+E+G, B+D+F+H, A+C+E+G, B+D+F+H, A+C+E+G, B+D+F+H]`.
+    Informally, this operation does the same thing as AllReduceOp with
+    `channel_id = 0`, `use_global_device_ids = false` and `computation`
+    implementing addition:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#all_reduce
 
-     See https://www.tensorflow.org/xla/operation_semantics#crossreplicasum.
-   }];
+    Example:
+
+    ```mlir
+    %result = "stablehlo.all_reduce"(%operand) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
+    } : (tensor<4xf32>) -> tensor<4xf32>
+    ```
+  }];
 
   let arguments = (ins
     HLO_Tensor:$operand,
@@ -2170,18 +2176,18 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
 }
 
 def StableHLO_DotOp: StableHLO_Op<"dot", [Pure]> {
-  let summary = "Dot operator";
+  let summary = "Dot operation";
   let description = [{
-    Performs dot products between vectors, vector/matrix and matrix/matrix
-    multiplication.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
 
-    See https://www.tensorflow.org/xla/operation_semantics#dot.
+    Informally, this operation does the same thing as XLA's Dot:
+    https://www.tensorflow.org/xla/operation_semantics#dot
 
     Example:
 
     ```mlir
     %0 = stablehlo.dot %arg0, %arg1 : (tensor<1x2xi32>, tensor<2x1xi32>) -> tensor<1x1xi32>
-    %1 = stablehlo.dot %arg0, %arg1, precision = [DEFAULT, DEFAULT] : (tensor<1x2xi32>, tensor<2x1xi32>) -> tensor<1x1xi32>
     ```
   }];
   let arguments = (
@@ -2232,18 +2238,24 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
   let hasVerifier = 1;
 }
 
-// Define Base Einsum op within the HLO dialect as these are client ops and
-// therefore this class is not common between HLO and LHLO ops.
-class BASE_EinsumOp {
-  string summary = "Einsum operator";
+def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]> {
+  let summary = "Einsum operation";
+  let description = [{
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
 
-  string description = [{
-    Returns a tensor whose elements are defined by equation, which is written
-    in a shorthand form inspired by the Einstein summation convention.
+    Informally, this operation does the same thing as TF's einsum:
+    https://www.tensorflow.org/api_docs/python/tf/einsum
+
+    Example:
+
+    ```mlir
+    %result = "stablehlo.einsum"(%lhs, %rhs) {
+      einsum_config = "ab,bc->ac"
+    } : (tensor<4x16xf32>, tensor<16x4xf32>) -> tensor<4x4xf32>
+    ```
   }];
-}
 
-def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]>, BASE_EinsumOp {
   let arguments = (ins
     HLO_Tensor:$lhs,
     HLO_Tensor:$rhs,
@@ -2252,15 +2264,29 @@ def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]>, BASE_EinsumOp {
 
   let results = (outs HLO_Tensor);
 
-  // TODO(hinsu): Canonicalize to lower this client side HLO op to server
-  // side HLO ops.
-
   let assemblyFormat = [{
     $lhs `,` $rhs `,` `config` `=` $einsum_config attr-dict `:` functional-type(operands, results)
   }];
 }
 
 def StableHLO_UnaryEinsumOp: StableHLO_Op<"unary_einsum", [Pure]>, BASE_EinsumOp {
+  let summary = "UnaryEinsum operation";
+  let description = [{
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
+
+    Informally, this operation does the same thing as TF's einsum:
+    https://www.tensorflow.org/api_docs/python/tf/einsum
+
+    Example:
+
+    ```mlir
+    %result = "stablehlo.unary_einsum"(%operand) {
+      einsum_config = "ab->a"
+    } : (tensor<4x16xf32>) -> tensor<4xf32>
+    ```
+  }];
+
   let arguments = (ins
     HLO_Tensor:$operand,
     StrAttr:$einsum_config
@@ -2420,15 +2446,14 @@ def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
 }
 
 def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [Pure]> {
-  let summary = "Reshape a tensor to a given, possibly dynamic, shape.";
+  let summary = "DynamicReshape operation";
   let description = [{
-    Reshapes `operand` to `output_shape`.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-    Requires:
-    - The length of `output_shape` is equal to the rank of `result`.
-    - The number of elements in `operand` (that is, the product of extents of
-      its shape) is equal to the number of elements in `output_shape` (that is,
-      the product of values in `output_shape`).
+    Informally, this operation does the same thing as ReshapeOp except that the
+    result shape is specified dynamically via `output_shape`:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reshape
 
     Example:
 
@@ -2569,13 +2594,13 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
 
 def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "SetDimensionSize operator";
+  let summary = "SetDimensionSize operation";
   let description = [{
-    Sets the dynamic size of operand's given dimension. Pass through the operand
-    as result, with dynamic dimension tracked by the compiler. Padded values
-    will be ignored by downstream reduction ops.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-    See https://www.tensorflow.org/xla/operation_semantics#setdimensionsize.
+    Informally, this operation does the same thing as XLA's SetDimensionSize:
+    https://www.tensorflow.org/xla/operation_semantics#setdimensionsize
 
     Example:
 
@@ -2607,7 +2632,7 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
     number of tensors as `results`.
 
     See:
-    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reverse
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#sort
 
     Example:
     %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
@@ -2705,9 +2730,14 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
 }
 
 def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
-  let summary = "Trace operator";
+  let summary = "Trace operation";
   let description = [{
-    Emits a logging message `tag` with the `operand`.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/604.
+
+    It is not used by JAX, PyTorch or TensorFlow, so it looks like we should've
+    classified it as "Private to XLA" and not included it in StableHLO in the
+    first place. With that in mind, its semantics will not be documented here.
 
     Example:
 
@@ -2859,16 +2889,24 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
 }
 
 def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
+  let summary = "Return operation";
   let summary = [{
-    The `hlo.return` operation terminates a region and returns values.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/425.
+
+    Informally, this operation serves as a terminator for regions defined by
+    the StableHLO ops. Non-StableHLO ops, e.g. `func.func`, have their own
+    terminators, e.g. `func.return`.
 
     Example:
-
     ```mlir
-    %0 = stablehlo.reduce %arg0, %arg1 {
-      ...
-      stablehlo.return %1 : tensor<f32>
-    }
+    %result = "stablehlo.reduce"(%input, %init_value) ({
+      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
+        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+    }) {
+      dimensions = dense<1> : tensor<1xi64>
+    } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
     ```
   }];
 
@@ -2880,24 +2918,25 @@ def StableHLO_ReturnOp : StableHLO_Op<"return", [Pure, Terminator]> {
 }
 
 def StableHLO_TorchIndexSelectOp : StableHLO_Op<"torch_index_select", [Pure]> {
-  let summary = "TorchIndexSelect operator";
+  let summary = "TorchIndexSelect operation";
   let description = [{
-    Returns a new tensor which indexes the input tensor along dimension `dim`
-    using the entries in `index`.
+    This operation is on its way out of StableHLO, so it is not included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/3.
 
-    The returned tensor has the same dimensions as `operand`, except for the
-    `dim`th dimension which is replaced by the shape of `index` without the
-    leading `batch_dims` dimensions;
+    Informally, this operation does the same thing as PyTorch's index_select,
+    augmented with support for batch dimensions:
+    https://pytorch.org/docs/stable/generated/torch.index_select.html.
 
     The `batch_dims` attribute specifies the number of major batch dimensions
-    (0 or more) that act like a multidimensional loop over both the input and
+    (0 or more) that act like a multidimensional loop over both the operand and
     the index.
 
     Example:
 
     ```mlir
-    %0 = "stablehlo.torch_index_select"(%arg0, %arg1) {
-      batch_dims = 1 : i64, dim = 2 : i64
+    %result = "stablehlo.torch_index_select"(%operand, %index) {
+      dim = 2 : i64,
+      batch_dims = 1 : i64
     } : (tensor<8x128x3072x64xf32>, tensor<8x16x1024xi32>) -> tensor<8x128x16x1024x64xf32>
     ```
   }];
@@ -2910,9 +2949,6 @@ def StableHLO_TorchIndexSelectOp : StableHLO_Op<"torch_index_select", [Pure]> {
   );
 
   let results = (outs HLO_Tensor);
-
-  // TODO(hinsu): Canonicalize to lower this client side HLO op to server
-  // side HLO ops.
 }
 
 def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
@@ -3028,31 +3064,38 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
       [Pure], TensorOf<[F32, BF16, HLO_QuantizedInt]>,
       HLO_QuantizedIntTensor> {
-  let summary = "Uniform quantize operator";
+  let summary = "UniformQuantize operator";
   let description = [{
-    Converts floating point tensors or uniform quantized integer tensors to
-    uniform quantized integer tensors according to the quantization parameters
-    defined by the output type.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/588.
+
+    Informally, this operation converts floating point tensors or uniform
+    quantized tensors to uniform quantized tensors according to the quantization
+    parameters defined by the result type.
 
     Example:
 
     ```mlir
-    %0 = stablehlo.uniform_quantize %arg0 : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+    %result = stablehlo.uniform_quantize %operand : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
     ```
   }];
 }
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
       [InferTensorType, Pure], HLO_QuantizedIntTensor, TensorOf<[F32, BF16]>> {
-  let summary = "Uniform dequantize operator";
+  let summary = "UniformDequantize operation";
   let description = [{
-    Converts quantized array of integers to floating-points according to the
-    quantization parameters defined by the input type.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/588.
+
+    Informally, this operation converts uniform quantized tensors to floating
+    point tensors according to the quantization parameters defined by the
+    operand type.
 
     Example:
 
     ```mlir
-    %0 = stablehlo.uniform_dequantize %arg0 : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
+    %result = stablehlo.uniform_dequantize %operand : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
     ```
   }];
 }
@@ -3091,17 +3134,20 @@ def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<
       "real_dynamic_slice",
       [Pure, AllElementTypesMatch<["operand", "result"]>,
        AllTypesMatch<["start_indices", "limit_indices", "strides"]>]> {
-  let summary = "Real Dynamic Slice operator";
+  let summary = "RealDynamicSlice operation";
   let description = [{
-    The dynamic shape version of SliceOp. Extracts a sub-array from the input
-    array according to start_indices, limit_indices and strides. Expect
-    start_indices/limit_indices/strides to be statically shaped and matching
-    the rank of the input.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+
+    Informally, this operation does the same thing as SliceOp except
+    that `start_indices`, `limit_indices` and `strides` are specified dynamically:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#slice
 
     Example:
 
     ```mlir
-    %0 = stablehlo.real_dynamic_slice %input, %start, %limit, %strides
+    %result = stablehlo.real_dynamic_slice %operand,
+                %start_indices, %limit_indices, %strides
            : (tensor<256x?xf32>, tensor<2xindex>, tensor<2xindex>, tensor<2xindex>) -> tensor<256x?xf32>
     ```
   }];
@@ -3120,19 +3166,21 @@ def StableHLO_RealDynamicSliceOp: StableHLO_ShapedInterfaceOp<
 def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
       [Pure, AllElementTypesMatch<["operand", "padding_value", "result"]>,
       AllTypesMatch<["edge_padding_low", "edge_padding_high", "interior_padding"]>]> {
-  let summary = "Dynamic Pad operator";
+  let summary = "DynamicPad operation";
   let description = [{
-    The dynamic shape version of PadOp. Pads the edges of `operand` with the
-    `padding_value` and according to the passed configuration. Expect
-    edge_padding_low/edge_padding_high/interior_padding to be statically shaped
-    and matching the rank of the input.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-    See https://www.tensorflow.org/xla/operation_semantics#pad.
+    Informally, this operation does the same thing as PadOp except
+    that `edge_padding_low`, `edge_padding_high` and `interior_padding` are
+    specified dynamically:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#pad
 
     Example:
 
     ```mlir
-    %0 = stablehlo.dynamic_pad %arg0, %arg1, %arg2, %arg3, %arg4
+    %result = stablehlo.dynamic_pad %operand, %padding_value,
+                %edge_padding_low, %edge_padding_high, %interior_padding
            : (tensor<?x?xf32>, tensor<f32>, tensor<2xindex>, tensor<2xindex>, tensor<2xindex>) -> tensor<?x?xf32>
     ```
   }];
@@ -3155,10 +3203,27 @@ def StableHLO_DynamicPadOp: StableHLO_ShapedInterfaceOp<"dynamic_pad",
 
 def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
                                 [InferTensorTypeWithReify, Pure]> {
-  string summary = "Dynamic Gather operator";
-  string description = [{
-    The dynamic shape version of GatherOp. Stitches together several slices of
-    an input array.
+  let summary = "DynamicGather operation";
+  let description = [{
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+
+    Informally, this operation does the same thing as GatherOp except
+    that `slice_sizes` are specified dynamically:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#gather
+
+    Example:
+
+    ```mlir
+    %result = "stablehlo.dynamic_gather"(%operand, %start_indices, %slice_sizes) {
+      dimension_numbers = #stablehlo.gather<
+        offset_dims = [2, 3],
+        collapsed_slice_dims = [0],
+        start_index_map = [0, 2],
+        index_vector_dim = 2>,
+      indices_are_sorted = false
+    } : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<3xi64>) -> tensor<2x3x2x2xi32>
+    ```
   }];
 
   let arguments = (ins
@@ -3172,9 +3237,28 @@ def StableHLO_DynamicGatherOp: StableHLO_Op<"dynamic_gather",
 }
 
 def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv", [Pure]> {
-  let summary = "Dynamic Convolution operator";
+  let summary = "DynamicConv operation";
   let description = [{
-    The dynamic shape version of ConvOp. Computes a convolution with dynamic padding.
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
+
+    Informally, this operation does the same thing as ConvolutionOp except
+    that `padding` is specified dynamically via `d_padding`:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#convolution
+
+    Example:
+    ```mlir
+    %result = "stablehlo.dynamic_conv"(%lhs, %rhs, %d_padding) {
+      window_strides = dense<4> : tensor<2xi64>,
+      lhs_dilation = dense<2> : tensor<2xi64>,
+      rhs_dilation = dense<1> : tensor<2xi64>,
+      window_reversal = dense<false> : tensor<2xi1>,
+      dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
+      feature_group_count = 1 : i64,
+      batch_group_count = 1 : i64,
+      precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+    } : (tensor<1x4x4x1xi32>, tensor<3x3x1x1xi32>, tensor<2x2xi64>) -> tensor<1x2x2x1xi32>
+    ```
   }];
 
   let arguments = !con(
@@ -3188,26 +3272,26 @@ def StableHLO_DynamicConvOp : StableHLO_Op<"dynamic_conv", [Pure]> {
 
 def StableHLO_ComputeReshapeShapeOp :
     StableHLO_Op<"compute_reshape_shape", [Pure]> {
-  string summary = "Compute input for reshape with any dynamic dim resolved";
+  let summary = "ComputeReshapeShape operation";
+  let description = [{
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-  string description = [{
-    This operation handles the dynamic aspect of a TF/NumPy/CHLO reshape. The
-    dynamic aspect is that a single extent can be -1 and that dimension will
-    instead be computed. This handles the computation and can then be passed to
-    an HLO DynamicReshapeOp to replicate the TF/NumPy reshape behavior.
+    Informally, this operation computes an output_shape for DynamicReshapeOp
+    from the `num_elements` number of elements in an operand of DynamicReshapeOp
+    and the `dynamic_shape` shape provided to TF's reshape:
+    https://www.tensorflow.org/api_docs/python/tf/reshape
 
-    This op has undefined behavior if the dimensions do not evenly divide the
-    number of elements, or if there are multiple -1 values. It is an identity op
-    if no dimensions are -1.
-
-    ```
-    %0 = hlo.compute_reshape_shape 12, [2, -1] -> [2, 6]
-    ```
+    For example, for `num_elements = 12` and `dynamic_shape = [2, -1]`,
+    the `result` is going to be `[2, 6]`. If operands are not valid (e.g. if
+    dimensions do not evenly divide the number of elements, or if there are
+    multiple -1 values in dimensions), this leads to undefined behavior.
 
     Example:
 
     ```mlir
-    %0 = stablehlo.compute_reshape_shape %arg0, %arg1 : (index, tensor<2xi32>) -> tensor<2xi32>
+    %result = stablehlo.compute_reshape_shape %num_elements, %dynamic_shape
+           : (index, tensor<2xi32>) -> tensor<2xi32>
     ```
   }];
 
@@ -3219,21 +3303,19 @@ def StableHLO_ComputeReshapeShapeOp :
 
 def StableHLO_CstrReshapableOp :
     StableHLO_Op<"cstr_reshapable", [Pure]> {
-  string summary = "Compute input for reshape with any dynamic dim resolved";
+  let summary = "CstrReshapable operation";
+  let description = [{
+    This operation is a work in progress, so it is not yet included in
+    the StableHLO specification: https://github.com/openxla/stablehlo/issues/8.
 
-  string description = [{
-    This operation creates a witness on the constraint that a given shape would
-    be a valid reshape for the given number of elements.
-
-    ```
-    %0 = stablehlo.cstr_reshapable 12, [2, -1] -> success
-    %1 = stablehlo.cstr_reshapable 13, [2, -1] -> failure
-    ```
+    Informally, this operation creates a witness on the constraint that
+    ComputeReshapeShape would succeed with the provided operands.
 
     Example:
 
     ```mlir
-    %0 = stablehlo.cstr_reshapable %arg0, %arg1 : (index, tensor<3xi32>) -> !shape.witness
+    %0 = stablehlo.cstr_reshapable %num_elements, %dynamic_shape
+           : (index, tensor<3xi32>) -> !shape.witness
     ```
   }];
 
