@@ -3314,7 +3314,7 @@ def StableHLO_CstrReshapableOp :
     Example:
 
     ```mlir
-    %0 = stablehlo.cstr_reshapable %num_elements, %dynamic_shape
+    %result = stablehlo.cstr_reshapable %num_elements, %dynamic_shape
            : (index, tensor<3xi32>) -> !shape.witness
     ```
   }];
