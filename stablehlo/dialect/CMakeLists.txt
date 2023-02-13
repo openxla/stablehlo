@@ -184,6 +184,8 @@ add_mlir_dialect_library(VhloOps
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
+  VhloTypes
+  VhloVersion
   MLIRIR
   MLIRQuantDialect
   MLIRShapeDialect
