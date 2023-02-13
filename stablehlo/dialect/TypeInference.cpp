@@ -3080,16 +3080,6 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
     return success();
   }
 
-  auto operandRank = operandType.getRank();
-  if (!broadcastDimensions) {
-    // broadcast_in_dim_c2
-    if (operandRank == 0) return success();
-    return emitOptionalError(location,
-                             "broadcast_dimensions is absent, but required "
-                             "because operand has non-zero rank (",
-                             operandRank, ")");
-  }
-
   auto dimensionsType = broadcastDimensions.getType();
   auto dimensionsRank = dimensionsType.getRank();
   // broadcast_in_dim_i2
@@ -3098,6 +3088,7 @@ LogicalResult verifyBroadcastInDimOp(std::optional<Location> location,
                              dimensionsRank, " instead of rank 1");
   // broadcast_in_dim_c2
   auto dimensionsSize = dimensionsType.getNumElements();
+  auto operandRank = operandType.getRank();
   if (dimensionsSize != operandRank)
     return emitOptionalError(location, "broadcast_dimensions size (",
                              dimensionsSize, ") does not match operand rank (",

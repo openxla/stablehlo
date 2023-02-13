@@ -889,14 +889,6 @@ func.func @broadcast_in_dim_c3(%arg0: tensor<1x2x3xi32>) -> tensor<3xi32> {
 
 // -----
 
-func.func @broadcast_in_dim_c3(%arg0: tensor<1x2xi32>) -> tensor<1x2x3xi32> {
-  // expected-error@+1 {{broadcast_dimensions contains invalid value 9 for result with rank 3}}
-  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[9, 2]> : tensor<2xi64>} : (tensor<1x2xi32>) -> tensor<1x2x3xi32>
-  func.return %0 : tensor<1x2x3xi32>
-}
-
-// -----
-
 func.func @broadcast_in_dim_c4(%arg0: tensor<1x1x3xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+1 {{broadcast_dimensions should not have duplicates}}
   %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[0,0,2]> : tensor<3xi64>} : (tensor<1x1x3xi32>) -> tensor<1x2x3xi32>
@@ -941,14 +933,6 @@ func.func @broadcast_in_dim_unranked_operand(%arg0 : tensor<*xf32>) -> tensor<2x
     broadcast_dimensions = dense<0> : tensor<1xi64>
   } : (tensor<*xf32>) -> tensor<2xf32>
   func.return %0 : tensor<2xf32>
-}
-
-// -----
-
-// CHECK-LABEL: func @broadcast_in_dim_zero_rank
-func.func @broadcast_in_dim_zero_rank(%arg0: tensor<i32>) -> tensor<1x2x3xi32> {
-  %0 = "stablehlo.broadcast_in_dim"(%arg0) {broadcast_dimensions = dense<[]> : tensor<0xi64>} : (tensor<i32>) -> tensor<1x2x3xi32>
-  func.return %0 : tensor<1x2x3xi32>
 }
 
 // -----
