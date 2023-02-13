@@ -261,18 +261,14 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   return result;
 }
 
-SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args,
-                         Scope *parentScope) {
-  if (!region.hasOneBlock())
-    llvm::report_fatal_error("Expected single block region");
-
+SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
     report_fatal_error(invalidArgument(
         "Expected same amount of block arguments and runtime arguments (%d)",
         args.size()));
 
-  Scope scope(parentScope);
+  Scope scope(parent);
   scope.add(block.getArguments(), args);
 
   for (Operation &op : block) {
@@ -400,7 +396,7 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args,
     }
   }
 
-  llvm::report_fatal_error("Expected a terminator when evaluating func");
+  llvm::report_fatal_error("Expected a terminator when evaluating a region");
 }
 
 }  // namespace stablehlo

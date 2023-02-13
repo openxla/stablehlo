@@ -53,10 +53,11 @@ SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
                                 Region &body, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 
-/// Evaluates an mlir::Region `region` using the runtime values `runtimeArgs`
-/// corresponding to the arguments of the containing block, assuming that the
-/// region has only one block. Interprets the operations within the block and
-/// returns the runtime values for the terminator's arguments.
+/// Evaluates an mlir::Region `region` using the runtime values `args`
+/// corresponding to the arguments of the entry block of the region.
+/// Interprets the operations within the entry block and returns the runtime
+/// values for the terminator's arguments.
+/// Assumes that the region has only one block.
 llvm::SmallVector<Tensor> eval(Region &region, llvm::ArrayRef<Tensor> args,
                                Scope *parentScope = nullptr);
 

@@ -27,7 +27,7 @@ namespace stablehlo {
 /// `Scope` object corresponding to the syntactically enclosing region.
 class Scope {
  public:
-  Scope(Scope *parentScope) : parent_(parentScope) {}
+  Scope(Scope *parent) : parent_(parent) {}
 
   Scope(Scope &&other) = default;
   Scope &operator=(Scope &&other) = default;
@@ -57,7 +57,7 @@ class Scope {
   llvm::DenseMap<Value, Tensor> stack_frame_;
 
   /// A handle to the parent's scope.
-  Scope *parent_ = nullptr;
+  Scope *parent_;
 };
 
 }  // namespace stablehlo
