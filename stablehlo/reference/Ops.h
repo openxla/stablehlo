@@ -32,6 +32,8 @@ Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, Type resultType);
 Tensor evalCosineOp(const Tensor &operand, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
+SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
+                             Region &falseBranch, Scope &scope);
 Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, Type resultType);

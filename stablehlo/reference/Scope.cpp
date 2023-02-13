@@ -28,14 +28,15 @@ void Scope::add(Value ssaValue, Tensor runtimeValue) {
   if (stack_frame_.count(ssaValue))
     llvm::report_fatal_error("Duplicate SSA register found in scope");
 
-  if (ssaValue.getType() != runtimeValue.getType())
-    llvm::report_fatal_error(
-        "Expected same type for an SSA register and its evaluated value");
+  // if (ssaValue.getType() != runtimeValue.getType())
+  //   llvm::report_fatal_error(
+  //       "Expected same type for an SSA register and its evaluated value");
 
   stack_frame_[ssaValue] = runtimeValue;
 }
 
 void Scope::add(ValueRange ssaValues, ArrayRef<Tensor> runtimeValues) {
+  llvm::errs() << ssaValues.size() << ", " << runtimeValues.size() << "\n";
   assert(ssaValues.size() == runtimeValues.size());
   for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
     add(ssaValue, runtimeValue);

@@ -2123,6 +2123,8 @@ LogicalResult IfOp::inferReturnTypes(
   return hlo::inferIfOp(location, adaptor.getRegions(), inferredReturnTypes);
 }
 
+LogicalResult IfOp::verify() { return hlo::verifyIfOp(getLoc(), getPred()); }
+
 //===----------------------------------------------------------------------===//
 // Case Op
 //===----------------------------------------------------------------------===//

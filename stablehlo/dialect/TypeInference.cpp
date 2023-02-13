@@ -1304,8 +1304,10 @@ static LogicalResult inferGatherReturnTypeComponents(
 LogicalResult inferConditionalOp(Optional<Location> location,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
+  // if_i2, if_i3
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
+  // if_i2, if_i3
   for (auto region : branches)
     if (failed(verifyRegionNotEmpty(location, *region))) return failure();
 
@@ -1314,11 +1316,12 @@ LogicalResult inferConditionalOp(Optional<Location> location,
   for (unsigned i = 0; i < branches.size(); ++i) {
     Twine branchName = "branch " + Twine(i);
     Region* region = branches[i];
+    // if_c1
     if (region->getNumArguments() != 0)
       return emitOptionalError(location, branchName,
                                " must have 0 arguments, but found ",
                                region->getNumArguments());
-
+    // if_c2
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
     if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
                                               branchResultTypes))
@@ -1326,7 +1329,7 @@ LogicalResult inferConditionalOp(Optional<Location> location,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-
+  // if_c3
   for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
     SmallVector<Type> inputTypes;
     for (auto branch : branches)
@@ -3388,6 +3391,16 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
+  return success();
+}
+
+LogicalResult verifyIfOp(std::optional<Location> location, Value pred) {
+  auto predType = pred.getType().dyn_cast<RankedTensorType>();
+  if (!predType) return success();
+  if (predType.getRank() != 0)
+    return emitOptionalError(location,
+                             "pred should be rank 0 tensor but got rank ",
+                             predType.getRank());
   return success();
 }
 

@@ -408,6 +408,8 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result);
 
+LogicalResult verifyIfOp(std::optional<Location> location, Value pred);
+
 LogicalResult verifyInfeedOp(Dialect* dialect, std::optional<Location> location,
                              std::optional<ArrayAttr> layout,
                              ValueRange results);
