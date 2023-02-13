@@ -18,15 +18,18 @@ limitations under the License.
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {
 
+// Evaluators for StableHLO ops.
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalCeilOp(const Tensor &operand, Type resultType);
 Tensor evalConstantOp(ElementsAttr value);
+Tensor evalConvertOp(const Tensor &operand, Type resultType);
 Tensor evalCosineOp(const Tensor &operand, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
 Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
@@ -46,7 +49,17 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalTanhOp(const Tensor &operand, Type resultType);
 Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
                        Type resultType);
+SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
+                                Region &body, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+
+/// Evaluates an mlir::Region `region` using the runtime values `args`
+/// corresponding to the arguments of the entry block of the region.
+/// Interprets the operations within the entry block and returns the runtime
+/// values for the terminator's arguments.
+/// Assumes that the region has only one block.
+llvm::SmallVector<Tensor> eval(Region &region, llvm::ArrayRef<Tensor> args,
+                               Scope *parentScope = nullptr);
 
 }  // namespace stablehlo
 }  // namespace mlir
