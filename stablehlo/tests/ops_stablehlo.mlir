@@ -5385,6 +5385,7 @@ func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7x
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
+
 // -----
 
 func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<8x8x8xf16> {
@@ -5433,43 +5434,6 @@ func.func @pad_i3(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7x
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
-
-// -----
-
-func.func @pad_i3_i4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{edge_padding_low, edge_padding_high, and interior_padding must have the same type but got: 'tensor<1xi64>', 'tensor<2xi64>', and 'tensor<1xi64>'}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<1> : tensor<1xi64>,
-    edge_padding_high = dense<1> : tensor<2xi64>,
-    interior_padding = dense<1> : tensor<1xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_i3_i5(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{edge_padding_low, edge_padding_high, and interior_padding must have the same type but got: 'tensor<1xi64>', 'tensor<1xi64>', and 'tensor<2xi64>'}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<1> : tensor<1xi64>,
-    edge_padding_high = dense<1> : tensor<1xi64>,
-    interior_padding = dense<1> : tensor<2xi64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
-// -----
-
-func.func @pad_i4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
-  // expected-error@+1 {{edge_padding_low has rank 0 instead of required rank 1}}
-  %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<1> : tensor<i64>,
-    edge_padding_high = dense<1> : tensor<i64>,
-    interior_padding = dense<1> : tensor<i64>
-  } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
-  func.return %0 : tensor<2x4x7xf16>
-}
-
 
 // -----
 

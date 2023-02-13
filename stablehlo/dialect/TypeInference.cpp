@@ -2436,15 +2436,6 @@ LogicalResult inferPadOp(std::optional<Location> location, Value operand,
                              "tensor, is rank ",
                              padType.getRank());
 
-  // pad_c2, pad_i3, pad_i4, pad_i5
-  if (edgePaddingLow.getType() != edgePaddingHigh.getType() ||
-      edgePaddingLow.getType() != interiorPadding.getType())
-    return emitOptionalError(
-        location, "edge_padding_low, edge_padding_high, ",
-        "and interior_padding must have the same type but got: ",
-        edgePaddingLow.getType(), ", ", edgePaddingHigh.getType(), ", and ",
-        interiorPadding.getType());
-
   // pad_i3
   if (edgePaddingLow.getType().getRank() != 1)
     return emitOptionalError(location, "edge_padding_low has rank ",

@@ -173,17 +173,17 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  ArrayRef<int64_t> edgePaddingLow,
                  ArrayRef<int64_t> interiorPadding, Type resultType) {
   Tensor result(resultType);
-  for (auto resultItr = result.index_begin(); resultItr != result.index_end();
-       ++resultItr)
-    result.set(*resultItr, paddingValue.get({}));
-  for (auto operandItr = operand.index_begin();
-       operandItr != operand.index_end(); ++operandItr) {
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, paddingValue.get({}));
+  for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
+       ++operandIt) {
     SmallVector<int64_t> resultIdx(result.getType().getRank());
     for (auto i = 0; i < operand.getType().getRank(); ++i)
       resultIdx[i] =
-          edgePaddingLow[i] + (*operandItr)[i] * (interiorPadding[i] + 1);
+          edgePaddingLow[i] + (*operandIt)[i] * (interiorPadding[i] + 1);
     if (succeeded(verifyIndex(result.getType().getShape(), resultIdx)))
-      result.set(resultIdx, operand.get(*operandItr));
+      result.set(resultIdx, operand.get(*operandIt));
   }
   return result;
 }

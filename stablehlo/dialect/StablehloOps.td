@@ -2670,6 +2670,8 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
       [Pure, SameOperandsAndResultElementType /*pad_c1*/,
+      AllTypesMatch<["edge_padding_low", "edge_padding_high",
+      "interior_padding"]> /*pad_c2, pad_i3, pad_i4, pad_i5*/,
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Pad operation";
   let description = [{
