@@ -1353,13 +1353,6 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
   );
   let regions = (region SizedRegion<1>:$computation);
   let results = (outs HLO_Tensor);
-  // use_global_device_ids is rarely used, so we add a simplified
-  // builder method for convenience.
-  let builders = [
-    OpBuilder<(ins
-      "::mlir::Type":$result_type, "::mlir::Value":$operand,
-      "::mlir::DenseIntElementsAttr":$replica_groups,
-      "::mlir::stablehlo::ChannelHandleAttr":$channel_handle)>];
   let hasVerifier = 1;
 }
 
