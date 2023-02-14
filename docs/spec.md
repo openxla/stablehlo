@@ -1305,6 +1305,8 @@ dimensions `k` in `operand`.
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_broadcast_in_dim.mlir)
+
 ### case
 
 #### Semantics

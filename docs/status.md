@@ -55,7 +55,7 @@ one of the following tracking labels.
 | batch_norm_training      | yes           | revisit      | yes            | no              | no          |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
-| broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |
+| broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
 | case                     | yes           | revisit      | yes            | no              | no          |
 | cbrt                     | yes           | yes          | yes            | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
