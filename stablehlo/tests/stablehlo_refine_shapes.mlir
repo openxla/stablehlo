@@ -157,8 +157,8 @@ func.func @eval_compare_lt() -> tensor<i1> {
 
 // -----
 
-// CHECK-LABEL: func @eval_concatenate
-func.func @eval_concatenate() -> tensor<4xi64> {
+// CHECK-LABEL: func @eval_concatenate_1d
+func.func @eval_concatenate_1d() -> tensor<4xi64> {
   // CHECK-NOT: stablehlo.concatenate
   // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
   // CHECK: return [[RESULT]]
@@ -166,6 +166,19 @@ func.func @eval_concatenate() -> tensor<4xi64> {
   %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
   %2 = stablehlo.concatenate %0, %1, dim = 0 : (tensor<2xi64>, tensor<2xi64>) -> tensor<4xi64>
   func.return %2 : tensor<4xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_concatenate_2d
+func.func @eval_concatenate_2d() -> tensor<2x2xi64> {
+  // CHECK-NOT: stablehlo.concatenate
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<{{\[}}[1, 2], [3, 4]]> : tensor<2x2xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[[1, 2]]> : tensor<1x2xi64>
+  %1 = stablehlo.constant dense<[[3, 4]]> : tensor<1x2xi64>
+  %2 = stablehlo.concatenate %0, %1, dim = 0 : (tensor<1x2xi64>, tensor<1x2xi64>) -> tensor<2x2xi64>
+  func.return %2 : tensor<2x2xi64>
 }
 
 // -----
@@ -178,6 +191,19 @@ func.func @eval_convert() -> tensor<i64> {
   %0 = stablehlo.constant dense<4> : tensor<i32>
   %1 = stablehlo.convert %0 : (tensor<i32>) -> tensor<i64>
   func.return %1 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_divide
+func.func @eval_divide() -> tensor<i64> {
+  // CHECK-NOT: stablehlo.divide
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<1> : tensor<i64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<2> : tensor<i64>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.divide %0, %1 : tensor<i64>
+  func.return %2 : tensor<i64>
 }
 
 // -----
@@ -356,6 +382,23 @@ func.func @refine_dynamic_broadcast_in_dim(%arg0: tensor<4xf32>) -> tensor<*xf32
   %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<*xf32>
   func.return %1 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_dynamic_conv
+func.func @refine_dynamic_conv(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3x3x1x32xf32>) -> tensor<*xf32> {
+  // CHECK: stablehlo.dynamic_conv{{.*}} -> tensor<100x28x28x1xf32>
+  %0 = stablehlo.constant dense<[[2, 2], [2, 2]]> : tensor<2x2xi32>
+  %1 = "stablehlo.dynamic_conv"(%arg0, %arg1, %0) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = dense<[1, 1]> : tensor<2xi64>,
+    lhs_dilation = dense<[1, 1]> : tensor<2xi64>,
+    rhs_dilation = dense<[1, 1]> : tensor<2xi64>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<*xf32>
+  return %1 : tensor<*xf32>
 }
 
 // -----
