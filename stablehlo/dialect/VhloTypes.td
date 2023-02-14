@@ -38,10 +38,7 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   ];
 }
 
-class VHLO_TypeDef<string cppName,
-                   string name,
-                   string minVersion = "0.3.0",
-                   string maxVersion = "current">
+class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVersion>
   : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface]> {
   let mnemonic = name;
   let extraClassDeclaration = [{
@@ -63,15 +60,15 @@ class VHLO_TypeDef<string cppName,
 // VHLO Type Definitions.
 //===----------------------------------------------------------------------===//
 
-def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token">;
+def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token", "0.3.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // Forked Types
 //===----------------------------------------------------------------------===//
 
-def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16">;
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "0.3.0", "current">;
 
-def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex"> {
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "0.3.0", "current"> {
   let parameters = (ins "Type":$elementType);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -84,15 +81,15 @@ def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex"> {
   let assemblyFormat = "`<` $elementType `>`";
 }
 
-def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16">;
-def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32">;
-def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64">;
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "0.3.0", "current">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "0.3.0", "current">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "0.3.0", "current">;
 
-def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0">;
+def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0", "current">;
 
-def VHLO_Float8E5M2V1 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0">;
+def VHLO_Float8E5M2V1 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0", "current">;
 
-def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func"> {
+def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func", "0.3.0", "current"> {
   let parameters = (ins
     ArrayRefParameter<"::mlir::Type">:$inputs,
     ArrayRefParameter<"mlir::Type">:$results
@@ -110,21 +107,21 @@ def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func"> {
   let assemblyFormat = "`<` `(` custom<TypeArray>($inputs) `)` `->` custom<TypeArray>($results) `>`";
 }
 
-def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index">;
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "0.3.0", "current">;
 
-def VHLO_IntegerI1V1 : VHLO_TypeDef<"IntegerI1V1", "i1">;
-def VHLO_IntegerI4V1 : VHLO_TypeDef<"IntegerI4V1", "i4">;
-def VHLO_IntegerI8V1 : VHLO_TypeDef<"IntegerI8V1", "i8">;
-def VHLO_IntegerI16V1 : VHLO_TypeDef<"IntegerI16V1", "i16">;
-def VHLO_IntegerI32V1 : VHLO_TypeDef<"IntegerI32V1", "i32">;
-def VHLO_IntegerI64V1 : VHLO_TypeDef<"IntegerI64V1", "i64">;
-def VHLO_IntegerUI4V1 : VHLO_TypeDef<"IntegerUI4V1", "ui4">;
-def VHLO_IntegerUI8V1 : VHLO_TypeDef<"IntegerUI8V1", "ui8">;
-def VHLO_IntegerUI16V1 : VHLO_TypeDef<"IntegerUI16V1", "ui16">;
-def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32">;
-def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64">;
+def VHLO_IntegerI1V1 : VHLO_TypeDef<"IntegerI1V1", "i1", "0.3.0", "current">;
+def VHLO_IntegerI4V1 : VHLO_TypeDef<"IntegerI4V1", "i4", "0.3.0", "current">;
+def VHLO_IntegerI8V1 : VHLO_TypeDef<"IntegerI8V1", "i8", "0.3.0", "current">;
+def VHLO_IntegerI16V1 : VHLO_TypeDef<"IntegerI16V1", "i16", "0.3.0", "current">;
+def VHLO_IntegerI32V1 : VHLO_TypeDef<"IntegerI32V1", "i32", "0.3.0", "current">;
+def VHLO_IntegerI64V1 : VHLO_TypeDef<"IntegerI64V1", "i64", "0.3.0", "current">;
+def VHLO_IntegerUI4V1 : VHLO_TypeDef<"IntegerUI4V1", "ui4", "0.3.0", "current">;
+def VHLO_IntegerUI8V1 : VHLO_TypeDef<"IntegerUI8V1", "ui8", "0.3.0", "current">;
+def VHLO_IntegerUI16V1 : VHLO_TypeDef<"IntegerUI16V1", "ui16", "0.3.0", "current">;
+def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32", "0.3.0", "current">;
+def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64", "0.3.0", "current">;
 
-def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
+def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor", "0.3.0", "current"> {
   let parameters = (ins
     VHLO_Dims:$shape,
     "::mlir::Type":$elementType,
@@ -143,7 +140,7 @@ def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor"> {
   let assemblyFormat = "`<` custom<Shape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
 }
 
-def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple"> {
+def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple", "0.3.0", "current"> {
   let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -169,7 +166,7 @@ def VHLO_APFloatV1 : APFloatParameter<""> {
   }];
   let printer = "$_printer.printFloat($_self);";
 }
-def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
+def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant", "0.3.0", "current"> {
   let parameters = (ins
     "unsigned":$flags,
     "::mlir::Type":$storageType,
@@ -193,7 +190,7 @@ def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant"> {
   let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
 }
 
-def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> {
+def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor", "0.3.0", "current"> {
   let parameters = (ins "::mlir::Type":$elementType);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -206,6 +203,6 @@ def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor"> 
   let assemblyFormat = "`<` $elementType `>`";
 }
 
-def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness">;
+def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness", "0.3.0", "current">;
 
 #endif // STABLEHLO_DIALECT_VHLO_TYPES
