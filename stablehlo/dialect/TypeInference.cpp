@@ -2707,10 +2707,9 @@ LogicalResult inferSetDimensionSizeOp(
     Dialect* dialect, std::optional<Location> location, Type operandType,
     Value size, int64_t dim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (auto sizeType = size.getType().dyn_cast<RankedTensorType>()) {
-    if (sizeType && sizeType.getRank() != 0)
-      emitOptionalError(location, "size operand should be of rank-0");
-  }
+  auto sizeType = size.getType().dyn_cast<RankedTensorType>();
+  if (sizeType && sizeType.getRank() != 0)
+    emitOptionalError(location, "size operand should be of rank-0");
   if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(), dim)))
     return failure();
 
