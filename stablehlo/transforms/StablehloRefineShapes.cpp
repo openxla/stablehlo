@@ -603,6 +603,8 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
       SmallVector<int64_t> refinement;
       if (failed(matchInts(op->getOperand(operandIndex), refinement)))
         return rewriter.notifyMatchFailure(op, "expected constant operand");
+      if (llvm::any_of(refinement, [&](int64_t x) { return x < 0; }))
+        return rewriter.notifyMatchFailure(op, "expected non-negative sizes");
       refinements.emplace_back(refinement);
     }
     return refineReturnTypes(rewriter, op, refinements);
