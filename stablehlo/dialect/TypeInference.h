@@ -134,7 +134,7 @@ LogicalResult inferBroadcastOp(
     DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferCaseOp(std::optional<Location> location,
+LogicalResult inferCaseOp(std::optional<Location> location, Value index,
                           RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -242,7 +242,8 @@ LogicalResult inferIsFiniteOp(MLIRContext* context, std::optional<Location>,
                               Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferIfOp(std::optional<Location> location, RegionRange branches,
+LogicalResult inferIfOp(std::optional<Location> location, Value pred,
+                        RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferMapOp(
@@ -407,8 +408,6 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result);
-
-LogicalResult verifyIfOp(std::optional<Location> location, Value pred);
 
 LogicalResult verifyInfeedOp(Dialect* dialect, std::optional<Location> location,
                              std::optional<ArrayAttr> layout,

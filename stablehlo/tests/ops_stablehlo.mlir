@@ -1025,7 +1025,7 @@ func.func @if_dynamic_op_result(%pred : tensor<i1>, %branch_operand: tensor<2xf3
 // -----
 
 func.func @if_i1(%pred : tensor<1xi1>, %branch_operand : tensor<f32>) -> tensor<f32> {
-  // @expected-error@+1 {{pred should be rank 0 tensor but got rank 1}}
+  // @expected-error@+1 {{operand should be rank 0 tensor but got rank 1}}
   %0 = "stablehlo.if"(%pred) ({
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
     }, {

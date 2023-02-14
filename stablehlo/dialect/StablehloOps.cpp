@@ -2120,10 +2120,9 @@ LogicalResult IfOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   IfOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferIfOp(location, adaptor.getRegions(), inferredReturnTypes);
+  return hlo::inferIfOp(location, adaptor.getPred(), adaptor.getRegions(),
+                        inferredReturnTypes);
 }
-
-LogicalResult IfOp::verify() { return hlo::verifyIfOp(getLoc(), getPred()); }
 
 //===----------------------------------------------------------------------===//
 // Case Op
@@ -2134,7 +2133,8 @@ LogicalResult CaseOp::inferReturnTypes(
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   CaseOp::Adaptor adaptor(operands, attributes, regions);
-  return hlo::inferCaseOp(location, adaptor.getRegions(), inferredReturnTypes);
+  return hlo::inferCaseOp(location, adaptor.getIndex(), adaptor.getRegions(),
+                          inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//

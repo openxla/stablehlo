@@ -1316,10 +1316,10 @@ returned.
 
 #### Inputs
 
-| Label | Name       | Type                                         | Constraints |
-|-------|------------|----------------------------------------------|-------------|
-| (I1)  | `index`    | 0-dimensional tensor constant of type `si32` |             |
-| (I2)  | `branches` | variadic number of functions                 | (C1-C4)     |
+| Label | Name       | Type                                | Constraints |
+|-------|------------|-------------------------------------|-------------|
+| (I1)  | `index`    | 1-dimensional tensor of type `si32` |             |
+| (I2)  | `branches` | variadic number of functions        | (C1-C4)     |
 
 #### Outputs
 

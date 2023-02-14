@@ -1167,7 +1167,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveMemoryEffects,
     SingleBlockImplicitTerminator<"ReturnOp">,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "If operator";
+  let summary = "If operation";
 
   let description = [{
     Produces the output from executing exactly one branch from `true_branch` or
@@ -1192,7 +1192,6 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
                         SizedRegion<1>:$false_branch /*if_i3*/);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
-  let hasVerifier = 1;
 }
 
 // Xla Client API has two separate calls for indexed and predicated conditional,

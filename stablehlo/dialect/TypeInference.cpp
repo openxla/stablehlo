@@ -1301,13 +1301,18 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 // Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(Optional<Location> location,
+LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
+  // if_i1
+  auto operandRankedTy = operand.getType().dyn_cast<RankedTensorType>();
+  if (operandRankedTy && operandRankedTy.getRank() != 0)
+    return emitOptionalError(location,
+                             "operand should be rank 0 tensor but got rank ",
+                             operandRankedTy.getRank());
   // if_i2, if_i3
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
-  // if_i2, if_i3
   for (auto region : branches)
     if (failed(verifyRegionNotEmpty(location, *region))) return failure();
 
@@ -1492,9 +1497,10 @@ LogicalResult inferBroadcastOp(
   return success();
 }
 
-LogicalResult inferCaseOp(Optional<Location> location, RegionRange branches,
+LogicalResult inferCaseOp(Optional<Location> location, Value index,
+                          RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
-  return inferConditionalOp(location, branches, inferredReturnTypes);
+  return inferConditionalOp(location, index, branches, inferredReturnTypes);
 }
 
 // The following properties are already enforced by the ODS:
@@ -2310,9 +2316,10 @@ LogicalResult inferIsFiniteOp(MLIRContext* context, std::optional<Location>,
   return success();
 }
 
-LogicalResult inferIfOp(std::optional<Location> location, RegionRange branches,
+LogicalResult inferIfOp(std::optional<Location> location, Value pred,
+                        RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes) {
-  return inferConditionalOp(location, branches, inferredReturnTypes);
+  return inferConditionalOp(location, pred, branches, inferredReturnTypes);
 }
 
 LogicalResult inferMapOp(
@@ -3391,16 +3398,6 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
-  return success();
-}
-
-LogicalResult verifyIfOp(std::optional<Location> location, Value pred) {
-  auto predType = pred.getType().dyn_cast<RankedTensorType>();
-  if (!predType) return success();
-  if (predType.getRank() != 0)
-    return emitOptionalError(location,
-                             "pred should be rank 0 tensor but got rank ",
-                             predType.getRank());
   return success();
 }
 
