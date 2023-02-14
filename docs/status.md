@@ -56,7 +56,7 @@ one of the following tracking labels.
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
-| case                     | yes           | revisit      | yes            | no              | no          |
+| case                     | yes           | revisit      | yes            | no              | yes         |
 | cbrt                     | yes           | yes          | yes            | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |

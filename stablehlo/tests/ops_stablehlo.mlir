@@ -1048,77 +1048,29 @@ func.func @if_unranked(%pred : tensor<i1>, %true_branch_operand: tensor<2xf32>, 
 // -----
 
 // CHECK-LABEL: @case
-func.func @case(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
-  %0 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-  }, {
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-  }) : (tensor<i32>) -> tensor<2xf32>
-  func.return
-}
-
-// -----
-
-func.func @case_zero_branches(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
-  // @expected-error@+1 {{expect at least one branch}}
-  %0 = "stablehlo.case"(%index) : (tensor<i32>) -> tensor<2xf32>
-  func.return
-}
-
-// -----
-
-// CHECK-LABEL: @case_dynamic_op_result
-func.func @case_dynamic_op_result(%index : tensor<i32>, %branch_operand : tensor<2xf32>) {
-  %0 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-  }, {
-      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
-  }) : (tensor<i32>) -> tensor<?xf32>
-  func.return
-}
-
-// -----
-
-// CHECK-LABEL: @case_dynamic_branch_result
-func.func @case_dynamic_branch_result(%index : tensor<i32>, %branch_operand : tensor<?xf32>) {
-  %0 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
-  }, {
-      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
-  }) : (tensor<i32>) -> tensor<2xf32>
-  func.return
-}
-
-// -----
-
-// CHECK-LABEL: @case_unranked
-func.func @case_unranked(%index : tensor<i32>, %branch_operand : tensor<*xf32>) {
-  %0 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
-  }, {
-      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
-  }) : (tensor<i32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-// CHECK-LABEL: @case_nested_different_return_types(
-func.func @case_nested_different_return_types(%index : tensor<i32>, %branch_operand : tensor<f32>) {
-  %0 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+func.func @case(%index : tensor<i32>, %branch_operand : tensor<f32>) -> (tensor<f32>, tensor<f32>) {
+  %0, %1 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
   }, {
       %2 = "stablehlo.case"(%index) ({
           "stablehlo.return"(%index) : (tensor<i32>) -> ()
       }) : (tensor<i32>) -> tensor<i32>
-      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
-  }) : (tensor<i32>) -> tensor<f32>
-  func.return
+      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
+  }) : (tensor<i32>) -> (tensor<f32>, tensor<f32>)
+  func.return %0, %1 : tensor<f32>, tensor<f32>
 }
 
 // -----
 
-func.func @case_unexpected_arguments_in_region_of_branch_1(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+func.func @case_c1(%index : tensor<i32>, %branch_operand : tensor<2xf32>) -> tensor<2xf32> {
+  // @expected-error@+1 {{expect at least one branch}}
+  %0 = "stablehlo.case"(%index) : (tensor<i32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+func.func @case_c2(%index : tensor<i32>, %branch_operand : tensor<f32>) -> tensor<f32> {
   // @expected-error@+1 {{branch 1 must have 0 arguments, but found 1}}
   %0 = "stablehlo.case"(%index) ({
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
@@ -1126,12 +1078,12 @@ func.func @case_unexpected_arguments_in_region_of_branch_1(%index : tensor<i32>,
       ^bb0(%arg0: tensor<f32>):
         "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
   }) : (tensor<i32>) -> tensor<f32>
-  func.return
+  func.return %0 : tensor<f32>
 }
 
 // -----
 
-func.func @case_mismatch_types_in_branches(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
+func.func @case_c3(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: tensor<f32>, %operand_3: tensor<f32>) -> tensor<f32> {
   // expected-error@+1 {{branch 0 and branch 1 have mismatched return types: 'tensor<f32>' vs 'tensor<i32>'}}
   %0 = "stablehlo.case"(%index) ({
       %1 = "stablehlo.negate"(%operand_1) : (tensor<f32>) -> tensor<f32>
@@ -1149,14 +1101,62 @@ func.func @case_mismatch_types_in_branches(%index: tensor<i32>, %operand_1: tens
 
 // -----
 
-func.func @case_mismatch_return_type(%index : tensor<i32>, %branch_operand : tensor<f32>) {
+func.func @case_c4(%index : tensor<i32>, %branch_operand : tensor<f32>) -> tensor<i32> {
   // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
   %0 = "stablehlo.case"(%index) ({
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
   }, {
       "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
   }) : (tensor<i32>) -> tensor<i32>
-  func.return
+  func.return %0 : tensor<i32>
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_branch_result
+func.func @case_dynamic_branch_result(%index : tensor<i32>, %branch_operand : tensor<?xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<?xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @case_dynamic_op_result
+func.func @case_dynamic_op_result(%index : tensor<i32>, %branch_operand : tensor<2xf32>) -> tensor<?xf32> {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<?xf32>
+  func.return %0 : tensor<?xf32>
+}
+
+// -----
+
+func.func @case_i1(%index : tensor<1xi32>, %branch_operand : tensor<2xf32>) -> tensor<2xf32> {
+  // @expected-error@+1 {{operand should be rank 0 tensor but got rank 1}}
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+  }) : (tensor<1xi32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @case_unranked
+func.func @case_unranked(%index : tensor<i32>, %branch_operand : tensor<*xf32>) -> tensor<*xf32> {
+  %0 = "stablehlo.case"(%index) ({
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }, {
+      "stablehlo.return"(%branch_operand) : (tensor<*xf32>) -> ()
+  }) : (tensor<i32>) -> tensor<*xf32>
+  func.return %0 : tensor<*xf32>
 }
 
 // -----

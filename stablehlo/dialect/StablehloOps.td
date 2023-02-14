@@ -1209,7 +1209,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
       SingleBlockImplicitTerminator<"ReturnOp">,
       DeclareOpInterfaceMethods<InferTypeOpInterface>
     ]> {
-  let summary = "Switch-Case operator";
+  let summary = "Case operation";
   let description = [{
     Produces the output from executing exactly one `function` from `branches`
     depending on the value of `index`.
@@ -1228,10 +1228,10 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
   }];
 
   let arguments = (ins
-    I32Tensor:$index
+    I32Tensor:$index /*case_i1*/
   );
 
-  let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
+  let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 }

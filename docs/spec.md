@@ -1320,10 +1320,10 @@ returned.
 
 #### Inputs
 
-| Label | Name       | Type                                | Constraints |
-|-------|------------|-------------------------------------|-------------|
-| (I1)  | `index`    | 1-dimensional tensor of type `si32` |             |
-| (I2)  | `branches` | variadic number of functions        | (C1-C4)     |
+| Label | Name       | Type                                         | Constraints |
+|-------|------------|----------------------------------------------|-------------|
+| (I1)  | `index`    | 0-dimensional tensor constant of type `si32` |             |
+| (I2)  | `branches` | variadic number of functions                 | (C1-C4)     |
 
 #### Outputs
 
@@ -1336,7 +1336,7 @@ returned.
 * (C1) `branches` have at least one function.
 * (C2) All functions in `branches` have 0 inputs.
 * (C3) All functions in `branches` have the same output types.
-* (C4) For all `i`, `type(results[i]) = type(branches[0]).outputs[i]`.
+* (C4) For all `i`, `type(results[i]) = type(branches[0].outputs[i])`.
 
 #### Examples
 
@@ -1351,6 +1351,8 @@ returned.
 }) : (tensor<i32>) -> tensor<i32>
 // %result: 11
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_case.mlir)
 
 ### cbrt
 

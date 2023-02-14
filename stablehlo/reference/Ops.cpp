@@ -75,6 +75,12 @@ Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
   return result;
 }
 
+SmallVector<Tensor> evalCaseOp(const Tensor &index,
+                               MutableArrayRef<Region> branches, Scope &scope) {
+  return eval(branches[index.get({}).getIntegerValue().getSExtValue()], {},
+              &scope);
+}
+
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -425,6 +431,11 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult = evalBroadcastInDimOp(
           runtimeOperand, broadcastDimensions, broadcastInDimOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
+      Tensor runtimeIndex = scope.find(caseOp.getIndex());
+      auto runtimeResults =
+          evalCaseOp(runtimeIndex, caseOp.getBranches(), scope);
+      scope.add(op.getResults(), {runtimeResults});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
       Tensor runtimeOperand = scope.find(ceilOp.getOperand());
       Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
