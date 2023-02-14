@@ -42,6 +42,9 @@ Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalNegOp(const Tensor &operand, Type resultType);
 Tensor evalNotOp(const Tensor &operand, Type resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
+                 ArrayRef<int64_t> edgePaddingLow,
+                 ArrayRef<int64_t> interiorPadding, Type resultType);
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);

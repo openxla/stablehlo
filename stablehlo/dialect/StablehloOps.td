@@ -2687,9 +2687,11 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
 }
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
-      [Pure, SameOperandsAndResultElementType,
+      [Pure, SameOperandsAndResultElementType /*pad_c1*/,
+      AllTypesMatch<["edge_padding_low", "edge_padding_high",
+      "interior_padding"]> /*pad_c2, pad_i3, pad_i4, pad_i5*/,
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "Pad operator";
+  let summary = "Pad operation";
   let description = [{
     Expands `operand` by padding around the tensor as well as between the
     elements of the tensor with the given `padding_value`.
@@ -2704,11 +2706,11 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$padding_value,
-    I64ElementsAttr:$edge_padding_low,
-    I64ElementsAttr:$edge_padding_high,
-    I64ElementsAttr:$interior_padding
+    HLO_Tensor:$operand /*pad_i1*/,
+    HLO_Tensor:$padding_value /*pad_i2*/,
+    I64ElementsAttr:$edge_padding_low /*pad_i3*/,
+    I64ElementsAttr:$edge_padding_high /*pad_i4*/,
+    I64ElementsAttr:$interior_padding /*pad_i5*/
   );
 
   let results = (outs HLO_Tensor);
