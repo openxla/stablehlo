@@ -43,7 +43,7 @@ def VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
 // - ReturnOp needs a trait for Terminator.
 // - ReduceOp/ReduceWindowOp/ScatterOp need a trait since they have
 //   multiple variadic arguments.
-class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = "current", list<Trait> traits = []> :
+class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic,
       [DeclareOpInterfaceMethods<VersionedOpInterface>] # traits> {
   let extraClassDefinition = [{
@@ -61,213 +61,213 @@ class VHLO_Op<string mnemonic, string minVersion = "0.3.0", string maxVersion = 
   }];
 }
 
-def VHLO_ConstantOpV1 : VHLO_Op<"constant"> {
+def VHLO_ConstantOpV1 : VHLO_Op<"constant", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyAttr:$value);
   let results = (outs VHLO_AnyType:$output);
 }
 
-def VHLO_IotaOpV1 : VHLO_Op<"iota"> {
+def VHLO_IotaOpV1 : VHLO_Op<"iota", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyAttr:$iota_dimension);
   let results = (outs VHLO_AnyType:$output);
 }
 
-def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota"> {
+def VHLO_DynamicIotaOpV1 : VHLO_Op<"dynamic_iota", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$output_shape, VHLO_AnyAttr:$iota_dimension);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CreateTokenOpV1 : VHLO_Op<"create_token"> {
+def VHLO_CreateTokenOpV1 : VHLO_Op<"create_token", "0.3.0", "current"> {
   let results = (outs VHLO_AnyType:$output);
 }
 
-def VHLO_AbsOpV1 : VHLO_Op<"abs"> {
+def VHLO_AbsOpV1 : VHLO_Op<"abs", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CbrtOpV1 : VHLO_Op<"cbrt"> {
+def VHLO_CbrtOpV1 : VHLO_Op<"cbrt", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CeilOpV1 : VHLO_Op<"ceil"> {
+def VHLO_CeilOpV1 : VHLO_Op<"ceil", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ConvertOpV1 : VHLO_Op<"convert"> {
+def VHLO_ConvertOpV1 : VHLO_Op<"convert", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ClzOpV1 : VHLO_Op<"count_leading_zeros"> {
+def VHLO_ClzOpV1 : VHLO_Op<"count_leading_zeros", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CosineOpV1 : VHLO_Op<"cosine"> {
+def VHLO_CosineOpV1 : VHLO_Op<"cosine", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ExpOpV1 : VHLO_Op<"exponential"> {
+def VHLO_ExpOpV1 : VHLO_Op<"exponential", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_Expm1OpV1 : VHLO_Op<"exponential_minus_one"> {
+def VHLO_Expm1OpV1 : VHLO_Op<"exponential_minus_one", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_FloorOpV1 : VHLO_Op<"floor"> {
-  let arguments = (ins VHLO_AnyType:$operand);
-  let results = (outs VHLO_AnyType:$result);
-}
-
-def VHLO_ImagOpV1 : VHLO_Op<"imag"> {
+def VHLO_FloorOpV1 : VHLO_Op<"floor", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_IsFiniteOpV1 : VHLO_Op<"is_finite"> {
+def VHLO_ImagOpV1 : VHLO_Op<"imag", "0.3.0", "current"> {
+  let arguments = (ins VHLO_AnyType:$operand);
+  let results = (outs VHLO_AnyType:$result);
+}
+
+def VHLO_IsFiniteOpV1 : VHLO_Op<"is_finite", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$x);
   let results = (outs VHLO_AnyType:$y);
 }
 
-def VHLO_LogOpV1 : VHLO_Op<"log">{
+def VHLO_LogOpV1 : VHLO_Op<"log", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_Log1pOpV1 : VHLO_Op<"log_plus_one">{
+def VHLO_Log1pOpV1 : VHLO_Op<"log_plus_one", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_LogisticOpV1 : VHLO_Op<"logistic">{
+def VHLO_LogisticOpV1 : VHLO_Op<"logistic", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_NotOpV1 : VHLO_Op<"not">{
+def VHLO_NotOpV1 : VHLO_Op<"not", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_NegOpV1 : VHLO_Op<"negate">{
+def VHLO_NegOpV1 : VHLO_Op<"negate", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_PopulationCountOpV1 : VHLO_Op<"popcnt">{
+def VHLO_PopulationCountOpV1 : VHLO_Op<"popcnt", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RealOpV1 : VHLO_Op<"real">{
+def VHLO_RealOpV1 : VHLO_Op<"real", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RoundOpV1 : VHLO_Op<"round_nearest_afz">{
+def VHLO_RoundOpV1 : VHLO_Op<"round_nearest_afz", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RoundNearestEvenOpV1 : VHLO_Op<"round_nearest_even">{
+def VHLO_RoundNearestEvenOpV1 : VHLO_Op<"round_nearest_even", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt">{
+def VHLO_RsqrtOpV1 : VHLO_Op<"rsqrt", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SignOpV1 : VHLO_Op<"sign">{
+def VHLO_SignOpV1 : VHLO_Op<"sign", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SineOpV1 : VHLO_Op<"sine">{
+def VHLO_SineOpV1 : VHLO_Op<"sine", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SqrtOpV1 : VHLO_Op<"sqrt">{
+def VHLO_SqrtOpV1 : VHLO_Op<"sqrt", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_TanhOpV1 : VHLO_Op<"tanh">{
+def VHLO_TanhOpV1 : VHLO_Op<"tanh", "0.3.0", "current">{
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
 // Binary Ops
-def VHLO_AddOpV1 : VHLO_Op<"add"> {
+def VHLO_AddOpV1 : VHLO_Op<"add", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_Atan2OpV1 : VHLO_Op<"atan2"> {
+def VHLO_Atan2OpV1 : VHLO_Op<"atan2", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_ComplexOpV1 : VHLO_Op<"complex"> {
+def VHLO_ComplexOpV1 : VHLO_Op<"complex", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_DivOpV1 : VHLO_Op<"divide"> {
+def VHLO_DivOpV1 : VHLO_Op<"divide", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_MaxOpV1 : VHLO_Op<"maximum"> {
+def VHLO_MaxOpV1 : VHLO_Op<"maximum", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_MinOpV1 : VHLO_Op<"minimum"> {
+def VHLO_MinOpV1 : VHLO_Op<"minimum", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_MulOpV1 : VHLO_Op<"multiply"> {
+def VHLO_MulOpV1 : VHLO_Op<"multiply", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_PowOpV1 : VHLO_Op<"power"> {
+def VHLO_PowOpV1 : VHLO_Op<"power", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_RemOpV1 : VHLO_Op<"remainder"> {
+def VHLO_RemOpV1 : VHLO_Op<"remainder", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_ShiftLeftOpV1 : VHLO_Op<"shift_left"> {
+def VHLO_ShiftLeftOpV1 : VHLO_Op<"shift_left", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_ShiftRightArithmeticOpV1 : VHLO_Op<"shift_right_arithmetic"> {
+def VHLO_ShiftRightArithmeticOpV1 : VHLO_Op<"shift_right_arithmetic", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_ShiftRightLogicalOpV1 : VHLO_Op<"shift_right_logical"> {
+def VHLO_ShiftRightLogicalOpV1 : VHLO_Op<"shift_right_logical", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_SubtractOpV1 : VHLO_Op<"subtract"> {
+def VHLO_SubtractOpV1 : VHLO_Op<"subtract", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
 
 // Logical Ops
-def VHLO_AndOpV1 : VHLO_Op<"and"> {
+def VHLO_AndOpV1 : VHLO_Op<"and", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_OrOpV1 : VHLO_Op<"or"> {
+def VHLO_OrOpV1 : VHLO_Op<"or", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
-def VHLO_XorOpV1 : VHLO_Op<"xor"> {
+def VHLO_XorOpV1 : VHLO_Op<"xor", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$lhs, VHLO_AnyType:$rhs);
   let results = (outs VHLO_AnyType:$result);
 }
@@ -280,7 +280,7 @@ def VHLO_ReturnOpV1 : VHLO_Op<"return", "0.3.0", "current", [Terminator]> {
 }
 
 // Communication op definitions.
-def VHLO_InfeedOpV1 : VHLO_Op<"infeed"> {
+def VHLO_InfeedOpV1 : VHLO_Op<"infeed", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$infeed_config,
@@ -289,7 +289,7 @@ def VHLO_InfeedOpV1 : VHLO_Op<"infeed"> {
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed"> {
+def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed", "0.3.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
@@ -298,7 +298,7 @@ def VHLO_OutfeedOpV1 : VHLO_Op<"outfeed"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_SendOpV1 : VHLO_Op<"send"> {
+def VHLO_SendOpV1 : VHLO_Op<"send", "0.3.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyType:$token,
@@ -308,7 +308,7 @@ def VHLO_SendOpV1 : VHLO_Op<"send"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_RecvOpV1 : VHLO_Op<"recv"> {
+def VHLO_RecvOpV1 : VHLO_Op<"recv", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$channel_handle,
@@ -318,34 +318,34 @@ def VHLO_RecvOpV1 : VHLO_Op<"recv"> {
 }
 
 // Parallelism related op definitions.
-def VHLO_ReplicaIdOpV1 : VHLO_Op<"replica_id"> {
+def VHLO_ReplicaIdOpV1 : VHLO_Op<"replica_id", "0.3.0", "current"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_PartitionIdOpV1 : VHLO_Op<"partition_id", "0.4.0"> {
+def VHLO_PartitionIdOpV1 : VHLO_Op<"partition_id", "0.4.0", "current"> {
   let results = (outs VHLO_AnyType);
 }
 
 // Control flow op definitions.
-def VHLO_AfterAllOpV1 : VHLO_Op<"after_all"> {
+def VHLO_AfterAllOpV1 : VHLO_Op<"after_all", "0.3.0", "current"> {
   let arguments = (ins Variadic<VHLO_AnyType>:$inputs);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_IfOpV1 : VHLO_Op<"if"> {
+def VHLO_IfOpV1 : VHLO_Op<"if", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$pred);
   let regions = (region VHLO_AnyRegion:$true_branch,
                         VHLO_AnyRegion:$false_branch);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_CaseOpV1 : VHLO_Op<"case"> {
+def VHLO_CaseOpV1 : VHLO_Op<"case", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$index);
   let regions = (region VariadicRegion<VHLO_AnyRegion>:$branches);
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_WhileOpV1 : VHLO_Op<"while"> {
+def VHLO_WhileOpV1 : VHLO_Op<"while", "0.3.0", "current"> {
   let arguments = (ins Variadic<VHLO_AnyType>:$operand);
   let regions = (region VHLO_AnyRegion:$cond, VHLO_AnyRegion:$body);
   let results = (outs Variadic<VHLO_AnyType>);
@@ -361,7 +361,7 @@ def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather", "0.3.0", "0.3.0"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "0.4.0"> {
+def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "0.4.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$all_gather_dim,
@@ -372,7 +372,7 @@ def VHLO_AllGatherOpV2 : VHLO_Op<"all_gather_v2", "0.4.0"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce"> {
+def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$replica_groups,
@@ -383,7 +383,7 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter"> {
+def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$scatter_dimension,
@@ -406,7 +406,7 @@ def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all", "0.3.0", "0.3.0"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "0.4.0"> {
+def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "0.4.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$split_dimension,
@@ -431,7 +431,7 @@ def VHLO_ReduceOpV1 : VHLO_Op<"reduce", "0.3.0", "current", [SameVariadicOperand
 //===----------------------------------------------------------------------===//
 // VHLO tuple op definitions.
 //===----------------------------------------------------------------------===//
-def VHLO_GetTupleElementOpV1 : VHLO_Op<"get_tuple_element"> {
+def VHLO_GetTupleElementOpV1 : VHLO_Op<"get_tuple_element", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$index
@@ -439,12 +439,12 @@ def VHLO_GetTupleElementOpV1 : VHLO_Op<"get_tuple_element"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_TupleOpV1 : VHLO_Op<"tuple"> {
+def VHLO_TupleOpV1 : VHLO_Op<"tuple", "0.3.0", "current"> {
   let arguments = (ins Variadic<VHLO_AnyType>:$val);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CompareOpV1 : VHLO_Op<"compare"> {
+def VHLO_CompareOpV1 : VHLO_Op<"compare", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -455,7 +455,7 @@ def VHLO_CompareOpV1 : VHLO_Op<"compare"> {
 }
 
 // Slice ops
-def VHLO_SliceOpV1 : VHLO_Op<"slice"> {
+def VHLO_SliceOpV1 : VHLO_Op<"slice", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$start_indices,
@@ -465,7 +465,7 @@ def VHLO_SliceOpV1 : VHLO_Op<"slice"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_DynamicSliceOpV1 : VHLO_Op<"dynamic_slice"> {
+def VHLO_DynamicSliceOpV1 : VHLO_Op<"dynamic_slice", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     Variadic<VHLO_AnyType>:$start_indices,
@@ -474,7 +474,7 @@ def VHLO_DynamicSliceOpV1 : VHLO_Op<"dynamic_slice"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DynamicUpdateSliceOpV1 : VHLO_Op<"dynamic_update_slice"> {
+def VHLO_DynamicUpdateSliceOpV1 : VHLO_Op<"dynamic_update_slice", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$update,
@@ -484,7 +484,7 @@ def VHLO_DynamicUpdateSliceOpV1 : VHLO_Op<"dynamic_update_slice"> {
 }
 
 // Other op definitions.
-def VHLO_BatchNormGradOpV1 : VHLO_Op<"batch_norm_grad"> {
+def VHLO_BatchNormGradOpV1 : VHLO_Op<"batch_norm_grad", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$scale,
@@ -500,7 +500,7 @@ def VHLO_BatchNormGradOpV1 : VHLO_Op<"batch_norm_grad"> {
       VHLO_AnyType:$grad_offset);
 }
 
-def VHLO_BatchNormInferenceOpV1 : VHLO_Op<"batch_norm_inference"> {
+def VHLO_BatchNormInferenceOpV1 : VHLO_Op<"batch_norm_inference", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$scale,
@@ -513,7 +513,7 @@ def VHLO_BatchNormInferenceOpV1 : VHLO_Op<"batch_norm_inference"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_BatchNormTrainingOpV1 : VHLO_Op<"batch_norm_training"> {
+def VHLO_BatchNormTrainingOpV1 : VHLO_Op<"batch_norm_training", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$scale,
@@ -527,12 +527,12 @@ def VHLO_BatchNormTrainingOpV1 : VHLO_Op<"batch_norm_training"> {
       VHLO_AnyType:$batch_var);
 }
 
-def VHLO_BitcastConvertOpV1 : VHLO_Op<"bitcast_convert"> {
+def VHLO_BitcastConvertOpV1 : VHLO_Op<"bitcast_convert", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_BroadcastOpV1 : VHLO_Op<"broadcast"> {
+def VHLO_BroadcastOpV1 : VHLO_Op<"broadcast", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$broadcast_sizes
@@ -540,7 +540,7 @@ def VHLO_BroadcastOpV1 : VHLO_Op<"broadcast"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_BroadcastInDimOpV1 : VHLO_Op<"broadcast_in_dim"> {
+def VHLO_BroadcastInDimOpV1 : VHLO_Op<"broadcast_in_dim", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$broadcast_dimensions
@@ -548,7 +548,7 @@ def VHLO_BroadcastInDimOpV1 : VHLO_Op<"broadcast_in_dim"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim"> {
+def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$output_dimensions,
@@ -559,7 +559,7 @@ def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky"> {
+def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$a,
     OptionalAttr<VHLO_AnyAttr>:$lower
@@ -567,7 +567,7 @@ def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ClampOpV1 : VHLO_Op<"clamp"> {
+def VHLO_ClampOpV1 : VHLO_Op<"clamp", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$min,
     VHLO_AnyType:$operand,
@@ -576,7 +576,7 @@ def VHLO_ClampOpV1 : VHLO_Op<"clamp"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate"> {
+def VHLO_ConcatenateOpV1 : VHLO_Op<"concatenate", "0.3.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$dimension
@@ -592,7 +592,7 @@ def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute", "0.3.0", "0.3.0">
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_CollectivePermuteOpV2 : VHLO_Op<"collective_permute_v2", "0.4.0"> {
+def VHLO_CollectivePermuteOpV2 : VHLO_Op<"collective_permute_v2", "0.4.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$source_target_pairs,
@@ -601,7 +601,7 @@ def VHLO_CollectivePermuteOpV2 : VHLO_Op<"collective_permute_v2", "0.4.0"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution"> {
+def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution", "0.3.0", "current"> {
   let arguments = !con(
     (ins
        VHLO_AnyType:$lhs,
@@ -610,7 +610,7 @@ def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum"> {
+def VHLO_CrossReplicaSumOpV1 : VHLO_Op<"cross-replica-sum", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$replica_groups
@@ -632,7 +632,7 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.3.0", "0.3.0"> {
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0"> {
+def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
@@ -647,7 +647,7 @@ def VHLO_CustomCallOpV2: VHLO_Op<"custom_call_v2", "0.4.0"> {
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_DotOpV1 : VHLO_Op<"dot"> {
+def VHLO_DotOpV1 : VHLO_Op<"dot", "0.3.0", "current"> {
   let arguments = (
     ins VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -656,7 +656,7 @@ def VHLO_DotOpV1 : VHLO_Op<"dot"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general"> {
+def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -666,7 +666,7 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_EinsumOpV1 : VHLO_Op<"einsum"> {
+def VHLO_EinsumOpV1 : VHLO_Op<"einsum", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
@@ -675,7 +675,7 @@ def VHLO_EinsumOpV1 : VHLO_Op<"einsum"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_UnaryEinsumOpV1 : VHLO_Op<"unary_einsum"> {
+def VHLO_UnaryEinsumOpV1 : VHLO_Op<"unary_einsum", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$einsum_config
@@ -683,7 +683,7 @@ def VHLO_UnaryEinsumOpV1 : VHLO_Op<"unary_einsum"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_FftOpV1 : VHLO_Op<"fft"> {
+def VHLO_FftOpV1 : VHLO_Op<"fft", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$fft_type,
@@ -692,7 +692,7 @@ def VHLO_FftOpV1 : VHLO_Op<"fft"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_GatherOpV1 : VHLO_Op<"gather"> {
+def VHLO_GatherOpV1 : VHLO_Op<"gather", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -703,7 +703,7 @@ def VHLO_GatherOpV1 : VHLO_Op<"gather"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_GetDimensionSizeOpV1 : VHLO_Op<"get_dimension_size"> {
+def VHLO_GetDimensionSizeOpV1 : VHLO_Op<"get_dimension_size", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$dimension
@@ -711,7 +711,7 @@ def VHLO_GetDimensionSizeOpV1 : VHLO_Op<"get_dimension_size"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_MapOpV1 : VHLO_Op<"map"> {
+def VHLO_MapOpV1 : VHLO_Op<"map", "0.3.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$dimensions
@@ -720,12 +720,12 @@ def VHLO_MapOpV1 : VHLO_Op<"map"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_ReshapeOpV1 : VHLO_Op<"reshape"> {
+def VHLO_ReshapeOpV1 : VHLO_Op<"reshape", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape"> {
+def VHLO_DynamicReshapeOpV1 : VHLO_Op<"dynamic_reshape", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand, VHLO_AnyType:$output_shape);
   let results = (outs VHLO_AnyType:$result);
 }
@@ -743,7 +743,7 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.3.0", "current", [SameVariadicOpera
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_SelectOpV1 : VHLO_Op<"select"> {
+def VHLO_SelectOpV1 : VHLO_Op<"select", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$pred,
     VHLO_AnyType:$on_true,
@@ -752,7 +752,7 @@ def VHLO_SelectOpV1 : VHLO_Op<"select"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter"> {
+def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$source,
@@ -765,7 +765,7 @@ def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_SetDimensionSizeOpV1 : VHLO_Op<"set_dimension_size"> {
+def VHLO_SetDimensionSizeOpV1 : VHLO_Op<"set_dimension_size", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$size,
@@ -774,7 +774,7 @@ def VHLO_SetDimensionSizeOpV1 : VHLO_Op<"set_dimension_size"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_SortOpV1 : VHLO_Op<"sort"> {
+def VHLO_SortOpV1 : VHLO_Op<"sort", "0.3.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     OptionalAttr<VHLO_AnyAttr>:$dimension,
@@ -784,7 +784,7 @@ def VHLO_SortOpV1 : VHLO_Op<"sort"> {
   let results = (outs Variadic<VHLO_AnyType>);
 }
 
-def VHLO_ReverseOpV1 : VHLO_Op<"reverse"> {
+def VHLO_ReverseOpV1 : VHLO_Op<"reverse", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$dimensions
@@ -792,7 +792,7 @@ def VHLO_ReverseOpV1 : VHLO_Op<"reverse"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_PadOpV1 : VHLO_Op<"pad"> {
+def VHLO_PadOpV1 : VHLO_Op<"pad", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$padding_value,
@@ -803,14 +803,14 @@ def VHLO_PadOpV1 : VHLO_Op<"pad"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_TraceOpV1 : VHLO_Op<"trace"> {
+def VHLO_TraceOpV1 : VHLO_Op<"trace", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$tag
   );
 }
 
-def VHLO_TransposeOpV1 : VHLO_Op<"transpose"> {
+def VHLO_TransposeOpV1 : VHLO_Op<"transpose", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$permutation
@@ -818,7 +818,7 @@ def VHLO_TransposeOpV1 : VHLO_Op<"transpose"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_TriangularSolveOpV1 : VHLO_Op<"triangular_solve"> {
+def VHLO_TriangularSolveOpV1 : VHLO_Op<"triangular_solve", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$a,
     VHLO_AnyType:$b,
@@ -844,7 +844,7 @@ def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.3.0", "current", [SameVa
   let regions = (region VHLO_AnyRegion:$body);
 }
 
-def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select"> {
+def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$index,
@@ -854,7 +854,7 @@ def VHLO_TorchIndexSelectOpV1 : VHLO_Op<"torch_index_select"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_OptimizationBarrierOpV1 : VHLO_Op<"optimization_barrier"> {
+def VHLO_OptimizationBarrierOpV1 : VHLO_Op<"optimization_barrier", "0.3.0", "current"> {
   let arguments = (ins Variadic<VHLO_AnyType>:$operand);
   let results = (outs Variadic<VHLO_AnyType>:$result);
 }
@@ -863,7 +863,7 @@ def VHLO_OptimizationBarrierOpV1 : VHLO_Op<"optimization_barrier"> {
 // VHLO RNG Operators.
 //===----------------------------------------------------------------------===//
 
-def VHLO_RngOpV1 : VHLO_Op<"rng"> {
+def VHLO_RngOpV1 : VHLO_Op<"rng", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$a,
     VHLO_AnyType:$b,
@@ -873,7 +873,7 @@ def VHLO_RngOpV1 : VHLO_Op<"rng"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_RngBitGeneratorOpV1 : VHLO_Op<"rng_bit_generator"> {
+def VHLO_RngBitGeneratorOpV1 : VHLO_Op<"rng_bit_generator", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyAttr:$rng_algorithm,
     VHLO_AnyType:$initial_state
@@ -885,17 +885,17 @@ def VHLO_RngBitGeneratorOpV1 : VHLO_Op<"rng_bit_generator"> {
 }
 
 // Quantize Ops
-def VHLO_UniformQuantizeOpV1 : VHLO_Op<"uniform_quantize"> {
+def VHLO_UniformQuantizeOpV1 : VHLO_Op<"uniform_quantize", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_UniformDequantizeOpV1 : VHLO_Op<"uniform_dequantize"> {
+def VHLO_UniformDequantizeOpV1 : VHLO_Op<"uniform_dequantize", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_ReducePrecisionOpV1 : VHLO_Op<"reduce_precision"> {
+def VHLO_ReducePrecisionOpV1 : VHLO_Op<"reduce_precision", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$exponent_bits,
@@ -904,7 +904,7 @@ def VHLO_ReducePrecisionOpV1 : VHLO_Op<"reduce_precision"> {
   let results = (outs VHLO_AnyType:$output);
 }
 
-def VHLO_RealDynamicSliceOpV1 : VHLO_Op<"real_dynamic_slice"> {
+def VHLO_RealDynamicSliceOpV1 : VHLO_Op<"real_dynamic_slice", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -914,7 +914,7 @@ def VHLO_RealDynamicSliceOpV1 : VHLO_Op<"real_dynamic_slice"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad"> {
+def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$padding_value,
@@ -925,7 +925,7 @@ def VHLO_DynamicPadOpV1 : VHLO_Op<"dynamic_pad"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather"> {
+def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather", "0.3.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyType:$start_indices,
@@ -936,7 +936,7 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv"> {
+def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv", "0.3.0", "current"> {
   let arguments = !con(
     (ins
        VHLO_AnyType:$lhs,
@@ -946,17 +946,17 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv"> {
   let results = (outs VHLO_AnyType);
 }
 
-def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape"> {
+def VHLO_ComputeReshapeShapeOpV1 : VHLO_Op<"compute_reshape_shape", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable"> {
+def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable", "0.3.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
   let arguments = (ins VHLO_AnyType:$num_elements, VHLO_AnyType:$dynamic_shape);
 }
 
-def VHLO_FuncOpV1 : VHLO_Op<"func"> {
+def VHLO_FuncOpV1 : VHLO_Op<"func", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyAttr:$sym_name,
                        VHLO_AnyAttr:$function_type,
                        OptionalAttr<VHLO_AnyAttr>:$sym_visibility,
@@ -966,7 +966,7 @@ def VHLO_FuncOpV1 : VHLO_Op<"func"> {
   let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
 
-def VHLO_CallOpV1 : VHLO_Op<"call"> {
+def VHLO_CallOpV1 : VHLO_Op<"call", "0.3.0", "current"> {
   let arguments = (ins VHLO_AnyAttr:$callee, Variadic<VHLO_AnyType>:$operands);
   let results = (outs Variadic<VHLO_AnyType>);
 }
