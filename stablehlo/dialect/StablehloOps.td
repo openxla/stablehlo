@@ -1958,9 +1958,9 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
   }];
 
   let arguments = (ins
-    HLO_Tensor:$min, /* clamp_i1 */
-    HLO_Tensor:$operand, /* clamp_c3,  clamp_i2 */
-    HLO_Tensor:$max /* clamp_i3 */
+    HLO_Tensor:$min, /*clamp_i1*/
+    HLO_Tensor:$operand, /*clamp_c3, clamp_i2*/
+    HLO_Tensor:$max /*clamp_i3*/
   );
   let results = (outs HLO_Tensor:$result);
 
