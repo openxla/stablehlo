@@ -27,10 +27,7 @@ include "mlir/IR/PatternBase.td"
 // Enum Versioning
 //===----------------------------------------------------------------------===//
 
-class VHLO_EnumAttr<EnumAttrInfo enumInfo,
-                    string name,
-                    string minVersion = "0.3.0",
-                    string maxVersion = "current">
+class VHLO_EnumAttr<EnumAttrInfo enumInfo, string name, string minVersion, string maxVersion>
   : EnumAttr<VHLO_Dialect, enumInfo, name, [VHLO_VersionedAttrInterface]> {
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
@@ -63,7 +60,7 @@ def VHLO_PrecisionV1 : I32EnumAttr<"PrecisionV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_PrecisionAttrV1 : VHLO_EnumAttr<VHLO_PrecisionV1, "precision">;
+def VHLO_PrecisionAttrV1 : VHLO_EnumAttr<VHLO_PrecisionV1, "precision", "0.3.0", "current">;
 
 // TODO(b/129153247) See if it's possible to also validate the size.
 def VHLO_PrecisionConfigAttrV1 :
@@ -92,7 +89,7 @@ def VHLO_FftTypeV1 : I32EnumAttr<"FftTypeV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_FftTypeAttrV1 : VHLO_EnumAttr<VHLO_FftTypeV1, "fft_type">;
+def VHLO_FftTypeAttrV1 : VHLO_EnumAttr<VHLO_FftTypeV1, "fft_type", "0.3.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // Custom call enum definitions.
@@ -118,7 +115,8 @@ def VHLO_CustomCallApiVersionV1 :
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_CustomCallApiVersionAttrV1 : VHLO_EnumAttr<VHLO_CustomCallApiVersionV1, "api_version">;
+def VHLO_CustomCallApiVersionAttrV1
+  : VHLO_EnumAttr<VHLO_CustomCallApiVersionV1, "api_version", "0.3.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // Comparison op definitions.
@@ -146,7 +144,8 @@ def VHLO_ComparisonDirectionV1 : I32EnumAttr<"ComparisonDirectionV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_ComparisonDirectionAttrV1 : VHLO_EnumAttr<VHLO_ComparisonDirectionV1, "comparison_direction">;
+def VHLO_ComparisonDirectionAttrV1
+  : VHLO_EnumAttr<VHLO_ComparisonDirectionV1, "comparison_direction", "0.3.0", "current">;
 
 def VHLO_DEFAULT_COMPARISON_TYPE : NativeCodeCall<"::mlir::vhlo::ComparisonTypeAttr()">;
 def VHLO_COMPARISON_TYPE_NOTYPE : I32EnumAttrCase<"NOTYPE", 0>;
@@ -169,7 +168,7 @@ def VHLO_ComparisonTypeV1 : I32EnumAttr<"ComparisonTypeV1",
 }
 
 def VHLO_ComparisonTypeAttrV1
-  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type">;
+  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type", "0.3.0", "current">;
 
 // These mirror the XLA Transpose enum in Triangular Solve options.
 def VHLO_TRANSPOSE_INVALID : I32EnumAttrCase<"TRANSPOSE_INVALID", 0>;
@@ -189,7 +188,8 @@ def VHLO_TransposeV1 : I32EnumAttr<"TransposeV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_TransposeAttrV1 : VHLO_EnumAttr<VHLO_TransposeV1, "transpose">;
+def VHLO_TransposeAttrV1
+  : VHLO_EnumAttr<VHLO_TransposeV1, "transpose", "0.3.0", "current">;
 
 def VHLO_RNG_DISTRIBUTION_UNIFORM : I32EnumAttrCase<"UNIFORM", 1>;
 def VHLO_RNG_DISTRIBUTION_NORMAL : I32EnumAttrCase<"NORMAL", 2>;
@@ -204,7 +204,8 @@ def VHLO_RngDistributionV1 : I32EnumAttr<"RngDistributionV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_RngDistributionAttrV1 : VHLO_EnumAttr<VHLO_RngDistributionV1, "rng_distribution">;
+def VHLO_RngDistributionAttrV1
+  : VHLO_EnumAttr<VHLO_RngDistributionV1, "rng_distribution", "0.3.0", "current">;
 
 def VHLO_RNG_ALGORITHM_DEFAULT : I32EnumAttrCase<"DEFAULT", 0>;
 def VHLO_RNG_ALGORITHM_THREE_FRY : I32EnumAttrCase<"THREE_FRY", 1>;
@@ -221,6 +222,7 @@ def VHLO_RngAlgorithmV1 : I32EnumAttr<"RngAlgorithmV1",
   let cppNamespace = "::mlir::vhlo";
 }
 
-def VHLO_RngAlgorithmAttrV1 : VHLO_EnumAttr<VHLO_RngAlgorithmV1, "rng_algorithm">;
+def VHLO_RngAlgorithmAttrV1
+  : VHLO_EnumAttr<VHLO_RngAlgorithmV1, "rng_algorithm", "0.3.0", "current">;
 
 #endif // STABLEHLO_DIALECT_VHLO_ENUMS
