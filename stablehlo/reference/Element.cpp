@@ -302,6 +302,12 @@ Element ceil(const Element &el) {
   return Element(el.getType(), val);
 }
 
+Element exponential(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::exp(e); },
+      [](std::complex<double> e) { return std::exp(e); });
+}
+
 Element floor(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);
@@ -312,12 +318,6 @@ Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cos(e); },
       [](std::complex<double> e) { return std::cos(e); });
-}
-
-Element exponential(const Element &el) {
-  return mapWithUpcastToDouble(
-      el, [](double e) { return std::exp(e); },
-      [](std::complex<double> e) { return std::exp(e); });
 }
 
 Element max(const Element &e1, const Element &e2) {
