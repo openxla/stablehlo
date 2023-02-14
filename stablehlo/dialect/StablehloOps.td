@@ -1643,9 +1643,9 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
 }
 
 def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
-      [Pure, AllElementTypesMatch<["operand", "update", "result"]>,
+      [Pure, AllElementTypesMatch<["operand", "update", "result"]> /*dynamic_update_slice_c1, dynamic_update_slice_c2*/,
        InferTensorType]> {
-  let summary = "Dynamic Update Slice operator";
+  let summary = "DynamicUpdateSlice operation";
   let description = [{
     Produces a `result` tensor which is equal to the `operand` tensor except
     that the slice starting at `start_indices` is updated with the values in
@@ -1661,9 +1661,9 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$update,
-    Variadic<HLO_ScalarIntTensor>:$start_indices
+    HLO_Tensor:$operand /*dynamic_update_slice_i1*/,
+    HLO_Tensor:$update /*dynamic_update_slice_i2*/,
+    Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_update_slice_i3*/
   );
   let results = (outs HLO_Tensor:$result);
 

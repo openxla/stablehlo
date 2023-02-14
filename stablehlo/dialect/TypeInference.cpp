@@ -2065,7 +2065,7 @@ LogicalResult inferDynamicUpdateSliceOp(
   auto operandType = operand.getType().cast<ShapedType>();
   auto updateType = update.getType().cast<ShapedType>();
 
-  // (C3)
+  // dynamic_update_slice_c3
   if (updateType.hasRank() && operandType.hasRank() &&
       updateType.getRank() != operandType.getRank())
     return emitOptionalError(
@@ -2073,20 +2073,20 @@ LogicalResult inferDynamicUpdateSliceOp(
         "update rank does not match operand rank: ", updateType.getRank(),
         " vs ", operandType.getRank(), ".");
 
-  // (C4)
+  // dynamic_update_slice_c4
   if (operandType.hasRank() &&
       (int64_t)startIndices.size() != operandType.getRank())
     return emitOptionalError(
         location, "expects number of start_indices to match operand rank: ",
         startIndices.size(), " vs ", operandType.getRank(), ".");
 
-  // (C5)
+  // dynamic_update_slice_c5
   if (!tensorsHaveSameElType(startIndices.getTypes()))
     return emitOptionalError(location,
                              "start indices must have same element type");
 
-  // (C6)
-  if (operandType.hasRank() && updateType.hasRank()) {
+  // dynamic_update_slice_c6
+  if (operandType.hasRank() && updateType.hasRank())
     for (auto [index, dims] : llvm::enumerate(
              llvm::zip(operandType.getShape(), updateType.getShape()))) {
       auto [operandDim, updateDim] = dims;
@@ -2103,8 +2103,8 @@ LogicalResult inferDynamicUpdateSliceOp(
               " of update to be non-negative. Got: ", updateDim, ".");
       }
     }
-  }
-  // (C1)
+
+  // dynamic_update_slice_c1
   if (operandType.hasRank())
     inferredReturnShapes.emplace_back(
         operandType.getShape(), operandType.getElementType(),
