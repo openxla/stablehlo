@@ -585,6 +585,32 @@ struct RefineConvolutionOpPattern : public OpRewritePattern<ConvolutionOp> {
   }
 };
 
+struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(CustomCallOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandIndicesAttr = op->getAttr("indices_of_shape_operands")
+                                  .dyn_cast_or_null<DenseIntElementsAttr>();
+    if (!operandIndicesAttr)
+      return rewriter.notifyMatchFailure(
+          op, "expected an indices_of_shape_operands attribute");
+
+    SmallVector<ShapedTypeComponents> refinements;
+    for (auto operandIndexElt : operandIndicesAttr.getValues<APInt>()) {
+      int64_t operandIndex = operandIndexElt.getSExtValue();
+      if (operandIndex < 0 || operandIndex >= op->getNumOperands())
+        return rewriter.notifyMatchFailure(op, "expected valid operand index");
+      SmallVector<int64_t> refinement;
+      if (failed(matchInts(op->getOperand(operandIndex), refinement)))
+        return rewriter.notifyMatchFailure(op, "expected constant operand");
+      if (llvm::any_of(refinement, [&](int64_t x) { return x < 0; }))
+        return rewriter.notifyMatchFailure(op, "expected non-negative sizes");
+      refinements.emplace_back(refinement);
+    }
+    return refineReturnTypes(rewriter, op, refinements);
+  }
+};
+
 struct RefineDotGeneralOpPattern : public OpRewritePattern<DotGeneralOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DotGeneralOp op,
@@ -962,6 +988,7 @@ struct StablehloRefineShapesPass
     patterns.add<RefineBitcastConvertOpPattern>(&getContext());
     patterns.add<RefineConvertOpPattern>(&getContext());
     patterns.add<RefineConvolutionOpPattern>(&getContext());
+    patterns.add<RefineCustomCallOpPattern>(&getContext());
     patterns.add<RefineDotGeneralOpPattern>(&getContext());
     patterns.add<RefineDynamicBroadcastInDimOpPattern>(&getContext());
     patterns.add<RefineDynamicConvOpPattern>(&getContext());
