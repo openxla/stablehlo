@@ -93,10 +93,8 @@ Tensor evalFloorOp(const Tensor &operand, Type resultType) {
 
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                              Region &falseBranch, Scope &scope) {
-  SmallVector<Tensor> runtimeResults;
-  return pred.get({}).getBooleanValue()
-             ? eval(trueBranch, runtimeResults, &scope)
-             : eval(falseBranch, runtimeResults, &scope);
+  return pred.get({}).getBooleanValue() ? eval(trueBranch, {}, &scope)
+                                        : eval(falseBranch, {}, &scope);
 }
 
 Tensor evalIotaOp(int64_t iotaDimension, Type resultType) {
@@ -313,7 +311,7 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimePred = scope.find(ifOp.getPred());
       auto runtimeResults = evalIfOp(runtimePred, ifOp.getTrueBranch(),
                                      ifOp.getFalseBranch(), scope);
-      scope.add(op.getResults(), {runtimeResults});
+      scope.add(op.getResults(), runtimeResults);
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
       Tensor runtimeResult =
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
