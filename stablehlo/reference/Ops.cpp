@@ -561,6 +561,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult =
           evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
+      Tensor runtimeOperand = scope.find(sqrtOp.getOperand());
+      Tensor runtimeResult = evalSqrtOp(runtimeOperand, sqrtOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = scope.find(subtractOp.getLhs());
       Tensor runtimeRhs = scope.find(subtractOp.getRhs());
