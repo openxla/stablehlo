@@ -946,18 +946,13 @@ func.func @broadcast_in_dim_unranked_operand(%arg0 : tensor<*xf32>) -> tensor<2x
 // -----
 
 // CHECK-LABEL: func @if
-func.func @if(%pred : tensor<i1>, %branch_operand : tensor<f32>) -> (tensor<f32>, tensor<f32>) {
-  %0, %1 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
-  }, {
-      %2 = "stablehlo.if"(%pred) ({
-          "stablehlo.return"(%pred) : (tensor<i1>) -> ()
-      }, {
-          "stablehlo.return"(%pred) : (tensor<i1>) -> ()
-      }) : (tensor<i1>) -> tensor<i1>
-      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
-  }) : (tensor<i1>) -> (tensor<f32>, tensor<f32>)
-  func.return %0, %1 : tensor<f32>, tensor<f32>
+func.func @if(%pred : tensor<i1>, %branch_operand : tensor<2xf32>) -> tensor<2xf32> {
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<2xf32>) -> ()
+    }) : (tensor<i1>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
 }
 
 // -----
@@ -1013,11 +1008,11 @@ func.func @if_c3(%pred : tensor<i1>, %branch_operand : tensor<f32>) -> tensor<i3
 // -----
 
 // CHECK-LABEL: if_dynamic_branch_result
-func.func @if_dynamic_branch_result(%pred : tensor<i1>, %true_branch_eperand: tensor<2xf32>, %false_branch_eperand : tensor<?xf32>) -> tensor<2xf32> {
+func.func @if_dynamic_branch_result(%pred : tensor<i1>, %true_branch_operand: tensor<2xf32>, %false_branch_operand : tensor<?xf32>) -> tensor<2xf32> {
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%true_branch_eperand) : (tensor<2xf32>) -> ()
+      "stablehlo.return"(%true_branch_operand) : (tensor<2xf32>) -> ()
     }, {
-      "stablehlo.return"(%false_branch_eperand) : (tensor<?xf32>) -> ()
+      "stablehlo.return"(%false_branch_operand) : (tensor<?xf32>) -> ()
     }) : (tensor<i1>) -> tensor<2xf32>
   func.return %0 : tensor<2xf32>
 }
@@ -1049,11 +1044,11 @@ func.func @if_i1(%pred : tensor<1xi1>, %branch_operand : tensor<f32>) -> tensor<
 // -----
 
 // CHECK-LABEL: if_unranked
-func.func @if_unranked(%pred : tensor<i1>, %true_branch_eperand: tensor<2xf32>, %false_branch_eperand : tensor<*xf32>) -> tensor<*xf32> {
+func.func @if_unranked(%pred : tensor<i1>, %true_branch_operand: tensor<2xf32>, %false_branch_operand : tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.if"(%pred) ({
-      "stablehlo.return"(%true_branch_eperand) : (tensor<2xf32>) -> ()
+      "stablehlo.return"(%true_branch_operand) : (tensor<2xf32>) -> ()
     }, {
-      "stablehlo.return"(%false_branch_eperand) : (tensor<*xf32>) -> ()
+      "stablehlo.return"(%false_branch_operand) : (tensor<*xf32>) -> ()
     }) : (tensor<i1>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }

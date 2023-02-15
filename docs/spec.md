@@ -2861,7 +2861,7 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 * (C1) `true_branch` and `false_branch` have 0 inputs.
 * (C2) `true_branch` and `false_branch` have the same output types.
-* (C3) For all `i`, `type(results[i]) = type(true_branch.outputs[i])`.
+* (C3) For all `i`, `type(results[i]) = type(true_branch).outputs[i]`.
 
 #### Examples
 

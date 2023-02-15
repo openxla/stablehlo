@@ -1310,7 +1310,6 @@ LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
     return emitOptionalError(location,
                              "operand should be rank 0 tensor but got rank ",
                              operandRankedTy.getRank());
-  // if_i2, if_i3
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
   for (auto region : branches)
