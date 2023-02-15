@@ -51,7 +51,14 @@ class Element {
   /// \name Value Generators
   /// @{
 
-  /// Get the specified value for the specified type.
+  /// The function `getValue(Type type, int64_t value)` produces an `Element`
+  /// object using `type` and `value` as follows:
+  /// * If `type` is an integer type, `value` is used with proper interpretation
+  ///   based on integer signedness.
+  /// * If `type` is a floating point type, the `Element` object represents a
+  ///   floating point value equivalent to `value`.
+  /// * If `type` is a complex type, the `Element` object represents a complex
+  ///   value with real part equivalent `value` and imaginary part as zero.
   static Element getValue(Type type, int64_t value) {
     if (isSupportedSignedIntegerType(type))
       return Element(
@@ -68,7 +75,7 @@ class Element {
     }
     if (isSupportedComplexType(type)) {
       APFloat real(static_cast<double>(value));
-      APFloat imag(static_cast<double>(0.0));
+      APFloat imag(static_cast<double>(0));
       auto floatTy =
           type.cast<ComplexType>().getElementType().cast<FloatType>();
       bool roundingErr;
