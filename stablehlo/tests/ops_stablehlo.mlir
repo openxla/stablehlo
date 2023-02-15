@@ -1000,6 +1000,18 @@ func.func @if_c2(%pred : tensor<i1>, %branch_operand : tensor<f32>) -> tensor<f3
 
 // -----
 
+func.func @if_c3(%pred : tensor<i1>, %branch_operand : tensor<f32>) -> tensor<i32> {
+  // @expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.if"(%pred) ({
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }, {
+      "stablehlo.return"(%branch_operand) : (tensor<f32>) -> ()
+    }) : (tensor<i1>) -> tensor<i32>
+  func.return %0 : tensor<i32>
+}
+
+// -----
+
 // CHECK-LABEL: if_dynamic_branch_result
 func.func @if_dynamic_branch_result(%pred : tensor<i1>, %true_branch_eperand: tensor<2xf32>, %false_branch_eperand : tensor<?xf32>) -> tensor<2xf32> {
   %0 = "stablehlo.if"(%pred) ({
