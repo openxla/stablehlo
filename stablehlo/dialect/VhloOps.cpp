@@ -20,6 +20,8 @@ limitations under the License.
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantOps.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -193,6 +195,16 @@ Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
   return DenseIntOrFPElementsV1Attr::get(
       parser.getContext(), convertTypeToVhloForParse(attr.getType()),
       attr.getRawData());
+}
+
+void printEscapedString(AsmPrinter& p, llvm::StringRef value) {
+  p << "\"";
+  llvm::printEscapedString(value, p.getStream());
+  p << "\"";
+}
+
+ParseResult parseEscapedString(AsmParser& parser, std::string& value) {
+  return parser.parseString(&value);
 }
 
 }  // namespace vhlo

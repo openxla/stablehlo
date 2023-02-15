@@ -663,7 +663,7 @@ func.func @called_computation() { func.return }
 func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   //      CHECK: "vhlo.custom_call_v2"(%arg0) {
   // CHECK-SAME:   api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
-  // CHECK-SAME:   backend_config = #vhlo.string<"">,
+  // CHECK-SAME:   backend_config = #vhlo.string<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string<"foo">,
   // CHECK-SAME:   called_computations = #vhlo.array<[#vhlo.sym<#vhlo.string<"foo">>]>,
   // CHECK-SAME:   has_side_effect = #vhlo.integer<false>,
@@ -678,7 +678,7 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = "stablehlo.custom_call"(%arg0) {
     call_target_name = "foo",
     has_side_effect = false,
-    backend_config = "",
+    backend_config = "\08\03\1A\02",
     api_version = 1 : i32,
     called_computations = [@foo],
     operand_layouts = [dense<> : tensor<0xindex>],
