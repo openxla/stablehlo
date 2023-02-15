@@ -46,7 +46,7 @@ int64_t getSizeInBytes(Type type) {
 
 // Flattens multi-dimensional index 'index' of a tensor to a linearized index
 // into the underlying storage where elements are laid out in canonical order.
-int64_t flattenIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index) {
+int64_t flattenIndex(ArrayRef<int64_t> shape, const Index &index) {
   if (failed(verifyIndex(shape, index)))
     llvm::report_fatal_error(
         "Incompatible index and shape found while flattening index");
@@ -95,7 +95,7 @@ Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
 
 int64_t Tensor::getNumElements() const { return getType().getNumElements(); }
 
-Element Tensor::get(ArrayRef<int64_t> index) const {
+Element Tensor::get(const Index &index) const {
   Type elementType = getType().getElementType();
   const char *elementPtr =
       impl_->getData().data() +
@@ -202,7 +202,7 @@ Element Tensor::get(ArrayRef<int64_t> index) const {
                                      debugString(elementType).c_str()));
 }
 
-void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
+void Tensor::set(const Index &index, const Element &element) {
   Type elementType = getType().getElementType();
   char *elementPtr =
       impl_->getMutableData().data() +

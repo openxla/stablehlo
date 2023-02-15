@@ -31,19 +31,12 @@ namespace stablehlo {
 
 namespace {
 
-// Applies the permutation `perm` to an array `array` where perm[i] indicates
+// Applies the permutation `perm` to an index `array` where perm[i] indicates
 // the location where the current array[i] goes.
-SmallVector<int64_t> permute(ArrayRef<int64_t> array, ArrayRef<int64_t> perm) {
-  SmallVector<int64_t> result(array.size());
+Index permute(const Index &array, ArrayRef<int64_t> perm) {
+  Index result(array.size());
   for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
   return result;
-}
-
-SmallVector<int64_t> addIndices(ArrayRef<int64_t> lhs, ArrayRef<int64_t> rhs) {
-  SmallVector<int64_t> combined;
-  for (auto [lhsIdx, rhsIdx] : llvm::zip(lhs, rhs))
-    combined.push_back(lhsIdx + rhsIdx);
-  return combined;
 }
 
 }  // namespace
@@ -76,10 +69,10 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
   auto operandShape = operand.getType().getShape();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    SmallVector<int64_t> operandIdx;
+    Index operandIdx(operandShape.size());
     for (auto [operandDim, resultDim] : llvm::enumerate(broadcastDimensions))
-      operandIdx.push_back(
-          operandShape[operandDim] == 1 ? 0 : (*resultIt)[resultDim]);
+      operandIdx[operandDim] =
+          operandShape[operandDim] == 1 ? 0 : (*resultIt)[resultDim];
     result.set(*resultIt, operand.get(operandIdx));
   }
   return result;
@@ -131,14 +124,16 @@ Tensor evalCosineOp(const Tensor &operand, Type resultType) {
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           ArrayRef<int64_t> sliceSizes, Type resultType) {
   Tensor result(resultType);
-  SmallVector<int64_t> adjustedStartIndices;
+  Index adjustedStartIndices(startIndices.size());
   for (size_t i = 0; i < startIndices.size(); ++i)
-    adjustedStartIndices.push_back(std::min(
-        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
-        operand.getType().getShape()[i] - sliceSizes[i]));
+    adjustedStartIndices[i] = std::min(
+        std::max(
+            startIndices[i].get(Index({})).getIntegerValue().getSExtValue(),
+            0l),
+        operand.getType().getShape()[i] - sliceSizes[i]);
   for (auto resultItr = result.index_begin(); resultItr != result.index_end();
        ++resultItr) {
-    auto operandIdx = addIndices(adjustedStartIndices, *resultItr);
+    auto operandIdx = adjustedStartIndices + *resultItr;
     result.set(*resultItr, operand.get(operandIdx));
   }
   return result;
@@ -150,18 +145,19 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   Tensor result(resultType);
   auto operandShape = operand.getType().getShape();
   auto updateShape = update.getType().getShape();
-  SmallVector<int64_t> adjustedStartIndices;
+  Index adjustedStartIndices(startIndices.size());
   for (size_t i = 0; i < startIndices.size(); ++i)
-    adjustedStartIndices.push_back(std::min(
-        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
-        operandShape[i] - updateShape[i]));
+    adjustedStartIndices[i] = std::min(
+        std::max(
+            startIndices[i].get(Index({})).getIntegerValue().getSExtValue(),
+            0l),
+        operandShape[i] - updateShape[i]);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
     result.set(*resultIt, operand.get(*resultIt));
   for (auto updateIt = update.index_begin(); updateIt != update.index_end();
        ++updateIt)
-    result.set(addIndices(*updateIt, adjustedStartIndices),
-               update.get(*updateIt));
+    result.set(*updateIt + adjustedStartIndices, update.get(*updateIt));
   return result;
 }
 
@@ -276,10 +272,10 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
-    result.set(*resultIt, paddingValue.get({}));
+    result.set(*resultIt, paddingValue.get(Index({})));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    SmallVector<int64_t> resultIdx(result.getType().getRank());
+    Index resultIdx(result.getType().getRank());
     for (auto i = 0; i < operand.getType().getRank(); ++i)
       resultIdx[i] =
           edgePaddingLow[i] + (*operandIt)[i] * (interiorPadding[i] + 1);
@@ -303,7 +299,7 @@ Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
   auto resultShape = result.getType().getShape();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    SmallVector<int64_t> operandIdx(*resultIt);
+    Index operandIdx(*resultIt);
     for (auto dim : dimensions)
       operandIdx[dim] = (resultShape[dim] - 1) - operandIdx[dim];
     result.set(*resultIt, operand.get(operandIdx));
@@ -335,9 +331,9 @@ Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    SmallVector<int64_t> operandIdx;
+    Index operandIdx(operand.getType().getRank());
     for (auto dim = 0; dim < operand.getType().getRank(); ++dim)
-      operandIdx.push_back(startIndices[dim] + (*resultIt)[dim] * strides[dim]);
+      operandIdx[dim] = startIndices[dim] + (*resultIt)[dim] * strides[dim];
     result.set(*resultIt, operand.get(operandIdx));
   }
   return result;

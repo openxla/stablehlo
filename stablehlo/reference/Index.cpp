@@ -20,17 +20,23 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-LogicalResult verifyIndex(llvm::ArrayRef<int64_t> shape,
-                          llvm::ArrayRef<int64_t> index) {
+Index Index::operator+(const Index &other) const {
+  SmallVector<int64_t> combined;
+  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, other.index_))
+    combined.push_back(lhsIdx + rhsIdx);
+  return Index(combined);
+}
+
+LogicalResult verifyIndex(llvm::ArrayRef<int64_t> shape, const Index &index) {
   if (shape.size() != index.size()) return failure();
 
-  for (auto [shapeDim, indexDim] : llvm::zip(shape, index))
-    if (indexDim < 0 || indexDim >= shapeDim) return failure();
+  for (auto [dim, shapeDim] : llvm::enumerate(shape))
+    if (index[dim] < 0 || index[dim] >= shapeDim) return failure();
 
   return success();
 }
 
-llvm::ArrayRef<int64_t> IndexSpaceIterator::operator*() const {
+Index IndexSpaceIterator::operator*() const {
   if (!index_)
     llvm::report_fatal_error("Dereferencing a past-the-end iterator.");
   return *index_;
