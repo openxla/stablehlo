@@ -485,12 +485,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       return scope.find(returnOp.getResults());
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
-      Tensor runtimePred = fetchOperand(selectOp.getPred());
-      Tensor runtimeOnTrue = fetchOperand(selectOp.getOnTrue());
-      Tensor runtimeOnFalse = fetchOperand(selectOp.getOnFalse());
-      Tensor runtimeResult = evalSelectOp(runtimePred, runtimeOnTrue,
-                                          runtimeOnFalse, selectOp.getType());
-      populateResults({runtimeResult});
+      Tensor runtimeResult = evalSelectOp(
+          scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
+          scope.find(selectOp.getOnFalse()), selectOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
