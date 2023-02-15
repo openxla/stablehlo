@@ -77,8 +77,10 @@ Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
 
 SmallVector<Tensor> evalCaseOp(const Tensor &index,
                                MutableArrayRef<Region> branches, Scope &scope) {
-  return eval(branches[index.get({}).getIntegerValue().getSExtValue()], {},
-              &scope);
+  int64_t idx = index.get({}).getIntegerValue().getSExtValue();
+  if (idx < 0 || idx >= static_cast<int64_t>(branches.size()))
+    return eval(branches[branches.size() - 1], {}, &scope);
+  return eval(branches[idx], {}, &scope);
 }
 
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType) {
