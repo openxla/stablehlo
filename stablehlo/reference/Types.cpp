@@ -55,10 +55,5 @@ bool isSupportedComplexType(Type type) {
   return complexElemTy.isF32() || complexElemTy.isF64();
 }
 
-bool isSupportedType(Type type) {
-  return isSupportedBooleanType(type) || isSupportedIntegerType(type) ||
-         isSupportedFloatType(type) || isSupportedComplexType(type);
-}
-
 }  // namespace stablehlo
 }  // namespace mlir

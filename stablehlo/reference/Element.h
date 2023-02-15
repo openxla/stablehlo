@@ -51,9 +51,8 @@ class Element {
   /// \name Value Generators
   /// @{
 
-  /// The function `getValue(Type type, int64_t value)` produces an `Element`
-  /// object of type `type` which represents an integer value with proper
-  /// interpretation based on integer signedness.
+  /// The function produces an `Element` object of type `type` which represents
+  /// an integer value with proper interpretation based on integer signedness.
   static Element getValue(Type type, int64_t value) {
     if (isSupportedSignedIntegerType(type))
       return Element(
@@ -65,9 +64,8 @@ class Element {
                                        debugString(type).c_str()));
   }
 
-  /// The function `getValue(Type type, double value)` produces an `Element`
-  /// object of type `type` which represents a floating point value equivalent
-  /// to `value`.
+  /// The function produces an `Element` object of type `type` which represents
+  /// a floating point value equivalent to `value`.
   static Element getValue(Type type, double value) {
     if (isSupportedFloatType(type)) {
       APFloat floatVal(static_cast<double>(value));
@@ -80,9 +78,9 @@ class Element {
                                        debugString(type).c_str()));
   }
 
-  /// The function `getValue(Type type, std::complex<double> value)` produces an
-  /// `Element` object of type `type` which represents a complex value with
-  /// real part equivalent to `value.real()` and imaginary part `value.imag()`.
+  /// The function produces an `Element` object of type `type` which represents
+  /// a complex value with real part equivalent to `value.real()` and imaginary
+  /// part `value.imag()`.
   static Element getValue(Type type, std::complex<double> value) {
     if (isSupportedComplexType(type)) {
       APFloat real(value.real());

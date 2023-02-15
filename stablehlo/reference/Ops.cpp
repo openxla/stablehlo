@@ -174,8 +174,9 @@ Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
                                                        (*it)[iotaDimension])));
     } else if (isSupportedComplexType(elementTy)) {
       result.set(*it, Element::getValue(
-                          elementTy, std::complex<double>(static_cast<double>(
-                                         (*it)[iotaDimension]))));
+                          elementTy,
+                          std::complex<double>(
+                              static_cast<double>((*it)[iotaDimension]), 0.0)));
     } else {
       report_fatal_error(invalidArgument("Unsupported element type: %s",
                                          debugString(elementTy).c_str()));
