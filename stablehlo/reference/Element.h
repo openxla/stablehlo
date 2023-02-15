@@ -45,8 +45,14 @@ class Element {
 
   Element(const Element &other) = default;
   Element() = default;
+  /// @}
 
-  template <class V>
+  /// @}
+  /// \name Value Generators
+  /// @{
+
+  /// Get the specified value for the specified type.
+  template <typename V>
   static Element getValue(Type type, V value) {
     if (isSupportedSignedIntegerType(type)) {
       return Element(
@@ -76,7 +82,6 @@ class Element {
                                          debugString(type).c_str()));
     }
   }
-  /// @}
 
   /// Assignment operator.
   Element &operator=(const Element &other) = default;
