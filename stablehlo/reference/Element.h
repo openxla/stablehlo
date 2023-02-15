@@ -52,13 +52,8 @@ class Element {
   /// @{
 
   /// The function `getValue(Type type, int64_t value)` produces an `Element`
-  /// object using `type` and `value` as follows:
-  /// * If `type` is an integer type, `value` is used with proper interpretation
-  ///   based on integer signedness.
-  /// * If `type` is a floating point type, the `Element` object represents a
-  ///   floating point value equivalent to `value`.
-  /// * If `type` is a complex type, the `Element` object represents a complex
-  ///   value with real part equivalent `value` and imaginary part as zero.
+  /// object of type `type` which represents an integer value with proper
+  /// interpretation based on integer signedness.
   static Element getValue(Type type, int64_t value) {
     if (isSupportedSignedIntegerType(type))
       return Element(
@@ -66,6 +61,14 @@ class Element {
     if (isSupportedUnsignedIntegerType(type))
       return Element(
           type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  }
+
+  /// The function `getValue(Type type, double value)` produces an `Element`
+  /// object of type `type` which represents a floating point value equivalent
+  /// to `value`.
+  static Element getValue(Type type, double value) {
     if (isSupportedFloatType(type)) {
       APFloat floatVal(static_cast<double>(value));
       bool roundingErr;
@@ -73,9 +76,17 @@ class Element {
                        APFloat::rmNearestTiesToEven, &roundingErr);
       return Element(type, floatVal);
     }
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  }
+
+  /// The function `getValue(Type type, std::complex<double> value)` produces an
+  /// `Element` object of type `type` which represents a complex value with
+  /// real part equivalent to `value.real()` and imaginary part `value.imag()`.
+  static Element getValue(Type type, std::complex<double> value) {
     if (isSupportedComplexType(type)) {
-      APFloat real(static_cast<double>(value));
-      APFloat imag(static_cast<double>(0));
+      APFloat real(value.real());
+      APFloat imag(value.imag());
       auto floatTy =
           type.cast<ComplexType>().getElementType().cast<FloatType>();
       bool roundingErr;
