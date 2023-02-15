@@ -2327,12 +2327,13 @@ LogicalResult inferGatherOp(
 }
 
 LogicalResult inferGetDimensionSizeOp(
-    MLIRContext* context, std::optional<Location> location, Type operandType,
-    int64_t dim, SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(), dim)))
+    std::optional<Location> location, Type operandType, int64_t dimension,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(),
+                               dimension)))
     return failure();
-  inferredReturnShapes.emplace_back(ArrayRef<int64_t>{},
-                                    IntegerType::get(context, 32));
+  inferredReturnShapes.emplace_back(
+      ArrayRef<int64_t>{}, IntegerType::get(operandType.getContext(), 32));
   return success();
 }
 
@@ -2705,12 +2706,13 @@ LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
 
 LogicalResult inferSetDimensionSizeOp(
     Dialect* dialect, std::optional<Location> location, Type operandType,
-    Value size, int64_t dim,
+    Value size, int64_t dimension,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto sizeType = size.getType().dyn_cast<RankedTensorType>();
   if (sizeType && sizeType.getRank() != 0)
-    emitOptionalError(location, "size operand should be of rank-0");
-  if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(), dim)))
+    return emitOptionalError(location, "size operand should be of rank-0");
+  if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(),
+                               dimension)))
     return failure();
 
   auto inputType = operandType.dyn_cast<RankedTensorType>();
@@ -2720,25 +2722,26 @@ LogicalResult inferSetDimensionSizeOp(
     return success();
   }
   int64_t rank = inputType.getRank();
-  if (dim < 0 || dim >= rank)
+  if (dimension < 0 || dimension >= rank)
     return emitOptionalError(location, "expects dimension to be in range [0, ",
-                             rank, "); got: [", dim, "].");
+                             rank, "); got: [", dimension, "].");
 
   auto shape = llvm::to_vector<4>(inputType.getShape());
   llvm::SmallVector<int64_t, 4> bounds(rank, ShapedType::kDynamic);
   ArrayRef<int64_t> inputBounds = encodingToBounds(inputType.getEncoding());
   if (!inputBounds.empty()) bounds = llvm::to_vector<4>(inputBounds);
 
-  if (!hlo::isDynamicDimSize(shape[dim])) bounds[dim] = shape[dim];
-  shape[dim] = ShapedType::kDynamic;
+  if (!hlo::isDynamicDimSize(shape[dimension]))
+    bounds[dimension] = shape[dimension];
+  shape[dimension] = ShapedType::kDynamic;
 
   DenseIntElementsAttr sizeAttr;
   if (matchPattern(size, m_Constant(&sizeAttr))) {
     int64_t splat =
         sizeAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
-    if (splat == bounds[dim]) {
-      shape[dim] = splat;
-      bounds[dim] = ShapedType::kDynamic;
+    if (splat == bounds[dimension]) {
+      shape[dimension] = splat;
+      bounds[dimension] = ShapedType::kDynamic;
     }
   }
 
