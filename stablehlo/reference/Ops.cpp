@@ -107,6 +107,22 @@ Tensor evalCosineOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
+Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
+                          ArrayRef<int64_t> sliceSizes, Type resultType) {
+  Tensor result(resultType);
+  SmallVector<int64_t> adjustedStartIndices;
+  for (size_t i = 0; i < startIndices.size(); ++i)
+    adjustedStartIndices.push_back(std::min(
+        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
+        operand.getType().getShape()[i] - sliceSizes[i]));
+  for (auto resultItr = result.index_begin(); resultItr != result.index_end();
+       ++resultItr) {
+    auto operandIdx = addIndices(adjustedStartIndices, *resultItr);
+    result.set(*resultItr, operand.get(operandIdx));
+  }
+  return result;
+}
+
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices,
                                 Type resultType) {
@@ -366,6 +382,15 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       Tensor runtimeOperand = scope.find(cosineOp.getOperand());
       Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
+      Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());
+      auto runtimeStartIndices = scope.find(dynamicSliceOp.getStartIndices());
+      auto runtimeSliceSizes =
+          llvm::to_vector(dynamicSliceOp.getSliceSizes().getValues<int64_t>());
+      Tensor runtimeResult =
+          evalDynamicSliceOp(runtimeOperand, runtimeStartIndices,
+                             runtimeSliceSizes, dynamicSliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicUpdateSliceOp.getOperand());
