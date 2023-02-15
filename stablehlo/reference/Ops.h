@@ -39,6 +39,8 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> start_indices,
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
+SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
+                             Region &falseBranch, Scope &scope);
 Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, Type resultType);

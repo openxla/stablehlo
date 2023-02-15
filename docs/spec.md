@@ -2853,7 +2853,7 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 | Label | Name           | Type                                       | Constraints |
 |-------|----------------|--------------------------------------------|-------------|
-| (I1)  | `pred`         | 1-dimensional tensor constant of type `i1` |             |
+| (I1)  | `pred`         | 0-dimensional tensor constant of type `i1` |             |
 | (I2)  | `true_branch`  | function                                   | (C1-C3)     |
 | (I3)  | `false_branch` | function                                   | (C1), (C2)  |
 
@@ -2882,6 +2882,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 }) : (tensor<i1>) -> tensor<i32>
 // %result: 10
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_if.mlir)
 
 ### imag
 

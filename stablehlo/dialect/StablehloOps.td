@@ -1169,7 +1169,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
     RecursiveMemoryEffects,
     SingleBlockImplicitTerminator<"ReturnOp">,
     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
-  let summary = "If operator";
+  let summary = "If operation";
 
   let description = [{
     Produces the output from executing exactly one branch from `true_branch` or
@@ -1187,11 +1187,11 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
   }];
 
   let arguments = (ins
-    HLO_PredTensor:$pred
+    HLO_PredTensor:$pred /*if_i1*/
   );
 
-  let regions = (region SizedRegion<1>:$true_branch,
-                        SizedRegion<1>:$false_branch);
+  let regions = (region SizedRegion<1>:$true_branch /*if_i2*/,
+                        SizedRegion<1>:$false_branch /*if_i3*/);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 }
