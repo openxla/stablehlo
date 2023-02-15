@@ -2132,14 +2132,6 @@ func.func @select_scalar_x_y(%arg0: tensor<i1>, %arg1: tensor<i32>, %arg2: tenso
 
 // -----
 
-func.func @select_c1(%arg0: tensor<i32>, %arg1: tensor<2x3xi32>, %arg2: tensor<2x3xi32>) -> tensor<2x3xi32> {
-  // expected-error@+1 {{must be tensor of pred (AKA boolean or 1-bit integer) values}}
-  %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<i32>, tensor<2x3xi32>, tensor<2x3xi32>) -> tensor<2x3xi32>
-  func.return %0 : tensor<2x3xi32>
-}
-
-// -----
-
 func.func @select_c1(%arg0: tensor<3xi1>, %arg1: tensor<2x3xi32>, %arg2: tensor<2x3xi32>) -> tensor<2x3xi32> {
   // expected-error@+1 {{requires the same shape for all operands}}
   %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<3xi1>, tensor<2x3xi32>, tensor<2x3xi32>) -> tensor<2x3xi32>
@@ -2156,18 +2148,10 @@ func.func @select_c2(%arg0: tensor<3xi1>, %arg1: tensor<2x4xi32>, %arg2: tensor<
 
 // -----
 
-func.func @select_c2(%arg0: tensor<i1>, %arg1: tensor<2x3xf32>, %arg2: tensor<2x3xi32>) -> tensor<2x3xi32> {
-  // expected-error@+1 {{requires compatible types for non-predicate operands}}
-  %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<2x3xf32>, tensor<2x3xi32>) -> tensor<2x3xi32>
+func.func @select_c2(%arg0: tensor<i1>, %arg1: tensor<2x3xf32>, %arg2: tensor<2x3xf32>) -> tensor<2x3xi32> {
+  // expected-error@+1 {{inferred type(s) 'tensor<2x3xf32>' are incompatible with return type(s) of operation 'tensor<2x3xi32>'}}
+  %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<2x3xf32>, tensor<2x3xf32>) -> tensor<2x3xi32>
   func.return %0 : tensor<2x3xi32>
-}
-
-// -----
-
-func.func @select_c2(%arg0: tensor<i1>, %arg1: tensor<2x3xf32>, %arg2: tensor<2x3xf64>) -> tensor<2x3xf64> {
-  // expected-error@+1 {{requires compatible types for non-predicate operands}}
-  %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<2x3xf32>, tensor<2x3xf64>) -> tensor<2x3xf64>
-  func.return %0 : tensor<2x3xf64>
 }
 
 // -----

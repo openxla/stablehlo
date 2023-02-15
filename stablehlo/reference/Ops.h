@@ -34,8 +34,8 @@ Tensor evalCeilOp(const Tensor &operand, Type resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, Type resultType);
 Tensor evalCosineOp(const Tensor &operand, Type resultType);
-Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> start_indices,
-                          ArrayRef<int64_t> slice_sizes, Type resultType);
+Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
+                          ArrayRef<int64_t> sliceSizes, Type resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices, Type resultType);
 Tensor evalFloorOp(const Tensor &operand, Type resultType);
@@ -52,8 +52,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 Tensor evalReshapeOp(const Tensor &operand, Type resultType);
 Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
                      Type resultType);
-Tensor evalSelectOp(const Tensor &pred, const Tensor &on_true,
-                    const Tensor &on_false, Type resultType);
+Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
+                    const Tensor &onFalse, Type resultType);
 Tensor evalSineOp(const Tensor &operand, Type resultType);
 Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
                    ArrayRef<int64_t> strides, Type resultType);
