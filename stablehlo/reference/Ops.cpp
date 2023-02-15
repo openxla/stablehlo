@@ -437,6 +437,12 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeOperand = scope.find(cosineOp.getOperand());
       Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto divideOp = dyn_cast<DivOp>(op)) {
+      Tensor runtimeLhs = scope.find(divideOp.getLhs());
+      Tensor runtimeRhs = scope.find(divideOp.getRhs());
+      Tensor runtimeResult =
+          evalDivideOp(runtimeLhs, runtimeRhs, divideOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());
       SmallVector<Tensor> runtimeStartIndices =
