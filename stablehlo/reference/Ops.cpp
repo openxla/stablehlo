@@ -102,6 +102,34 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
+Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
+                     ComparisonDirection comparisonDirection,
+                     std::optional<ComparisonType> compareType,
+                     TensorType resultType) {
+  Tensor result(resultType);
+  auto elementTy = result.getType().dyn_cast<TensorType>().getElementType();
+  auto comparisonType = ComparisonType::NOTYPE;
+  if (compareType && *compareType != ComparisonType::NOTYPE) {
+    comparisonType = *compareType;
+  } else if (isSupportedUnsignedIntegerType(elementTy) ||
+             isSupportedBooleanType(elementTy)) {
+    comparisonType = ComparisonType::UNSIGNED;
+  } else if (isSupportedSignedIntegerType(elementTy)) {
+    comparisonType = ComparisonType::SIGNED;
+  } else if (isSupportedFloatType(elementTy) ||
+             isSupportedComplexType(elementTy)) {
+    comparisonType = ComparisonType::FLOAT;
+  } else {
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(elementTy).c_str()));
+  }
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(
+        *it, Element(elementTy, compare(lhs.get(*it), rhs.get(*it),
+                                        comparisonDirection, comparisonType)));
+  return result;
+}
+
 Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          TensorType resultType) {
   Tensor result(resultType);
@@ -486,6 +514,15 @@ SmallVector<Tensor> eval(
       Tensor runtimeMax = scope.find(clampOp.getMax());
       Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
                                          clampOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
+      Tensor runtimeLhs = scope.find(compareOp.getLhs());
+      Tensor runtimeRhs = scope.find(compareOp.getRhs());
+      auto comparisonDirection = compareOp.getComparisonDirection();
+      auto compareType = compareOp.getCompareType();
+      auto runtimeResult =
+          evalCompareOp(runtimeLhs, runtimeRhs, comparisonDirection,
+                        compareType, compareOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto runtimeOperands = scope.find(concatenateOp.getOperands());

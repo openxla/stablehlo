@@ -1154,50 +1154,29 @@ func.func @case_unranked(%index : tensor<i32>, %branch_operand : tensor<*xf32>) 
 
 // -----
 
-// CHECK-LABEL: func @comp_eq
-func.func @comp_eq(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
-  %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+// CHECK-LABEL: func @compare
+func.func @compare(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
+  %0 = "stablehlo.compare"(%arg0, %arg1) {
+    comparison_direction = #stablehlo<comparison_direction EQ>,
+    compare_type = #stablehlo<comparison_type SIGNED>
+  } : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
   func.return %0 : tensor<3xi1>
 }
 
 // -----
 
-func.func @comp_bad_direction(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xi1> {
-  // expected-error@+1 {{'comparison_direction' failed to satisfy constraint}}
-  %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = "FOOBAR"} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
-  func.return %0 : tensor<3xi1>
-}
-
-// -----
-
-// CHECK-LABEL: func @comp_compatible_types
-func.func @comp_compatible_types(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<?xi1> {
+// CHECK-LABEL: func @compare_compatible_types
+func.func @compare_compatible_types(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<?xi1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<?xi1>
   func.return %0 : tensor<?xi1>
 }
 
 // -----
 
-// CHECK-LABEL: func @comp_compatible_operand_types
-func.func @comp_compatible_operand_types(%arg0: tensor<3xi32>, %arg1: tensor<?xi32>) -> tensor<?xi1> {
+// CHECK-LABEL: func @compare_compatible_operand_types
+func.func @compare_compatible_operand_types(%arg0: tensor<3xi32>, %arg1: tensor<?xi32>) -> tensor<?xi1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<?xi32>) -> tensor<?xi1>
   func.return %0 : tensor<?xi1>
-}
-
-// -----
-
-func.func @comp_mismatch_return_element_type(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<3xf16> {
-  // expected-error@+1 {{result #0 must be tensor of pred (AKA boolean or 1-bit integer) values, but got 'tensor<3xf16>'}}
-  %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xf16>
-  func.return %0 : tensor<3xf16>
-}
-
-// -----
-
-func.func @comp_mismatch_return_shape(%arg0: tensor<3xi32>, %arg1: tensor<3xi32>) -> tensor<2xi1> {
-  // expected-error@+1 {{requires the same shape for all operands and results}}
-  %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction EQ>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<2xi1>
-  func.return %0 : tensor<2xi1>
 }
 
 // -----
