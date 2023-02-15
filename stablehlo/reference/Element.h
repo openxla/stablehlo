@@ -43,6 +43,7 @@ class Element {
   Element(const Element &other) = default;
   /// @}
 
+  /// Assignment operator.
   Element &operator=(const Element &other) = default;
 
   /// Returns type of the Element object.
@@ -64,20 +65,28 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
 
+  /// Overloaded add operator.
   Element operator+(const Element &other) const;
 
+  /// Overloaded multiply operator.
   Element operator*(const Element &other) const;
 
+  /// Overloaded negate operator.
   Element operator-() const;
 
+  /// Overloaded subtract operator.
   Element operator-(const Element &other) const;
 
+  /// Overloaded xor (bitwise) operator.
   Element operator^(const Element &other) const;
 
+  /// Overloaded or (bitwise) operator.
   Element operator|(const Element &other) const;
 
+  /// Overloaded not (bitwise) operator.
   Element operator~() const;
 
   /// Print utilities for Element objects.
@@ -91,20 +100,28 @@ class Element {
   std::variant<APInt, bool, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
+/// Returns abs of Element object.
 Element abs(const Element &e);
 
+/// Returns ceil of Element object.
 Element ceil(const Element &e);
 
+/// Returns cosine of Element object.
 Element cosine(const Element &e);
 
+/// Returns floor of Element object.
 Element floor(const Element &e);
 
+/// Returns the maximum between two Element objects.
 Element max(const Element &e1, const Element &e2);
 
+/// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
+/// Returns sine of Element object.
 Element sine(const Element &e);
 
+/// Returns tanh of Element object.
 Element tanh(const Element &e);
 
 /// Print utilities for Element objects.

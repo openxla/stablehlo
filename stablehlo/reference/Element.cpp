@@ -278,7 +278,7 @@ Element abs(const Element &el) {
 
   if (isSupportedFloatType(type)) {
     auto elVal = el.getFloatValue();
-    return Element(type, abs(elVal));
+    return Element(type, llvm::abs(elVal));
   }
 
   if (isSupportedComplexType(type)) {

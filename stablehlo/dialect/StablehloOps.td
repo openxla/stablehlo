@@ -202,7 +202,7 @@ class StableHLO_UnaryElementwiseOp<string mnemonic, list<Trait> traits,
 // Abs supports complex to real, so element type is not guaranteed to match.
 def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
     [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>],
-     TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]>,
+     TensorOf<[HLO_SInt, HLO_Float, HLO_Complex] /* abs_i1 */>,
      TensorOf<[HLO_SInt, HLO_Float]>> {
   let summary = "Abs operation";
   let description = [{

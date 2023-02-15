@@ -474,9 +474,9 @@ tensor. Depending on the element type, does the following:
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `result` | tensor of signed integer or floating-point | (C1), (C2)  |
+| Name     | Type                                            | Constraints |
+|----------|-------------------------------------------------|-------------|
+| `result` | tensor of signed integer or floating-point type | (C1), (C2)  |
 
 #### Constraints
 

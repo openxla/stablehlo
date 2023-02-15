@@ -1346,13 +1346,13 @@ LogicalResult inferConditionalOp(Optional<Location> location,
 LogicalResult inferAbsOp(std::optional<Location>, Value operand,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandTy = operand.getType().cast<ShapedType>();
-  // abs_C2
+  // abs_c2
   Type elementTy = operandTy.getElementType();
   if (auto complexTy = elementTy.dyn_cast<ComplexType>())
     elementTy = complexTy.getElementType();
 
   Type resultTy;
-  // abs_C1
+  // abs_c1
   if (auto rankedOperandTy = operandTy.dyn_cast<RankedTensorType>()) {
     resultTy = RankedTensorType::get(operandTy.getShape(), elementTy,
                                      rankedOperandTy.getEncoding());

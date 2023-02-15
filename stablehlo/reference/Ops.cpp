@@ -358,7 +358,11 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
   scope.add(block.getArguments(), args);
 
   for (Operation &op : block) {
-    if (auto addOp = dyn_cast<AddOp>(op)) {
+    if (auto absOp = dyn_cast<AbsOp>(op)) {
+      Tensor runtimeOperand = scope.find(absOp.getOperand());
+      Tensor runtimeResult = evalAbsOp(runtimeOperand, absOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto addOp = dyn_cast<AddOp>(op)) {
       Tensor runtimeLhs = scope.find(addOp.getLhs());
       Tensor runtimeRhs = scope.find(addOp.getRhs());
       Tensor runtimeResult = evalAddOp(runtimeLhs, runtimeRhs, addOp.getType());
