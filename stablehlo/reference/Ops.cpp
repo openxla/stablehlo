@@ -289,10 +289,11 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
   return result;
 }
 
-Tensor evalRsqrtOp(const Tensor &operand, Type resultType) {
+Tensor evalRsqrtOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, rsqrt(operand.get(*it)));
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, rsqrt(operand.get(*resultIt)));
   return result;
 }
 
@@ -307,7 +308,7 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
   return result;
 }
 
-Tensor evalSineOp(const Tensor &operand, Type resultType) {
+Tensor evalSineOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sine(operand.get(*it)));
@@ -538,6 +539,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult = evalSelectOp(
           scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
           scope.find(selectOp.getOnFalse()), selectOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
+      Tensor runtimeOperand = scope.find(rsqrtOp.getOperand());
+      Tensor runtimeResult = evalRsqrtOp(runtimeOperand, rsqrtOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
