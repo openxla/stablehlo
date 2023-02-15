@@ -264,7 +264,7 @@ def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
 def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.3.0", "current"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
-  let assemblyFormat = "`<` $value `>`";
+  let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
 }
 
 def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
