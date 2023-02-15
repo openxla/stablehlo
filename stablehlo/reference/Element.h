@@ -52,23 +52,23 @@ class Element {
   /// @{
 
   /// Get the specified value for the specified type.
-  template <typename V>
-  static Element getValue(Type type, V value) {
-    if (isSupportedSignedIntegerType(type)) {
+  static Element getValue(Type type, int64_t value) {
+    if (isSupportedSignedIntegerType(type))
       return Element(
           type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
-    } else if (isSupportedUnsignedIntegerType(type)) {
+    if (isSupportedUnsignedIntegerType(type))
       return Element(
           type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
-    } else if (isSupportedFloatType(type)) {
-      APFloat floatVal((double)value);
+    if (isSupportedFloatType(type)) {
+      APFloat floatVal(static_cast<double>(value));
       bool roundingErr;
       floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
                        APFloat::rmNearestTiesToEven, &roundingErr);
       return Element(type, floatVal);
-    } else if (isSupportedComplexType(type)) {
-      APFloat real((double)value);
-      APFloat imag((double)0.0);
+    }
+    if (isSupportedComplexType(type)) {
+      APFloat real(static_cast<double>(value));
+      APFloat imag(static_cast<double>(0.0));
       auto floatTy =
           type.cast<ComplexType>().getElementType().cast<FloatType>();
       bool roundingErr;
@@ -77,10 +77,9 @@ class Element {
       imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
                    &roundingErr);
       return Element(type, std::complex<APFloat>(real, imag));
-    } else {
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(type).c_str()));
     }
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
   }
 
   /// Assignment operator.
