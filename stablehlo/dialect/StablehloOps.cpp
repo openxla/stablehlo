@@ -100,16 +100,6 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
 // Utilities for the canonicalize patterns
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyDimInBounds(Location loc, ShapedType type, int64_t dim) {
-  if (dim < 0)
-    return emitOptionalError(
-        loc, "requires non-negative dimension attribute; found (", dim, ")");
-  if (type.hasRank() && dim >= type.getRank())
-    return emitOptionalError(loc, "requires dimension attribute in range [0, ",
-                             type.getRank(), "); found (", dim, ")");
-  return success();
-}
-
 // Returns a new scalar integer value having type `type`. Here `type` must be
 // an integer or index type.
 Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
@@ -738,16 +728,14 @@ LogicalResult DynamicGatherOp::inferReturnTypeComponents(
 // GetDimensionSizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult GetDimensionSizeOp::verify() {
-  auto operandTy = getOperand().getType().cast<ShapedType>();
-  int64_t dim = getDimension();
-  return verifyDimInBounds(getLoc(), operandTy, dim);
-}
-
-LogicalResult GetDimensionSizeOp::inferReturnTypes(
-    MLIRContext* context, std::optional<Location> location, ValueRange,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  return hlo::inferGetDimensionSizeOp(context, location, inferredReturnTypes);
+LogicalResult GetDimensionSizeOp::inferReturnTypeComponents(
+    MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
+    DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  GetDimensionSizeOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferGetDimensionSizeOp(location, adaptor.getOperand().getType(),
+                                      adaptor.getDimension(),
+                                      inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1868,67 +1856,15 @@ LogicalResult SelectOp::reifyReturnTypeShapes(
 // SetDimensionSizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult SetDimensionSizeOp::verify() {
-  if (auto size = this->getSize().getType().dyn_cast<RankedTensorType>()) {
-    if (size.getRank() != 0)
-      return emitOpError() << "size operand should be of rank-0";
-  }
-  auto operandTy = getOperand().getType().cast<ShapedType>();
-  int64_t dim = getDimension();
-  return verifyDimInBounds(getLoc(), operandTy, dim);
-}
-
-// TODO(b/238903565): Switch to inferReturnTypeComponents after adding support
-// for the encoding upstream.
-LogicalResult SetDimensionSizeOp::inferReturnTypes(
-    MLIRContext* context, std::optional<Location> location, ValueRange operands,
-    DictionaryAttr attributes, RegionRange regions,
-    SmallVectorImpl<Type>& inferredReturnTypes) {
-  Location loc = location.value_or(UnknownLoc::get(context));
-
+LogicalResult SetDimensionSizeOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SetDimensionSizeOp::Adaptor adaptor(operands, attributes, regions);
-  if (failed(adaptor.verify(loc))) return failure();
-
-  auto inputType = adaptor.getOperand().getType().dyn_cast<RankedTensorType>();
-  if (!inputType) {
-    inferredReturnTypes.push_back(adaptor.getOperand().getType());
-    return success();
-  }
-
-  int64_t dim = adaptor.getDimension();
-  int64_t rank = inputType.getRank();
-  if (dim < 0 || dim >= rank) {
-    return mlir::emitError(loc) << "expects dimension to be in range [0, "
-                                << rank << "); got: [" << dim << "].";
-  }
-
-  auto shape = llvm::to_vector<4>(inputType.getShape());
-  llvm::SmallVector<int64_t, 4> bounds(rank, ShapedType::kDynamic);
-  if (auto encoding =
-          inputType.getEncoding().dyn_cast_or_null<TypeExtensionsAttr>())
-    bounds = llvm::to_vector<4>(encoding.getBounds());
-
-  if (shape[dim] != ShapedType::kDynamic) bounds[dim] = shape[dim];
-  shape[dim] = ShapedType::kDynamic;
-
-  DenseIntElementsAttr sizeAttr;
-  if (matchPattern(adaptor.getSize(), m_Constant(&sizeAttr))) {
-    int64_t splat =
-        sizeAttr.getSplatValue<IntegerAttr>().getValue().getSExtValue();
-    if (splat == bounds[dim]) {
-      shape[dim] = splat;
-      bounds[dim] = ShapedType::kDynamic;
-    }
-  }
-
-  auto extensions = TypeExtensionsAttr::get(context, bounds);
-  auto resultType =
-      llvm::all_of(bounds, [](int64_t v) { return v == ShapedType::kDynamic; })
-          ? RankedTensorType::get(shape, inputType.getElementType())
-          : RankedTensorType::get(shape, inputType.getElementType(),
-                                  extensions);
-  inferredReturnTypes.push_back(resultType);
-  return success();
+  auto dialect = context->getLoadedDialect<StablehloDialect>();
+  return hlo::inferSetDimensionSizeOp(
+      dialect, location, adaptor.getOperand().getType(), adaptor.getSize(),
+      adaptor.getDimension(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

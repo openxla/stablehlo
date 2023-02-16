@@ -2354,8 +2354,8 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
   let results = (outs HLO_Tensor);
 }
 
-def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
+      [Pure, InferTensorType]> {
   let summary = "GetDimensionSize operator";
   let description = [{
     Produces the size of the given `dimension` of the `operand`.
@@ -2377,8 +2377,6 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size", [Pure,
   // XLA semantics is available. This limitation is because of the current XLA
   // implementation.
   let results = (outs I32Tensor);
-
-  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $operand `,` `dim` `=` $dimension attr-dict `:` functional-type(operands, results)
@@ -2586,7 +2584,7 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
 }
 
 def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+      InferTensorType]> {
   let summary = "SetDimensionSize operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in
@@ -2607,8 +2605,6 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
     I64Attr:$dimension
   );
   let results = (outs HLO_Tensor);
-
-  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $operand `,` $size  `,` `dim` `=` $dimension attr-dict

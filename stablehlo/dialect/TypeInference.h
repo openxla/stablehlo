@@ -228,8 +228,8 @@ LogicalResult inferGatherOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGetDimensionSizeOp(
-    MLIRContext* context, std::optional<Location> location,
-    SmallVectorImpl<Type>& inferredReturnTypes);
+    std::optional<Location> location, Type operandType, int64_t dimension,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferGetTupleElementOp(
     std::optional<Location> location, Value operand, int32_t index,
@@ -307,6 +307,11 @@ LogicalResult inferSelectAndScatterOp(
 
 LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
                           SmallVectorImpl<Type>& inferredReturnTypes);
+
+LogicalResult inferSetDimensionSizeOp(
+    Dialect* dialect, std::optional<Location> location, Type operandType,
+    Value size, int64_t dimension,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                            DenseIntElementsAttr startIndices,
