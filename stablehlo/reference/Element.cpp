@@ -268,6 +268,34 @@ Element Element::operator~() const {
       });
 }
 
+Element abs(const Element &el) {
+  Type type = el.getType();
+
+  if (isSupportedIntegerType(el.getType())) {
+    auto intEl = el.getIntegerValue();
+    return Element(type, intEl.abs());
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto elVal = el.getFloatValue();
+    return Element(type, llvm::abs(elVal));
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto elVal = el.getComplexValue();
+    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+    auto resultVal = std::abs(std::complex<double>(
+        elVal.real().convertToDouble(), elVal.imag().convertToDouble()));
+    bool roundingErr;
+    APFloat result(resultVal);
+    result.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type.cast<ComplexType>().getElementType(), result);
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);

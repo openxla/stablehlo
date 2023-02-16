@@ -25,6 +25,7 @@ namespace mlir {
 namespace stablehlo {
 
 // Evaluators for StableHLO ops.
+Tensor evalAbsOp(const Tensor &operand, Type resultType);
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
 Tensor evalBroadcastInDimOp(const Tensor &operand,

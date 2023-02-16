@@ -100,13 +100,16 @@ class Element {
   std::variant<APInt, bool, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
-/// Returns element-wise ceil of Element object.
+/// Returns abs of Element object.
+Element abs(const Element &e);
+
+/// Returns ceil of Element object.
 Element ceil(const Element &e);
 
-/// Returns element-wise cosine of Element object.
+/// Returns cosine of Element object.
 Element cosine(const Element &e);
 
-/// Returns element-wise floor of Element object.
+/// Returns floor of Element object.
 Element floor(const Element &e);
 
 /// Returns the maximum between two Element objects.
@@ -115,10 +118,10 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
-/// Returns element-wise sine of Element object.
+/// Returns sine of Element object.
 Element sine(const Element &e);
 
-/// Returns element-wise tanh of Element object.
+/// Returns tanh of Element object.
 Element tanh(const Element &e);
 
 /// Print utilities for Element objects.
