@@ -2584,7 +2584,7 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
 }
 
 def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
-    DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+      InferTensorType]> {
   let summary = "SetDimensionSize operation";
   let description = [{
     This operation is a work in progress, so it is not yet included in
