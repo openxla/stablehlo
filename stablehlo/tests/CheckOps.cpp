@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +16,10 @@ limitations under the License.
 #include "stablehlo/tests/CheckOps.h"
 
 #define GET_OP_CLASSES
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {
@@ -27,12 +30,42 @@ namespace check {
 // Check Dialect Constructor
 //===----------------------------------------------------------------------===//
 
-CheckDialect::CheckDialect(MLIRContext* context)
+CheckDialect::CheckDialect(MLIRContext *context)
     : Dialect(getDialectNamespace(), context, TypeID::get<CheckDialect>()) {
   addOperations<
 #define GET_OP_LIST
 #include "stablehlo/tests/CheckOps.cpp.inc"
       >();
+}
+
+llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
+  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
+       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
+    if (lhs.get(*lhsIt) != rhs.get(*rhsIt)) {
+      return invalidArgument(
+          "Element value don't match: %s (actual) vs %s (expected)\n",
+          debugString(lhs.get(*lhsIt)).c_str(),
+          debugString(rhs.get(*rhsIt)).c_str());
+    }
+  }
+
+  return llvm::Error::success();
+}
+
+llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
+  auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
+       lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
+    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt))) {
+      return invalidArgument(
+          "Element value don't match: %s (actual) vs %s (expected)\n",
+          debugString(lhs.get(*lhsIt)).c_str(),
+          debugString(rhs.get(*rhsIt)).c_str());
+    }
+  }
+
+  return llvm::Error::success();
 }
 
 }  // namespace check

@@ -18,13 +18,11 @@ limitations under the License.
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
-<<<<<<< HEAD
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"
+#include "stablehlo/reference/Scope.h"
+#include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.h"
-=======
-#include "stablehlo/tests/ReferenceCheckOps.h"
-#include "stablehlo/tools/Interpreter.h"
->>>>>>> f8f76db (Refactored the class hierarchy)
 
 namespace mlir {
 
@@ -32,8 +30,25 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
+        auto evalCheckOps = [](Operation &op, Scope &scope) -> llvm::Error {
+          if (auto almostEqOp = dyn_cast<check::AlmostEqOp>(op)) {
+            Tensor runtimeOperand = scope.find(almostEqOp.getLhs());
+            return check::evalAlmostEqOp(runtimeOperand, almostEqOp.getValue());
+          }
+          if (auto eqOp = dyn_cast<check::EqOp>(op)) {
+            Tensor runtimeOperand = scope.find(eqOp.getLhs());
+            return check::evalEqOp(runtimeOperand, eqOp.getValue());
+          }
+          return success();
+        };
+
         // Run the test model.
-        auto results = stablehlo::eval(funcOp.getBody(), {});
+        auto results = stablehlo::eval(funcOp.getBody(), {}, evalCheckOps);
+        if (!results) {
+          os << "\nError evaluating function: " << funcOp.getSymName() << "\n";
+          llvm::errs() << toString(results.takeError());
+          return WalkResult::interrupt();
+        }
 
         // Dump the results.
         for (auto &result : results) result.print(os);

@@ -1,5 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,11 +17,14 @@ limitations under the License.
 #define STABLEHLO_DIALECT_CHECKOPS_H_
 
 #include "mlir/Dialect/Quant/QuantTypes.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
+#include "stablehlo/reference/Tensor.h"
+#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -33,6 +35,10 @@ class CheckDialect : public Dialect {
   explicit CheckDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "check"; }
 };
+
+// The eval functions for the following ops are used only for test harness.
+llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value);
+llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value);
 
 }  // namespace check
 }  // namespace stablehlo

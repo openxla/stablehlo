@@ -47,21 +47,7 @@ target_link_libraries(stablehlo-interpreter PRIVATE
   CheckOps
   StablehloOps
   StablehloReferenceOps
-  StablehloReferenceTensor
-)
-
-add_mlir_library(StablehloReferenceInterpreter
-  PARTIAL_SOURCES_INTENDED
-  Interpreter.cpp
-
-  LINK_LIBS PUBLIC
-  MLIRFuncDialect
-  MLIRIR
-  MLIRSupport
-  CheckOps
-  CheckReferenceOps
-  StablehloOps
-  StablehloReferenceOps
+  StablehloReferenceScope
   StablehloReferenceTensor
 )
 

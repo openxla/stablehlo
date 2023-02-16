@@ -391,12 +391,12 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
   return result;
 }
 
-SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
+llvm::Expected<SmallVector<Tensor>> eval(Region &region, ArrayRef<Tensor> args, Scope *parent,  std::optional<llvm::function_ref<Operation &, Scope &>> evalOpCallback) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
-    report_fatal_error(invalidArgument(
-        "Expected same amount of block arguments and runtime arguments (%d)",
-        args.size()));
+    return invalidArgument(
+        "Expected same number of block arguments and runtime arguments (%d)",
+        args.size());
 
   Scope scope(parent);
   scope.add(block.getArguments(), args);
@@ -595,12 +595,14 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else {
-      report_fatal_error(
-          invalidArgument("Unsupported op: %s", debugString(op).c_str()));
+      if(!evalOpCallback)
+              return invalidArgument("Unsupported op: %s", debugString(op).c_str());
+      status = evalOpCallback(op, scope);
+      if(!status) return status;
     }
   }
 
-  llvm::report_fatal_error("Expected a terminator when evaluating a region");
+  return invalidArgument("Expected a terminator when evaluating a region");
 }
 
 }  // namespace stablehlo

@@ -65,21 +65,14 @@ add_dependencies(mlir-headers CheckOpsIncGen)
 add_mlir_dialect_library(CheckOps
   PARTIAL_SOURCES_INTENDED
   CheckOps.cpp
+  ReferenceCheckOps.cpp
 
   DEPENDS
   CheckOpsIncGen
 
   LINK_LIBS PUBLIC
   StablehloBase
+  StablehloReferenceTensor
   MLIRIR
   MLIRSupport
-)
-
-add_mlir_library(CheckReferenceOps
-  PARTIAL_SOURCES_INTENDED
-  ReferenceCheckOps.cpp
-
-  LINK_LIBS PUBLIC
-  CheckOps
-  StablehloReferenceTensor
 )

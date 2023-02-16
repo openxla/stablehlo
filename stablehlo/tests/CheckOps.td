@@ -1,5 +1,4 @@
-/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2023 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,8 +46,6 @@ def CHECK_EqOp :
     Verifies that the tensor operand is exactly equal to a constant attribute.
     For floating-point and complex types, uses bitwise comparison for equality.
 
-    Issues a non-fatal failure if the verification fails.
-
     ```mlir
     check.eq %arg0, dense<[1, 2]> : tensor<2xi32>
     ```
@@ -70,8 +67,6 @@ def CHECK_AlmostEqOp :
     Verifies that the tensor operand with floating-point or complex element
     type is almost equal to the constant attribute within an
     implementation-defined tolerance.
-
-    Issues a non-fatal failure if the verification fails.
 
     ```mlir
     check.almost_eq %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
