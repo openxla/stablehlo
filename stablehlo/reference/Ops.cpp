@@ -75,12 +75,12 @@ Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
   return result;
 }
 
-SmallVector<Tensor> evalCaseOp(const Tensor &index,
-                               MutableArrayRef<Region> branches, Scope &scope) {
+SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
+                               Scope &scope) {
   int64_t idx = index.get({}).getIntegerValue().getSExtValue();
   if (idx < 0 || idx >= static_cast<int64_t>(branches.size()))
-    return eval(branches[branches.size() - 1], {}, &scope);
-  return eval(branches[idx], {}, &scope);
+    return eval(*branches[branches.size() - 1], {}, &scope);
+  return eval(*branches[idx], {}, &scope);
 }
 
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType) {

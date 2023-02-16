@@ -1220,10 +1220,10 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
     Example:
     ```mlir
     %result = "stablehlo.case"(%index) ({
-      stablehlo.return %result_branch0 : tensor<i32>
+      stablehlo.return %result_branch0 : tensor<2xi64>
     }, {
-      stablehlo.return %result_branch1 : tensor<i32>
-    }) : (tensor<i32>) -> tensor<i32>
+      stablehlo.return %result_branch1 : tensor<2xi64>
+    }) : (tensor<i32>) -> tensor<2xi64>
     ```
   }];
 

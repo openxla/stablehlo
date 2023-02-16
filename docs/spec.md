@@ -1341,15 +1341,15 @@ returned.
 #### Examples
 
 ```mlir
-// %result_branch0: 10
-// %result_branch1: 11
-// %index: 1
+// %index: -1
+// %result_branch0: 0
+// %result_branch1: 1
 %result = "stablehlo.case"(%index) ({
-  "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+  "stablehlo.return"(%result_branch0) : (tensor<2xi64>) -> ()
 }, {
-  "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
-}) : (tensor<i32>) -> tensor<i32>
-// %result: 11
+  "stablehlo.return"(%result_branch1) : (tensor<2xi64>) -> ()
+}) : (tensor<i32>) -> tensor<2xi64>
+// %result: [1, 1]
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_case.mlir)
