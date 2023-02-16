@@ -106,7 +106,10 @@ be fed to the program, and generates output data values, which are matched
 against the user-provided expected data values. The data values (B) are
 hard-coded in the program itself using `stablehlo.constant` operations. The
 interpreter evaluates the input program. The output(s) of the op under test
-is checked via assertions (e.g. `check.eq`, check.almost_eq`), as shown below:
+is checked via assertions (e.g. `check.eq`, `check.almost_eq`), as shown below.
+`check.eq` checks for bitwise equality for any supported type and
+`check.almost_eq` checks for nearly equality within an implementation-defined
+tolerance for floating point and complex types.
 
 ```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
@@ -114,7 +117,7 @@ func.func @add_op_test_ui4() {
   %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>
   %1 = stablehlo.constant dense<[15, 3]> : tensor<2xui4>
   %2 = stablehlo.add %0, %1 : tensor<2xui4>
-  check.eq %2, [15, 5 : ] : tensor<2xui4>
+  check.eq %2, [15, 5] : tensor<2xui4>
   func.return
 }
 ```
@@ -125,7 +128,7 @@ is responsible for parsing the program, interpreting each function including the
 operations constituting the function. We have a dedicated test-suite, consisting
 of several tests exercising various runtime behaviors, for each StableHLO Op.
 The tests can be found [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/)
-(e.g.  interpret\_\*.mlir).
+(e.g. interpret\_\*.mlir).
 
 ### Testing guidelines
 
@@ -198,22 +201,36 @@ the understanding of the op's behavior.
 expected result need to be specified in assertion checks?**
 
 For elementary operations (addition, subtraction, multiplication, division, and
-square), an implementation following IEEE specification is expected to
-provide a rounded result within 0.5 ULP of the mathematically exact result. That
-said, we can imagine the expected result coming out of these operations to be
+square), an implementation following IEEE specification is expected to provide a
+rounded result within 0.5 ULP of the mathematically exact result. That said, we
+can safely imagine the expected result coming out of these operations to be
 atmost 1 ULP apart. However, this may not work for transcendental functions
-(sine, cosine) for which the precision guarantees are implementation-defined
+(`sine`, `cosine`) for which the precision guarantees are implementation-defined
 [rationale](https://github.com/openxla/stablehlo/issues/96).
 
-Given that there is no silver bullet to compare two float numbers for near
-equality, we used a solution based on relative epsilons and a special case to
-work with values close to zero, which expects the following relation, between
-the values of actual result `a` and expected result `r`, to hold true:
+The current implementation uses a solution based on relative epsilons and a
+special case to work with values close to zero, which expects the following
+relation, between the values of actual result `a` and expected result `r`, to
+hold true:
 
 ```c++
-  std::fabs(x - y) <= std::numeric_limits<T>::epsilon() * std::fmax(x, y) ||
-  std::fabs(x - y) < std::numeric_limits<T>::min();
+  std::fabs(a - r) <= std::numeric_limits<T>::epsilon() * std::fmax(a, r) ||
+  std::fabs(a - r) < std::numeric_limits<T>::min();
 ```
+
+The following example demonstrates the above tolerance in action.
+
+```mlir
+func.func @check_tolerance() {
+  %0 = stablehlo.constant dense<0.20000000000000001110> : tensor<f32>
+  check.almost_eq %0, dense<0.199999988> : tensor<f32> // assert true
+  check.eq %0, dense<0.199999988> : tensor<f32> // assert false
+  func.return
+}
+```
+
+In future, we are planning to improve the tolerance based on empirical evidences
+while running programs on actual platforms.
 
 **(G7) Anything about the coding-style of the tests?**
 

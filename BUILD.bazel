@@ -537,6 +537,43 @@ cc_library(
     alwayslink = True,
 )
 
+cc_library(
+    name = "check_ops",
+    srcs = [
+        "stablehlo/tests/CheckOps.cpp",
+    ],
+    hdrs = [
+        "stablehlo/tests/CheckOps.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":base",
+        ":check_ops_inc_gen",
+        ":reference_tensor",
+    ],
+)
+
+gentbl_cc_library(
+    name = "check_ops_inc_gen",
+    tbl_outs = [
+        (
+            ["-gen-op-decls"],
+            "stablehlo/tests/CheckOps.h.inc",
+        ),
+        (
+            ["-gen-op-defs"],
+            "stablehlo/tests/CheckOps.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/tests/CheckOps.td",
+    strip_include_prefix = ".",
+    deps = [
+        "base_td_files",
+    ],
+)
+
+
 gentbl_cc_library(
     name = "stablehlo_enums_inc_gen",
     tbl_outs = [

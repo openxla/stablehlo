@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -30,25 +31,37 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        auto evalCheckOps = [](Operation &op, Scope &scope) -> llvm::Error {
-          if (auto almostEqOp = dyn_cast<check::AlmostEqOp>(op)) {
-            Tensor runtimeOperand = scope.find(almostEqOp.getLhs());
-            return check::evalAlmostEqOp(runtimeOperand, almostEqOp.getValue());
+        auto evalCheckOps = [&](Operation &op,
+                                stablehlo::Scope &scope) -> llvm::Error {
+          if (auto almostEqOp = dyn_cast<stablehlo::check::AlmostEqOp>(op)) {
+            stablehlo::Tensor runtimeOperand = scope.find(almostEqOp.getLhs());
+            auto status = stablehlo::check::evalAlmostEqOp(
+                runtimeOperand, almostEqOp.getValue());
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tAssersion almost_eq "
+                  "failed: %s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else if (auto eqOp = dyn_cast<stablehlo::check::EqOp>(op)) {
+            stablehlo::Tensor runtimeOperand = scope.find(eqOp.getLhs());
+            auto status =
+                stablehlo::check::evalEqOp(runtimeOperand, eqOp.getValue());
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tAssersion eq failed: %s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else {
+            return stablehlo::invalidArgument("Unsupported op: %s",
+                                              debugString(op).c_str());
           }
-          if (auto eqOp = dyn_cast<check::EqOp>(op)) {
-            Tensor runtimeOperand = scope.find(eqOp.getLhs());
-            return check::evalEqOp(runtimeOperand, eqOp.getValue());
-          }
-          return success();
+          return llvm::Error::success();
         };
 
         // Run the test model.
-        auto results = stablehlo::eval(funcOp.getBody(), {}, evalCheckOps);
-        if (!results) {
-          os << "\nError evaluating function: " << funcOp.getSymName() << "\n";
-          llvm::errs() << toString(results.takeError());
-          return WalkResult::interrupt();
-        }
+        auto results = stablehlo::eval(funcOp.getBody(), {}, /*parent=*/nullptr,
+                                       evalCheckOps);
 
         // Dump the results.
         for (auto &result : results) result.print(os);

@@ -85,8 +85,10 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 /// Interprets the operations within the entry block and returns the runtime
 /// values for the terminator's arguments.
 /// Assumes that the region has only one block.
-llvm::SmallVector<Tensor> eval(Region &region, llvm::ArrayRef<Tensor> args,
-                               Scope *parentScope = nullptr);
+llvm::SmallVector<Tensor> eval(
+    Region &region, llvm::ArrayRef<Tensor> args, Scope *parent = nullptr,
+    std::optional<llvm::function_ref<llvm::Error(Operation &, Scope &)>>
+        evalOpCallback = std::nullopt);
 
 }  // namespace stablehlo
 }  // namespace mlir
