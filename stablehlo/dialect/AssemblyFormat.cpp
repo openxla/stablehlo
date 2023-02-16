@@ -40,21 +40,18 @@ ParseResult assignFromFunctionType(OpAsmParser& parser, llvm::SMLoc loc,
                                    ArrayRef<Type*> operands, Type& result,
                                    FunctionType& fnType) {
   assert(fnType);
-  if (fnType.getInputs().size() != operands.size()) {
+  if (fnType.getInputs().size() != operands.size())
     return parser.emitError(loc)
            << operands.size() << " operands present, but expected "
            << fnType.getInputs().size();
-  }
 
   // Set operand types to function input types
-  for (auto [operand, input] : llvm::zip(operands, fnType.getInputs())) {
+  for (auto [operand, input] : llvm::zip(operands, fnType.getInputs()))
     *operand = input;
-  }
 
   // Set result type
-  if (fnType.getResults().size() != 1) {
+  if (fnType.getResults().size() != 1)
     return parser.emitError(loc, "expected single output");
-  }
   result = fnType.getResults()[0];
 
   return success();
@@ -86,21 +83,15 @@ ParseResult parseSameOperandsAndResultTypeImpl(OpAsmParser& parser,
                                                ArrayRef<Type*> operands,
                                                Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
-
   Type type;
-  if (parser.parseType(type)) {
-    return failure();
-  }
+  if (parser.parseType(type)) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>()) {
+  if (auto fnType = type.dyn_cast<FunctionType>())
     return assignFromFunctionType(parser, loc, operands, result, fnType);
-  }
 
   // Handle bare types. ` : type` indicating all input/output types match.
-  for (Type* t : operands) {
-    *t = type;
-  }
+  for (Type* t : operands) *t = type;
   result = type;
   return success();
 }
@@ -123,9 +114,7 @@ ParseResult parseVariadicSameOperandsAndResultType(
   // Make a pointer list to the operands
   SmallVector<Type*> typePtrs;
   typePtrs.reserve(opTypes.size());
-  for (Type& t : opTypes) {
-    typePtrs.push_back(&t);
-  }
+  for (Type& t : opTypes) typePtrs.push_back(&t);
 
   return detail::parseSameOperandsAndResultTypeImpl(parser, typePtrs, result);
 }
@@ -139,14 +128,10 @@ ParseResult parseTupleOpType(OpAsmParser& parser,
                              SmallVectorImpl<Type>& operands, Type& result) {
   // Result type must be tuple type.
   llvm::SMLoc loc = parser.getCurrentLocation();
-  if (parser.parseType(result)) {
-    return failure();
-  }
+  if (parser.parseType(result)) return failure();
 
   auto tupType = result.dyn_cast<TupleType>();
-  if (!tupType) {
-    return parser.emitError(loc, "expected tuple type");
-  }
+  if (!tupType) return parser.emitError(loc, "expected tuple type");
 
   // Assign operand types to tuple types
   llvm::append_range(operands, tupType.getTypes());
@@ -162,9 +147,8 @@ ParseResult parsePairwiseOpType(OpAsmParser& parser,
                                 SmallVectorImpl<Type>& operands,
                                 SmallVectorImpl<Type>& results) {
   llvm::SMLoc loc = parser.getCurrentLocation();
-  if (parser.parseTypeList(operands)) {
+  if (parser.parseTypeList(operands))
     return parser.emitError(loc, "expected type list");
-  }
   results = operands;
   return success();
 }
@@ -184,9 +168,7 @@ ParseResult parseVariadicOperandWithAttribute(
   auto resultOpt = parser.parseOptionalOperand(operand);
   while (resultOpt.has_value() && succeeded(resultOpt.value())) {
     operands.push_back(operand);
-    if (failed(parser.parseComma())) {
-      return failure();
-    }
+    if (failed(parser.parseComma())) return failure();
     resultOpt = parser.parseOptionalOperand(operand);
   }
   return success();
@@ -212,20 +194,16 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
                                Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   Type type;
-  if (failed(parser.parseType(type))) {
-    return failure();
-  }
+  if (failed(parser.parseType(type))) return failure();
 
   // Handle if function type, all operand types did not match result type.
-  if (auto fnType = type.dyn_cast<FunctionType>()) {
+  if (auto fnType = type.dyn_cast<FunctionType>())
     return assignFromFunctionType(parser, loc, {&lhs, &rhs}, result, fnType);
-  }
 
   // Otherwise, operand type is inferred from complex type
   auto tensorType = type.dyn_cast<TensorType>();
-  if (!tensorType || !tensorType.getElementType().isa<ComplexType>()) {
+  if (!tensorType || !tensorType.getElementType().isa<ComplexType>())
     return parser.emitError(loc, "expected tensor with complex element type");
-  }
 
   // Assign LHS and RHS to inferred type
   Type realType = createRealType(type.cast<TensorType>());
@@ -250,18 +228,15 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
                               Type& onFalse, Type& result) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   SmallVector<Type> types;
-  if (parser.parseTypeList(types)) {
-    return failure();
-  }
+  if (parser.parseTypeList(types)) return failure();
 
   // Error handling for invalid types
   // Fail if not two types, or single functional type
   bool isValidType = (types.size() == 2 ||
                       (types.size() == 1 && types[0].isa<FunctionType>()));
-  if (!isValidType) {
+  if (!isValidType)
     return parser.emitError(loc,
                             "expected functional type or list of two types");
-  }
 
   // stablehlo.select %0, %1 : <pred_type>, <op_and_result_type>
   if (types.size() == 2) {
@@ -282,9 +257,8 @@ ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
 
 void printDenseI64Array(OpAsmPrinter& p, Operation* op,
                         DenseIntElementsAttr attr) {
-  if (attr.getType().getRank() != 1) {
+  if (attr.getType().getRank() != 1)
     llvm::report_fatal_error("printDenseI64Array only supports rank-1 arrays");
-  }
   auto values = llvm::to_vector(attr.getValues<int64_t>());
   DenseI64ArrayAttr arrayAttr =
       DenseI64ArrayAttr::get(op->getContext(), values);
@@ -295,9 +269,7 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
                                DenseIntElementsAttr& attr) {
   DenseI64ArrayAttr arrayAttr = DenseI64ArrayAttr::parse(parser, Type{})
                                     .dyn_cast_or_null<DenseI64ArrayAttr>();
-  if (!arrayAttr) {
-    return failure();
-  }
+  if (!arrayAttr) return failure();
 
   ArrayRef<int64_t> data = arrayAttr.asArrayRef();
   RankedTensorType type =
@@ -307,9 +279,7 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
 }
 
 std::string dimSizeToString(int64_t dimSize) {
-  if (hlo::isDynamicDimSize(dimSize)) {
-    return "?";
-  }
+  if (hlo::isDynamicDimSize(dimSize)) return "?";
   return std::to_string(dimSize);
 }
 
@@ -335,9 +305,7 @@ void printDimSizes(AsmPrinter& p, ArrayRef<int64_t> dimSizes) {
 
 FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {
   SmallVector<int64_t> dimSizes;
-  if (failed(parseDimSizes(parser, dimSizes))) {
-    return failure();
-  }
+  if (failed(parseDimSizes(parser, dimSizes))) return failure();
   return dimSizes;
 }
 
@@ -366,18 +334,15 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
                                   IntegerAttr& mantissa) {
   llvm::SMLoc loc = parser.getCurrentLocation();
   llvm::StringRef expMan;
-  if (parser.parseKeyword(&expMan)) {
-    return failure();
-  }
+  if (parser.parseKeyword(&expMan)) return failure();
 
   // Validate format e#m#
   llvm::Regex expManRegex("^e([0-9]+)m([0-9]+)$");
   llvm::SmallVector<llvm::StringRef> matches;
-  if (!expManRegex.match(expMan, &matches)) {
+  if (!expManRegex.match(expMan, &matches))
     return parser.emitError(loc,
                             "expected exponent mantissa in format e#m#, saw ")
            << expMan;
-  }
 
   // Parse off digits of exp/man
   assert(matches.size() == 3);  // matches[0] is entire regex match.
@@ -386,14 +351,12 @@ ParseResult parseExponentMantissa(AsmParser& parser, IntegerAttr& exponent,
 
   // Parse as base 10 integer strings
   int exp, mant;
-  if (expS.getAsInteger(/*radix=*/10, exp)) {
+  if (expS.getAsInteger(/*radix=*/10, exp))
     return parser.emitError(loc, "unable to parse exponent '")
            << expS.str() << "'";
-  }
-  if (manS.getAsInteger(/*radix=*/10, mant)) {
+  if (manS.getAsInteger(/*radix=*/10, mant))
     return parser.emitError(loc, "unable to parse mantissa '")
            << manS.str() << "'";
-  }
 
   exponent = parser.getBuilder().getI32IntegerAttr(exp);
   mantissa = parser.getBuilder().getI32IntegerAttr(mant);

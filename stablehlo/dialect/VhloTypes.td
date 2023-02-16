@@ -38,10 +38,9 @@ def VHLO_VersionedTypeInterface : TypeInterface<"VersionedTypeInterface"> {
   ];
 }
 
-class VHLO_TypeDef<string name,
-                   string minVersion = "0.3.0",
-                   string maxVersion = "current">
-  : TypeDef<VHLO_Dialect, name, [VHLO_VersionedTypeInterface]> {
+class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVersion>
+  : TypeDef<VHLO_Dialect, cppName, [VHLO_VersionedTypeInterface]> {
+  let mnemonic = name;
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
@@ -49,7 +48,7 @@ class VHLO_TypeDef<string name,
       return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return VhloDialect::getCurrentVersion();
+      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
       if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
       return *version;
@@ -61,9 +60,149 @@ class VHLO_TypeDef<string name,
 // VHLO Type Definitions.
 //===----------------------------------------------------------------------===//
 
-// Token type.
-def VHLO_Token : VHLO_TypeDef<"Token"> {
-  let mnemonic = "token";
+def VHLO_TokenV1 : VHLO_TypeDef<"TokenV1", "token", "0.3.0", "current">;
+
+//===----------------------------------------------------------------------===//
+// Forked Types
+//===----------------------------------------------------------------------===//
+
+def VHLO_BFloat16V1 : VHLO_TypeDef<"BFloat16V1", "bf16", "0.3.0", "current">;
+
+def VHLO_ComplexV1 : VHLO_TypeDef<"ComplexV1", "complex", "0.3.0", "current"> {
+  let parameters = (ins "Type":$elementType);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult ComplexV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $elementType `>`";
 }
+
+def VHLO_Float16V1 : VHLO_TypeDef<"Float16V1", "f16", "0.3.0", "current">;
+def VHLO_Float32V1 : VHLO_TypeDef<"Float32V1", "f32", "0.3.0", "current">;
+def VHLO_Float64V1 : VHLO_TypeDef<"Float64V1","f64", "0.3.0", "current">;
+
+def VHLO_Float8E4M3FNV1 : VHLO_TypeDef<"Float8E4M3FNV1", "f8E4M3FN", "0.4.0", "current">;
+
+def VHLO_Float8E5M2V1 : VHLO_TypeDef<"Float8E5M2V1", "f8E5M2", "0.4.0", "current">;
+
+def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func", "0.3.0", "current"> {
+  let parameters = (ins
+    ArrayRefParameter<"::mlir::Type">:$inputs,
+    ArrayRefParameter<"mlir::Type">:$results
+  );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult FunctionV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<mlir::Type> inputs, ArrayRef<mlir::Type> results) {
+      if (!allFromVhlo(inputs) || !allFromVhlo(results))
+        return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` `(` custom<TypeArray>($inputs) `)` `->` custom<TypeArray>($results) `>`";
+}
+
+def VHLO_IndexV1 : VHLO_TypeDef<"IndexV1", "index", "0.3.0", "current">;
+
+def VHLO_IntegerI1V1 : VHLO_TypeDef<"IntegerI1V1", "i1", "0.3.0", "current">;
+def VHLO_IntegerI4V1 : VHLO_TypeDef<"IntegerI4V1", "i4", "0.3.0", "current">;
+def VHLO_IntegerI8V1 : VHLO_TypeDef<"IntegerI8V1", "i8", "0.3.0", "current">;
+def VHLO_IntegerI16V1 : VHLO_TypeDef<"IntegerI16V1", "i16", "0.3.0", "current">;
+def VHLO_IntegerI32V1 : VHLO_TypeDef<"IntegerI32V1", "i32", "0.3.0", "current">;
+def VHLO_IntegerI64V1 : VHLO_TypeDef<"IntegerI64V1", "i64", "0.3.0", "current">;
+def VHLO_IntegerUI4V1 : VHLO_TypeDef<"IntegerUI4V1", "ui4", "0.3.0", "current">;
+def VHLO_IntegerUI8V1 : VHLO_TypeDef<"IntegerUI8V1", "ui8", "0.3.0", "current">;
+def VHLO_IntegerUI16V1 : VHLO_TypeDef<"IntegerUI16V1", "ui16", "0.3.0", "current">;
+def VHLO_IntegerUI32V1 : VHLO_TypeDef<"IntegerUI32V1", "ui32", "0.3.0", "current">;
+def VHLO_IntegerUI64V1 : VHLO_TypeDef<"IntegerUI64V1", "ui64", "0.3.0", "current">;
+
+def VHLO_RankedTensorV1 : VHLO_TypeDef<"RankedTensorV1", "tensor", "0.3.0", "current"> {
+  let parameters = (ins
+    VHLO_Dims:$shape,
+    "::mlir::Type":$elementType,
+    "::mlir::Attribute":$encoding
+  );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult RankedTensorV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        ArrayRef<int64_t> shape, ::mlir::Type elementType, ::mlir::Attribute encoding) {
+      if (!isFromVhlo(elementType) || (encoding && !isFromVhlo(encoding)))
+        return errFn() << "expected VHLO type or attribute";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` custom<Shape>($shape) `` $elementType `` custom<Encoding>($encoding) `>`";
+}
+
+def VHLO_TupleV1 : VHLO_TypeDef<"TupleV1", "tuple", "0.3.0", "current"> {
+  let parameters = (ins ArrayRefParameter<"::mlir::Type">:$types);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TupleV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, ArrayRef<mlir::Type> types) {
+      if (!allFromVhlo(types)) return errFn() << "expected VHLO types";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $types `>`";
+}
+
+def VHLO_APFloatV1 : APFloatParameter<""> {
+  // Used by UniformQuantizedV1 to have APFloat with custom parser
+  let parser = [{
+    [&]() -> FailureOr<llvm::APFloat> {
+      double value;
+      if (failed($_parser.parseFloat(value))) {
+        return failure();
+      }
+      return APFloat(value);
+    }()
+  }];
+  let printer = "$_printer.printFloat($_self);";
+}
+def VHLO_UniformQuantizedV1 : VHLO_TypeDef<"UniformQuantizedV1", "quant", "0.3.0", "current"> {
+  let parameters = (ins
+    "unsigned":$flags,
+    "::mlir::Type":$storageType,
+    "::mlir::Type":$expressedType,
+    VHLO_APFloatV1:$scale,
+    "int64_t":$zeroPoint,
+    "int64_t":$storageTypeMin,
+    "int64_t":$storageTypeMax
+  );
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult UniformQuantizedV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn,
+        unsigned int, mlir::Type storageType, mlir::Type expressedType,
+        llvm::APFloat, int64_t, int64_t, int64_t) {
+      if (!isFromVhlo(storageType) || !isFromVhlo(expressedType))
+        return errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $storageType `` `:` `` $expressedType `,` $scale `` `:` `` $zeroPoint `,` $storageTypeMin `` `:` `` $storageTypeMax `,` $flags `>`";
+}
+
+def VHLO_UnrankedTensorV1 : VHLO_TypeDef<"UnrankedTensorV1", "unranked_tensor", "0.3.0", "current"> {
+  let parameters = (ins "::mlir::Type":$elementType);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult UnrankedTensorV1Type::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type elementType) {
+      if (!isFromVhlo(elementType)) return errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let assemblyFormat = "`<` $elementType `>`";
+}
+
+def VHLO_WitnessV1 : VHLO_TypeDef<"WitnessV1", "witness", "0.3.0", "current">;
 
 #endif // STABLEHLO_DIALECT_VHLO_TYPES

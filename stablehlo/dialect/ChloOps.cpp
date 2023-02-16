@@ -84,9 +84,7 @@ ShapedTypeComponents getBroadcastType(
     DenseIntElementsAttr broadcastDimensionsAttr) {
   auto xRanked = x.dyn_cast<RankedTensorType>();
   auto yRanked = y.dyn_cast<RankedTensorType>();
-  if (!xRanked || !yRanked) {
-    return {elementType};
-  }
+  if (!xRanked || !yRanked) return {elementType};
 
   auto shapeX = xRanked.getShape();
   auto shapeY = yRanked.getShape();
@@ -109,7 +107,6 @@ ShapedTypeComponents getBroadcastType(
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
   }
-
   llvm::SmallVector<int64_t, 4> shapeLargeFiltered;
   shapeLargeFiltered.reserve(shapeSmall.size());
   for (const auto& dim : broadcastDimensions) {
@@ -118,10 +115,9 @@ ShapedTypeComponents getBroadcastType(
   }
   llvm::SmallVector<int64_t, 4> outShapeFiltered;
   if (!mlir::OpTrait::util::getBroadcastedShape(shapeSmall, shapeLargeFiltered,
-                                                outShapeFiltered)) {
+                                                outShapeFiltered))
     // Signal illegal broadcast_dimensions as unranked.
     return {elementType};
-  }
 
   // Update according to the broadcast dimensions.
   llvm::SmallVector<int64_t, 4> outShape(shapeLarge.begin(), shapeLarge.end());
@@ -145,9 +141,8 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
   ShapedType lhsType = operands[0].getType().dyn_cast<ShapedType>();
   ShapedType rhsType = operands[1].getType().dyn_cast<ShapedType>();
   if (!lhsType || !rhsType ||
-      lhsType.getElementType() != rhsType.getElementType()) {
+      lhsType.getElementType() != rhsType.getElementType())
     return emitOptionalError(location, "mismatched operand types");
-  }
   if (!elementType) elementType = lhsType.getElementType();
   inferredReturnShapes.push_back(
       getBroadcastType(lhsType, rhsType, elementType, broadcastDimensions));
@@ -195,9 +190,7 @@ LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   ShapedType lhsType = operands[0].getType().dyn_cast<ShapedType>();
-  if (!lhsType) {
-    return emitOptionalError(location, "expected ShapedType");
-  }
+  if (!lhsType) return emitOptionalError(location, "expected ShapedType");
   Type elementType = ComplexType::get(lhsType.getElementType());
   return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
                                                     attributes, elementType,
@@ -337,15 +330,13 @@ LogicalResult MinimumBroadcastShapesOp::verify() {
   // Check that the number of operands matches the number of outputs.
   unsigned resultShapesCount = getResults().size();
   unsigned operandShapesCount = getShapes().size();
-  if (operandShapesCount != resultShapesCount) {
+  if (operandShapesCount != resultShapesCount)
     return emitOpError() << "number of operand shapes (" << operandShapesCount
                          << ") does not match number of result shapes ("
                          << resultShapesCount << ")";
-  }
-  if (operandShapesCount < 2) {
+  if (operandShapesCount < 2)
     return emitOpError() << "number of operand shapes (" << operandShapesCount
                          << ") should be >= 2";
-  }
   return success();
 }
 
@@ -393,20 +384,18 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
   auto onFalseType = op.getOnFalse().getType().dyn_cast<ShapedType>();
 
   if (!predType || !onTrueType || !onFalseType ||
-      onTrueType.getElementType() != onFalseType.getElementType()) {
+      onTrueType.getElementType() != onFalseType.getElementType())
     return emitOptionalError(location, "mismatched operand types");
-  }
 
   Type elementType = onTrueType.getElementType();
 
   // Compute the result shape as two binary broadcasts.
   ShapedTypeComponents& components = inferredReturnShapes.emplace_back(
       getBroadcastType(onTrueType, onFalseType, elementType, nullptr));
-  if (components.hasRank()) {
+  if (components.hasRank())
     components = getBroadcastType(
         RankedTensorType::get(components.getDims(), elementType), predType,
         elementType, nullptr);
-  }
   return success();
 }
 
@@ -446,9 +435,8 @@ LogicalResult RankSpecializationClusterOp::verify() {
           Operation* def = operand.get().getDefiningOp();
           if (def != nullptr && def->getBlock() == body) return true;
           return llvm::is_contained(body->getArguments(), operand.get());
-        })) {
+        }))
       return emitOpError() << "nested ops must not depend on implicit operands";
-    }
   }
 
   return success();
@@ -468,21 +456,16 @@ LogicalResult TopKOp::inferReturnTypeComponents(
   uint64_t k = adaptor.getK();
 
   auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandTy) {
-    return emitOptionalError(location, "operand must be ranked");
-  }
-  if (operandTy.getRank() < 1) {
+  if (!operandTy) return emitOptionalError(location, "operand must be ranked");
+  if (operandTy.getRank() < 1)
     return emitOptionalError(location, "operand's rank must be at least 1");
-  }
   auto operandLastDim = operandTy.getShape()[operandTy.getRank() - 1];
-  if (operandLastDim == ShapedType::kDynamic) {
+  if (operandLastDim == ShapedType::kDynamic)
     return emitOptionalError(location,
                              "operand's last dimension must be static");
-  }
-  if (operandLastDim < static_cast<int64_t>(k)) {
+  if (operandLastDim < static_cast<int64_t>(k))
     return emitOptionalError(location,
                              "operand's last dimension must be at least ", k);
-  }
 
   SmallVector<int64_t> resultShape;
   append_range(resultShape, operandTy.getShape());

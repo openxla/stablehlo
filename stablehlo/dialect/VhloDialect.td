@@ -31,6 +31,7 @@ def VHLO_Dialect : Dialect {
              Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
              Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
              Add AllToAllOp::channel_handle: https://github.com/openxla/stablehlo/pull/794.
+             Add f8E4M3FN, f8E5M2 data types: https://github.com/openxla/stablehlo/pull/774.
   }];
 
   let useDefaultAttributePrinterParser = 0;

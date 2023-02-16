@@ -37,9 +37,7 @@ bool isLegalNumpyRankedBroadcast(Value lhs, Value rhs,
   auto smallerRank = std::min(lhsType.getRank(), rhsType.getRank());
   auto largerRank = std::max(lhsType.getRank(), rhsType.getRank());
 
-  if (smallerRank != broadcastDims.getNumElements()) {
-    return false;
-  }
+  if (smallerRank != broadcastDims.getNumElements()) return false;
   auto expectedExtents =
       llvm::seq<int64_t>(largerRank - smallerRank, largerRank);
   return std::equal(expectedExtents.begin(), expectedExtents.end(),

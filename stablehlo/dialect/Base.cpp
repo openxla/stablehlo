@@ -75,11 +75,10 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   // ops with partially inferred types to pass verification.
   auto stp1 = tp1.dyn_cast<ShapedType>();
   auto stp2 = tp2.dyn_cast<ShapedType>();
-  if (stp1 && stp2) {
+  if (stp1 && stp2)
     return succeeded(verifyCompatibleShapeWithBounds(stp1, stp2)) &&
            isCompatibleForHloTypeInference(stp1.getElementType(),
                                            stp2.getElementType());
-  }
 
   // Quantization: In the most general case, we allow any combination of
   // quantized/non-quantized across any combination of operands/results,
@@ -129,13 +128,11 @@ LogicalResult deriveShapeFromOperand(
 }
 
 TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
-  if (auto rankedTensorTy = tensorType.dyn_cast<RankedTensorType>()) {
+  if (auto rankedTensorTy = tensorType.dyn_cast<RankedTensorType>())
     return RankedTensorType::get(rankedTensorTy.getShape(), elementType,
                                  rankedTensorTy.getEncoding());
-  }
-  if (auto unrankedTensorTy = tensorType.dyn_cast<UnrankedTensorType>()) {
+  if (auto unrankedTensorTy = tensorType.dyn_cast<UnrankedTensorType>())
     return UnrankedTensorType::get(elementType);
-  }
   llvm_unreachable("unhandled type");
 }
 
@@ -144,9 +141,8 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
 Type createRealType(TensorType type) {
   auto elementTy = type.getElementType();
-  if (auto complexTy = elementTy.dyn_cast<ComplexType>()) {
+  if (auto complexTy = elementTy.dyn_cast<ComplexType>())
     elementTy = complexTy.getElementType();
-  }
   return hlo::getSameShapeTensorType(type, elementTy);
 }
 
@@ -158,20 +154,18 @@ LogicalResult verifyBounds(ArrayRef<int64_t> bounds, RankedTensorType type,
                            function_ref<InFlightDiagnostic()> emitError) {
   int64_t boundsLen = bounds.size();
   int64_t rank = type.getRank();
-  if (boundsLen != rank) {
+  if (boundsLen != rank)
     return emitError() << "Bounds length is " << boundsLen
                        << ", expected to be equal to rank(" << rank
                        << ") of the tensor";
-  }
 
   for (int64_t dim = 0; dim < rank; ++dim) {
     int64_t bound = bounds[dim];
     int64_t dimSize = type.getDimSize(dim);
-    if (bound != ShapedType::kDynamic && dimSize != ShapedType::kDynamic) {
+    if (bound != ShapedType::kDynamic && dimSize != ShapedType::kDynamic)
       return emitError() << "Static dimension " << dim
                          << " cannot have a bound, use ShapedType::kDynamic to "
                             "indicate a missing bound";
-    }
   }
 
   return success();
@@ -337,25 +331,25 @@ FailureOr<TensorType> inferTypeWithCustomFn(
           anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
 }
 
-FailureOr<ShapedType> inferLeastSpecificType(Optional<Location> location,
-                                             TypeRange inputTypes) {
+FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
+                                       TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
     else
-      return inputType.cast<ShapedType>();
+      return inputType;
   return inferTypeWithCustomFn(location, rankedTypes,
                                inferLeastSpecificDimAndBound);
 }
 
-FailureOr<ShapedType> inferMostSpecificType(Optional<Location> location,
-                                            TypeRange inputTypes) {
+FailureOr<Type> inferMostSpecificType(Optional<Location> location,
+                                      TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
       rankedTypes.push_back(rankedType);
-  if (rankedTypes.empty()) return inputTypes[0].cast<ShapedType>();
+  if (rankedTypes.empty()) return inputTypes[0];
   return inferTypeWithCustomFn(location, rankedTypes,
                                inferMostSpecificDimAndBound);
 }
@@ -365,7 +359,18 @@ LogicalResult inferMostSpecificTypeComponents(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto inferredTypeOrErr = inferMostSpecificType(location, inputTypes);
   if (failed(inferredTypeOrErr)) return failure();
-  inferredReturnShapes.emplace_back(*inferredTypeOrErr);
+
+  auto rankedResultType = (*inferredTypeOrErr).dyn_cast<RankedTensorType>();
+  if (!rankedResultType) {
+    auto inferredShapeType = (*inferredTypeOrErr).dyn_cast<ShapedType>();
+    if (!inferredShapeType) return failure();
+    inferredReturnShapes.emplace_back(inferredShapeType);
+  } else {
+    inferredReturnShapes.emplace_back(rankedResultType.getShape(),
+                                      rankedResultType.getElementType(),
+                                      rankedResultType.getEncoding());
+  }
+
   return success();
 }
 

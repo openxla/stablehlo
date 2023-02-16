@@ -40,9 +40,7 @@ static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(
     llvm::StringRef versionRef) {
   llvm::Regex versionRegex("^([0-9]+)\\.([0-9]+)\\.([0-9]+)$");
   llvm::SmallVector<llvm::StringRef> matches;
-  if (!versionRegex.match(versionRef, &matches)) {
-    return failure();
-  }
+  if (!versionRegex.match(versionRef, &matches)) return failure();
   return std::array<int64_t, 3>{parseNumber(matches[1]),
                                 parseNumber(matches[2]),
                                 parseNumber(matches[3])};
@@ -57,10 +55,7 @@ OutputT& dump(OutputT& out, const Version& version) {
 
 FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
   auto failOrVersionArray = extractVersionNumbers(versionRef);
-  if (failed(failOrVersionArray)) {
-    return failure();
-  }
-
+  if (failed(failOrVersionArray)) return failure();
   auto versionArr = *failOrVersionArray;
   return Version(versionArr[0], versionArr[1], versionArr[2]);
 }

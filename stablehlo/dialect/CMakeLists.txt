@@ -178,15 +178,42 @@ add_mlir_dialect_library(VhloOps
   PARTIAL_SOURCES_INTENDED
   VhloBytecode.cpp
   VhloOps.cpp
-  Version.cpp
 
   DEPENDS
   VhloOpsIncGen
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
-  StablehloBase
+  VhloTypes
+  VhloVersion
+  MLIRIR
+  MLIRQuantDialect
+  MLIRShapeDialect
+  MLIRSupport
+)
+
+add_mlir_dialect_library(VhloTypes
+  PARTIAL_SOURCES_INTENDED
+  VhloTypes.cpp
+
+  DEPENDS
+  VhloOpsIncGen
+
+  LINK_LIBS PUBLIC
+  StablehloAssemblyFormat
+  VhloVersion
+  MLIRIR
+  MLIRQuantDialect
+  MLIRShapeDialect
+  MLIRSupport
+  MLIRTransformUtils
+)
+
+add_mlir_dialect_library(VhloVersion
+  PARTIAL_SOURCES_INTENDED
+  Version.cpp
+
+  LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
-  MLIRQuantDialect
 )

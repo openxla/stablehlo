@@ -55,7 +55,7 @@ one of the following tracking labels.
 | batch_norm_training      | yes           | revisit      | yes            | no              | no          |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
-| broadcast_in_dim         | yes           | yes          | infeasible     | yes             | no          |
+| broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
 | case                     | yes           | revisit      | yes            | no              | no          |
 | cbrt                     | yes           | yes          | yes            | yes             | no          |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
@@ -84,8 +84,8 @@ one of the following tracking labels.
 | dynamic_iota             | no            | revisit      | infeasible     | yes             | no          |
 | dynamic_pad              | no            | revisit      | no             | yes             | no          |
 | dynamic_reshape          | no            | revisit      | infeasible     | yes             | no          |
-| dynamic_slice            | yes           | yes          | yes            | yes             | no          |
-| dynamic_update_slice     | yes           | yes          | yes            | yes             | no          |
+| dynamic_slice            | yes           | yes          | yes            | yes             | yes         |
+| dynamic_update_slice     | yes           | yes          | yes            | yes             | yes         |
 | einsum                   | no            | revisit      | no             | yes             | no          |
 | exponential              | yes           | yes          | yes            | yes             | no          |
 | exponential_minus_one    | yes           | yes          | yes            | yes             | no          |
@@ -94,7 +94,7 @@ one of the following tracking labels.
 | gather                   | yes           | yes          | yes            | no              | no          |
 | get_dimension_size       | yes           | yes          | yes            | yes             | no          |
 | get_tuple_element        | yes           | yes          | yes            | yes             | no          |
-| if                       | yes           | revisit      | yes            | no              | no          |
+| if                       | yes           | revisit      | yes            | no              | yes         |
 | imag                     | yes           | yes          | yes            | yes             | no          |
 | infeed                   | yes           | revisit      | infeasible     | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
@@ -111,7 +111,7 @@ one of the following tracking labels.
 | optimization_barrier     | yes           | yes          | yes            | yes             | no          |
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | yes           | yes          | yes            | no              | no          |
-| pad                      | yes           | yes          | yes            | yes             | no          |
+| pad                      | yes           | yes          | yes            | yes             | yes         |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
 | power                    | yes           | yes          | yes            | yes             | no          |
@@ -125,8 +125,8 @@ one of the following tracking labels.
 | remainder                | yes           | yes          | yes            | yes             | no          |
 | replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |
-| return                   | no            | revisit      | yes            | yes             | no          |
-| reverse                  | yes           | yes          | yes            | yes             | no          |
+| return                   | no            | revisit      | infeasible     | yes             | no          |
+| reverse                  | yes           | yes          | yes            | yes             | yes         |
 | rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | yes           | revisit      | infeasible     | yes             | no          |
 | round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
@@ -142,7 +142,7 @@ one of the following tracking labels.
 | shift_right_logical      | yes           | yes          | yes            | yes             | no          |
 | sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
-| slice                    | yes           | yes          | yes            | no              | no          |
+| slice                    | yes           | yes          | yes            | no              | yes         |
 | sort                     | yes           | yes          | yes            | no              | no          |
 | sqrt                     | yes           | yes          | yes            | yes             | no          |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |

@@ -55,20 +55,17 @@ struct InferReturnTypesPattern : public RewritePattern {
     SmallVector<Type, 4> types;
     if (failed(definingOpInt.inferReturnTypes(
             op->getContext(), op->getLoc(), definingOp->getOperands(),
-            definingOp->getAttrDictionary(), definingOp->getRegions(),
-            types))) {
+            definingOp->getAttrDictionary(), definingOp->getRegions(), types)))
       return failure();
-    }
 
     // Replace the op with another pass-through op with attributes added.
     OperationState state(op->getLoc(), "hlo_test_infer.return_types",
                          op->getOperands(), op->getResultTypes(),
                          op->getAttrs());
     auto *newOp = rewriter.create(state);
-    for (const auto &it : llvm::enumerate(types)) {
+    for (const auto &it : llvm::enumerate(types))
       newOp->setAttr((StringRef("types") + Twine(it.index())).str(),
                      TypeAttr::get(it.value()));
-    }
     rewriter.replaceOp(op, {newOp->getResults()});
     return success();
   }
@@ -85,9 +82,8 @@ struct ReifyReturnTypeShapesPattern : public RewritePattern {
     if (!definingOp) return failure();
     SmallVector<Value, 4> returnShapes;
     if (failed(definingOp.reifyReturnTypeShapes(
-            rewriter, definingOp->getOperands(), returnShapes))) {
+            rewriter, definingOp->getOperands(), returnShapes)))
       return failure();
-    }
     rewriter.replaceOp(op, returnShapes);
     return success();
   }
@@ -101,10 +97,9 @@ struct HloTestInferPass : public impl::HloTestInferPassBase<HloTestInferPass> {
     RewritePatternSet patterns(&getContext());
     patterns.add<InferReturnTypesPattern>(&getContext());
     patterns.add<ReifyReturnTypeShapesPattern>(&getContext());
-    if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(
+            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       return signalPassFailure();
-    }
   }
 };
 

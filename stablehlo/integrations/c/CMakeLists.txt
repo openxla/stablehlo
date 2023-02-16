@@ -31,3 +31,11 @@ add_mlir_public_c_api_library(StablehloCAPI
   LINK_LIBS PUBLIC
   StablehloOps
 )
+
+add_mlir_public_c_api_library(VhloCAPI
+  PARTIAL_SOURCES_INTENDED
+  VhloDialect.cpp
+
+  LINK_LIBS PUBLIC
+  VhloOps
+)

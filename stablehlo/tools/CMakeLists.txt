@@ -44,7 +44,7 @@ target_link_libraries(stablehlo-interpreter PRIVATE
   MLIRSupport
   MLIRTranslateLib
   StablehloOps
-  StablehloReferenceInterpreter
+  StablehloReferenceOps
   StablehloReferenceTensor
 )
 

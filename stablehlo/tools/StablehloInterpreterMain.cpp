@@ -13,11 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
-#include "stablehlo/reference/Interpreter.h"
+#include "stablehlo/reference/Ops.h"
 
 namespace mlir {
 
@@ -29,14 +30,10 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
            << "\n";
 
         // Run the test model.
-        auto results = mlir::stablehlo::eval(funcOp, {});
-        if (!results) {
-          llvm::errs() << toString(results.takeError());
-          return WalkResult::interrupt();
-        }
+        auto results = stablehlo::eval(funcOp.getBody(), {});
 
         // Dump the results.
-        for (auto &result : *results) result.print(os);
+        for (auto &result : results) result.print(os);
         return WalkResult::advance();
       });
 

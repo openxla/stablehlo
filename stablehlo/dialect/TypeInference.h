@@ -134,7 +134,7 @@ LogicalResult inferBroadcastOp(
     DenseIntElementsAttr broadcastSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferCaseOp(std::optional<Location> location,
+LogicalResult inferCaseOp(std::optional<Location> location, Value index,
                           RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
@@ -147,17 +147,14 @@ LogicalResult inferClampOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferCompareOp(
-    MLIRContext* context, std::optional<Location>, bool compareTypeHasValue,
-    bool isCompareTypeNoType, bool isCompareTypeFloat,
-    bool isCompareTypeTotalOrder, bool isCompareTypeUnsigned,
-    bool isCompareTypeSigned, Value lhs,
+    MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConcatenateOp(std::optional<Location> location,
-                                 ValueRange inputs, int64_t dimension,
+                                 TypeRange inputTypes, int64_t dimension,
                                  SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
@@ -193,7 +190,7 @@ LogicalResult inferDotOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDotGeneralOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     ArrayRef<int64_t> lhsBatchingDimensions,
     ArrayRef<int64_t> rhsBatchingDimensions,
     ArrayRef<int64_t> lhsContractingDimensions,
@@ -209,8 +206,8 @@ LogicalResult inferDynamicGatherOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicSliceOp(
-    std::optional<Location> location, Value operand, ValueRange startIndices,
-    DenseIntElementsAttr sliceSizes,
+    std::optional<Location> location, Type operandType,
+    TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferDynamicUpdateSliceOp(
@@ -245,7 +242,8 @@ LogicalResult inferIsFiniteOp(MLIRContext* context, std::optional<Location>,
                               Value x,
                               SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferIfOp(std::optional<Location> location, RegionRange branches,
+LogicalResult inferIfOp(std::optional<Location> location, Value pred,
+                        RegionRange branches,
                         SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferMapOp(
@@ -275,8 +273,8 @@ LogicalResult inferRealOp(std::optional<Location> location, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReduceOp(
-    std::optional<Location> location, ValueRange inputs, ValueRange initValues,
-    DenseIntElementsAttr dimensions,
+    std::optional<Location> location, TypeRange inputTypes,
+    TypeRange initValueTypes, DenseIntElementsAttr dimensions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferReduceWindowOp(
@@ -291,8 +289,10 @@ LogicalResult inferReduceWindowOp(
 LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferReturnOp(std::optional<Location> location,
-                            SmallVectorImpl<Type>& inferredReturnTypes);
+LogicalResult inferRngOp(
+    std::optional<Location> location, Value a, Value b, Value shape,
+    bool isRngDistributionUniform,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferScatterOp(std::optional<Location> location,
                              ValueRange inputs,
@@ -313,7 +313,7 @@ LogicalResult inferSetDimensionSizeOp(
     Value size, int64_t dimension,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
-LogicalResult inferSliceOp(std::optional<Location> location, Value operand,
+LogicalResult inferSliceOp(std::optional<Location> location, Type operandType,
                            DenseIntElementsAttr startIndices,
                            DenseIntElementsAttr limitIndices,
                            DenseIntElementsAttr strides,
@@ -455,9 +455,6 @@ LogicalResult verifyReshapeOp(std::optional<Location> location, Value operand,
 
 LogicalResult verifyReverseOp(std::optional<Location> location, Value operand,
                               DenseIntElementsAttr dimensions);
-
-LogicalResult verifyRngOp(std::optional<Location> location, Value a, Value b,
-                          bool isRngDistributionUniform);
 
 LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
                                       Value initialState, Value outputState);

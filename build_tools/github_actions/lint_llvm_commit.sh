@@ -14,12 +14,15 @@
 print_usage() {
   echo "Usage: $0 [-f] <path/to/stablehlo/root>"
   echo "    -f           Auto-fix LLVM commit mismatch."
+  echo "    -s           Skip sha256 hash validation."
 }
 
 FORMAT_MODE='validate'
-while getopts 'f' flag; do
+VALIDATE_SHA256='true'
+while getopts 'fs' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
+    s) VALIDATE_SHA256="false" ;;
     *) print_usage
        exit 1 ;;
   esac
@@ -33,34 +36,79 @@ fi
 
 PATH_TO_STABLEHLO_ROOT="$1"
 PATH_TO_LLVM_VERSION_TXT="$PATH_TO_STABLEHLO_ROOT/build_tools/llvm_version.txt"
-PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE"
+PATH_TO_WORKSPACE="$PATH_TO_STABLEHLO_ROOT/WORKSPACE.bazel"
 
-LLVM_DIFF=$(sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g' | diff $PATH_TO_LLVM_VERSION_TXT -)
+## Helper functions
+
+# Commit validation functions
+llvm_commit_from_version_txt() {
+  cat $PATH_TO_LLVM_VERSION_TXT
+}
+llvm_commit_from_workspace() {
+  sed -n '/LLVM_COMMIT = /p' $PATH_TO_WORKSPACE | sed 's/LLVM_COMMIT = //; s/\"//g'
+}
+llvm_commit_diff() {
+  diff <(llvm_commit_from_version_txt) <(llvm_commit_from_workspace)
+}
+
+# SHA256 validation functions
+llvm_sha256_from_workspace() {
+  sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE  | sed 's/LLVM_SHA256 = //; s/\"//g'
+}
+llvm_sha256_from_archive() {
+  LLVM_COMMIT=$(llvm_commit_from_workspace)
+  HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz -o /dev/null -w "%{http_code}")
+  if [[ "$HTTP_CODE" == "404" ]]; then
+    echo "Error 404 downloading LLVM at commit '$LLVM_COMMIT'."
+    exit 1
+  fi
+  LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
+  echo "$LLVM_SHA256"
+}
+llvm_sha256_diff() {
+  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive)
+}
+
+# Fix functions
+print_autofix() {
+  echo "Auto-fix using:"
+  echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
+}
 
 update_llvm_commit_and_sha256() {
-  echo "Retrieving LLVM Commit..."
-  export LLVM_COMMIT="$(<$PATH_TO_LLVM_VERSION_TXT)"
-  echo "LLVM_COMMIT: $LLVM_COMMIT"
-  echo "Calculating SHA256..."
-  export LLVM_SHA256="$(curl -sL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz | shasum -a 256 | sed 's/ //g; s/-//g')"
-  echo "LLVM_SHA256: $LLVM_SHA256"
-
+  LLVM_COMMIT=$(llvm_commit_from_version_txt)
+  LLVM_SHA256=$(llvm_sha256_from_archive)
   sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
   sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
 }
 
+## Script body
 if [[ $FORMAT_MODE == 'fix' ]]; then
-  echo "Updating LLVM Commit & SHA256..."
-  update_llvm_commit_and_sha256 $PATH_TO_LLVM_VERSION_TXT
-else
-  if [ ! -z "$LLVM_DIFF" ]; then
-    echo "LLVM commit out of sync:"
-    echo $LLVM_DIFF
+  echo "Updating LLVM Commit & SHA256"
+  update_llvm_commit_and_sha256
+  exit 0
+fi
+
+echo "Validating LLVM commit hash..."
+LLVM_COMMIT_DIFF=$(llvm_commit_diff)
+if [[ ! -z "$LLVM_COMMIT_DIFF" ]]; then
+  echo "Commit mismatch:"
+  echo "$LLVM_COMMIT_DIFF"
+  echo
+  print_autofix
+  exit 1
+fi
+echo "Commit hashes match."
+
+if [[ "$VALIDATE_SHA256" == 'true' ]]; then
+  echo "Validating LLVM SHA256 hash..."
+  LLVM_SHA256_DIFF=$(llvm_sha256_diff)
+  if [[ ! -z "$LLVM_SHA256_DIFF" ]]; then
+    echo "...SHA256 mismatch:"
+    echo "$LLVM_SHA256_DIFF"
     echo
-    echo "Auto-fix using:"
-    echo "  $ lint_llvm_commit.sh -f <path/to/stablehlo/root>"
+    print_autofix
     exit 1
-  else
-    echo "No llvm commit mismatches found."
   fi
+  echo "SHA256 hashes match."
 fi

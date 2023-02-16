@@ -12,13 +12,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/BuiltinAttributeInterfaces.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/VhloTypes.h"
 #include "stablehlo/transforms/MapStablehloToVhlo.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/transforms/TypeConversion.h"
 
 #define DEBUG_TYPE "compat-passes"
 
@@ -30,28 +35,51 @@ namespace stablehlo {
 
 namespace {
 
-//////////////////////////
-/// VHLO --> StableHLO ///
-//////////////////////////
-#define RETURN_CONVERTED_ENUM_ATTR(Name)                       \
-  auto vhloValue = vhlo::stringify##Name(attr.getValue());     \
-  auto stablehloValue = stablehlo::symbolize##Name(vhloValue); \
-  if (!stablehloValue.has_value()) return {};                  \
+///////////////////////////////////////////////
+/// VHLO --> StableHLO Types and Attributes ///
+///////////////////////////////////////////////
+
+class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
+ public:
+  VhloToStablehloTypeConverter() : vhlo::VhloTypeConverter() {
+    addConversion([](Type type) -> Type { return type; });
+    addConversion([](vhlo::TokenV1Type token) -> Type {
+      LLVM_DEBUG(llvm::dbgs() << "Converting TokenType\n");
+      return stablehlo::TokenType::get(token.getContext());
+    });
+    addVhloToBuiltinConversions();
+  }
+
+  Attribute convertEncoding(Attribute attr) final {
+    if (auto vhloAttr = attr.dyn_cast_or_null<vhlo::TypeExtensionsV1Attr>()) {
+      return stablehlo::TypeExtensionsAttr::get(vhloAttr.getContext(),
+                                                vhloAttr.getBounds());
+    }
+    // All encodings supported in StableHLO.
+    return attr;
+  }
+};
+
+#define RETURN_CONVERTED_ENUM_ATTR(Name, Version)                   \
+  auto vhloValue = vhlo::stringify##Name##Version(attr.getValue()); \
+  auto stablehloValue = stablehlo::symbolize##Name(vhloValue);      \
+  if (!stablehloValue.has_value()) return {};                       \
   return stablehlo::Name##Attr::get(attr.getContext(), stablehloValue.value())
 
-Attribute convertAttrToStablehlo(Attribute vhloAttr) {
-  LLVM_DEBUG(llvm::dbgs() << "Converting " << vhloAttr);
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleAttr>()) {
+Attribute convertAttrToStablehlo(Attribute vhloAttr,
+                                 TypeConverter* typeConverter) {
+  LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleV1Attr>()) {
     return stablehlo::ChannelHandleAttr::get(attr.getContext(),
                                              attr.getHandle(), attr.getType());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(ComparisonType);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersV1Attr>()) {
     return stablehlo::ConvDimensionNumbersAttr::get(
         attr.getContext(), attr.getInputBatchDimension(),
         attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
@@ -60,69 +88,122 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr) {
         attr.getKernelSpatialDimensions(), attr.getOutputBatchDimension(),
         attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::DotDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DotDimensionNumbersV1Attr>()) {
     return stablehlo::DotDimensionNumbersAttr::get(
         attr.getContext(), attr.getLhsBatchingDimensions(),
         attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
         attr.getRhsContractingDimensions());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(FftType);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::GatherDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::GatherDimensionNumbersV1Attr>()) {
     return stablehlo::GatherDimensionNumbersAttr::get(
         attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
         attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasV1Attr>()) {
     return stablehlo::OutputOperandAliasAttr::get(
         attr.getContext(), attr.getOutputTupleIndices(), attr.getOperandIndex(),
         attr.getOperandTupleIndices());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Precision);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::PrecisionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(Precision, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngAlgorithmV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(RngAlgorithm, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(RngDistribution);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ScatterDimensionNumbersAttr>()) {
+  if (auto attr = vhloAttr.dyn_cast<vhlo::ScatterDimensionNumbersV1Attr>()) {
     return stablehlo::ScatterDimensionNumbersAttr::get(
         attr.getContext(), attr.getUpdateWindowDims(),
         attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
         attr.getIndexVectorDim());
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Transpose);
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
   }
+
+  // Forked attributes
+  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloAttrs.getValue()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DenseIntOrFPElementsV1Attr>()) {
+    auto builtinType = typeConverter->convertType(attr.getType());
+    if (!builtinType) return {};
+    return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
+                                                      attr.getRawData());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
+    SmallVector<NamedAttribute> vhloAttrs;
+    for (auto namedAttr : attr.getValue()) {
+      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter)
+                             .dyn_cast_or_null<StringAttr>();
+      auto builtinValue =
+          convertAttrToStablehlo(namedAttr.second, typeConverter);
+      if (!builtinName || !builtinValue) return {};
+      vhloAttrs.push_back({builtinName, builtinValue});
+    }
+    return DictionaryAttr::get(attr.getContext(), vhloAttrs);
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FlatSymbolRefV1Attr>()) {
+    auto builtinRootRef =
+        convertAttrToStablehlo(attr.getRootReference(), typeConverter);
+    if (!builtinRootRef || !builtinRootRef.isa<StringAttr>()) return {};
+    return FlatSymbolRefAttr::get(attr.getContext(),
+                                  builtinRootRef.cast<StringAttr>());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
+    auto builtinFloatType = typeConverter->convertType(attr.getType());
+    if (!builtinFloatType) return {};
+    // FIXME: What is the proper way to reconstruct a attr?
+    return FloatAttr::get(builtinFloatType, attr.getValue().convertToDouble());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+    auto builtinIntegerType = typeConverter->convertType(attr.getType());
+    if (!builtinIntegerType) return {};
+    return IntegerAttr::get(builtinIntegerType, attr.getValue());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
+    return StringAttr::get(attr.getContext(), attr.getValue());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
+    auto builtinType = typeConverter->convertType(attr.getValue());
+    if (!builtinType) return {};
+    return TypeAttr::get(builtinType);
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
+    return UnitAttr::get(attr.getContext());
+  }
+
+  // All VHLO Attributes must be converted by now.
   if (vhloAttr.getDialect().getNamespace() ==
       vhlo::VhloDialect::getDialectNamespace()) {
     // All VHLO attributes must have counterparts in StableHLO.
     return {};
   }
 
-  // Handle non-VHLO attributes.
-  // If an attribute is not defined in vhlo, then it is unchanged,
-  // with the exception of ArrayAttr which is converted recursively.
-  // This will change once we fork necessary upstream types to VHLO.
-  if (auto vhloAttrs = vhloAttr.dyn_cast<ArrayAttr>()) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloAttrs) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
-  }
-  return vhloAttr;
+  // This should be unreachable unless program is a mix of VHLO and other
+  // due to user edits to textual assembly format.
+  return {};
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
+
+/////////////////////////////////////
+/// VHLO --> StableHLO Operations ///
+/////////////////////////////////////
 
 struct VhloLegalizeToStablehloPass
     : public impl::VhloLegalizeToStablehloPassBase<
@@ -131,12 +212,12 @@ struct VhloLegalizeToStablehloPass
     ConversionTarget target(getContext());
     target.addIllegalDialect<vhlo::VhloDialect>();
     target.addLegalDialect<stablehlo::StablehloDialect>();
+    target.addLegalDialect<func::FuncDialect>();
 
-    vhlo::VhloToStablehloTypeConverter converter;
+    VhloToStablehloTypeConverter converter;
     RewritePatternSet patterns(&getContext());
     stablehlo::populateVhloToStablehloPatterns(&patterns, &converter,
                                                &getContext());
-    registerFuncOpsForTypeConversion(target, patterns, converter);
 
     // VHLO should always be convertible to StableHLO if upgraded.
     if (failed(applyPartialConversion(getOperation(), target,
@@ -164,9 +245,19 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
 
     SmallVector<NamedAttribute> stablehloAttrs;
     for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr.getValue());
+      auto stablehloAttr =
+          convertAttrToStablehlo(vhloAttr.getValue(), this->getTypeConverter());
       if (!stablehloAttr) return failure();
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
+    }
+
+    // Replace vhlo.return --> func.return if direct parent is a func op.
+    if constexpr (std::is_same<VhloOpTy, vhlo::ReturnOpV1>::value) {
+      if (llvm::isa<vhlo::FuncOpV1, func::FuncOp>(vhloOp->getParentOp())) {
+        rewriter.replaceOpWithNewOp<func::ReturnOp>(
+            vhloOp, stablehloTypes, stablehloOperands, stablehloAttrs);
+        return success();
+      }
     }
 
     // Convert the vhlo operation to a StableHLO equivalent.
@@ -187,6 +278,10 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
          llvm::zip(vhloOp->getRegions(), stablehloOp->getRegions())) {
       rewriter.inlineRegionBefore(vhloRegion, stablehloRegion,
                                   stablehloRegion.end());
+      if (failed(rewriter.convertRegionTypes(&stablehloRegion,
+                                             *this->getTypeConverter(),
+                                             /*entryConversion=*/nullptr)))
+        return failure();
     }
     return success();
   }
@@ -209,7 +304,8 @@ void populateVhloToStablehloPatterns(RewritePatternSet* patterns,
   populateVhloToStablehloPatterns<
 #define GET_OP_LIST
 #include "stablehlo/dialect/StablehloOps.cpp.inc"
-      >(patterns, converter, context);
+      , func::CallOp, func::FuncOp>(patterns, converter, context);
+  // Omit ReturnOp since it is handled during conversion of vhlo::ReturnOp
 }
 
 }  // namespace stablehlo

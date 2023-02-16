@@ -18,12 +18,15 @@ limitations under the License.
 
 #include <memory>
 
+#include "mlir/Dialect/Quant/QuantOps.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
 namespace stablehlo {
 #define GEN_PASS_DECL_STABLEHLOLEGALIZETOVHLOPASS
+#define GEN_PASS_DECL_STABLEHLOREFINESHAPESPASS
 #define GEN_PASS_DECL_VHLOLEGALIZETOSTABLEHLOPASS
 #define GEN_PASS_DECL_VHLOTOVERSIONPASS
 #define GEN_PASS_REGISTRATION
