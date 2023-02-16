@@ -753,7 +753,8 @@ def StableHLO_DivOp : StableHLO_BinaryElementwiseOp<"divide",
 }
 
 def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType],
+      HLO_PredIntOrFpTensor> {
   let summary = "Maximum operator";
   let description = [{
     Performs element-wise max operation on tensors `lhs` and `rhs` and produces
@@ -770,7 +771,8 @@ def StableHLO_MaxOp : StableHLO_BinaryElementwiseOp<"maximum",
 }
 
 def StableHLO_MinOp : StableHLO_BinaryElementwiseOp<"minimum",
-      [Commutative, Pure, HLO_CompatibleOperandsAndResultType]> {
+      [Commutative, Pure, HLO_CompatibleOperandsAndResultType],
+      HLO_PredIntOrFpTensor> {
   let summary = "Minimum operator";
   let description = [{
     Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
@@ -821,7 +823,7 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
 }
 
 def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntOrFpTensor> {
   let summary = "Remainder operator";
   let description = [{
     Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors
@@ -1553,8 +1555,8 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
+    TensorOf<[HLO_Int, HLO_Pred, HLO_Float]>:$lhs,
+    TensorOf<[HLO_Int, HLO_Pred, HLO_Float]>:$rhs,
     StableHLO_ComparisonDirectionAttr:$comparison_direction,
     OptionalAttr<StableHLO_ComparisonTypeAttr>:$compare_type
   );
@@ -1958,9 +1960,9 @@ def StableHLO_ClampOp : StableHLO_ShapedInterfaceOp<"clamp", [Pure,
   }];
 
   let arguments = (ins
-    HLO_Tensor:$min,
-    HLO_Tensor:$operand,
-    HLO_Tensor:$max
+    TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>:$min,
+    TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>:$operand,
+    TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>:$max
   );
   let results = (outs HLO_Tensor:$result);
 

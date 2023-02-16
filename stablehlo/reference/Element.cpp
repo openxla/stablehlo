@@ -100,6 +100,37 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
                                      debugString(type).c_str()));
 }
 
+template <typename IntegerFn, typename BooleanFn, typename FloatFn>
+Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
+            BooleanFn boolFn, FloatFn floatFn) {
+  Type type = lhs.getType();
+  if (lhs.getType() != rhs.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(lhs.getType()).c_str(),
+                                       debugString(rhs.getType()).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = lhs.getIntegerValue();
+    auto intRhs = rhs.getIntegerValue();
+    return Element(type, integerFn(intLhs, intRhs));
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = lhs.getBooleanValue();
+    auto boolRhs = rhs.getBooleanValue();
+    return Element(type, boolFn(boolLhs, boolRhs));
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = lhs.getFloatValue();
+    auto floatRhs = rhs.getFloatValue();
+    return Element(type, floatFn(floatLhs, floatRhs));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 template <typename FloatFn, typename ComplexFn>
 Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                               ComplexFn complexFn) {
@@ -295,13 +326,7 @@ Element max(const Element &e1, const Element &e2) {
                    : llvm::APIntOps::umax(lhs, rhs);
       },
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
-      [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
-                          ? lhs.imag() > rhs.imag()
-                          : lhs.real() > rhs.real();
-        return cmpRes ? lhs : rhs;
-      });
+      [](APFloat lhs, APFloat rhs) { return llvm::maximum(lhs, rhs); });
 }
 
 Element min(const Element &e1, const Element &e2) {
@@ -313,13 +338,7 @@ Element min(const Element &e1, const Element &e2) {
                    : llvm::APIntOps::umin(lhs, rhs);
       },
       [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
-      [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        auto cmpRes = lhs.real().compare(rhs.real()) == APFloat::cmpEqual
-                          ? lhs.imag() < rhs.imag()
-                          : lhs.real() < rhs.real();
-        return cmpRes ? lhs : rhs;
-      });
+      [](APFloat lhs, APFloat rhs) { return llvm::minimum(lhs, rhs); });
 }
 
 Element sine(const Element &el) {

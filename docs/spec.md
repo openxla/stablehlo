@@ -1481,23 +1481,19 @@ value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
 where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
 `max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`.
 
-Imposing an ordering on complex numbers involves surprising semantics,
-so in the future we are planning to remove support for complex numbers
-for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
-
 #### Inputs
 
-| Label | Name      | Type   | Constraints |
-|-------|-----------|--------|-------------|
-| (I1)  | `min`     | tensor | (C1), (C3)  |
-| (I2)  | `operand` | tensor | (C1-C4)     |
-| (I3)  | `max`     | tensor | (C2), (C3)  |
+| Label | Name      | Type                                              | Constraints |
+|-------|-----------|---------------------------------------------------|-------------|
+| (I1)  | `min`     | tensor of integer, boolean or floating-point type | (C1), (C3)  |
+| (I2)  | `operand` | tensor of integer, boolean or floating-point type | (C1-C4)     |
+| (I3)  | `max`     | tensor of integer, boolean or floating-point type | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C4)        |
+| Name     | Type                                              | Constraints |
+|----------|---------------------------------------------------|-------------|
+| `result` | tensor of integer, boolean or floating-point type | (C4)        |
 
 #### Constraints
 
@@ -3213,23 +3209,19 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 * For booleans: logical OR.
 * For integers: integer maximum.
 * For floats: `maximum` from IEEE-754.
-* For complex numbers: lexicographic maximum for the `(real, imaginary)` pair.
-  Imposing an ordering on complex numbers involves surprising semantics,
-  so in the future we are planning to remove support for complex numbers
-  for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
-| Label | Name  | Type   | Constraints |
-|-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)        |
-| (I2)  | `rhs` | tensor | (C1)        |
+| Label | Name  | Type                                              | Constraints |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, boolean or floating-point type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, boolean or floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                                              | Constraints |
+|----------|---------------------------------------------------|-------------|
+| `result` | tensor of integer, boolean or floating-point type | (C1)        |
 
 #### Constraints
 
@@ -3256,23 +3248,19 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 * For booleans: logical AND.
 * For integers: integer minimum.
 * For floats: `minimum` from IEEE-754.
-* For complex numbers: lexicographic minimum for the `(real, imaginary)` pair.
-  Imposing an ordering on complex numbers involves surprising semantics,
-  so in the future we are planning to remove support for complex numbers
-  for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
-| Label | Name  | Type   | Constraints |
-|-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)        |
-| (I2)  | `rhs` | tensor | (C1)        |
+| Label | Name  | Type                                              | Constraints |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, boolean or floating-point type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, boolean or floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                                              | Constraints |
+|----------|---------------------------------------------------|-------------|
+| `result` | tensor of integer, boolean or floating-point type | (C1)        |
 
 #### Constraints
 
@@ -4105,8 +4093,6 @@ The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
 * For integers: `stablehlo.divide(lhs, rhs)`.
 * For floats: `division(lhs, rhs)` from IEEE-754 with rounding attribute
   `roundTowardZero`.
-* For complex numbers: TBD
-  ([#997](https://github.com/openxla/stablehlo/issues/997)).
 
 For floating-point element types, this operation is in contrast with the
 `remainder` operation from IEEE-754 specification where `d` is an integral value
@@ -4114,16 +4100,16 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 
 #### Inputs
 
-| Label | Name  | Type                                              | Constraints |
-|-------|-------|---------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
-| (I2)  | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
+| Label | Name  | Type                                     | Constraints |
+|-------|-------|------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer or floating-point type | (C1)        |
+| (I2)  | `rhs` | tensor of integer or floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                              | Constraints |
-|----------|---------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point or complex type | (C1)        |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of integer or floating-point type | (C1)        |
 
 #### Constraints
 
