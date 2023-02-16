@@ -2026,9 +2026,9 @@ LogicalResult inferDynamicSliceOp(
     TypeRange startIndicesTypes, DenseIntElementsAttr sliceSizes,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // dynamic_slice_i3
-  if (sliceSizes.getType().getRank() != 1)
+  if (sliceSizes.getType().getRank() > 1)
     return emitOptionalError(location,
-                             "slice_sizes should be rank 1, but got rank ",
+                             "slice_sizes should be rank 0 or 1, but got rank ",
                              sliceSizes.getType().getRank(), ".");
   // dynamic_slice_c2
   int numSliceSizes = sliceSizes.getNumElements();

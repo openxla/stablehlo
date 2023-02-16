@@ -2316,11 +2316,11 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 #### Inputs
 
-| Label | Name            | Type                                                     | Constraints      |
-|-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                                   | (C1), (C2), (C4) |
-| (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
-| (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
+| Label | Name            | Type                                                          | Constraints      |
+|-------|-----------------|---------------------------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor                                                        | (C1), (C2), (C4) |
+| (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type      | (C2), (C3)       |
+| (I3)  | `slice_sizes`   | 0-dimensional or 1-dimensional tensor constant of type `si64` | (C2), (C4), (C5) |
 
 #### Outputs
 
