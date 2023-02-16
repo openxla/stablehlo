@@ -274,9 +274,8 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    Element predValue = pred.getType().getRank() != 0
-                            ? pred.get(*it)
-                            : pred.get(*(pred.index_begin()));
+    Element predValue =
+        pred.getType().getRank() != 0 ? pred.get(*it) : pred.get({});
     result.set(
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
