@@ -65,7 +65,6 @@ add_dependencies(mlir-headers CheckOpsIncGen)
 add_mlir_dialect_library(CheckOps
   PARTIAL_SOURCES_INTENDED
   CheckOps.cpp
-  ReferenceCheckOps.cpp
 
   DEPENDS
   CheckOpsIncGen

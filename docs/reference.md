@@ -208,7 +208,7 @@ atmost 1 ULP apart. However, this may not work for transcendental functions
 (`sine`, `cosine`) for which the precision guarantees are implementation-defined
 [rationale](https://github.com/openxla/stablehlo/issues/96).
 
-The current implementation uses a solution based on relative epsilons and a
+The current implementation uses a tolerance based on relative epsilons and a
 special case to work with values close to zero, which expects the following
 relation, between the values of actual result `a` and expected result `r`, to
 hold true:
@@ -223,14 +223,24 @@ The following example demonstrates the above tolerance in action.
 ```mlir
 func.func @check_tolerance() {
   %0 = stablehlo.constant dense<0.20000000000000001110> : tensor<f32>
-  check.almost_eq %0, dense<0.199999988> : tensor<f32> // assert true
-  check.eq %0, dense<0.199999988> : tensor<f32> // assert false
+
+  // The following assertion succeeds as %0 is almost equal to the provided
+  // constant modulo the tolerance, mentioned above.
+  check.almost_eq %0, dense<0.199999988> : tensor<f32>
+
+  // The following assertion fails as %0 is not bitwise equal to the provided
+  // constant.
+  check.eq %0, dense<0.199999988> : tensor<f32>
+
   func.return
 }
 ```
 
-In future, we are planning to improve the tolerance based on empirical evidences
-while running programs on actual platforms.
+This is just the first step in testing numerical accuracy of StableHLO ops. At
+the moment, this is an underspecced area of the StableHLO spec, and there is
+ongoing work to figure it out (#1156) based on our experience with using
+StableHLO in practice and on feedback from stakeholders. As this works proceeds,
+we will update this infrastructure accordingly.
 
 **(G7) Anything about the coding-style of the tests?**
 

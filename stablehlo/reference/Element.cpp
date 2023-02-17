@@ -131,9 +131,9 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
-template <class T>
-typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
-almost_equal(T x, T y, int ulp) {
+template <typename T>
+std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
+    T x, T y) {
   // The machine epsilon has to be scaled to the magnitude of the values used,
   return std::fabs(x - y) <=
              std::numeric_limits<T>::epsilon() * std::fmax(x, y) ||
@@ -141,8 +141,7 @@ almost_equal(T x, T y, int ulp) {
          std::fabs(x - y) < std::numeric_limits<T>::min();
 }
 
-// Checks if two APFloat values, f and g, are almost equal within an
-// implementation-defined tolerance.
+// Checks if two APFloat values, f and g, are almost equal.
 bool areApproximatelyEqual(APFloat f, APFloat g) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
 
@@ -155,10 +154,11 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
 
   // Both f and g are finite numbers.
   if (&f.getSemantics() == &llvm::APFloat::IEEEdouble())
-    return almost_equal<double>(f.convertToDouble(), g.convertToDouble(), 1);
+    return areApproximatelyEqual<double>(f.convertToDouble(),
+                                         g.convertToDouble());
 
   // Convert the half and bfloat16 types to float before comparision.
-  return almost_equal<float>(f.convertToFloat(), g.convertToFloat(), 1);
+  return areApproximatelyEqual<float>(f.convertToFloat(), g.convertToFloat());
 }
 
 }  // namespace
@@ -410,6 +410,28 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
+bool areApproximatelyEqual(const Element &e1, const Element &e2) {
+  Type type = e1.getType();
+  if (type != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type).c_str(),
+                                       debugString(e2.getType()).c_str()));
+
+  if (isSupportedFloatType(type)) {
+    return areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue());
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = e1.getComplexValue();
+    auto complexRhs = e2.getComplexValue();
+    return areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
+           areApproximatelyEqual(complexLhs.imag(), complexRhs.imag());
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
@@ -498,28 +520,6 @@ Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },
       [](std::complex<double> e) { return std::tanh(e); });
-}
-
-bool areApproximatelyEqual(const Element &e1, const Element &e2) {
-  Type type = e1.getType();
-  if (type != e2.getType())
-    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
-                                       debugString(type).c_str(),
-                                       debugString(e2.getType()).c_str()));
-
-  if (isSupportedFloatType(type)) {
-    return areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue());
-  }
-
-  if (isSupportedComplexType(type)) {
-    auto complexLhs = e1.getComplexValue();
-    auto complexRhs = e2.getComplexValue();
-    return areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
-           areApproximatelyEqual(complexLhs.imag(), complexRhs.imag());
-  }
-
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
 }
 
 void Element::print(raw_ostream &os) const {
