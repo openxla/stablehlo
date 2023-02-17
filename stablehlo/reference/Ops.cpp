@@ -425,6 +425,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
           runtimeOperand, runtimeUpdate, runtimeStartIndices,
           dynamicUpdateSliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto expOp = dyn_cast<ExpOp>(op)) {
+      Tensor runtimeOperand = scope.find(expOp.getOperand());
+      Tensor runtimeResult = evalExponentialOp(runtimeOperand, expOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = scope.find(floorOp.getOperand());
       Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
