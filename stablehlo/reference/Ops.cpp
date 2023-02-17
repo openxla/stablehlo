@@ -295,6 +295,7 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
     if (resultIdx.inBounds(result.getShape()))
       result.set(resultIdx, operand.get(*operandIt));
   }
+  return result;
 }
 
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
@@ -575,6 +576,11 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalPadOp(runtimeOperand, runtimePaddingValue, edgePaddingLow,
                     interiorPadding, padOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto remOp = dyn_cast<RemOp>(op)) {
+      Tensor runtimeLhs = scope.find(remOp.getLhs());
+      Tensor runtimeRhs = scope.find(remOp.getRhs());
+      Tensor runtimeResult = evalRemOp(runtimeLhs, runtimeRhs, remOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
       SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
