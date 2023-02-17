@@ -284,6 +284,18 @@ func.func @eval_select() -> tensor<2xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_sign
+func.func @eval_sign() -> tensor<3xi64> {
+  // CHECK-NOT: stablehlo.sign
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
+  %1 = stablehlo.sign %0 : (tensor<3xi64>) -> tensor<3xi64>
+  func.return %1 : tensor<3xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_slice
 func.func @eval_slice() -> tensor<2xi64> {
   // CHECK-NOT: stablehlo.slice
