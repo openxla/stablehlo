@@ -526,6 +526,28 @@ LogicalResult refineReturnShape(PatternRewriter& rewriter, OpType op,
   return refineReturnShape(rewriter, op, shape);
 }
 
+struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(AllGatherOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandType = op.getOperand().getType().cast<ShapedType>();
+    if (!operandType.hasRank())
+      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
+
+    if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
+      return rewriter.notifyMatchFailure(op, "unsupported strategy");
+    DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
+    if (!replicaGroups || replicaGroups.getType().getRank() != 2)
+      return rewriter.notifyMatchFailure(op, "unsupported replica_groups");
+    auto shardCount = replicaGroups.getType().getDimSize(1);
+
+    SmallVector<int64_t> refinement(operandType.getShape());
+    if (!operandType.isDynamicDim(op.getAllGatherDim()))
+      refinement[op.getAllGatherDim()] *= shardCount;
+    return refineReturnShape(rewriter, op, refinement);
+  }
+};
+
 struct RefineBitcastConvertOpPattern
     : public OpRewritePattern<BitcastConvertOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -811,6 +833,28 @@ struct RefineRealDynamicSliceOpPattern
   }
 };
 
+struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(ReduceScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandType = op.getOperand().getType().cast<ShapedType>();
+    if (!operandType.hasRank())
+      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
+
+    if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
+      return rewriter.notifyMatchFailure(op, "unsupported strategy");
+    DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
+    if (!replicaGroups || replicaGroups.getType().getRank() != 2)
+      return rewriter.notifyMatchFailure(op, "unsupported replica_groups");
+    auto shardCount = replicaGroups.getType().getDimSize(1);
+
+    SmallVector<int64_t> refinement(operandType.getShape());
+    if (!operandType.isDynamicDim(op.getScatterDimension()))
+      refinement[op.getScatterDimension()] /= shardCount;
+    return refineReturnShape(rewriter, op, refinement);
+  }
+};
+
 struct RefineRngOpPattern : public OpRewritePattern<RngOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RngOp op,
@@ -985,6 +1029,7 @@ struct StablehloRefineShapesPass
     patterns.add<EvalSelectOpPattern>(&getContext());
     patterns.add<EvalSliceOpPattern>(&getContext());
     patterns.add<EvalSubtractOpPattern>(&getContext());
+    patterns.add<RefineAllGatherOpPattern>(&getContext());
     patterns.add<RefineBitcastConvertOpPattern>(&getContext());
     patterns.add<RefineConvertOpPattern>(&getContext());
     patterns.add<RefineConvolutionOpPattern>(&getContext());
@@ -997,6 +1042,7 @@ struct StablehloRefineShapesPass
     patterns.add<RefineDynamicReshapeOpPattern>(&getContext());
     patterns.add<RefineInferTypeOpInterfacePattern>(&getContext());
     patterns.add<RefineRealDynamicSliceOpPattern>(&getContext());
+    patterns.add<RefineReduceScatterOpPattern>(&getContext());
     patterns.add<RefineRngOpPattern>(&getContext());
     patterns.add<RefineUniformQuantizeOpPattern>(&getContext());
     patterns.add<RefineWhileOpPattern>(&getContext());
