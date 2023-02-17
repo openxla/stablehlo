@@ -438,6 +438,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult =
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto logOp = dyn_cast<LogOp>(op)) {
+      Tensor runtimeOperand = scope.find(logOp.getOperand());
+      Tensor runtimeResult = evalLogOp(runtimeOperand, logOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       Tensor runtimeLhs = scope.find(maxOp.getLhs());
       Tensor runtimeRhs = scope.find(maxOp.getRhs());
