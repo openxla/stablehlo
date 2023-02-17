@@ -325,6 +325,10 @@ void Tensor::set(const Index &index, const Element &element) {
                                      debugString(elementType).c_str()));
 }
 
+void Tensor::set(ArrayRef<int64_t> index, const Element &element) {
+  set(Index(index), element);
+}
+
 IndexSpaceIterator Tensor::index_begin() const {
   auto shape = getType().getShape();
 

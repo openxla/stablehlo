@@ -316,6 +316,21 @@ cc_library(
 )
 
 cc_library(
+    name = "reference_index",
+    srcs = [
+        "stablehlo/reference/Index.cpp",
+    ],
+    hdrs = [
+        "stablehlo/reference/Index.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
     name = "reference_ops",
     srcs = [
         "stablehlo/reference/Ops.cpp",
@@ -326,6 +341,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":reference_element",
+        ":reference_index",
         ":reference_errors",
         ":reference_scope",
         ":reference_tensor",
@@ -356,17 +372,16 @@ cc_library(
 cc_library(
     name = "reference_tensor",
     srcs = [
-        "stablehlo/reference/Index.cpp",
         "stablehlo/reference/Tensor.cpp",
     ],
     hdrs = [
-        "stablehlo/reference/Index.h",
         "stablehlo/reference/Tensor.h",
     ],
     strip_include_prefix = ".",
     deps = [
         ":reference_element",
         ":reference_errors",
+        ":reference_index",
         ":reference_types",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",

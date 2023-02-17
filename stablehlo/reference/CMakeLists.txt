@@ -67,6 +67,7 @@ add_mlir_library(StablehloReferenceOps
   MLIRFuncDialect
   StablehloOps
   StablehloReferenceElement
+  StablehloReferenceIndex
   StablehloReferenceScope
   StablehloReferenceTensor
 )

@@ -24,22 +24,11 @@ limitations under the License.
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
-
-namespace {
-
-// Applies the permutation `perm` to an index `array` where perm[i] indicates
-// the location where the current array[i] goes.
-Index permute(const Index &array, ArrayRef<int64_t> perm) {
-  Index result(array.size());
-  for (size_t i = 0; i < array.size(); i++) result[i] = array[perm[i]];
-  return result;
-}
-
-}  // namespace
 
 Tensor evalAbsOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
@@ -127,9 +116,7 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
   Index adjustedStartIndices(startIndices.size());
   for (size_t i = 0; i < startIndices.size(); ++i)
     adjustedStartIndices[i] = std::min(
-        std::max(
-            startIndices[i].get(Index({})).getIntegerValue().getSExtValue(),
-            0l),
+        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
         operand.getType().getShape()[i] - sliceSizes[i]);
   for (auto resultItr = result.index_begin(); resultItr != result.index_end();
        ++resultItr) {
@@ -148,9 +135,7 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   Index adjustedStartIndices(startIndices.size());
   for (size_t i = 0; i < startIndices.size(); ++i)
     adjustedStartIndices[i] = std::min(
-        std::max(
-            startIndices[i].get(Index({})).getIntegerValue().getSExtValue(),
-            0l),
+        std::max(startIndices[i].get({}).getIntegerValue().getSExtValue(), 0l),
         operandShape[i] - updateShape[i]);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
@@ -272,13 +257,11 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
-    result.set(*resultIt, paddingValue.get(Index({})));
+    result.set(*resultIt, paddingValue.get({}));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    Index resultIdx(result.getType().getRank());
-    for (auto i = 0; i < operand.getType().getRank(); ++i)
-      resultIdx[i] =
-          edgePaddingLow[i] + (*operandIt)[i] * (interiorPadding[i] + 1);
+    Index resultIdx =
+        edgePaddingLow + *operandIt * interiorPadding + *operandIt;
     if (succeeded(verifyIndex(result.getType().getShape(), resultIdx)))
       result.set(resultIdx, operand.get(*operandIt));
   }
@@ -331,9 +314,7 @@ Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index operandIdx(operand.getType().getRank());
-    for (auto dim = 0; dim < operand.getType().getRank(); ++dim)
-      operandIdx[dim] = startIndices[dim] + (*resultIt)[dim] * strides[dim];
+    Index operandIdx = startIndices + *resultIt * strides;
     result.set(*resultIt, operand.get(operandIdx));
   }
   return result;
@@ -365,7 +346,7 @@ Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
   Tensor result(resultType);
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    auto resultIndex = permute(*operandIt, permutation);
+    auto resultIndex = (*operandIt).permute(permutation);
     result.set(resultIndex, operand.get(*operandIt));
   }
   return result;

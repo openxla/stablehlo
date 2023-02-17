@@ -9,7 +9,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the License for the specific language governing permutationissions and
 limitations under the License.
 ==============================================================================*/
 
@@ -21,17 +21,50 @@ namespace mlir {
 namespace stablehlo {
 
 Index Index::operator+(const Index &other) const {
-  SmallVector<int64_t> combined;
+  if (size() != other.size())
+    llvm::report_fatal_error("Index add expects operands of same size.");
+
+  SmallVector<int64_t> result;
   for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, other.index_))
-    combined.push_back(lhsIdx + rhsIdx);
-  return Index(combined);
+    result.push_back(lhsIdx + rhsIdx);
+  return Index(result);
+}
+
+Index Index::operator+(ArrayRef<int64_t> array) const {
+  if (size() != array.size())
+    llvm::report_fatal_error("Index add expects operands of same size.");
+
+  SmallVector<int64_t> result;
+  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, array))
+    result.push_back(lhsIdx + rhsIdx);
+  return Index(result);
+}
+
+Index Index::operator*(const Index &other) const {
+  if (size() != other.size())
+    llvm::report_fatal_error("Index product expects operands of same size.");
+
+  SmallVector<int64_t> result;
+  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, other.index_))
+    result.push_back(lhsIdx * rhsIdx);
+  return Index(result);
+}
+
+Index Index::operator*(ArrayRef<int64_t> array) const {
+  if (size() != array.size())
+    llvm::report_fatal_error("Index product expects operands of same size.");
+
+  SmallVector<int64_t> result;
+  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, array))
+    result.push_back(lhsIdx * rhsIdx);
+  return Index(result);
 }
 
 LogicalResult verifyIndex(llvm::ArrayRef<int64_t> shape, const Index &index) {
   if (shape.size() != index.size()) return failure();
 
-  for (auto [dim, shapeDim] : llvm::enumerate(shape))
-    if (index[dim] < 0 || index[dim] >= shapeDim) return failure();
+  for (auto [shapeDim, indexDim] : llvm::zip(shape, index.getIndexArray()))
+    if (indexDim < 0 || indexDim >= shapeDim) return failure();
 
   return success();
 }
@@ -68,6 +101,25 @@ IndexSpaceIterator IndexSpaceIterator::operator++(int) {
   IndexSpaceIterator tempIter = *this;
   ++*this;
   return tempIter;
+}
+
+Index Index::permute(ArrayRef<int64_t> permutation) {
+  if (size() != permutation.size())
+    llvm::report_fatal_error(
+        "Index permutationute expects permutation of same size as the index.");
+
+  Index result(size());
+  for (size_t i = 0; i < permutation.size(); i++)
+    result[i] = (*this)[permutation[i]];
+  return result;
+}
+
+Index operator+(ArrayRef<int64_t> array, const Index &index) {
+  return index + array;
+}
+
+Index operator*(ArrayRef<int64_t> array, const Index &index) {
+  return index * array;
 }
 
 }  // namespace stablehlo
