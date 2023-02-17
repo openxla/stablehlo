@@ -92,6 +92,20 @@ Tensor evalCeilOp(const Tensor &operand, Type resultType) {
   return result;
 }
 
+Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
+                   Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    Element minElement =
+        min.getType().getRank() != 0 ? min.get(*it) : min.get({});
+    Element maxElement =
+        max.getType().getRank() != 0 ? max.get(*it) : max.get({});
+    result.set(*it, stablehlo::min(stablehlo::max(operand.get(*it), minElement),
+                                   maxElement));
+  }
+  return result;
+}
+
 Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
 }
@@ -400,6 +414,13 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
       Tensor runtimeOperand = scope.find(ceilOp.getOperand());
       Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto clampOp = dyn_cast<ClampOp>(op)) {
+      Tensor runtimeMin = scope.find(clampOp.getMin());
+      Tensor runtimeOperand = scope.find(clampOp.getOperand());
+      Tensor runtimeMax = scope.find(clampOp.getMax());
+      Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
+                                         clampOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       Tensor runtimeResult = evalConstantOp(constantOp.getValue());

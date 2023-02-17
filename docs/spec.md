@@ -1518,6 +1518,8 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 // %result: [5, 13, 20]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_clamp.mlir)
+
 ### collective_permute
 
 #### Semantics
