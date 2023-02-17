@@ -283,6 +283,18 @@ Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
   return result;
 }
 
+Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
+                    const Tensor &onFalse, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    Element predValue =
+        pred.getType().getRank() != 0 ? pred.get(*it) : pred.get({});
+    result.set(
+        *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
+  }
+  return result;
+}
+
 Tensor evalSineOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -493,6 +505,11 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       return scope.find(returnOp.getOperands());
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       return scope.find(returnOp.getResults());
+    } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
+      Tensor runtimeResult = evalSelectOp(
+          scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
+          scope.find(selectOp.getOnFalse()), selectOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());

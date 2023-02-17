@@ -4652,6 +4652,8 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %result: [[5, 2], [3, 8]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_select.mlir)
+
 ### select_and_scatter
 
 #### Semantics

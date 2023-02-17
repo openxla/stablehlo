@@ -2510,7 +2510,7 @@ def StableHLO_ScatterOp: StableHLO_Op<"scatter",
 
 def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwise,
     InferTensorTypeWithReify]> {
-  let summary = "Select operator";
+  let summary = "Select operation";
   let description = [{
     Produces a `result` tensor where each element is selected from `on_true` or
     `on_false` tensor based on the value of the corresponding element of `pred`.
@@ -2524,9 +2524,9 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
     ```
   }];
   let arguments = (ins
-    HLO_PredTensor:$pred,
-    HLO_Tensor:$on_true,
-    HLO_Tensor:$on_false
+    HLO_PredTensor:$pred, /*select_i1*/
+    HLO_Tensor:$on_true, /*select_i2*/
+    HLO_Tensor:$on_false /*select_i3*/
   );
 
   let results = (outs HLO_Tensor:$result);
