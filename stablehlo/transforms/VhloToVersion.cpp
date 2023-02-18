@@ -122,8 +122,6 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
     return success(llvm::all_of(arrAttr.getValue(), [&](Attribute ele) {
       return succeeded(isLegalAttribute(ele, targetVersion));
     }));
-  if (auto elementsAttr = attr.dyn_cast<DenseIntOrFPElementsV1Attr>())
-    return isLegalType(elementsAttr.getType(), targetVersion);
   if (auto arrAttr = attr.dyn_cast<DictionaryV1Attr>()) {
     return success(llvm::all_of(
         arrAttr.getValue(), [&](std::pair<Attribute, Attribute> entry) {
@@ -137,6 +135,8 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
     return isLegalType(floatAttr.getType(), targetVersion);
   if (auto intAttr = attr.dyn_cast<IntegerV1Attr>())
     return isLegalType(intAttr.getType(), targetVersion);
+  if (auto tensorAttr = attr.dyn_cast<TensorV1Attr>())
+    return isLegalType(tensorAttr.getType(), targetVersion);
   if (auto typeAttr = attr.dyn_cast<TypeV1Attr>())
     return isLegalType(typeAttr.getValue(), targetVersion);
 

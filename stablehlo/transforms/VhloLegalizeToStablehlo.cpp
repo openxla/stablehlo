@@ -139,12 +139,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     }
     return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::DenseIntOrFPElementsV1Attr>()) {
-    auto builtinType = typeConverter->convertType(attr.getType());
-    if (!builtinType) return {};
-    return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
-                                                      attr.getRawData());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
     SmallVector<NamedAttribute> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
@@ -177,6 +171,12 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(attr.getContext(), attr.getValue());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TensorV1Attr>()) {
+    auto builtinType = typeConverter->convertType(attr.getType());
+    if (!builtinType) return {};
+    return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
+                                                      attr.getRawData());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
     auto builtinType = typeConverter->convertType(attr.getValue());

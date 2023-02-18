@@ -184,24 +184,6 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
-def VHLO_DenseIntOrFPElementsData : AttrParameter<"::llvm::ArrayRef<char>", "Array of int"> {
-  // Custom allocator to copy dense elements data into MLIR Context
-  let allocator = "$_dst = $_allocator.copyInto($_self);";
-}
-def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1", "0.3.0", "current"> {
-  let mnemonic = "dense";
-  let parameters = (ins "::mlir::Type":$type, VHLO_DenseIntOrFPElementsData:$raw_data);
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    LogicalResult DenseIntOrFPElementsV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
-      if (!isFromVhlo(type)) errFn() << "expected VHLO type";
-      return success();
-    }
-  }];
-  let hasCustomAssemblyFormat = 1;
-}
-
 def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let mnemonic = "dict";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
@@ -265,6 +247,23 @@ def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.3.0", "current"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
   let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
+}
+
+def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
+  let allocator = "$_dst = $_allocator.copyInto($_self);";
+}
+def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
+  let mnemonic = "tensor";
+  let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$raw_data);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TensorV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
+      if (!isFromVhlo(type)) errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
