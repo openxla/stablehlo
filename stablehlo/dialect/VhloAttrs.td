@@ -184,6 +184,12 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
+def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.3.0", "current"> {
+  let mnemonic = "bool";
+  let parameters = (ins "bool":$value);
+  let assemblyFormat = "`<` $value `>`";
+}
+
 // TODO(#425): DictionaryConstant is not part of the StableHLO spec.
 def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let mnemonic = "dict";
@@ -266,17 +272,6 @@ def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
     }
   }];
   let assemblyFormat = "`<` $value `>`";
-}
-
-def VHLO_UnitAttrV1 : VHLO_AttrDef<"UnitV1", "0.3.0", "current"> {
-  let mnemonic = "unit";
-  let storageType = [{ ::mlir::UnitAttr }];
-  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
-  let convertFromStorage = "$_self != nullptr";
-  let returnType = "bool";
-  let defaultValue = "false";
-  let valueType = NoneType;
-  let isOptional = 1;
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

@@ -344,7 +344,7 @@ func.func @op_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
   //          CHECK-SAME:   all_gather_dim = #vhlo.integer<1 : i64>
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   replica_groups = #vhlo.tensor<dense<[[0], [1]]> : tensor<2x1xi64>>,
-  //          CHECK-SAME:   use_global_device_ids = #vhlo.unit
+  //          CHECK-SAME:   use_global_device_ids = #vhlo.bool<true>
   //          CHECK-SAME: } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x16x!vhlo.f32>
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -364,7 +364,7 @@ func.func @op_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
   //          CHECK-NEXT: }) {
   //          CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
   // CHECK-SAME{LITERAL}:   replica_groups = #vhlo.tensor<dense<[[0], [1]]> : tensor<2x1xi64>>,
-  //          CHECK-SAME:   use_global_device_ids = #vhlo.unit
+  //          CHECK-SAME:   use_global_device_ids = #vhlo.bool<true>
   //          CHECK-SAME: } : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
   %0 = "stablehlo.all_reduce"(%arg0) ({
     ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
@@ -507,7 +507,7 @@ func.func @op_ceil(%arg0: tensor<f32>) -> tensor<f32> {
 
 func.func @op_cholesky(%arg0: tensor<1x16x16xf32>) -> tensor<1x16x16xf32> {
   //      CHECK: "vhlo.cholesky"(%arg0) {
-  // CHECK-SAME:   lower = #vhlo.integer<true>
+  // CHECK-SAME:   lower = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.tensor<1x16x16x!vhlo.f32>) -> !vhlo.tensor<1x16x16x!vhlo.f32>
   %0 = "stablehlo.cholesky"(%arg0) {
     lower = true
@@ -664,7 +664,7 @@ func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-SAME:   backend_config = #vhlo.string<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string<"foo">,
   // CHECK-SAME:   called_computations = #vhlo.array<[#vhlo.string<"foo">]>,
-  // CHECK-SAME:   has_side_effect = #vhlo.integer<false>,
+  // CHECK-SAME:   has_side_effect = #vhlo.bool<false>,
   // CHECK-SAME:   operand_layouts = #vhlo.array<[#vhlo.tensor<dense<> : tensor<0xindex>>]>,
   // CHECK-SAME:   output_operand_aliases = #vhlo.array<[
   // CHECK-SAME:     #vhlo.output_operand_alias<
@@ -784,7 +784,7 @@ func.func @op_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32
   // CHECK-SAME:     startIndexMap = [0, 1],
   // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   indices_are_sorted = #vhlo.integer<false>
+  // CHECK-SAME:   indices_are_sorted = #vhlo.bool<false>
   // CHECK-SAME: } : (!vhlo.tensor<2x4x9x!vhlo.f32>, !vhlo.tensor<1x5x2x!vhlo.i32>, !vhlo.tensor<3x!vhlo.i32>) -> !vhlo.tensor<1x5x8x!vhlo.f32>
   %0 = "stablehlo.dynamic_gather"(%arg0, %arg1, %arg2) {
     dimension_numbers = #stablehlo.gather<
@@ -887,13 +887,13 @@ func.func @op_floor(%arg0: tensor<f32>) -> tensor<f32> {
 }
 // CHECK-LABEL: "op_floor"
 
-func.func @op_func(%arg0: tensor<f32> {stablehlo.self = unit}) -> (tensor<f32> {stablehlo.self = unit}) {
+func.func @op_func(%arg0: tensor<f32> {stablehlo.arg = "0"}) -> (tensor<f32> {stablehlo.result = "0"}) {
   // CHECK:      "vhlo.func"() ({
   // CHECK-NEXT: ^bb0(%arg0: !vhlo.tensor<!vhlo.f32>):
   // CHECK-NEXT:   "vhlo.return"(%arg0) : (!vhlo.tensor<!vhlo.f32>) -> ()
-  // CHECK-NEXT: arg_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.unit}>]>
+  // CHECK-NEXT: arg_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.arg"> = #vhlo.string<"0">}>]>
   // CHECK-SAME: function_type = #vhlo.type<!vhlo.func<(!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>>>
-  // CHECK-SAME: res_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.self"> = #vhlo.unit}>]>
+  // CHECK-SAME: res_attrs = #vhlo.array<[#vhlo.dict<{#vhlo.string<"stablehlo.result"> = #vhlo.string<"0">}>]>
   func.return %arg0 : tensor<f32>
 }
 // CHECK-LABEL: "op_func"
@@ -906,7 +906,7 @@ func.func @op_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x2xi32>) -> te
   // CHECK-SAME:     startIndexMap = [0, 1],
   // CHECK-SAME:     indexVectorDim = 2
   // CHECK-SAME:   >,
-  // CHECK-SAME:   indices_are_sorted = #vhlo.integer<false>,
+  // CHECK-SAME:   indices_are_sorted = #vhlo.bool<false>,
   // CHECK-SAME:   slice_sizes = #vhlo.tensor<dense<1> : tensor<3xi64>>
   // CHECK-SAME: } : (!vhlo.tensor<2x4x9x!vhlo.f32>, !vhlo.tensor<1x5x2x!vhlo.i32>) -> !vhlo.tensor<1x5x1x!vhlo.f32>
   %0 = "stablehlo.gather"(%arg0, %arg1) {
@@ -1144,7 +1144,7 @@ func.func @op_real(%arg0: tensor<complex<f32>>) -> tensor<f32> {
 func.func @op_recv(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token) {
   //      CHECK: "vhlo.recv"(%arg0) {
   // CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
-  // CHECK-SAME:   is_host_transfer = #vhlo.integer<true>
+  // CHECK-SAME:   is_host_transfer = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.token) -> (!vhlo.tensor<!vhlo.f32>, !vhlo.token)
   %0:2 = "stablehlo.recv"(%arg0) {
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
@@ -1328,14 +1328,14 @@ func.func @op_scatter(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi32>, %
   // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.add"(%[[ARG3]], %[[ARG4]]) : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
   // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.tensor<!vhlo.f32>) -> ()
   // CHECK-NEXT: }) {
-  // CHECK-SAME:  indices_are_sorted = #vhlo.integer<true>,
+  // CHECK-SAME:  indices_are_sorted = #vhlo.bool<true>,
   // CHECK-SAME:  scatter_dimension_numbers = #vhlo.scatter<
   // CHECK-SAME:    updateWindowDims = [1],
   // CHECK-SAME:    insertedWindowDims = [0, 1],
   // CHECK-SAME:    scatterDimsToOperandDims = [0, 1],
   // CHECK-SAME:    indexVectorDim = 1
   // CHECK-SAME:  >,
-  // CHECK-SAME:  unique_indices = #vhlo.integer<true>
+  // CHECK-SAME:  unique_indices = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.tensor<200x100x300x!vhlo.f32>, !vhlo.tensor<10x2x!vhlo.i32>, !vhlo.tensor<10x300x!vhlo.f32>) -> !vhlo.tensor<200x100x300x!vhlo.f32>
   %0 = "stablehlo.scatter"(%arg0, %arg1, %arg2) ({
     ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
@@ -1396,7 +1396,7 @@ func.func @op_select(%arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) 
 func.func @op_send(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   //      CHECK: "vhlo.send"(%arg0, %arg1) {
   // CHECK-SAME:   channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
-  // CHECK-SAME:   is_host_transfer = #vhlo.integer<true>
+  // CHECK-SAME:   is_host_transfer = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.tensor<!vhlo.f32>, !vhlo.token) -> !vhlo.token
   %0 = "stablehlo.send"(%arg0, %arg1) {
     channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
@@ -1474,7 +1474,7 @@ func.func @op_sort(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.tensor<!vhlo.bool>) -> ()
   // CHECK-NEXT: }) {
   // CHECK-SAME:   dimension = #vhlo.integer<0 : i64>
-  // CHECK-SAME:   is_stable = #vhlo.integer<true>
+  // CHECK-SAME:   is_stable = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.tensor<16x!vhlo.f32>) -> !vhlo.tensor<16x!vhlo.f32>
   %0 = "stablehlo.sort"(%arg0) ({
     ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>):
@@ -1546,10 +1546,10 @@ func.func @op_transpose(%arg0: tensor<16x8xf32>) ->  tensor<8x16xf32> {
 
 func.func @op_triangular_solve(%arg0: tensor<16x16xf32>, %arg1: tensor<16x16xf32>) ->  tensor<16x16xf32> {
   //      CHECK: "vhlo.triangular_solve"(%arg0, %arg1) {
-  // CHECK-SAME:   left_side = #vhlo.integer<true>,
-  // CHECK-SAME:   lower = #vhlo.integer<true>,
+  // CHECK-SAME:   left_side = #vhlo.bool<true>,
+  // CHECK-SAME:   lower = #vhlo.bool<true>,
   // CHECK-SAME:   transpose_a = #vhlo<transpose NO_TRANSPOSE>,
-  // CHECK-SAME:   unit_diagonal = #vhlo.integer<true>
+  // CHECK-SAME:   unit_diagonal = #vhlo.bool<true>
   // CHECK-SAME: } : (!vhlo.tensor<16x16x!vhlo.f32>, !vhlo.tensor<16x16x!vhlo.f32>) -> !vhlo.tensor<16x16x!vhlo.f32>
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {
     left_side = true,

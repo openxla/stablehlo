@@ -184,11 +184,16 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return vhlo::FloatV1Attr::get(attr.getContext(), vhloFloatType,
                                   attr.getValue());
   }
-  if (auto attr = stablehloAttr.dyn_cast<IntegerAttr>()) {
-    auto vhloIntegerType = typeConverter->convertType(attr.getType());
-    if (!vhloIntegerType) return {};
-    return vhlo::IntegerV1Attr::get(attr.getContext(), vhloIntegerType,
-                                    attr.getValue());
+  if (auto integerAttr = stablehloAttr.dyn_cast<IntegerAttr>()) {
+    if (auto boolAttr = stablehloAttr.dyn_cast<BoolAttr>()) {
+      return vhlo::BooleanV1Attr::get(boolAttr.getContext(),
+                                      boolAttr.getValue());
+    } else {
+      auto vhloIntegerType = typeConverter->convertType(integerAttr.getType());
+      if (!vhloIntegerType) return {};
+      return vhlo::IntegerV1Attr::get(integerAttr.getContext(), vhloIntegerType,
+                                      integerAttr.getValue());
+    }
   }
   if (auto attr = stablehloAttr.dyn_cast<StringAttr>()) {
     if (!attr.getType().isa<NoneType>()) {
@@ -203,9 +208,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     auto vhloType = typeConverter->convertType(attr.getValue());
     if (!vhloType) return {};
     return vhlo::TypeV1Attr::get(attr.getContext(), vhloType);
-  }
-  if (auto attr = stablehloAttr.dyn_cast<UnitAttr>()) {
-    return vhlo::UnitV1Attr::get(attr.getContext());
   }
 
   LLVM_DEBUG(llvm::dbgs() << "Failed to convert: " << stablehloAttr << '\n');
@@ -268,8 +270,11 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     SmallVector<NamedAttribute> vhloAttrs;
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
       Attribute vhloAttr;
-      if constexpr (std::is_same<StablehloOpTy,
-                                 stablehlo::CustomCallOp>::value) {
+      if (stablehloAttr.getName() == "use_global_device_ids") {
+        if (!stablehloAttr.getValue().isa<UnitAttr>()) return failure();
+        vhloAttr = vhlo::BooleanV1Attr::get(this->getContext(), true);
+      } else if constexpr (std::is_same<StablehloOpTy,
+                                        stablehlo::CustomCallOp>::value) {
         if (stablehloAttr.getName() == "api_version") {
           vhloAttr = convertCustomCallApiVersion(stablehloAttr.getValue());
           if (!vhloAttr) return failure();

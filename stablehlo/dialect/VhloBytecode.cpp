@@ -186,6 +186,11 @@ enum AttributeCode {
   ///   }
   kArrayAttr = 16,
 
+  ///   BooleanAttr {
+  ///     value: varint
+  ///   }
+  kBooleanAttr = 25,
+
   ///   ArrayAttr {
   ///   DictionaryAttr {
   ///     attrs: <Attribute, Attribute>[]
@@ -219,10 +224,6 @@ enum AttributeCode {
   ///     value: Type
   ///   }
   kTypeAttr = 23,
-
-  ///   UnitAttr {
-  ///   }
-  kUnitAttr = 24,
 };
 
 /// This enum contains marker codes used to indicate which type is
@@ -447,22 +448,22 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   //===--------------------------------------------------------------------===//
   // Forked Attributes
   ArrayV1Attr readArrayV1Attr(DialectBytecodeReader &reader) const;
+  BooleanV1Attr readBooleanV1Attr(DialectBytecodeReader &reader) const;
   DictionaryV1Attr readDictionaryV1Attr(DialectBytecodeReader &reader) const;
   FloatV1Attr readFloatV1Attr(DialectBytecodeReader &reader) const;
   IntegerV1Attr readIntegerV1Attr(DialectBytecodeReader &reader) const;
   StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
   TensorV1Attr readTensorV1Attr(DialectBytecodeReader &reader) const;
   TypeV1Attr readTypeV1Attr(DialectBytecodeReader &reader) const;
-  // UnitV1Attr readUnitV1Attr(DialectBytecodeReader &reader) const; // inlined
 
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
+  void write(BooleanV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(DictionaryV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(FloatV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(IntegerV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(StringV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TensorV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeV1Attr attr, DialectBytecodeWriter &writer) const;
-  // void write(UnitV1Attr attr, DialectBytecodeWriter &writer) const;
 
   //===--------------------------------------------------------------------===//
   // Types
@@ -542,6 +543,8 @@ Attribute VhloBytecodeInterface::readAttribute(
     // Forked Attributes
     case vhlo_encoding::kArrayAttr:
       return readArrayV1Attr(reader);
+    case vhlo_encoding::kBooleanAttr:
+      return readBooleanV1Attr(reader);
     case vhlo_encoding::kDictionaryAttr:
       return readDictionaryV1Attr(reader);
     case vhlo_encoding::kFloatAttr:
@@ -554,8 +557,6 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readTensorV1Attr(reader);
     case vhlo_encoding::kTypeAttr:
       return readTypeV1Attr(reader);
-    case vhlo_encoding::kUnitAttr:
-      return UnitV1Attr::get(getContext());
     default:
       reader.emitError() << "unknown vhlo attribute code: " << code;
       return Attribute();
@@ -580,16 +581,13 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             write(attr, writer);
             return success();
           })
-      .Case<ArrayV1Attr, DictionaryV1Attr, FloatV1Attr, IntegerV1Attr,
-            StringV1Attr, TensorV1Attr, TypeV1Attr>([&](auto attr) {
-        LOG_WRITE_CALL;  // Forked attrs
-        write(attr, writer);
-        return success();
-      })
-      .Case([&](UnitV1Attr) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kUnitAttr), success();
-      })
+      .Case<ArrayV1Attr, BooleanV1Attr, DictionaryV1Attr, FloatV1Attr,
+            IntegerV1Attr, StringV1Attr, TensorV1Attr, TypeV1Attr>(
+          [&](auto attr) {
+            LOG_WRITE_CALL;  // Forked attrs
+            write(attr, writer);
+            return success();
+          })
       .Default([&](Attribute) {
         LOG_NOT_IMPLEMENTED;
         return failure();
@@ -983,6 +981,27 @@ void VhloBytecodeInterface::write(ArrayV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kArrayAttr);
   writer.writeAttributes(attr.getValue());
+}
+
+//===----------------------------------------------------------------------===//
+// BooleanV1Attr
+
+BooleanV1Attr VhloBytecodeInterface::readBooleanV1Attr(
+    DialectBytecodeReader &reader) const {
+  LOG_READ_CALL;
+  uint64_t int_value;
+  if (failed(reader.readVarInt(int_value))) return BooleanV1Attr();
+  if (int_value != 0 && int_value != 1) {
+    reader.emitError() << "unsupported value: " << int_value;
+    return BooleanV1Attr();
+  }
+  return BooleanV1Attr::get(getContext(), int_value == 1);
+}
+
+void VhloBytecodeInterface::write(BooleanV1Attr attr,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kBooleanAttr);
+  writer.writeVarInt(attr.getValue() ? 1 : 0);
 }
 
 //===----------------------------------------------------------------------===//
