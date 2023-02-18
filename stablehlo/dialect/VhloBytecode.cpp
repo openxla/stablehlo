@@ -86,12 +86,6 @@ enum AttributeCode {
   ///   }
   kArgResultAliasAttr = 0,
 
-  ///   ChannelHandleAttr {
-  ///     handle: svarint
-  ///     type: svarint
-  ///   }
-  kChannelHandleAttr = 1,
-
   ///   ComparisonDirectionAttr
   ///     value: varint (encoded enum)
   ///   }
@@ -102,39 +96,10 @@ enum AttributeCode {
   ///   }
   kComparisonTypeAttr = 3,
 
-  ///   ConvDimensionNumbersAttr {
-  ///     inputBatchDimension: svarint
-  ///     inputFeatureDimension: svarint
-  ///     inputSpatialDimensions: svarint[]
-  ///     kernelInputFeatureDimension: svarint
-  ///     kernelOutputFeatureDimension: svarint
-  ///     kernelSpatialDimensions: svarint[]
-  ///     outputBatchDimension: svarint
-  ///     outputFeatureDimension: svarint
-  ///     outputSpatialDimensions: svarint[]
-  ///   }
-  kConvDimensionNumbersAttr = 4,
-
-  ///   DotDimensionNumbersAttr {
-  ///     lhsBatchingDimensions: svarint[]
-  ///     rhsBatchingDimensions: svarint[]
-  ///     lhsContractingDimensions: svarint[]
-  ///     rhsContractingDimensions: svarint[]
-  ///   }
-  kDotDimensionNumbers = 5,
-
   ///   FftTypeAttr
   ///     value: varint (encoded enum)
   ///   }
   kFftTypeAttr = 6,
-
-  ///   GatherDimensionNumbersAttr {
-  ///     offsetDims: svarint[]
-  ///     collapsedSliceDims: svarint[]
-  ///     startIndexMap: svarint[]
-  ///     indexVectorDim: svarint
-  ///   }
-  kGatherDimensionNumbers = 7,
 
   ///   PrecisionAttr {
   ///     value: varint (encoded enum)
@@ -150,14 +115,6 @@ enum AttributeCode {
   ///     value: varint (encoded enum)
   ///   }
   kRngDistributionAttr = 10,
-
-  ///   ScatterDimensionNumbersAttr {
-  ///     updateWindowDims: svarint[]
-  ///     insertedWindowDims: svarint[]
-  ///     scatterDimsToOperandDims: svarint[]
-  ///     indexVectorDim: svarint
-  ///   }
-  kScatterDimensionNumbersAttr = 11,
 
   ///   TransposeAttr {
   ///     value: varint (encoded enum)
@@ -391,29 +348,19 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
   ArgResultAliasV1Attr readArgResultAliasV1Attr(
       DialectBytecodeReader &reader) const;
-  ChannelHandleV1Attr readChannelHandleV1Attr(
-      DialectBytecodeReader &reader) const;
   ComparisonDirectionV1Attr readComparisonDirectionV1Attr(
       DialectBytecodeReader &reader) const;
   ComparisonTypeV1Attr readComparisonTypeV1Attr(
       DialectBytecodeReader &reader) const;
-  ConvDimensionNumbersV1Attr readConvDimensionNumbersV1Attr(
-      DialectBytecodeReader &reader) const;
   CustomCallApiVersionV1Attr readCustomCallApiVersionV1Attr(
       DialectBytecodeReader &reader) const;
-  DotDimensionNumbersV1Attr readDotDimensionNumbersV1Attr(
-      DialectBytecodeReader &reader) const;
   FftTypeV1Attr readFftTypeV1Attr(DialectBytecodeReader &reader) const;
-  GatherDimensionNumbersV1Attr readGatherDimensionNumbersV1Attr(
-      DialectBytecodeReader &reader) const;
   OutputOperandAliasV1Attr readOutputOperandAliasV1Attr(
       DialectBytecodeReader &reader) const;
   PrecisionV1Attr readPrecisionV1Attr(DialectBytecodeReader &reader) const;
   RngAlgorithmV1Attr readRngAlgorithmV1Attr(
       DialectBytecodeReader &reader) const;
   RngDistributionV1Attr readRngDistributionV1Attr(
-      DialectBytecodeReader &reader) const;
-  ScatterDimensionNumbersV1Attr readScatterDimensionNumbersV1Attr(
       DialectBytecodeReader &reader) const;
   TransposeV1Attr readTransposeV1Attr(DialectBytecodeReader &reader) const;
   TypeExtensionsV1Attr readTypeExtensionsV1Attr(
@@ -422,26 +369,17 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
   void write(ArgResultAliasV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(ChannelHandleV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonDirectionV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(ComparisonTypeV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(ConvDimensionNumbersV1Attr attr,
-             DialectBytecodeWriter &writer) const;
   void write(CustomCallApiVersionV1Attr attr,
              DialectBytecodeWriter &writer) const;
-  void write(DotDimensionNumbersV1Attr attr,
-             DialectBytecodeWriter &writer) const;
   void write(FftTypeV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(GatherDimensionNumbersV1Attr attr,
-             DialectBytecodeWriter &writer) const;
   void write(OutputOperandAliasV1Attr attr,
              DialectBytecodeWriter &writer) const;
   void write(PrecisionV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(RngAlgorithmV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(RngDistributionV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(ScatterDimensionNumbersV1Attr attr,
-             DialectBytecodeWriter &writer) const;
   void write(TransposeV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(TypeExtensionsV1Attr attr, DialectBytecodeWriter &writer) const;
 
@@ -510,22 +448,14 @@ Attribute VhloBytecodeInterface::readAttribute(
   switch (code) {
     case vhlo_encoding::kArgResultAliasAttr:
       return readArgResultAliasV1Attr(reader);
-    case vhlo_encoding::kChannelHandleAttr:
-      return readChannelHandleV1Attr(reader);
     case vhlo_encoding::kComparisonDirectionAttr:
       return readComparisonDirectionV1Attr(reader);
     case vhlo_encoding::kComparisonTypeAttr:
       return readComparisonTypeV1Attr(reader);
-    case vhlo_encoding::kConvDimensionNumbersAttr:
-      return readConvDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kCustomCallApiVersionAttr:
       return readCustomCallApiVersionV1Attr(reader);
-    case vhlo_encoding::kDotDimensionNumbers:
-      return readDotDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kFftTypeAttr:
       return readFftTypeV1Attr(reader);
-    case vhlo_encoding::kGatherDimensionNumbers:
-      return readGatherDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kOutputOperandAlias:
       return readOutputOperandAliasV1Attr(reader);
     case vhlo_encoding::kPrecisionAttr:
@@ -534,8 +464,6 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readRngAlgorithmV1Attr(reader);
     case vhlo_encoding::kRngDistributionAttr:
       return readRngDistributionV1Attr(reader);
-    case vhlo_encoding::kScatterDimensionNumbersAttr:
-      return readScatterDimensionNumbersV1Attr(reader);
     case vhlo_encoding::kTransposeAttr:
       return readTransposeV1Attr(reader);
     case vhlo_encoding::kTypeExtensionsAttr:
@@ -569,13 +497,10 @@ Attribute VhloBytecodeInterface::readAttribute(
 LogicalResult VhloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<
-          ArgResultAliasV1Attr, ChannelHandleV1Attr, ComparisonDirectionV1Attr,
-          ComparisonTypeV1Attr, ConvDimensionNumbersV1Attr,
-          CustomCallApiVersionV1Attr, DotDimensionNumbersV1Attr, FftTypeV1Attr,
-          GatherDimensionNumbersV1Attr, OutputOperandAliasV1Attr,
-          PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
-          ScatterDimensionNumbersV1Attr, TransposeV1Attr, TypeExtensionsV1Attr>(
+      .Case<ArgResultAliasV1Attr, ComparisonDirectionV1Attr,
+            ComparisonTypeV1Attr, CustomCallApiVersionV1Attr, FftTypeV1Attr,
+            OutputOperandAliasV1Attr, PrecisionV1Attr, RngAlgorithmV1Attr,
+            RngDistributionV1Attr, TransposeV1Attr, TypeExtensionsV1Attr>(
           [&](auto attr) {
             LOG_WRITE_CALL;
             write(attr, writer);
@@ -626,26 +551,6 @@ void VhloBytecodeInterface::write(ArgResultAliasV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
-// ChannelHandleAttr
-
-ChannelHandleV1Attr VhloBytecodeInterface::readChannelHandleV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  int64_t handle, type;
-  if (failed(reader.readSignedVarInt(handle)) ||
-      failed(reader.readSignedVarInt(type)))
-    return ChannelHandleV1Attr();
-  return ChannelHandleV1Attr::get(getContext(), handle, type);
-}
-
-void VhloBytecodeInterface::write(ChannelHandleV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kChannelHandleAttr);
-  writer.writeSignedVarInt(attr.getHandle());
-  writer.writeSignedVarInt(attr.getType());
-}
-
-//===----------------------------------------------------------------------===//
 // ComparisonDirectionAttr
 
 ComparisonDirectionV1Attr VhloBytecodeInterface::readComparisonDirectionV1Attr(
@@ -680,54 +585,6 @@ void VhloBytecodeInterface::write(ComparisonTypeV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
-// ConvDimensionNumbersAttr
-
-ConvDimensionNumbersV1Attr
-VhloBytecodeInterface::readConvDimensionNumbersV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  int64_t inputBatchDimension, inputFeatureDimension;
-  llvm::SmallVector<int64_t> inputSpatialDimensions;
-
-  int64_t kernelInputFeatureDimension, kernelOutputFeatureDimension;
-  llvm::SmallVector<int64_t> kernelSpatialDimensions;
-
-  int64_t outputBatchDimension, outputFeatureDimension;
-  llvm::SmallVector<int64_t> outputSpatialDimensions;
-
-  if (failed(reader.readSignedVarInt(inputBatchDimension)) ||
-      failed(reader.readSignedVarInt(inputFeatureDimension)) ||
-      failed(reader.readSignedVarInts(inputSpatialDimensions)) ||
-      failed(reader.readSignedVarInt(kernelInputFeatureDimension)) ||
-      failed(reader.readSignedVarInt(kernelOutputFeatureDimension)) ||
-      failed(reader.readSignedVarInts(kernelSpatialDimensions)) ||
-      failed(reader.readSignedVarInt(outputBatchDimension)) ||
-      failed(reader.readSignedVarInt(outputFeatureDimension)) ||
-      failed(reader.readSignedVarInts(outputSpatialDimensions)))
-    return ConvDimensionNumbersV1Attr();
-
-  return ConvDimensionNumbersV1Attr::get(
-      getContext(), inputBatchDimension, inputFeatureDimension,
-      inputSpatialDimensions, kernelInputFeatureDimension,
-      kernelOutputFeatureDimension, kernelSpatialDimensions,
-      outputBatchDimension, outputFeatureDimension, outputSpatialDimensions);
-}
-
-void VhloBytecodeInterface::write(ConvDimensionNumbersV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kConvDimensionNumbersAttr);
-  writer.writeSignedVarInt(attr.getInputBatchDimension());
-  writer.writeSignedVarInt(attr.getInputFeatureDimension());
-  writer.writeSignedVarInts(attr.getInputSpatialDimensions());
-  writer.writeSignedVarInt(attr.getKernelInputFeatureDimension());
-  writer.writeSignedVarInt(attr.getKernelOutputFeatureDimension());
-  writer.writeSignedVarInts(attr.getKernelSpatialDimensions());
-  writer.writeSignedVarInt(attr.getOutputBatchDimension());
-  writer.writeSignedVarInt(attr.getOutputFeatureDimension());
-  writer.writeSignedVarInts(attr.getOutputSpatialDimensions());
-}
-
-//===----------------------------------------------------------------------===//
 // CustomCallApiVersionAttr
 
 CustomCallApiVersionV1Attr
@@ -746,35 +603,6 @@ void VhloBytecodeInterface::write(CustomCallApiVersionV1Attr attr,
 }
 
 //===----------------------------------------------------------------------===//
-// DotDimensionNumbersAttr
-
-DotDimensionNumbersV1Attr VhloBytecodeInterface::readDotDimensionNumbersV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  llvm::SmallVector<int64_t> lhsBatchingDimensions, rhsBatchingDimensions,
-      lhsContractingDimensions, rhsContractingDimensions;
-
-  if (failed(reader.readSignedVarInts(lhsBatchingDimensions)) ||
-      failed(reader.readSignedVarInts(rhsBatchingDimensions)) ||
-      failed(reader.readSignedVarInts(lhsContractingDimensions)) ||
-      failed(reader.readSignedVarInts(rhsContractingDimensions)))
-    return DotDimensionNumbersV1Attr();
-
-  return DotDimensionNumbersV1Attr::get(
-      getContext(), lhsBatchingDimensions, rhsBatchingDimensions,
-      lhsContractingDimensions, rhsContractingDimensions);
-}
-
-void VhloBytecodeInterface::write(DotDimensionNumbersV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kDotDimensionNumbers);
-  writer.writeSignedVarInts(attr.getLhsBatchingDimensions());
-  writer.writeSignedVarInts(attr.getRhsBatchingDimensions());
-  writer.writeSignedVarInts(attr.getLhsContractingDimensions());
-  writer.writeSignedVarInts(attr.getRhsContractingDimensions());
-}
-
-//===----------------------------------------------------------------------===//
 // FftTypeAttr
 
 FftTypeV1Attr VhloBytecodeInterface::readFftTypeV1Attr(
@@ -788,36 +616,6 @@ void VhloBytecodeInterface::write(FftTypeV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kFftTypeAttr);
   hlo::bytecode::writeEnumAttribute<FftTypeV1>(attr, writer);
-}
-
-//===----------------------------------------------------------------------===//
-// GatherDimensionNumbersAttr
-
-GatherDimensionNumbersV1Attr
-VhloBytecodeInterface::readGatherDimensionNumbersV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  llvm::SmallVector<int64_t> offsetDims, collapsedSliceDims, startIndexMap;
-  int64_t indexVectorDim;
-
-  if (failed(reader.readSignedVarInts(offsetDims)) ||
-      failed(reader.readSignedVarInts(collapsedSliceDims)) ||
-      failed(reader.readSignedVarInts(startIndexMap)) ||
-      failed(reader.readSignedVarInt(indexVectorDim)))
-    return GatherDimensionNumbersV1Attr();
-
-  return GatherDimensionNumbersV1Attr::get(getContext(), offsetDims,
-                                           collapsedSliceDims, startIndexMap,
-                                           indexVectorDim);
-}
-
-void VhloBytecodeInterface::write(GatherDimensionNumbersV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kGatherDimensionNumbers);
-  writer.writeSignedVarInts(attr.getOffsetDims());
-  writer.writeSignedVarInts(attr.getCollapsedSliceDims());
-  writer.writeSignedVarInts(attr.getStartIndexMap());
-  writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
 
 //===----------------------------------------------------------------------===//
@@ -895,37 +693,6 @@ void VhloBytecodeInterface::write(RngDistributionV1Attr attr,
                                   DialectBytecodeWriter &writer) const {
   writer.writeVarInt(vhlo_encoding::kRngDistributionAttr);
   hlo::bytecode::writeEnumAttribute<RngDistributionV1>(attr, writer);
-}
-
-//===----------------------------------------------------------------------===//
-// ScatterDimensionNumbersAttr
-
-ScatterDimensionNumbersV1Attr
-VhloBytecodeInterface::readScatterDimensionNumbersV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  llvm::SmallVector<int64_t> updateWindowDims, insertedWindowDims,
-      scatterDimsToOperandDims;
-  int64_t indexVectorDim;
-
-  if (failed(reader.readSignedVarInts(updateWindowDims)) ||
-      failed(reader.readSignedVarInts(insertedWindowDims)) ||
-      failed(reader.readSignedVarInts(scatterDimsToOperandDims)) ||
-      failed(reader.readSignedVarInt(indexVectorDim)))
-    return ScatterDimensionNumbersV1Attr();
-
-  return ScatterDimensionNumbersV1Attr::get(
-      getContext(), updateWindowDims, insertedWindowDims,
-      scatterDimsToOperandDims, indexVectorDim);
-}
-
-void VhloBytecodeInterface::write(ScatterDimensionNumbersV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kScatterDimensionNumbersAttr);
-  writer.writeSignedVarInts(attr.getUpdateWindowDims());
-  writer.writeSignedVarInts(attr.getInsertedWindowDims());
-  writer.writeSignedVarInts(attr.getScatterDimsToOperandDims());
-  writer.writeSignedVarInt(attr.getIndexVectorDim());
 }
 
 //===----------------------------------------------------------------------===//

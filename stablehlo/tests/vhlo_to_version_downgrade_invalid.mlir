@@ -38,7 +38,7 @@ func.func @custom_call_v2_with_output_operand_aliases_unregistered(%arg0 : tenso
 // -----
 
 func.func @op_collective_permute(%arg0: tensor<16x8xf32>) -> tensor<16x8xf32> {
-  // expected-error @+2 {{failed to downgrade vhlo.collective_permute_v2, op has a non-empty channel_handle attribute}}
+  // expected-error @+2 {{failed to downgrade vhlo.collective_permute_v2, op has a non-empty channel_id attribute}}
   // expected-error @+1 {{failed to legalize operation 'vhlo.collective_permute_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.collective_permute"(%arg0) {
     source_target_pairs = dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>,
@@ -84,7 +84,7 @@ func.func @invalid_program_unknown_op(%arg0 : tensor<f32>) -> (tensor<f32>) {
 // -----
 
 func.func @all_to_all_to_v1(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error @+2 {{failed to downgrade vhlo.all_to_all_v2, op has a non-empty channel_handle attribute}}
+  // expected-error @+2 {{failed to downgrade vhlo.all_to_all_v2, op has a non-empty channel_id attribute}}
   // expected-error @+1 {{failed to legalize operation 'vhlo.all_to_all_v2' that was explicitly marked illegal}}
   %0 = "stablehlo.all_to_all"(%arg0) {
     split_dimension = 1 : i64,

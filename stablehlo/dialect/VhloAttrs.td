@@ -60,42 +60,6 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
 // VHLO Attributes
 //===----------------------------------------------------------------------===//
 
-def VHLO_ScatterDimensionNumbersAttrV1 : VHLO_AttrDef<"ScatterDimensionNumbersV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "scatter";
-  let parameters = (ins
-      VHLO_Dims:$updateWindowDims,
-      VHLO_Dims:$insertedWindowDims,
-      VHLO_Dims:$scatterDimsToOperandDims,
-      "int64_t":$indexVectorDim
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_GatherDimensionNumbersAttrV1 : VHLO_AttrDef<"GatherDimensionNumbersV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "gather";
-  let parameters = (ins
-      VHLO_Dims:$offsetDims,
-      VHLO_Dims:$collapsedSliceDims,
-      VHLO_Dims:$startIndexMap,
-      "int64_t":$indexVectorDim
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_DotDimensionNumbersAttrV1 : VHLO_AttrDef<"DotDimensionNumbersV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "dot";
-  let parameters = (ins
-      VHLO_Dims:$lhsBatchingDimensions,
-      VHLO_Dims:$rhsBatchingDimensions,
-      VHLO_Dims:$lhsContractingDimensions,
-      VHLO_Dims:$rhsContractingDimensions
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
 def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0", "current"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "output_operand_alias";
@@ -119,51 +83,11 @@ def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.3.0", "curre
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ChannelHandleAttrV1 : VHLO_AttrDef<"ChannelHandleV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "channel_handle";
-  let parameters = (ins "int64_t":$handle, "int64_t":$type);
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
 def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.3.0", "current"> {
   let cppNamespace = "::mlir::vhlo";
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_ConvDimensionNumbersAttrV1 : VHLO_AttrDef<"ConvDimensionNumbersV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "conv";
-  let parameters = (ins
-    "int64_t":$inputBatchDimension,
-    "int64_t":$inputFeatureDimension,
-    VHLO_Dims:$inputSpatialDimensions,
-
-    "int64_t":$kernelInputFeatureDimension,
-    "int64_t":$kernelOutputFeatureDimension,
-    VHLO_Dims:$kernelSpatialDimensions,
-
-    "int64_t":$outputBatchDimension,
-    "int64_t":$outputFeatureDimension,
-    VHLO_Dims:$outputSpatialDimensions
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_ConvolutionAttributesV1 {
-  dag attributes = (ins
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$padding,
-    OptionalAttr<VHLO_AnyAttr>:$lhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$rhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$window_reversal,
-    VHLO_AnyAttr:$dimension_numbers,
-    VHLO_AnyAttr:$feature_group_count,
-    VHLO_AnyAttr:$batch_group_count,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
-  );
 }
 
 //===----------------------------------------------------------------------===//
