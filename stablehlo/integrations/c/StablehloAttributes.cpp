@@ -411,7 +411,7 @@ MlirAttribute stablehloComparisonDirectionAttrGet(MlirContext ctx,
                                                   MlirStringRef value) {
   std::optional<mlir::stablehlo::ComparisonDirection> comparisonDirection =
       mlir::stablehlo::symbolizeComparisonDirection(unwrap(value));
-  if (!comparisonDirection) llvm_unreachable("Invalid value.");
+  if (!comparisonDirection) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonDirectionAttr::get(
       unwrap(ctx), comparisonDirection.value()));
 }
@@ -435,7 +435,7 @@ MlirAttribute stablehloComparisonTypeAttrGet(MlirContext ctx,
                                              MlirStringRef value) {
   std::optional<mlir::stablehlo::ComparisonType> comparisonType =
       mlir::stablehlo::symbolizeComparisonType(unwrap(value));
-  if (!comparisonType) llvm_unreachable("Invalid value.");
+  if (!comparisonType) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::stablehlo::ComparisonTypeAttr::get(unwrap(ctx),
                                                        comparisonType.value()));
 }
@@ -456,7 +456,7 @@ MlirStringRef stablehloComparisonTypeAttrGetValue(MlirAttribute attr) {
 MlirAttribute stablehloPrecisionAttrGet(MlirContext ctx, MlirStringRef value) {
   std::optional<mlir::stablehlo::Precision> precision =
       mlir::stablehlo::symbolizePrecision(unwrap(value));
-  if (!precision) llvm_unreachable("Invalid value.");
+  if (!precision) llvm::report_fatal_error("Invalid value.");
   return wrap(
       mlir::stablehlo::PrecisionAttr::get(unwrap(ctx), precision.value()));
 }
@@ -477,7 +477,7 @@ MlirStringRef stablehloPrecisionAttrGetValue(MlirAttribute attr) {
 MlirAttribute stablehloFftTypeAttrGet(MlirContext ctx, MlirStringRef value) {
   std::optional<mlir::stablehlo::FftType> fftType =
       mlir::stablehlo::symbolizeFftType(unwrap(value));
-  if (!fftType) llvm_unreachable("Invalid value.");
+  if (!fftType) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::stablehlo::FftTypeAttr::get(unwrap(ctx), fftType.value()));
 }
 
@@ -497,7 +497,7 @@ MlirStringRef stablehloFftTypeAttrGetValue(MlirAttribute attr) {
 MlirAttribute stablehloTransposeAttrGet(MlirContext ctx, MlirStringRef value) {
   std::optional<mlir::stablehlo::Transpose> transpose =
       mlir::stablehlo::symbolizeTranspose(unwrap(value));
-  if (!transpose) llvm_unreachable("Invalid value.");
+  if (!transpose) llvm::report_fatal_error("Invalid value.");
   return wrap(
       mlir::stablehlo::TransposeAttr::get(unwrap(ctx), transpose.value()));
 }
@@ -519,7 +519,7 @@ MlirAttribute stablehloRngDistributionAttrGet(MlirContext ctx,
                                               MlirStringRef value) {
   std::optional<mlir::stablehlo::RngDistribution> rngDistribution =
       mlir::stablehlo::symbolizeRngDistribution(unwrap(value));
-  if (!rngDistribution) llvm_unreachable("Invalid value.");
+  if (!rngDistribution) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::stablehlo::RngDistributionAttr::get(
       unwrap(ctx), rngDistribution.value()));
 }
@@ -541,7 +541,7 @@ MlirAttribute stablehloRngAlgorithmAttrGet(MlirContext ctx,
                                            MlirStringRef value) {
   std::optional<mlir::stablehlo::RngAlgorithm> rngAlgorithm =
       mlir::stablehlo::symbolizeRngAlgorithm(unwrap(value));
-  if (!rngAlgorithm) llvm_unreachable("Invalid value.");
+  if (!rngAlgorithm) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::stablehlo::RngAlgorithmAttr::get(unwrap(ctx),
                                                      rngAlgorithm.value()));
 }

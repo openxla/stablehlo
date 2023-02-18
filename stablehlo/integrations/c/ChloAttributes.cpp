@@ -27,7 +27,7 @@ MlirAttribute chloComparisonDirectionAttrGet(MlirContext ctx,
                                              MlirStringRef value) {
   std::optional<mlir::chlo::ComparisonDirection> comparisonDirection =
       mlir::chlo::symbolizeComparisonDirection(unwrap(value));
-  if (!comparisonDirection) llvm_unreachable("Invalid value.");
+  if (!comparisonDirection) llvm::report_fatal_error("Invalid value.");
   return wrap(mlir::chlo::ComparisonDirectionAttr::get(
       unwrap(ctx), comparisonDirection.value()));
 }
@@ -48,7 +48,7 @@ MlirStringRef chloComparisonDirectionAttrGetValue(MlirAttribute attr) {
 MlirAttribute chloComparisonTypeAttrGet(MlirContext ctx, MlirStringRef value) {
   std::optional<mlir::chlo::ComparisonType> comparisonType =
       mlir::chlo::symbolizeComparisonType(unwrap(value));
-  if (!comparisonType) llvm_unreachable("Invalid value.");
+  if (!comparisonType) llvm::report_fatal_error("Invalid value.");
   return wrap(
       mlir::chlo::ComparisonTypeAttr::get(unwrap(ctx), comparisonType.value()));
 }

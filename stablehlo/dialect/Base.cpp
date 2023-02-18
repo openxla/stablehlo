@@ -133,7 +133,7 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
                                  rankedTensorTy.getEncoding());
   if (auto unrankedTensorTy = tensorType.dyn_cast<UnrankedTensorType>())
     return UnrankedTensorType::get(elementType);
-  llvm_unreachable("unhandled type");
+  llvm::report_fatal_error("unsupported type");
 }
 
 // createRealType takes a tensor type that may have complex elements and
