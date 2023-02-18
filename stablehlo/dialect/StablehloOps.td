@@ -318,7 +318,7 @@ def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
 
     Example:
     ```mlir
-    %result = stablehlo.exponential %operand : tensor<2xf32>
+    %result = stablehlo.exponential %operand : tensor<2x2xf64>
     ```
   }];
 }
