@@ -1906,27 +1906,27 @@ If `batch_group_count > 1`:
 
 #### Inputs
 
-| Label | Name                              | Type                                                        | Constraints                                  |
-|-------|-----------------------------------|-------------------------------------------------------------|----------------------------------------------|
-| (I1)  | `lhs`                             | tensor                                                      | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
-| (I2)  | `rhs`                             | tensor                                                      | (C1), (C2), (C15-C17), (C26)                 |
-| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                            |
-| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                                  |
-| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                            |
-| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                            |
-| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                  | (C10)                                        |
-| (I8)  | `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                          |
-| (I9)  | `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14), (C15)                          |
-| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                          |
-| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                     | (C15), (C19)                                 |
-| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                     | (C16), (C17), (C19), (C26)                   |
-| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C18), (C19), (C26)                          |
-| (I14) | `output_batch_dimension`          | constant of type `si64`                                     | (C21), (C26)                                 |
-| (I15) | `output_feature_dimension`        | constant of type `si64`                                     | (C21), (C26)                                 |
-| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C20), (C21), (C26)                          |
-| (I17) | `feature_group_count`             | constant of type `si64`                                     | (C12), (C15), (C17), (C22), (C24)            |
-| (I18) | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)            |
-| (I19) | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
+| Label | Name                              | Type                                                         | Constraints                                  |
+|-------|-----------------------------------|--------------------------------------------------------------|----------------------------------------------|
+| (I1)  | `lhs`                             | tensor                                                       | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
+| (I2)  | `rhs`                             | tensor                                                       | (C1), (C2), (C15-C17), (C26)                 |
+| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C26)                            |
+| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C5), (C26)                                  |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C6), (C7), (C26)                            |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C8), (C9), (C26)                            |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C10)                                        |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C11), (C14), (C26)                          |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C12), (C14), (C15)                          |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C13), (C14), (C26)                          |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C15), (C19)                                 |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C16), (C17), (C19), (C26)                   |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C18), (C19), (C26)                          |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C21), (C26)                                 |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C21), (C26)                                 |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C20), (C21), (C26)                          |
+| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C12), (C15), (C17), (C22), (C24)            |
+| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C11), (C16), (C23), (C24), (C26)            |
+| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
 
 #### Outputs
 
@@ -2112,14 +2112,14 @@ implementation-defined metadata.
 
 #### Inputs
 
-| Label | Name                  | Type                         |
-|-------|-----------------------|------------------------------|
-| (I1)  | `inputs`              | variadic number of values    |
-| (I2)  | `call_target_name`    | constant of type `string`    |
-| (I3)  | `has_side_effect`     | constant of type `i1`        |
-| (I4)  | `backend_config`      | constant of type `string`    |
-| (I5)  | `api_version`         | constant of type `si32`      |
-| (I6)  | `called_computations` | variadic number of functions |
+| Label | Name                  | Type                                          |
+|-------|-----------------------|-----------------------------------------------|
+| (I1)  | `inputs`              | variadic number of values                     |
+| (I2)  | `call_target_name`    | constant of type `string`                     |
+| (I3)  | `has_side_effect`     | constant of type `i1`                         |
+| (I4)  | `backend_config`      | constant of type `string`                     |
+| (I5)  | `api_version`         | constant of type `si32`                       |
+| (I6)  | `called_computations` | variadic number of constants of type `string` |
 
 #### Outputs
 
@@ -2225,15 +2225,15 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                        | Constraints                           |
-|-------|------------------------------|-------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor                                                      | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor                                                      | (C1), (C8), (C9), (C10), (C11), (C13) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C4), (C6), (C10), (C13)        |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C5), (C8), (C10)               |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C7), (C11)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C5), (C9), (C11)               |
-| (I7)  | `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+| Label | Name                         | Type                                                         | Constraints                           |
+|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
+| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
+| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C5), (C9), (C11)               |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
 
 #### Outputs
 

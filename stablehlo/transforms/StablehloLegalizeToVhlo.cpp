@@ -79,13 +79,6 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
   if (!vhloValue.has_value()) return {};                             \
   return vhlo::Name##Version##Attr::get(attr.getContext(), vhloValue.value())
 
-Attribute convertCustomCallApiVersion(Attribute stablehloAttr) {
-  if (auto attr = stablehloAttr.dyn_cast<CustomCallApiVersionAttr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
-  }
-  return {};
-}
-
 Attribute convertAttrToVhlo(Attribute stablehloAttr,
                             TypeConverter* typeConverter) {
   // Handle StableHLO attributes.
@@ -185,12 +178,6 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     }
     return vhlo::DictionaryV1Attr::get(attr.getContext(), vhloAttrs);
   }
-  if (auto attr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>()) {
-    auto vhloRootRef =
-        convertAttrToVhlo(attr.getRootReference(), typeConverter);
-    if (!vhloRootRef) return {};
-    return vhlo::FlatSymbolRefV1Attr::get(attr.getContext(), vhloRootRef);
-  }
   if (auto attr = stablehloAttr.dyn_cast<FloatAttr>()) {
     auto vhloFloatType = typeConverter->convertType(attr.getType());
     if (!vhloFloatType) return {};
@@ -225,6 +212,39 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
   return {};  // Failed to convert attribute.
 }
 
+Attribute convertCustomCallApiVersion(Attribute stablehloAttr) {
+  if (auto attr = stablehloAttr.dyn_cast<CustomCallApiVersionAttr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
+  }
+  return {};
+}
+
+Attribute convertSymbolAttrToVhlo(Attribute stablehloAttr,
+                                  TypeConverter* typeConverter) {
+  auto stablehloSymbolAttr = stablehloAttr.dyn_cast<FlatSymbolRefAttr>();
+  if (!stablehloSymbolAttr) return {};
+  return convertAttrToVhlo(stablehloSymbolAttr.getAttr(), typeConverter);
+}
+
+Attribute convertCustomCallCalledComputations(Attribute stablehloAttr,
+                                              TypeConverter* typeConverter) {
+  if (auto stablehloArrayAttr = stablehloAttr.dyn_cast<ArrayAttr>()) {
+    SmallVector<Attribute> vhloAttrs;
+    for (auto stablehloAttr : stablehloArrayAttr) {
+      auto vhloAttr = convertSymbolAttrToVhlo(stablehloAttr, typeConverter);
+      if (!vhloAttr) return {};
+      vhloAttrs.push_back(vhloAttr);
+    }
+    return vhlo::ArrayV1Attr::get(stablehloAttr.getContext(), vhloAttrs);
+  }
+  return {};
+}
+
+Attribute convertFuncCallee(Attribute stablehloAttr,
+                            TypeConverter* typeConverter) {
+  return convertSymbolAttrToVhlo(stablehloAttr, typeConverter);
+}
+
 #undef RETURN_CONVERTED_ENUM_ATTR
 
 template <typename StablehloOpTy>
@@ -247,18 +267,30 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
 
     SmallVector<NamedAttribute> vhloAttrs;
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
+      Attribute vhloAttr;
       if constexpr (std::is_same<StablehloOpTy,
                                  stablehlo::CustomCallOp>::value) {
         if (stablehloAttr.getName() == "api_version") {
-          auto vhloAttr = convertCustomCallApiVersion(stablehloAttr.getValue());
+          vhloAttr = convertCustomCallApiVersion(stablehloAttr.getValue());
           if (!vhloAttr) return failure();
-          vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
-          continue;
+        }
+        if (stablehloAttr.getName() == "called_computations") {
+          vhloAttr = convertCustomCallCalledComputations(
+              stablehloAttr.getValue(), this->getTypeConverter());
+          if (!vhloAttr) return failure();
+        }
+      } else if constexpr (std::is_same<StablehloOpTy, func::CallOp>::value) {
+        if (stablehloAttr.getName() == "callee") {
+          vhloAttr = convertFuncCallee(stablehloAttr.getValue(),
+                                       this->getTypeConverter());
+          if (!vhloAttr) return failure();
         }
       }
-      auto vhloAttr =
-          convertAttrToVhlo(stablehloAttr.getValue(), this->getTypeConverter());
-      if (!vhloAttr) return failure();
+      if (!vhloAttr) {
+        vhloAttr = convertAttrToVhlo(stablehloAttr.getValue(),
+                                     this->getTypeConverter());
+        if (!vhloAttr) return failure();
+      }
       vhloAttrs.push_back({stablehloAttr.getName(), vhloAttr});
     }
 

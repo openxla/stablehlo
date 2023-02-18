@@ -658,14 +658,12 @@ func.func @op_cstr_reshapable(%arg0: index, %arg1: tensor<1xindex>) -> !shape.wi
 }
 // CHECK-LABEL: "op_cstr_reshapable"
 
-func.func @called_computation() { func.return }
-
 func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
   //      CHECK: "vhlo.custom_call_v2"(%arg0) {
   // CHECK-SAME:   api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
   // CHECK-SAME:   backend_config = #vhlo.string<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string<"foo">,
-  // CHECK-SAME:   called_computations = #vhlo.array<[#vhlo.sym<#vhlo.string<"foo">>]>,
+  // CHECK-SAME:   called_computations = #vhlo.array<[#vhlo.string<"foo">]>,
   // CHECK-SAME:   has_side_effect = #vhlo.integer<false>,
   // CHECK-SAME:   operand_layouts = #vhlo.array<[#vhlo.tensor<dense<> : tensor<0xindex>>]>,
   // CHECK-SAME:   output_operand_aliases = #vhlo.array<[
@@ -1785,7 +1783,7 @@ func.func @type_token_callee(%arg0: !stablehlo.token) -> !stablehlo.token {
 // CHECK-LABEL: "type_token_callee"
 
 func.func @type_token_caller(%arg0: !stablehlo.token) -> !stablehlo.token {
-  // CHECK:      "vhlo.call"(%arg0) {callee = #vhlo.sym<#vhlo.string<"type_token_callee">>}
+  // CHECK:      "vhlo.call"(%arg0) {callee = #vhlo.string<"type_token_callee">}
   // CHECK-SAME: (!vhlo.token) -> !vhlo.token
   %0 = func.call @type_token_callee(%arg0) : (!stablehlo.token) -> !stablehlo.token
   return %0 : !stablehlo.token
