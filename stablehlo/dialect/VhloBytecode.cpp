@@ -240,105 +240,112 @@ enum AttributeCode {
 enum TypeCode {
   // TO ADD TYPE: Add an enum value with doc string for new type.
 
-  ///   TokenType {
+  ///   BooleanV1Type {
   ///   }
-  kTokenType = 0,
+  kBooleanV1Type = 0,
 
-  ///   BFloat16Type {
-  ///   }
-  kBFloat16Type = 1,
-
-  ///   ComplexType {
+  ///   ComplexV1Type {
   ///     elementType: Type
   ///   }
-  kComplexType = 2,
+  kComplexV1Type = 1,
 
-  ///   Float16Type {
+  ///   FloatBF16V1Type {
   ///   }
-  kFloat16Type = 3,
+  kFloatBF16V1Type = 2,
 
-  ///   Float32Type {
+  ///   FloatF16V1Type {
   ///   }
-  kFloat32Type = 4,
+  kFloatF16V1Type = 3,
 
-  ///   Float64Type {
+  ///   FloatF32V1Type {
   ///   }
-  kFloat64Type = 5,
+  kFloatF32V1Type = 4,
 
-  ///   FunctionType {
+  ///   FloatF64V1Type {
+  ///   }
+  kFloatF64V1Type = 5,
+
+  ///   FloatF8E4M3FNV1Type {
+  ///   }
+  kFloatF8E4M3FNV1Type = 6,
+
+  ///   FloatF8E5M2V1Type {
+  ///   }
+  kFloatF8E5M2V1Type = 7,
+
+  ///   FunctionV1Type {
   ///     inputs: Type[]
-  ///     results: Type[]
+  ///     outputs: Type[]
   ///   }
-  kFunctionType = 6,
+  kFunctionV1Type = 8,
 
-  ///   IntegerI1Type {
+  ///   IndexV1Type {
   ///   }
-  kIntegerI1Type = 7,
+  kIndexV1Type = 9,
 
-  ///   IntegerI4Type {
+  ///   IntegerSI4V1Type {
   ///   }
-  kIntegerI4Type = 8,
+  kIntegerSI4V1Type = 10,
 
-  ///   IntegerI8Type {
+  ///   IntegerSI8V1Type {
   ///   }
-  kIntegerI8Type = 9,
+  kIntegerSI8V1Type = 11,
 
-  ///   IntegerI16Type {
+  ///   IntegerSI16V1Type {
   ///   }
-  kIntegerI16Type = 10,
+  kIntegerSI16V1Type = 12,
 
-  ///   IntegerI32Type {
+  ///   IntegerSI32V1Type {
   ///   }
-  kIntegerI32Type = 11,
+  kIntegerSI32V1Type = 13,
 
-  ///   IntegerI64Type {
+  ///   IntegerSI64V1Type {
   ///   }
-  kIntegerI64Type = 12,
+  kIntegerSI64V1Type = 14,
 
-  ///   IntegerUI4Type {
+  ///   IntegerUI4V1Type {
   ///   }
-  kIntegerUI4Type = 13,
+  kIntegerUI4V1Type = 15,
 
-  ///   IntegerUI8Type {
+  ///   IntegerUI8V1Type {
   ///   }
-  kIntegerUI8Type = 14,
+  kIntegerUI8V1Type = 16,
 
-  ///   IntegerUI16Type {
+  ///   IntegerUI16V1Type {
   ///   }
-  kIntegerUI16Type = 15,
+  kIntegerUI16V1Type = 17,
 
-  ///   IntegerUI32Type {
+  ///   IntegerUI32V1Type {
   ///   }
-  kIntegerUI32Type = 16,
+  kIntegerUI32V1Type = 18,
 
-  ///   IntegerUI64Type {
+  ///   IntegerUI64V1Type {
   ///   }
-  kIntegerUI64Type = 17,
+  kIntegerUI64V1Type = 19,
 
-  ///   IndexType {
-  ///   }
-  kIndexType = 18,
-
-  ///   RankedTensorType {
-  ///     shape: svarint[]
-  ///     elementType: Type,
-  ///   }
-  kRankedTensorType = 19,
-
-  ///   RankedTensorTypeWithEncoding {
-  ///     encoding: Attribute
-  ///     shape: svarint[]
+  ///   RankedTensorV1Type {
+  ///     shape: svarint[],
   ///     elementType: Type
   ///   }
-  /// Variant of RankedTensorType with an encoding.
-  kRankedTensorTypeWithEncoding = 20,
+  kRankedTensorV1Type = 20,
 
-  ///   TupleType {
+  ///   RankedTensorV1TypeWithEncoding {
+  ///     encoding: Attribute,
+  ///     shape: svarint[],
+  ///     elementType: Type
+  ///   }
+  kRankedTensorV1TypeWithEncoding = 21,
+
+  ///   TokenV1Type {
+  ///   }
+  kTokenV1Type = 22,
+
+  ///   TupleV1Type {
   ///     elementTypes: Type[]
   ///   }
-  kTupleType = 21,
+  kTupleV1Type = 23,
 
-  ///   UniformQuantizedType {
+  ///   UniformQuantizedV1Type {
   ///     flags: varint
   ///     storageType: Type
   ///     expressedType: Type
@@ -347,24 +354,16 @@ enum TypeCode {
   ///     storageTypeMin: svarint
   ///     storageTypeMax: svarint
   ///   }
-  kUniformQuantizedType = 22,
+  kUniformQuantizedV1Type = 24,
 
-  ///   UnrankedTensorType {
+  ///   UnrankedTensorV1Type {
   ///     elementType: Type
   ///   }
-  kUnrankedTensorType = 23,
+  kUnrankedTensorV1Type = 25,
 
-  ///   WitnessType {
+  ///   WitnessV1Type {
   ///   }
-  kWitnessType = 24,
-
-  ///   Float8E4M3FN {
-  ///   }
-  kFloat8E4M3FN = 25,
-
-  ///   Float8E5M2 {
-  ///   }
-  kFloat8E5M2 = 26,
+  kWitnessV1Type = 26,
 };
 
 }  // namespace vhlo_encoding
@@ -484,27 +483,23 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD TYPE: Include a read method for each type in VHLO
   // Ex: SomeType readSomeType(DialectBytecodeReader &reader) const;
+  ComplexV1Type readComplexV1Type(DialectBytecodeReader &reader) const;
+  FunctionV1Type readFunctionV1Type(DialectBytecodeReader &reader) const;
+  RankedTensorV1Type readRankedTensorV1Type(DialectBytecodeReader &reader,
+                                            bool hasEncoding) const;
   TokenV1Type readTokenV1Type(DialectBytecodeReader &reader) const;
+  TupleV1Type readTupleV1Type(DialectBytecodeReader &reader) const;
+  UniformQuantizedV1Type readUniformQuantizedV1Type(
+      DialectBytecodeReader &reader) const;
+  UnrankedTensorV1Type readUnrankedTensorV1Type(
+      DialectBytecodeReader &reader) const;
 
   // TO ADD TYPE: Include a write method for each type in VHLO
   // Ex: void write(SomeType attr, DialectBytecodeWriter &writer) const;
-  void write(TokenV1Type type, DialectBytecodeWriter &writer) const;
-
-  //===--------------------------------------------------------------------===//
-  // Forked Types
-  ComplexV1Type readComplexType(DialectBytecodeReader &reader) const;
-  FunctionV1Type readFunctionType(DialectBytecodeReader &reader) const;
-  RankedTensorV1Type readRankedTensorType(DialectBytecodeReader &reader,
-                                          bool hasEncoding) const;
-  TupleV1Type readTupleType(DialectBytecodeReader &reader) const;
-  UniformQuantizedV1Type readUniformQuantizedType(
-      DialectBytecodeReader &reader) const;
-  UnrankedTensorV1Type readUnrankedTensorType(
-      DialectBytecodeReader &reader) const;
-
   void write(ComplexV1Type type, DialectBytecodeWriter &writer) const;
   void write(FunctionV1Type type, DialectBytecodeWriter &writer) const;
   void write(RankedTensorV1Type type, DialectBytecodeWriter &writer) const;
+  void write(TokenV1Type type, DialectBytecodeWriter &writer) const;
   void write(TupleV1Type type, DialectBytecodeWriter &writer) const;
   void write(UniformQuantizedV1Type type, DialectBytecodeWriter &writer) const;
   void write(UnrankedTensorV1Type type, DialectBytecodeWriter &writer) const;
@@ -1036,12 +1031,12 @@ void VhloBytecodeInterface::write(DictionaryV1Attr attr,
 namespace {
 /// Returns the floating semantics for the given type.
 const llvm::fltSemantics &getFloatSemantics(Type type) {
-  if (type.isa<Float8E4M3FNV1Type>()) return APFloat::Float8E4M3FN();
-  if (type.isa<Float8E5M2V1Type>()) return APFloat::Float8E5M2();
-  if (type.isa<BFloat16V1Type>()) return APFloat::BFloat();
-  if (type.isa<Float16V1Type>()) return APFloat::IEEEhalf();
-  if (type.isa<Float32V1Type>()) return APFloat::IEEEsingle();
-  if (type.isa<Float64V1Type>()) return APFloat::IEEEdouble();
+  if (type.isa<FloatBF16V1Type>()) return APFloat::BFloat();
+  if (type.isa<FloatF16V1Type>()) return APFloat::IEEEhalf();
+  if (type.isa<FloatF32V1Type>()) return APFloat::IEEEsingle();
+  if (type.isa<FloatF64V1Type>()) return APFloat::IEEEdouble();
+  if (type.isa<FloatF8E4M3FNV1Type>()) return APFloat::Float8E4M3FN();
+  if (type.isa<FloatF8E5M2V1Type>()) return APFloat::Float8E5M2();
   llvm::report_fatal_error("unsupported floating-point type");
 }
 }  // namespace
@@ -1088,12 +1083,13 @@ void VhloBytecodeInterface::write(FlatSymbolRefV1Attr attr,
 
 namespace {
 unsigned getBitWidthForIntegerType(Type type) {
-  if (type.isa<IntegerI1V1Type>()) return 1;
-  if (type.isa<IntegerI4V1Type>() || type.isa<IntegerUI4V1Type>()) return 4;
-  if (type.isa<IntegerI8V1Type>() || type.isa<IntegerUI8V1Type>()) return 8;
-  if (type.isa<IntegerI16V1Type>() || type.isa<IntegerUI16V1Type>()) return 16;
-  if (type.isa<IntegerI32V1Type>() || type.isa<IntegerUI32V1Type>()) return 32;
-  if (type.isa<IntegerI64V1Type>() || type.isa<IntegerUI64V1Type>()) return 64;
+  // TODO: Remove BooleanV1Type from here once/if BooleanAttr lands.
+  if (type.isa<BooleanV1Type>()) return 1;
+  if (type.isa<IntegerSI4V1Type>() || type.isa<IntegerUI4V1Type>()) return 4;
+  if (type.isa<IntegerSI8V1Type>() || type.isa<IntegerUI8V1Type>()) return 8;
+  if (type.isa<IntegerSI16V1Type>() || type.isa<IntegerUI16V1Type>()) return 16;
+  if (type.isa<IntegerSI32V1Type>() || type.isa<IntegerUI32V1Type>()) return 32;
+  if (type.isa<IntegerSI64V1Type>() || type.isa<IntegerUI64V1Type>()) return 64;
   llvm::report_fatal_error("unsupported integer type");
 }
 }  // namespace
@@ -1189,60 +1185,59 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
   if (failed(reader.readVarInt(code))) return Type();
 
   switch (code) {
-    case vhlo_encoding::kTokenType:
-      return readTokenV1Type(reader);
-    // Forked Types:
-    case vhlo_encoding::kBFloat16Type:
-      return BFloat16V1Type::get(getContext());
-    case vhlo_encoding::kComplexType:
-      return readComplexType(reader);
-    case vhlo_encoding::kFloat16Type:
-      return Float16V1Type::get(getContext());
-    case vhlo_encoding::kFloat32Type:
-      return Float32V1Type::get(getContext());
-    case vhlo_encoding::kFloat64Type:
-      return Float64V1Type::get(getContext());
-    case vhlo_encoding::kFloat8E5M2:
-      return Float8E5M2V1Type::get(getContext());
-    case vhlo_encoding::kFloat8E4M3FN:
-      return Float8E4M3FNV1Type::get(getContext());
-    case vhlo_encoding::kFunctionType:
-      return readFunctionType(reader);
-    case vhlo_encoding::kIndexType:
+    case vhlo_encoding::kBooleanV1Type:
+      return BooleanV1Type::get(getContext());
+    case vhlo_encoding::kComplexV1Type:
+      return readComplexV1Type(reader);
+    case vhlo_encoding::kFloatBF16V1Type:
+      return FloatBF16V1Type::get(getContext());
+    case vhlo_encoding::kFloatF16V1Type:
+      return FloatF16V1Type::get(getContext());
+    case vhlo_encoding::kFloatF32V1Type:
+      return FloatF32V1Type::get(getContext());
+    case vhlo_encoding::kFloatF64V1Type:
+      return FloatF64V1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E5M2V1Type:
+      return FloatF8E5M2V1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E4M3FNV1Type:
+      return FloatF8E4M3FNV1Type::get(getContext());
+    case vhlo_encoding::kFunctionV1Type:
+      return readFunctionV1Type(reader);
+    case vhlo_encoding::kIndexV1Type:
       return IndexV1Type::get(getContext());
-    case vhlo_encoding::kIntegerI1Type:
-      return IntegerI1V1Type::get(getContext());
-    case vhlo_encoding::kIntegerI4Type:
-      return IntegerI4V1Type::get(getContext());
-    case vhlo_encoding::kIntegerI8Type:
-      return IntegerI8V1Type::get(getContext());
-    case vhlo_encoding::kIntegerI16Type:
-      return IntegerI16V1Type::get(getContext());
-    case vhlo_encoding::kIntegerI32Type:
-      return IntegerI32V1Type::get(getContext());
-    case vhlo_encoding::kIntegerI64Type:
-      return IntegerI64V1Type::get(getContext());
-    case vhlo_encoding::kIntegerUI4Type:
+    case vhlo_encoding::kIntegerSI4V1Type:
+      return IntegerSI4V1Type::get(getContext());
+    case vhlo_encoding::kIntegerSI8V1Type:
+      return IntegerSI8V1Type::get(getContext());
+    case vhlo_encoding::kIntegerSI16V1Type:
+      return IntegerSI16V1Type::get(getContext());
+    case vhlo_encoding::kIntegerSI32V1Type:
+      return IntegerSI32V1Type::get(getContext());
+    case vhlo_encoding::kIntegerSI64V1Type:
+      return IntegerSI64V1Type::get(getContext());
+    case vhlo_encoding::kIntegerUI4V1Type:
       return IntegerUI4V1Type::get(getContext());
-    case vhlo_encoding::kIntegerUI8Type:
+    case vhlo_encoding::kIntegerUI8V1Type:
       return IntegerUI8V1Type::get(getContext());
-    case vhlo_encoding::kIntegerUI16Type:
+    case vhlo_encoding::kIntegerUI16V1Type:
       return IntegerUI16V1Type::get(getContext());
-    case vhlo_encoding::kIntegerUI32Type:
+    case vhlo_encoding::kIntegerUI32V1Type:
       return IntegerUI32V1Type::get(getContext());
-    case vhlo_encoding::kIntegerUI64Type:
+    case vhlo_encoding::kIntegerUI64V1Type:
       return IntegerUI64V1Type::get(getContext());
-    case vhlo_encoding::kRankedTensorType:
-      return readRankedTensorType(reader, /*hasEncoding=*/false);
-    case vhlo_encoding::kRankedTensorTypeWithEncoding:
-      return readRankedTensorType(reader, /*hasEncoding=*/true);
-    case vhlo_encoding::kTupleType:
-      return readTupleType(reader);
-    case vhlo_encoding::kUniformQuantizedType:
-      return readUniformQuantizedType(reader);
-    case vhlo_encoding::kUnrankedTensorType:
-      return readUnrankedTensorType(reader);
-    case vhlo_encoding::kWitnessType:
+    case vhlo_encoding::kRankedTensorV1Type:
+      return readRankedTensorV1Type(reader, /*hasEncoding=*/false);
+    case vhlo_encoding::kRankedTensorV1TypeWithEncoding:
+      return readRankedTensorV1Type(reader, /*hasEncoding=*/true);
+    case vhlo_encoding::kTokenV1Type:
+      return readTokenV1Type(reader);
+    case vhlo_encoding::kTupleV1Type:
+      return readTupleV1Type(reader);
+    case vhlo_encoding::kUniformQuantizedV1Type:
+      return readUniformQuantizedV1Type(reader);
+    case vhlo_encoding::kUnrankedTensorV1Type:
+      return readUnrankedTensorV1Type(reader);
+    case vhlo_encoding::kWitnessV1Type:
       return WitnessV1Type::get(getContext());
     default:
       reader.emitError() << "unknown vhlo type code: " << code;
@@ -1254,91 +1249,88 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
 LogicalResult VhloBytecodeInterface::writeType(
     Type type, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Type, LogicalResult>(type)
-      .Case<TokenV1Type>([&](auto type) {
+      .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TokenV1Type,
+            TupleV1Type, UnrankedTensorV1Type, UniformQuantizedV1Type>(
+          [&](auto type) {
+            LOG_WRITE_CALL;
+            return write(type, writer), success();
+          })
+      .Case([&](BooleanV1Type) {
         LOG_WRITE_CALL;
-        write(type, writer);
-        return success();
+        return writer.writeVarInt(vhlo_encoding::kBooleanV1Type), success();
       })
-      .Case<ComplexV1Type, FunctionV1Type, RankedTensorV1Type, TupleV1Type,
-            UnrankedTensorV1Type, UniformQuantizedV1Type>([&](auto type) {
+      .Case([&](FloatBF16V1Type) {
         LOG_WRITE_CALL;
-        return write(type, writer), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatBF16V1Type), success();
       })
-      .Case([&](BFloat16V1Type) {
+      .Case([&](FloatF16V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kBFloat16Type), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatF16V1Type), success();
       })
-      .Case([&](Float16V1Type) {
+      .Case([&](FloatF32V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat16Type), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatF32V1Type), success();
       })
-      .Case([&](Float32V1Type) {
+      .Case([&](FloatF64V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat32Type), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatF64V1Type), success();
       })
-      .Case([&](Float64V1Type) {
+      .Case([&](FloatF8E4M3FNV1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat64Type), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E4M3FNV1Type),
+               success();
       })
-      .Case([&](Float8E4M3FNV1Type) {
+      .Case([&](FloatF8E5M2V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat8E4M3FN), success();
-      })
-      .Case([&](Float8E5M2V1Type) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kFloat8E5M2), success();
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E5M2V1Type), success();
       })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIndexType), success();
+        return writer.writeVarInt(vhlo_encoding::kIndexV1Type), success();
       })
-      .Case([&](IntegerI1V1Type) {
+      .Case([&](IntegerSI4V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI1Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI4V1Type), success();
       })
-      .Case([&](IntegerI4V1Type) {
+      .Case([&](IntegerSI8V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI4Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI8V1Type), success();
       })
-      .Case([&](IntegerI8V1Type) {
+      .Case([&](IntegerSI16V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI8Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI16V1Type), success();
       })
-      .Case([&](IntegerI16V1Type) {
+      .Case([&](IntegerSI32V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI16Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI32V1Type), success();
       })
-      .Case([&](IntegerI32V1Type) {
+      .Case([&](IntegerSI64V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI32Type), success();
-      })
-      .Case([&](IntegerI64V1Type) {
-        LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerI64Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerSI64V1Type), success();
       })
       .Case([&](IntegerUI4V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerUI4Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI4V1Type), success();
       })
       .Case([&](IntegerUI8V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerUI8Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI8V1Type), success();
       })
       .Case([&](IntegerUI16V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerUI16Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI16V1Type), success();
       })
       .Case([&](IntegerUI32V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerUI32Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI32V1Type), success();
       })
       .Case([&](IntegerUI64V1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kIntegerUI64Type), success();
+        return writer.writeVarInt(vhlo_encoding::kIntegerUI64V1Type), success();
       })
       .Case([&](WitnessV1Type) {
         LOG_WRITE_CALL;
-        return writer.writeVarInt(vhlo_encoding::kWitnessType), success();
+        return writer.writeVarInt(vhlo_encoding::kWitnessV1Type), success();
       })
       .Default([&](Type) {
         LOG_NOT_IMPLEMENTED;
@@ -1347,27 +1339,10 @@ LogicalResult VhloBytecodeInterface::writeType(
 }
 
 //===----------------------------------------------------------------------===//
-// TokenV1Type
-
-TokenV1Type VhloBytecodeInterface::readTokenV1Type(
-    DialectBytecodeReader &) const {
-  LOG_READ_CALL;
-  return TokenV1Type::get(getContext());
-}
-
-void VhloBytecodeInterface::write(TokenV1Type type,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kTokenType);
-}
-
-//===----------------------------------------------------------------------===//
-// Forked Types
-//===----------------------------------------------------------------------===//
-
-//===----------------------------------------------------------------------===//
 // ComplexV1Type
+//===----------------------------------------------------------------------===//
 
-ComplexV1Type VhloBytecodeInterface::readComplexType(
+ComplexV1Type VhloBytecodeInterface::readComplexV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type elementType;
@@ -1377,35 +1352,37 @@ ComplexV1Type VhloBytecodeInterface::readComplexType(
 
 void VhloBytecodeInterface::write(ComplexV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kComplexType);
+  writer.writeVarInt(vhlo_encoding::kComplexV1Type);
   writer.writeType(type.getElementType());
 }
 
 //===----------------------------------------------------------------------===//
 // FunctionV1Type
+//===----------------------------------------------------------------------===//
 
-FunctionV1Type VhloBytecodeInterface::readFunctionType(
+FunctionV1Type VhloBytecodeInterface::readFunctionV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   SmallVector<Type> inputs;
-  SmallVector<Type> results;
-  if (failed(reader.readTypes(inputs)) || failed(reader.readTypes(results)))
+  SmallVector<Type> outputs;
+  if (failed(reader.readTypes(inputs)) || failed(reader.readTypes(outputs)))
     return FunctionV1Type();
 
-  return FunctionV1Type::get(getContext(), inputs, results);
+  return FunctionV1Type::get(getContext(), inputs, outputs);
 }
 
 void VhloBytecodeInterface::write(FunctionV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kFunctionType);
+  writer.writeVarInt(vhlo_encoding::kFunctionV1Type);
   writer.writeTypes(type.getInputs());
-  writer.writeTypes(type.getResults());
+  writer.writeTypes(type.getOutputs());
 }
 
 //===----------------------------------------------------------------------===//
 // RankedTensorV1Type
+//===----------------------------------------------------------------------===//
 
-RankedTensorV1Type VhloBytecodeInterface::readRankedTensorType(
+RankedTensorV1Type VhloBytecodeInterface::readRankedTensorV1Type(
     DialectBytecodeReader &reader, bool hasEncoding) const {
   LOG_READ_CALL;
   Attribute encoding;
@@ -1424,19 +1401,35 @@ RankedTensorV1Type VhloBytecodeInterface::readRankedTensorType(
 void VhloBytecodeInterface::write(RankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
   if (Attribute encoding = type.getEncoding()) {
-    writer.writeVarInt(vhlo_encoding::kRankedTensorTypeWithEncoding);
+    writer.writeVarInt(vhlo_encoding::kRankedTensorV1TypeWithEncoding);
     writer.writeAttribute(encoding);
   } else {
-    writer.writeVarInt(vhlo_encoding::kRankedTensorType);
+    writer.writeVarInt(vhlo_encoding::kRankedTensorV1Type);
   }
   writer.writeSignedVarInts(type.getShape());
   writer.writeType(type.getElementType());
 }
 
 //===----------------------------------------------------------------------===//
-// TupleV1Type
+// TokenV1Type
+//===----------------------------------------------------------------------===//
 
-TupleV1Type VhloBytecodeInterface::readTupleType(
+TokenV1Type VhloBytecodeInterface::readTokenV1Type(
+    DialectBytecodeReader &) const {
+  LOG_READ_CALL;
+  return TokenV1Type::get(getContext());
+}
+
+void VhloBytecodeInterface::write(TokenV1Type type,
+                                  DialectBytecodeWriter &writer) const {
+  writer.writeVarInt(vhlo_encoding::kTokenV1Type);
+}
+
+//===----------------------------------------------------------------------===//
+// TupleV1Type
+//===----------------------------------------------------------------------===//
+
+TupleV1Type VhloBytecodeInterface::readTupleV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   SmallVector<Type> elements;
@@ -1447,14 +1440,15 @@ TupleV1Type VhloBytecodeInterface::readTupleType(
 
 void VhloBytecodeInterface::write(TupleV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kTupleType);
+  writer.writeVarInt(vhlo_encoding::kTupleV1Type);
   writer.writeTypes(type.getTypes());
 }
 
 //===----------------------------------------------------------------------===//
 // UniformQuantizedV1Type
+//===----------------------------------------------------------------------===//
 
-UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedType(
+UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   uint64_t flags;
@@ -1479,7 +1473,7 @@ UniformQuantizedV1Type VhloBytecodeInterface::readUniformQuantizedType(
 
 void VhloBytecodeInterface::write(UniformQuantizedV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kUniformQuantizedType);
+  writer.writeVarInt(vhlo_encoding::kUniformQuantizedV1Type);
   writer.writeVarInt(type.getFlags());
   writer.writeType(type.getStorageType());
   writer.writeType(type.getExpressedType());
@@ -1491,8 +1485,9 @@ void VhloBytecodeInterface::write(UniformQuantizedV1Type type,
 
 //===----------------------------------------------------------------------===//
 // UnrankedTensorV1Type
+//===----------------------------------------------------------------------===//
 
-UnrankedTensorV1Type VhloBytecodeInterface::readUnrankedTensorType(
+UnrankedTensorV1Type VhloBytecodeInterface::readUnrankedTensorV1Type(
     DialectBytecodeReader &reader) const {
   LOG_READ_CALL;
   Type elementType;
@@ -1503,7 +1498,7 @@ UnrankedTensorV1Type VhloBytecodeInterface::readUnrankedTensorType(
 
 void VhloBytecodeInterface::write(UnrankedTensorV1Type type,
                                   DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kUnrankedTensorType);
+  writer.writeVarInt(vhlo_encoding::kUnrankedTensorV1Type);
   writer.writeType(type.getElementType());
 }
 
