@@ -314,10 +314,6 @@ Element cosine(const Element &el) {
       [](std::complex<double> e) { return std::cos(e); });
 }
 
-// These cases are implementation-defined, and the behavior of this interpreter:
-// For floats: if the input are invalid (<= 0), the result is 0xFFF0000000000000
-// For complex numbers: if the input are invalid, the result is
-//   [0xFFF0000000000000 : f64, 0.000000e+00 : f64]
 Element log(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log(e); },

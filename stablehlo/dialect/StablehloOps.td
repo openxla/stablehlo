@@ -410,7 +410,7 @@ def StableHLO_LogOp: StableHLO_UnaryElementwiseOp<"log",
 
     Example:
     ```mlir
-    %result = stablehlo.log %operand : tensor<2xf32>
+    %result = stablehlo.log %operand : tensor<2x2xf64>
     ```
   }];
 }

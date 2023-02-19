@@ -112,7 +112,7 @@ Element cosine(const Element &e);
 /// Returns floor of Element object.
 Element floor(const Element &e);
 
-/// Returns element-wise log of Element object.
+/// Returns log of Element object.
 Element log(const Element &el);
 
 /// Returns the maximum between two Element objects.
