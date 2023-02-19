@@ -1065,7 +1065,7 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
   if (type.isa<Float16V1Type>()) return APFloat::IEEEhalf();
   if (type.isa<Float32V1Type>()) return APFloat::IEEEsingle();
   if (type.isa<Float64V1Type>()) return APFloat::IEEEdouble();
-  llvm_unreachable("non-floating point type used");
+  llvm::report_fatal_error("unsupported floating-point type");
 }
 }  // namespace
 
@@ -1117,7 +1117,7 @@ unsigned getBitWidthForIntegerType(Type type) {
   if (type.isa<IntegerI16V1Type>() || type.isa<IntegerUI16V1Type>()) return 16;
   if (type.isa<IntegerI32V1Type>() || type.isa<IntegerUI32V1Type>()) return 32;
   if (type.isa<IntegerI64V1Type>() || type.isa<IntegerUI64V1Type>()) return 64;
-  llvm_unreachable("unsupported integer type used in IntegerV1Attr");
+  llvm::report_fatal_error("unsupported integer type");
 }
 }  // namespace
 

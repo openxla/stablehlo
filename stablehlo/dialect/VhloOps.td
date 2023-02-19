@@ -49,13 +49,13 @@ class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait>
   let extraClassDefinition = [{
     mlir::vhlo::Version $cppClass::getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
-      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # mnemonic # [{");
+      if (failed(version)) llvm::report_fatal_error("invalid version }] # minVersion # [{ in }] # mnemonic # [{");
       return *version;
     }
     mlir::vhlo::Version $cppClass::getMaxVersion() {
       if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
-      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # mnemonic # [{");
+      if (failed(version)) llvm::report_fatal_error("invalid version }] # maxVersion # [{ in }] # mnemonic # [{");
       return *version;
     }
   }];

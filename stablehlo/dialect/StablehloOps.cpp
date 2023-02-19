@@ -2741,7 +2741,7 @@ char nonSpatialDimToString(NonSpatialDim dim) {
     case KOFeature:
       return 'o';
   }
-  llvm_unreachable("Unknown NonSpatialDim");
+  llvm::report_fatal_error("unsupported NonSpatialDim");
 }
 }  // namespace
 
@@ -3290,7 +3290,7 @@ ParseResult parseWindowAttributes(OpAsmParser& parser,
         } else if (attributeName == "rhs_dilate") {
           rhsDilation = attr;
         } else {
-          llvm_unreachable("Unexpected attribute name");
+          llvm::report_fatal_error("unsupported attribute name");
         }
       }
     }

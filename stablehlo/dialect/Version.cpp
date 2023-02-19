@@ -28,7 +28,7 @@ namespace {
 static int64_t parseNumber(llvm::StringRef numRef) {
   int64_t num;
   if (numRef.getAsInteger(/*radix=*/10, num)) {
-    llvm_unreachable("failed to parse version number");
+    llvm::report_fatal_error("failed to parse version number");
   }
   return num;
 }
