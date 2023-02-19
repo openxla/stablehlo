@@ -69,6 +69,19 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
 Attribute convertAttrToStablehlo(Attribute vhloAttr,
                                  TypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
+  // TODO: ArgResultAliasV1Attr isn't handled yet.
+  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloAttrs.getValue()) {
+      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::BooleanV1Attr>()) {
+    return BoolAttr::get(attr.getContext(), attr.getValue());
+  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
@@ -78,8 +91,31 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
+    SmallVector<NamedAttribute> vhloAttrs;
+    for (auto namedAttr : attr.getValue()) {
+      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter)
+                             .dyn_cast_or_null<StringAttr>();
+      auto builtinValue =
+          convertAttrToStablehlo(namedAttr.second, typeConverter);
+      if (!builtinName || !builtinValue) return {};
+      vhloAttrs.push_back({builtinName, builtinValue});
+    }
+    return DictionaryAttr::get(attr.getContext(), vhloAttrs);
+  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
+    auto builtinFloatType = typeConverter->convertType(attr.getType());
+    if (!builtinFloatType) return {};
+    // FIXME: What is the proper way to reconstruct a attr?
+    return FloatAttr::get(builtinFloatType, attr.getValue().convertToDouble());
+  }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
+    auto builtinIntegerType = typeConverter->convertType(attr.getType());
+    if (!builtinIntegerType) return {};
+    return IntegerAttr::get(builtinIntegerType, attr.getValue());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasV1Attr>()) {
     return stablehlo::OutputOperandAliasAttr::get(
@@ -95,46 +131,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
-    RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
-  }
-
-  // Forked attributes
-  if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
-    SmallVector<Attribute> stablehloAttrs;
-    for (auto vhloAttr : vhloAttrs.getValue()) {
-      auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter);
-      if (!stablehloAttr) return {};
-      stablehloAttrs.push_back(stablehloAttr);
-    }
-    return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::BooleanV1Attr>()) {
-    return BoolAttr::get(attr.getContext(), attr.getValue());
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
-    SmallVector<NamedAttribute> vhloAttrs;
-    for (auto namedAttr : attr.getValue()) {
-      auto builtinName = convertAttrToStablehlo(namedAttr.first, typeConverter)
-                             .dyn_cast_or_null<StringAttr>();
-      auto builtinValue =
-          convertAttrToStablehlo(namedAttr.second, typeConverter);
-      if (!builtinName || !builtinValue) return {};
-      vhloAttrs.push_back({builtinName, builtinValue});
-    }
-    return DictionaryAttr::get(attr.getContext(), vhloAttrs);
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
-    auto builtinFloatType = typeConverter->convertType(attr.getType());
-    if (!builtinFloatType) return {};
-    // FIXME: What is the proper way to reconstruct a attr?
-    return FloatAttr::get(builtinFloatType, attr.getValue().convertToDouble());
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>()) {
-    auto builtinIntegerType = typeConverter->convertType(attr.getType());
-    if (!builtinIntegerType) return {};
-    return IntegerAttr::get(builtinIntegerType, attr.getValue());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::StringV1Attr>()) {
     return StringAttr::get(attr.getContext(), attr.getValue());
   }
@@ -142,8 +138,13 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     auto builtinType = typeConverter->convertType(attr.getType());
     if (!builtinType) return {};
     return DenseIntOrFPElementsAttr::getFromRawBuffer(builtinType,
-                                                      attr.getRawData());
+                                                      attr.getData());
   }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
+    RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
+  }
+  // NOTE: TypeExtensionsV1Attr is only used as a RankedTensorType's encoding,
+  // so it's handled during type conversion (see convertEncoding above).
   if (auto attr = vhloAttr.dyn_cast<vhlo::TypeV1Attr>()) {
     auto builtinType = typeConverter->convertType(attr.getValue());
     if (!builtinType) return {};
@@ -158,7 +159,7 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   }
 
   // This should be unreachable unless program is a mix of VHLO and other
-  // due to user edits to textual assembly format.
+  // dialects, e.g. due to user edits to textual assembly format.
   return {};
 }
 
