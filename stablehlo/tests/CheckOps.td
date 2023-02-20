@@ -27,7 +27,7 @@ def CHECK_Dialect : Dialect {
   let cppNamespace = "::mlir::stablehlo::check";
 
   let description = [{
-    Opset to implement test assertions for StableHLO interpreter.
+    Opset to implement checks for testing the StableHLO interpreter.
   }];
 
   let useDefaultAttributePrinterParser = 0;

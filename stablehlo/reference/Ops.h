@@ -84,9 +84,8 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 /// corresponding to the arguments of the entry block of the region.
 /// Interprets the operations within the entry block and returns the runtime
 /// values for the terminator's arguments. The optional callback `fallback` is
-/// used for evaluating ops, other than `func::returnOp` and the ones in
-/// stablehlo dialect, within the `region`. Assumes that `region` has only one
-/// block.
+/// used for evaluating ops which are not supported by the interpreter.
+/// Assumes that `region` has only one block.
 llvm::SmallVector<Tensor> eval(
     Region &region, llvm::ArrayRef<Tensor> args, Scope *parent = nullptr,
     llvm::function_ref<llvm::Error(Operation &, Scope &)> fallback = nullptr);

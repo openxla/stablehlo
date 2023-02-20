@@ -39,8 +39,8 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
                 runtimeOperand, almostEqOp.getValue());
             if (status)
               return stablehlo::invalidArgument(
-                  "Error evaluating function: %s. \n\tAssersion almost_eq "
-                  "failed: %s",
+                  "Error evaluating function: %s. \n\tCheck almost_eq failed: "
+                  "%s",
                   funcOp.getSymName().str().c_str(),
                   toString(std::move(status)).c_str());
           } else if (auto eqOp = dyn_cast<stablehlo::check::EqOp>(op)) {
@@ -49,7 +49,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
                 stablehlo::check::evalEqOp(runtimeOperand, eqOp.getValue());
             if (status)
               return stablehlo::invalidArgument(
-                  "Error evaluating function: %s. \n\tAssersion eq failed: %s",
+                  "Error evaluating function: %s. \n\tCheck eq failed: %s",
                   funcOp.getSymName().str().c_str(),
                   toString(std::move(status)).c_str());
           } else {

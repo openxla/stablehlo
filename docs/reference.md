@@ -106,10 +106,10 @@ be fed to the program, and generates output data values, which are matched
 against the user-provided expected data values. The data values (B) are
 hard-coded in the program itself using `stablehlo.constant` operations. The
 interpreter evaluates the input program. The output(s) of the op under test
-is checked via assertions (e.g. `check.eq`, `check.almost_eq`), as shown below.
+is checked via checks (e.g. `check.eq`, `check.almost_eq`), as shown below.
 `check.eq` checks for bitwise equality for any supported type and
-`check.almost_eq` checks for nearly equality within an implementation-defined
-tolerance for floating point and complex types.
+`check.almost_eq` checks for nearly equality within a tolerance,
+described below, for floating point and complex types.
 
 ```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
@@ -198,7 +198,7 @@ generalized. Tests exercising undefined behavior do not contribute towards
 the understanding of the op's behavior.
 
 **(G6) While writing tests for floating-point type, to what precision the
-expected result need to be specified in assertion checks?**
+expected result need to be specified in checks?**
 
 For elementary operations (addition, subtraction, multiplication, division, and
 square), an implementation following IEEE specification is expected to provide a
@@ -224,11 +224,11 @@ The following example demonstrates the above tolerance in action.
 func.func @check_tolerance() {
   %0 = stablehlo.constant dense<0.20000000000000001110> : tensor<f32>
 
-  // The following assertion succeeds as %0 is almost equal to the provided
+  // The following check succeeds as %0 is almost equal to the provided
   // constant modulo the tolerance, mentioned above.
   check.almost_eq %0, dense<0.199999988> : tensor<f32>
 
-  // The following assertion fails as %0 is not bitwise equal to the provided
+  // The following check fails as %0 is not bitwise equal to the provided
   // constant.
   check.eq %0, dense<0.199999988> : tensor<f32>
 
@@ -238,9 +238,10 @@ func.func @check_tolerance() {
 
 This is just the first step in testing numerical accuracy of StableHLO ops. At
 the moment, this is an underspecced area of the StableHLO spec, and there is
-ongoing work to figure it out (#1156) based on our experience with using
-StableHLO in practice and on feedback from stakeholders. As this works proceeds,
-we will update this infrastructure accordingly.
+ongoing work to figure it out [#1156](https://github.com/openxla/stablehlo/issues/1156)
+based on our experience with using StableHLO in practice and on feedback from
+stakeholders. As this works proceeds, we will update this infrastructure
+accordingly.
 
 **(G7) Anything about the coding-style of the tests?**
 

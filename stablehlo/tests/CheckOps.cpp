@@ -44,7 +44,7 @@ llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
     if (lhs.get(*lhsIt) != rhs.get(*rhsIt)) {
       return invalidArgument(
-          "Element value don't match: %s (actual) vs %s (expected)\n",
+          "Element values don't match: %s (actual) vs %s (expected)\n",
           debugString(lhs.get(*lhsIt)).c_str(),
           debugString(rhs.get(*rhsIt)).c_str());
     }
@@ -59,7 +59,7 @@ llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
     if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt))) {
       return invalidArgument(
-          "Element value don't match: %s (actual) vs %s (expected)\n",
+          "Element values don't match: %s (actual) vs %s (expected)\n",
           debugString(lhs.get(*lhsIt)).c_str(),
           debugString(rhs.get(*rhsIt)).c_str());
     }
