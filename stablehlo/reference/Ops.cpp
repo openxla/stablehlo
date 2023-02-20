@@ -165,6 +165,13 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   return result;
 }
 
+Tensor evalExponentialOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, exponential(operand.get(*it)));
+  return result;
+}
+
 Tensor evalFloorOp(const Tensor &operand, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -450,6 +457,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult = evalDynamicUpdateSliceOp(
           runtimeOperand, runtimeUpdate, runtimeStartIndices,
           dynamicUpdateSliceOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto expOp = dyn_cast<ExpOp>(op)) {
+      Tensor runtimeOperand = scope.find(expOp.getOperand());
+      Tensor runtimeResult = evalExponentialOp(runtimeOperand, expOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       Tensor runtimeOperand = scope.find(floorOp.getOperand());

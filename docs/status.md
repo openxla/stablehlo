@@ -87,7 +87,7 @@ one of the following tracking labels.
 | dynamic_slice            | yes           | yes          | yes            | yes             | yes         |
 | dynamic_update_slice     | yes           | yes          | yes            | yes             | yes         |
 | einsum                   | no            | revisit      | no             | yes             | no          |
-| exponential              | yes           | yes          | yes            | yes             | no          |
+| exponential              | yes           | yes          | yes            | yes             | yes         |
 | exponential_minus_one    | yes           | yes          | yes            | yes             | no          |
 | fft                      | yes           | revisit      | yes            | yes             | no          |
 | floor                    | yes           | yes          | yes            | yes             | yes         |

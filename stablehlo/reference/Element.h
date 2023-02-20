@@ -109,6 +109,9 @@ Element ceil(const Element &e);
 /// Returns cosine of Element object.
 Element cosine(const Element &e);
 
+/// Returns element-wise exponential of Element object.
+Element exponential(const Element &el);
+
 /// Returns floor of Element object.
 Element floor(const Element &e);
 

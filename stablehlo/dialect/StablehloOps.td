@@ -306,8 +306,9 @@ def StableHLO_CosineOp: StableHLO_UnaryElementwiseOp<"cosine",
 }
 
 def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
-  let summary = "Exponential operator";
+    [Pure, HLO_CompatibleOperandsAndResultType /*exponential_c1*/],
+     HLO_FpOrComplexTensor /*exponential_i1*/> {
+  let summary = "Exponential operation";
   let description = [{
     Performs element-wise exponential operation on `operand` tensor and produces
     a `result` tensor.
@@ -317,7 +318,7 @@ def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
 
     Example:
     ```mlir
-    %result = stablehlo.exponential %operand : tensor<2xf32>
+    %result = stablehlo.exponential %operand : tensor<2x2xf64>
     ```
   }];
 }
