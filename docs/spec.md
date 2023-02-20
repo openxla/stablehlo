@@ -2458,10 +2458,6 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
 %result = "stablehlo.exponential"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
 // %result: [[1.0, 2.7182818284590451], [7.3890560989306504, 20.085536923187668]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.exponential"(%operand) : (tensor<complex<f64>>) -> tensor<complex<f64>>
-// %result: (-1.1312043837568135, 2.4717266720048188)
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_exponential.mlir)
