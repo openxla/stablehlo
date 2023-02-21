@@ -335,9 +335,9 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
     auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalUnary(rewriter, op, [&](APInt operand) {
       int64_t result;
-      if (operand.slt(0))
+      if (operand.isNegative())
         result = -1;
-      else if (operand.getSExtValue() == 0)
+      else if (operand.isZero())
         result = 0;
       else
         result = 1;
