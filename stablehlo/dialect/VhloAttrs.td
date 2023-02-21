@@ -17,15 +17,10 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_ATTRS
 #define STABLEHLO_DIALECT_VHLO_ATTRS
 
+include "mlir/IR/AttrTypeBase.td"
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloDialect.td"
 include "stablehlo/dialect/VhloTypes.td"
-
-include "mlir/IR/AttrTypeBase.td"
-
-//===----------------------------------------------------------------------===//
-// Attribute Versioning
-//===----------------------------------------------------------------------===//
 
 def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
   let cppNamespace = "::mlir::vhlo";
@@ -41,6 +36,7 @@ def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
 
 class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
+  let cppNamespace = "::mlir::vhlo";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
@@ -56,23 +52,10 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   }];
 }
 
-//===----------------------------------------------------------------------===//
-// VHLO Attributes
-//===----------------------------------------------------------------------===//
-
-def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "output_operand_alias";
-  let parameters = (ins
-    VHLO_Dims:$outputTupleIndices,
-    "int64_t":$operandIndex,
-    VHLO_Dims:$operandTupleIndices
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
+// TODO(#740): ArgResultAlias is not yet part of the StableHLO spec.
+// At the moment, it is used to represent buffer donation, and we're planning
+// to look into it as part of the work on speccing buffer donation in StableHLO.
 def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
   let mnemonic = "result_alias";
   let parameters = (ins
     VHLO_Dims:$argTupleIndices,
@@ -83,17 +66,8 @@ def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.3.0", "curre
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.3.0", "current"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "type_extensions";
-  let parameters = (ins VHLO_Dims:$bounds);
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-//===----------------------------------------------------------------------===//
-// Forked Attributes
-//===----------------------------------------------------------------------===//
-
+// Represents attributes from the StableHLO spec which say "variadic number of",
+// although not called out explicitly in the "Constants" section.
 def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
   let mnemonic = "array";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
@@ -108,6 +82,7 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
+// Corresponds to BooleanConstant from the StableHLO spec.
 def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.3.0", "current"> {
   let mnemonic = "bool";
   let parameters = (ins "bool":$value);
@@ -115,6 +90,9 @@ def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.3.0", "current"> {
 }
 
 // TODO(#425): DictionaryConstant is not part of the StableHLO spec.
+// At the moment, it is used to represent argument and result attributes of
+// StableHLO functions, and we're planning to look into it as part of the work
+// on speccing Module/Func/Call/Return ops in StableHLO.
 def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let mnemonic = "dict";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
@@ -132,6 +110,7 @@ def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeDictionary>($value) `>`";
 }
 
+// Corresponds to FloatConstant from the StableHLO spec.
 def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.3.0", "current"> {
   let mnemonic = "float";
   let parameters = (ins "mlir::Type":$type, VHLO_APFloatV1:$value);
@@ -146,7 +125,8 @@ def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` $value `:` $type `>`";
 }
 
-def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
+// Corresponds to IntegerConstant from the StableHLO spec.
+def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
   let mnemonic = "integer";
   let parameters = (ins "mlir::Type":$type, "APInt":$value);
   let genVerifyDecl = 1;
@@ -160,18 +140,33 @@ def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+// TODO(#740): OutputOperandAlias is not yet part of the StableHLO spec.
+// At the moment, it is used to represent buffer donation, and we're planning
+// to look into it as part of the work on speccing buffer donation in StableHLO.
+def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0", "current"> {
+  let mnemonic = "output_operand_alias";
+  let parameters = (ins
+    VHLO_Dims:$outputTupleIndices,
+    "int64_t":$operandIndex,
+    VHLO_Dims:$operandTupleIndices
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
+}
+
+// Corresponds to StringConstant from the StableHLO spec.
 def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.3.0", "current"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
   let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
 }
 
+// Corresponds to TensorConstant from the StableHLO spec.
 def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
   let allocator = "$_dst = $_allocator.copyInto($_self);";
 }
 def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
   let mnemonic = "tensor";
-  let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$raw_data);
+  let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$data);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
     LogicalResult TensorV1Attr::verify(
@@ -184,6 +179,9 @@ def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
 }
 
 // TODO(#425): TypeConstant is not part of the StableHLO spec.
+// At the moment, it is used to represent types of StableHLO functions, and
+// we're planning to look into it as part of the work on speccing
+// Module/Func/Call/Return ops in StableHLO.
 def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
   let mnemonic = "type";
   let parameters = (ins "::mlir::Type":$value);
@@ -196,6 +194,16 @@ def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
     }
   }];
   let assemblyFormat = "`<` $value `>`";
+}
+
+// TODO(#8): TypeExtensions is not part of the StableHLO spec.
+// At the moment, it is used to represent dimension bounds to support bounded
+// dynamism, and we're planning to look into it as part of the work on the
+// dynamism RFC.
+def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.3.0", "current"> {
+  let mnemonic = "type_extensions";
+  let parameters = (ins VHLO_Dims:$bounds);
+  let assemblyFormat = "`<` struct(params) `>`";
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

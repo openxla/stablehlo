@@ -117,7 +117,9 @@ Attribute convertAttrToVhlo(Attribute stablehloAttr,
     return {};
   }
 
-  // Forked attributes
+  // Handle supported non-StableHLO attributes.
+  // Each of these attributes has a counterpart in the VHLO dialect -
+  // VHLO programs never include attributes from other dialects.
   if (auto stablehloAttrs = stablehloAttr.dyn_cast<ArrayAttr>()) {
     SmallVector<Attribute> vhloAttrs;
     for (auto stablehloAttr : stablehloAttrs) {
