@@ -325,6 +325,45 @@ func.func @eval_subtract() -> tensor<i64> {
 
 // -----
 
+// CHECK-LABEL: func @refine_all_gather_cross_replica
+func.func @refine_all_gather_cross_replica(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x16xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @refine_all_gather_cross_replica_and_partition
+func.func @refine_all_gather_cross_replica_and_partition(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x?xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @refine_all_gather_flattened_ids
+func.func @refine_all_gather_flattened_ids(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x16xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    use_global_device_ids
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @refine_bitcast_convert_different_bitwidths
 func.func @refine_bitcast_convert_different_bitwidths(%arg0 : tensor<4xf32>) -> tensor<*xi8> {
   // CHECK: stablehlo.bitcast_convert{{.*}} -> tensor<*xi8>
@@ -515,6 +554,60 @@ func.func @refine_real_dynamic_slice_using_slice(%arg0: tensor<4xf32>) -> tensor
   %3 = stablehlo.real_dynamic_slice %arg0, %0, %1, %2
            : (tensor<4xf32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<*xf32>
   func.return %3 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_cross_replica
+func.func @refine_reduce_scatter_cross_replica(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x4xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_cross_replica_and_partition
+func.func @refine_reduce_scatter_cross_replica_and_partition(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x?xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_flattened_ids
+func.func @refine_reduce_scatter_flattened_ids(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x4xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    use_global_device_ids
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
 }
 
 // -----
