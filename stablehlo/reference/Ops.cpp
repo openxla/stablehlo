@@ -430,19 +430,20 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());
-      auto runtimeStartIndices = scope.find(dynamicSliceOp.getStartIndices());
+      Index runtimeStartIndices =
+          evalIndices(scope.find(dynamicSliceOp.getStartIndices()));
       auto runtimeSliceSizes = Sizes(dynamicSliceOp.getSliceSizes());
       Tensor runtimeResult =
-          evalDynamicSliceOp(runtimeOperand, evalIndices(runtimeStartIndices),
+          evalDynamicSliceOp(runtimeOperand, runtimeStartIndices,
                              runtimeSliceSizes, dynamicSliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicUpdateSliceOp.getOperand());
       Tensor runtimeUpdate = scope.find(dynamicUpdateSliceOp.getUpdate());
-      SmallVector<Tensor> runtimeStartIndices =
-          scope.find(dynamicUpdateSliceOp.getStartIndices());
+      Index runtimeStartIndices =
+          evalIndices(scope.find(dynamicUpdateSliceOp.getStartIndices()));
       Tensor runtimeResult = evalDynamicUpdateSliceOp(
-          runtimeOperand, runtimeUpdate, evalIndices(runtimeStartIndices),
+          runtimeOperand, runtimeUpdate, runtimeStartIndices,
           dynamicUpdateSliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto expOp = dyn_cast<ExpOp>(op)) {

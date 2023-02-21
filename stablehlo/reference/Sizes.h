@@ -23,7 +23,8 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-/// Represets per axis metadata (e.g. tensor shape, slice sizes etc.).
+/// Represents per axis metadata (e.g. tensor shape, slice sizes etc.) of type
+/// `int64_t`.
 class Sizes : public SmallVector<int64_t> {
  public:
   Sizes() = default;
@@ -37,28 +38,68 @@ class Sizes : public SmallVector<int64_t> {
   explicit Sizes(DenseIntElementsAttr attr)
       : SmallVector(attr.getValues<int64_t>()) {}
 
+  // Returns `s` with the effect of applying `permutation`
+  // to `this` object, that is, `s[i] = (*this)[permutation[i]]`.
   Sizes permute(ArrayRef<int64_t> permutation) const;
+
+  /// Checks if an element `e` at kth axis of `this` object follows
+  /// `0 <= e <= bounds[k]`.
   bool inBounds(const Sizes &bounds) const;
 };
 
 raw_ostream &operator<<(raw_ostream &os, const Sizes &x);
 
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] + y[k]` for all axis k.
 Sizes operator+(const Sizes &x, const Sizes &y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] + y` for all axis k.
 Sizes operator+(const Sizes &x, int64_t y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x + y[k]` for all axis k.
 Sizes operator+(int64_t x, const Sizes &y);
 
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] - y[k]` for all axis k.
 Sizes operator-(const Sizes &x, const Sizes &y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] - y` for all axis k.
 Sizes operator-(const Sizes &x, int64_t y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x - y[k]` for all axis k.
 Sizes operator-(int64_t x, const Sizes &y);
 
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] * y[k]` for all axis k.
 Sizes operator*(const Sizes &x, const Sizes &y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x[k] * y` for all axis k.
 Sizes operator*(const Sizes &x, int64_t y);
+
+/// Overloaded add operator to return `Sizes` object `z` such that
+/// `z[k] = x * y[k]` for all axis k.
 Sizes operator*(int64_t x, const Sizes &y);
 
-Sizes clamp(int64_t min, const Sizes &x, int64_t max);
-Sizes clamp(int64_t min, const Sizes &x, const Sizes &max);
-Sizes clamp(const Sizes &min, const Sizes &x, int64_t max);
+/// Clamp operator to return `Sizes` object `z` such that
+/// `z[k] = std::min(std::max(x[k], min[k]), max[k])` for all axis k.
 Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max);
+
+/// Clamp operator to return `Sizes` object `z` such that
+/// `z[k] = std::min(std::max(x[k], min), max)` for all axis k.
+Sizes clamp(int64_t min, const Sizes &x, int64_t max);
+
+/// Clamp operator to return `Sizes` object `z` such that
+/// `z[k] = std::min(std::max(x[k], min), max[k])` for all axis k.
+Sizes clamp(int64_t min, const Sizes &x, const Sizes &max);
+
+/// Clamp operator to return `Sizes` object `z` such that
+/// `z[k] = std::min(std::max(x[k], min[k]), max)` for all axis k.
+Sizes clamp(const Sizes &min, const Sizes &x, int64_t max);
 
 /// Represents index of a tensor.
 using Index = Sizes;
