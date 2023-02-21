@@ -139,6 +139,9 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     }
     return ArrayAttr::get(vhloAttrs.getContext(), stablehloAttrs);
   }
+  if (auto attr = vhloAttr.dyn_cast<vhlo::BooleanV1Attr>()) {
+    return BoolAttr::get(attr.getContext(), attr.getValue());
+  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::DictionaryV1Attr>()) {
     SmallVector<NamedAttribute> vhloAttrs;
     for (auto namedAttr : attr.getValue()) {
@@ -175,9 +178,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     auto builtinType = typeConverter->convertType(attr.getValue());
     if (!builtinType) return {};
     return TypeAttr::get(builtinType);
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::UnitV1Attr>()) {
-    return UnitAttr::get(attr.getContext());
   }
 
   // All VHLO Attributes must be converted by now.
@@ -269,8 +269,16 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     SmallVector<NamedAttribute> stablehloAttrs;
     for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
       Attribute stablehloAttr;
-      if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value ||
-                    std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
+      if (vhloAttr.getName() == "use_global_device_ids") {
+        auto vhloBooleanAttr =
+            vhloAttr.getValue().dyn_cast<vhlo::BooleanV1Attr>();
+        if (!vhloBooleanAttr) return failure();
+        if (!vhloBooleanAttr.getValue()) continue;
+        stablehloAttr = UnitAttr::get(this->getContext());
+      } else if constexpr (std::is_same<VhloOpTy,
+                                        vhlo::CustomCallOpV1>::value ||
+                           std::is_same<VhloOpTy,
+                                        vhlo::CustomCallOpV2>::value) {
         if (vhloAttr.getName() == "called_computations") {
           stablehloAttr = convertCustomCallCalledComputations(
               vhloAttr.getValue(), this->getTypeConverter());
