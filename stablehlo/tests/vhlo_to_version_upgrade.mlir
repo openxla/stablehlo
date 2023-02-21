@@ -18,7 +18,7 @@ vhlo.func @all_gather_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor
   // CHECK-NEXT: %0 = "vhlo.all_gather_v2"(%arg0)
   %0 = "vhlo.all_gather"(%arg0) {
     all_gather_dim = #vhlo.integer<1 : i64>,
-    channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
+    channel_id = #vhlo.integer<0 : i64>,
     replica_groups = #vhlo.tensor<dense<[[0], [1]]> : tensor<2x1xi64>>
   } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x16x!vhlo.f32>
   "vhlo.return"(%0) : (!vhlo.tensor<16x16x!vhlo.f32>) -> ()

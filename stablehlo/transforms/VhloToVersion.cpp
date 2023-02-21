@@ -335,9 +335,8 @@ struct CollectivePermuteOpV2ToV1
                                       CollectivePermuteOpV1> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(CollectivePermuteOpV2 op) const final {
-    if (op.getChannelHandle().has_value())
-      return emitDowngradeError(op,
-                                "op has a non-empty channel_handle attribute");
+    if (op.getChannelId().has_value())
+      return emitDowngradeError(op, "op has a non-empty channel_id attribute");
     return success();
   }
 };
@@ -377,9 +376,8 @@ struct AllToAllOpV2ToV1
     : public VersionConversionPattern<AllToAllOpV2, AllToAllOpV1> {
   using VersionConversionPattern::VersionConversionPattern;
   LogicalResult prepareOpForConversion(AllToAllOpV2 op) const final {
-    if (op.getChannelHandle().has_value())
-      return emitDowngradeError(op,
-                                "op has a non-empty channel_handle attribute");
+    if (op.getChannelId().has_value())
+      return emitDowngradeError(op, "op has a non-empty channel_id attribute");
     return success();
   }
 };

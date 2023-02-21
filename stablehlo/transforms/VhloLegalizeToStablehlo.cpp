@@ -69,41 +69,17 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
 Attribute convertAttrToStablehlo(Attribute vhloAttr,
                                  TypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ChannelHandleV1Attr>()) {
-    return stablehlo::ChannelHandleAttr::get(attr.getContext(),
-                                             attr.getHandle(), attr.getType());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonDirectionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonDirection, V1);
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::ComparisonTypeV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(ComparisonType, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ConvDimensionNumbersV1Attr>()) {
-    return stablehlo::ConvDimensionNumbersAttr::get(
-        attr.getContext(), attr.getInputBatchDimension(),
-        attr.getInputFeatureDimension(), attr.getInputSpatialDimensions(),
-        attr.getKernelInputFeatureDimension(),
-        attr.getKernelOutputFeatureDimension(),
-        attr.getKernelSpatialDimensions(), attr.getOutputBatchDimension(),
-        attr.getOutputFeatureDimension(), attr.getOutputSpatialDimensions());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::CustomCallApiVersionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(CustomCallApiVersion, V1);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::DotDimensionNumbersV1Attr>()) {
-    return stablehlo::DotDimensionNumbersAttr::get(
-        attr.getContext(), attr.getLhsBatchingDimensions(),
-        attr.getRhsBatchingDimensions(), attr.getLhsContractingDimensions(),
-        attr.getRhsContractingDimensions());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::FftTypeV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(FftType, V1);
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::GatherDimensionNumbersV1Attr>()) {
-    return stablehlo::GatherDimensionNumbersAttr::get(
-        attr.getContext(), attr.getOffsetDims(), attr.getCollapsedSliceDims(),
-        attr.getStartIndexMap(), attr.getIndexVectorDim());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::OutputOperandAliasV1Attr>()) {
     return stablehlo::OutputOperandAliasAttr::get(
@@ -118,12 +94,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::RngDistributionV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(RngDistribution, V1);
-  }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::ScatterDimensionNumbersV1Attr>()) {
-    return stablehlo::ScatterDimensionNumbersAttr::get(
-        attr.getContext(), attr.getUpdateWindowDims(),
-        attr.getInsertedWindowDims(), attr.getScatterDimsToOperandDims(),
-        attr.getIndexVectorDim());
   }
   if (auto attr = vhloAttr.dyn_cast<vhlo::TransposeV1Attr>()) {
     RETURN_CONVERTED_ENUM_ATTR(Transpose, V1);
@@ -192,8 +162,25 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   return {};
 }
 
-Attribute convertSymbolAttrToStablehlo(Attribute vhloAttr,
-                                       TypeConverter* typeConverter) {
+LogicalResult convertInt(Attribute vhloAttr, int64_t& result) {
+  auto vhloIntegerAttr = vhloAttr.dyn_cast<vhlo::IntegerV1Attr>();
+  if (!vhloIntegerAttr) return failure();
+  result = vhloIntegerAttr.getValue().getSExtValue();
+  return success();
+}
+
+LogicalResult convertInts(Attribute vhloAttr, TypeConverter* typeConverter,
+                          SmallVector<int64_t>& result) {
+  auto vhloTensorAttr = vhloAttr.dyn_cast<vhlo::TensorV1Attr>();
+  if (!vhloTensorAttr) return failure();
+  auto stablehloAttr = convertAttrToStablehlo(vhloAttr, typeConverter)
+                           .dyn_cast_or_null<DenseIntElementsAttr>();
+  if (!stablehloAttr) return failure();
+  llvm::append_range(result, stablehloAttr.getValues<int64_t>());
+  return success();
+}
+
+Attribute convertSymbol(Attribute vhloAttr, TypeConverter* typeConverter) {
   auto vhloStringAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>();
   if (!vhloStringAttr) return {};
   auto stablehloStringAttr =
@@ -203,13 +190,67 @@ Attribute convertSymbolAttrToStablehlo(Attribute vhloAttr,
   return FlatSymbolRefAttr::get(stablehloStringAttr);
 }
 
+template <typename OpType>
+Attribute convertChannelHandle(OpType vhloOp, TypeConverter* typeConverter) {
+  int64_t channelId, channelType;
+  if (failed(convertInt(vhloOp.getChannelId(), channelId)) ||
+      failed(convertInt(vhloOp.getChannelType(), channelType)))
+    return {};
+  return stablehlo::ChannelHandleAttr::get(vhloOp.getContext(), channelId,
+                                           channelType);
+}
+
+Attribute convertChannelId(Attribute vhloAttr, TypeConverter* typeConverter) {
+  int64_t channelId;
+  if (failed(convertInt(vhloAttr, channelId))) return {};
+  return stablehlo::ChannelHandleAttr::get(vhloAttr.getContext(), channelId,
+                                           /*channelType=*/0);
+}
+
+template <typename OpType>
+Attribute convertConvDimensionNumbers(OpType vhloOp,
+                                      TypeConverter* typeConverter) {
+  int64_t stablehloInputBatchDimension, stablehloInputFeatureDimension;
+  SmallVector<int64_t> stablehloInputSpatialDimensions;
+  int64_t stablehloKernelInputFeatureDimension,
+      stablehloKernelOutputFeatureDimension;
+  SmallVector<int64_t> stablehloKernelSpatialDimensions;
+  int64_t stablehloOutputBatchDimension, stablehloOutputFeatureDimension;
+  SmallVector<int64_t> stablehloOutputSpatialDimensions;
+  if (failed(convertInt(vhloOp.getInputBatchDimension(),
+                        stablehloInputBatchDimension)) ||
+      failed(convertInt(vhloOp.getInputFeatureDimension(),
+                        stablehloInputFeatureDimension)) ||
+      failed(convertInts(vhloOp.getInputSpatialDimensions(), typeConverter,
+                         stablehloInputSpatialDimensions)) ||
+      failed(convertInt(vhloOp.getKernelInputFeatureDimension(),
+                        stablehloKernelInputFeatureDimension)) ||
+      failed(convertInt(vhloOp.getKernelOutputFeatureDimension(),
+                        stablehloKernelOutputFeatureDimension)) ||
+      failed(convertInts(vhloOp.getKernelSpatialDimensions(), typeConverter,
+                         stablehloKernelSpatialDimensions)) ||
+      failed(convertInt(vhloOp.getOutputBatchDimension(),
+                        stablehloOutputBatchDimension)) ||
+      failed(convertInt(vhloOp.getOutputFeatureDimension(),
+                        stablehloOutputFeatureDimension)) ||
+      failed(convertInts(vhloOp.getOutputSpatialDimensions(), typeConverter,
+                         stablehloOutputSpatialDimensions)))
+    return {};
+  return stablehlo::ConvDimensionNumbersAttr::get(
+      vhloOp.getContext(), stablehloInputBatchDimension,
+      stablehloInputFeatureDimension, stablehloInputSpatialDimensions,
+      stablehloKernelInputFeatureDimension,
+      stablehloKernelOutputFeatureDimension, stablehloKernelSpatialDimensions,
+      stablehloOutputBatchDimension, stablehloOutputFeatureDimension,
+      stablehloOutputSpatialDimensions);
+}
+
 Attribute convertCustomCallCalledComputations(Attribute vhloAttr,
                                               TypeConverter* typeConverter) {
   if (auto vhloArrayAttr = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
     SmallVector<Attribute> stablehloAttrs;
     for (auto vhloAttr : vhloArrayAttr.getValue()) {
-      auto stablehloAttr =
-          convertSymbolAttrToStablehlo(vhloAttr, typeConverter);
+      auto stablehloAttr = convertSymbol(vhloAttr, typeConverter);
       if (!stablehloAttr) return {};
       stablehloAttrs.push_back(stablehloAttr);
     }
@@ -218,8 +259,66 @@ Attribute convertCustomCallCalledComputations(Attribute vhloAttr,
   return {};
 }
 
+Attribute convertDotDimensionNumbers(vhlo::DotGeneralOpV1 vhloOp,
+                                     TypeConverter* typeConverter) {
+  SmallVector<int64_t> stablehloLhsBatchingDimensions,
+      stablehloRhsBatchingDimensions, stablehloLhsContractingDimensions,
+      stablehloRhsContractingDimensions;
+  if (failed(convertInts(vhloOp.getLhsBatchingDimensions(), typeConverter,
+                         stablehloLhsBatchingDimensions)) ||
+      failed(convertInts(vhloOp.getRhsBatchingDimensions(), typeConverter,
+                         stablehloRhsBatchingDimensions)) ||
+      failed(convertInts(vhloOp.getLhsContractingDimensions(), typeConverter,
+                         stablehloLhsContractingDimensions)) ||
+      failed(convertInts(vhloOp.getRhsContractingDimensions(), typeConverter,
+                         stablehloRhsContractingDimensions)))
+    return {};
+  return stablehlo::DotDimensionNumbersAttr::get(
+      vhloOp.getContext(), stablehloLhsBatchingDimensions,
+      stablehloRhsBatchingDimensions, stablehloLhsContractingDimensions,
+      stablehloRhsContractingDimensions);
+}
+
 Attribute convertFuncCallee(Attribute vhloAttr, TypeConverter* typeConverter) {
-  return convertSymbolAttrToStablehlo(vhloAttr, typeConverter);
+  return convertSymbol(vhloAttr, typeConverter);
+}
+
+template <typename OpType>
+Attribute convertGatherDimensionNumbers(OpType vhloOp,
+                                        TypeConverter* typeConverter) {
+  SmallVector<int64_t> stablehloOffsetDims, stablehloCollapsedSliceDims,
+      stablehloStartIndexMap;
+  int64_t stablehloIndexVectorDim;
+  if (failed(convertInts(vhloOp.getOffsetDims(), typeConverter,
+                         stablehloOffsetDims)) ||
+      failed(convertInts(vhloOp.getCollapsedSliceDims(), typeConverter,
+                         stablehloCollapsedSliceDims)) ||
+      failed(convertInts(vhloOp.getStartIndexMap(), typeConverter,
+                         stablehloStartIndexMap)) ||
+      failed(convertInt(vhloOp.getIndexVectorDim(), stablehloIndexVectorDim)))
+    return {};
+  return stablehlo::GatherDimensionNumbersAttr::get(
+      vhloOp.getContext(), stablehloOffsetDims, stablehloCollapsedSliceDims,
+      stablehloStartIndexMap, stablehloIndexVectorDim);
+}
+
+Attribute convertScatterDimensionNumbers(vhlo::ScatterOpV1 vhloOp,
+                                         TypeConverter* typeConverter) {
+  SmallVector<int64_t> stablehloUpdateWindowDims, stablehloInsertedWindowDims,
+      stablehloScatterDimsToOperandDims;
+  int64_t stablehloIndexVectorDim;
+  if (failed(convertInts(vhloOp.getUpdateWindowDims(), typeConverter,
+                         stablehloUpdateWindowDims)) ||
+      failed(convertInts(vhloOp.getInsertedWindowDims(), typeConverter,
+                         stablehloInsertedWindowDims)) ||
+      failed(convertInts(vhloOp.getScatterDimsToOperandDims(), typeConverter,
+                         stablehloScatterDimsToOperandDims)) ||
+      failed(convertInt(vhloOp.getIndexVectorDim(), stablehloIndexVectorDim)))
+    return {};
+  return stablehlo::ScatterDimensionNumbersAttr::get(
+      vhloOp.getContext(), stablehloUpdateWindowDims,
+      stablehloInsertedWindowDims, stablehloScatterDimsToOperandDims,
+      stablehloIndexVectorDim);
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
@@ -267,7 +366,48 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     ValueRange stablehloOperands = adaptor.getOperands();
 
     SmallVector<NamedAttribute> stablehloAttrs;
+    if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV1>::value) {
+      auto stablehloAttr =
+          convertDotDimensionNumbers(vhloOp, this->getTypeConverter());
+      if (!stablehloAttr) return failure();
+      stablehloAttrs.emplace_back(
+          StringAttr::get(this->getContext(), "dot_dimension_numbers"),
+          stablehloAttr);
+    } else if constexpr (std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value ||
+                         std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value) {
+      auto stablehloAttr =
+          convertConvDimensionNumbers(vhloOp, this->getTypeConverter());
+      if (!stablehloAttr) return failure();
+      stablehloAttrs.emplace_back(
+          StringAttr::get(this->getContext(), "dimension_numbers"),
+          stablehloAttr);
+    } else if constexpr (std::is_same<VhloOpTy,
+                                      vhlo::DynamicGatherOpV1>::value ||
+                         std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+      auto stablehloAttr =
+          convertGatherDimensionNumbers(vhloOp, this->getTypeConverter());
+      if (!stablehloAttr) return failure();
+      stablehloAttrs.emplace_back(
+          StringAttr::get(this->getContext(), "dimension_numbers"),
+          stablehloAttr);
+    } else if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV1>::value) {
+      auto stablehloAttr =
+          convertScatterDimensionNumbers(vhloOp, this->getTypeConverter());
+      if (!stablehloAttr) return failure();
+      stablehloAttrs.emplace_back(
+          StringAttr::get(this->getContext(), "scatter_dimension_numbers"),
+          stablehloAttr);
+    } else if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
+                         std::is_same<VhloOpTy, vhlo::SendOpV1>::value) {
+      auto stablehloAttr =
+          convertChannelHandle(vhloOp, this->getTypeConverter());
+      if (!stablehloAttr) return failure();
+      stablehloAttrs.emplace_back(
+          StringAttr::get(this->getContext(), "channel_handle"), stablehloAttr);
+    }
+
     for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
+      StringAttr stablehloName = vhloAttr.getName();
       Attribute stablehloAttr;
       if (vhloAttr.getName() == "use_global_device_ids") {
         auto vhloBooleanAttr =
@@ -275,6 +415,23 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
         if (!vhloBooleanAttr) return failure();
         if (!vhloBooleanAttr.getValue()) continue;
         stablehloAttr = UnitAttr::get(this->getContext());
+      } else if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
+                           std::is_same<VhloOpTy, vhlo::AllGatherOpV2>::value ||
+                           std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
+                           std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
+                           std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
+                           std::is_same<VhloOpTy,
+                                        vhlo::CollectivePermuteOpV1>::value ||
+                           std::is_same<VhloOpTy,
+                                        vhlo::CollectivePermuteOpV2>::value ||
+                           std::is_same<VhloOpTy,
+                                        vhlo::ReduceScatterOpV1>::value) {
+        if (vhloAttr.getName() == "channel_id") {
+          stablehloName = StringAttr::get(this->getContext(), "channel_handle");
+          stablehloAttr =
+              convertChannelId(vhloAttr.getValue(), this->getTypeConverter());
+          if (!stablehloAttr) return failure();
+        }
       } else if constexpr (std::is_same<VhloOpTy,
                                         vhlo::CustomCallOpV1>::value ||
                            std::is_same<VhloOpTy,
@@ -283,6 +440,51 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           stablehloAttr = convertCustomCallCalledComputations(
               vhloAttr.getValue(), this->getTypeConverter());
           if (!stablehloAttr) return failure();
+        }
+      } else if constexpr (std::is_same<VhloOpTy,
+                                        vhlo::DotGeneralOpV1>::value) {
+        if (vhloAttr.getName() == "lhs_batching_dimensions" ||
+            vhloAttr.getName() == "rhs_batching_dimensions" ||
+            vhloAttr.getName() == "lhs_contracting_dimensions" ||
+            vhloAttr.getName() == "rhs_contracting_dimensions") {
+          continue;
+        }
+      } else if constexpr (std::is_same<VhloOpTy,
+                                        vhlo::DynamicConvOpV1>::value ||
+                           std::is_same<VhloOpTy,
+                                        vhlo::ConvolutionOpV1>::value) {
+        if (vhloAttr.getName() == "input_batch_dimension" ||
+            vhloAttr.getName() == "input_feature_dimension" ||
+            vhloAttr.getName() == "input_spatial_dimensions" ||
+            vhloAttr.getName() == "kernel_input_feature_dimension" ||
+            vhloAttr.getName() == "kernel_output_feature_dimension" ||
+            vhloAttr.getName() == "kernel_spatial_dimensions" ||
+            vhloAttr.getName() == "output_batch_dimension" ||
+            vhloAttr.getName() == "output_feature_dimension" ||
+            vhloAttr.getName() == "output_spatial_dimensions") {
+          continue;
+        }
+      } else if constexpr (std::is_same<VhloOpTy,
+                                        vhlo::DynamicGatherOpV1>::value ||
+                           std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+        if (vhloAttr.getName() == "offset_dims" ||
+            vhloAttr.getName() == "collapsed_slice_dims" ||
+            vhloAttr.getName() == "start_index_map" ||
+            vhloAttr.getName() == "index_vector_dim") {
+          continue;
+        }
+      } else if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV1>::value) {
+        if (vhloAttr.getName() == "update_window_dims" ||
+            vhloAttr.getName() == "inserted_window_dims" ||
+            vhloAttr.getName() == "scatter_dims_to_operand_dims" ||
+            vhloAttr.getName() == "index_vector_dim") {
+          continue;
+        }
+      } else if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
+                           std::is_same<VhloOpTy, vhlo::SendOpV1>::value) {
+        if (vhloAttr.getName() == "channel_id" ||
+            vhloAttr.getName() == "channel_type") {
+          continue;
         }
       } else if constexpr (std::is_same<VhloOpTy, vhlo::CallOpV1>::value) {
         if (vhloAttr.getName() == "callee") {
@@ -296,7 +498,7 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
                                                this->getTypeConverter());
         if (!stablehloAttr) return failure();
       }
-      stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
+      stablehloAttrs.push_back({stablehloName, stablehloAttr});
     }
 
     // Replace vhlo.return --> func.return if direct parent is a func op.
