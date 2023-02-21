@@ -38,11 +38,11 @@ CheckDialect::CheckDialect(MLIRContext *context)
       >();
 }
 
-llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
+llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
   auto rhs = makeTensor(value.cast<DenseElementsAttr>());
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
-    if (lhs.get(*lhsIt) != rhs.get(*rhsIt)) {
+    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt))) {
       return invalidArgument(
           "Element values don't match: %s (actual) vs %s (expected)\n",
           debugString(lhs.get(*lhsIt)).c_str(),
@@ -53,11 +53,11 @@ llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
   return llvm::Error::success();
 }
 
-llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
+llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
   auto rhs = makeTensor(value.cast<DenseElementsAttr>());
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt) {
-    if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt))) {
+    if (lhs.get(*lhsIt) != rhs.get(*rhsIt)) {
       return invalidArgument(
           "Element values don't match: %s (actual) vs %s (expected)\n",
           debugString(lhs.get(*lhsIt)).c_str(),

@@ -417,9 +417,8 @@ bool areApproximatelyEqual(const Element &e1, const Element &e2) {
                                        debugString(type).c_str(),
                                        debugString(e2.getType()).c_str()));
 
-  if (isSupportedFloatType(type)) {
+  if (isSupportedFloatType(type))
     return areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue());
-  }
 
   if (isSupportedComplexType(type)) {
     auto complexLhs = e1.getComplexValue();

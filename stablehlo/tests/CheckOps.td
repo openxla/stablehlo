@@ -39,26 +39,6 @@ def CHECK_Dialect : Dialect {
 // CHECK op definitions.
 //===----------------------------------------------------------------------===//
 
-def CHECK_EqOp :
-    Op<CHECK_Dialect, "eq", [AllTypesMatch<["lhs", "value"]>]> {
-  let summary = [{Checks the tensor operand is equal to some constant}];
-  let description =  [{
-    Verifies that the tensor operand is exactly equal to a constant attribute.
-    For floating-point and complex types, uses bitwise comparison for equality.
-
-    ```mlir
-    check.eq %arg0, dense<[1, 2]> : tensor<2xi32>
-    ```
-  }];
-
-  let arguments = (ins
-    HLO_Tensor:$lhs,
-    ElementsAttr:$value
-  );
-
-  let assemblyFormat = "$lhs `,` $value attr-dict";
-}
-
 def CHECK_AlmostEqOp :
     Op<CHECK_Dialect,
        "almost_eq", [AllTypesMatch<["lhs", "value"]>]> {
@@ -75,6 +55,26 @@ def CHECK_AlmostEqOp :
 
   let arguments = (ins
     TensorOf<[AnyFloat, AnyComplex]>:$lhs,
+    ElementsAttr:$value
+  );
+
+  let assemblyFormat = "$lhs `,` $value attr-dict";
+}
+
+def CHECK_EqOp :
+    Op<CHECK_Dialect, "eq", [AllTypesMatch<["lhs", "value"]>]> {
+  let summary = [{Checks the tensor operand is equal to some constant}];
+  let description =  [{
+    Verifies that the tensor operand is exactly equal to a constant attribute.
+    For floating-point and complex types, uses bitwise comparison for equality.
+
+    ```mlir
+    check.eq %arg0, dense<[1, 2]> : tensor<2xi32>
+    ```
+  }];
+
+  let arguments = (ins
+    HLO_Tensor:$lhs,
     ElementsAttr:$value
   );
 
