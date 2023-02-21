@@ -32,7 +32,7 @@ namespace stablehlo {
 class IndexSpaceIterator {
  public:
   /// \name Constructor
-  IndexSpaceIterator(Sizes shape, std::optional<Sizes> index)
+  IndexSpaceIterator(Sizes shape, std::optional<Index> index)
       : shape_(shape), index_(index) {
     if (index && !index->inBounds(shape))
       llvm::report_fatal_error(
@@ -44,8 +44,8 @@ class IndexSpaceIterator {
   /// At any point in time, the iterator can either reference an actual index
   /// or the past-the-end element in the index space.
   /// Dereferencing a past-the-end iterator will result in a fatal error.
-  const Sizes &operator*() const;
-  const Sizes *operator->() const;
+  const Index &operator*() const;
+  const Index *operator->() const;
 
   /// Compare the iterator to another iterator.
   /// Two iterators are equal if they have the same underlying shape and
@@ -69,7 +69,7 @@ class IndexSpaceIterator {
 
   /// Current multi-dimensional index.
   /// If the optional is empty, then we're at the end
-  std::optional<Sizes> index_;
+  std::optional<Index> index_;
 };
 
 }  // namespace stablehlo

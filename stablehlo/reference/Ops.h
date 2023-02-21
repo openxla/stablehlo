@@ -38,11 +38,10 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, TensorType resultType);
 Tensor evalCosineOp(const Tensor &operand, TensorType resultType);
-Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
+Tensor evalDynamicSliceOp(const Tensor &operand, Index startIndices,
                           Sizes sliceSizes, TensorType resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
-                                ArrayRef<Tensor> startIndices,
-                                TensorType resultType);
+                                Index startIndices, TensorType resultType);
 Tensor evalExponentialOp(const Tensor &operand, TensorType resultType);
 Tensor evalFloorOp(const Tensor &operand, TensorType resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
@@ -65,7 +64,7 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, TensorType resultType);
 Tensor evalSineOp(const Tensor &operand, TensorType resultType);
-Tensor evalSliceOp(const Tensor &operand, Sizes startIndices, Sizes strides,
+Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
                    TensorType resultType);
 Tensor evalSqrtOp(const Tensor &operand, TensorType resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,

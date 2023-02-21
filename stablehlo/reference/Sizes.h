@@ -60,6 +60,7 @@ Sizes clamp(int64_t min, const Sizes &x, const Sizes &max);
 Sizes clamp(const Sizes &min, const Sizes &x, int64_t max);
 Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max);
 
+/// Represents index of a tensor.
 using Index = Sizes;
 
 }  // namespace stablehlo

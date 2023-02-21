@@ -18,13 +18,13 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-const Sizes &IndexSpaceIterator::operator*() const {
+const Index &IndexSpaceIterator::operator*() const {
   if (!index_)
     llvm::report_fatal_error("Dereferencing a past-the-end iterator.");
   return *index_;
 }
 
-const Sizes *IndexSpaceIterator::operator->() const { return &(*index_); }
+const Index *IndexSpaceIterator::operator->() const { return &(*index_); }
 
 IndexSpaceIterator &IndexSpaceIterator::operator++() {
   if (!index_)
