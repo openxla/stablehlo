@@ -192,11 +192,6 @@ enum AttributeCode {
   ///   }
   kDictionaryAttr = 18,
 
-  ///   FlatSymbolRefAttr {
-  ///     rootReference: StringAttr
-  ///   }
-  kFlatSymbolRefAttr = 19,
-
   ///   FloatAttr {
   ///     type: Type
   ///     value: APFloat
@@ -453,8 +448,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
   // Forked Attributes
   ArrayV1Attr readArrayV1Attr(DialectBytecodeReader &reader) const;
   DictionaryV1Attr readDictionaryV1Attr(DialectBytecodeReader &reader) const;
-  FlatSymbolRefV1Attr readFlatSymbolRefV1Attr(
-      DialectBytecodeReader &reader) const;
   FloatV1Attr readFloatV1Attr(DialectBytecodeReader &reader) const;
   IntegerV1Attr readIntegerV1Attr(DialectBytecodeReader &reader) const;
   StringV1Attr readStringV1Attr(DialectBytecodeReader &reader) const;
@@ -464,7 +457,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(DictionaryV1Attr attr, DialectBytecodeWriter &writer) const;
-  void write(FlatSymbolRefV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(FloatV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(IntegerV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(StringV1Attr attr, DialectBytecodeWriter &writer) const;
@@ -552,8 +544,6 @@ Attribute VhloBytecodeInterface::readAttribute(
       return readArrayV1Attr(reader);
     case vhlo_encoding::kDictionaryAttr:
       return readDictionaryV1Attr(reader);
-    case vhlo_encoding::kFlatSymbolRefAttr:
-      return readFlatSymbolRefV1Attr(reader);
     case vhlo_encoding::kFloatAttr:
       return readFloatV1Attr(reader);
     case vhlo_encoding::kIntegerAttr:
@@ -590,13 +580,12 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
             write(attr, writer);
             return success();
           })
-      .Case<ArrayV1Attr, DictionaryV1Attr, FlatSymbolRefV1Attr, FloatV1Attr,
-            IntegerV1Attr, StringV1Attr, TensorV1Attr, TypeV1Attr>(
-          [&](auto attr) {
-            LOG_WRITE_CALL;  // Forked attrs
-            write(attr, writer);
-            return success();
-          })
+      .Case<ArrayV1Attr, DictionaryV1Attr, FloatV1Attr, IntegerV1Attr,
+            StringV1Attr, TensorV1Attr, TypeV1Attr>([&](auto attr) {
+        LOG_WRITE_CALL;  // Forked attrs
+        write(attr, writer);
+        return success();
+      })
       .Case([&](UnitV1Attr) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kUnitAttr), success();
@@ -1059,23 +1048,6 @@ void VhloBytecodeInterface::write(FloatV1Attr attr,
   writer.writeVarInt(vhlo_encoding::kFloatAttr);
   writer.writeType(attr.getType());
   writer.writeAPFloatWithKnownSemantics(attr.getValue());
-}
-
-//===----------------------------------------------------------------------===//
-// FlatSymbolRefV1Attr
-
-FlatSymbolRefV1Attr VhloBytecodeInterface::readFlatSymbolRefV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-  Attribute rootReference;
-  if (failed(reader.readAttribute(rootReference))) return FlatSymbolRefV1Attr();
-  return FlatSymbolRefV1Attr::get(getContext(), rootReference);
-}
-
-void VhloBytecodeInterface::write(FlatSymbolRefV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kFlatSymbolRefAttr);
-  writer.writeAttribute(attr.getRootReference());
 }
 
 //===----------------------------------------------------------------------===//

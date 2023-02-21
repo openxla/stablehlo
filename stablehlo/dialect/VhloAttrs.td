@@ -202,20 +202,6 @@ def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeDictionary>($value) `>`";
 }
 
-def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1", "0.3.0", "current"> {
-  let mnemonic = "sym";
-  let parameters = (ins "::mlir::Attribute":$root_reference);
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    LogicalResult FlatSymbolRefV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Attribute rootReference) {
-      if (!isFromVhlo(rootReference)) return errFn() << "expected VHLO attribute";
-      return success();
-    }
-  }];
-  let assemblyFormat = "`<` $root_reference `>`";
-}
-
 def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.3.0", "current"> {
   let mnemonic = "float";
   let parameters = (ins "mlir::Type":$type, VHLO_APFloatV1:$value);

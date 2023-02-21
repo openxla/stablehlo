@@ -151,13 +151,6 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
     }
     return DictionaryAttr::get(attr.getContext(), vhloAttrs);
   }
-  if (auto attr = vhloAttr.dyn_cast<vhlo::FlatSymbolRefV1Attr>()) {
-    auto builtinRootRef =
-        convertAttrToStablehlo(attr.getRootReference(), typeConverter);
-    if (!builtinRootRef || !builtinRootRef.isa<StringAttr>()) return {};
-    return FlatSymbolRefAttr::get(attr.getContext(),
-                                  builtinRootRef.cast<StringAttr>());
-  }
   if (auto attr = vhloAttr.dyn_cast<vhlo::FloatV1Attr>()) {
     auto builtinFloatType = typeConverter->convertType(attr.getType());
     if (!builtinFloatType) return {};
@@ -197,6 +190,36 @@ Attribute convertAttrToStablehlo(Attribute vhloAttr,
   // This should be unreachable unless program is a mix of VHLO and other
   // due to user edits to textual assembly format.
   return {};
+}
+
+Attribute convertSymbolAttrToStablehlo(Attribute vhloAttr,
+                                       TypeConverter* typeConverter) {
+  auto vhloStringAttr = vhloAttr.dyn_cast<vhlo::StringV1Attr>();
+  if (!vhloStringAttr) return {};
+  auto stablehloStringAttr =
+      convertAttrToStablehlo(vhloStringAttr, typeConverter)
+          .dyn_cast_or_null<StringAttr>();
+  if (!stablehloStringAttr) return {};
+  return FlatSymbolRefAttr::get(stablehloStringAttr);
+}
+
+Attribute convertCustomCallCalledComputations(Attribute vhloAttr,
+                                              TypeConverter* typeConverter) {
+  if (auto vhloArrayAttr = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
+    SmallVector<Attribute> stablehloAttrs;
+    for (auto vhloAttr : vhloArrayAttr.getValue()) {
+      auto stablehloAttr =
+          convertSymbolAttrToStablehlo(vhloAttr, typeConverter);
+      if (!stablehloAttr) return {};
+      stablehloAttrs.push_back(stablehloAttr);
+    }
+    return ArrayAttr::get(vhloAttr.getContext(), stablehloAttrs);
+  }
+  return {};
+}
+
+Attribute convertFuncCallee(Attribute vhloAttr, TypeConverter* typeConverter) {
+  return convertSymbolAttrToStablehlo(vhloAttr, typeConverter);
 }
 
 #undef RETURN_CONVERTED_ENUM_ATTR
@@ -245,9 +268,26 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
 
     SmallVector<NamedAttribute> stablehloAttrs;
     for (NamedAttribute vhloAttr : vhloOp->getAttrs()) {
-      auto stablehloAttr =
-          convertAttrToStablehlo(vhloAttr.getValue(), this->getTypeConverter());
-      if (!stablehloAttr) return failure();
+      Attribute stablehloAttr;
+      if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value ||
+                    std::is_same<VhloOpTy, vhlo::CustomCallOpV2>::value) {
+        if (vhloAttr.getName() == "called_computations") {
+          stablehloAttr = convertCustomCallCalledComputations(
+              vhloAttr.getValue(), this->getTypeConverter());
+          if (!stablehloAttr) return failure();
+        }
+      } else if constexpr (std::is_same<VhloOpTy, vhlo::CallOpV1>::value) {
+        if (vhloAttr.getName() == "callee") {
+          stablehloAttr =
+              convertFuncCallee(vhloAttr.getValue(), this->getTypeConverter());
+          if (!stablehloAttr) return failure();
+        }
+      }
+      if (!stablehloAttr) {
+        stablehloAttr = convertAttrToStablehlo(vhloAttr.getValue(),
+                                               this->getTypeConverter());
+        if (!stablehloAttr) return failure();
+      }
       stablehloAttrs.push_back({vhloAttr.getName(), stablehloAttr});
     }
 

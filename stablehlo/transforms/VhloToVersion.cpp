@@ -129,8 +129,6 @@ LogicalResult isLegalAttribute(const Attribute& attr, Version targetVersion) {
                  succeeded(isLegalAttribute(entry.second, targetVersion));
         }));
   }
-  if (auto flatSymAttr = attr.dyn_cast<FlatSymbolRefV1Attr>())
-    return isLegalAttribute(flatSymAttr.getRootReference(), targetVersion);
   if (auto floatAttr = attr.dyn_cast<FloatV1Attr>())
     return isLegalType(floatAttr.getType(), targetVersion);
   if (auto intAttr = attr.dyn_cast<IntegerV1Attr>())
