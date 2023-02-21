@@ -34,11 +34,11 @@ vhlo.func @collective_permute_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhl
 }
 
 // CHECK-LABEL: @custom_call_to_v2
-vhlo.func @custom_call_to_v2(%arg0: !vhlo.tensor<2x!vhlo.i1>) -> !vhlo.tensor<2x!vhlo.i1> {
+vhlo.func @custom_call_to_v2(%arg0: !vhlo.tensor<2x!vhlo.bool>) -> !vhlo.tensor<2x!vhlo.bool> {
   // CHECK-NEXT: %0 = "vhlo.custom_call_v2"(%arg0)
   %0 = "vhlo.custom_call"(%arg0) {
     backend_config = #vhlo.string<"">,
     call_target_name = #vhlo.string<"foo">
-  } : (!vhlo.tensor<2x!vhlo.i1>) -> !vhlo.tensor<2x!vhlo.i1>
-  "vhlo.return"(%0) : (!vhlo.tensor<2x!vhlo.i1>) -> ()
+  } : (!vhlo.tensor<2x!vhlo.bool>) -> !vhlo.tensor<2x!vhlo.bool>
+  "vhlo.return"(%0) : (!vhlo.tensor<2x!vhlo.bool>) -> ()
 }

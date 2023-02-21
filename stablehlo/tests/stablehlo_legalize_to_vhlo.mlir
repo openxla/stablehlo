@@ -399,7 +399,7 @@ func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
 // CHECK-LABEL: "op_all_to_all"
 
 func.func @op_and(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
-  // CHECK: "vhlo.and"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.i1>, !vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.and"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.bool>, !vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.and"(%arg0, %arg1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -547,7 +547,7 @@ func.func @op_compare(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
   //      CHECK: "vhlo.compare"(%arg0, %arg1) {
   // CHECK-SAME:   compare_type = #vhlo<comparison_type TOTALORDER>,
   // CHECK-SAME:   comparison_direction = #vhlo<comparison_direction EQ>
-  // CHECK-SAME: } : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK-SAME: } : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.compare"(%arg0, %arg1) {
     comparison_direction = #stablehlo<comparison_direction EQ>,
     compare_type = #stablehlo<comparison_type TOTALORDER>
@@ -952,7 +952,7 @@ func.func @op_if(%arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) -> t
   // CHECK-NEXT:   "vhlo.return"(%arg1) : (!vhlo.tensor<!vhlo.f32>) -> ()
   // CHECK-NEXT: }, {
   // CHECK-NEXT:   "vhlo.return"(%arg2) : (!vhlo.tensor<!vhlo.f32>) -> ()
-  // CHECK-NEXT: }) : (!vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.f32>
+  // CHECK-NEXT: }) : (!vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.f32>
   %0 = "stablehlo.if"(%arg0) ({
     "stablehlo.return"(%arg1) : (tensor<f32>) -> ()
   }, {
@@ -994,7 +994,7 @@ func.func @op_iota() -> tensor<16xf32> {
 // CHECK-LABEL: "op_iota"
 
 func.func @op_is_finite(%arg0: tensor<f32>) -> tensor<i1> {
-  // CHECK: "vhlo.is_finite"(%arg0) : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.is_finite"(%arg0) : (!vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.is_finite"(%arg0) : (tensor<f32>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -1069,7 +1069,7 @@ func.func @op_negate(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_negate"
 
 func.func @op_not(%arg0: tensor<i1>) -> tensor<i1> {
-  // CHECK: "vhlo.not"(%arg0) : (!vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.not"(%arg0) : (!vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.not"(%arg0) : (tensor<i1>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -1083,7 +1083,7 @@ func.func @op_optimization_barrier(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_optimization_barrier"
 
 func.func @op_or(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
-  // CHECK: "vhlo.or"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.i1>, !vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.or"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.bool>, !vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.or"(%arg0, %arg1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -1360,8 +1360,8 @@ func.func @op_scatter(%arg0: tensor<200x100x300xf32>, %arg1: tensor<10x2xi32>, %
 func.func @op_select_and_scatter(%arg0: tensor<10x24x24x64xf32>, %arg1: tensor<10x12x12x64xf32>, %arg2: tensor<f32>) -> tensor<10x24x24x64xf32> {
   //      CHECK: "vhlo.select_and_scatter"(%arg0, %arg1, %arg2) ({
   // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG31:arg.*]]: !vhlo.tensor<!vhlo.f32>, %[[ARG41:arg.*]]: !vhlo.tensor<!vhlo.f32>):
-  // CHECK-NEXT:     %[[VAL11:.*]] = "vhlo.compare"(%[[ARG31]], %[[ARG41]]) {compare_type = #vhlo<comparison_type TOTALORDER>, comparison_direction = #vhlo<comparison_direction GE>} : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.i1>
-  // CHECK-NEXT:     "vhlo.return"(%[[VAL11]]) : (!vhlo.tensor<!vhlo.i1>) -> ()
+  // CHECK-NEXT:     %[[VAL11:.*]] = "vhlo.compare"(%[[ARG31]], %[[ARG41]]) {compare_type = #vhlo<comparison_type TOTALORDER>, comparison_direction = #vhlo<comparison_direction GE>} : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.bool>
+  // CHECK-NEXT:     "vhlo.return"(%[[VAL11]]) : (!vhlo.tensor<!vhlo.bool>) -> ()
   // CHECK-NEXT: }, {
   // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG32:arg.*]]: !vhlo.tensor<!vhlo.f32>, %[[ARG42:arg.*]]: !vhlo.tensor<!vhlo.f32>):
   // CHECK-NEXT:     %[[VAL12:.*]] = "vhlo.add"(%[[ARG32]], %[[ARG42]]) : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
@@ -1389,7 +1389,7 @@ func.func @op_select_and_scatter(%arg0: tensor<10x24x24x64xf32>, %arg1: tensor<1
 // CHECK-LABEL: "op_select_and_scatter"
 
 func.func @op_select(%arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) -> tensor<f32> {
-  // CHECK: "vhlo.select"(%arg0, %arg1, %arg2) : (!vhlo.tensor<!vhlo.i1>, !vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
+  // CHECK: "vhlo.select"(%arg0, %arg1, %arg2) : (!vhlo.tensor<!vhlo.bool>, !vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.f32>
   %0 = "stablehlo.select"(%arg0, %arg1, %arg2) : (tensor<i1>, tensor<f32>, tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
@@ -1472,8 +1472,8 @@ func.func @op_slice(%arg0: tensor<16xf32>) -> tensor<4xf32> {
 func.func @op_sort(%arg0: tensor<16xf32>) -> tensor<16xf32> {
   //      CHECK: "vhlo.sort"(%arg0) ({
   // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG1:arg.*]]: !vhlo.tensor<!vhlo.f32>, %[[ARG2:arg.*]]: !vhlo.tensor<!vhlo.f32>):
-  // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.compare"(%[[ARG1]], %[[ARG2]]) {compare_type = #vhlo<comparison_type FLOAT>, comparison_direction = #vhlo<comparison_direction GT>} : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.i1>
-  // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.tensor<!vhlo.i1>) -> ()
+  // CHECK-NEXT:     %[[VAL1:.*]] = "vhlo.compare"(%[[ARG1]], %[[ARG2]]) {compare_type = #vhlo<comparison_type FLOAT>, comparison_direction = #vhlo<comparison_direction GT>} : (!vhlo.tensor<!vhlo.f32>, !vhlo.tensor<!vhlo.f32>) -> !vhlo.tensor<!vhlo.bool>
+  // CHECK-NEXT:     "vhlo.return"(%[[VAL1]]) : (!vhlo.tensor<!vhlo.bool>) -> ()
   // CHECK-NEXT: }) {
   // CHECK-SAME:   dimension = #vhlo.integer<0 : i64>
   // CHECK-SAME:   is_stable = #vhlo.integer<true>
@@ -1597,12 +1597,12 @@ func.func @op_uniform_quantize(%arg0: tensor<f32>) -> tensor<!quant.uniform<i8:f
 
 func.func @op_while(%arg0: tensor<i1>) -> tensor<i1> {
   //      CHECK: "vhlo.while"(%arg0) ({
-  // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG1:arg.*]]: !vhlo.tensor<!vhlo.i1>):
-  // CHECK-NEXT:     "vhlo.return"(%[[ARG1]]) : (!vhlo.tensor<!vhlo.i1>) -> ()
+  // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG1:arg.*]]: !vhlo.tensor<!vhlo.bool>):
+  // CHECK-NEXT:     "vhlo.return"(%[[ARG1]]) : (!vhlo.tensor<!vhlo.bool>) -> ()
   // CHECK-NEXT:   }, {
-  // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG1:arg.*]]: !vhlo.tensor<!vhlo.i1>)
-  // CHECK-NEXT:     "vhlo.return"(%[[ARG1]]) : (!vhlo.tensor<!vhlo.i1>) -> ()
-  // CHECK-NEXT: }) : (!vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK-NEXT:   ^[[BB:bb.*]](%[[ARG1:arg.*]]: !vhlo.tensor<!vhlo.bool>)
+  // CHECK-NEXT:     "vhlo.return"(%[[ARG1]]) : (!vhlo.tensor<!vhlo.bool>) -> ()
+  // CHECK-NEXT: }) : (!vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.while"(%arg0) ({
     ^bb0(%arg1: tensor<i1>):
       "stablehlo.return"(%arg1) : (tensor<i1>) -> ()
@@ -1615,7 +1615,7 @@ func.func @op_while(%arg0: tensor<i1>) -> tensor<i1> {
 // CHECK-LABEL: "op_while"
 
 func.func @op_xor(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
-  // CHECK: "vhlo.xor"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.i1>, !vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.xor"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.bool>, !vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.xor"(%arg0, %arg1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -1624,7 +1624,7 @@ func.func @op_xor(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
 // ============ TYPES ============
 
 func.func @type_i1(%arg0: tensor<i1>, %arg1: tensor<i1>) -> tensor<i1> {
-  // CHECK: "vhlo.and"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.i1>, !vhlo.tensor<!vhlo.i1>) -> !vhlo.tensor<!vhlo.i1>
+  // CHECK: "vhlo.and"(%arg0, %arg1) : (!vhlo.tensor<!vhlo.bool>, !vhlo.tensor<!vhlo.bool>) -> !vhlo.tensor<!vhlo.bool>
   %0 = "stablehlo.and"(%arg0, %arg1) : (tensor<i1>, tensor<i1>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }

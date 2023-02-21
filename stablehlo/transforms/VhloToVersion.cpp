@@ -161,7 +161,7 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
       return succeeded(isLegalType(ele, targetVersion));
     };
     return success(llvm::all_of(func.getInputs(), validateType) &&
-                   llvm::all_of(func.getResults(), validateType));
+                   llvm::all_of(func.getOutputs(), validateType));
   }
   if (auto ranked = type.dyn_cast<RankedTensorV1Type>()) {
     auto encoding = ranked.getEncoding();

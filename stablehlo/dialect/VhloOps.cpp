@@ -147,7 +147,7 @@ void printFunctionBody(OpAsmPrinter& p, Operation*, Attribute name,
                         [&](auto arg) { p.printRegionArgument(arg); });
   p << ") -> (";
   auto fnType = funcType.cast<TypeV1Attr>().getValue().cast<FunctionV1Type>();
-  llvm::interleaveComma(fnType.getResults(), p,
+  llvm::interleaveComma(fnType.getOutputs(), p,
                         [&](auto res) { p.printType(res); });
   p << ") ";
   p.printRegion(region, false, true, true);
