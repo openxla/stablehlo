@@ -725,8 +725,6 @@ void VhloBytecodeInterface::write(FloatV1Attr attr,
 
 namespace {
 unsigned getBitWidthForIntegerType(Type type) {
-  // TODO: Remove BooleanV1Type from here once/if BooleanAttr lands.
-  if (type.isa<BooleanV1Type>()) return 1;
   if (type.isa<IntegerSI4V1Type>() || type.isa<IntegerUI4V1Type>()) return 4;
   if (type.isa<IntegerSI8V1Type>() || type.isa<IntegerUI8V1Type>()) return 8;
   if (type.isa<IntegerSI16V1Type>() || type.isa<IntegerUI16V1Type>()) return 16;
