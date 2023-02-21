@@ -31,7 +31,7 @@ def run(f):
 def test_parse():
   asm = """
     vhlo.func @main() -> () {
-      vhlo.return 
+      "vhlo.return"() : () -> ()
     }
   """
   ir.Module.parse(asm)

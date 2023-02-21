@@ -1250,7 +1250,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#while
 
     Example:
-    %results:2 = "stablehlo.while"(%input0, %input1) ({
+    %results0, %results1 = "stablehlo.while"(%operand0, %operand1) ({
       ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
         %0 = "stablehlo.compare"(%arg0, %arg1) {
           comparison_direction = #stablehlo<comparison_direction LT>
@@ -3100,14 +3100,14 @@ def StableHLO_ReducePrecisionOp :
   let description = [{
     Performs element-wise conversion of `operand` to another floating-point type
     that uses `exponent_bits` and `mantissa_bits` and back to the original
-    floating-point type and produces a `result` tensor.
+    floating-point type and produces an `output` tensor.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reduce_precision
 
     Example:
     ```mlir
-    %result = stablehlo.reduce_precision %operand, format = e5m2 : tensor<6xf32>
+    %output = stablehlo.reduce_precision %operand, format = e5m2 : tensor<6xf32>
     ```
   }];
   let arguments = (ins

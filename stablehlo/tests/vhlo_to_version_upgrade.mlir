@@ -10,7 +10,7 @@ vhlo.func @all_to_all_to_v2(%arg0: !vhlo.tensor<4x16x!vhlo.f32>) -> !vhlo.tensor
     split_count = #vhlo.integer<4 : i64>,
     replica_groups = #vhlo.dense<dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>>
   } : (!vhlo.tensor<4x16x!vhlo.f32>) -> !vhlo.tensor<16x4x!vhlo.f32>
-  vhlo.return %0 : !vhlo.tensor<16x4x!vhlo.f32>
+  "vhlo.return"(%0) : (!vhlo.tensor<16x4x!vhlo.f32>) -> ()
 }
 
 // CHECK-LABEL: @all_gather_to_v2
@@ -21,7 +21,7 @@ vhlo.func @all_gather_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor
     channel_handle = #vhlo.channel_handle<handle = 0, type = 0>,
     replica_groups = #vhlo.dense<dense<[[0], [1]]> : tensor<2x1xi64>>
   } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x16x!vhlo.f32>
-  vhlo.return %0 : !vhlo.tensor<16x16x!vhlo.f32>
+  "vhlo.return"(%0) : (!vhlo.tensor<16x16x!vhlo.f32>) -> ()
 }
 
 // CHECK-LABEL: @collective_permute_to_v2
@@ -30,7 +30,7 @@ vhlo.func @collective_permute_to_v2(%arg0: !vhlo.tensor<16x8x!vhlo.f32>) -> !vhl
   %0 = "vhlo.collective_permute"(%arg0) {
     source_target_pairs = #vhlo.dense<dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>>
   } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x8x!vhlo.f32>
-  vhlo.return %0 : !vhlo.tensor<16x8x!vhlo.f32>
+  "vhlo.return"(%0) : (!vhlo.tensor<16x8x!vhlo.f32>) -> ()
 }
 
 // CHECK-LABEL: @custom_call_to_v2
@@ -40,5 +40,5 @@ vhlo.func @custom_call_to_v2(%arg0: !vhlo.tensor<2x!vhlo.i1>) -> !vhlo.tensor<2x
     backend_config = #vhlo.string<"">,
     call_target_name = #vhlo.string<"foo">
   } : (!vhlo.tensor<2x!vhlo.i1>) -> !vhlo.tensor<2x!vhlo.i1>
-  vhlo.return %0 : !vhlo.tensor<2x!vhlo.i1>
+  "vhlo.return"(%0) : (!vhlo.tensor<2x!vhlo.i1>) -> ()
 }

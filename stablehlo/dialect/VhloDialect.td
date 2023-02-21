@@ -22,7 +22,9 @@ def VHLO_Dialect : Dialect {
   let cppNamespace = "::mlir::vhlo";
 
   let description = [{
-    A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
+    A "shallow" versioned copy of the StableHLO dialect that has been simplified
+    down to a bare minimum which is used for upgrades, downgrades, and
+    serialization/deserialization.
 
     Version log:
       0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.

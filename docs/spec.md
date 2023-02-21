@@ -3853,7 +3853,7 @@ sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 Performs element-wise conversion of `operand` to another floating-point type
 that uses `exponent_bits` and `mantissa_bits` and back to the original
-floating-point type and produces a `result` tensor.
+floating-point type and produces an `output` tensor.
 
 More formally:
 
@@ -3879,11 +3879,11 @@ More formally:
 
 | Name     | Type                          | Constraints |
 |----------|-------------------------------|-------------|
-| `result` | tensor of floating-point type | (C1)        |
+| `output` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `result` have the same type.
+* (C1) `operand` and `output` have the same type.
 * (C2) `exponent_bits` $\ge$ 1.
 * (C3) `mantissa_bits` $\ge$ 0.
 
@@ -3892,12 +3892,12 @@ More formally:
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
 // %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
-%result = "stablehlo.reduce_precision"(%operand) {
+%output = "stablehlo.reduce_precision"(%operand) {
   exponent_bits = 5 : i32,
   mantissa_bits = 2 : i32
 } : (tensor<6xf32>) -> tensor<6xf32>
 // Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
-// %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
+// %output: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
 
 ### reduce_scatter
@@ -4303,8 +4303,8 @@ hidden state.
 #### Semantics
 
 Returns an `output` filled with uniform random bits and an updated output state
-`output_state` given an initial state `initial_state` using the pseudorandom
-number generator algorithm `rng_algorithm`. The output is guaranteed to be
+`output_state` using the pseudorandom number generator algorithm `rng_algorithm`
+given an initial state `initial_state`. The output is guaranteed to be
 deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between implementations.
 
@@ -4321,8 +4321,8 @@ deterministic between implementations.
 
 | Label | Name            | Type                                         | Constraints |
 |-------|-----------------|----------------------------------------------|-------------|
-| (I1)  | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
-| (I2)  | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
+| (I1)  | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
+| (I2)  | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
 
 #### Outputs
 
@@ -5416,7 +5416,7 @@ Produces the output from executing `body` function 0 or more times while the
 using Python-like syntax as follows:
 
 ```python
-internal_state = operands
+internal_state = operand
 while cond(internal_state) == True:
   internal_state = body(internal_state)
 results = internal_state
@@ -5429,7 +5429,7 @@ The behavior of an infinite loop is TBD
 
 | Label | Name       | Type                                 | Constraints |
 |-------|------------|--------------------------------------|-------------|
-| (I1)  | `operands` | variadic number of tensors or tokens | (C1-C3)     |
+| (I1)  | `operand`  | variadic number of tensors or tokens | (C1-C3)     |
 | (I2)  | `cond`     | function                             | (C1)        |
 | (I3)  | `body`     | function                             | (C2)        |
 
@@ -5442,18 +5442,18 @@ The behavior of an infinite loop is TBD
 #### Constraints
 
 * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
-       `Ti` = `type(operands[i])`.
+       `Ti` = `type(operand[i])`.
 * (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
-       `Ti` = `type(operands[i])`.
-* (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
+       `Ti` = `type(operand[i])`.
+* (C3) For all `i`, `type(results[i])` = `type(operand[i])`.
 
 #### Examples
 
 ```mlir
 // %constant0: 1
-// %input0: 0
-// %input1: 10
-%results0, %results1 = "stablehlo.while"(%input0, %input1) ({
+// %operand0: 0
+// %operand1: 10
+%results0, %results1 = "stablehlo.while"(%operand0, %operand1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
     %0 = "stablehlo.compare"(%arg0, %arg1) {
       comparison_direction = #stablehlo<comparison_direction LT>
