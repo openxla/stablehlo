@@ -100,22 +100,10 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
                                      debugString(type).c_str()));
 }
 
-template <typename IntegerFn, typename BooleanFn, typename FloatFn,
-          typename ComplexFn>
-Element mapWithUpcastToDouble(const Element &el, IntegerFn integerFn,
-                              BooleanFn boolFn, FloatFn floatFn,
+template <typename FloatFn, typename ComplexFn>
+Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                               ComplexFn complexFn) {
   Type type = el.getType();
-
-  if (isSupportedIntegerType(type)) {
-    auto intEl = el.getIntegerValue();
-    return Element(type, integerFn(intEl));
-  }
-
-  if (isSupportedBooleanType(type)) {
-    auto boolEl = el.getBooleanValue();
-    return Element(type, boolFn(boolEl));
-  }
 
   if (isSupportedFloatType(type)) {
     APFloat elVal = el.getFloatValue();
@@ -143,28 +131,14 @@ Element mapWithUpcastToDouble(const Element &el, IntegerFn integerFn,
                                      debugString(type).c_str()));
 }
 
-template <typename IntegerFn, typename BooleanFn, typename FloatFn,
-          typename ComplexFn>
+template <typename FloatFn, typename ComplexFn>
 Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
-                              IntegerFn integerFn, BooleanFn boolFn,
                               FloatFn floatFn, ComplexFn complexFn) {
   Type type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(lhs.getType()).c_str(),
                                        debugString(rhs.getType()).c_str()));
-
-  if (isSupportedIntegerType(type)) {
-    auto intLhs = lhs.getIntegerValue();
-    auto intRhs = rhs.getIntegerValue();
-    return Element(type, integerFn(intLhs, intRhs));
-  }
-
-  if (isSupportedBooleanType(type)) {
-    auto boolLhs = lhs.getBooleanValue();
-    auto boolRhs = rhs.getBooleanValue();
-    return Element(type, boolFn(boolLhs, boolRhs));
-  }
 
   if (isSupportedFloatType(type)) {
     APFloat lhsVal = lhs.getFloatValue();
@@ -258,19 +232,51 @@ Element Element::operator+(const Element &other) const {
 }
 
 Element Element::operator/(const Element &other) const {
-  return mapWithUpcastToDouble(
-      *this, other,
-      [&](APInt lhs, APInt rhs) {
-        return isSupportedSignedIntegerType(other.getType()) ? lhs.sdiv(rhs)
-                                                             : lhs.udiv(rhs);
-      },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("bool / bool is unsupported");
-      },
-      [](double lhs, double rhs) { return lhs / rhs; },
-      [](std::complex<double> lhs, std::complex<double> rhs) {
-        return lhs / rhs;
-      });
+  auto lhs = *this;
+  auto rhs = other;
+
+  Type type = lhs.getType();
+  if (lhs.getType() != rhs.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(lhs.getType()).c_str(),
+                                       debugString(rhs.getType()).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = lhs.getIntegerValue();
+    auto intRhs = rhs.getIntegerValue();
+    return Element(type, isSupportedSignedIntegerType(type)
+                             ? intLhs.sdiv(intRhs)
+                             : intLhs.udiv(intRhs));
+  }
+
+  if (isSupportedFloatType(type)) {
+    APFloat lhsVal = lhs.getFloatValue();
+    APFloat rhsVal = rhs.getFloatValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.getSemantics();
+    APFloat resultVal(lhsVal.convertToDouble() / rhsVal.convertToDouble());
+    bool roundingErr;
+    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, resultVal);
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto lhsVal = lhs.getComplexValue();
+    auto rhsVal = rhs.getComplexValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
+    auto resultVal = std::complex<double>(lhsVal.real().convertToDouble(),
+                                          lhsVal.imag().convertToDouble()) /
+                     std::complex<double>(rhsVal.real().convertToDouble(),
+                                          rhsVal.imag().convertToDouble());
+    bool roundingErr;
+    APFloat resultReal(resultVal.real());
+    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat resultImag(resultVal.imag());
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, std::complex<APFloat>(resultReal, resultImag));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
 }
 
 Element Element::operator*(const Element &other) const {
@@ -399,14 +405,7 @@ Element floor(const Element &el) {
 
 Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
-      el,
-      [&](APInt e) -> APInt {
-        llvm::report_fatal_error("cosine(int) is unsupported");
-      },
-      [](bool e) -> bool {
-        llvm::report_fatal_error("cosine(bool) is unsupported");
-      },
-      [](double e) { return std::cos(e); },
+      el, [](double e) { return std::cos(e); },
       [](std::complex<double> e) { return std::cos(e); });
 }
 
@@ -454,14 +453,7 @@ Element min(const Element &e1, const Element &e2) {
 
 Element sine(const Element &el) {
   return mapWithUpcastToDouble(
-      el,
-      [&](APInt e) -> APInt {
-        llvm::report_fatal_error("sine(int) is unsupported");
-      },
-      [](bool e) -> bool {
-        llvm::report_fatal_error("sine(bool) is unsupported");
-      },
-      [](double e) { return std::sin(e); },
+      el, [](double e) { return std::sin(e); },
       [](std::complex<double> e) { return std::sin(e); });
 }
 
@@ -473,14 +465,7 @@ Element sqrt(const Element &el) {
 
 Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
-      el,
-      [&](APInt e) -> APInt {
-        llvm::report_fatal_error("tanh(int) is unsupported");
-      },
-      [](bool e) -> bool {
-        llvm::report_fatal_error("tanh(bool) is unsupported");
-      },
-      [](double e) { return std::tanh(e); },
+      el, [](double e) { return std::tanh(e); },
       [](std::complex<double> e) { return std::tanh(e); });
 }
 
