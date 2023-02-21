@@ -3075,13 +3075,11 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [[1.0, 2.0], [3.0, 4.0]]
-%result = "stablehlo.log"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
-// %result: [[0.0, 0.69314718], [1.09861229, 1.38629436]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.log"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: (0.80471896, 1.10714871)
+%result = "stablehlo.log"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[0.0, 0.69314718055994529], [1.0986122886681098, 1.3862943611198906]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_log.mlir)
 
 ### log_plus_one
 

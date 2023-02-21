@@ -320,6 +320,12 @@ Element cosine(const Element &el) {
       [](std::complex<double> e) { return std::cos(e); });
 }
 
+Element log(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::log(e); },
+      [](std::complex<double> e) { return std::log(e); });
+}
+
 Element max(const Element &e1, const Element &e2) {
   return map(
       e1, e2,

@@ -99,7 +99,7 @@ one of the following tracking labels.
 | infeed                   | yes           | revisit      | infeasible     | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | no          |
-| log                      | yes           | yes          | yes            | yes             | no          |
+| log                      | yes           | yes          | yes            | yes             | yes         |
 | log_plus_one             | yes           | yes          | yes            | yes             | no          |
 | logistic                 | yes           | yes          | yes            | yes             | no          |
 | map                      | yes           | revisit      | yes            | no              | no          |
