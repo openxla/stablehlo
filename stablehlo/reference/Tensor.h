@@ -24,8 +24,10 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
+#include "stablehlo/reference/Sizes.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -37,8 +39,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
  public:
   /// \name Constructors
   /// @{
-  explicit Buffer(ShapedType type);
-  Buffer(ShapedType type, AsmResourceBlob blob);
+  explicit Buffer(TensorType type);
+  Buffer(TensorType type, AsmResourceBlob blob);
   Buffer(Buffer &&other) = default;
   /// @}
 
@@ -46,7 +48,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   Buffer &operator=(Buffer &&other) = delete;
 
   /// Returns type of the Buffer object.
-  ShapedType getType() { return type_; }
+  TensorType getType() { return type_; }
 
   /// Provides access to the underlying non-mutable storage.
   ArrayRef<char> getData() const { return blob_.getData(); }
@@ -55,7 +57,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
 
  private:
-  ShapedType type_;
+  TensorType type_;
   AsmResourceBlob blob_;
 };
 
@@ -68,8 +70,8 @@ class Tensor {
   /// \name Constructors
   /// @{
   Tensor();
-  explicit Tensor(ShapedType type);
-  explicit Tensor(ShapedType type, AsmResourceBlob blob);
+  explicit Tensor(TensorType type);
+  explicit Tensor(TensorType type, AsmResourceBlob blob);
   Tensor(const Tensor &other) = default;
   /// @}
 
@@ -77,20 +79,29 @@ class Tensor {
   Tensor &operator=(const Tensor &other) = default;
 
   /// Returns type of the Tensor object.
-  ShapedType getType() const { return impl_->getType(); };
+  TensorType getType() const { return impl_->getType(); };
+
+  /// Returns rank of the Tensor object.
+  int64_t getRank() const { return impl_->getType().getRank(); }
+
+  /// Returns shape of the Tensor object.
+  Sizes getShape() const { return Sizes(impl_->getType().getShape()); }
 
   /// Returns the number of elements.
-  int64_t getNumElements() const;
+  int64_t getNumElements() const { return impl_->getType().getNumElements(); }
+
+  /// Returns element type of the Tensor object.
+  Type getElementType() const { return impl_->getType().getElementType(); };
 
   /// Provides read access to the tensor element indexed at 'index'.
-  Element get(ArrayRef<int64_t> index) const;
+  Element get(const Index &index) const;
 
   /// Provides write access to the tensor element indexed at 'index'.
   ///
   /// \param index The multi-dimensional index to write to.
   /// \param element The Element object \a element is used to update the
   /// underlying storage pointed to by \a index.
-  void set(ArrayRef<int64_t> index, const Element &element);
+  void set(const Index &index, const Element &element);
 
   /// Prints Tensor objects.
   void print(raw_ostream &os) const;

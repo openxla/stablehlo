@@ -18,60 +18,64 @@ limitations under the License.
 
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Scope.h"
+#include "stablehlo/reference/Sizes.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
 namespace stablehlo {
 
 // Evaluators for StableHLO ops.
-Tensor evalAbsOp(const Tensor &operand, Type resultType);
-Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalBroadcastInDimOp(const Tensor &operand,
-                            ArrayRef<int64_t> broadcastDimensions,
-                            Type resultType);
-Tensor evalCeilOp(const Tensor &operand, Type resultType);
+Tensor evalAbsOp(const Tensor &operand, TensorType resultType);
+Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
+Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
+Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
+                            TensorType resultType);
+Tensor evalCeilOp(const Tensor &operand, TensorType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
-                   Type resultType);
+                   TensorType resultType);
 Tensor evalConstantOp(ElementsAttr value);
-Tensor evalConvertOp(const Tensor &operand, Type resultType);
-Tensor evalCosineOp(const Tensor &operand, Type resultType);
+Tensor evalConvertOp(const Tensor &operand, TensorType resultType);
+Tensor evalCosineOp(const Tensor &operand, TensorType resultType);
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
-                          ArrayRef<int64_t> sliceSizes, Type resultType);
+                          Sizes sliceSizes, TensorType resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
-                                ArrayRef<Tensor> startIndices, Type resultType);
-Tensor evalExponentialOp(const Tensor &operand, Type resultType);
-Tensor evalFloorOp(const Tensor &operand, Type resultType);
+                                ArrayRef<Tensor> startIndices,
+                                TensorType resultType);
+Tensor evalExponentialOp(const Tensor &operand, TensorType resultType);
+Tensor evalFloorOp(const Tensor &operand, TensorType resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                              Region &falseBranch, Scope &scope);
-Tensor evalIotaOp(int64_t iotaDimension, Type resultType);
-Tensor evalLogOp(const Tensor &operand, Type resultType);
-Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalNegOp(const Tensor &operand, Type resultType);
-Tensor evalNotOp(const Tensor &operand, Type resultType);
-Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalIotaOp(Axis iotaDimension, TensorType resultType);
+Tensor evalLogOp(const Tensor &operand, TensorType resultType);
+Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
+Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
+Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs,
+                      TensorType resultType);
+Tensor evalNegOp(const Tensor &operand, TensorType resultType);
+Tensor evalNotOp(const Tensor &operand, TensorType resultType);
+Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
-                 ArrayRef<int64_t> edgePaddingLow,
-                 ArrayRef<int64_t> interiorPadding, Type resultType);
-Tensor evalReshapeOp(const Tensor &operand, Type resultType);
-Tensor evalReverseOp(const Tensor &operand, ArrayRef<int64_t> dimensions,
-                     Type resultType);
+                 Sizes edgePaddingLow, Sizes interiorPadding,
+                 TensorType resultType);
+Tensor evalReshapeOp(const Tensor &operand, TensorType resultType);
+Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
+                     TensorType resultType);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
-                    const Tensor &onFalse, Type resultType);
-Tensor evalSineOp(const Tensor &operand, Type resultType);
-Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
-                   ArrayRef<int64_t> strides, Type resultType);
-Tensor evalSqrtOp(const Tensor &operand, Type resultType);
-Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
-Tensor evalTanhOp(const Tensor &operand, Type resultType);
-Tensor evalTransposeOp(const Tensor &operand, ArrayRef<int64_t> permutation,
-                       Type resultType);
+                    const Tensor &onFalse, TensorType resultType);
+Tensor evalSineOp(const Tensor &operand, TensorType resultType);
+Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
+                   TensorType resultType);
+Tensor evalSqrtOp(const Tensor &operand, TensorType resultType);
+Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
+                      TensorType resultType);
+Tensor evalTanhOp(const Tensor &operand, TensorType resultType);
+Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
+                       TensorType resultType);
 SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
                                 Region &body, Scope &scope);
-Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, Type resultType);
+Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`
 /// corresponding to the arguments of the entry block of the region.
