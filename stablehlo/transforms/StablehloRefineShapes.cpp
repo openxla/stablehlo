@@ -534,11 +534,12 @@ struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
     if (!operandType.hasRank())
       return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
+    // This represents the cross_replica_and_partition process grouping strategy
+    // that requires num_partitions to compute shardCount. Since we don't know
+    // num_partitions at this point, we error out.
     if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
       return rewriter.notifyMatchFailure(op, "unsupported strategy");
     DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
-    if (!replicaGroups || replicaGroups.getType().getRank() != 2)
-      return rewriter.notifyMatchFailure(op, "unsupported replica_groups");
     auto shardCount = replicaGroups.getType().getDimSize(1);
 
     SmallVector<int64_t> refinement(operandType.getShape());
@@ -841,11 +842,12 @@ struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
     if (!operandType.hasRank())
       return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
+    // This represents the cross_replica_and_partition process grouping strategy
+    // that requires num_partitions to compute shardCount. Since we don't know
+    // num_partitions at this point, we error out.
     if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
       return rewriter.notifyMatchFailure(op, "unsupported strategy");
     DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
-    if (!replicaGroups || replicaGroups.getType().getRank() != 2)
-      return rewriter.notifyMatchFailure(op, "unsupported replica_groups");
     auto shardCount = replicaGroups.getType().getDimSize(1);
 
     SmallVector<int64_t> refinement(operandType.getShape());
