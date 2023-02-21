@@ -178,23 +178,23 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
   return success();
 }
 
-void DenseIntOrFPElementsV1Attr::print(mlir::AsmPrinter& p) const {
+void TensorV1Attr::print(mlir::AsmPrinter& p) const {
   p << '<'
     << DenseIntOrFPElementsAttr::getFromRawBuffer(
            convertTypeToBuiltinForPrint(getType()), getRawData())
     << '>';
 }
 
-// Parse dense elements using DenseIntOrFPElementsAttr printing.
-Attribute DenseIntOrFPElementsV1Attr::parse(AsmParser& parser, mlir::Type) {
+// Parse tensor elements using DenseIntOrFPElementsAttr printing.
+Attribute TensorV1Attr::parse(AsmParser& parser, mlir::Type) {
   DenseIntOrFPElementsAttr attr;
   if (failed(parser.parseLess()) || failed(parser.parseAttribute(attr)) ||
       failed(parser.parseGreater())) {
-    return DenseIntOrFPElementsV1Attr();
+    return TensorV1Attr();
   }
-  return DenseIntOrFPElementsV1Attr::get(
-      parser.getContext(), convertTypeToVhloForParse(attr.getType()),
-      attr.getRawData());
+  return TensorV1Attr::get(parser.getContext(),
+                           convertTypeToVhloForParse(attr.getType()),
+                           attr.getRawData());
 }
 
 void printEscapedString(AsmPrinter& p, llvm::StringRef value) {
