@@ -70,8 +70,6 @@ class Tensor {
   /// \name Constructors
   /// @{
   Tensor();
-  // TODO: Remove the need in having this constructor.
-  explicit Tensor(Type type) : Tensor(type.cast<RankedTensorType>()) {}
   explicit Tensor(RankedTensorType type);
   explicit Tensor(RankedTensorType type, AsmResourceBlob blob);
   Tensor(const Tensor &other) = default;
