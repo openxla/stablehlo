@@ -23,6 +23,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+/// Represets per axis metadata (e.g. tensor shape, slice sizes etc.).
 class Sizes : public SmallVector<int64_t> {
  public:
   Sizes() = default;
@@ -58,6 +59,8 @@ Sizes clamp(int64_t min, const Sizes &x, int64_t max);
 Sizes clamp(int64_t min, const Sizes &x, const Sizes &max);
 Sizes clamp(const Sizes &min, const Sizes &x, int64_t max);
 Sizes clamp(const Sizes &min, const Sizes &x, const Sizes &max);
+
+using Index = Sizes;
 
 }  // namespace stablehlo
 }  // namespace mlir

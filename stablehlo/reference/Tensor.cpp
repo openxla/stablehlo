@@ -75,22 +75,22 @@ int64_t flattenIndex(const Sizes &shape, const Sizes &index) {
 
 namespace detail {
 
-Buffer::Buffer(RankedTensorType type)
+Buffer::Buffer(TensorType type)
     : type_(type),
       blob_(
           HeapAsmResourceBlob::allocate(getSizeInBytes(type), alignof(char))) {}
 
-Buffer::Buffer(RankedTensorType type, AsmResourceBlob blob)
+Buffer::Buffer(TensorType type, AsmResourceBlob blob)
     : type_(type), blob_(std::move(blob)) {}
 
 }  // namespace detail
 
 Tensor::Tensor() {}
 
-Tensor::Tensor(RankedTensorType type)
+Tensor::Tensor(TensorType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
-Tensor::Tensor(RankedTensorType type, AsmResourceBlob blob)
+Tensor::Tensor(TensorType type, AsmResourceBlob blob)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
 
 Element Tensor::get(const Sizes &index) const {
@@ -350,7 +350,7 @@ void Tensor::print(raw_ostream &os) const {
 void Tensor::dump() const { print(llvm::errs()); }
 
 Tensor makeTensor(DenseElementsAttr attr) {
-  auto type = attr.getType().cast<RankedTensorType>();
+  auto type = attr.getType().cast<TensorType>();
   auto elemType = type.getElementType();
 
   // Handle floating-point types.

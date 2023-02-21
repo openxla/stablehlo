@@ -25,6 +25,7 @@ namespace stablehlo {
 
 using Axis = int64_t;
 
+/// Represents axes of a tensor.
 class Axes : public SmallVector<int64_t> {
  public:
   Axes() = default;
