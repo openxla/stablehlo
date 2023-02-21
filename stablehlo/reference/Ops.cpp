@@ -116,11 +116,11 @@ Tensor evalCosineOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
-Tensor evalDynamicSliceOp(const Tensor &operand, Index startIndices,
+Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           Sizes sliceSizes, TensorType resultType) {
   Tensor result(resultType);
   auto adjustedStartIndices =
-      clamp(0, startIndices, operand.getShape() - sliceSizes);
+      clamp(0, evalIndices(startIndices), operand.getShape() - sliceSizes);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     result.set(*resultIt, operand.get(adjustedStartIndices + *resultIt));
@@ -129,10 +129,11 @@ Tensor evalDynamicSliceOp(const Tensor &operand, Index startIndices,
 }
 
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
-                                Index startIndices, TensorType resultType) {
+                                ArrayRef<Tensor> startIndices,
+                                TensorType resultType) {
   Tensor result(resultType);
-  auto adjustedStartIndices =
-      clamp(0, startIndices, operand.getShape() - update.getShape());
+  auto adjustedStartIndices = clamp(0, evalIndices(startIndices),
+                                    operand.getShape() - update.getShape());
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
     result.set(*resultIt, operand.get(*resultIt));
@@ -430,8 +431,8 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());
-      Index runtimeStartIndices =
-          evalIndices(scope.find(dynamicSliceOp.getStartIndices()));
+      SmallVector<Tensor> runtimeStartIndices =
+          scope.find(dynamicSliceOp.getStartIndices());
       auto runtimeSliceSizes = Sizes(dynamicSliceOp.getSliceSizes());
       Tensor runtimeResult =
           evalDynamicSliceOp(runtimeOperand, runtimeStartIndices,
@@ -440,8 +441,8 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicUpdateSliceOp.getOperand());
       Tensor runtimeUpdate = scope.find(dynamicUpdateSliceOp.getUpdate());
-      Index runtimeStartIndices =
-          evalIndices(scope.find(dynamicUpdateSliceOp.getStartIndices()));
+      SmallVector<Tensor> runtimeStartIndices =
+          scope.find(dynamicUpdateSliceOp.getStartIndices());
       Tensor runtimeResult = evalDynamicUpdateSliceOp(
           runtimeOperand, runtimeUpdate, runtimeStartIndices,
           dynamicUpdateSliceOp.getType());
