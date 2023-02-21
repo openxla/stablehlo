@@ -15,65 +15,16 @@ limitations under the License.
 
 #include "stablehlo/reference/Index.h"
 
-#include "llvm/Support/Error.h"
-
 namespace mlir {
 namespace stablehlo {
 
-Index Index::operator+(const Index &other) const {
-  if (size() != other.size())
-    llvm::report_fatal_error("Index add expects operands of same size.");
-
-  SmallVector<int64_t> result;
-  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, other.index_))
-    result.push_back(lhsIdx + rhsIdx);
-  return Index(result);
-}
-
-Index Index::operator+(ArrayRef<int64_t> array) const {
-  if (size() != array.size())
-    llvm::report_fatal_error("Index add expects operands of same size.");
-
-  SmallVector<int64_t> result;
-  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, array))
-    result.push_back(lhsIdx + rhsIdx);
-  return Index(result);
-}
-
-Index Index::operator*(const Index &other) const {
-  if (size() != other.size())
-    llvm::report_fatal_error("Index product expects operands of same size.");
-
-  SmallVector<int64_t> result;
-  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, other.index_))
-    result.push_back(lhsIdx * rhsIdx);
-  return Index(result);
-}
-
-Index Index::operator*(ArrayRef<int64_t> array) const {
-  if (size() != array.size())
-    llvm::report_fatal_error("Index product expects operands of same size.");
-
-  SmallVector<int64_t> result;
-  for (auto [lhsIdx, rhsIdx] : llvm::zip(index_, array))
-    result.push_back(lhsIdx * rhsIdx);
-  return Index(result);
-}
-
-LogicalResult verifyIndex(llvm::ArrayRef<int64_t> shape, const Index &index) {
-  if (shape.size() != index.size()) return failure();
-
-  for (auto [shapeDim, indexDim] : llvm::zip(shape, index.getIndexArray()))
-    if (indexDim < 0 || indexDim >= shapeDim) return failure();
-
-  return success();
-}
-
-Index IndexSpaceIterator::operator*() const {
+const Sizes &IndexSpaceIterator::operator*() const {
   if (!index_)
     llvm::report_fatal_error("Dereferencing a past-the-end iterator.");
   return *index_;
 }
+
+const Sizes *IndexSpaceIterator::operator->() const { return &(*index_); }
 
 IndexSpaceIterator &IndexSpaceIterator::operator++() {
   if (!index_)
@@ -101,25 +52,6 @@ IndexSpaceIterator IndexSpaceIterator::operator++(int) {
   IndexSpaceIterator tempIter = *this;
   ++*this;
   return tempIter;
-}
-
-Index Index::permute(ArrayRef<int64_t> permutation) {
-  if (size() != permutation.size())
-    llvm::report_fatal_error(
-        "Index permutationute expects permutation of same size as the index.");
-
-  Index result(size());
-  for (size_t i = 0; i < permutation.size(); i++)
-    result[i] = (*this)[permutation[i]];
-  return result;
-}
-
-Index operator+(ArrayRef<int64_t> array, const Index &index) {
-  return index + array;
-}
-
-Index operator*(ArrayRef<int64_t> array, const Index &index) {
-  return index * array;
 }
 
 }  // namespace stablehlo
