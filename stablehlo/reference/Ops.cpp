@@ -279,8 +279,7 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions, Type resultType) {
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     Sizes operandIdx(*resultIt);
-    for (auto dim : dimensions)
-      operandIdx[dim] = (resultShape[dim] - 1) - operandIdx[dim];
+    operandIdx = (resultShape - 1) - operandIdx;
     result.set(*resultIt, operand.get(operandIdx));
   }
   return result;
