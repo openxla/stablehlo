@@ -184,7 +184,8 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
-def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
+// TODO(#425): DictionaryConstant is not part of the StableHLO spec.
+def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
   let mnemonic = "dict";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
   let genVerifyDecl = 1;
@@ -266,6 +267,7 @@ def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+// TODO(#425): TypeConstant is not part of the StableHLO spec.
 def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
   let mnemonic = "type";
   let parameters = (ins "::mlir::Type":$value);
