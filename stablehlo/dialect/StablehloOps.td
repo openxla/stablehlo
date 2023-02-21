@@ -607,9 +607,10 @@ def StableHLO_SineOp: StableHLO_UnaryElementwiseOp<"sine",
   }];
 }
 
-def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
-  let summary = "Square-root operator";
+def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt", [Pure,
+    HLO_CompatibleOperandsAndResultType /* sqrt_c1 */],
+    HLO_FpOrComplexTensor /* sqrt_i1 */> {
+  let summary = "Sqrt operation";
   let description = [{
     Performs element-wise square root operation on `operand` tensor and produces
     a `result` tensor.
@@ -619,7 +620,7 @@ def StableHLO_SqrtOp: StableHLO_UnaryElementwiseOp<"sqrt",
 
     Example:
     ```mlir
-    %result = stablehlo.sqrt %operand : tensor<2xf32>
+    %result = stablehlo.sqrt %operand : tensor<2x2xf32>
     ```
   }];
 }

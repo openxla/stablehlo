@@ -336,6 +336,13 @@ Tensor evalSliceOp(const Tensor &operand, ArrayRef<int64_t> startIndices,
   return result;
 }
 
+Tensor evalSqrtOp(const Tensor &operand, Type resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, sqrt(operand.get(*it)));
+  return result;
+}
+
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs, Type resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -553,6 +560,10 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       auto strides = llvm::to_vector(sliceOp.getStrides().getValues<int64_t>());
       Tensor runtimeResult =
           evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
+      Tensor runtimeOperand = scope.find(sqrtOp.getOperand());
+      Tensor runtimeResult = evalSqrtOp(runtimeOperand, sqrtOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
       Tensor runtimeLhs = scope.find(subtractOp.getLhs());

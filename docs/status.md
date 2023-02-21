@@ -144,7 +144,7 @@ one of the following tracking labels.
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | yes         |
 | sort                     | yes           | yes          | yes            | no              | no          |
-| sqrt                     | yes           | yes          | yes            | yes             | no          |
+| sqrt                     | yes           | yes          | yes            | yes             | yes         |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |
 | torch_index_select       | no            | revisit      | no             | no              | no          |

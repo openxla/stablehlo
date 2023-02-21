@@ -362,6 +362,12 @@ Element sine(const Element &el) {
       [](std::complex<double> e) { return std::sin(e); });
 }
 
+Element sqrt(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::sqrt(e); },
+      [](std::complex<double> e) { return std::sqrt(e); });
+}
+
 Element tanh(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::tanh(e); },
