@@ -116,6 +116,14 @@ Tensor evalCosineOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
+Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
+                    TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, lhs.get(*it) / rhs.get(*it));
+  return result;
+}
+
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           Sizes sliceSizes, TensorType resultType) {
   Tensor result(resultType);
@@ -436,6 +444,12 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
       Tensor runtimeOperand = scope.find(cosineOp.getOperand());
       Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto divideOp = dyn_cast<DivOp>(op)) {
+      Tensor runtimeLhs = scope.find(divideOp.getLhs());
+      Tensor runtimeRhs = scope.find(divideOp.getRhs());
+      Tensor runtimeResult =
+          evalDivideOp(runtimeLhs, runtimeRhs, divideOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());

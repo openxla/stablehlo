@@ -2174,12 +2174,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %rhs: [3.0, 3.0, -3.0, -3.0]
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
 // %result: [5.66666651, -5.66666651, -5.66666651, 5.66666651]
-
-// %lhs: [17, -17, 17, -17]
-// %rhs: [3, 3, -3, -3]
-%result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
-// %result: [5, -5, -5, 5]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_divide.mlir)
 
 ### dot_general
 
