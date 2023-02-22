@@ -131,7 +131,7 @@ one of the following tracking labels.
 | rng_bit_generator        | yes           | revisit      | infeasible     | yes             | no          |
 | round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
 | round_nearest_even       | yes           | yes          | yes            | yes             | no          |
-| rsqrt                    | yes           | yes          | yes            | yes             | no          |
+| rsqrt                    | yes           | yes          | yes            | yes             | yes         |
 | scatter                  | yes           | revisit      | yes            | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | yes         |
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |

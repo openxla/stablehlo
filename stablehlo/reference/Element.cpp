@@ -362,6 +362,12 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
+Element rsqrt(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return 1.0 / std::sqrt(e); },
+      [](std::complex<double> e) { return 1.0 / std::sqrt(e); });
+}
+
 Element sine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },

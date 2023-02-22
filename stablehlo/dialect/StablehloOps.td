@@ -555,9 +555,10 @@ def StableHLO_RoundNearestEvenOp: StableHLO_UnaryElementwiseOp<"round_nearest_ev
   }];
 }
 
-def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
-  let summary = "Reciprocal Square-root operator";
+def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt", [Pure,
+    HLO_CompatibleOperandsAndResultType /* rsqrt_c1 */],
+    HLO_FpOrComplexTensor /* rsqrt_i1 */> {
+  let summary = "Rsqrt operation";
   let description = [{
     Performs element-wise reciprocal square root operation on `operand` tensor
     and produces a `result` tensor, implementing the `rSqrt` operation from the
@@ -568,7 +569,7 @@ def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt",
 
     Example:
     ```mlir
-    %result = stablehlo.rsqrt %operand : tensor<2xf32>
+    %result = stablehlo.rsqrt %operand : tensor<2x2xf32>
     ```
   }];
 }

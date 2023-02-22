@@ -124,6 +124,9 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
+/// Returns reverse square root of Element object.
+Element rsqrt(const Element &e);
+
 /// Returns sine of Element object.
 Element sine(const Element &e);
 
