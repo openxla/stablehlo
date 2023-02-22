@@ -1989,7 +1989,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 
     Example:
     ```mlir
-    %result = stablehlo.concatenate %input0, %input1, dim = 0 : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
+    %result = stablehlo.concatenate %input0, %input1, dim = 0 : (tensor<3x2xi64>, tensor<1x2xi64>) -> tensor<4x2xi64>
     ```
    }];
 

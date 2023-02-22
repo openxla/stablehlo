@@ -35,7 +35,7 @@ Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    TensorType resultType);
-Tensor evalConcatenateOp(const ArrayRef<Tensor> &inputs, int64_t dimension,
+Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, int64_t dimension,
                          TensorType resultType);
 Tensor evalConstantOp(ElementsAttr value);
 Tensor evalConvertOp(const Tensor &operand, TensorType resultType);

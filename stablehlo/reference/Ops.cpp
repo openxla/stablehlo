@@ -94,21 +94,18 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
-Tensor evalConcatenateOp(const ArrayRef<Tensor> &inputs, int64_t dimension,
+Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, int64_t dimension,
                          TensorType resultType) {
   Tensor result(resultType);
-  Index offsetIdx(inputs.size());
-  for (size_t offsetDim = 1; offsetDim < inputs.size(); ++offsetDim)
-    offsetIdx[offsetDim] =
-        offsetIdx[offsetDim - 1] +
-        inputs[offsetDim - 1].getType().getShape()[dimension];
+  int64_t offsetDimSize = 0;
   for (size_t inputsDim = 0; inputsDim < inputs.size(); ++inputsDim) {
     for (auto inputIt = inputs[inputsDim].index_begin();
          inputIt != inputs[inputsDim].index_end(); ++inputIt) {
       Index resultIdx(*inputIt);
-      resultIdx[dimension] += offsetIdx[inputsDim];
+      resultIdx[dimension] += offsetDimSize;
       result.set(resultIdx, inputs[inputsDim].get(*inputIt));
     }
+    offsetDimSize += inputs[inputsDim].getType().getShape()[dimension];
   }
   return result;
 }

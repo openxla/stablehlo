@@ -1646,7 +1646,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
             ") at non-concat index ", d);
     }
   }
-  // concatenate_c1, concatenate_c5
+  // concatenate_c5
   auto elementType = inputTypes[0].cast<ShapedType>().getElementType();
   if (!firstRankedType) {
     inferredReturnTypes.push_back(UnrankedTensorType::get(elementType));
@@ -1694,7 +1694,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
       inferredBounds[dim] = inferredDimAndBound.second;
     }
   }
-  // concatenate_c1, concatenate_c5, concatenate_c6
+  // concatenate_c5, concatenate_c6
   inferredReturnTypes.push_back(RankedTensorType::get(
       inferredSizes, elementType,
       boundsToEncoding(
