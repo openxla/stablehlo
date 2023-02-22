@@ -90,7 +90,8 @@ After implementing the interpreter:
 1. In [spec.md](link):
     1. Add a link to `interpret_<op_mnemonic>.mlir` to the "Examples" section
        (e.g. [More Examples](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#add)).
-    1. Make sure the spec only has 1 example
+    1. Make sure the spec only has 1 example.
+    1. Make sure the spec example follows the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
     1. Make sure the spec example test is interpretable.
     1. The spec example is the same as what is in the ODS.
 1. In [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md):
