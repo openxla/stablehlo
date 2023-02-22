@@ -65,8 +65,7 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
-  /// Overloaded equality operator. For floating-point or complex element types
-  /// uses bitwise comparison for equality.
+  /// Overloaded equality operator.
   bool operator==(const Element &other) const;
 
   /// Overloaded inequality operator.
@@ -113,15 +112,15 @@ class Element {
 /// Returns abs of Element object.
 Element abs(const Element &e);
 
-/// Checks if the underlying float or complex value stored in Element objects,
-/// e1 and e2, are almost equal within a tolerance defined below.
-///
-/// Let, f1 and f2 represents the floating point values of type T, represented
-/// by e1 and e2 resp. The tolerance, std::fabs(f1 - f2), is given by:
+/// For floating point type T, checks if two normal values f1 and f2 are equal
+/// within a tolerance given by:
 ///
 /// std::fabs(f1 - f2) <=
 ///   std::numeric_limits<T>::epsilon() * std::fmax(f1, f2) ||
 /// std::fabs(f1 - f2) <= std::numeric_limits<T>::min()
+///
+/// For complex element type, checks if both real and imaginary parts are
+/// individually equal modulo the tolerance.
 bool areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Returns ceil of Element object.

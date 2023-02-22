@@ -66,7 +66,6 @@ def CHECK_EqOp :
   let summary = [{Checks the tensor operand is equal to some constant}];
   let description =  [{
     Verifies that the tensor operand is exactly equal to a constant attribute.
-    For floating-point and complex types, uses bitwise comparison for equality.
 
     ```mlir
     check.eq %arg0, dense<[1, 2]> : tensor<2xi32>

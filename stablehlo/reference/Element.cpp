@@ -145,19 +145,18 @@ std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
 bool areApproximatelyEqual(APFloat f, APFloat g) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
 
-  if (f.isNegative() != g.isNegative()) return false;
-  if (f.isInfinity() != g.isInfinity()) return false;
-
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
   if (cmpResult == APFloat::cmpEqual) return true;
   if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
+  if (!f.isFiniteNonZero() || !g.isFiniteNonZero()) return false;
 
-  // Both f and g are finite numbers.
+  // Both f and g are normal values.
+  if (f.isNegative() != g.isNegative()) return false;
   if (&f.getSemantics() == &llvm::APFloat::IEEEdouble())
     return areApproximatelyEqual<double>(f.convertToDouble(),
                                          g.convertToDouble());
 
-  // Convert the half and bfloat16 types to float before comparision.
+  // Convert the half and bfloat16 types to float before comparison.
   return areApproximatelyEqual<float>(f.convertToFloat(), g.convertToFloat());
 }
 
@@ -200,28 +199,28 @@ bool Element::operator==(const Element &other) const {
                                        debugString(type).c_str()));
 
   if (isSupportedIntegerType(type)) {
-    auto intLhs = (*this).getIntegerValue();
+    auto intLhs = getIntegerValue();
     auto intRhs = other.getIntegerValue();
     return intLhs == intRhs;
   }
 
   if (isSupportedBooleanType(type)) {
-    auto boolLhs = (*this).getBooleanValue();
+    auto boolLhs = getBooleanValue();
     auto boolRhs = other.getBooleanValue();
     return boolLhs == boolRhs;
   }
 
   if (isSupportedFloatType(type)) {
-    auto floatLhs = (*this).getFloatValue();
+    auto floatLhs = getFloatValue();
     auto floatRhs = other.getFloatValue();
-    return floatLhs.bitwiseIsEqual(floatRhs);
+    return floatLhs.compare(floatRhs) == APFloat::cmpEqual;
   }
 
   if (isSupportedComplexType(type)) {
-    auto complexLhs = (*this).getComplexValue();
+    auto complexLhs = getComplexValue();
     auto complexRhs = other.getComplexValue();
-    return complexLhs.real().bitwiseIsEqual(complexRhs.real()) &&
-           complexLhs.imag().bitwiseIsEqual(complexRhs.imag());
+    return complexLhs.real().compare(complexRhs.real()) == APFloat::cmpEqual &&
+           complexLhs.imag().compare(complexRhs.imag()) == APFloat::cmpEqual;
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",

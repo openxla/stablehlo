@@ -203,8 +203,8 @@ expected result need to be specified in checks?**
 For elementary operations (addition, subtraction, multiplication, division, and
 square), an implementation following IEEE specification is expected to provide a
 rounded result within 0.5 ULP of the mathematically exact result. That said, we
-can safely imagine the expected result coming out of these operations to be
-at most 1 ULP apart. However, this may not work for transcendental functions
+can safely imagine the expected result coming out of these operations to be at
+most 1 ULP apart. However, this may not work for transcendental functions
 (`sine`, `cosine`, etc.) for which the precision guarantees are
 implementation-defined ([rationale](https://github.com/openxla/stablehlo/issues/96)).
 
