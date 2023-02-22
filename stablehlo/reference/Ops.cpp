@@ -105,7 +105,7 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, int64_t dimension,
       resultIdx[dimension] += offsetDimSize;
       result.set(resultIdx, inputs[inputsDim].get(*inputIt));
     }
-    offsetDimSize += inputs[inputsDim].getType().getShape()[dimension];
+    offsetDimSize += inputs[inputsDim].getShape()[dimension];
   }
   return result;
 }
