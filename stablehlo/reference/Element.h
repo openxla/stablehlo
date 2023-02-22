@@ -38,50 +38,35 @@ class Element {
   /// \name Constructors
   /// @{
   Element(Type type, APInt value) : type_(type), value_(value) {}
+  Element(Type type, int64_t value) {
+    if (isSupportedSignedIntegerType(type)) {
+      *this = Element(
+          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
+    } else if (isSupportedUnsignedIntegerType(type)) {
+      *this = Element(
+          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
+    } else {
+      report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                         debugString(type).c_str()));
+    }
+  }
   Element(Type type, bool value) : type_(type), value_(value) {}
   Element(Type type, APFloat value) : type_(type), value_(value) {}
-  Element(Type type, std::complex<APFloat> value)
-      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
-
-  Element(const Element &other) = default;
-  Element() = default;
-  /// @}
-
-  /// @}
-  /// \name Value Generators
-  /// @{
-
-  /// The function produces an `Element` object of type `type` which represents
-  /// an integer value with proper interpretation based on integer signedness.
-  static Element getValue(Type type, int64_t value) {
-    if (isSupportedSignedIntegerType(type))
-      return Element(
-          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
-    if (isSupportedUnsignedIntegerType(type))
-      return Element(
-          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
-  }
-
-  /// The function produces an `Element` object of type `type` which represents
-  /// a floating point value equivalent to `value`.
-  static Element getValue(Type type, double value) {
+  Element(Type type, double value) {
     if (isSupportedFloatType(type)) {
       APFloat floatVal(static_cast<double>(value));
       bool roundingErr;
       floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
                        APFloat::rmNearestTiesToEven, &roundingErr);
-      return Element(type, floatVal);
+      *this = Element(type, floatVal);
+    } else {
+      report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                         debugString(type).c_str()));
     }
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
   }
-
-  /// The function produces an `Element` object of type `type` which represents
-  /// a complex value with real part equivalent to `value.real()` and imaginary
-  /// part `value.imag()`.
-  static Element getValue(Type type, std::complex<double> value) {
+  Element(Type type, std::complex<APFloat> value)
+      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
+  Element(Type type, std::complex<double> value) {
     if (isSupportedComplexType(type)) {
       APFloat real(value.real());
       APFloat imag(value.imag());
@@ -92,11 +77,14 @@ class Element {
                    &roundingErr);
       imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
                    &roundingErr);
-      return Element(type, std::complex<APFloat>(real, imag));
+      *this = Element(type, std::complex<APFloat>(real, imag));
+    } else {
+      report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                         debugString(type).c_str()));
     }
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
   }
+  Element(const Element &other) = default;
+  /// @}
 
   /// Assignment operator.
   Element &operator=(const Element &other) = default;

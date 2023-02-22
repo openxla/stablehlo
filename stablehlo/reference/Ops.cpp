@@ -168,15 +168,15 @@ Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
   Type elementTy = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     if (isSupportedIntegerType(elementTy)) {
-      result.set(*it, Element::getValue(elementTy, (*it)[iotaDimension]));
+      result.set(*it, Element(elementTy, (*it)[iotaDimension]));
     } else if (isSupportedFloatType(elementTy)) {
-      result.set(*it, Element::getValue(elementTy, static_cast<double>(
-                                                       (*it)[iotaDimension])));
+      result.set(*it,
+                 Element(elementTy, static_cast<double>((*it)[iotaDimension])));
     } else if (isSupportedComplexType(elementTy)) {
-      result.set(*it, Element::getValue(
-                          elementTy,
-                          std::complex<double>(
-                              static_cast<double>((*it)[iotaDimension]), 0.0)));
+      result.set(*it,
+                 Element(elementTy,
+                         std::complex<double>(
+                             static_cast<double>((*it)[iotaDimension]), 0.0)));
     } else {
       report_fatal_error(invalidArgument("Unsupported element type: %s",
                                          debugString(elementTy).c_str()));
