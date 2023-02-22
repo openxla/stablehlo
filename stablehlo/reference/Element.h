@@ -144,7 +144,8 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
-/// Returns the real part extracted from the Element object.
+/// Returns the real part extracted from the Element object with floating-point
+/// or complex type.
 Element real(const Element &e);
 
 /// Returns reverse square root of Element object.
