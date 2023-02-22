@@ -31,7 +31,9 @@ After implementing the interpreter:
        correspondence between constraints in ODS and specification. The
        following example shows how to add the constraint labels as comments
        alongside mlir `Traits` and `TypeConstraints`. Note `xyz_c4` refers to
-       constraints defined in `StableHLO_FooOp` class.
+       constraints defined in `StableHLO_FooOp` class (e.g.
+       `StableHLO_ShapedInterfaceOp`, `StableHLO_UnaryElementwiseOp`,
+       `StableHLO_Op`, etc.).
 
        ```td
         def StableHLO_XyzOp: StableHLO_FooOp<"xyz", [Trait1,
