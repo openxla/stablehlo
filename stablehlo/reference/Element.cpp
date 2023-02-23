@@ -118,6 +118,58 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 
 }  // namespace
 
+Element::Element(Type type, APInt value) : type_(type), value_(value) {}
+
+Element::Element(Type type, int64_t value) {
+  if (isSupportedSignedIntegerType(type)) {
+    *this = Element(
+        type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
+  } else if (isSupportedUnsignedIntegerType(type)) {
+    *this = Element(
+        type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
+  } else {
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  }
+}
+
+Element::Element(Type type, bool value) : type_(type), value_(value) {}
+
+Element::Element(Type type, APFloat value) : type_(type), value_(value) {}
+
+Element::Element(Type type, double value) {
+  if (isSupportedFloatType(type)) {
+    APFloat floatVal(static_cast<double>(value));
+    bool roundingErr;
+    floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
+                     APFloat::rmNearestTiesToEven, &roundingErr);
+    *this = Element(type, floatVal);
+  } else {
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  }
+}
+
+Element::Element(Type type, std::complex<APFloat> value)
+    : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
+
+Element::Element(Type type, std::complex<double> value) {
+  if (isSupportedComplexType(type)) {
+    APFloat real(value.real());
+    APFloat imag(value.imag());
+    auto floatTy = type.cast<ComplexType>().getElementType().cast<FloatType>();
+    bool roundingErr;
+    real.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    *this = Element(type, std::complex<APFloat>(real, imag));
+  } else {
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  }
+}
+
 APInt Element::getIntegerValue() const {
   if (!isSupportedIntegerType(type_))
     llvm::report_fatal_error("Element is not an integer");

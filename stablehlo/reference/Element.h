@@ -23,9 +23,6 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
-#include "mlir/Support/DebugStringHelper.h"
-#include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/Types.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -37,52 +34,13 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, APInt value) : type_(type), value_(value) {}
-  Element(Type type, int64_t value) {
-    if (isSupportedSignedIntegerType(type)) {
-      *this = Element(
-          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
-    } else if (isSupportedUnsignedIntegerType(type)) {
-      *this = Element(
-          type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
-    } else {
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(type).c_str()));
-    }
-  }
-  Element(Type type, bool value) : type_(type), value_(value) {}
-  Element(Type type, APFloat value) : type_(type), value_(value) {}
-  Element(Type type, double value) {
-    if (isSupportedFloatType(type)) {
-      APFloat floatVal(static_cast<double>(value));
-      bool roundingErr;
-      floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
-                       APFloat::rmNearestTiesToEven, &roundingErr);
-      *this = Element(type, floatVal);
-    } else {
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(type).c_str()));
-    }
-  }
-  Element(Type type, std::complex<APFloat> value)
-      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
-  Element(Type type, std::complex<double> value) {
-    if (isSupportedComplexType(type)) {
-      APFloat real(value.real());
-      APFloat imag(value.imag());
-      auto floatTy =
-          type.cast<ComplexType>().getElementType().cast<FloatType>();
-      bool roundingErr;
-      real.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      *this = Element(type, std::complex<APFloat>(real, imag));
-    } else {
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(type).c_str()));
-    }
-  }
+  Element(Type type, APInt value);
+  Element(Type type, int64_t value);
+  Element(Type type, bool value);
+  Element(Type type, APFloat value);
+  Element(Type type, double value);
+  Element(Type type, std::complex<APFloat> value);
+  Element(Type type, std::complex<double> value);
   Element(const Element &other) = default;
   /// @}
 
