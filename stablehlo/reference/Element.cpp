@@ -528,12 +528,11 @@ Element rem(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
       [&](APInt lhs, APInt rhs) {
-        if (rhs == 0) return lhs;
         return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
                                                           : lhs.urem(rhs);
       },
       [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("reminder of two bool numbers is unsupported");
+        llvm::report_fatal_error("rem(bool, bool) is unsupported");
       },
       [](APFloat lhs, APFloat rhs) {
         lhs.mod(rhs);
@@ -542,8 +541,7 @@ Element rem(const Element &e1, const Element &e2) {
       [](std::complex<APFloat> lhs,
          std::complex<APFloat> rhs) -> std::complex<APFloat> {
         // TODO(#997): remove support for complex
-        llvm::report_fatal_error(
-            "reminder of two complex numbers is unsupported");
+        llvm::report_fatal_error("rem(complex, complex) is not implemented");
       });
 }
 
