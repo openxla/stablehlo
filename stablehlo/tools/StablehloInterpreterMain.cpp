@@ -15,10 +15,15 @@ limitations under the License.
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"
+#include "stablehlo/reference/Scope.h"
+#include "stablehlo/reference/Tensor.h"
+#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 
@@ -26,11 +31,37 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        os << "\nEvaluated results of function: " << funcOp.getSymName()
-           << "\n";
+        auto evalCheckOps = [&](Operation &op,
+                                stablehlo::Scope &scope) -> llvm::Error {
+          if (auto almostEqOp = dyn_cast<stablehlo::check::AlmostEqOp>(op)) {
+            stablehlo::Tensor runtimeOperand = scope.find(almostEqOp.getLhs());
+            auto status = stablehlo::check::evalAlmostEqOp(
+                runtimeOperand, almostEqOp.getValue());
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tCheck almost_eq failed: "
+                  "%s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else if (auto eqOp = dyn_cast<stablehlo::check::EqOp>(op)) {
+            stablehlo::Tensor runtimeOperand = scope.find(eqOp.getLhs());
+            auto status =
+                stablehlo::check::evalEqOp(runtimeOperand, eqOp.getValue());
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tCheck eq failed: %s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else {
+            return stablehlo::invalidArgument("Unsupported op: %s",
+                                              debugString(op).c_str());
+          }
+          return llvm::Error::success();
+        };
 
         // Run the test model.
-        auto results = stablehlo::eval(funcOp.getBody(), {});
+        auto results = stablehlo::eval(funcOp.getBody(), {}, /*parent=*/nullptr,
+                                       evalCheckOps);
 
         // Dump the results.
         for (auto &result : results) result.print(os);
@@ -41,6 +72,7 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
+      registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
 

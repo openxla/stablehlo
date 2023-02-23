@@ -391,11 +391,13 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
   return result;
 }
 
-SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
+SmallVector<Tensor> eval(
+    Region &region, ArrayRef<Tensor> args, Scope *parent,
+    llvm::function_ref<llvm::Error(Operation &, Scope &)> fallback) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
     report_fatal_error(invalidArgument(
-        "Expected same amount of block arguments and runtime arguments (%d)",
+        "Expected same number of block arguments and runtime arguments (%d)",
         args.size()));
 
   Scope scope(parent);
@@ -595,8 +597,11 @@ SmallVector<Tensor> eval(Region &region, ArrayRef<Tensor> args, Scope *parent) {
       Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else {
-      report_fatal_error(
-          invalidArgument("Unsupported op: %s", debugString(op).c_str()));
+      if (!fallback)
+        report_fatal_error(
+            invalidArgument("Unsupported op: %s", debugString(op).c_str()));
+      auto status = fallback(op, scope);
+      if (status) llvm::report_fatal_error(std::move(status));
     }
   }
 

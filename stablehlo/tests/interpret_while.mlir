@@ -1,7 +1,6 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s | FileCheck %s
+// RUN: stablehlo-interpreter --interpret -split-input-file %s
 
-// CHECK-LABEL: Evaluated results of function: while
-func.func @while() -> tensor<i64> {
+func.func @while() {
   // int i = 10;
   // int state = 0;
   // while (i > 0) {
@@ -22,7 +21,6 @@ func.func @while() -> tensor<i64> {
       stablehlo.return %new_i, %new_state : tensor<i64>, tensor<i64>
   }) : (tensor<i64>, tensor<i64>) -> (tensor<i64>, tensor<i64>)
 
-  func.return %result_state : tensor<i64>
+  check.eq %result_state, dense<10> : tensor<i64>
+  func.return
 }
-// CHECK-NEXT: tensor<i64>
-// CHECK-NEXT: 10 : i64
