@@ -30,14 +30,17 @@ After implementing the interpreter:
        spec in the format `xyz_cn` or `xyz_in`, for op `XyzOp`, to identify the
        correspondence between constraints in ODS and specification. The
        following example shows how to add the constraint labels as comments
-       alongside mlir `Traits` and `TypeConstraints`.
+       alongside mlir `Traits` and `TypeConstraints`. Note `xyz_c4` refers to
+       constraints defined in `StableHLO_FooOp` class (e.g.
+       `StableHLO_ShapedInterfaceOp`, `StableHLO_UnaryElementwiseOp`,
+       `StableHLO_Op`, etc.).
 
        ```td
-        def StableHLO_XyzOp: StableHLO_Op<"xyz", [Trait1,
-            Trait2 /*xyz_c1, xyz_c2*/]> {
+        def StableHLO_XyzOp: StableHLO_FooOp<"xyz", [Trait1,
+            Trait2 /*xyz_c1, xyz_c2*/, InferTensorType /*xyz_c3*/]> /*xyz_c4*/ {
              ...
           let arguments = (ins
-             1DTensorOf<[HLO_Float]>:$a, /*xyz_c3, xyz_i1*/
+             1DTensorOf<[HLO_Float]>:$a, /*xyz_c5, xyz_i1*/
              HLO_Tensor:$b, /*xyz_i2*/
              ....
           );
@@ -66,9 +69,7 @@ After implementing the interpreter:
        and type inference methods; constraints covered in ODS will not be
        tested. These tests will mostly be negative tests exercising the fact
        that the constraints are not met. Make sure to add at least one positive
-       tests in case there are none. Note that it is out of scope to revisit
-       the correctness of type inference as in
-       [file](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).
+       tests in case there are none.
     1. Make sure that all the tests related to the op under test, are placed
        together.
     1. Make sure that all the tests related to the op under test, are
@@ -81,10 +82,16 @@ After implementing the interpreter:
        under test alphabetically based on the function name.
     1. Keep adding tests until the [ccov](https://github.com/openxla/stablehlo/blob/main/build_tools/github_actions/ci_build_stablehlo_code_coverage.sh)
        shows >= 90% coverage for the op.
+1. In [infer_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir):
+    1. Make sure all constraints related to shape inference tests are present
+       in this file, following the same naming guidelines noted above.
+    1. Move any shape inference tests from [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir)
+       file into this file.
 1. In [spec.md](link):
     1. Add a link to `interpret_<op_mnemonic>.mlir` to the "Examples" section
        (e.g. [More Examples](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#add)).
-    1. Make sure the spec only has 1 example
+    1. Make sure the spec only has 1 example.
+    1. Make sure the spec example follows the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
     1. Make sure the spec example test is interpretable.
     1. The spec example is the same as what is in the ODS.
 1. In [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md):
