@@ -450,7 +450,6 @@ Element floor(const Element &el) {
 
 Element imag(const Element &el) {
   if (isSupportedFloatType(el.getType())) {
-    // The following will be simplified in #1154.
     const llvm::fltSemantics &elSemantics = el.getFloatValue().getSemantics();
     bool roundingErr;
     APFloat resultImag(0.0);

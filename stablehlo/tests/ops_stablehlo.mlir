@@ -1569,8 +1569,8 @@ func.func @imag_complex_input(%arg0: tensor<2x3xcomplex<f32>>) -> tensor<2x3xf32
 
 // -----
 
-// CHECK-LABEL: func @imag_fp_input
-func.func @imag_fp_input(%arg0: tensor<*xf32>) -> tensor<*xf32> {
+// CHECK-LABEL: func @imag_unranked
+func.func @imag_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.imag"(%arg0) : (tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
