@@ -94,18 +94,18 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
-Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, int64_t dimension,
+Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          TensorType resultType) {
   Tensor result(resultType);
-  int64_t offsetDimSize = 0;
-  for (size_t inputsDim = 0; inputsDim < inputs.size(); ++inputsDim) {
-    for (auto inputIt = inputs[inputsDim].index_begin();
-         inputIt != inputs[inputsDim].index_end(); ++inputIt) {
+  int64_t dimensionOffset = 0;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    for (auto inputIt = inputs[i].index_begin();
+         inputIt != inputs[i].index_end(); ++inputIt) {
       Index resultIdx(*inputIt);
-      resultIdx[dimension] += offsetDimSize;
-      result.set(resultIdx, inputs[inputsDim].get(*inputIt));
+      resultIdx[dimension] += dimensionOffset;
+      result.set(resultIdx, inputs[i].get(*inputIt));
     }
-    offsetDimSize += inputs[inputsDim].getShape()[dimension];
+    dimensionOffset += inputs[i].getShape()[dimension];
   }
   return result;
 }
@@ -194,7 +194,7 @@ Tensor evalImagOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
-Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
+Tensor evalIotaOp(Axis iotaDimension, TensorType resultType) {
   Tensor result(resultType);
   Type elType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {

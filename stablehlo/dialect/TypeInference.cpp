@@ -1634,7 +1634,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
     auto firstShape = firstRankedType.getShape();
     auto secondShape = secondType.getShape();
     for (int d = 0; d < firstRankedType.getRank(); ++d) {
-      // concatenate_c2, concatenate_c6
+      // concatenate_c2
       if (d != dimension &&
           !verifyCompatibleDims(firstShape[d], secondShape[d]))
         return emitOptionalError(
