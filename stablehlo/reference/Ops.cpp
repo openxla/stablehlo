@@ -99,8 +99,8 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
   Tensor result(resultType);
   int64_t dimensionOffset = 0;
   for (const auto &input : inputs) {
-    for (auto inputIt = input.index_begin();
-         inputIt != input.index_end(); ++inputIt) {
+    for (auto inputIt = input.index_begin(); inputIt != input.index_end();
+         ++inputIt) {
       Index resultIdx(*inputIt);
       resultIdx[dimension] += dimensionOffset;
       result.set(resultIdx, input.get(*inputIt));
