@@ -1207,7 +1207,7 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveMemoryEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*case_c4*/
     ]> {
   let summary = "Case operation";
   let description = [{

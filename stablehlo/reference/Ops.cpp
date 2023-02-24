@@ -79,7 +79,7 @@ SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
                                Scope &scope) {
   int64_t idx = index.get({}).getIntegerValue().getSExtValue();
   if (idx < 0 || idx >= static_cast<int64_t>(branches.size()))
-    return eval(*branches[branches.size() - 1], {}, &scope);
+    idx = branches.size() - 1;
   return eval(*branches[idx], {}, &scope);
 }
 

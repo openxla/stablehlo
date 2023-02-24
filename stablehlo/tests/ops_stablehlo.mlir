@@ -1050,12 +1050,9 @@ func.func @if_unranked(%pred : tensor<i1>, %true_branch_operand: tensor<2xf32>, 
 // CHECK-LABEL: @case
 func.func @case(%index : tensor<i32>, %branch_operand : tensor<f32>) -> (tensor<f32>, tensor<f32>) {
   %0, %1 = "stablehlo.case"(%index) ({
-      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
+    "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
   }, {
-      %2 = "stablehlo.case"(%index) ({
-          "stablehlo.return"(%index) : (tensor<i32>) -> ()
-      }) : (tensor<i32>) -> tensor<i32>
-      "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
+    "stablehlo.return"(%branch_operand, %branch_operand) : (tensor<f32>, tensor<f32>) -> ()
   }) : (tensor<i32>) -> (tensor<f32>, tensor<f32>)
   func.return %0, %1 : tensor<f32>, tensor<f32>
 }
@@ -1091,11 +1088,7 @@ func.func @case_c3(%index: tensor<i32>, %operand_1: tensor<f32>, %operand_2: ten
     },  {
       %1 = stablehlo.constant dense<2> : tensor<i32>
       "stablehlo.return"(%1) : (tensor<i32>) -> ()
-    },  {
-      %1 = "stablehlo.floor"(%operand_3) : (tensor<f32>) -> tensor<f32>
-      "stablehlo.return"(%1) : (tensor<f32>) -> ()
-    }
-  ) : (tensor<i32>) -> tensor<f32>
+    }) : (tensor<i32>) -> tensor<f32>
   func.return %0 : tensor<f32>
 }
 
