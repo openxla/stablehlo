@@ -520,6 +520,30 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
+Element rem(const Element &e1, const Element &e2) {
+  return map(
+      e1, e2,
+      [&](APInt lhs, APInt rhs) {
+        return isSupportedSignedIntegerType(e1.getType()) ? lhs.srem(rhs)
+                                                          : lhs.urem(rhs);
+      },
+      [](bool lhs, bool rhs) -> bool {
+        llvm::report_fatal_error("rem(bool, bool) is unsupported");
+      },
+      [](APFloat lhs, APFloat rhs) {
+        // APFloat::fmod VS APFloat:remainder: the returned value of the latter
+        // is not guaranteed to have the same sign as lhs. So mod() is preferred
+        // here. The returned "APFloat::opStatus" is ignored.
+        (void)lhs.mod(rhs);
+        return lhs;
+      },
+      [](std::complex<APFloat> lhs,
+         std::complex<APFloat> rhs) -> std::complex<APFloat> {
+        // TODO(#997): remove support for complex
+        llvm::report_fatal_error("rem(complex, complex) is not implemented");
+      });
+}
+
 Element rsqrt(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return 1.0 / std::sqrt(e); },

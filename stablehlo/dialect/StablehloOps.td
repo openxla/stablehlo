@@ -826,8 +826,9 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
 }
 
 def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
-  let summary = "Remainder operator";
+      [Pure, HLO_CompatibleOperandsAndResultType /*remainder_c1*/],
+       HLO_IntFpOrComplexTensor /*remainder_i1, remainder_i2*/> {
+  let summary = "Remainder operation";
   let description = [{
     Performs element-wise remainder of dividend `lhs` and divisor `rhs` tensors
     and produces a `result` tensor.

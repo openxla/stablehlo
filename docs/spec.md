@@ -4135,16 +4135,13 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 #### Examples
 
 ```mlir
-// %lhs: [17.1, -17.1, 17.1, -17.1]
-// %rhs: [3.0, 3.0, -3.0, -3.0]
-%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
-// %result: [2.1, -2.1, 2.1, -2.1]
-
 // %lhs: [17, -17, 17, -17]
 // %rhs: [3, 3, -3, -3]
-%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi64>, tensor<4xi64>) -> tensor<4xi64>
 // %result: [2, -2, 2, -2]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_rem.mlir)
 
 ### replica_id
 
