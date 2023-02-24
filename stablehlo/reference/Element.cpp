@@ -535,7 +535,10 @@ Element rem(const Element &e1, const Element &e2) {
         llvm::report_fatal_error("rem(bool, bool) is unsupported");
       },
       [](APFloat lhs, APFloat rhs) {
-        lhs.mod(rhs);
+        // std::fmod VS std:remainder: the returned value of the latter is not 
+        // guaranteed to have the same sign as lhs. So mod() is preferred here.
+        // The returned "APFloat::opStatus" is ignored.
+        (void)lhs.mod(rhs);
         return lhs;
       },
       [](std::complex<APFloat> lhs,
