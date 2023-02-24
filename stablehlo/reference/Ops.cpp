@@ -98,14 +98,14 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          TensorType resultType) {
   Tensor result(resultType);
   int64_t dimensionOffset = 0;
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    for (auto inputIt = inputs[i].index_begin();
-         inputIt != inputs[i].index_end(); ++inputIt) {
+  for (const auto &input : inputs) {
+    for (auto inputIt = input.index_begin();
+         inputIt != input.index_end(); ++inputIt) {
       Index resultIdx(*inputIt);
       resultIdx[dimension] += dimensionOffset;
-      result.set(resultIdx, inputs[i].get(*inputIt));
+      result.set(resultIdx, input.get(*inputIt));
     }
-    dimensionOffset += inputs[i].getShape()[dimension];
+    dimensionOffset += input.getShape()[dimension];
   }
   return result;
 }
