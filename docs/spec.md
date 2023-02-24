@@ -2919,6 +2919,8 @@ Extracts the imaginary part, element-wise, from the `operand` and produces a
 // %result: [2.0, 4.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_imag.mlir)
+
 ### infeed
 
 #### Semantics

@@ -2326,6 +2326,7 @@ LogicalResult inferGetTupleElementOp(
 
 LogicalResult inferImagOp(std::optional<Location> location, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
+  // imag_c2
   inferredReturnTypes.push_back(
       createRealType(operand.getType().cast<TensorType>()));
   return success();

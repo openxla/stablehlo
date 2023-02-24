@@ -49,6 +49,7 @@ Tensor evalExponentialOp(const Tensor &operand, TensorType resultType);
 Tensor evalFloorOp(const Tensor &operand, TensorType resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                              Region &falseBranch, Scope &scope);
+Tensor evalImagOp(const Tensor &operand, TensorType resultType);
 Tensor evalIotaOp(Axis iotaDimension, TensorType resultType);
 Tensor evalLogOp(const Tensor &operand, TensorType resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
