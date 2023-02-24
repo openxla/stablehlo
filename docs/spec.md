@@ -2852,11 +2852,11 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 #### Inputs
 
-| Label | Name           | Type                                       | Constraints |
-|-------|----------------|--------------------------------------------|-------------|
-| (I1)  | `pred`         | 0-dimensional tensor constant of type `i1` |             |
-| (I2)  | `true_branch`  | function                                   | (C1-C3)     |
-| (I3)  | `false_branch` | function                                   | (C1), (C2)  |
+| Label | Name           | Type                              | Constraints |
+|-------|----------------|-----------------------------------|-------------|
+| (I1)  | `pred`         | 0-dimensional tensor of type `i1` |             |
+| (I2)  | `true_branch`  | function                          | (C1-C3)     |
+| (I3)  | `false_branch` | function                          | (C1), (C2)  |
 
 #### Outputs
 
