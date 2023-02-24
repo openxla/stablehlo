@@ -116,6 +116,47 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
+template <typename FloatFn, typename ComplexFn>
+Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
+                              FloatFn floatFn, ComplexFn complexFn) {
+  Type type = lhs.getType();
+  if (lhs.getType() != rhs.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(lhs.getType()).c_str(),
+                                       debugString(rhs.getType()).c_str()));
+
+  if (isSupportedFloatType(type)) {
+    APFloat lhsVal = lhs.getFloatValue();
+    APFloat rhsVal = rhs.getFloatValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.getSemantics();
+    APFloat resultVal(
+        floatFn(lhsVal.convertToDouble(), rhsVal.convertToDouble()));
+    bool roundingErr;
+    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, resultVal);
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto lhsVal = lhs.getComplexValue();
+    auto rhsVal = rhs.getComplexValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
+    auto resultVal =
+        complexFn(std::complex<double>(lhsVal.real().convertToDouble(),
+                                       lhsVal.imag().convertToDouble()),
+                  std::complex<double>(rhsVal.real().convertToDouble(),
+                                       rhsVal.imag().convertToDouble()));
+    bool roundingErr;
+    APFloat resultReal(resultVal.real());
+    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat resultImag(resultVal.imag());
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, std::complex<APFloat>(resultReal, resultImag));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 template <typename T>
 std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
     T x, T y) {
@@ -567,36 +608,11 @@ Element power(const Element &e1, const Element &e2) {
     return Element(type, result);
   }
 
-  if (isSupportedFloatType(type)) {
-    APFloat lhsVal = e1.getFloatValue();
-    APFloat rhsVal = e2.getFloatValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.getSemantics();
-    APFloat resultVal(
-        std::pow(lhsVal.convertToDouble(), rhsVal.convertToDouble()));
-    bool roundingErr;
-    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, resultVal);
-  }
-
-  if (isSupportedComplexType(type)) {
-    std::complex<APFloat> lhsVal = e1.getComplexValue();
-    std::complex<APFloat> rhsVal = e2.getComplexValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
-    auto resultVal =
-        std::pow(std::complex<double>(lhsVal.real().convertToDouble(),
-                                      lhsVal.imag().convertToDouble()),
-                 std::complex<double>(rhsVal.real().convertToDouble(),
-                                      rhsVal.imag().convertToDouble()));
-    bool roundingErr;
-    APFloat resultReal(resultVal.real());
-    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat resultImag(resultVal.imag());
-    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, std::complex<APFloat>(resultReal, resultImag));
-  }
-
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
+  return mapWithUpcastToDouble(
+      e1, e2, [](double lhs, double rhs) { return std::pow(lhs, rhs); },
+      [](std::complex<double> lhs, std::complex<double> rhs) {
+        return std::pow(lhs, rhs);
+      });
 }
 
 Element real(const Element &el) {
