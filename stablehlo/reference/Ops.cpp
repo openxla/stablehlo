@@ -298,17 +298,17 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   return result;
 }
 
-Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
-  Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, rem(lhs.get(*it), rhs.get(*it)));
-  return result;
-}
-
 Tensor evalRealOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
     result.set(*it, real(operand.get(*it)));
+  return result;
+}
+
+Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, rem(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 

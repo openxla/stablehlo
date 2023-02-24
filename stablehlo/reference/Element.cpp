@@ -520,10 +520,6 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-// These cases are implementation-defined, and the behavior of this interpreter:
-// For integers: if rhs is 0, the result is the same as `lhs`.
-//   For signed integers, if lhs is INT_MAX and rhs is -1, the result is 0.
-// For floats: use APFloat.mod(). If rhs is 0, the result is 0x7FF8000000000000
 Element rem(const Element &e1, const Element &e2) {
   return map(
       e1, e2,
@@ -535,9 +531,9 @@ Element rem(const Element &e1, const Element &e2) {
         llvm::report_fatal_error("rem(bool, bool) is unsupported");
       },
       [](APFloat lhs, APFloat rhs) {
-        // std::fmod VS std:remainder: the returned value of the latter is not 
-        // guaranteed to have the same sign as lhs. So mod() is preferred here.
-        // The returned "APFloat::opStatus" is ignored.
+        // APFloat::fmod VS APFloat:remainder: the returned value of the latter
+        // is not guaranteed to have the same sign as lhs. So mod() is preferred
+        // here. The returned "APFloat::opStatus" is ignored.
         (void)lhs.mod(rhs);
         return lhs;
       },
