@@ -2536,6 +2536,7 @@ LogicalResult inferPartitionIdOp(MLIRContext* context, std::optional<Location>,
 
 LogicalResult inferRealOp(std::optional<Location>, Value operand,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
+  // real_c2
   inferredReturnTypes.push_back(
       createRealType(operand.getType().cast<TensorType>()));
   return success();

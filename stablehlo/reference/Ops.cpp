@@ -275,6 +275,13 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   return result;
 }
 
+Tensor evalRealOp(const Tensor &operand, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+    result.set(*it, real(operand.get(*it)));
+  return result;
+}
+
 Tensor evalReshapeOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
@@ -537,6 +544,10 @@ SmallVector<Tensor> eval(
       auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
                                         whileOp.getBody(), scope);
       scope.add(op.getResults(), runtimeResults);
+    } else if (auto realOp = dyn_cast<RealOp>(op)) {
+      Tensor runtimeOperand = scope.find(realOp.getOperand());
+      Tensor runtimeResult = evalRealOp(runtimeOperand, realOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       Tensor runtimeOperand = scope.find(reshapeOp.getOperand());
       Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());

@@ -61,6 +61,7 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  Sizes edgePaddingLow, Sizes interiorPadding,
                  TensorType resultType);
+Tensor evalRealOp(const Tensor &operand, TensorType resultType);
 Tensor evalReshapeOp(const Tensor &operand, TensorType resultType);
 Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
                      TensorType resultType);

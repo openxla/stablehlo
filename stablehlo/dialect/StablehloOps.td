@@ -503,8 +503,8 @@ def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
 
 def StableHLO_RealOp: StableHLO_UnaryElementwiseOp<"real",
     [Pure, DeclareOpInterfaceMethods<InferTypeOpInterface>],
-    HLO_FpOrComplexTensor, HLO_FpTensor> {
-  let summary = "Real operator";
+    HLO_FpOrComplexTensor /*real_i1*/, HLO_FpTensor> {/*real_c1*/
+  let summary = "Real operation";
   let description = [{
     Extracts the real part, element-wise, from the `operand` and produces a
     `result` tensor.
