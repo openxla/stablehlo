@@ -121,12 +121,11 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 Element::Element(Type type, APInt value) : type_(type), value_(value) {}
 
 Element::Element(Type type, int64_t value) {
+  type_ = type;
   if (isSupportedSignedIntegerType(type)) {
-    *this = Element(
-        type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true));
+    value_ = APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true);
   } else if (isSupportedUnsignedIntegerType(type)) {
-    *this = Element(
-        type, APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false));
+    value_ = APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/false);
   } else {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
@@ -138,12 +137,13 @@ Element::Element(Type type, bool value) : type_(type), value_(value) {}
 Element::Element(Type type, APFloat value) : type_(type), value_(value) {}
 
 Element::Element(Type type, double value) {
+  type_ = type;
   if (isSupportedFloatType(type)) {
     APFloat floatVal(static_cast<double>(value));
     bool roundingErr;
     floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
                      APFloat::rmNearestTiesToEven, &roundingErr);
-    *this = Element(type, floatVal);
+    value_ = floatVal;
   } else {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
@@ -154,6 +154,7 @@ Element::Element(Type type, std::complex<APFloat> value)
     : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
 
 Element::Element(Type type, std::complex<double> value) {
+  type_ = type;
   if (isSupportedComplexType(type)) {
     APFloat real(value.real());
     APFloat imag(value.imag());
@@ -163,7 +164,7 @@ Element::Element(Type type, std::complex<double> value) {
                  &roundingErr);
     imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
                  &roundingErr);
-    *this = Element(type, std::complex<APFloat>(real, imag));
+    value_ = std::make_pair(real, imag);
   } else {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
