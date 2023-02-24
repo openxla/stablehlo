@@ -538,6 +538,67 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
+Element power(const Element &e1, const Element &e2) {
+  Type type = e1.getType();
+  if (e1.getType() != e2.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(e1.getType()).c_str(),
+                                       debugString(e2.getType()).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    APInt x = e1.getIntegerValue();
+    APInt y = e2.getIntegerValue();
+    bool isSigned = x.isSignedIntN(x.getBitWidth());
+    if (isSigned && y.isNegative()) {
+      if (x.isZero())
+        llvm::report_fatal_error("divide by zero unsupported");
+      else if (x.abs().isOne())
+        y = y.abs();
+      else
+        return Element(type, APInt(x.getBitWidth(), 0, isSigned));
+    }
+    APInt constant1(x.getBitWidth(), 1, isSigned);
+    APInt result(constant1);
+    while (!y.isZero()) {
+      if ((y & constant1).getBoolValue()) result *= x;
+      x *= x;
+      y = y.lshr(1);
+    }
+    return Element(type, result);
+  }
+
+  if (isSupportedFloatType(type)) {
+    APFloat lhsVal = e1.getFloatValue();
+    APFloat rhsVal = e2.getFloatValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.getSemantics();
+    APFloat resultVal(
+        std::pow(lhsVal.convertToDouble(), rhsVal.convertToDouble()));
+    bool roundingErr;
+    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, resultVal);
+  }
+
+  if (isSupportedComplexType(type)) {
+    std::complex<APFloat> lhsVal = e1.getComplexValue();
+    std::complex<APFloat> rhsVal = e2.getComplexValue();
+    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
+    auto resultVal =
+        std::pow(std::complex<double>(lhsVal.real().convertToDouble(),
+                                      lhsVal.imag().convertToDouble()),
+                 std::complex<double>(rhsVal.real().convertToDouble(),
+                                      rhsVal.imag().convertToDouble()));
+    bool roundingErr;
+    APFloat resultReal(resultVal.real());
+    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat resultImag(resultVal.imag());
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    return Element(type, std::complex<APFloat>(resultReal, resultImag));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element real(const Element &el) {
   if (isSupportedFloatType(el.getType())) return el;
   if (isSupportedComplexType(el.getType()))
