@@ -65,7 +65,7 @@ one of the following tracking labels.
 | compare                  | yes           | yes          | yes            | yes             | no          |
 | complex                  | yes           | yes          | yes            | yes             | no          |
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
-| concatenate              | yes           | yes          | yes            | yes             | no          |
+| concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
 | convert                  | yes           | yes          | infeasible     | yes             | no          |
 | convolution              | yes           | yes          | infeasible     | revisit         | no          |

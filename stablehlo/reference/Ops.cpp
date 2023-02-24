@@ -94,6 +94,22 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
+Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
+                         TensorType resultType) {
+  Tensor result(resultType);
+  int64_t dimensionOffset = 0;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    for (auto inputIt = inputs[i].index_begin();
+         inputIt != inputs[i].index_end(); ++inputIt) {
+      Index resultIdx(*inputIt);
+      resultIdx[dimension] += dimensionOffset;
+      result.set(resultIdx, inputs[i].get(*inputIt));
+    }
+    dimensionOffset += inputs[i].getShape()[dimension];
+  }
+  return result;
+}
+
 Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
 }
@@ -178,7 +194,7 @@ Tensor evalImagOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
-Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
+Tensor evalIotaOp(Axis iotaDimension, TensorType resultType) {
   Tensor result(resultType);
   Type elType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
@@ -449,6 +465,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeMax = scope.find(clampOp.getMax());
       Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
                                          clampOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
+      auto runtimeOperands = scope.find(concatenateOp.getOperands());
+      Tensor runtimeResult =
+          evalConcatenateOp(runtimeOperands, concatenateOp.getDimension(),
+                            concatenateOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       Tensor runtimeResult = evalConstantOp(constantOp.getValue());

@@ -1743,9 +1743,11 @@ tensor. More formally,
 // %input1: [[7, 8]]
 %result = "stablehlo.concatenate"(%input0, %input1) {
   dimension = 0 : i64
-} : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
+} : (tensor<3x2xi64>, tensor<1x2xi64>) -> tensor<4x2xi64>
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_concatenate.mlir)
 
 ### constant
 
