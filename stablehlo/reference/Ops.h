@@ -31,7 +31,8 @@ Tensor evalAbsOp(const Tensor &operand, ShapedType resultType);
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
-Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
+Tensor evalBroadcastInDimOp(const Tensor &operand,
+                            const Axes &broadcastDimensions,
                             ShapedType resultType);
 SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
                                Scope &scope);
@@ -85,9 +86,14 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType);
 Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalRealOp(const Tensor &operand, ShapedType resultType);
+SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
+                                 ArrayRef<Tensor> initValues,
+                                 const Axes &dimensions, Region &body,
+                                 Scope &scope,
+                                 ArrayRef<ShapedType> resultTypes);
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType);
-Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
+Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
                      ShapedType resultType);
 Tensor evalRoundOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType);

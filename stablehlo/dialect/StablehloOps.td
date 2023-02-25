@@ -1455,7 +1455,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveMemoryEffects,
       SameVariadicOperandSize,
-      InferTensorTypeWithReify,
+      InferTensorTypeWithReify /*reduce_c7*/,
       SingleBlockImplicitTerminator<"ReturnOp">
     ]> {
   let summary = "Reduce operation";
@@ -1469,18 +1469,18 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     Example:
     ```mlir
     %result = "stablehlo.reduce"(%input, %init_value) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       dimensions = dense<1> : tensor<1xi64>
-    } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+    } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
     ```
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    Variadic<HLO_Tensor>:$init_values,
-    I64ElementsAttr:$dimensions
+    Variadic<HLO_Tensor>:$inputs /*reduce_i1*/,
+    Variadic<HLO_Tensor>:$init_values /*reduce_i2*/,
+    I64ElementsAttr:$dimensions /*reduce_i3*/
   );
 
   let results = (outs Variadic<HLO_Tensor>);

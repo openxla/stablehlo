@@ -3942,17 +3942,16 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 * (C1) All `inputs` have the same shape.
 * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
-element_type(`results[k]`) for all `k` $\in$ [0, N).
+  element_type(`results[k]`) for all `k` $\in$ [0, N).
 * (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
-N >= 1.
-* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
-`d`.
+  N >= 1.
+* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension `d`.
 * (C5) All dimensions in `dimensions` are unique.
 * (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
-`tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-`Ek = element_type(inputs[k])`.
+  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+  `Ek = element_type(inputs[k])`.
 * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
-sizes of `inputs[k]` corresponding to `dimensions` are not included.
+  sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 #### Examples
 
@@ -3960,14 +3959,16 @@ sizes of `inputs[k]` corresponding to `dimensions` are not included.
 // %input = [[0, 1, 2, 3, 4, 5]]
 // %init_value = 0
 %result = "stablehlo.reduce"(%input, %init_value) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   dimensions = dense<1> : tensor<1xi64>
-} : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+} : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
 // %result = [15]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce.mlir)
 
 ### reduce_precision
 

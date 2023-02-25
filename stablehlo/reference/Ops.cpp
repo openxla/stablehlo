@@ -253,6 +253,16 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(realOp.getOperand());
       auto result = evalRealOp(operand, realOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto reduceOp = dyn_cast<ReduceOp>(op)) {
+      auto inputs = scope.find(reduceOp.getInputs());
+      auto initValues = scope.find(reduceOp.getInitValues());
+      SmallVector<ShapedType> resultTypes;
+      for (auto resultType : reduceOp.getResultTypes())
+        resultTypes.push_back(resultType.cast<ShapedType>());
+      auto results =
+          evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
+                       reduceOp.getBody(), scope, resultTypes);
+      scope.add(op.getResults(), {results});
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
       auto lhs = scope.find(remOp.getLhs());
       auto rhs = scope.find(remOp.getRhs());
@@ -402,7 +412,8 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   return result;
 }
 
-Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
+Tensor evalBroadcastInDimOp(const Tensor &operand,
+                            const Axes &broadcastDimensions,
                             ShapedType resultType) {
   Tensor result(resultType);
   auto operandShape = operand.getShape();
@@ -764,6 +775,42 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
+                                 ArrayRef<Tensor> initValues,
+                                 const Axes &dimensions, Region &body,
+                                 Scope &scope,
+                                 ArrayRef<ShapedType> resultTypes) {
+  SmallVector<Tensor> results;
+  for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues)) {
+    Tensor result = Tensor(resultType);
+    for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+         ++resultIt)
+      result.set(*resultIt, initValue.get({}));
+    results.push_back(result);
+  }
+  for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
+       ++inputIt) {
+    Index resultIndex = *inputIt;
+    for (int64_t dim : llvm::reverse(dimensions))
+      resultIndex.erase(resultIndex.begin() + dim);
+    SmallVector<Tensor> args;
+    for (auto [runtimeResult, initValue] : llvm::zip(results, initValues)) {
+      auto arg = Tensor(initValue.getType());
+      arg.set({}, runtimeResult.get(resultIndex));
+      args.push_back(arg);
+    }
+    for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
+      auto arg = Tensor(initValue.getType());
+      arg.set({}, input.get(*inputIt));
+      args.push_back(arg);
+    }
+    SmallVector<Tensor> reducedValues = eval(body, args, &scope);
+    for (auto [result, value] : llvm::zip(results, reducedValues))
+      result.set(resultIndex, value.get({}));
+  }
+  return results;
+}
+
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -779,7 +826,7 @@ Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
-Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
+Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
                      ShapedType resultType) {
   Tensor result(resultType);
   auto resultShape = result.getShape();

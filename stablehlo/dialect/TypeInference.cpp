@@ -467,7 +467,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     }
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
-
+  // reduce_c1
   if (!allInputsUnranked) {
     for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx)
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
@@ -480,21 +480,21 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 
   DenseSet<int64_t> dimensionsToReduceSet;
   for (int64_t dimension : dimensions.getValues<int64_t>()) {
+    // reduce_c4
     if ((!allInputsUnranked &&
          dimension >= inputArgTypes[rankedInputIdx].getRank()) ||
         dimension < 0)
       return emitOptionalError(
           location, "Out-of-bounds dimension ", dimension,
           " for input-tensor rank: ", inputArgTypes[rankedInputIdx].getRank());
-
+    // reduce_c5
     if (!dimensionsToReduceSet.insert(dimension).second)
       return emitOptionalError(location,
                                "Duplicate reduction dimension: ", dimension);
   }
-
+  // reduce_c7
   if (!allInputsUnranked) {
     auto rankedInput = inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
-
     ArrayRef<int64_t> inputBounds = encodingToBounds(rankedInput.getEncoding());
     SmallVector<int64_t> newBounds;
     for (int inputIdx = 0; inputIdx < rankedInput.getRank(); ++inputIdx) {
@@ -576,7 +576,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   //
   //  From C1, C2, and C3, we can infer that V(j), BI(i), BV(j), and R(i) all
   //  have compatible shapes and element-types.
-  //  The next check, C4, adds constraints on how the type if I(i) is related
+  //  The next check, C4, adds constraints on how the type of I(i) is related
   //  to any_of(V(j), BI(i), BV(j), and R(i)), say BV(j);
   //
   //  C4.1 : Check that I(i) and BV(j) have same element-type.
@@ -3616,12 +3616,6 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
   return success();
 }
 
-// We intend to verify the following properties
-//  P1. Verify all `inputs` need to have compatible shapes.
-//  P2. Verify that
-//      1. the dimensions of reduce-op are in-bounds for the given shape.
-//      2. the dimension-attribute have no duplicate entries.
-//  P3. Verify the inner block defining the reducer function.
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body) {
@@ -3630,15 +3624,17 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
   SmallVector<ShapedType> initValueTypes{llvm::map_range(
       initValues.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
 
-  // P1. & P2.
+  if (dimensions.getType().getRank() != 1)
+    return emitOptionalError(location, "dimensions must be rank 1");
+
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
+  // reduce_c1, reduce_c4, reduce_c5, reduce_c7
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
                                                initValueTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
 
-  // P3.
   uint64_t numInputs = inputs.size();
   int64_t rankedInputIdx = -1;
   for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
@@ -3648,7 +3644,7 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
     }
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
-
+  // reduce_c2, reduce_c3, reduce_c6
   Block& block = body.front();
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, newDimensions, allInputsUnranked)))
