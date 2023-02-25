@@ -1208,9 +1208,9 @@ def StableHLO_IfOp: StableHLO_Op<"if", [
 def StableHLO_CaseOp: StableHLO_Op<"case", [
       RecursiveMemoryEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*case_c4*/
     ]> {
-  let summary = "Switch-Case operator";
+  let summary = "Case operation";
   let description = [{
     Produces the output from executing exactly one `function` from `branches`
     depending on the value of `index`.
@@ -1220,19 +1220,19 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 
     Example:
     ```mlir
-    %result = "stablehlo.case"(%index) ({
-      stablehlo.return %result_branch0 : tensor<i32>
+    %result0, %result1 = "stablehlo.case"(%index) ({
+      stablehlo.return %result_branch0, %result_branch0 : tensor<2xi64>, tensor<2xi64>
     }, {
-      stablehlo.return %result_branch1 : tensor<i32>
-    }) : (tensor<i32>) -> tensor<i32>
+      stablehlo.return %result_branch1, %result_branch1 : tensor<2xi64>, tensor<2xi64>
+    }) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
     ```
   }];
 
   let arguments = (ins
-    I32Tensor:$index
+    I32Tensor:$index /*case_i1*/
   );
 
-  let regions = (region VariadicRegion<SizedRegion<1>>:$branches);
+  let regions = (region VariadicRegion<SizedRegion<1>>:$branches /*case_i2*/);
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 }

@@ -1322,7 +1322,7 @@ returned.
 
 | Label | Name       | Type                                | Constraints |
 |-------|------------|-------------------------------------|-------------|
-| (I1)  | `index`    | 1-dimensional tensor of type `si32` |             |
+| (I1)  | `index`    | 0-dimensional tensor of type `si32` |             |
 | (I2)  | `branches` | variadic number of functions        | (C1-C4)     |
 
 #### Outputs
@@ -1341,16 +1341,19 @@ returned.
 #### Examples
 
 ```mlir
-// %result_branch0: 10
-// %result_branch1: 11
-// %index: 1
-%result = "stablehlo.case"(%index) ({
-  "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+// %index: -1
+// %result_branch0: [0, 0]
+// %result_branch1: [1, 1]
+%result0, %result1 = "stablehlo.case"(%index) ({
+  "stablehlo.return"(%result_branch0, %result_branch0) : (tensor<2xi64>, tensor<2xi64>) -> ()
 }, {
-  "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
-}) : (tensor<i32>) -> tensor<i32>
-// %result: 11
+  "stablehlo.return"(%result_branch1, %result_branch1) : (tensor<2xi64>, tensor<2xi64>) -> ()
+}) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
+// %result0: [1, 1]
+// %result1: [1, 1]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_case.mlir)
 
 ### cbrt
 
@@ -5425,11 +5428,11 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name       | Type                                 | Constraints |
-|-------|------------|--------------------------------------|-------------|
-| (I1)  | `operand`  | variadic number of tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`     | function                             | (C1)        |
-| (I3)  | `body`     | function                             | (C2)        |
+| Label | Name      | Type                                 | Constraints |
+|-------|-----------|--------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                             | (C1)        |
+| (I3)  | `body`    | function                             | (C2)        |
 
 #### Outputs
 

@@ -32,6 +32,8 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
                             TensorType resultType);
+SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
+                               Scope &scope);
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    TensorType resultType);

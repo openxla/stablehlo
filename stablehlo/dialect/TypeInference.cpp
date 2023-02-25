@@ -1304,12 +1304,13 @@ static LogicalResult inferGatherReturnTypeComponents(
 LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
                                  RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  // if_i1
+  // case_i1, if_i1
   auto operandRankedTy = operand.getType().dyn_cast<RankedTensorType>();
   if (operandRankedTy && operandRankedTy.getRank() != 0)
     return emitOptionalError(location,
                              "operand should be rank 0 tensor but got rank ",
                              operandRankedTy.getRank());
+  // case_c1
   if (branches.empty())
     return emitOptionalError(location, "expect at least one branch");
   for (auto region : branches)
@@ -1320,12 +1321,12 @@ LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
   for (unsigned i = 0; i < branches.size(); ++i) {
     Twine branchName = "branch " + Twine(i);
     Region* region = branches[i];
-    // if_c1
+    // case_c2, if_c1
     if (region->getNumArguments() != 0)
       return emitOptionalError(location, branchName,
                                " must have 0 arguments, but found ",
                                region->getNumArguments());
-    // if_c2
+    // case_c3, if_c2
     auto branchResultTypes = region->front().getTerminator()->getOperandTypes();
     if (!hlo::isCompatibleForHloTypeInference(branch0ResultTypes,
                                               branchResultTypes))
@@ -1333,7 +1334,7 @@ LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
                                " have mismatched return types: ",
                                branch0ResultTypes, " vs ", branchResultTypes);
   }
-  // if_c3
+  // case_c4, if_c3
   for (unsigned i = 0; i < branch0ResultTypes.size(); ++i) {
     SmallVector<Type> inputTypes;
     for (auto branch : branches)
