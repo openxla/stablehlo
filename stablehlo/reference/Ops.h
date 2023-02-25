@@ -56,6 +56,7 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 Tensor evalImagOp(const Tensor &operand, TensorType resultType);
 Tensor evalIotaOp(Axis iotaDimension, TensorType resultType);
 Tensor evalLogOp(const Tensor &operand, TensorType resultType);
+Tensor evalLogisticOp(const Tensor &operand, TensorType resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType);
 Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs,

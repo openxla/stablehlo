@@ -530,6 +530,14 @@ Element log(const Element &el) {
       [](std::complex<double> e) { return std::log(e); });
 }
 
+Element logistic(const Element &el) {
+  Element one;
+  if (isSupportedFloatType(el.getType())) one = Element(el.getType(), 1.0);
+  if (isSupportedComplexType(el.getType()))
+    one = Element(el.getType(), std::complex<double>(1.0));
+  return one / (one + exponential(-el));
+}
+
 Element max(const Element &e1, const Element &e2) {
   return map(
       e1, e2,

@@ -42,6 +42,7 @@ class Element {
   Element(Type type, std::complex<APFloat> value);
   Element(Type type, std::complex<double> value);
   Element(const Element &other) = default;
+  Element() = default;
   /// @}
 
   /// Assignment operator.
@@ -137,6 +138,9 @@ Element imag(const Element &el);
 
 /// Returns log of Element object.
 Element log(const Element &el);
+
+/// Returns logistic of Element object.
+Element logistic(const Element &el);
 
 /// Returns the maximum between two Element objects.
 Element max(const Element &e1, const Element &e2);

@@ -431,8 +431,9 @@ def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
 }
 
 def StableHLO_LogisticOp: StableHLO_UnaryElementwiseOp<"logistic",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
-  let summary = "Logistic operation";
+    [Pure, HLO_CompatibleOperandsAndResultType /*logistic_c1*/],
+    HLO_FpOrComplexTensor /*logistic_i1*/> { /*logistic_c1*/
+  let summary = "Logistic operator";
   let description = [{
     Performs element-wise logistic operation on `operand` tensor and produces a
     `result` tensor.
@@ -442,7 +443,7 @@ def StableHLO_LogisticOp: StableHLO_UnaryElementwiseOp<"logistic",
 
     Example:
     ```mlir
-    %result = stablehlo.logistic %operand : tensor<2x2xf32>
+    %result = stablehlo.logistic %operand : tensor<2x2xf64>
     ```
   }];
 }
