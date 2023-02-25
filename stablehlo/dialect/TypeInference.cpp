@@ -502,7 +502,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
       return emitOptionalError(location,
                                "Duplicate reduction dimension: ", dimension);
   }
-
+  // reduce_c7
   if (!allInputsUnranked) {
     auto rankedInput = inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
     ArrayRef<int64_t> inputBounds = encodingToBounds(rankedInput.getEncoding());
