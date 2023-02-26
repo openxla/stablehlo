@@ -417,14 +417,10 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
         if (!vhloBooleanAttr.getValue()) continue;
         stablehloAttr = UnitAttr::get(this->getContext());
       } else if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
-                           std::is_same<VhloOpTy, vhlo::AllGatherOpV2>::value ||
                            std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
                            std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
-                           std::is_same<VhloOpTy, vhlo::AllToAllOpV2>::value ||
                            std::is_same<VhloOpTy,
                                         vhlo::CollectivePermuteOpV1>::value ||
-                           std::is_same<VhloOpTy,
-                                        vhlo::CollectivePermuteOpV2>::value ||
                            std::is_same<VhloOpTy,
                                         vhlo::ReduceScatterOpV1>::value) {
         if (vhloAttr.getName() == "channel_id") {
@@ -434,9 +430,7 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
           if (!stablehloAttr) return failure();
         }
       } else if constexpr (std::is_same<VhloOpTy,
-                                        vhlo::CustomCallOpV1>::value ||
-                           std::is_same<VhloOpTy,
-                                        vhlo::CustomCallOpV2>::value) {
+                                        vhlo::CustomCallOpV1>::value) {
         if (vhloAttr.getName() == "called_computations") {
           stablehloAttr = convertCustomCallCalledComputations(
               vhloAttr.getValue(), this->getTypeConverter());

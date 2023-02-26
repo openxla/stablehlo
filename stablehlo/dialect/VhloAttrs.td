@@ -55,7 +55,7 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
 // TODO(#740): ArgResultAlias is not yet part of the StableHLO spec.
 // At the moment, it is used to represent buffer donation, and we're planning
 // to look into it as part of the work on speccing buffer donation in StableHLO.
-def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.3.0", "current"> {
+def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.9.0", "current"> {
   let mnemonic = "result_alias";
   let parameters = (ins
     VHLO_Dims:$argTupleIndices,
@@ -68,7 +68,7 @@ def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.3.0", "curre
 
 // Represents attributes from the StableHLO spec which say "variadic number of",
 // although not called out explicitly in the "Constants" section.
-def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
+def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.9.0", "current"> {
   let mnemonic = "array";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
   let genVerifyDecl = 1;
@@ -83,7 +83,7 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.3.0", "current"> {
 }
 
 // Corresponds to BooleanConstant from the StableHLO spec.
-def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.3.0", "current"> {
+def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.9.0", "current"> {
   let mnemonic = "bool";
   let parameters = (ins "bool":$value);
   let assemblyFormat = "`<` $value `>`";
@@ -93,7 +93,7 @@ def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.3.0", "current"> {
 // At the moment, it is used to represent argument and result attributes of
 // StableHLO functions, and we're planning to look into it as part of the work
 // on speccing Module/Func/Call/Return ops in StableHLO.
-def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
+def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.9.0", "current"> {
   let mnemonic = "dict";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
   let genVerifyDecl = 1;
@@ -111,7 +111,7 @@ def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.3.0", "current"> {
 }
 
 // Corresponds to FloatConstant from the StableHLO spec.
-def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.3.0", "current"> {
+def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.9.0", "current"> {
   let mnemonic = "float";
   let parameters = (ins "mlir::Type":$type, VHLO_APFloatV1:$value);
   let genVerifyDecl = 1;
@@ -126,7 +126,7 @@ def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.3.0", "current"> {
 }
 
 // Corresponds to IntegerConstant from the StableHLO spec.
-def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
+def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.9.0", "current"> {
   let mnemonic = "integer";
   let parameters = (ins "mlir::Type":$type, "APInt":$value);
   let genVerifyDecl = 1;
@@ -143,7 +143,7 @@ def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.3.0", "current"> {
 // TODO(#740): OutputOperandAlias is not yet part of the StableHLO spec.
 // At the moment, it is used to represent buffer donation, and we're planning
 // to look into it as part of the work on speccing buffer donation in StableHLO.
-def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0", "current"> {
+def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.9.0", "current"> {
   let mnemonic = "output_operand_alias";
   let parameters = (ins
     VHLO_Dims:$outputTupleIndices,
@@ -154,7 +154,7 @@ def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0"
 }
 
 // Corresponds to StringConstant from the StableHLO spec.
-def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.3.0", "current"> {
+def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.9.0", "current"> {
   let mnemonic = "string";
   let parameters = (ins StringRefParameter<"">:$value);
   let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
@@ -164,7 +164,7 @@ def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.3.0", "current"> {
 def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
   let allocator = "$_dst = $_allocator.copyInto($_self);";
 }
-def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
+def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.9.0", "current"> {
   let mnemonic = "tensor";
   let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$data);
   let genVerifyDecl = 1;
@@ -182,7 +182,7 @@ def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.3.0", "current"> {
 // At the moment, it is used to represent types of StableHLO functions, and
 // we're planning to look into it as part of the work on speccing
 // Module/Func/Call/Return ops in StableHLO.
-def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
+def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.9.0", "current"> {
   let mnemonic = "type";
   let parameters = (ins "::mlir::Type":$value);
   let genVerifyDecl = 1;
@@ -200,7 +200,7 @@ def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.3.0", "current"> {
 // At the moment, it is used to represent dimension bounds to support bounded
 // dynamism, and we're planning to look into it as part of the work on the
 // dynamism RFC.
-def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.3.0", "current"> {
+def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.9.0", "current"> {
   let mnemonic = "type_extensions";
   let parameters = (ins VHLO_Dims:$bounds);
   let assemblyFormat = "`<` struct(params) `>`";

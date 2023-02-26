@@ -340,7 +340,7 @@ func.func @op_after_all(%arg0: !stablehlo.token) -> !stablehlo.token {
 // CHECK-LABEL: "op_after_all"
 
 func.func @op_all_gather(%arg0: tensor<16x8xf32>) -> tensor<16x16xf32> {
-  //               CHECK: "vhlo.all_gather_v2"(%arg0) {
+  //               CHECK: "vhlo.all_gather"(%arg0) {
   //          CHECK-SAME:   all_gather_dim = #vhlo.integer<1 : i64>
   //          CHECK-SAME:   channel_id = #vhlo.integer<0 : i64>,
   // CHECK-SAME{LITERAL}:   replica_groups = #vhlo.tensor<dense<[[0], [1]]> : tensor<2x1xi64>>,
@@ -380,7 +380,7 @@ func.func @op_all_reduce(%arg0: tensor<f32>) -> tensor<f32> {
 // CHECK-LABEL: "op_all_reduce"
 
 func.func @op_all_to_all(%arg0: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  //               CHECK: "vhlo.all_to_all_v2"(%arg0) {
+  //               CHECK: "vhlo.all_to_all"(%arg0) {
   //          CHECK-SAME:   channel_id = #vhlo.integer<1 : i64>,
   //          CHECK-SAME:   concat_dimension = #vhlo.integer<0 : i64>,
   // CHECK-SAME{LITERAL}:   replica_groups = #vhlo.tensor<dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>>,
@@ -531,7 +531,7 @@ func.func @op_count_leading_zeros(%arg0: tensor<i32>) -> tensor<i32> {
 // CHECK-LABEL: "op_count_leading_zeros"
 
 func.func @op_collective_permute(%arg0: tensor<16x8xf32>) -> tensor<16x8xf32> {
-  //               CHECK: "vhlo.collective_permute_v2"(%arg0) {
+  //               CHECK: "vhlo.collective_permute"(%arg0) {
   //          CHECK-SAME:   channel_id = #vhlo.integer<0 : i64>,
   // CHECK-SAME{LITERAL}:   source_target_pairs = #vhlo.tensor<dense<[[0, 1], [1, 2], [2, 3]]> : tensor<3x2xi64>>
   //          CHECK-SAME: } : (!vhlo.tensor<16x8x!vhlo.f32>) -> !vhlo.tensor<16x8x!vhlo.f32>
@@ -667,7 +667,7 @@ func.func @op_cstr_reshapable(%arg0: index, %arg1: tensor<1xindex>) -> !shape.wi
 // CHECK-LABEL: "op_cstr_reshapable"
 
 func.func @op_custom_call(%arg0: tensor<f32>) -> tensor<f32> {
-  //      CHECK: "vhlo.custom_call_v2"(%arg0) {
+  //      CHECK: "vhlo.custom_call"(%arg0) {
   // CHECK-SAME:   api_version = #vhlo<api_version API_VERSION_ORIGINAL>,
   // CHECK-SAME:   backend_config = #vhlo.string<"\08\03\1A\02">,
   // CHECK-SAME:   call_target_name = #vhlo.string<"foo">,
