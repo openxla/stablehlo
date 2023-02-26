@@ -57,9 +57,10 @@ llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
     if (lhs.get(*lhsIt) != rhs.get(*rhsIt))
       return invalidArgument(
-          "Element values don't match: %s (actual) vs %s (expected)\n",
+          "Element values don't match: %s (actual) vs %s (expected) at index %s\n",
           debugString(lhs.get(*lhsIt)).c_str(),
-          debugString(rhs.get(*rhsIt)).c_str());
+          debugString(rhs.get(*rhsIt)).c_str(),
+          debugString((*lhsIt)).c_str());
 
   return llvm::Error::success();
 }
