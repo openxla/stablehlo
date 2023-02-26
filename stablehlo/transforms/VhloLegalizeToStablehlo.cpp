@@ -465,6 +465,198 @@ SpecialResult convertSpecial(const OpConversionPattern<VhloOpTy>& pattern,
 }
 
 //===----------------------------------------------------------------------===//
+// VHLO --> StableHLO attributes: 3) Default attributes.
+// Unlike StableHLO, VHLO doesn't have default attributes, so the corresponding
+// attributes are added explicitly during StableHLO --> VHLO conversion.
+// These attributes are removed here. (Strictly speaking, don't have to do this
+// but this makes eyeballing easier).
+//===----------------------------------------------------------------------===//
+
+bool isBoolean(Attribute vhloAttr, bool value) {
+  auto attr = vhloAttr.template dyn_cast_or_null<vhlo::BooleanV1Attr>();
+  return attr && attr.getValue() == value;
+}
+
+bool isEmptyArray(Attribute vhloAttr) {
+  auto attr = vhloAttr.dyn_cast_or_null<vhlo::ArrayV1Attr>();
+  return attr && attr.getValue().empty();
+}
+
+bool isEmptyString(Attribute vhloAttr) {
+  auto attr = vhloAttr.dyn_cast_or_null<vhlo::StringV1Attr>();
+  return attr && attr.getValue().empty();
+}
+
+bool isEmptyTensor(Attribute vhloAttr) {
+  auto attr = vhloAttr.dyn_cast_or_null<DenseElementsAttr>();
+  return attr && attr.getNumElements() == 0;
+}
+
+bool isEnum(Attribute vhloAttr, Attribute value) { return vhloAttr == value; }
+
+bool isInteger(Attribute vhloAttr, int64_t value) {
+  auto attr = vhloAttr.template dyn_cast_or_null<vhlo::IntegerV1Attr>();
+  return attr && attr.getValue().getSExtValue() == value;
+}
+
+bool isSplatArray(Attribute vhloAttr, Attribute splatValue) {
+  auto attr = vhloAttr.dyn_cast_or_null<vhlo::ArrayV1Attr>();
+  return attr && llvm::all_of(attr.getValue(), [&](Attribute attr) {
+           return attr == splatValue;
+         });
+}
+
+template <typename T>
+bool isSplatTensor(const ConversionPattern& pattern, Attribute vhloAttr,
+                   T splatValue) {
+  auto attr = convertGeneric(vhloAttr, pattern.getTypeConverter())
+                  .template dyn_cast_or_null<DenseElementsAttr>();
+  return attr && attr.isSplat() &&
+         attr.template getSplatValue<T>() == splatValue;
+}
+
+bool isString(Attribute vhloAttr, StringRef value) {
+  auto attr = vhloAttr.dyn_cast_or_null<vhlo::StringV1Attr>();
+  return attr && attr.getValue() == value;
+}
+
+// TODO: Also validate attributes before removing them.
+// Current logic assumes that these attributes are valid, but that might not
+// necessarily be the case because VHLO doesn't have verifiers.
+template <typename VhloOpTy>
+LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
+                             VhloOpTy vhloOp,
+                             SmallVector<NamedAttribute>& vhloAttrs) {
+  if constexpr (std::is_same<VhloOpTy, vhlo::FuncOpV1>::value) {
+    if (isString(vhloOp.getSymVisibilityAttr(), "public"))
+      eraseAttrs(vhloAttrs, "sym_visibility");
+    if (isEmptyArray(vhloOp.getArgAttrsAttr()))
+      eraseAttrs(vhloAttrs, "arg_attrs");
+    if (isEmptyArray(vhloOp.getResAttrsAttr()))
+      eraseAttrs(vhloAttrs, "res_attrs");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
+    // AllToAllOpV1 and CollectivePermuteOpV1 don't have use_global_device_ids,
+    // so we cannot use getUseGlobalDeviceIds here.
+    if (isBoolean(vhloOp->getAttr("use_global_device_ids"), false))
+      eraseAttrs(vhloAttrs, "use_global_device_ids");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CholeskyOpV1>::value) {
+    if (isBoolean(vhloOp.getLowerAttr(), false)) eraseAttrs(vhloAttrs, "lower");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CompareOpV1>::value) {
+    if (isEnum(vhloOp.getCompareTypeAttr(),
+               vhlo::ComparisonTypeV1Attr::get(pattern.getContext(),
+                                               vhlo::ComparisonTypeV1::NOTYPE)))
+      eraseAttrs(vhloAttrs, "compare_type");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ConvolutionOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::DynamicConvOpV1>::value) {
+    if (isSplatTensor(pattern, vhloOp.getWindowStridesAttr(), 1l))
+      eraseAttrs(vhloAttrs, "window_strides");
+    if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0l))
+      eraseAttrs(vhloAttrs, "padding");
+    if (isSplatTensor(pattern, vhloOp.getLhsDilationAttr(), 1l))
+      eraseAttrs(vhloAttrs, "lhs_dilation");
+    if (isSplatTensor(pattern, vhloOp.getRhsDilationAttr(), 1l))
+      eraseAttrs(vhloAttrs, "rhs_dilation");
+    if (isSplatTensor(pattern, vhloOp.getWindowReversalAttr(), false))
+      eraseAttrs(vhloAttrs, "window_reversal");
+    if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
+                     vhlo::PrecisionV1Attr::get(pattern.getContext(),
+                                                vhlo::PrecisionV1::DEFAULT)))
+      eraseAttrs(vhloAttrs, "precision_config");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::CustomCallOpV1>::value) {
+    if (isBoolean(vhloOp.getHasSideEffectAttr(), false))
+      eraseAttrs(vhloAttrs, "has_side_effect");
+    if (isEmptyString(vhloOp.getBackendConfigAttr()))
+      eraseAttrs(vhloAttrs, "backend_config");
+    if (isEnum(vhloOp.getApiVersionAttr(),
+               vhlo::CustomCallApiVersionV1Attr::get(
+                   pattern.getContext(),
+                   vhlo::CustomCallApiVersionV1::API_VERSION_ORIGINAL)))
+      eraseAttrs(vhloAttrs, "api_version");
+    if (isEmptyArray(vhloOp.getCalledComputations()))
+      eraseAttrs(vhloAttrs, "called_computations");
+    if (isEmptyArray(vhloOp.getOperandLayouts()))
+      eraseAttrs(vhloAttrs, "operand_layouts");
+    if (isEmptyArray(vhloOp.getResultLayouts()))
+      eraseAttrs(vhloAttrs, "result_layouts");
+    if (isEmptyArray(vhloOp.getOutputOperandAliases()))
+      eraseAttrs(vhloAttrs, "output_operand_aliases");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::DotGeneralOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::DotOpV1>::value) {
+    if (isSplatArray(vhloOp.getPrecisionConfigAttr(),
+                     vhlo::PrecisionV1Attr::get(pattern.getContext(),
+                                                vhlo::PrecisionV1::DEFAULT)))
+      eraseAttrs(vhloAttrs, "precision_config");
+  }
+  if constexpr (std::is_same<VhloOpTy,
+                             vhlo::DynamicBroadcastInDimOpV1>::value) {
+    if (isEmptyTensor(vhloOp.getKnownExpandingDimensionsAttr()))
+      eraseAttrs(vhloAttrs, "known_expanding_dimensions");
+    if (isEmptyTensor(vhloOp.getKnownNonexpandingDimensionsAttr()))
+      eraseAttrs(vhloAttrs, "known_nonexpanding_dimensions");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::DynamicGatherOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::GatherOpV1>::value) {
+    if (isBoolean(vhloOp.getIndicesAreSortedAttr(), false))
+      eraseAttrs(vhloAttrs, "indices_are_sorted");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::InfeedOpV1>::value) {
+    if (isEmptyString(vhloOp.getInfeedConfig()))
+      eraseAttrs(vhloAttrs, "infeed_config");
+    if (isEmptyArray(vhloOp.getLayout())) eraseAttrs(vhloAttrs, "layout");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::OutfeedOpV1>::value) {
+    if (isEmptyString(vhloOp.getOutfeedConfig()))
+      eraseAttrs(vhloAttrs, "outfeed_config");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::RecvOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::SendOpV1>::value) {
+    if (isBoolean(vhloOp.getIsHostTransferAttr(), false))
+      eraseAttrs(vhloAttrs, "is_host_transfer");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ReduceWindowOpV1>::value) {
+    if (isSplatTensor(pattern, vhloOp.getWindowStridesAttr(), 1l))
+      eraseAttrs(vhloAttrs, "window_strides");
+    if (isSplatTensor(pattern, vhloOp.getBaseDilationsAttr(), 1l))
+      eraseAttrs(vhloAttrs, "base_dilations");
+    if (isSplatTensor(pattern, vhloOp.getWindowDilationsAttr(), 1l))
+      eraseAttrs(vhloAttrs, "window_dilations");
+    if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0l))
+      eraseAttrs(vhloAttrs, "padding");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::ScatterOpV1>::value) {
+    if (isBoolean(vhloOp.getIndicesAreSortedAttr(), false))
+      eraseAttrs(vhloAttrs, "indices_are_sorted");
+    if (isBoolean(vhloOp.getUniqueIndicesAttr(), false))
+      eraseAttrs(vhloAttrs, "unique_indices");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::SelectAndScatterOpV1>::value) {
+    if (isSplatTensor(pattern, vhloOp.getWindowStridesAttr(), 1l))
+      eraseAttrs(vhloAttrs, "window_strides");
+    if (isSplatTensor(pattern, vhloOp.getPaddingAttr(), 0l))
+      eraseAttrs(vhloAttrs, "padding");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::SortOpV1>::value) {
+    if (isInteger(vhloOp.getDimensionAttr(), -1))
+      eraseAttrs(vhloAttrs, "dimension");
+    if (isBoolean(vhloOp.getIsStableAttr(), false))
+      eraseAttrs(vhloAttrs, "is_stable");
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // VHLO --> StableHLO operations
 //===----------------------------------------------------------------------===//
 
@@ -492,6 +684,7 @@ class VhloToStablehloOpConverter : public OpConversionPattern<VhloOpTy> {
     //      mapping from VHLO to StableHLO.
     SmallVector<NamedAttribute> vhloAttrs = to_vector(vhloOp->getAttrs());
     SmallVector<NamedAttribute> stablehloAttrs;
+    if (failed(removeDefaults(*this, vhloOp, vhloAttrs))) return failure();
     if (failed(implodeSpecial(*this, vhloOp, vhloAttrs, stablehloAttrs)))
       return failure();
     for (NamedAttribute vhloAttr : vhloAttrs) {

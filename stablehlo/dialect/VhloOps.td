@@ -87,8 +87,8 @@ def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather", "0.9.0", "current"> {
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$all_gather_dim,
     VHLO_AnyAttr:$replica_groups,
-    OptionalAttr<VHLO_AnyAttr>:$channel_id,
-    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$use_global_device_ids
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -97,8 +97,8 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$replica_groups,
-    OptionalAttr<VHLO_AnyAttr>:$channel_id,
-    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$use_global_device_ids
   );
   let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType:$result);
@@ -111,7 +111,7 @@ def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all", "0.9.0", "current"> {
     VHLO_AnyAttr:$concat_dimension,
     VHLO_AnyAttr:$split_count,
     VHLO_AnyAttr:$replica_groups,
-    OptionalAttr<VHLO_AnyAttr>:$channel_id
+    VHLO_AnyAttr:$channel_id
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -222,7 +222,7 @@ def VHLO_CeilOpV1 : VHLO_Op<"ceil", "0.9.0", "current"> {
 def VHLO_CholeskyOpV1 : VHLO_Op<"cholesky", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$a,
-    OptionalAttr<VHLO_AnyAttr>:$lower
+    VHLO_AnyAttr:$lower
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -245,7 +245,7 @@ def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute", "0.9.0", "current
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$source_target_pairs,
-    OptionalAttr<VHLO_AnyAttr>:$channel_id
+    VHLO_AnyAttr:$channel_id
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -255,7 +255,7 @@ def VHLO_CompareOpV1 : VHLO_Op<"compare", "0.9.0", "current"> {
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
     VHLO_AnyAttr:$comparison_direction,
-    OptionalAttr<VHLO_AnyAttr>:$compare_type
+    VHLO_AnyAttr:$compare_type
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -295,11 +295,11 @@ def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$padding,
-    OptionalAttr<VHLO_AnyAttr>:$lhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$rhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$window_reversal,
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$padding,
+    VHLO_AnyAttr:$lhs_dilation,
+    VHLO_AnyAttr:$rhs_dilation,
+    VHLO_AnyAttr:$window_reversal,
     VHLO_AnyAttr:$input_batch_dimension,
     VHLO_AnyAttr:$input_feature_dimension,
     VHLO_AnyAttr:$input_spatial_dimensions,
@@ -311,7 +311,7 @@ def VHLO_ConvolutionOpV1 : VHLO_Op<"convolution", "0.9.0", "current"> {
     VHLO_AnyAttr:$output_spatial_dimensions,
     VHLO_AnyAttr:$feature_group_count,
     VHLO_AnyAttr:$batch_group_count,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
+    VHLO_AnyAttr:$precision_config
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -357,13 +357,13 @@ def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.9.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
-    OptionalAttr<VHLO_AnyAttr>:$has_side_effect,
+    VHLO_AnyAttr:$has_side_effect,
     VHLO_AnyAttr:$backend_config,
-    OptionalAttr<VHLO_AnyAttr>:$api_version,
-    OptionalAttr<VHLO_AnyAttr>:$called_computations,
-    OptionalAttr<VHLO_AnyAttr>:$operand_layouts,
-    OptionalAttr<VHLO_AnyAttr>:$result_layouts,
-    OptionalAttr<VHLO_AnyAttr>:$output_operand_aliases
+    VHLO_AnyAttr:$api_version,
+    VHLO_AnyAttr:$called_computations,
+    VHLO_AnyAttr:$operand_layouts,
+    VHLO_AnyAttr:$result_layouts,
+    VHLO_AnyAttr:$output_operand_aliases
   );
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
@@ -381,7 +381,7 @@ def VHLO_DotGeneralOpV1 : VHLO_Op<"dot_general", "0.9.0", "current"> {
     VHLO_AnyAttr:$rhs_batching_dimensions,
     VHLO_AnyAttr:$lhs_contracting_dimensions,
     VHLO_AnyAttr:$rhs_contracting_dimensions,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
+    VHLO_AnyAttr:$precision_config
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -393,7 +393,7 @@ def VHLO_DotOpV1 : VHLO_Op<"dot", "0.9.0", "current"> {
   let arguments = (
     ins VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
+    VHLO_AnyAttr:$precision_config
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -406,8 +406,8 @@ def VHLO_DynamicBroadcastInDimOpV1 : VHLO_Op<"dynamic_broadcast_in_dim", "0.9.0"
     VHLO_AnyType:$operand,
     VHLO_AnyType:$output_dimensions,
     VHLO_AnyAttr:$broadcast_dimensions,
-    OptionalAttr<VHLO_AnyAttr>:$known_expanding_dimensions,
-    OptionalAttr<VHLO_AnyAttr>:$known_nonexpanding_dimensions
+    VHLO_AnyAttr:$known_expanding_dimensions,
+    VHLO_AnyAttr:$known_nonexpanding_dimensions
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -420,11 +420,11 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv", "0.9.0", "current"> {
     VHLO_AnyType:$lhs,
     VHLO_AnyType:$rhs,
     VHLO_AnyType:$d_padding,
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$padding,
-    OptionalAttr<VHLO_AnyAttr>:$lhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$rhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$window_reversal,
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$padding,
+    VHLO_AnyAttr:$lhs_dilation,
+    VHLO_AnyAttr:$rhs_dilation,
+    VHLO_AnyAttr:$window_reversal,
     VHLO_AnyAttr:$input_batch_dimension,
     VHLO_AnyAttr:$input_feature_dimension,
     VHLO_AnyAttr:$input_spatial_dimensions,
@@ -436,7 +436,7 @@ def VHLO_DynamicConvOpV1 : VHLO_Op<"dynamic_conv", "0.9.0", "current"> {
     VHLO_AnyAttr:$output_spatial_dimensions,
     VHLO_AnyAttr:$feature_group_count,
     VHLO_AnyAttr:$batch_group_count,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
+    VHLO_AnyAttr:$precision_config
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -453,7 +453,7 @@ def VHLO_DynamicGatherOpV1 : VHLO_Op<"dynamic_gather", "0.9.0", "current"> {
     VHLO_AnyAttr:$collapsed_slice_dims,
     VHLO_AnyAttr:$start_index_map,
     VHLO_AnyAttr:$index_vector_dim,
-    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted
+    VHLO_AnyAttr:$indices_are_sorted
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -549,9 +549,9 @@ def VHLO_FuncOpV1 : VHLO_Op<"func", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyAttr:$sym_name,
     VHLO_AnyAttr:$function_type,
-    OptionalAttr<VHLO_AnyAttr>:$sym_visibility,
-    OptionalAttr<VHLO_AnyAttr>:$arg_attrs,
-    OptionalAttr<VHLO_AnyAttr>:$res_attrs);
+    VHLO_AnyAttr:$sym_visibility,
+    VHLO_AnyAttr:$arg_attrs,
+    VHLO_AnyAttr:$res_attrs);
   let regions = (region VHLO_AnyRegion:$body);
   let assemblyFormat = "custom<FunctionBody>($sym_name, $body, $function_type) attr-dict";
 }
@@ -565,7 +565,7 @@ def VHLO_GatherOpV1 : VHLO_Op<"gather", "0.9.0", "current"> {
     VHLO_AnyAttr:$start_index_map,
     VHLO_AnyAttr:$index_vector_dim,
     VHLO_AnyAttr:$slice_sizes,
-    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted
+    VHLO_AnyAttr:$indices_are_sorted
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -607,7 +607,7 @@ def VHLO_InfeedOpV1 : VHLO_Op<"infeed", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$infeed_config,
-    OptionalAttr<VHLO_AnyAttr>:$layout
+    VHLO_AnyAttr:$layout
   );
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
@@ -741,7 +741,7 @@ def VHLO_RecvOpV1 : VHLO_Op<"recv", "0.9.0", "current"> {
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$channel_type,
-    OptionalAttr<VHLO_AnyAttr>:$is_host_transfer
+    VHLO_AnyAttr:$is_host_transfer
   );
   let results = (outs Variadic<VHLO_AnyType>:$results);
 }
@@ -770,8 +770,8 @@ def VHLO_ReduceScatterOpV1 : VHLO_Op<"reduce_scatter", "0.9.0", "current"> {
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$scatter_dimension,
     VHLO_AnyAttr:$replica_groups,
-    OptionalAttr<VHLO_AnyAttr>:$channel_id,
-    OptionalAttr<VHLO_AnyAttr>:$use_global_device_ids
+    VHLO_AnyAttr:$channel_id,
+    VHLO_AnyAttr:$use_global_device_ids
   );
   let regions = (region VHLO_AnyRegion:$computation);
   let results = (outs VHLO_AnyType:$result);
@@ -782,10 +782,10 @@ def VHLO_ReduceWindowOpV1 : VHLO_Op<"reduce_window", "0.9.0", "current", [SameVa
     Variadic<VHLO_AnyType>:$inputs,
     Variadic<VHLO_AnyType>:$init_values,
     VHLO_AnyAttr:$window_dimensions,
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$base_dilations,
-    OptionalAttr<VHLO_AnyAttr>:$window_dilations,
-    OptionalAttr<VHLO_AnyAttr>:$padding
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$base_dilations,
+    VHLO_AnyAttr:$window_dilations,
+    VHLO_AnyAttr:$padding
   );
   let regions = (region VHLO_AnyRegion:$body);
   let results = (outs Variadic<VHLO_AnyType>:$results);
@@ -865,8 +865,8 @@ def VHLO_ScatterOpV1 : VHLO_Op<"scatter", "0.9.0", "current", [SameVariadicOpera
     VHLO_AnyAttr:$inserted_window_dims,
     VHLO_AnyAttr:$scatter_dims_to_operand_dims,
     VHLO_AnyAttr:$index_vector_dim,
-    OptionalAttr<VHLO_AnyAttr>:$indices_are_sorted,
-    OptionalAttr<VHLO_AnyAttr>:$unique_indices
+    VHLO_AnyAttr:$indices_are_sorted,
+    VHLO_AnyAttr:$unique_indices
   );
   let regions = (region VHLO_AnyRegion:$update_computation);
   let results = (outs Variadic<VHLO_AnyType>:$results);
@@ -877,9 +877,9 @@ def VHLO_SelectAndScatterOpV1 : VHLO_Op<"select_and_scatter", "0.9.0", "current"
     VHLO_AnyType:$operand,
     VHLO_AnyType:$source,
     VHLO_AnyType:$init_value,
-    OptionalAttr<VHLO_AnyAttr>:$window_dimensions,
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$padding
+    VHLO_AnyAttr:$window_dimensions,
+    VHLO_AnyAttr:$window_strides,
+    VHLO_AnyAttr:$padding
   );
   let regions = (region VHLO_AnyRegion:$select, VHLO_AnyRegion:$scatter);
   let results = (outs VHLO_AnyType:$result);
@@ -900,7 +900,7 @@ def VHLO_SendOpV1 : VHLO_Op<"send", "0.9.0", "current"> {
     VHLO_AnyType:$token,
     VHLO_AnyAttr:$channel_id,
     VHLO_AnyAttr:$channel_type,
-    OptionalAttr<VHLO_AnyAttr>:$is_host_transfer
+    VHLO_AnyAttr:$is_host_transfer
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -952,8 +952,8 @@ def VHLO_SliceOpV1 : VHLO_Op<"slice", "0.9.0", "current"> {
 def VHLO_SortOpV1 : VHLO_Op<"sort", "0.9.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
-    OptionalAttr<VHLO_AnyAttr>:$dimension,
-    OptionalAttr<VHLO_AnyAttr>:$is_stable
+    VHLO_AnyAttr:$dimension,
+    VHLO_AnyAttr:$is_stable
   );
   let regions = (region VHLO_AnyRegion:$comparator);
   let results = (outs Variadic<VHLO_AnyType>:$results);

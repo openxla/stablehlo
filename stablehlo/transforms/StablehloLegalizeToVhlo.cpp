@@ -546,6 +546,209 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
 #undef RETURN_CONVERTED_ENUM_ATTR
 
 //===----------------------------------------------------------------------===//
+// StableHLO --> VHLO attributes: 3) Default attributes.
+// Unlike StableHLO, VHLO doesn't have default attributes, so they need to be
+// added here.
+//===----------------------------------------------------------------------===//
+
+template <typename StablehloOpTy>
+LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
+                          StablehloOpTy stablehloOp,
+                          SmallVector<NamedAttribute>& vhloAttrs) {
+  Builder builder(pattern.getContext());
+  auto addDefaultAttr = [&](StringRef vhloName, Attribute stablehloAttr) {
+    vhloAttrs.emplace_back(
+        StringAttr::get(pattern.getContext(), vhloName),
+        convertGeneric(stablehloAttr, pattern.getTypeConverter()));
+  };
+  if constexpr (std::is_same<StablehloOpTy, func::FuncOp>::value) {
+    if (!stablehloOp.getSymVisibilityAttr())
+      addDefaultAttr("sym_visibility",
+                     StringAttr::get(pattern.getContext(), "public"));
+    if (!stablehloOp.getArgAttrsAttr())
+      addDefaultAttr("arg_attrs", ArrayAttr::get(pattern.getContext(), {}));
+    if (!stablehloOp.getResAttrsAttr())
+      addDefaultAttr("res_attrs", ArrayAttr::get(pattern.getContext(), {}));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::AllGatherOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::AllReduceOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::ReduceScatterOp>::value) {
+    if (!stablehloOp.getChannelHandleAttr())
+      addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+    if (!stablehloOp.getUseGlobalDeviceIdsAttr())
+      addDefaultAttr("use_global_device_ids", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::AllToAllOp>::value ||
+                std::is_same<StablehloOpTy,
+                             stablehlo::CollectivePermuteOp>::value) {
+    if (!stablehloOp.getChannelHandleAttr())
+      addDefaultAttr("channel_id", builder.getI64IntegerAttr(0));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CholeskyOp>::value) {
+    if (!stablehloOp.getLowerAttr())
+      addDefaultAttr("lower", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CompareOp>::value) {
+    if (!stablehloOp.getCompareTypeAttr())
+      addDefaultAttr("compare_type", stablehlo::ComparisonTypeAttr::get(
+                                         pattern.getContext(),
+                                         stablehlo::ComparisonType::NOTYPE));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
+    auto numSpatialDimensions = static_cast<int64_t>(
+        stablehloOp.getDimensionNumbers().getInputSpatialDimensions().size());
+    if (!stablehloOp.getWindowStridesAttr())
+      addDefaultAttr("window_strides",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+    if (!stablehloOp.getPaddingAttr())
+      addDefaultAttr("padding",
+                     DenseIntElementsAttr::get(
+                         RankedTensorType::get({numSpatialDimensions, 2},
+                                               builder.getI64Type()),
+                         SmallVector<int64_t>(numSpatialDimensions * 2, 0l)));
+    if (!stablehloOp.getLhsDilationAttr())
+      addDefaultAttr("lhs_dilation",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+    if (!stablehloOp.getRhsDilationAttr())
+      addDefaultAttr("rhs_dilation",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+    if (!stablehloOp.getWindowReversalAttr())
+      addDefaultAttr("window_reversal",
+                     DenseIntElementsAttr::get(
+                         RankedTensorType::get({numSpatialDimensions},
+                                               builder.getI1Type()),
+                         SmallVector<bool>(numSpatialDimensions, false)));
+    if (!stablehloOp.getPrecisionConfigAttr())
+      addDefaultAttr(
+          "precision_config",
+          builder.getArrayAttr(SmallVector<Attribute>(
+              2, stablehlo::PrecisionAttr::get(
+                     pattern.getContext(), stablehlo::Precision::DEFAULT))));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::CustomCallOp>::value) {
+    if (!stablehloOp.getHasSideEffectAttr())
+      addDefaultAttr("has_side_effect", builder.getBoolAttr(false));
+    if (!stablehloOp.getBackendConfigAttr())
+      addDefaultAttr("backend_config", builder.getStringAttr(""));
+    if (!stablehloOp.getApiVersionAttr())
+      vhloAttrs.emplace_back(
+          StringAttr::get(pattern.getContext(), "api_version"),
+          vhlo::CustomCallApiVersionV1Attr::get(
+              pattern.getContext(),
+              vhlo::CustomCallApiVersionV1::API_VERSION_ORIGINAL));
+    if (!stablehloOp.getCalledComputationsAttr())
+      addDefaultAttr("called_computations",
+                     ArrayAttr::get(pattern.getContext(), {}));
+    if (!stablehloOp.getOperandLayoutsAttr())
+      addDefaultAttr("operand_layouts",
+                     ArrayAttr::get(pattern.getContext(), {}));
+    if (!stablehloOp.getResultLayoutsAttr())
+      addDefaultAttr("result_layouts",
+                     ArrayAttr::get(pattern.getContext(), {}));
+    if (!stablehloOp.getOutputOperandAliasesAttr())
+      addDefaultAttr("output_operand_aliases",
+                     ArrayAttr::get(pattern.getContext(), {}));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::DotOp>::value) {
+    if (!stablehloOp.getPrecisionConfigAttr())
+      addDefaultAttr(
+          "precision_config",
+          builder.getArrayAttr(SmallVector<Attribute>(
+              2, stablehlo::PrecisionAttr::get(
+                     pattern.getContext(), stablehlo::Precision::DEFAULT))));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::DynamicBroadcastInDimOp>::value) {
+    if (!stablehloOp.getKnownExpandingDimensionsAttr())
+      addDefaultAttr("known_expanding_dimensions",
+                     builder.getI64TensorAttr({}));
+    if (!stablehloOp.getKnownNonexpandingDimensionsAttr())
+      addDefaultAttr("known_nonexpanding_dimensions",
+                     builder.getI64TensorAttr({}));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::DynamicGatherOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::GatherOp>::value) {
+    if (!stablehloOp.getIndicesAreSortedAttr())
+      addDefaultAttr("indices_are_sorted", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::InfeedOp>::value) {
+    if (!stablehloOp.getInfeedConfigAttr())
+      addDefaultAttr("infeed_config", builder.getStringAttr(""));
+    if (!stablehloOp.getLayoutAttr())
+      addDefaultAttr("layout", ArrayAttr::get(pattern.getContext(), {}));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::OutfeedOp>::value) {
+    if (!stablehloOp.getOutfeedConfigAttr())
+      addDefaultAttr("outfeed_config", builder.getStringAttr(""));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::RecvOp>::value ||
+                std::is_same<StablehloOpTy, stablehlo::SendOp>::value) {
+    if (!stablehloOp.getIsHostTransferAttr())
+      addDefaultAttr("is_host_transfer", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::ReduceWindowOp>::value) {
+    auto numWindowDimensions =
+        static_cast<int64_t>(stablehloOp.getWindowDimensions().size());
+    if (!stablehloOp.getWindowStridesAttr())
+      addDefaultAttr("window_strides",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+    if (!stablehloOp.getBaseDilationsAttr())
+      addDefaultAttr("base_dilations",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+    if (!stablehloOp.getWindowDilationsAttr())
+      addDefaultAttr("window_dilations",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+    if (!stablehloOp.getPaddingAttr())
+      addDefaultAttr("padding",
+                     DenseIntElementsAttr::get(
+                         RankedTensorType::get({numWindowDimensions, 2},
+                                               builder.getI64Type()),
+                         SmallVector<int64_t>(numWindowDimensions * 2, 0l)));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::ScatterOp>::value) {
+    if (!stablehloOp.getIndicesAreSortedAttr())
+      addDefaultAttr("indices_are_sorted", builder.getBoolAttr(false));
+    if (!stablehloOp.getUniqueIndicesAttr())
+      addDefaultAttr("unique_indices", builder.getBoolAttr(false));
+  }
+  if constexpr (std::is_same<StablehloOpTy,
+                             stablehlo::SelectAndScatterOp>::value) {
+    // TODO(#1055): Change window_dimensions in SelectAndScatterOp
+    // from optional to non-optional.
+    if (!stablehloOp.getWindowDimensionsAttr()) return failure();
+    auto numWindowDimensions =
+        static_cast<int64_t>(stablehloOp.getWindowDimensions()->size());
+    if (!stablehloOp.getWindowStridesAttr())
+      addDefaultAttr("window_strides",
+                     builder.getI64TensorAttr(
+                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+    if (!stablehloOp.getPaddingAttr())
+      addDefaultAttr("padding",
+                     DenseIntElementsAttr::get(
+                         RankedTensorType::get({numWindowDimensions, 2},
+                                               builder.getI64Type()),
+                         SmallVector<int64_t>(numWindowDimensions * 2, 0l)));
+  }
+  if constexpr (std::is_same<StablehloOpTy, stablehlo::SortOp>::value) {
+    if (!stablehloOp.getDimensionAttr())
+      addDefaultAttr("dimension", builder.getI64IntegerAttr(-1));
+    if (!stablehloOp.getIsStableAttr())
+      addDefaultAttr("is_stable", builder.getBoolAttr(false));
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StableHLO --> VHLO operations
 //===----------------------------------------------------------------------===//
 
@@ -574,6 +777,7 @@ class StablehloToVhloOpConverter : public OpConversionPattern<StablehloOpTy> {
     //   2) Special cases (currently, about a dozen) where there is not 1:1
     //      mapping from StableHLO to VHLO.
     SmallVector<NamedAttribute> vhloAttrs;
+    if (failed(addDefaults(*this, stablehloOp, vhloAttrs))) return failure();
     for (NamedAttribute stablehloAttr : stablehloOp->getAttrs()) {
       auto result = convertSpecial(*this, stablehloAttr.getName(),
                                    stablehloAttr.getValue(), vhloAttrs);
