@@ -34,12 +34,13 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, APInt value) : type_(type), value_(value) {}
-  Element(Type type, bool value) : type_(type), value_(value) {}
-  Element(Type type, APFloat value) : type_(type), value_(value) {}
-  Element(Type type, std::complex<APFloat> value)
-      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
-
+  Element(Type type, APInt value);
+  Element(Type type, int64_t value);
+  Element(Type type, bool value);
+  Element(Type type, APFloat value);
+  Element(Type type, double value);
+  Element(Type type, std::complex<APFloat> value);
+  Element(Type type, std::complex<double> value);
   Element(const Element &other) = default;
   /// @}
 

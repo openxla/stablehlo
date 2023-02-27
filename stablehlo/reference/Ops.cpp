@@ -126,9 +126,9 @@ Tensor evalConstantOp(ElementsAttr value) {
 // with integer to bool conversion. To be updated as part of #969.
 Tensor evalConvertOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
-  Type elType = result.getElementType();
+  Type elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, Element(elType,
+    result.set(*it, Element(elementType,
                             operand.get(*it).getIntegerValue().getBoolValue()));
   return result;
 }
@@ -204,35 +204,21 @@ Tensor evalImagOp(const Tensor &operand, TensorType resultType) {
 
 Tensor evalIotaOp(Axis iotaDimension, TensorType resultType) {
   Tensor result(resultType);
-  Type elType = result.getElementType();
+  Type elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    auto iota = (*it)[iotaDimension];
-    if (isSupportedSignedIntegerType(elType)) {
-      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
-                                            iota, /*isSigned=*/true)));
-    } else if (isSupportedUnsignedIntegerType(elType)) {
-      result.set(*it, Element(elType, APInt(elType.getIntOrFloatBitWidth(),
-                                            iota, /*isSigned=*/false)));
-    } else if (isSupportedFloatType(elType)) {
-      APFloat val = APFloat((double)iota);
-      bool roundingErr;
-      val.convert(elType.cast<FloatType>().getFloatSemantics(),
-                  APFloat::rmNearestTiesToEven, &roundingErr);
-      result.set(*it, Element(elType, val));
-    } else if (isSupportedComplexType(elType)) {
-      APFloat real((double)iota);
-      APFloat imag((double)0.0);
-      FloatType flType =
-          elType.cast<ComplexType>().getElementType().cast<FloatType>();
-      bool roundingErr;
-      real.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      imag.convert(flType.getFloatSemantics(), APFloat::rmNearestTiesToEven,
-                   &roundingErr);
-      result.set(*it, Element(elType, std::complex<APFloat>(real, imag)));
+    if (isSupportedIntegerType(elementType)) {
+      result.set(*it, Element(elementType, (*it)[iotaDimension]));
+    } else if (isSupportedFloatType(elementType)) {
+      result.set(
+          *it, Element(elementType, static_cast<double>((*it)[iotaDimension])));
+    } else if (isSupportedComplexType(elementType)) {
+      result.set(*it,
+                 Element(elementType,
+                         std::complex<double>(
+                             static_cast<double>((*it)[iotaDimension]), 0.0)));
     } else {
       report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(elType).c_str()));
+                                         debugString(elementType).c_str()));
     }
   }
   return result;
