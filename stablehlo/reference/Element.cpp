@@ -594,10 +594,10 @@ Element power(const Element &e1, const Element &e2) {
       else
         return Element(type, APInt(x.getBitWidth(), 0, isSigned));
     }
-    APInt constant1(x.getBitWidth(), 1, isSigned);
-    APInt result(constant1);
+    const APInt kOne(x.getBitWidth(), 1, isSigned);
+    APInt result(kOne);
     while (!y.isZero()) {
-      if ((y & constant1).getBoolValue()) result *= x;
+      if ((y & kOne).getBoolValue()) result *= x;
       x *= x;
       y = y.lshr(1);
     }
