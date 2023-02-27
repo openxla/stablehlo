@@ -581,10 +581,6 @@ Element min(const Element &e1, const Element &e2) {
 
 Element power(const Element &e1, const Element &e2) {
   Type type = e1.getType();
-  if (e1.getType() != e2.getType())
-    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
-                                       debugString(e1.getType()).c_str(),
-                                       debugString(e2.getType()).c_str()));
 
   if (isSupportedIntegerType(type)) {
     APInt x = e1.getIntegerValue();

@@ -1,17 +1,5 @@
 // RUN: stablehlo-interpreter --interpret -split-input-file %s
 
-// CHECK-LABEL: Evaluated results of function: power_op_test_ui64
-func.func @power_op_test_ui64() {
-  %lhs = stablehlo.constant dense<[0, 0, 1, 1, 5]> : tensor<5xui64>
-  %rhs = stablehlo.constant dense<[0, 1, 0, 2, 5]> : tensor<5xui64>
-  %result = stablehlo.power %lhs, %rhs : tensor<5xui64>
-  check.eq %result, dense<[1, 0, 1, 1, 3125]> : tensor<5xui64>
-  func.return
-}
-
-// -----
-
-// CHECK-LABEL: Evaluated results of function: power_op_test_si64
 func.func @power_op_test_si64() {
   %lhs = stablehlo.constant dense<[-1, -1, -3, -3, 0]> : tensor<5xi64>
   %rhs = stablehlo.constant dense<[1, 0, -3, 3, 2]> : tensor<5xi64>
@@ -22,7 +10,16 @@ func.func @power_op_test_si64() {
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: power_op_test_f64
+func.func @power_op_test_ui64() {
+  %lhs = stablehlo.constant dense<[0, 0, 1, 1, 5]> : tensor<5xui64>
+  %rhs = stablehlo.constant dense<[0, 1, 0, 2, 5]> : tensor<5xui64>
+  %result = stablehlo.power %lhs, %rhs : tensor<5xui64>
+  check.eq %result, dense<[1, 0, 1, 1, 3125]> : tensor<5xui64>
+  func.return
+}
+
+// -----
+
 func.func @power_op_test_f64() {
   %lhs = stablehlo.constant dense<[-2.0, -0.0, -36.0, 5.0, 3.0, 10000.0]> : tensor<6xf64>
   %rhs = stablehlo.constant dense<[2.0, 2.0, 1.1, 2.0, -1.0, 10.0]> : tensor<6xf64>
@@ -34,8 +31,7 @@ func.func @power_op_test_f64() {
 
 // -----
 
-// CHECK-LABEL: Evaluated results of function: power_op_test_c64
-func.func @power_op_test_c64() {
+func.func @power_op_test_c128() {
   %lhs = stablehlo.constant dense<[(1.5, 2.5), (7.5, 5.5)]> : tensor<2xcomplex<f64>>
   %rhs = stablehlo.constant dense<[(2.5, 1.5), (5.5, 7.5)]> : tensor<2xcomplex<f64>>
   %result = stablehlo.power %lhs, %rhs : tensor<2xcomplex<f64>>
