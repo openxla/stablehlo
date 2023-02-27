@@ -102,9 +102,9 @@ Tensor evalConstantOp(ElementsAttr value) {
 // with integer to bool conversion. To be updated as part of #969.
 Tensor evalConvertOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
-  Type elType = result.getElementType();
+  Type elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, Element(elType,
+    result.set(*it, Element(elementType,
                             operand.get(*it).getIntegerValue().getBoolValue()));
   return result;
 }
@@ -165,21 +165,21 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 
 Tensor evalIotaOp(int64_t iotaDimension, TensorType resultType) {
   Tensor result(resultType);
-  Type elementTy = result.getElementType();
+  Type elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedIntegerType(elementTy)) {
-      result.set(*it, Element(elementTy, (*it)[iotaDimension]));
-    } else if (isSupportedFloatType(elementTy)) {
+    if (isSupportedIntegerType(elementType)) {
+      result.set(*it, Element(elementType, (*it)[iotaDimension]));
+    } else if (isSupportedFloatType(elementType)) {
+      result.set(
+          *it, Element(elementType, static_cast<double>((*it)[iotaDimension])));
+    } else if (isSupportedComplexType(elementType)) {
       result.set(*it,
-                 Element(elementTy, static_cast<double>((*it)[iotaDimension])));
-    } else if (isSupportedComplexType(elementTy)) {
-      result.set(*it,
-                 Element(elementTy,
+                 Element(elementType,
                          std::complex<double>(
                              static_cast<double>((*it)[iotaDimension]), 0.0)));
     } else {
       report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(elementTy).c_str()));
+                                         debugString(elementType).c_str()));
     }
   }
   return result;
