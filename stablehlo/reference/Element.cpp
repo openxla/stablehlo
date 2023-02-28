@@ -408,10 +408,6 @@ bool Element::operator<(const Element &other) const {
   if (isSupportedComplexType(type)) {
     auto complexLhs = getComplexValue();
     auto complexRhs = other.getComplexValue();
-    if (complexLhs.real().isNaN() || complexLhs.imag().isNaN() ||
-        complexRhs.real().isNaN() || complexRhs.imag().isNaN()) {
-      return false;
-    }
     if (complexLhs.real() < complexRhs.real()) return true;
     if (!(complexLhs.real() == complexRhs.real())) return false;
     return complexLhs.imag() < complexRhs.imag();
@@ -490,10 +486,6 @@ bool Element::operator>(const Element &other) const {
   if (isSupportedComplexType(type)) {
     auto complexLhs = getComplexValue();
     auto complexRhs = other.getComplexValue();
-    if (complexLhs.real().isNaN() || complexLhs.imag().isNaN() ||
-        complexRhs.real().isNaN() || complexRhs.imag().isNaN()) {
-      return false;
-    }
     if (complexLhs.real() > complexRhs.real()) return true;
     if (!(complexLhs.real() == complexRhs.real())) return false;
     return complexLhs.imag() > complexRhs.imag();

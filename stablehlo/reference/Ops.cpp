@@ -131,7 +131,8 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
         if (comparisonType == ComparisonType::TOTALORDER) {
           auto lhsFloat = lhs.get(*it).getFloatValue();
           auto rhsFloat = rhs.get(*it).getFloatValue();
-          cmpResult = lhsFloat.bitwiseIsEqual(rhsFloat);
+          cmpResult = lhs.get(*it).getFloatValue().bitcastToAPInt() ==
+                      rhs.get(*it).getFloatValue().bitcastToAPInt();
         } else {
           cmpResult = lhs.get(*it) == rhs.get(*it);
         }
@@ -141,7 +142,8 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
         if (comparisonType == ComparisonType::TOTALORDER) {
           auto lhsFloat = lhs.get(*it).getFloatValue();
           auto rhsFloat = rhs.get(*it).getFloatValue();
-          cmpResult = !lhsFloat.bitwiseIsEqual(rhsFloat);
+          cmpResult = lhs.get(*it).getFloatValue().bitcastToAPInt() !=
+                      rhs.get(*it).getFloatValue().bitcastToAPInt();
         } else {
           cmpResult = lhs.get(*it) != rhs.get(*it);
         }
@@ -154,11 +156,10 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
           if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
             cmpResult = rhsFloat.isNegative();
           else
-            cmpResult = lhsFloat.isNegative()
-                            ? lhsFloat.bitcastToAPInt().getZExtValue() <=
-                                  rhsFloat.bitcastToAPInt().getZExtValue()
-                            : lhsFloat.bitcastToAPInt().getZExtValue() >=
-                                  rhsFloat.bitcastToAPInt().getZExtValue();
+            cmpResult =
+                lhsFloat.isNegative()
+                    ? lhsFloat.bitcastToAPInt().ule(rhsFloat.bitcastToAPInt())
+                    : lhsFloat.bitcastToAPInt().uge(rhsFloat.bitcastToAPInt());
         } else {
           cmpResult = lhs.get(*it) >= rhs.get(*it);
         }
@@ -171,11 +172,10 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
           if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
             cmpResult = rhsFloat.isNegative();
           else
-            cmpResult = lhsFloat.isNegative()
-                            ? lhsFloat.bitcastToAPInt().getZExtValue() <
-                                  rhsFloat.bitcastToAPInt().getZExtValue()
-                            : lhsFloat.bitcastToAPInt().getZExtValue() >
-                                  rhsFloat.bitcastToAPInt().getZExtValue();
+            cmpResult =
+                lhsFloat.isNegative()
+                    ? lhsFloat.bitcastToAPInt().ult(rhsFloat.bitcastToAPInt())
+                    : lhsFloat.bitcastToAPInt().ugt(rhsFloat.bitcastToAPInt());
         } else {
           cmpResult = lhs.get(*it) > rhs.get(*it);
         }
@@ -188,11 +188,10 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
           if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
             cmpResult = lhsFloat.isNegative();
           else
-            cmpResult = lhsFloat.isNegative()
-                            ? lhsFloat.bitcastToAPInt().getZExtValue() >=
-                                  rhsFloat.bitcastToAPInt().getZExtValue()
-                            : lhsFloat.bitcastToAPInt().getZExtValue() <=
-                                  rhsFloat.bitcastToAPInt().getZExtValue();
+            cmpResult =
+                lhsFloat.isNegative()
+                    ? lhsFloat.bitcastToAPInt().uge(rhsFloat.bitcastToAPInt())
+                    : lhsFloat.bitcastToAPInt().ule(rhsFloat.bitcastToAPInt());
         } else {
           cmpResult = lhs.get(*it) <= rhs.get(*it);
         }
@@ -205,11 +204,10 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
           if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
             cmpResult = lhsFloat.isNegative();
           else
-            cmpResult = lhsFloat.isNegative()
-                            ? lhsFloat.bitcastToAPInt().getZExtValue() >
-                                  rhsFloat.bitcastToAPInt().getZExtValue()
-                            : lhsFloat.bitcastToAPInt().getZExtValue() <
-                                  rhsFloat.bitcastToAPInt().getZExtValue();
+            cmpResult =
+                lhsFloat.isNegative()
+                    ? lhsFloat.bitcastToAPInt().ugt(rhsFloat.bitcastToAPInt())
+                    : lhsFloat.bitcastToAPInt().ult(rhsFloat.bitcastToAPInt());
         } else {
           cmpResult = lhs.get(*it) < rhs.get(*it);
         }
