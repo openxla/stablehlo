@@ -33,23 +33,56 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
         auto evalCheckOps = [&](Operation &op,
                                 stablehlo::Scope &scope) -> llvm::Error {
-          if (auto almostEqOp = dyn_cast<stablehlo::check::AlmostEqOp>(op)) {
-            stablehlo::Tensor runtimeOperand = scope.find(almostEqOp.getLhs());
-            auto status = stablehlo::check::evalAlmostEqOp(
-                runtimeOperand, almostEqOp.getValue());
+          if (auto expectAlmostEqConstOp =
+                  dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
+            stablehlo::Tensor runtimeOperand =
+                scope.find(expectAlmostEqConstOp.getLhs());
+            auto status = stablehlo::check::evalExpectAlmostEqConstOp(
+                runtimeOperand, expectAlmostEqConstOp.getValue());
             if (status)
               return stablehlo::invalidArgument(
-                  "Error evaluating function: %s. \n\tCheck almost_eq failed: "
+                  "Error evaluating function: %s. \n\tCheck "
+                  "expect_almost_eq_const failed: "
                   "%s",
                   funcOp.getSymName().str().c_str(),
                   toString(std::move(status)).c_str());
-          } else if (auto eqOp = dyn_cast<stablehlo::check::EqOp>(op)) {
-            stablehlo::Tensor runtimeOperand = scope.find(eqOp.getLhs());
+          } else if (auto expectAlmostEqOp =
+                         dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
+            stablehlo::Tensor runtimeLhs =
+                scope.find(expectAlmostEqOp.getLhs());
+            stablehlo::Tensor runtimeRhs =
+                scope.find(expectAlmostEqOp.getRhs());
             auto status =
-                stablehlo::check::evalEqOp(runtimeOperand, eqOp.getValue());
+                stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
             if (status)
               return stablehlo::invalidArgument(
-                  "Error evaluating function: %s. \n\tCheck eq failed: %s",
+                  "Error evaluating function: %s. \n\tCheck expect_almost_eq "
+                  "failed: "
+                  "%s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else if (auto expectEqConstOp =
+                         dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
+            stablehlo::Tensor runtimeOperand =
+                scope.find(expectEqConstOp.getLhs());
+            auto status = stablehlo::check::evalExpectEqConstOp(
+                runtimeOperand, expectEqConstOp.getValue());
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tCheck expect_eq_const "
+                  "failed: %s",
+                  funcOp.getSymName().str().c_str(),
+                  toString(std::move(status)).c_str());
+          } else if (auto expectEqOp =
+                         dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
+            stablehlo::Tensor runtimeLhs = scope.find(expectEqOp.getLhs());
+            stablehlo::Tensor runtimeRhs = scope.find(expectEqOp.getRhs());
+            auto status =
+                stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
+            if (status)
+              return stablehlo::invalidArgument(
+                  "Error evaluating function: %s. \n\tCheck expect_eq failed: "
+                  "%s",
                   funcOp.getSymName().str().c_str(),
                   toString(std::move(status)).c_str());
           } else {

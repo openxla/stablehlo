@@ -38,8 +38,55 @@ CheckDialect::CheckDialect(MLIRContext *context)
       >();
 }
 
-llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
+void ExpectAlmostEqOp::print(OpAsmPrinter &p) {
+  p.printOptionalAttrDict(getOperation()->getAttrs());
+  p << " : ";
+  p.printType(getLhs().getType());
+}
+
+ParseResult ExpectAlmostEqOp::parse(OpAsmParser &parser,
+                                    OperationState &result) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  OpAsmParser::UnresolvedOperand lhs, rhs;
+  Type type;
+  if (parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseOperand(lhs) || parser.parseComma() ||
+      parser.parseOperand(rhs) || parser.parseColon() ||
+      parser.parseType(type) ||
+      parser.resolveOperands({lhs, rhs}, {type, type}, loc, result.operands))
+    return failure();
+
+  result.addTypes({});
+  return success();
+}
+
+void ExpectEqOp::print(OpAsmPrinter &p) {
+  p.printOptionalAttrDict(getOperation()->getAttrs());
+  p << " : ";
+  p.printType(getLhs().getType());
+}
+
+ParseResult ExpectEqOp::parse(OpAsmParser &parser, OperationState &result) {
+  llvm::SMLoc loc = parser.getCurrentLocation();
+  OpAsmParser::UnresolvedOperand lhs, rhs;
+  Type type;
+  if (parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseOperand(lhs) || parser.parseComma() ||
+      parser.parseOperand(rhs) || parser.parseColon() ||
+      parser.parseType(type) ||
+      parser.resolveOperands({lhs, rhs}, {type, type}, loc, result.operands))
+    return failure();
+
+  result.addTypes({});
+  return success();
+}
+
+llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value) {
   auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  return evalExpectAlmostEqOp(lhs, rhs);
+}
+
+llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs) {
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
     if (!areApproximatelyEqual(lhs.get(*lhsIt), rhs.get(*rhsIt)))
@@ -52,8 +99,12 @@ llvm::Error evalAlmostEqOp(const Tensor &lhs, ElementsAttr value) {
   return llvm::Error::success();
 }
 
-llvm::Error evalEqOp(const Tensor &lhs, ElementsAttr value) {
+llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value) {
   auto rhs = makeTensor(value.cast<DenseElementsAttr>());
+  return evalExpectEqOp(lhs, rhs);
+}
+
+llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
   for (auto lhsIt = lhs.index_begin(), rhsIt = rhs.index_begin();
        lhsIt != lhs.index_end(); ++lhsIt, ++rhsIt)
     if (lhs.get(*lhsIt) != rhs.get(*rhsIt))
