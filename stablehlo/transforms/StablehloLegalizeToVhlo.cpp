@@ -564,7 +564,7 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
   if constexpr (std::is_same<StablehloOpTy, func::FuncOp>::value) {
     if (!stablehloOp.getSymVisibilityAttr())
       addDefaultAttr("sym_visibility",
-                     StringAttr::get(pattern.getContext(), "public"));
+                     StringAttr::get(pattern.getContext(), ""));
     if (!stablehloOp.getArgAttrsAttr())
       addDefaultAttr("arg_attrs", ArrayAttr::get(pattern.getContext(), {}));
     if (!stablehloOp.getResAttrsAttr())
