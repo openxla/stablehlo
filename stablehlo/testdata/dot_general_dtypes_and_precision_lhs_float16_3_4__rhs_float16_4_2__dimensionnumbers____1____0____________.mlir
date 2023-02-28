@@ -1,10 +1,12 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<3x4xf16>, tensor<4x2xf16>)
     %1 = call @expected() : () -> tensor<3x2xf16>
     %2 = stablehlo.convert %0#0 : (tensor<3x4xf16>) -> tensor<3x4xf32>
     %3 = stablehlo.convert %0#1 : (tensor<4x2xf16>) -> tensor<4x2xf32>
-    %4 = "stablehlo.dot_general"(%2, %3) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<3x4xf32>, tensor<4x2xf32>) -> tensor<3x2xf16>
+    %4 = "stablehlo.dot_general"(%2, %3) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>} : (tensor<3x4xf32>, tensor<4x2xf32>) -> tensor<3x2xf16>
     %5 = stablehlo.custom_call @check.eq(%4, %1) : (tensor<3x2xf16>, tensor<3x2xf16>) -> tensor<i1>
     return %5 : tensor<i1>
   }
@@ -18,3 +20,4 @@ module @jit_testcase {
     return %0 : tensor<3x2xf16>
   }
 }
+

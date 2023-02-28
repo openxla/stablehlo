@@ -1,3 +1,5 @@
+// RUN: echo "skipping CHLO test (see #1233 for details)"
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<20x20xbf16>, tensor<20x20xbf16>)

@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0 = stablehlo.constant dense<[3, 2]> : tensor<2xi32>
@@ -6,7 +8,7 @@ module @jit_testcase {
     %3 = "stablehlo.scatter"(%1#0, %0, %1#1) ({
     ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
       stablehlo.return %arg1 : tensor<i32>
-    }) {indices_are_sorted = false, scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [0, 2], scatter_dims_to_operand_dims = [0, 2]>, unique_indices = true} : (tensor<4x2x3xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<4x2x3xi32>
+    }) {scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [0, 2], scatter_dims_to_operand_dims = [0, 2]>, unique_indices = true} : (tensor<4x2x3xi32>, tensor<2xi32>, tensor<2xi32>) -> tensor<4x2x3xi32>
     %4 = stablehlo.custom_call @check.eq(%3, %2) : (tensor<4x2x3xi32>, tensor<4x2x3xi32>) -> tensor<i1>
     return %4 : tensor<i1>
   }
@@ -20,3 +22,4 @@ module @jit_testcase {
     return %0 : tensor<4x2x3xi32>
   }
 }
+

@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:4 = call @inputs() : () -> (tensor<18xi32>, tensor<18xf32>, tensor<18xf32>, tensor<18xf32>)

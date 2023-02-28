@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<4x6xbf16>, tensor<4x6xbf16>)
@@ -10,7 +12,7 @@ module @jit_testcase {
       %7 = stablehlo.select %6, %arg0, %arg2 : tensor<i1>, tensor<bf16>
       %8 = stablehlo.select %6, %arg1, %arg3 : tensor<i1>, tensor<bf16>
       stablehlo.return %7, %8 : tensor<bf16>, tensor<bf16>
-    }) {base_dilations = dense<1> : tensor<2xi64>, padding = dense<0> : tensor<2x2xi64>, window_dilations = dense<1> : tensor<2xi64>, window_dimensions = dense<2> : tensor<2xi64>, window_strides = dense<1> : tensor<2xi64>} : (tensor<4x6xbf16>, tensor<4x6xbf16>, tensor<bf16>, tensor<bf16>) -> (tensor<3x5xbf16>, tensor<3x5xbf16>)
+    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<4x6xbf16>, tensor<4x6xbf16>, tensor<bf16>, tensor<bf16>) -> (tensor<3x5xbf16>, tensor<3x5xbf16>)
     %5 = stablehlo.custom_call @check.eq(%4#1, %1) : (tensor<3x5xbf16>, tensor<3x5xbf16>) -> tensor<i1>
     return %5 : tensor<i1>
   }
@@ -24,3 +26,4 @@ module @jit_testcase {
     return %0 : tensor<3x5xbf16>
   }
 }
+

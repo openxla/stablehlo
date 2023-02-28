@@ -1,8 +1,10 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<1x16x2xf32>, tensor<3x2x2xf32>)
     %1 = call @expected() : () -> tensor<1x32x2xf32>
-    %2 = stablehlo.convolution(%0#0, %0#1) dim_numbers = [b, 0, f]x[0, i, o]->[b, 0, f], window = {stride = [1], pad = [[2, 1]], lhs_dilate = [2], rhs_dilate = [1], reverse = [0]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<1x16x2xf32>, tensor<3x2x2xf32>) -> tensor<1x32x2xf32>
+    %2 = stablehlo.convolution(%0#0, %0#1) dim_numbers = [b, 0, f]x[0, i, o]->[b, 0, f], window = {pad = [[2, 1]], lhs_dilate = [2]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64} : (tensor<1x16x2xf32>, tensor<3x2x2xf32>) -> tensor<1x32x2xf32>
     %3 = stablehlo.custom_call @check.eq(%2, %1) : (tensor<1x32x2xf32>, tensor<1x32x2xf32>) -> tensor<i1>
     return %3 : tensor<i1>
   }
@@ -16,3 +18,4 @@ module @jit_testcase {
     return %0 : tensor<1x32x2xf32>
   }
 }
+

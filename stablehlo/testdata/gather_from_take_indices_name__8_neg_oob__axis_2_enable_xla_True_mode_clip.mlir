@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<10x10x10xf32>, tensor<2x2x1xi32>)
@@ -17,7 +19,8 @@ module @jit_testcase {
   }
   func.func private @_take(%arg0: tensor<10x10x10xf32>, %arg1: tensor<2x2x1xi32>) -> tensor<10x10x2x2x1xf32> {
     %0 = stablehlo.broadcast_in_dim %arg1, dims = [0, 1, 2] : (tensor<2x2x1xi32>) -> tensor<2x2x1x1xi32>
-    %1 = "stablehlo.gather"(%arg0, %0) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2], index_vector_dim = 3>, indices_are_sorted = false, slice_sizes = dense<[10, 10, 1]> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<2x2x1x1xi32>) -> tensor<10x10x2x2x1xf32>
+    %1 = "stablehlo.gather"(%arg0, %0) {dimension_numbers = #stablehlo.gather<offset_dims = [0, 1], collapsed_slice_dims = [2], start_index_map = [2], index_vector_dim = 3>, slice_sizes = dense<[10, 10, 1]> : tensor<3xi64>} : (tensor<10x10x10xf32>, tensor<2x2x1x1xi32>) -> tensor<10x10x2x2x1xf32>
     return %1 : tensor<10x10x2x2x1xf32>
   }
 }
+
