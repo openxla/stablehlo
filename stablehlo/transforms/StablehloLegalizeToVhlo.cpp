@@ -500,55 +500,45 @@ SpecialResult convertSpecial(const OpConversionPattern<StablehloOpTy>& pattern,
                              stablehlo::CollectivePermuteOp>::value ||
                 std::is_same<StablehloOpTy,
                              stablehlo::ReduceScatterOp>::value) {
-    if (stablehloName == "channel_handle") {
+    if (stablehloName == "channel_handle")
       return convertChannelId(pattern, stablehloAttr, vhloAttrs);
-    }
-    if (stablehloName == "use_global_device_ids") {
+    if (stablehloName == "use_global_device_ids")
       return convertUseGlobalDeviceIds(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ConvolutionOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::DynamicConvOp>::value) {
-    if (stablehloName == "dimension_numbers") {
+    if (stablehloName == "dimension_numbers")
       return convertConvDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::CustomCallOp>::value) {
-    if (stablehloName == "api_version") {
+    if (stablehloName == "api_version")
       return convertCustomCallApiVersion(pattern, stablehloAttr, vhloAttrs);
-    }
-    if (stablehloName == "called_computations") {
+    if (stablehloName == "called_computations")
       return convertCustomCallCalledComputations(pattern, stablehloAttr,
                                                  vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::DotGeneralOp>::value) {
-    if (stablehloName == "dot_dimension_numbers") {
+    if (stablehloName == "dot_dimension_numbers")
       return convertDotDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy,
                              stablehlo::DynamicGatherOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::GatherOp>::value) {
-    if (stablehloName == "dimension_numbers") {
+    if (stablehloName == "dimension_numbers")
       return convertGatherDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::RecvOp>::value ||
                 std::is_same<StablehloOpTy, stablehlo::SendOp>::value) {
-    if (stablehloName == "channel_handle") {
+    if (stablehloName == "channel_handle")
       return convertChannelHandle(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ScatterOp>::value) {
-    if (stablehloName == "scatter_dimension_numbers") {
+    if (stablehloName == "scatter_dimension_numbers")
       return convertScatterDimensionNumbers(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   if constexpr (std::is_same<StablehloOpTy, func::CallOp>::value) {
-    if (stablehloName == "callee") {
+    if (stablehloName == "callee")
       return convertFuncCallee(pattern, stablehloAttr, vhloAttrs);
-    }
   }
   return notSpecial();
 }
