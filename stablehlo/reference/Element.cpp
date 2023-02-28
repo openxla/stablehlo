@@ -126,31 +126,18 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
                                        debugString(rhs.getType()).c_str()));
 
   if (isSupportedFloatType(type)) {
-    APFloat lhsVal = lhs.getFloatValue();
-    APFloat rhsVal = rhs.getFloatValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.getSemantics();
-    APFloat resultVal(
-        floatFn(lhsVal.convertToDouble(), rhsVal.convertToDouble()));
-    bool roundingErr;
-    resultVal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, resultVal);
+    return Element(type, floatFn(lhs.getFloatValue().convertToDouble(),
+                                 rhs.getFloatValue().convertToDouble()));
   }
 
   if (isSupportedComplexType(type)) {
-    auto lhsVal = lhs.getComplexValue();
-    auto rhsVal = rhs.getComplexValue();
-    const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
-    auto resultVal =
-        complexFn(std::complex<double>(lhsVal.real().convertToDouble(),
-                                       lhsVal.imag().convertToDouble()),
-                  std::complex<double>(rhsVal.real().convertToDouble(),
-                                       rhsVal.imag().convertToDouble()));
-    bool roundingErr;
-    APFloat resultReal(resultVal.real());
-    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat resultImag(resultVal.imag());
-    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, std::complex<APFloat>(resultReal, resultImag));
+    return Element(
+        type, complexFn(std::complex<double>(
+                            lhs.getComplexValue().real().convertToDouble(),
+                            lhs.getComplexValue().imag().convertToDouble()),
+                        std::complex<double>(
+                            rhs.getComplexValue().real().convertToDouble(),
+                            rhs.getComplexValue().imag().convertToDouble())));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -583,23 +570,23 @@ Element power(const Element &e1, const Element &e2) {
   Type type = e1.getType();
 
   if (isSupportedIntegerType(type)) {
-    APInt x = e1.getIntegerValue();
-    APInt y = e2.getIntegerValue();
-    bool isSigned = x.isSignedIntN(x.getBitWidth());
-    if (isSigned && y.isNegative()) {
-      if (x.isZero())
+    APInt base = e1.getIntegerValue();
+    APInt exponent = e2.getIntegerValue();
+    bool isSigned = base.isSignedIntN(base.getBitWidth());
+    if (isSigned && exponent.isNegative()) {
+      if (base.isZero())
         llvm::report_fatal_error("divide by zero unsupported");
-      else if (x.abs().isOne())
-        y = y.abs();
+      else if (base.abs().isOne())
+        exponent = exponent.abs();
       else
-        return Element(type, APInt(x.getBitWidth(), 0, isSigned));
+        return Element(type, APInt(base.getBitWidth(), 0, isSigned));
     }
-    const APInt kOne(x.getBitWidth(), 1, isSigned);
+    const APInt kOne(base.getBitWidth(), 1, isSigned);
     APInt result(kOne);
-    while (!y.isZero()) {
-      if ((y & kOne).getBoolValue()) result *= x;
-      x *= x;
-      y = y.lshr(1);
+    while (!exponent.isZero()) {
+      if ((exponent & kOne).getBoolValue()) result *= base;
+      base *= base;
+      exponent = exponent.lshr(1);
     }
     return Element(type, result);
   }
