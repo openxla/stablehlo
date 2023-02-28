@@ -528,7 +528,7 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
                              VhloOpTy vhloOp,
                              SmallVector<NamedAttribute>& vhloAttrs) {
   if constexpr (std::is_same<VhloOpTy, vhlo::FuncOpV1>::value) {
-    if (isString(vhloOp.getSymVisibilityAttr(), "public"))
+    if (isString(vhloOp.getSymVisibilityAttr(), ""))
       eraseAttrs(vhloAttrs, "sym_visibility");
     if (isEmptyArray(vhloOp.getArgAttrsAttr()))
       eraseAttrs(vhloAttrs, "arg_attrs");

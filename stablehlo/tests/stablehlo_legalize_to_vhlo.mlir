@@ -553,7 +553,7 @@ func.func @default_func(%arg0: tensor<f32>) -> tensor<f32> {
   // CHECK-SAME:   function_type = #vhlo.type_v1<!vhlo.func_v1<(!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.f32_v1>>>,
   // CHECK-SAME:   res_attrs = #vhlo.array_v1<[]>,
   // CHECK-SAME:   sym_name = #vhlo.string_v1<"default_func">,
-  // CHECK-SAME:   sym_visibility = #vhlo.string_v1<"public">
+  // CHECK-SAME:   sym_visibility = #vhlo.string_v1<"">
   // CHECK-SAME: } : () -> ()
   func.return %arg0 : tensor<f32>
 }
