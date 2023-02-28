@@ -52,7 +52,7 @@ config.excludes = []
 config.test_source_root = os.path.dirname(__file__)
 
 # test_exec_root: The root path where tests should be run.
-config.test_exec_root = os.path.join(config.stablehlo_obj_root, 'tests')
+config.test_exec_root = os.path.join(config.stablehlo_obj_root, 'testdata')
 config.stablehlo_tools_dir = os.path.join(config.stablehlo_obj_root, 'bin')
 
 # Tweak the PATH to include the tools dir.
