@@ -9,7 +9,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<f16>, %arg1: tensor<f16>):
       %5 = stablehlo.minimum %arg0, %arg1 : tensor<f16>
       stablehlo.return %5 : tensor<f16>
-    }) {indices_are_sorted = false, scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0, 1], inserted_window_dims = [2], scatter_dims_to_operand_dims = [2], index_vector_dim = 1>, unique_indices = false} : (tensor<3x5x40xf16>, tensor<2x1xi32>, tensor<3x5x2xf16>) -> tensor<3x5x40xf16>
+    }) {scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0, 1], inserted_window_dims = [2], scatter_dims_to_operand_dims = [2], index_vector_dim = 1>} : (tensor<3x5x40xf16>, tensor<2x1xi32>, tensor<3x5x2xf16>) -> tensor<3x5x40xf16>
     %4 = stablehlo.custom_call @check.eq(%3, %2) : (tensor<3x5x40xf16>, tensor<3x5x40xf16>) -> tensor<i1>
     return %4 : tensor<i1>
   }
@@ -23,3 +23,4 @@ module @jit_testcase {
     return %0 : tensor<3x5x40xf16>
   }
 }
+

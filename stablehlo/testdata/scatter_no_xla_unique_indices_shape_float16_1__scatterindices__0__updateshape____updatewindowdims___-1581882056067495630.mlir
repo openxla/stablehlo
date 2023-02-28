@@ -8,7 +8,7 @@ module @jit_testcase {
     %3 = "stablehlo.scatter"(%1#0, %0, %1#1) ({
     ^bb0(%arg0: tensor<f16>, %arg1: tensor<f16>):
       stablehlo.return %arg1 : tensor<f16>
-    }) {indices_are_sorted = false, scatter_dimension_numbers = #stablehlo.scatter<inserted_window_dims = [0], scatter_dims_to_operand_dims = [0]>, unique_indices = true} : (tensor<1xf16>, tensor<1xi32>, tensor<f16>) -> tensor<1xf16>
+    }) {scatter_dimension_numbers = #stablehlo.scatter<inserted_window_dims = [0], scatter_dims_to_operand_dims = [0]>, unique_indices = true} : (tensor<1xf16>, tensor<1xi32>, tensor<f16>) -> tensor<1xf16>
     %4 = stablehlo.custom_call @check.eq(%3, %2) : (tensor<1xf16>, tensor<1xf16>) -> tensor<i1>
     return %4 : tensor<i1>
   }
@@ -22,3 +22,4 @@ module @jit_testcase {
     return %0 : tensor<1xf16>
   }
 }
+

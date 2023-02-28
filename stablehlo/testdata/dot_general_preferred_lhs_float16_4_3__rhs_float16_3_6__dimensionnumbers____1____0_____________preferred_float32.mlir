@@ -6,7 +6,7 @@ module @jit_testcase {
     %1 = call @expected() : () -> tensor<4x6xf32>
     %2 = stablehlo.convert %0#0 : (tensor<4x3xf16>) -> tensor<4x3xf32>
     %3 = stablehlo.convert %0#1 : (tensor<3x6xf16>) -> tensor<3x6xf32>
-    %4 = "stablehlo.dot_general"(%2, %3) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<4x3xf32>, tensor<3x6xf32>) -> tensor<4x6xf32>
+    %4 = "stablehlo.dot_general"(%2, %3) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>} : (tensor<4x3xf32>, tensor<3x6xf32>) -> tensor<4x6xf32>
     %5 = stablehlo.custom_call @check.eq(%4, %1) : (tensor<4x6xf32>, tensor<4x6xf32>) -> tensor<i1>
     return %5 : tensor<i1>
   }
@@ -20,3 +20,4 @@ module @jit_testcase {
     return %0 : tensor<4x6xf32>
   }
 }
+

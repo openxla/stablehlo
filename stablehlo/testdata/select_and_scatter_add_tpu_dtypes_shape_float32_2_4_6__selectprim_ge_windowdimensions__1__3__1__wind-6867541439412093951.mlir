@@ -15,7 +15,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
       %8 = stablehlo.add %arg0, %arg1 : tensor<f32>
       stablehlo.return %8 : tensor<f32>
-    }) {padding = dense<0> : tensor<3x2xi64>, window_dimensions = dense<[1, 3, 1]> : tensor<3xi64>, window_strides = dense<[1, 2, 1]> : tensor<3xi64>} : (tensor<2x4x6xf32>, tensor<2x1x6xf32>, tensor<f32>) -> tensor<2x4x6xf32>
+    }) {window_dimensions = dense<[1, 3, 1]> : tensor<3xi64>, window_strides = dense<[1, 2, 1]> : tensor<3xi64>} : (tensor<2x4x6xf32>, tensor<2x1x6xf32>, tensor<f32>) -> tensor<2x4x6xf32>
     %6 = "stablehlo.slice"(%5) {limit_indices = dense<[2, 4, 6]> : tensor<3xi64>, start_indices = dense<0> : tensor<3xi64>, strides = dense<1> : tensor<3xi64>} : (tensor<2x4x6xf32>) -> tensor<2x4x6xf32>
     %7 = stablehlo.custom_call @check.eq(%6, %1) : (tensor<2x4x6xf32>, tensor<2x4x6xf32>) -> tensor<i1>
     return %7 : tensor<i1>
@@ -30,3 +30,4 @@ module @jit_testcase {
     return %0 : tensor<2x4x6xf32>
   }
 }
+

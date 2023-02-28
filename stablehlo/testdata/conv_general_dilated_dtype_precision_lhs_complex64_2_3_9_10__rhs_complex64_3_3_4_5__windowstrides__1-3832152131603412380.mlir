@@ -9,11 +9,11 @@ module @jit_testcase {
     %4 = stablehlo.real %0#1 : (tensor<3x3x4x5xcomplex<f32>>) -> tensor<3x3x4x5xf32>
     %5 = stablehlo.imag %0#1 : (tensor<3x3x4x5xcomplex<f32>>) -> tensor<3x3x4x5xf32>
     %6 = stablehlo.add %2, %3 : tensor<2x3x9x10xf32>
-    %7 = stablehlo.convolution(%6, %4) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {stride = [1, 1], pad = [[0, 0], [0, 0]], lhs_dilate = [1, 1], rhs_dilate = [1, 1], reverse = [0, 0]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
+    %7 = stablehlo.convolution(%6, %4) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
     %8 = stablehlo.subtract %5, %4 : tensor<3x3x4x5xf32>
-    %9 = stablehlo.convolution(%2, %8) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {stride = [1, 1], pad = [[0, 0], [0, 0]], lhs_dilate = [1, 1], rhs_dilate = [1, 1], reverse = [0, 0]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
+    %9 = stablehlo.convolution(%2, %8) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
     %10 = stablehlo.add %4, %5 : tensor<3x3x4x5xf32>
-    %11 = stablehlo.convolution(%3, %10) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {stride = [1, 1], pad = [[0, 0], [0, 0]], lhs_dilate = [1, 1], rhs_dilate = [1, 1], reverse = [0, 0]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
+    %11 = stablehlo.convolution(%3, %10) dim_numbers = [b, f, 0, 1]x[o, i, 0, 1]->[b, f, 0, 1], window = {} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision HIGHEST>, #stablehlo<precision HIGHEST>]} : (tensor<2x3x9x10xf32>, tensor<3x3x4x5xf32>) -> tensor<2x3x6x6xf32>
     %12 = stablehlo.subtract %7, %11 : tensor<2x3x6x6xf32>
     %13 = stablehlo.add %7, %9 : tensor<2x3x6x6xf32>
     %14 = stablehlo.complex %12, %13 : tensor<2x3x6x6xcomplex<f32>>
@@ -30,3 +30,4 @@ module @jit_testcase {
     return %0 : tensor<2x3x6x6xcomplex<f32>>
   }
 }
+

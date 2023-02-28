@@ -10,7 +10,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
       %6 = stablehlo.minimum %arg0, %arg1 : tensor<f32>
       stablehlo.return %6 : tensor<f32>
-    }) {base_dilations = dense<1> : tensor<2xi64>, padding = dense<[[0, 1], [0, 1]]> : tensor<2x2xi64>, window_dilations = dense<1> : tensor<2xi64>, window_dimensions = dense<3> : tensor<2xi64>, window_strides = dense<2> : tensor<2xi64>} : (tensor<112x112xf32>, tensor<f32>) -> tensor<56x56xf32>
+    }) {padding = dense<[[0, 1], [0, 1]]> : tensor<2x2xi64>, window_dimensions = dense<3> : tensor<2xi64>, window_strides = dense<2> : tensor<2xi64>} : (tensor<112x112xf32>, tensor<f32>) -> tensor<56x56xf32>
     %5 = stablehlo.custom_call @check.eq(%4, %1) : (tensor<56x56xf32>, tensor<56x56xf32>) -> tensor<i1>
     return %5 : tensor<i1>
   }
@@ -23,3 +23,4 @@ module @jit_testcase {
     return %0 : tensor<56x56xf32>
   }
 }
+

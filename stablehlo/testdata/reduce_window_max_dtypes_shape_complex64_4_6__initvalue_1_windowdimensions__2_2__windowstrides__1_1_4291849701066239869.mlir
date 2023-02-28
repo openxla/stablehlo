@@ -17,7 +17,7 @@ module @jit_testcase {
       %12 = stablehlo.select %7, %11, %8 : tensor<i1>, tensor<i1>
       %13 = stablehlo.select %12, %arg0, %arg1 : tensor<i1>, tensor<complex<f32>>
       stablehlo.return %13 : tensor<complex<f32>>
-    }) {base_dilations = dense<1> : tensor<2xi64>, padding = dense<0> : tensor<2x2xi64>, window_dilations = dense<1> : tensor<2xi64>, window_dimensions = dense<2> : tensor<2xi64>, window_strides = dense<1> : tensor<2xi64>} : (tensor<4x6xcomplex<f32>>, tensor<complex<f32>>) -> tensor<3x5xcomplex<f32>>
+    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<4x6xcomplex<f32>>, tensor<complex<f32>>) -> tensor<3x5xcomplex<f32>>
     %4 = stablehlo.custom_call @check.eq(%3, %1) : (tensor<3x5xcomplex<f32>>, tensor<3x5xcomplex<f32>>) -> tensor<i1>
     return %4 : tensor<i1>
   }
@@ -30,3 +30,4 @@ module @jit_testcase {
     return %0 : tensor<3x5xcomplex<f32>>
   }
 }
+

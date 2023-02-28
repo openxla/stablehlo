@@ -9,7 +9,7 @@ module @jit_testcase {
     ^bb0(%arg0: tensor<f16>, %arg1: tensor<f16>):
       %5 = stablehlo.add %arg0, %arg1 : tensor<f16>
       stablehlo.return %5 : tensor<f16>
-    }) {base_dilations = dense<1> : tensor<2xi64>, padding = dense<0> : tensor<2x2xi64>, window_dilations = dense<1> : tensor<2xi64>, window_dimensions = dense<2> : tensor<2xi64>, window_strides = dense<1> : tensor<2xi64>} : (tensor<4x6xf16>, tensor<f16>) -> tensor<3x5xf16>
+    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<4x6xf16>, tensor<f16>) -> tensor<3x5xf16>
     %4 = stablehlo.custom_call @check.eq(%3, %1) : (tensor<3x5xf16>, tensor<3x5xf16>) -> tensor<i1>
     return %4 : tensor<i1>
   }
@@ -22,3 +22,4 @@ module @jit_testcase {
     return %0 : tensor<3x5xf16>
   }
 }
+

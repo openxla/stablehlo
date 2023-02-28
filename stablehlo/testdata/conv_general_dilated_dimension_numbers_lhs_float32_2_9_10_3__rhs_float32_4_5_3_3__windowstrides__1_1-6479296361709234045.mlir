@@ -4,7 +4,7 @@ module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<2x9x10x3xf32>, tensor<4x5x3x3xf32>)
     %1 = call @expected() : () -> tensor<2x6x6x3xf32>
-    %2 = stablehlo.convolution(%0#0, %0#1) dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f], window = {stride = [1, 1], pad = [[0, 0], [0, 0]], lhs_dilate = [1, 1], rhs_dilate = [1, 1], reverse = [0, 0]} {batch_group_count = 1 : i64, feature_group_count = 1 : i64, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<2x9x10x3xf32>, tensor<4x5x3x3xf32>) -> tensor<2x6x6x3xf32>
+    %2 = stablehlo.convolution(%0#0, %0#1) dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f], window = {} {batch_group_count = 1 : i64, feature_group_count = 1 : i64} : (tensor<2x9x10x3xf32>, tensor<4x5x3x3xf32>) -> tensor<2x6x6x3xf32>
     %3 = stablehlo.custom_call @check.eq(%2, %1) : (tensor<2x6x6x3xf32>, tensor<2x6x6x3xf32>) -> tensor<i1>
     return %3 : tensor<i1>
   }
@@ -18,3 +18,4 @@ module @jit_testcase {
     return %0 : tensor<2x6x6x3xf32>
   }
 }
+
