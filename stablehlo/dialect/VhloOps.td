@@ -82,7 +82,7 @@ def VHLO_AfterAllOpV1 : VHLO_Op<"after_all", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather", "0.9.0", "0.9.0"> {
+def VHLO_AllGatherOpV1 : VHLO_Op<"all_gather", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$all_gather_dim,
@@ -104,7 +104,7 @@ def VHLO_AllReduceOpV1 : VHLO_Op<"all_reduce", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all", "0.9.0", "0.9.0"> {
+def VHLO_AllToAllOpV1 : VHLO_Op<"all_to_all", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$split_dimension,
@@ -241,7 +241,7 @@ def VHLO_ClzOpV1 : VHLO_Op<"count_leading_zeros", "0.9.0", "current"> {
   let results = (outs VHLO_AnyType:$result);
 }
 
-def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute", "0.9.0", "0.9.0"> {
+def VHLO_CollectivePermuteOpV1 : VHLO_Op<"collective_permute", "0.9.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
     VHLO_AnyAttr:$source_target_pairs,
@@ -353,7 +353,7 @@ def VHLO_CstrReshapableOpV1 : VHLO_Op<"cstr_reshapable", "0.9.0", "current"> {
 // TODO(#740): output_operand_aliases is not part of the spec.
 // CustomCallOp has proven to be one of the trickiest ops to fully spec.
 // We're aiming to address all these todos by the release of StableHLO v1.0.
-def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.9.0", "0.9.0"> {
+def VHLO_CustomCallOpV1 : VHLO_Op<"custom_call", "0.9.0", "current"> {
   let arguments = (ins
     Variadic<VHLO_AnyType>:$inputs,
     VHLO_AnyAttr:$call_target_name,
