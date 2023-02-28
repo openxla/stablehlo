@@ -520,7 +520,7 @@ bool isString(Attribute vhloAttr, StringRef value) {
   return attr && attr.getValue() == value;
 }
 
-// TODO: Also validate attributes before removing them.
+// TODO(#1232): Also validate attributes before removing them.
 // Current logic assumes that these attributes are valid, but that might not
 // necessarily be the case because VHLO doesn't have verifiers.
 template <typename VhloOpTy>
@@ -537,15 +537,16 @@ LogicalResult removeDefaults(const OpConversionPattern<VhloOpTy>& pattern,
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::AllGatherOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::AllReduceOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
-                std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value ||
                 std::is_same<VhloOpTy, vhlo::ReduceScatterOpV1>::value) {
     if (isInteger(vhloOp.getChannelIdAttr(), 0))
       eraseAttrs(vhloAttrs, "channel_id");
-    // AllToAllOpV1 and CollectivePermuteOpV1 don't have use_global_device_ids,
-    // so we cannot use getUseGlobalDeviceIds here.
-    if (isBoolean(vhloOp->getAttr("use_global_device_ids"), false))
+    if (isBoolean(vhloOp.getUseGlobalDeviceIdsAttr(), false))
       eraseAttrs(vhloAttrs, "use_global_device_ids");
+  }
+  if constexpr (std::is_same<VhloOpTy, vhlo::AllToAllOpV1>::value ||
+                std::is_same<VhloOpTy, vhlo::CollectivePermuteOpV1>::value) {
+    if (isInteger(vhloOp.getChannelIdAttr(), 0))
+      eraseAttrs(vhloAttrs, "channel_id");
   }
   if constexpr (std::is_same<VhloOpTy, vhlo::CholeskyOpV1>::value) {
     if (isBoolean(vhloOp.getLowerAttr(), false)) eraseAttrs(vhloAttrs, "lower");
