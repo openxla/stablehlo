@@ -32,6 +32,10 @@ def test_parse():
   asm = """
     vhlo.func @main() -> () {
       "vhlo.return"() : () -> ()
+    } {
+      arg_attrs = #vhlo.array<[]>,
+      res_attrs = #vhlo.array<[]>,
+      sym_visibility = #vhlo.string<"public">
     }
   """
   ir.Module.parse(asm)
