@@ -1605,9 +1605,9 @@ For boolean and integer element types:
 * `LT`: `lhs` $\lt$ `rhs`.
 
 For floating-point element types with `compare_type = FLOAT`, the op implements
-the following IEEE-754 operations. If any comparison is unordered,
-`comparison_direction = NE` compares unordered `NE` and the rest uses ordered
-comparison.
+the following IEEE-754 operations. If any of `lhs` or `rhs` is `NaN`, the op
+returns `false` except for `comparison_direction = NE` for which it returns
+`true` to make `lhs != rhs` equivalent to `!(lhs == rhs)`.
 
 * `EQ`: `compareQuietEqual`.
 * `NE`: `compareQuietNotEqual`.

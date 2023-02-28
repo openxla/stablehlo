@@ -22,7 +22,6 @@ limitations under the License.
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Support/DebugStringHelper.h"
-#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
 
@@ -264,42 +263,6 @@ std::complex<APFloat> Element::getComplexValue() const {
   return std::complex<APFloat>(floatPair.first, floatPair.second);
 }
 
-bool Element::operator==(const Element &other) const {
-  Type type = other.getType();
-  if (type_ != type)
-    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
-                                       debugString(type_).c_str(),
-                                       debugString(type).c_str()));
-
-  if (isSupportedIntegerType(type)) {
-    auto intLhs = getIntegerValue();
-    auto intRhs = other.getIntegerValue();
-    return intLhs == intRhs;
-  }
-
-  if (isSupportedBooleanType(type)) {
-    auto boolLhs = getBooleanValue();
-    auto boolRhs = other.getBooleanValue();
-    return boolLhs == boolRhs;
-  }
-
-  if (isSupportedFloatType(type)) {
-    auto floatLhs = getFloatValue();
-    auto floatRhs = other.getFloatValue();
-    return floatLhs.compare(floatRhs) == APFloat::cmpEqual;
-  }
-
-  if (isSupportedComplexType(type)) {
-    auto complexLhs = getComplexValue();
-    auto complexRhs = other.getComplexValue();
-    return complexLhs.real().compare(complexRhs.real()) == APFloat::cmpEqual &&
-           complexLhs.imag().compare(complexRhs.imag()) == APFloat::cmpEqual;
-  }
-
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
-}
-
 bool Element::operator!=(const Element &other) const {
   return !(*this == other);
 }
@@ -317,6 +280,19 @@ Element Element::operator&(const Element &other) const {
       });
 }
 
+Element Element::operator*(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
+      [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // TODO(#226): Use std::complex::operator*
+        auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
+        auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
@@ -328,6 +304,33 @@ Element Element::operator+(const Element &other) const {
         // needs operator+= which is not defined on APFloat.
         auto resultReal = lhs.real() + rhs.real();
         auto resultImag = lhs.imag() + rhs.imag();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
+Element Element::operator-() const {
+  return map(
+      *this, [&](APInt val) { return -val; },
+      [](bool val) -> bool {
+        llvm::report_fatal_error("-bool is unsupported");
+      },
+      [&](APFloat val) { return -val; },
+      [](std::complex<APFloat> val) { return -val; });
+}
+
+Element Element::operator-(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
+      [](bool lhs, bool rhs) -> bool {
+        llvm::report_fatal_error("bool - bool is unsupported");
+      },
+      [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
+        // because the default implementation for the std::complex template
+        // needs operator-= which is not defined on APFloat.
+        auto resultReal = lhs.real() - rhs.real();
+        auto resultImag = lhs.imag() - rhs.imag();
         return std::complex<APFloat>(resultReal, resultImag);
       });
 }
@@ -376,44 +379,132 @@ Element Element::operator/(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator*(const Element &other) const {
-  return map(
-      *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
-      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
-      [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // TODO(#226): Use std::complex::operator*
-        auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
-        auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
-        return std::complex<APFloat>(resultReal, resultImag);
-      });
+bool Element::operator<(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return isSupportedSignedIntegerType(type) ? intLhs.slt(intRhs)
+                                              : intLhs.ult(intRhs);
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs < boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs < floatRhs;
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = getComplexValue();
+    auto complexRhs = other.getComplexValue();
+    if (complexLhs.real().isNaN() || complexLhs.imag().isNaN() ||
+        complexRhs.real().isNaN() || complexRhs.imag().isNaN()) {
+      return false;
+    }
+    if (complexLhs.real() < complexRhs.real()) return true;
+    if (!(complexLhs.real() == complexRhs.real())) return false;
+    return complexLhs.imag() < complexRhs.imag();
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
 }
 
-Element Element::operator-() const {
-  return map(
-      *this, [&](APInt val) { return -val; },
-      [](bool val) -> bool {
-        llvm::report_fatal_error("-bool is unsupported");
-      },
-      [&](APFloat val) { return -val; },
-      [](std::complex<APFloat> val) { return -val; });
+bool Element::operator<=(const Element &other) const {
+  return (*this < other) || (*this == other);
 }
 
-Element Element::operator-(const Element &other) const {
-  return map(
-      *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("bool - bool is unsupported");
-      },
-      [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
-        // because the default implementation for the std::complex template
-        // needs operator-= which is not defined on APFloat.
-        auto resultReal = lhs.real() - rhs.real();
-        auto resultImag = lhs.imag() - rhs.imag();
-        return std::complex<APFloat>(resultReal, resultImag);
-      });
+bool Element::operator==(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return intLhs == intRhs;
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs == boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs == floatRhs;
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = getComplexValue();
+    auto complexRhs = other.getComplexValue();
+    return complexLhs.real() == complexRhs.real() &&
+           complexLhs.imag() == complexRhs.imag();
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+bool Element::operator>(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return isSupportedSignedIntegerType(type) ? intLhs.sgt(intRhs)
+                                              : intLhs.ugt(intRhs);
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs > boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs > floatRhs;
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = getComplexValue();
+    auto complexRhs = other.getComplexValue();
+    if (complexLhs.real().isNaN() || complexLhs.imag().isNaN() ||
+        complexRhs.real().isNaN() || complexRhs.imag().isNaN()) {
+      return false;
+    }
+    if (complexLhs.real() > complexRhs.real()) return true;
+    if (!(complexLhs.real() == complexRhs.real())) return false;
+    return complexLhs.imag() > complexRhs.imag();
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+bool Element::operator>=(const Element &other) const {
+  return (*this > other) || (*this == other);
 }
 
 Element Element::operator^(const Element &other) const {
@@ -503,199 +594,6 @@ Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
   return Element(el.getType(), val);
-}
-
-bool compare(const APInt lhs, const APInt rhs,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType) {
-  if (compareType == ComparisonType::SIGNED) {
-    switch (comparisonDirection) {
-      case ComparisonDirection::EQ:
-        return lhs.getSExtValue() == rhs.getSExtValue();
-      case ComparisonDirection::NE:
-        return lhs.getSExtValue() != rhs.getSExtValue();
-      case ComparisonDirection::GE:
-        return lhs.getSExtValue() >= rhs.getSExtValue();
-      case ComparisonDirection::GT:
-        return lhs.getSExtValue() > rhs.getSExtValue();
-      case ComparisonDirection::LE:
-        return lhs.getSExtValue() <= rhs.getSExtValue();
-      case ComparisonDirection::LT:
-        return lhs.getSExtValue() < rhs.getSExtValue();
-    }
-  }
-  if (compareType == ComparisonType::UNSIGNED) {
-    switch (comparisonDirection) {
-      case ComparisonDirection::EQ:
-        return lhs.getZExtValue() == rhs.getZExtValue();
-      case ComparisonDirection::NE:
-        return lhs.getZExtValue() != rhs.getZExtValue();
-      case ComparisonDirection::GE:
-        return lhs.getZExtValue() >= rhs.getZExtValue();
-      case ComparisonDirection::GT:
-        return lhs.getZExtValue() > rhs.getZExtValue();
-      case ComparisonDirection::LE:
-        return lhs.getZExtValue() <= rhs.getZExtValue();
-      case ComparisonDirection::LT:
-        return lhs.getZExtValue() < rhs.getZExtValue();
-    }
-  }
-  report_fatal_error(invalidArgument("Unsupported comparison type: %s",
-                                     debugString(compareType).c_str()));
-}
-
-bool compare(bool lhs, bool rhs, ComparisonDirection comparisonDirection,
-             ComparisonType compareType) {
-  if (compareType == ComparisonType::UNSIGNED) {
-    switch (comparisonDirection) {
-      case ComparisonDirection::EQ:
-        return lhs == rhs;
-      case ComparisonDirection::NE:
-        return lhs != rhs;
-      case ComparisonDirection::GE:
-        return lhs >= rhs;
-      case ComparisonDirection::GT:
-        return lhs > rhs;
-      case ComparisonDirection::LE:
-        return lhs <= rhs;
-      case ComparisonDirection::LT:
-        return lhs < rhs;
-    }
-  }
-  report_fatal_error(invalidArgument("Unsupported comparison type: %s",
-                                     debugString(compareType).c_str()));
-}
-
-bool compare(const APFloat lhs, const APFloat rhs,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType) {
-  if (compareType == ComparisonType::FLOAT) {
-    switch (comparisonDirection) {
-      case ComparisonDirection::EQ:
-        if (lhs.isNaN() || rhs.isNaN()) return false;
-        return lhs == rhs;
-      case ComparisonDirection::NE:
-        if (lhs.isNaN() || rhs.isNaN()) return true;
-        return lhs != rhs;
-      case ComparisonDirection::GE:
-        if (lhs.isNaN() || rhs.isNaN()) return false;
-        return lhs >= rhs;
-      case ComparisonDirection::GT:
-        if (lhs.isNaN() || rhs.isNaN()) return false;
-        return lhs > rhs;
-      case ComparisonDirection::LE:
-        if (lhs.isNaN() || rhs.isNaN()) return false;
-        return lhs <= rhs;
-      case ComparisonDirection::LT:
-        if (lhs.isNaN() || rhs.isNaN()) return false;
-        return lhs < rhs;
-    }
-  }
-  if (compareType == ComparisonType::TOTALORDER) {
-    switch (comparisonDirection) {
-      case ComparisonDirection::EQ:
-        return lhs.bitwiseIsEqual(rhs);
-      case ComparisonDirection::NE:
-        return !lhs.bitwiseIsEqual(rhs);
-      case ComparisonDirection::GE:
-        if (lhs.isNegative() ^ rhs.isNegative()) return rhs.isNegative();
-        return lhs.isNegative() ? lhs.bitcastToAPInt().getZExtValue() <=
-                                      rhs.bitcastToAPInt().getZExtValue()
-                                : lhs.bitcastToAPInt().getZExtValue() >=
-                                      rhs.bitcastToAPInt().getZExtValue();
-      case ComparisonDirection::GT:
-        if (lhs.isNegative() ^ rhs.isNegative()) return rhs.isNegative();
-        return lhs.isNegative() ? lhs.bitcastToAPInt().getZExtValue() <
-                                      rhs.bitcastToAPInt().getZExtValue()
-                                : lhs.bitcastToAPInt().getZExtValue() >
-                                      rhs.bitcastToAPInt().getZExtValue();
-      case ComparisonDirection::LE:
-        if (lhs.isNegative() ^ rhs.isNegative()) return lhs.isNegative();
-        return lhs.isNegative() ? lhs.bitcastToAPInt().getZExtValue() >=
-                                      rhs.bitcastToAPInt().getZExtValue()
-                                : lhs.bitcastToAPInt().getZExtValue() <=
-                                      rhs.bitcastToAPInt().getZExtValue();
-      case ComparisonDirection::LT:
-        if (lhs.isNegative() ^ rhs.isNegative()) return lhs.isNegative();
-        return lhs.isNegative() ? lhs.bitcastToAPInt().getZExtValue() >
-                                      rhs.bitcastToAPInt().getZExtValue()
-                                : lhs.bitcastToAPInt().getZExtValue() <
-                                      rhs.bitcastToAPInt().getZExtValue();
-    }
-  }
-  report_fatal_error(invalidArgument("Unsupported comparison type: %s",
-                                     debugString(compareType).c_str()));
-}
-
-bool compare(const std::complex<APFloat> lhs, const std::complex<APFloat> rhs,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType) {
-  switch (comparisonDirection) {
-    case ComparisonDirection::EQ:
-      return compare(lhs.real(), rhs.real(), comparisonDirection,
-                     compareType) &&
-             compare(lhs.imag(), rhs.imag(), comparisonDirection, compareType);
-    case ComparisonDirection::NE:
-      return compare(lhs.real(), rhs.real(), comparisonDirection,
-                     compareType) ||
-             compare(lhs.imag(), rhs.imag(), comparisonDirection, compareType);
-    case ComparisonDirection::GE:
-    case ComparisonDirection::GT: {
-      if (lhs.real().isNaN() || rhs.real().isNaN() || lhs.imag().isNaN() ||
-          rhs.imag().isNaN())
-        return false;
-      bool greater =
-          compare(lhs.real(), rhs.real(), ComparisonDirection::GT, compareType);
-      if (greater) return true;
-      bool equal =
-          compare(lhs.real(), rhs.real(), ComparisonDirection::EQ, compareType);
-      if (!equal) return false;
-      return compare(lhs.imag(), rhs.imag(), comparisonDirection, compareType);
-    }
-    case ComparisonDirection::LE:
-    case ComparisonDirection::LT: {
-      if (lhs.real().isNaN() || rhs.real().isNaN() || lhs.imag().isNaN() ||
-          rhs.imag().isNaN())
-        return false;
-      bool less =
-          compare(lhs.real(), rhs.real(), ComparisonDirection::LT, compareType);
-      if (less) return true;
-      bool equal =
-          compare(lhs.real(), rhs.real(), ComparisonDirection::EQ, compareType);
-      if (!equal) return false;
-      return compare(lhs.imag(), rhs.imag(), comparisonDirection, compareType);
-    }
-  }
-  return false;
-}
-
-bool compare(const Element &e1, const Element &e2,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType) {
-  switch (compareType) {
-    case ComparisonType::SIGNED:
-    case ComparisonType::UNSIGNED:
-      return isSupportedBooleanType(e1.getType())
-                 ? compare(e1.getBooleanValue(), e2.getBooleanValue(),
-                           comparisonDirection, compareType)
-                 : compare(e1.getIntegerValue(), e2.getIntegerValue(),
-                           comparisonDirection, compareType);
-    case ComparisonType::FLOAT:
-      if (isSupportedFloatType(e1.getType()))
-        return compare(e1.getFloatValue(), e2.getFloatValue(),
-                       comparisonDirection, compareType);
-      if (isSupportedComplexType(e1.getType()))
-        return compare(e1.getComplexValue(), e2.getComplexValue(),
-                       comparisonDirection, compareType);
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(e1.getType()).c_str()));
-    case ComparisonType::TOTALORDER:
-      return compare(e1.getFloatValue(), e2.getFloatValue(),
-                     comparisonDirection, compareType);
-    default:
-      report_fatal_error(invalidArgument("Unsupported comparison type: %s",
-                                         debugString(compareType).c_str()));
-  }
 }
 
 Element exponential(const Element &el) {

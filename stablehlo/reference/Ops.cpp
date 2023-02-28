@@ -123,10 +123,101 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(elementTy).c_str()));
   }
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(
-        *it, Element(elementTy, compare(lhs.get(*it), rhs.get(*it),
-                                        comparisonDirection, comparisonType)));
+
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    bool cmpResult = false;
+    switch (comparisonDirection) {
+      case ComparisonDirection::EQ: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          cmpResult = lhsFloat.bitwiseIsEqual(rhsFloat);
+        } else {
+          cmpResult = lhs.get(*it) == rhs.get(*it);
+        }
+        break;
+      }
+      case ComparisonDirection::NE: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          cmpResult = !lhsFloat.bitwiseIsEqual(rhsFloat);
+        } else {
+          cmpResult = lhs.get(*it) != rhs.get(*it);
+        }
+        break;
+      }
+      case ComparisonDirection::GE: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
+            cmpResult = rhsFloat.isNegative();
+          else
+            cmpResult = lhsFloat.isNegative()
+                            ? lhsFloat.bitcastToAPInt().getZExtValue() <=
+                                  rhsFloat.bitcastToAPInt().getZExtValue()
+                            : lhsFloat.bitcastToAPInt().getZExtValue() >=
+                                  rhsFloat.bitcastToAPInt().getZExtValue();
+        } else {
+          cmpResult = lhs.get(*it) >= rhs.get(*it);
+        }
+        break;
+      }
+      case ComparisonDirection::GT: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
+            cmpResult = rhsFloat.isNegative();
+          else
+            cmpResult = lhsFloat.isNegative()
+                            ? lhsFloat.bitcastToAPInt().getZExtValue() <
+                                  rhsFloat.bitcastToAPInt().getZExtValue()
+                            : lhsFloat.bitcastToAPInt().getZExtValue() >
+                                  rhsFloat.bitcastToAPInt().getZExtValue();
+        } else {
+          cmpResult = lhs.get(*it) > rhs.get(*it);
+        }
+        break;
+      }
+      case ComparisonDirection::LE: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
+            cmpResult = lhsFloat.isNegative();
+          else
+            cmpResult = lhsFloat.isNegative()
+                            ? lhsFloat.bitcastToAPInt().getZExtValue() >=
+                                  rhsFloat.bitcastToAPInt().getZExtValue()
+                            : lhsFloat.bitcastToAPInt().getZExtValue() <=
+                                  rhsFloat.bitcastToAPInt().getZExtValue();
+        } else {
+          cmpResult = lhs.get(*it) <= rhs.get(*it);
+        }
+        break;
+      }
+      case ComparisonDirection::LT: {
+        if (comparisonType == ComparisonType::TOTALORDER) {
+          auto lhsFloat = lhs.get(*it).getFloatValue();
+          auto rhsFloat = rhs.get(*it).getFloatValue();
+          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
+            cmpResult = lhsFloat.isNegative();
+          else
+            cmpResult = lhsFloat.isNegative()
+                            ? lhsFloat.bitcastToAPInt().getZExtValue() >
+                                  rhsFloat.bitcastToAPInt().getZExtValue()
+                            : lhsFloat.bitcastToAPInt().getZExtValue() <
+                                  rhsFloat.bitcastToAPInt().getZExtValue();
+        } else {
+          cmpResult = lhs.get(*it) < rhs.get(*it);
+        }
+        break;
+      }
+    }
+    result.set(*it, Element(elementTy, cmpResult));
+  }
   return result;
 }
 

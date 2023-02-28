@@ -23,7 +23,6 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -77,29 +76,41 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
-  /// Overloaded equality operator.
-  bool operator==(const Element &other) const;
-
   /// Overloaded inequality operator.
   bool operator!=(const Element &other) const;
 
   /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
 
-  /// Overloaded add operator.
-  Element operator+(const Element &other) const;
-
-  /// Overloaded divide operator.
-  Element operator/(const Element &other) const;
-
   /// Overloaded multiply operator.
   Element operator*(const Element &other) const;
+
+  /// Overloaded add operator.
+  Element operator+(const Element &other) const;
 
   /// Overloaded negate operator.
   Element operator-() const;
 
   /// Overloaded subtract operator.
   Element operator-(const Element &other) const;
+
+  /// Overloaded divide operator.
+  Element operator/(const Element &other) const;
+
+  /// Overloaded less-than operator.
+  bool operator<(const Element &other) const;
+
+  /// Overloaded less-than-or-equal-to operator.
+  bool operator<=(const Element &other) const;
+
+  /// Overloaded equality operator.
+  bool operator==(const Element &other) const;
+
+  /// Overloaded greater-than operator.
+  bool operator>(const Element &other) const;
+
+  /// Overloaded greater-than-or-equal-to operator.
+  bool operator>=(const Element &other) const;
 
   /// Overloaded xor (bitwise) operator.
   Element operator^(const Element &other) const;
@@ -132,11 +143,6 @@ bool areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Returns ceil of Element object.
 Element ceil(const Element &e);
-
-/// Returns comparison of Element objects.
-bool compare(const Element &e1, const Element &e2,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType);
 
 /// Returns cosine of Element object.
 Element cosine(const Element &e);
