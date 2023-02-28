@@ -66,7 +66,7 @@ def VHLO_ComparisonDirectionV1 : VHLO_I32EnumAttr<"ComparisonDirectionV1", [
 ]> {}
 
 def VHLO_ComparisonDirectionAttrV1
-  : VHLO_EnumAttr<VHLO_ComparisonDirectionV1, "comparison_direction", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_ComparisonDirectionV1, "comparison_direction", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // ComparisonType
@@ -88,7 +88,7 @@ def VHLO_ComparisonTypeV1 : VHLO_I32EnumAttr<"ComparisonTypeV1", [
 ]> {}
 
 def VHLO_ComparisonTypeAttrV1
-  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_ComparisonTypeV1, "comparison_type", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // CustomCallApiVersion
@@ -108,7 +108,7 @@ def VHLO_CustomCallApiVersionV1 : VHLO_I32EnumAttr<"CustomCallApiVersionV1", [
 ]> {}
 
 def VHLO_CustomCallApiVersionAttrV1
-  : VHLO_EnumAttr<VHLO_CustomCallApiVersionV1, "api_version", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_CustomCallApiVersionV1, "api_version", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // FftType
@@ -127,7 +127,7 @@ def VHLO_FftTypeV1 : VHLO_I32EnumAttr<"FftTypeV1", [
 ]> {}
 
 def VHLO_FftTypeAttrV1
-  : VHLO_EnumAttr<VHLO_FftTypeV1, "fft_type", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_FftTypeV1, "fft_type", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // Precision
@@ -144,7 +144,7 @@ def VHLO_PrecisionV1 : VHLO_I32EnumAttr<"PrecisionV1", [
 ]> {}
 
 def VHLO_PrecisionAttrV1
-  : VHLO_EnumAttr<VHLO_PrecisionV1, "precision", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_PrecisionV1, "precision", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // RngAlgorithm
@@ -161,7 +161,7 @@ def VHLO_RngAlgorithmV1 : VHLO_I32EnumAttr<"RngAlgorithmV1", [
 ]> {}
 
 def VHLO_RngAlgorithmAttrV1
-  : VHLO_EnumAttr<VHLO_RngAlgorithmV1, "rng_algorithm", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_RngAlgorithmV1, "rng_algorithm", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // RngDistribution
@@ -176,7 +176,7 @@ def VHLO_RngDistributionV1 : VHLO_I32EnumAttr<"RngDistributionV1", [
 ]> {}
 
 def VHLO_RngDistributionAttrV1
-  : VHLO_EnumAttr<VHLO_RngDistributionV1, "rng_distribution", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_RngDistributionV1, "rng_distribution", "0.9.0", "current">;
 
 //===----------------------------------------------------------------------===//
 // Transpose
@@ -196,6 +196,6 @@ def VHLO_TransposeV1 : VHLO_I32EnumAttr<"TransposeV1", [
 ]> {}
 
 def VHLO_TransposeAttrV1
-  : VHLO_EnumAttr<VHLO_TransposeV1, "transpose", "0.3.0", "current">;
+  : VHLO_EnumAttr<VHLO_TransposeV1, "transpose", "0.9.0", "current">;
 
 #endif // STABLEHLO_DIALECT_VHLO_ENUMS

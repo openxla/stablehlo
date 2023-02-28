@@ -36,11 +36,11 @@ class Version {
   /// from a StringRef of the form `#.#.#`. Returns failure if invalid string.
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
-  /// Return a Version representing the current dialect version.
-  static Version getCurrentVersion() { return Version(0, 4, 0); }
+  /// Return a Version representing the current VHLO dialect version.
+  static Version getCurrentVersion() { return Version(0, 9, 0); }
 
-  /// Return a Version representing the minimum supported dialect version.
-  static Version getMinimumVersion() { return Version(0, 3, 0); }
+  /// Return a Version representing the minimum supported VHLO dialect version.
+  static Version getMinimumVersion() { return Version(0, 9, 0); }
 
   /// Construct Version from major, minor, patch integers.
   Version(int64_t major, int64_t minor, int64_t patch)
