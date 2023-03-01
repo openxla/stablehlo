@@ -19,19 +19,19 @@ module @jit_fun_flat_jax {
     %14 = stablehlo.constant dense<0> : tensor<i64>
     %15 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %16 = stablehlo.reshape %15 : (tensor<i32>) -> tensor<1xi32>
-    %17 = stablehlo.dynamic_broadcast_in_dim %14, %16, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %17 = stablehlo.dynamic_broadcast_in_dim %14, %16, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %18 = stablehlo.compare  LT, %13, %17,  SIGNED : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi1>
     %19 = stablehlo.constant dense<3> : tensor<i64>
     %20 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %21 = stablehlo.reshape %20 : (tensor<i32>) -> tensor<1xi32>
-    %22 = stablehlo.dynamic_broadcast_in_dim %19, %21, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %22 = stablehlo.dynamic_broadcast_in_dim %19, %21, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %23 = stablehlo.add %13, %22 : tensor<?xi64>
     %24 = stablehlo.select %18, %23, %13 : tensor<?xi1>, tensor<?xi64>
     %25 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %26 = stablehlo.reshape %25 : (tensor<i32>) -> tensor<1xi32>
     %27 = stablehlo.constant dense<1> : tensor<1xi32>
     %28 = stablehlo.concatenate %26, %27, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %29 = stablehlo.dynamic_broadcast_in_dim %24, %28, dims = [0] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
+    %29 = stablehlo.dynamic_broadcast_in_dim %24, %28, dims = [0] : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
     %30 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %31 = stablehlo.reshape %30 : (tensor<i32>) -> tensor<1xi32>
     %32 = stablehlo.constant dense<1> : tensor<1xi32>
@@ -53,13 +53,13 @@ module @jit_fun_flat_jax {
     %48 = stablehlo.reshape %47 : (tensor<i32>) -> tensor<1xi32>
     %49 = stablehlo.constant dense<2> : tensor<1xi32>
     %50 = stablehlo.concatenate %48, %49, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %51 = stablehlo.dynamic_broadcast_in_dim %46, %50, dims = [1] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<2xi64>, tensor<2xi32>) -> tensor<?x2xi64>
+    %51 = stablehlo.dynamic_broadcast_in_dim %46, %50, dims = [1] : (tensor<2xi64>, tensor<2xi32>) -> tensor<?x2xi64>
     %52 = stablehlo.constant dense<0> : tensor<i64>
     %53 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %54 = stablehlo.reshape %53 : (tensor<i32>) -> tensor<1xi32>
     %55 = stablehlo.constant dense<2> : tensor<1xi32>
     %56 = stablehlo.concatenate %54, %55, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %57 = stablehlo.dynamic_broadcast_in_dim %52, %56, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<2xi32>) -> tensor<?x2xi64>
+    %57 = stablehlo.dynamic_broadcast_in_dim %52, %56, dims = [] : (tensor<i64>, tensor<2xi32>) -> tensor<?x2xi64>
     %58 = stablehlo.clamp %57, %35, %51 : tensor<?x2xi64>
     %59 = "stablehlo.scatter"(%arg1, %58, %arg2) ({
     ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>):
