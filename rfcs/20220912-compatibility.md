@@ -1,4 +1,4 @@
-# StableHLO Compatibility RFC v2
+# StableHLO Compatibility RFC
 
 Status: Approved<br/>
 Initial version: 9/12/2022<br/>
