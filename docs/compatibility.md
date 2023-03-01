@@ -30,14 +30,15 @@ since the old version.
 \* VHLO is a dialect that contains versioned snapshots of the StableHLO opset.
 It can be obtained from the StableHLO dialect via
 [--stablehlo-legalize-to-vhlo](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir),
-and its semantics is defined by [the StableHLO spec](spec.md).
+and its semantics are defined by [the StableHLO spec](spec.md).
 
 ## Out of scope
 
 **Source compatibility** for C, C++ and Python APIs within libStablehlo is
 an aspirational goal. At the moment, we don't offer source compatibility
 guarantees, but please let us know if this is an important use case for you,
-and we can have a discussion about supporting it.
+and we can have a discussion about supporting it
+([#1247](https://github.com/openxla/stablehlo/issues/1247)).
 
 **Compatibility for the StableHLO dialect** is not a goal. StableHLO dialect
 is optimized for convenience, which means that it makes some choices which
@@ -70,7 +71,7 @@ organize it, making sure that it's organized, comprehensive and deduplicated
 ([#1240](https://github.com/openxla/stablehlo/issues/1240)).
 
 **Use reference implementation.** At the moment, compatibility testing consists
-in deserializing the compatibility suite serialized by older versions of
+of deserializing the compatibility suite serialized by older versions of
 libStablehlo and making sure that deserialization produces syntactically
 identical programs. We are planning to also use reference implementation in
 these tests, relaxing the overly onerous requirement of syntactical identity
