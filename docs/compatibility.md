@@ -74,4 +74,5 @@ in deserializing the compatibility suite serialized by older versions of
 libStablehlo and making sure that deserialization produces syntactically
 identical programs. We are planning to also use reference implementation in
 these tests, relaxing the overly onerous requirement of syntactical identity
-and comprehensively testing the reference implementation.
+and comprehensively testing the reference implementation
+([#1245](https://github.com/openxla/stablehlo/issues/1245)).
