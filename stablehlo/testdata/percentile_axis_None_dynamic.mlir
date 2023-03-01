@@ -108,12 +108,12 @@ module @jit_fun_flat_jax {
     %3 = stablehlo.multiply %arg0, %2 : tensor<i64>
     %4 = stablehlo.convert %3 : (tensor<i64>) -> tensor<i32>
     %5 = stablehlo.reshape %4 : (tensor<i32>) -> tensor<1xi32>
-    %6 = stablehlo.dynamic_broadcast_in_dim %1, %5, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i1>, tensor<1xi32>) -> tensor<?xi1>
+    %6 = stablehlo.dynamic_broadcast_in_dim %1, %5, dims = [] : (tensor<i1>, tensor<1xi32>) -> tensor<?xi1>
     %7 = stablehlo.constant dense<5> : tensor<i64>
     %8 = stablehlo.multiply %arg0, %7 : tensor<i64>
     %9 = stablehlo.convert %8 : (tensor<i64>) -> tensor<i32>
     %10 = stablehlo.reshape %9 : (tensor<i32>) -> tensor<1xi32>
-    %11 = stablehlo.dynamic_broadcast_in_dim %0, %10, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
+    %11 = stablehlo.dynamic_broadcast_in_dim %0, %10, dims = [] : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
     %12 = stablehlo.select %6, %11, %arg3 : tensor<?xi1>, tensor<?xf32>
     return %12 : tensor<?xf32>
   }

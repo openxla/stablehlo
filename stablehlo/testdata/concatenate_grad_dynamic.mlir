@@ -12,7 +12,7 @@ module @jit_fun_flat_jax {
     %7 = stablehlo.reshape %6 : (tensor<i32>) -> tensor<1xi32>
     %8 = stablehlo.constant dense<5> : tensor<1xi32>
     %9 = stablehlo.concatenate %5, %7, %8, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %10 = stablehlo.dynamic_broadcast_in_dim %1, %9, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<3xi32>) -> tensor<?x?x5xf32>
+    %10 = stablehlo.dynamic_broadcast_in_dim %1, %9, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x?x5xf32>
     %11 = stablehlo.constant dense<0> : tensor<1xi32>
     %12 = stablehlo.constant dense<0> : tensor<1xi32>
     %13 = stablehlo.constant dense<0> : tensor<1xi32>

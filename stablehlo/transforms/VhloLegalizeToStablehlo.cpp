@@ -488,8 +488,8 @@ bool isEmptyString(Attribute vhloAttr) {
 }
 
 bool isEmptyTensor(Attribute vhloAttr) {
-  auto attr = vhloAttr.dyn_cast_or_null<DenseElementsAttr>();
-  return attr && attr.getNumElements() == 0;
+  auto attr = vhloAttr.dyn_cast_or_null<vhlo::TensorV1Attr>();
+  return attr && attr.getData().empty();
 }
 
 bool isEnum(Attribute vhloAttr, Attribute value) { return vhloAttr == value; }

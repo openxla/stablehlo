@@ -31,7 +31,7 @@ module @jit_fun_flat_jax {
     %13 = stablehlo.constant dense<8> : tensor<1xi32>
     %14 = stablehlo.constant dense<4> : tensor<1xi32>
     %15 = stablehlo.concatenate %12, %13, %14, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %16 = stablehlo.dynamic_broadcast_in_dim %10, %15, dims = [0, 1, 2] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<1x8x4xf32>, tensor<3xi32>) -> tensor<?x8x4xf32>
+    %16 = stablehlo.dynamic_broadcast_in_dim %10, %15, dims = [0, 1, 2] : (tensor<1x8x4xf32>, tensor<3xi32>) -> tensor<?x8x4xf32>
     %17 = stablehlo.subtract %arg1, %16 : tensor<?x8x4xf32>
     %18 = stablehlo.multiply %17, %17 : tensor<?x8x4xf32>
     %19 = stablehlo.convert %arg3 : (tensor<?x8x4xi1>) -> tensor<?x8x4xi32>
@@ -62,7 +62,7 @@ module @jit_fun_flat_jax {
     %2 = stablehlo.constant dense<8> : tensor<1xi32>
     %3 = stablehlo.constant dense<4> : tensor<1xi32>
     %4 = stablehlo.concatenate %1, %2, %3, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %5 = stablehlo.dynamic_broadcast_in_dim %arg3, %4, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<3xi32>) -> tensor<?x8x4xf32>
+    %5 = stablehlo.dynamic_broadcast_in_dim %arg3, %4, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x8x4xf32>
     %6 = stablehlo.select %arg1, %arg2, %5 : tensor<?x8x4xi1>, tensor<?x8x4xf32>
     return %6 : tensor<?x8x4xf32>
   }
@@ -72,7 +72,7 @@ module @jit_fun_flat_jax {
     %2 = stablehlo.constant dense<8> : tensor<1xi32>
     %3 = stablehlo.constant dense<4> : tensor<1xi32>
     %4 = stablehlo.concatenate %1, %2, %3, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %5 = stablehlo.dynamic_broadcast_in_dim %arg3, %4, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<3xi32>) -> tensor<?x8x4xf32>
+    %5 = stablehlo.dynamic_broadcast_in_dim %arg3, %4, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x8x4xf32>
     %6 = stablehlo.select %arg1, %arg2, %5 : tensor<?x8x4xi1>, tensor<?x8x4xf32>
     return %6 : tensor<?x8x4xf32>
   }

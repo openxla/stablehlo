@@ -10,7 +10,7 @@ module @jit_fun_flat_jax {
     %1 = stablehlo.reshape %0 : (tensor<i32>) -> tensor<1xi32>
     %2 = stablehlo.constant dense<1> : tensor<1xi32>
     %3 = stablehlo.concatenate %1, %2, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %4 = stablehlo.dynamic_broadcast_in_dim %arg2, %3, dims = [0] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<?xi32>, tensor<2xi32>) -> tensor<?x1xi32>
+    %4 = stablehlo.dynamic_broadcast_in_dim %arg2, %3, dims = [0] : (tensor<?xi32>, tensor<2xi32>) -> tensor<?x1xi32>
     %5 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %6 = stablehlo.reshape %5 : (tensor<i32>) -> tensor<1xi32>
     %7 = stablehlo.constant dense<1> : tensor<1xi32>

@@ -1,5 +1,5 @@
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo --mlir-print-op-generic --split-input-file %s | FileCheck %s
-// RUN-disabled: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo -vhlo-to-version='target=current' %s | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+// RUN: diff <(stablehlo-opt --stablehlo-legalize-to-vhlo -vhlo-to-version='target=current' %s | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode -debug-only=vhlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
 // RUN: stablehlo-opt --stablehlo-legalize-to-vhlo -emit-bytecode %s | stablehlo-opt -debug-only=vhlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
@@ -61,9 +61,8 @@ func.func @attr_comparison_direction_lt(%arg0: tensor<f32>, %arg1: tensor<f32>) 
 
 func.func @attr_comparison_type_notype(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tensor<i1> {
   %0 = "stablehlo.compare"(%arg0, %arg1) {
-    comparison_direction = #stablehlo<comparison_direction EQ>,
-    // CHECK: compare_type = #vhlo<comparison_type_v1 NOTYPE>,
-    compare_type = #stablehlo<comparison_type NOTYPE>
+    comparison_direction = #stablehlo<comparison_direction EQ>
+    // CHECK: compare_type = #vhlo<comparison_type_v1 NOTYPE>
   } : (tensor<f32>, tensor<f32>) -> tensor<i1>
   func.return %0 : tensor<i1>
 }
@@ -198,7 +197,6 @@ func.func @attr_fft_type_irfft(%arg0: tensor<9xcomplex<f32>>) -> tensor<16xf32> 
 func.func @attr_precision_config_default(%arg0: tensor<8x16xf32>, %arg1: tensor<16x8xf32>) -> tensor<8x8xf32> {
   %0 = "stablehlo.dot"(%arg0, %arg1) {
     // CHECK: precision_config = #vhlo.array_v1<[#vhlo<precision_v1 DEFAULT>, #vhlo<precision_v1 DEFAULT>]>
-    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
   } : (tensor<8x16xf32>, tensor<16x8xf32>) -> tensor<8x8xf32>
   func.return %0 : tensor<8x8xf32>
 }
@@ -537,8 +535,7 @@ func.func @default_dynamic_gather(%arg0 : tensor<2x4x9xf32>, %arg1 : tensor<1x5x
       collapsed_slice_dims = [0, 1],
       start_index_map = [0, 1],
       index_vector_dim = 2
-    >,
-    indices_are_sorted = false
+    >
   } : (tensor<2x4x9xf32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<1x5x8xf32>
   func.return %0 : tensor<1x5x8xf32>
 }

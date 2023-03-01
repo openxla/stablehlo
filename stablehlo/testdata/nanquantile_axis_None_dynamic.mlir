@@ -116,7 +116,7 @@ module @jit_fun_flat_jax {
     %2 = stablehlo.multiply %arg0, %1 : tensor<i64>
     %3 = stablehlo.convert %2 : (tensor<i64>) -> tensor<i32>
     %4 = stablehlo.reshape %3 : (tensor<i32>) -> tensor<1xi32>
-    %5 = stablehlo.dynamic_broadcast_in_dim %0, %4, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
+    %5 = stablehlo.dynamic_broadcast_in_dim %0, %4, dims = [] : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
     %6 = stablehlo.select %arg1, %5, %arg3 : tensor<?xi1>, tensor<?xf32>
     return %6 : tensor<?xf32>
   }
