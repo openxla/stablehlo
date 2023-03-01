@@ -24,10 +24,10 @@ def VHLO_MyOpV1 : VHLO_Op<"my_op", "0.9.0", "0.10.0"> {
 }
 
 // This represents the StableHLO version of the op from 0.11.0 -> current
-def VHLO_AllToAllOpV2 : VHLO_Op<"all_to_all_v2", "0.11.0", "current"> {
+def VHLO_MyOpV2 : VHLO_Op<"my_op_v2", "0.11.0", "current"> {
   let arguments = (ins
     VHLO_AnyType:$operand,
-    VHLO_AnyAttr:$new_attribute  // New attribute added to StableHLO in 0.11.0
+    VHLO_AnyAttr:$attr  // New attribute added to StableHLO in 0.11.0
   );
   let results = (outs VHLO_AnyType:$result);
 }
@@ -87,7 +87,7 @@ flags can be used to convert and serialize programs.
 
 ```bash
 # Create a bytecode
-$ stablehlo-opt <file.mlir> --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > stable_file.mlir.bc
+$ stablehlo-opt file.mlir --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > stable_file.mlir.bc
 
 # Load program (guaranteed within compatibility window)
 # Works on both the old and new versions of libStablehlo
