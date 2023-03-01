@@ -197,18 +197,20 @@ func.func @single_attr_scalar_ops(%arg0 : tensor<2x2xf32>,
                                   %arg2 : tensor<4x2xf32>,
                                   %arg3 : tensor<1xindex>,
                                   %arg4 : tensor<i32>) -> () {
-  // CHECK:      %0 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
-  // CHECK-NEXT: %1 = stablehlo.concatenate %arg1, %arg2, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
-  // CHECK-NEXT: %2 = stablehlo.dynamic_iota %arg3, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
-  // CHECK-NEXT: %3 = stablehlo.iota dim = 1 : tensor<1x10xf32>
-  // CHECK-NEXT: %4 = stablehlo.get_dimension_size %arg2, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
-  // CHECK-NEXT: %5 = stablehlo.set_dimension_size %arg2, %arg4, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
-  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<2x2xf32>) -> tensor<2x2xf32>
-  %1 = "stablehlo.concatenate"(%arg1, %arg2) {dimension = 1 : i64} : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
-  %2 = "stablehlo.dynamic_iota"(%arg3) {iota_dimension = 0 : i64} : (tensor<1xindex>) -> tensor<4xi32>
-  %3 = "stablehlo.iota"() {iota_dimension = 1 : i64}  : () -> tensor<1x10xf32>
-  %4 = "stablehlo.get_dimension_size"(%arg2) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
-  %5 = "stablehlo.set_dimension_size"(%arg2, %arg4) {dimension = 1 : i64} : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  // CHECK:      %0 = stablehlo.cholesky %arg0 : tensor<2x2xf32>
+  // CHECK-NEXT: %1 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
+  // CHECK-NEXT: %2 = stablehlo.concatenate %arg1, %arg2, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+  // CHECK-NEXT: %3 = stablehlo.dynamic_iota %arg3, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
+  // CHECK-NEXT: %4 = stablehlo.iota dim = 1 : tensor<1x10xf32>
+  // CHECK-NEXT: %5 = stablehlo.get_dimension_size %arg2, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
+  // CHECK-NEXT: %6 = stablehlo.set_dimension_size %arg2, %arg4, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  %0 = "stablehlo.cholesky"(%arg0) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  %1 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  %2 = "stablehlo.concatenate"(%arg1, %arg2) {dimension = 1 : i64} : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+  %3 = "stablehlo.dynamic_iota"(%arg3) {iota_dimension = 0 : i64} : (tensor<1xindex>) -> tensor<4xi32>
+  %4 = "stablehlo.iota"() {iota_dimension = 1 : i64}  : () -> tensor<1x10xf32>
+  %5 = "stablehlo.get_dimension_size"(%arg2) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
+  %6 = "stablehlo.set_dimension_size"(%arg2, %arg4) {dimension = 1 : i64} : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
   "stablehlo.return"() : () -> ()
 }
 
