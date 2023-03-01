@@ -77,7 +77,7 @@ def CHECK_ExpectAlmostEqOp :
       TensorOf<[AnyFloat, AnyComplex]>:$rhs
   );
 
-  let hasCustomAssemblyFormat = 1;
+  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
 def CHECK_ExpectEqConstOp :
@@ -114,7 +114,7 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
       HLO_Tensor:$rhs
   );
 
-  let hasCustomAssemblyFormat = 1;
+  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
 #endif  // STABLEHLO_DIALECT_CHECK_OPS
