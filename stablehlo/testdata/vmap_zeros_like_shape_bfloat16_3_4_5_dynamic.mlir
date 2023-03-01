@@ -1,0 +1,16 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
+module @jit_fun_flat_jax {
+  func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x3x4x5xbf16> {mhlo.sharding = ""}) -> tensor<?x3x4x5xbf16> {
+    %0 = stablehlo.constant dense<0.000000e+00> : tensor<bf16>
+    %1 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
+    %2 = stablehlo.reshape %1 : (tensor<i32>) -> tensor<1xi32>
+    %3 = stablehlo.constant dense<3> : tensor<1xi32>
+    %4 = stablehlo.constant dense<4> : tensor<1xi32>
+    %5 = stablehlo.constant dense<5> : tensor<1xi32>
+    %6 = stablehlo.concatenate %2, %3, %4, %5, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<4xi32>
+    %7 = stablehlo.dynamic_broadcast_in_dim %0, %6, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<bf16>, tensor<4xi32>) -> tensor<?x3x4x5xbf16>
+    return %7 : tensor<?x3x4x5xbf16>
+  }
+}
+
