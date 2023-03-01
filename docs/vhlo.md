@@ -14,7 +14,7 @@ Any changes to an op require a new version of an op to be added to the dialect.
 For example, if a hypothetical `my_op` was added to StableHLO in 0.9.0, but
 was changed in 0.11.0, we would have the following in VHLO:
 
-```
+```tablegen
 // This represents the StableHLO version of the op from 0.9.0 -> 0.10.0
 def VHLO_MyOpV1 : VHLO_Op<"my_op", "0.9.0", "0.10.0"> {
   let arguments = (ins
