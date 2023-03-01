@@ -86,7 +86,7 @@ This is the easiest way to create and read a stable artifact. MLIR passes and
 flags can be used to convert and serialize programs.
 
 ```bash
-# Create a bytecode 
+# Create a bytecode
 $ stablehlo-opt <file.mlir> --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > stable_file.mlir.bc
 
 # Load program (guaranteed within compatibility window)
