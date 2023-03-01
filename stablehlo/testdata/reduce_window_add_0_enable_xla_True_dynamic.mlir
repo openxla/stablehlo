@@ -8,7 +8,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
       %3 = stablehlo.add %arg2, %arg3 : tensor<f32>
       stablehlo.return %3 : tensor<f32>
-    }) {base_dilations = dense<1> : tensor<2xi64>, padding = dense<0> : tensor<2x2xi64>, window_dilations = dense<1> : tensor<2xi64>, window_dimensions = dense<2> : tensor<2xi64>, window_strides = dense<1> : tensor<2xi64>} : (tensor<?x8xf32>, tensor<f32>) -> tensor<?x7xf32>
+    }) {window_dimensions = dense<2> : tensor<2xi64>} : (tensor<?x8xf32>, tensor<f32>) -> tensor<?x7xf32>
     return %2 : tensor<?x7xf32>
   }
 }

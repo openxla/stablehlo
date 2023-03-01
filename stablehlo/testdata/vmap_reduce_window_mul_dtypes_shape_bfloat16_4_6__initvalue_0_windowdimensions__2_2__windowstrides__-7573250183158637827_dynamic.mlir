@@ -7,7 +7,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<bf16>, %arg3: tensor<bf16>):
       %2 = stablehlo.multiply %arg2, %arg3 : tensor<bf16>
       stablehlo.return %2 : tensor<bf16>
-    }) {base_dilations = dense<1> : tensor<3xi64>, padding = dense<0> : tensor<3x2xi64>, window_dilations = dense<1> : tensor<3xi64>, window_dimensions = dense<[1, 2, 2]> : tensor<3xi64>, window_strides = dense<1> : tensor<3xi64>} : (tensor<?x4x6xbf16>, tensor<bf16>) -> tensor<?x3x5xbf16>
+    }) {window_dimensions = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<?x4x6xbf16>, tensor<bf16>) -> tensor<?x3x5xbf16>
     return %1 : tensor<?x3x5xbf16>
   }
 }

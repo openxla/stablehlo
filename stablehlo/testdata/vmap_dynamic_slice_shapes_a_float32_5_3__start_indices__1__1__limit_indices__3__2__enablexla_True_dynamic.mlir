@@ -33,35 +33,35 @@ module @jit_fun_flat_jax {
     %28 = stablehlo.constant dense<0> : tensor<i64>
     %29 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %30 = stablehlo.reshape %29 : (tensor<i32>) -> tensor<1xi32>
-    %31 = stablehlo.dynamic_broadcast_in_dim %28, %30, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %31 = stablehlo.dynamic_broadcast_in_dim %28, %30, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %32 = stablehlo.compare  LT, %13, %31,  SIGNED : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi1>
     %33 = stablehlo.constant dense<5> : tensor<i64>
     %34 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %35 = stablehlo.reshape %34 : (tensor<i32>) -> tensor<1xi32>
-    %36 = stablehlo.dynamic_broadcast_in_dim %33, %35, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %36 = stablehlo.dynamic_broadcast_in_dim %33, %35, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %37 = stablehlo.add %13, %36 : tensor<?xi64>
     %38 = stablehlo.select %32, %37, %13 : tensor<?xi1>, tensor<?xi64>
     %39 = stablehlo.constant dense<0> : tensor<i64>
     %40 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %41 = stablehlo.reshape %40 : (tensor<i32>) -> tensor<1xi32>
-    %42 = stablehlo.dynamic_broadcast_in_dim %39, %41, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %42 = stablehlo.dynamic_broadcast_in_dim %39, %41, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %43 = stablehlo.compare  LT, %27, %42,  SIGNED : (tensor<?xi64>, tensor<?xi64>) -> tensor<?xi1>
     %44 = stablehlo.constant dense<3> : tensor<i64>
     %45 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %46 = stablehlo.reshape %45 : (tensor<i32>) -> tensor<1xi32>
-    %47 = stablehlo.dynamic_broadcast_in_dim %44, %46, dims = [] : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
+    %47 = stablehlo.dynamic_broadcast_in_dim %44, %46, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<1xi32>) -> tensor<?xi64>
     %48 = stablehlo.add %27, %47 : tensor<?xi64>
     %49 = stablehlo.select %43, %48, %27 : tensor<?xi1>, tensor<?xi64>
     %50 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %51 = stablehlo.reshape %50 : (tensor<i32>) -> tensor<1xi32>
     %52 = stablehlo.constant dense<1> : tensor<1xi32>
     %53 = stablehlo.concatenate %51, %52, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %54 = stablehlo.dynamic_broadcast_in_dim %38, %53, dims = [0] : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
+    %54 = stablehlo.dynamic_broadcast_in_dim %38, %53, dims = [0] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
     %55 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %56 = stablehlo.reshape %55 : (tensor<i32>) -> tensor<1xi32>
     %57 = stablehlo.constant dense<1> : tensor<1xi32>
     %58 = stablehlo.concatenate %56, %57, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %59 = stablehlo.dynamic_broadcast_in_dim %49, %58, dims = [0] : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
+    %59 = stablehlo.dynamic_broadcast_in_dim %49, %58, dims = [0] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<?xi64>, tensor<2xi32>) -> tensor<?x1xi64>
     %60 = stablehlo.concatenate %54, %59, dim = 1 : (tensor<?x1xi64>, tensor<?x1xi64>) -> tensor<?x2xi64>
     %61 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %62 = stablehlo.reshape %61 : (tensor<i32>) -> tensor<1xi32>

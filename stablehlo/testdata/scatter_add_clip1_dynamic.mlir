@@ -17,20 +17,20 @@ module @jit_fun_flat_jax {
     %12 = stablehlo.reshape %11 : (tensor<i32>) -> tensor<1xi32>
     %13 = stablehlo.constant dense<2> : tensor<1xi32>
     %14 = stablehlo.concatenate %12, %13, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %15 = stablehlo.dynamic_broadcast_in_dim %10, %14, dims = [1] : (tensor<2xi64>, tensor<2xi32>) -> tensor<?x2xi64>
+    %15 = stablehlo.dynamic_broadcast_in_dim %10, %14, dims = [1] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<2xi64>, tensor<2xi32>) -> tensor<?x2xi64>
     %16 = stablehlo.convert %arg2 : (tensor<?x2xi32>) -> tensor<?x2xi64>
     %17 = stablehlo.constant dense<0> : tensor<i64>
     %18 = stablehlo.convert %arg0 : (tensor<i64>) -> tensor<i32>
     %19 = stablehlo.reshape %18 : (tensor<i32>) -> tensor<1xi32>
     %20 = stablehlo.constant dense<2> : tensor<1xi32>
     %21 = stablehlo.concatenate %19, %20, dim = 0 : (tensor<1xi32>, tensor<1xi32>) -> tensor<2xi32>
-    %22 = stablehlo.dynamic_broadcast_in_dim %17, %21, dims = [] : (tensor<i64>, tensor<2xi32>) -> tensor<?x2xi64>
+    %22 = stablehlo.dynamic_broadcast_in_dim %17, %21, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i64>, tensor<2xi32>) -> tensor<?x2xi64>
     %23 = stablehlo.clamp %22, %16, %15 : tensor<?x2xi64>
     %24 = "stablehlo.scatter"(%arg1, %23, %arg3) ({
     ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>):
       %25 = stablehlo.add %arg4, %arg5 : tensor<f32>
       stablehlo.return %25 : tensor<f32>
-    }) {indices_are_sorted = false, scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0], scatter_dims_to_operand_dims = [0, 1], index_vector_dim = 1>, unique_indices = true} : (tensor<?x4xf32>, tensor<?x2xi64>, tensor<?x1xf32>) -> tensor<?x4xf32>
+    }) {scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [1], inserted_window_dims = [0], scatter_dims_to_operand_dims = [0, 1], index_vector_dim = 1>, unique_indices = true} : (tensor<?x4xf32>, tensor<?x2xi64>, tensor<?x1xf32>) -> tensor<?x4xf32>
     return %24 : tensor<?x4xf32>
   }
 }

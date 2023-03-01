@@ -8,7 +8,7 @@ module @jit_fun_flat_jax {
     return %2 : tensor<3x5xf32>
   }
   func.func private @_einsum(%arg0: tensor<i64>, %arg1: tensor<3x?xf32>, %arg2: tensor<?x5xf32>) -> tensor<3x5xf32> {
-    %0 = "stablehlo.dot_general"(%arg1, %arg2) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<3x?xf32>, tensor<?x5xf32>) -> tensor<3x5xf32>
+    %0 = "stablehlo.dot_general"(%arg1, %arg2) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [0]>} : (tensor<3x?xf32>, tensor<?x5xf32>) -> tensor<3x5xf32>
     return %0 : tensor<3x5xf32>
   }
 }

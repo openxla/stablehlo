@@ -6,8 +6,8 @@ module @jit_fun_flat_jax {
     return %0 : tensor<?x4xf32>
   }
   func.func private @_einsum(%arg0: tensor<i64>, %arg1: tensor<?x2xf32>, %arg2: tensor<2x3xf32>, %arg3: tensor<3x4xf32>) -> tensor<?x4xf32> {
-    %0 = "stablehlo.dot_general"(%arg3, %arg2) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [0], rhs_contracting_dimensions = [1]>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<3x4xf32>, tensor<2x3xf32>) -> tensor<4x2xf32>
-    %1 = "stablehlo.dot_general"(%arg1, %0) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [1]>, precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]} : (tensor<?x2xf32>, tensor<4x2xf32>) -> tensor<?x4xf32>
+    %0 = "stablehlo.dot_general"(%arg3, %arg2) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [0], rhs_contracting_dimensions = [1]>} : (tensor<3x4xf32>, tensor<2x3xf32>) -> tensor<4x2xf32>
+    %1 = "stablehlo.dot_general"(%arg1, %0) {dot_dimension_numbers = #stablehlo.dot<lhs_contracting_dimensions = [1], rhs_contracting_dimensions = [1]>} : (tensor<?x2xf32>, tensor<4x2xf32>) -> tensor<?x4xf32>
     return %1 : tensor<?x4xf32>
   }
 }

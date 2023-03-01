@@ -44,7 +44,7 @@ module @jit_fun_flat_jax {
       %38 = stablehlo.and %37, %35 : tensor<i1>
       %39 = stablehlo.or %36, %38 : tensor<i1>
       stablehlo.return %39 : tensor<i1>
-    }) {dimension = 1 : i64, is_stable = false} : (tensor<?x100xi32>, tensor<?x100xi32>, tensor<?x100xf32>) -> (tensor<?x100xi32>, tensor<?x100xi32>, tensor<?x100xf32>)
+    }) {dimension = 1 : i64} : (tensor<?x100xi32>, tensor<?x100xi32>, tensor<?x100xf32>) -> (tensor<?x100xi32>, tensor<?x100xi32>, tensor<?x100xf32>)
     return %0#0, %0#1, %0#2 : tensor<?x100xi32>, tensor<?x100xi32>, tensor<?x100xf32>
   }
 }

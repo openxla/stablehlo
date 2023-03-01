@@ -86,9 +86,9 @@ module @jit_fun_flat_jax {
     %31 = stablehlo.convert %26 : (tensor<f64>) -> tensor<i64>
     %32 = stablehlo.convert %30 : (tensor<f64>) -> tensor<i64>
     %33 = stablehlo.broadcast_in_dim %31, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %34 = "stablehlo.gather"(%11, %33) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = false, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
+    %34 = "stablehlo.gather"(%11, %33) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
     %35 = stablehlo.broadcast_in_dim %32, dims = [] : (tensor<i64>) -> tensor<1xi64>
-    %36 = "stablehlo.gather"(%11, %35) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, indices_are_sorted = false, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
+    %36 = "stablehlo.gather"(%11, %35) {dimension_numbers = #stablehlo.gather<collapsed_slice_dims = [0], start_index_map = [0]>, slice_sizes = dense<1> : tensor<1xi64>} : (tensor<?xf32>, tensor<1xi64>) -> tensor<f32>
     %37 = stablehlo.convert %34 : (tensor<f32>) -> tensor<f64>
     %38 = stablehlo.multiply %37, %22 : tensor<f64>
     %39 = stablehlo.convert %36 : (tensor<f32>) -> tensor<f64>
@@ -108,12 +108,12 @@ module @jit_fun_flat_jax {
     %3 = stablehlo.multiply %arg0, %2 : tensor<i64>
     %4 = stablehlo.convert %3 : (tensor<i64>) -> tensor<i32>
     %5 = stablehlo.reshape %4 : (tensor<i32>) -> tensor<1xi32>
-    %6 = stablehlo.dynamic_broadcast_in_dim %1, %5, dims = [] : (tensor<i1>, tensor<1xi32>) -> tensor<?xi1>
+    %6 = stablehlo.dynamic_broadcast_in_dim %1, %5, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<i1>, tensor<1xi32>) -> tensor<?xi1>
     %7 = stablehlo.constant dense<5> : tensor<i64>
     %8 = stablehlo.multiply %arg0, %7 : tensor<i64>
     %9 = stablehlo.convert %8 : (tensor<i64>) -> tensor<i32>
     %10 = stablehlo.reshape %9 : (tensor<i32>) -> tensor<1xi32>
-    %11 = stablehlo.dynamic_broadcast_in_dim %0, %10, dims = [] : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
+    %11 = stablehlo.dynamic_broadcast_in_dim %0, %10, dims = [] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<f32>, tensor<1xi32>) -> tensor<?xf32>
     %12 = stablehlo.select %6, %11, %arg3 : tensor<?xi1>, tensor<?xf32>
     return %12 : tensor<?xf32>
   }

@@ -24,7 +24,7 @@ module @jit_fun_flat_jax {
     %10 = stablehlo.constant dense<8> : tensor<1xi32>
     %11 = stablehlo.constant dense<4> : tensor<1xi32>
     %12 = stablehlo.concatenate %9, %10, %11, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
-    %13 = stablehlo.dynamic_broadcast_in_dim %7, %12, dims = [0, 1, 2] : (tensor<1x1x4xf32>, tensor<3xi32>) -> tensor<?x8x4xf32>
+    %13 = stablehlo.dynamic_broadcast_in_dim %7, %12, dims = [0, 1, 2] {known_expanding_dimensions = dense<> : tensor<0xi64>, known_nonexpanding_dimensions = dense<> : tensor<0xi64>} : (tensor<1x1x4xf32>, tensor<3xi32>) -> tensor<?x8x4xf32>
     %14 = stablehlo.subtract %arg1, %13 : tensor<?x8x4xf32>
     %15 = stablehlo.multiply %14, %14 : tensor<?x8x4xf32>
     %16 = stablehlo.constant dense<8> : tensor<i64>

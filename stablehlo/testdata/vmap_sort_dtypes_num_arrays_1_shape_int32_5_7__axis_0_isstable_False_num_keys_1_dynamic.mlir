@@ -6,7 +6,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg2: tensor<i32>, %arg3: tensor<i32>):
       %1 = stablehlo.compare  LT, %arg2, %arg3,  SIGNED : (tensor<i32>, tensor<i32>) -> tensor<i1>
       stablehlo.return %1 : tensor<i1>
-    }) {dimension = 1 : i64, is_stable = false} : (tensor<?x5x7xi32>) -> tensor<?x5x7xi32>
+    }) {dimension = 1 : i64} : (tensor<?x5x7xi32>) -> tensor<?x5x7xi32>
     return %0 : tensor<?x5x7xi32>
   }
 }

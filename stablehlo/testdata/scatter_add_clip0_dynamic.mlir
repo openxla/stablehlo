@@ -17,7 +17,7 @@ module @jit_fun_flat_jax {
     ^bb0(%arg4: tensor<f32>, %arg5: tensor<f32>):
       %12 = stablehlo.add %arg4, %arg5 : tensor<f32>
       stablehlo.return %12 : tensor<f32>
-    }) {indices_are_sorted = false, scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [1], scatter_dims_to_operand_dims = [1], index_vector_dim = 1>, unique_indices = true} : (tensor<?x4xf32>, tensor<2x1xi64>, tensor<?x2xf32>) -> tensor<?x4xf32>
+    }) {scatter_dimension_numbers = #stablehlo.scatter<update_window_dims = [0], inserted_window_dims = [1], scatter_dims_to_operand_dims = [1], index_vector_dim = 1>, unique_indices = true} : (tensor<?x4xf32>, tensor<2x1xi64>, tensor<?x2xf32>) -> tensor<?x4xf32>
     return %11 : tensor<?x4xf32>
   }
 }
