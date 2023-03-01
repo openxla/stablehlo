@@ -570,23 +570,21 @@ Element power(const Element &e1, const Element &e2) {
   Type type = e1.getType();
 
   if (isSupportedIntegerType(type)) {
+    bool isSigned = isSupportedSignedIntegerType(type);
     APInt base = e1.getIntegerValue();
     APInt exponent = e2.getIntegerValue();
-    bool isSigned = base.isSignedIntN(base.getBitWidth());
     if (isSigned && exponent.isNegative()) {
-      if (base.isZero())
-        llvm::report_fatal_error("divide by zero unsupported");
-      else if (base.abs().isOne())
+      if (base.abs().isOne())
         exponent = exponent.abs();
       else
-        return Element(type, APInt(base.getBitWidth(), 0, isSigned));
+        return Element(type, (int64_t)0);
     }
-    const APInt kOne(base.getBitWidth(), 1, isSigned);
-    APInt result(kOne);
+    APInt result(base.getBitWidth(), 1, isSigned);
     while (!exponent.isZero()) {
-      if ((exponent & kOne).getBoolValue()) result *= base;
+      if (!(exponent & 1).isZero()) result *= base;
       base *= base;
-      exponent = exponent.lshr(1);
+      exponent = isSupportedSignedIntegerType(type) ? exponent.ashr(1)
+                                                    : exponent.lshr(1);
     }
     return Element(type, result);
   }
