@@ -16,22 +16,20 @@ Future work section for more details.
 
 ## Guarantees
 
-**1 month of backward compatibility:** VHLO program serialized by an old version
-of libStablehlo has the same semantics* when deserialized by a new version of
-libStablehlo if these versions are built from openxla/stablehlo commits which
-are less than 1 month apart.
+**1 month of backward compatibility:** StableHLO program serialized by an old
+version of libStablehlo has the same semantics* when deserialized by a new
+version of libStablehlo if these versions are built from openxla/stablehlo
+commits which are less than 1 month apart.
 
-**1 month of forward compatibility:** VHLO program serialized by a new version
-of libStablehlo has the same semantics* when deserialized by an old version of
-libStablehlo if these versions are built from openxla/stablehlo commits which
-are less than 1 month apart, unless the program is using new features introduced
-since the old version.
+**1 month of forward compatibility:** StableHLO program serialized by a new
+version of libStablehlo has the same semantics* when deserialized by an old
+version of libStablehlo if these versions are built from openxla/stablehlo
+commits which are less than 1 month apart, unless the program is using new
+features introduced since the old version.
 
-\* VHLO is a dialect that contains versioned snapshots of the StableHLO opset.
-It can be obtained from the StableHLO dialect via
-[--stablehlo-legalize-to-vhlo](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir),
-and its semantics are defined by [the StableHLO spec](spec.md). See [vhlo.md](vhlo.md)
-for more details and usage instructions.
+\* Semantics of StableHLO programs are defined by [the StableHLO spec](spec.md).
+In the future, we will provide a reference implementation which will provide
+an executable version of the specification.
 
 ## Out of scope
 
@@ -41,21 +39,13 @@ guarantees, but please let us know if this is an important use case for you,
 and we can have a discussion about supporting it
 ([#1247](https://github.com/openxla/stablehlo/issues/1247)).
 
-**Compatibility for the StableHLO dialect** is not a goal. StableHLO dialect
-is optimized for convenience, which means that it makes some choices which
-are incompatible with stability (e.g. it only has the latest versions of
-ops/attributes/types, it uses upstream attributes/types where possible, etc).
-As a result, even though the StableHLO dialect can be serialized, we don't offer
-any compatibility guarantees for the resulting payloads. When such guarantees
-are needed, please use VHLO instead as described above.
-
 ## Tests
 
 We have a compatibility suite in [stablehlo/testdata](../stablehlo/testdata)
 that consists of several thousand files dumped from JAX tests. For every pull
-request, we are testing that deserialization of the corresponding VHLO payloads
-at HEAD produces programs which are syntactically identical to the corresponding
-programs that were serialized by the latest release of libStablehlo.
+request, we are testing that deserialization of the compatibility suite at HEAD
+produces StableHLO programs which are syntactically identical to the original
+StableHLO programs that were serialized by the latest release of libStablehlo.
 
 ## Future work
 
