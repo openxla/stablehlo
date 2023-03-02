@@ -1,12 +1,41 @@
-// RUN: echo "skipping CHLO test (see #1233 for details)"
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
 
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<20x20xf16>, tensor<20x20xf16>)
     %1 = call @expected() : () -> tensor<20x20xf16>
-    %2 = chlo.next_after %0#0, %0#1 : tensor<20x20xf16>, tensor<20x20xf16> -> tensor<20x20xf16>
-    %3 = stablehlo.custom_call @check.eq(%2, %1) : (tensor<20x20xf16>, tensor<20x20xf16>) -> tensor<i1>
-    return %3 : tensor<i1>
+    %2 = stablehlo.bitcast_convert %0#0 : (tensor<20x20xf16>) -> tensor<20x20xi16>
+    %3 = stablehlo.bitcast_convert %0#1 : (tensor<20x20xf16>) -> tensor<20x20xi16>
+    %4 = stablehlo.compare  NE, %0#0, %0#0 : (tensor<20x20xf16>, tensor<20x20xf16>) -> tensor<20x20xi1>
+    %5 = stablehlo.compare  NE, %0#1, %0#1 : (tensor<20x20xf16>, tensor<20x20xf16>) -> tensor<20x20xi1>
+    %6 = stablehlo.or %4, %5 : tensor<20x20xi1>
+    %7 = stablehlo.constant dense<0x7E00> : tensor<20x20xf16>
+    %8 = stablehlo.bitcast_convert %7 : (tensor<20x20xf16>) -> tensor<20x20xi16>
+    %9 = stablehlo.constant dense<-32768> : tensor<20x20xi16>
+    %10 = stablehlo.constant dense<32767> : tensor<20x20xi16>
+    %11 = stablehlo.and %2, %10 : tensor<20x20xi16>
+    %12 = stablehlo.and %3, %10 : tensor<20x20xi16>
+    %13 = stablehlo.compare  EQ, %0#0, %0#1 : (tensor<20x20xf16>, tensor<20x20xf16>) -> tensor<20x20xi1>
+    %14 = stablehlo.constant dense<0> : tensor<20x20xi16>
+    %15 = stablehlo.compare  EQ, %11, %14 : (tensor<20x20xi16>, tensor<20x20xi16>) -> tensor<20x20xi1>
+    %16 = stablehlo.compare  EQ, %12, %14 : (tensor<20x20xi16>, tensor<20x20xi16>) -> tensor<20x20xi1>
+    %17 = stablehlo.and %2, %9 : tensor<20x20xi16>
+    %18 = stablehlo.and %3, %9 : tensor<20x20xi16>
+    %19 = stablehlo.constant dense<1> : tensor<20x20xi16>
+    %20 = stablehlo.or %18, %19 : tensor<20x20xi16>
+    %21 = stablehlo.compare  NE, %17, %18 : (tensor<20x20xi16>, tensor<20x20xi16>) -> tensor<20x20xi1>
+    %22 = stablehlo.compare  GT, %11, %12 : (tensor<20x20xi16>, tensor<20x20xi16>) -> tensor<20x20xi1>
+    %23 = stablehlo.or %22, %21 : tensor<20x20xi1>
+    %24 = stablehlo.constant dense<-1> : tensor<20x20xi16>
+    %25 = stablehlo.select %23, %24, %19 : tensor<20x20xi1>, tensor<20x20xi16>
+    %26 = stablehlo.add %2, %25 : tensor<20x20xi16>
+    %27 = stablehlo.select %16, %3, %20 : tensor<20x20xi1>, tensor<20x20xi16>
+    %28 = stablehlo.select %15, %27, %26 : tensor<20x20xi1>, tensor<20x20xi16>
+    %29 = stablehlo.select %13, %3, %28 : tensor<20x20xi1>, tensor<20x20xi16>
+    %30 = stablehlo.select %6, %8, %29 : tensor<20x20xi1>, tensor<20x20xi16>
+    %31 = stablehlo.bitcast_convert %30 : (tensor<20x20xi16>) -> tensor<20x20xf16>
+    %32 = stablehlo.custom_call @check.eq(%31, %1) : (tensor<20x20xf16>, tensor<20x20xf16>) -> tensor<i1>
+    return %32 : tensor<i1>
   }
   func.func private @inputs() -> (tensor<20x20xf16>, tensor<20x20xf16>) {
     %0 = stablehlo.constant dense<"0xC446AE3FDD3471C0EBBC07B8D54708A52C3FFD31EB372FC32FC1083A67ABF7B6CBB67B3E89BE4142F0C098ABF743BFC28A4579443EC4B745673E363C8A2E5A43AC38CDBD6344983CBF3A76C0B9B946451145E7C47EC23A4605C1CDB92745CE3E7441B43F58C148C47F40203C54B8EABD5646FE422242D7C3B9B8B4BD81BC934058B98DC370C49D3C49BD9235A8C46FBC573D00B8A8C4F1C01BC00A4069C132346DA955C1DAA59AC0DA437742F2BB12C102C39F3779429CBC354046C285C2D9442DC0CA3B083E8DB703BD073E9D44AEC04E44E33CC1BEA5C499C5D7C32D45B532FA3CFB3DD9BD0EC159B08E4600C01ABC833617B675421DB9AC3E90448D42984045B959BD35C30342AD3C20C293AF503C8DC2623A73AD9ABFA93CC0B6C2C66944A3C3043F58B96EC490402AC13B3E6E40933F0FC62645FC3CB0C36EC83FC6F5BB4D3C3F44CCC16EC5594421B8F0BFAABE7F4518C33044AE3D0F40B7C1EF38F4388AC8623C0EB6A8C32135E0BC0CBE3835431EEBC2D24705C11C48D1C21AC0A03851C159C60D45FBC21C412E4278C2F6B889B9B242363D0BC20E417B446DBE492B0C406DBFACC175BE2BC17FBD1B340341E84316C26E39C6371141A4B4AD3BD2426042863F10C36A3E50B6D6BBB6BC6DB26AC11741FBC0D238033285457E40CABCB73E27436744343FF244DA41FB401DC23D30ED43ACC1FF3DAD455FBC19BBDD346839CE4124C344437ABD4DBD5E44DCC491BD983D02361C41584010471143ACC265B5D9417DC5B9BA1DC4D83FF63E4E406D3E6A3C73B5B044D53C09C57643D6BE383EEC3436BACAC388BB03458E39A5C18628CBC3C2C0A6A400BE1BC0543990C2ADB55B39F5C1BBBC04421740733B4CBE2743E8BB59C46E3059BC703BED3764B83EC6AC3436BE503B8A3E853669C160C5B936CF3F9DB61D47464246C2613D0BB44D2DE63C7CAA1AC49641CA417FC11DC2D2C5F33C8B3D8CBFDE3D00BE89C0B0C127BC6F3BE4C0A74028B6F5419144B4C3B144EA27953D8FC211B8DD3C2CB4BA3839455C3E85C6CBC662C28541A43F29408543CCBDA3BF9F448734C23DDF37C4B90142253F38B48A44253D07401C412C3C3B44414183C11D9987B5E9B6903815C2"> : tensor<20x20xf16>
@@ -18,3 +47,4 @@ module @jit_testcase {
     return %0 : tensor<20x20xf16>
   }
 }
+
