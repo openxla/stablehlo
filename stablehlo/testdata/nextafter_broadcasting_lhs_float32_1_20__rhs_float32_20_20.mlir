@@ -1,13 +1,42 @@
-// RUN: echo "skipping CHLO test (see #1233 for details)"
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
 
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
     %0:2 = call @inputs() : () -> (tensor<1x20xf32>, tensor<20x20xf32>)
     %1 = call @expected() : () -> tensor<20x20xf32>
     %2 = stablehlo.broadcast_in_dim %0#0, dims = [0, 1] : (tensor<1x20xf32>) -> tensor<20x20xf32>
-    %3 = chlo.next_after %2, %0#1 : tensor<20x20xf32>, tensor<20x20xf32> -> tensor<20x20xf32>
-    %4 = stablehlo.custom_call @check.eq(%3, %1) : (tensor<20x20xf32>, tensor<20x20xf32>) -> tensor<i1>
-    return %4 : tensor<i1>
+    %3 = stablehlo.bitcast_convert %2 : (tensor<20x20xf32>) -> tensor<20x20xi32>
+    %4 = stablehlo.bitcast_convert %0#1 : (tensor<20x20xf32>) -> tensor<20x20xi32>
+    %5 = stablehlo.compare  NE, %2, %2 : (tensor<20x20xf32>, tensor<20x20xf32>) -> tensor<20x20xi1>
+    %6 = stablehlo.compare  NE, %0#1, %0#1 : (tensor<20x20xf32>, tensor<20x20xf32>) -> tensor<20x20xi1>
+    %7 = stablehlo.or %5, %6 : tensor<20x20xi1>
+    %8 = stablehlo.constant dense<0x7FC00000> : tensor<20x20xf32>
+    %9 = stablehlo.bitcast_convert %8 : (tensor<20x20xf32>) -> tensor<20x20xi32>
+    %10 = stablehlo.constant dense<-2147483648> : tensor<20x20xi32>
+    %11 = stablehlo.constant dense<2147483647> : tensor<20x20xi32>
+    %12 = stablehlo.and %3, %11 : tensor<20x20xi32>
+    %13 = stablehlo.and %4, %11 : tensor<20x20xi32>
+    %14 = stablehlo.compare  EQ, %2, %0#1 : (tensor<20x20xf32>, tensor<20x20xf32>) -> tensor<20x20xi1>
+    %15 = stablehlo.constant dense<0> : tensor<20x20xi32>
+    %16 = stablehlo.compare  EQ, %12, %15 : (tensor<20x20xi32>, tensor<20x20xi32>) -> tensor<20x20xi1>
+    %17 = stablehlo.compare  EQ, %13, %15 : (tensor<20x20xi32>, tensor<20x20xi32>) -> tensor<20x20xi1>
+    %18 = stablehlo.and %3, %10 : tensor<20x20xi32>
+    %19 = stablehlo.and %4, %10 : tensor<20x20xi32>
+    %20 = stablehlo.constant dense<1> : tensor<20x20xi32>
+    %21 = stablehlo.or %19, %20 : tensor<20x20xi32>
+    %22 = stablehlo.compare  NE, %18, %19 : (tensor<20x20xi32>, tensor<20x20xi32>) -> tensor<20x20xi1>
+    %23 = stablehlo.compare  GT, %12, %13 : (tensor<20x20xi32>, tensor<20x20xi32>) -> tensor<20x20xi1>
+    %24 = stablehlo.or %23, %22 : tensor<20x20xi1>
+    %25 = stablehlo.constant dense<-1> : tensor<20x20xi32>
+    %26 = stablehlo.select %24, %25, %20 : tensor<20x20xi1>, tensor<20x20xi32>
+    %27 = stablehlo.add %3, %26 : tensor<20x20xi32>
+    %28 = stablehlo.select %17, %4, %21 : tensor<20x20xi1>, tensor<20x20xi32>
+    %29 = stablehlo.select %16, %28, %27 : tensor<20x20xi1>, tensor<20x20xi32>
+    %30 = stablehlo.select %14, %4, %29 : tensor<20x20xi1>, tensor<20x20xi32>
+    %31 = stablehlo.select %7, %9, %30 : tensor<20x20xi1>, tensor<20x20xi32>
+    %32 = stablehlo.bitcast_convert %31 : (tensor<20x20xi32>) -> tensor<20x20xf32>
+    %33 = stablehlo.custom_call @check.eq(%32, %1) : (tensor<20x20xf32>, tensor<20x20xf32>) -> tensor<i1>
+    return %33 : tensor<i1>
   }
   func.func private @inputs() -> (tensor<1x20xf32>, tensor<20x20xf32>) {
     %0 = stablehlo.constant dense<[[-1.5332396, 1.77375591, 2.70250678, 5.52205133, 0.246267959, 5.61551762, 4.62039471, 4.81690025, 2.152565, 2.10331678, -3.81048226, -0.941428244, -3.96803498, 4.55166721, -2.6990633, -2.44857621, -1.11659122, 1.7927171, -2.31964517, -6.29476881]]> : tensor<1x20xf32>
@@ -19,3 +48,4 @@ module @jit_testcase {
     return %0 : tensor<20x20xf32>
   }
 }
+
