@@ -432,3 +432,11 @@ func.func @chlo_rank_specialization_cluster(%arg0 : tensor<*xf32>, %arg1 : tenso
   }) : (tensor<*xf32>, tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>
 }
+
+// CHECK-LABEL:  func @chlo_erf_inv
+// CHECK-SAME:   %[[A0:.*0]]: tensor<16x16xf32>)
+// CHECK:          chlo.erf_inv %[[A0]] : tensor<16x16xf32> -> tensor<16x16xf32>
+func.func @chlo_erf_inv(%arg0 : tensor<16x16xf32>) {
+  %0 = "chlo.erf_inv"(%arg0) : (tensor<16x16xf32>) -> tensor<16x16xf32>
+  return
+}
