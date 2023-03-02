@@ -16,20 +16,22 @@ Future work section for more details.
 
 ## Guarantees
 
-**1 month of backward compatibility:** StableHLO program serialized by an old
-version of libStablehlo has the same semantics* when deserialized by a new
+**1 month of backward compatibility:** Portable artifacts serialized by an old
+version of libStablehlo have the same semantics* when deserialized by a new
 version of libStablehlo if these versions are built from openxla/stablehlo
 commits which are less than 1 month apart.
 
-**1 month of forward compatibility:** StableHLO program serialized by a new
-version of libStablehlo has the same semantics* when deserialized by an old
+**1 month of forward compatibility:** Portable artifacts serialized by a new
+version of libStablehlo have the same semantics* when deserialized by an old
 version of libStablehlo if these versions are built from openxla/stablehlo
 commits which are less than 1 month apart, unless the program is using new
 features introduced since the old version.
 
-\* Semantics of StableHLO programs are defined by [the StableHLO spec](spec.md).
-In the future, we will provide a reference implementation which will provide
-an executable version of the specification.
+\* StableHLO programs are converted to/from portable artifacts via
+[dedicated APIs](vhlo.md#vhlo-cookbook), and semantics of these programs are
+defined by [the StableHLO spec](spec.md). In the future, we will provide a
+reference implementation which will provide an executable version of the
+specification.
 
 ## Out of scope
 
