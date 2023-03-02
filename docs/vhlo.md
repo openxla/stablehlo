@@ -7,12 +7,12 @@ It provides a snapshot of the StableHLO dialect at a given point in time by
 versioning individual program elements
 
 VHLO is an **add-only dialect** with **versioned ops, types and attributes**,
-which means that once an op or feature is added to the dialect, it cannot be
-modified in any way that impact the semantics.
+which means that once an feature is added to the dialect, it cannot be modified
+in any way that impact the semantics.
 
-Any changes to an op require a new version of an op to be added to the dialect.
-For example, if a hypothetical `my_op` was added to StableHLO in 0.9.0, but
-was changed in 0.11.0, we would have the following in VHLO:
+Any changes to an op, type or attribute require a new version to be added to
+the dialect. For example, if a hypothetical `my_op` was added to StableHLO in
+0.9.0, but was changed in 0.11.0, we would have the following in VHLO:
 
 ```tablegen
 // This represents the StableHLO version of the op from 0.9.0 -> 0.10.0
@@ -40,7 +40,7 @@ example, StableHLO dialect at v0.11.0 would only have `StableHLO_MyOp` that has
 
 ## Why is VHLO useful?
 
-Having a versioned dialec allows us to target previous versions of the
+Having a versioned dialect allows us to target previous versions of the
 StableHLO opset. This encapsulates forward and backward compatibility in
 conversions between ops in the VHLO dialect.
 
@@ -48,7 +48,7 @@ conversions between ops in the VHLO dialect.
 to VHLO and downgrading ops to a target version. If every op/type/attr in a
 VHLO program can be downgraded to the target version, it is guaranteed to be
 deserializable and convertable to StableHLO on a consumer running a version
-less than or equal to the target version, since VHLO has a snapshot of the
+greater than or equal to the target version, since VHLO has a snapshot of the
 opset at that time.
 
 ![Forward compatibility image](images/vhlo/forward_compatibility.png)
