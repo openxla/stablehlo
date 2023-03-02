@@ -3,12 +3,12 @@
 ## What is the VHLO Dialect?
 
 The VHLO (Versioned StableHLO) Dialect is used for serialization and stability.
-It provides a snapshot of the StableHLO dialect at a given point in time,
-denoted by version number.
+It provides a snapshot of the StableHLO dialect at a given point in time by
+versioning individual program elements
 
-VHLO is an **add-only dialect** with **versioned ops**, which means that once an
-op is added to the dialect, it cannot be modified in any way that impact the
-ops semantics.
+VHLO is an **add-only dialect** with **versioned ops, types and attributes**,
+which means that once an op or feature is added to the dialect, it cannot be
+modified in any way that impact the semantics.
 
 Any changes to an op require a new version of an op to be added to the dialect.
 For example, if a hypothetical `my_op` was added to StableHLO in 0.9.0, but
@@ -16,7 +16,8 @@ was changed in 0.11.0, we would have the following in VHLO:
 
 ```tablegen
 // This represents the StableHLO version of the op from 0.9.0 -> 0.10.0
-def VHLO_MyOpV1 : VHLO_Op<"my_op", "0.9.0", "0.10.0"> {
+// Both the lower and the upper bound of versions are inclusive
+def VHLO_MyOpV1 : VHLO_Op<"my_op_v1", "0.9.0", "0.10.0"> {
   let arguments = (ins
     VHLO_AnyType:$operand
   );
@@ -33,19 +34,22 @@ def VHLO_MyOpV2 : VHLO_Op<"my_op_v2", "0.11.0", "current"> {
 }
 ```
 
-Note that under this schema, the latest version of an op directly represents
-the StableHLO equivalent of the op.
+The StableHLO dialect only has the latest version of the ops. In the running
+example, StableHLO dialect at v0.11.0 would only have `StableHLO_MyOp` that has
+`operand` and `attr`, while VHLO captures each phase of the op's evolution.
 
-## Why is this necessary?
+## Why is VHLO useful?
 
-Having an add-only snapshot dialect allows us to target previous versions of
-the StableHLO opset. This reduces forward and backward compatibility to MLIR
+Having a versioned dialec allows us to target previous versions of the
+StableHLO opset. This encapsulates forward and backward compatibility in
 conversions between ops in the VHLO dialect.
 
-**Forward compatibility:** If every op in a program can be downgraded to the
-target version, it is guaranteed to be deserializable and convertable to
-StableHLO on a consumer running a version <= the target version, since VHLO
-has a snapshot of the opset at that time.
+**Forward compatibility:** Forward compatibility is provided by converting
+to VHLO and downgrading ops to a target version. If every op/type/attr in a
+VHLO program can be downgraded to the target version, it is guaranteed to be
+deserializable and convertable to StableHLO on a consumer running a version
+less than or equal to the target version, since VHLO has a snapshot of the
+opset at that time.
 
 ![Forward compatibility image](images/vhlo/forward_compatibility.png)
 
@@ -55,9 +59,9 @@ are discovered on the producer, rather than at runtime.
 
 **Backward compatibility:** Backward compatibility is provided by upgrading
 VHLO ops to their latest version (if needed), then converting an op back to
-StableHLO. All VHLO programs are upgradable to StableHLO, meaning different
-versions of consumers can deserialize the same VHLO payload from a previous
-version.
+StableHLO. All VHLO programs within the compatibility window are upgradable
+to StableHLO, meaning different versions of consumers can deserialize the same
+VHLO payload from a previous version.
 
 ![Backward compatibility image](images/vhlo/backward_compatibility.png)
 
@@ -67,17 +71,17 @@ backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
 maintainted in the StableHLO repo.
 
-## Create a portable artifact from a StableHLO program
+## VHLO Cookbook
 
 MLIR Bytecode Format is the serialization format VHLO uses to offer
 compatibility guarantees. See [bytecode.md](https://github.com/openxla/stablehlo/blob/main/docs/bytecode.md)
 for more information.
 
-Stable artifacts can be created using either the opt tool, or directly in C++
-or Python APIs.
+Portable artifacts can be created using either the `stablehlo-opt` tool, or
+directly in C++ or Python APIs.
 
 The following examples use a StableHLO program in a file called `file.mlir`
-and downgrades to version `0.9.0`. All _"vhlo-to-version"_ related passes are
+and downgrade to version `0.9.0`. All _"vhlo-to-version"_ related passes are
 optional and should only be used if forward compatibility is needed.
 
 ### Using the `stablehlo-opt` tool
@@ -87,11 +91,11 @@ flags can be used to convert and serialize programs.
 
 ```bash
 # Create a bytecode
-$ stablehlo-opt file.mlir --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > stable_file.mlir.bc
+$ stablehlo-opt file.mlir --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > portable_artifact.mlir.bc
 
 # Load program (guaranteed within compatibility window)
-# Works on both the old and new versions of libStablehlo
-$ stablehlo-opt stable_file.mlir.bc --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo
+# Works on both the old and new versions of stablehlo-opt
+$ stablehlo-opt portable_artifact.mlir.bc --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo
 ```
 
 ### Using C++ APIs
