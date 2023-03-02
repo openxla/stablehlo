@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_fun_flat_jax {
   func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x20x20xbf16> {mhlo.sharding = ""}) -> tensor<?x20x20xbf16> {
     %0 = stablehlo.constant dense<20> : tensor<1xi32>
@@ -45,7 +47,7 @@ module @jit_fun_flat_jax {
     %42 = stablehlo.reshape %41 : (tensor<i32>) -> tensor<1xi32>
     %43 = stablehlo.concatenate %42, %0, %0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
     %44 = stablehlo.dynamic_broadcast_in_dim %27, %43, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x20x20xf32>
-    %45 = stablehlo.compare  LT, %32, %44,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %45 = stablehlo.compare  LT, %32, %44 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %46 = stablehlo.get_dimension_size %37, dim = 0 : (tensor<?x20x20xf32>) -> tensor<i32>
     %47 = stablehlo.reshape %46 : (tensor<i32>) -> tensor<1xi32>
     %48 = stablehlo.concatenate %47, %0, %0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
@@ -162,13 +164,13 @@ module @jit_fun_flat_jax {
     %159 = stablehlo.reshape %158 : (tensor<i32>) -> tensor<1xi32>
     %160 = stablehlo.concatenate %159, %0, %0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
     %161 = stablehlo.dynamic_broadcast_in_dim %8, %160, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x20x20xf32>
-    %162 = stablehlo.compare  LT, %31, %161,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %162 = stablehlo.compare  LT, %31, %161 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %163 = stablehlo.get_dimension_size %29, dim = 0 : (tensor<?x20x20xf32>) -> tensor<i32>
     %164 = stablehlo.reshape %163 : (tensor<i32>) -> tensor<1xi32>
     %165 = stablehlo.concatenate %164, %0, %0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
     %166 = stablehlo.dynamic_broadcast_in_dim %26, %165, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x20x20xf32>
     %167 = stablehlo.select %162, %166, %157 : tensor<?x20x20xi1>, tensor<?x20x20xf32>
-    %168 = stablehlo.compare  LT, %29, %166,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %168 = stablehlo.compare  LT, %29, %166 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %169 = stablehlo.subtract %44, %167 : tensor<?x20x20xf32>
     %170 = stablehlo.select %168, %169, %167 : tensor<?x20x20xi1>, tensor<?x20x20xf32>
     %171 = stablehlo.get_dimension_size %29, dim = 0 : (tensor<?x20x20xf32>) -> tensor<i32>
@@ -225,7 +227,7 @@ module @jit_fun_flat_jax {
     %222 = stablehlo.multiply %29, %221 : tensor<?x20x20xf32>
     %223 = stablehlo.subtract %174, %222 : tensor<?x20x20xf32>
     %224 = stablehlo.abs %29 : tensor<?x20x20xf32>
-    %225 = stablehlo.compare  LT, %224, %174,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %225 = stablehlo.compare  LT, %224, %174 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %226 = stablehlo.select %225, %223, %170 : tensor<?x20x20xi1>, tensor<?x20x20xf32>
     %227 = stablehlo.convert %226 : (tensor<?x20x20xf32>) -> tensor<?x20x20xbf16>
     return %227 : tensor<?x20x20xbf16>

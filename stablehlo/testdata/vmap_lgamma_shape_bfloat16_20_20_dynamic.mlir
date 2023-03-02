@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_fun_flat_jax {
   func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x20x20xbf16> {mhlo.sharding = ""}) -> tensor<?x20x20xbf16> {
     %0 = stablehlo.constant dense<20> : tensor<1xi32>
@@ -29,7 +31,7 @@ module @jit_fun_flat_jax {
     %26 = stablehlo.reshape %25 : (tensor<i32>) -> tensor<1xi32>
     %27 = stablehlo.concatenate %26, %0, %0, dim = 0 : (tensor<1xi32>, tensor<1xi32>, tensor<1xi32>) -> tensor<3xi32>
     %28 = stablehlo.dynamic_broadcast_in_dim %23, %27, dims = [] : (tensor<f32>, tensor<3xi32>) -> tensor<?x20x20xf32>
-    %29 = stablehlo.compare  LT, %24, %28,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %29 = stablehlo.compare  LT, %24, %28 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %30 = stablehlo.negate %24 : tensor<?x20x20xf32>
     %31 = stablehlo.get_dimension_size %24, dim = 0 : (tensor<?x20x20xf32>) -> tensor<i32>
     %32 = stablehlo.reshape %31 : (tensor<i32>) -> tensor<1xi32>
@@ -155,7 +157,7 @@ module @jit_fun_flat_jax {
     %152 = stablehlo.abs %24 : tensor<?x20x20xf32>
     %153 = stablehlo.floor %152 : tensor<?x20x20xf32>
     %154 = stablehlo.subtract %152, %153 : tensor<?x20x20xf32>
-    %155 = stablehlo.compare  LT, %28, %154,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %155 = stablehlo.compare  LT, %28, %154 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %156 = stablehlo.subtract %34, %154 : tensor<?x20x20xf32>
     %157 = stablehlo.select %155, %156, %154 : tensor<?x20x20xi1>, tensor<?x20x20xf32>
     %158 = stablehlo.get_dimension_size %24, dim = 0 : (tensor<?x20x20xf32>) -> tensor<i32>

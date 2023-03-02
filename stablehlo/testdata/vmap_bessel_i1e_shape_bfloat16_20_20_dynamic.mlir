@@ -1,3 +1,5 @@
+// RUN: diff <(stablehlo-opt %s --stablehlo-legalize-to-vhlo --vhlo-to-version=target=current -emit-bytecode | stablehlo-opt --vhlo-legalize-to-stablehlo) <(stablehlo-opt %s)
+
 module @jit_fun_flat_jax {
   func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x20x20xbf16> {mhlo.sharding = ""}) -> tensor<?x20x20xbf16> {
     %0 = stablehlo.constant dense<20> : tensor<1xi32>
@@ -251,7 +253,7 @@ module @jit_fun_flat_jax {
     %248 = stablehlo.multiply %243, %247 : tensor<?x20x20xf32>
     %249 = stablehlo.sqrt %31 : tensor<?x20x20xf32>
     %250 = stablehlo.divide %248, %249 : tensor<?x20x20xf32>
-    %251 = stablehlo.compare  LE, %31, %47,  NOTYPE : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
+    %251 = stablehlo.compare  LE, %31, %47 : (tensor<?x20x20xf32>, tensor<?x20x20xf32>) -> tensor<?x20x20xi1>
     %252 = stablehlo.select %251, %183, %250 : tensor<?x20x20xi1>, tensor<?x20x20xf32>
     %253 = stablehlo.sign %30 : tensor<?x20x20xf32>
     %254 = stablehlo.multiply %253, %252 : tensor<?x20x20xf32>
