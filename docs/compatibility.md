@@ -30,7 +30,8 @@ since the old version.
 \* VHLO is a dialect that contains versioned snapshots of the StableHLO opset.
 It can be obtained from the StableHLO dialect via
 [--stablehlo-legalize-to-vhlo](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir),
-and its semantics are defined by [the StableHLO spec](spec.md).
+and its semantics are defined by [the StableHLO spec](spec.md). See [vhlo.md](vhlo.md)
+for more details and usage instructions.
 
 ## Out of scope
 
