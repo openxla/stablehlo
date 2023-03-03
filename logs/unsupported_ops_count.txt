@@ -1,0 +1,27 @@
+  Count|Op
+     13 stablehlo.atan2
+     36 stablehlo.bitcast_convert
+      3 stablehlo.cbrt
+    274 stablehlo.compare
+      6 stablehlo.complex
+     72 stablehlo.convolution
+    173 stablehlo.dot
+    173 stablehlo.dot_general
+      5 stablehlo.exponential_minus_one
+     86 stablehlo.gather
+      3 stablehlo.is_finite
+      5 stablehlo.log_plus_one
+      6 stablehlo.popcnt
+      8 stablehlo.power
+     98 stablehlo.reduce
+     17 stablehlo.reduce_precision
+    116 stablehlo.reduce_window
+      4 stablehlo.round_nearest_afz
+      1 stablehlo.round_nearest_even
+   1606 stablehlo.scatter
+     21 stablehlo.select_and_scatter
+      8 stablehlo.shift_left
+      8 stablehlo.shift_right_arithmetic
+      8 stablehlo.shift_right_logical
+     17 stablehlo.sign
+      5 stablehlo.triangular_solve

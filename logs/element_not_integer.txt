@@ -1,0 +1,239 @@
+stablehlo-opt stablehlo/testdata/erfc_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/lgamma_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/bessel_i1e_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/bessel_i0e_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/erf_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/digamma_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/bessel_i0e_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/bessel_i1e_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/erf_inv_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/igamma_dtypes_lhs_float16_20_20__rhs_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/igammac_dtypes_lhs_float16_20_20__rhs_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/igamma_dtypes_lhs_bfloat16_20_20__rhs_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/igammac_dtypes_lhs_bfloat16_20_20__rhs_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/lgamma_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/erf_inv_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/erfc_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/digamma_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_bfloat16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_3_4__rhs_float16_4_2__dimensionnumbers____1____0_______8029402052741705387.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_complex64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3__dimensionnumbers____1____0_____________preferred_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_3_4__rhs_float16_4_2__dimensionnumbers____1____0_______8128671494384340964.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_7_3_4__rhs_float16_7_4__dimensionnumbers____2____1_____-6133721521964233097.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_int32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_7_3_4__rhs_float16_7_4__dimensionnumbers____2____1_____2091924050327567664.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_int32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_1_3_4__rhs_float16_1_4_3__dimensionnumbers____2_1___1_2-6403074408941076884.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_7_3_4__rhs_float16_7_4__dimensionnumbers____2____1______0____0.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_complex64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_bfloat16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3__dimensionnumbers____0____0_____________preferred_float64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_int16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_int8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/erf_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3__dimensionnumbers____1____0_____________preferred_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_int8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3_6__dimensionnumbers____1____0_____________preferred_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3__dimensionnumbers____0____0_____________preferred_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_int8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3_6__dimensionnumbers____1____0_____________preferred_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3__dimensionnumbers____0____0_____________preferred_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_1_3_4__rhs_float16_1_4_3__dimensionnumbers____2_1___1_25368203653113481261.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_bfloat16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_bfloat16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/sinh_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_int32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_complex64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3_6__dimensionnumbers____1____0_____________preferred_float64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_int32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_7_3_4__rhs_float16_7_4__dimensionnumbers____2____1_____-4939131732003714788.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3_6__dimensionnumbers____0____0_____________preferred_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_int16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_int8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_int16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_complex64_100_100__olddtype_complex64_newdtype_int8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_1_3_4__rhs_float16_1_4_3__dimensionnumbers____2_1___1_2-5921596014272431301.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/cosh_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float16_100_100__olddtype_float16_newdtype_int16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_float32_100_100__olddtype_float32_newdtype_int32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_uint8.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/sinh_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_complex64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bfloat16_100_100__olddtype_bfloat16_newdtype_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_uint32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_4_3__rhs_float16_3__dimensionnumbers____1____0_____________preferred_float64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_1_3_4__rhs_float16_1_4_3__dimensionnumbers____2_1___1_2_____0____0.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_uint16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3_6__dimensionnumbers____0____0_____________preferred_float16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_3_4__rhs_float16_4_2__dimensionnumbers____1____0.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/cosh_shape_bfloat16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_int16.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/convert_element_type_dtypes_to_dtypes_shape_bool_100_100__olddtype_bool_newdtype_float32.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_dtypes_and_precision_lhs_float16_3_4__rhs_float16_4_2__dimensionnumbers____1____0_______-7388364319283628312.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer
+
+stablehlo-opt stablehlo/testdata/dot_general_preferred_lhs_float16_3__rhs_float16_3_6__dimensionnumbers____0____0_____________preferred_float64.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Element is not an integer

@@ -1,0 +1,135 @@
+stablehlo-opt stablehlo/testdata/cumprod_dtype_by_fun_shape_complex64_8_9__axis_0_reverse_False.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-9.11470699 : f32, -1.15132165 : f32] (actual) vs [-9.11470699 : f32, -1.15132189 : f32] (expected) at index [1, 8]
+
+stablehlo-opt stablehlo/testdata/tanh_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-1.00137448 : f32, -0.00115054112 : f32] (actual) vs [-1.0013746 : f32, -0.00115054124 : f32] (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/cumprod_dtype_by_fun_shape_complex64_8_9__associative_scan_reductions_axis_0_reverse_False.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [4.55593634 : f32, -0.0726203918 : f32] (actual) vs [4.55593634 : f32, -0.0726204216 : f32] (expected) at index [1, 0]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_-3.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-0.00784833729 : f32, -0.00217038277 : f32] (actual) vs [-0.00784833729 : f32, -0.002170383 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/integer_pow_overflow_shape_float32_20_30__y_127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: -5.165190e-41 : f32 (actual) vs -0.000000e+00 : f32 (expected) at index [2, 25]
+
+stablehlo-opt stablehlo/testdata/exp_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-0.116712548 : f32, -0.142220333 : f32] (actual) vs [-0.11671254 : f32, -0.142220333 : f32] (expected) at index [0, 19]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_4.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-9.657200e-02 : f32, -0.540062666 : f32] (actual) vs [-0.0965720042 : f32, -0.540062666 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/div_dtypes_lhs_complex64_2__rhs_complex64_2.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [1.468070e+00 : f32, -0.1536569 : f32] (actual) vs [1.468070e+00 : f32, -0.15365693 : f32] (expected) at index [0]
+
+stablehlo-opt stablehlo/testdata/cos_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-2.5243628 : f32, -2.7966795 : f32] (actual) vs [-2.52436304 : f32, -2.7966795 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/integer_pow_negative_overflow_shape_complex64_20_30__y_-127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0x7FC00000 : f32, 0x7FC00000 : f32] (actual) vs [-0.000000e+00 : f32, 0.000000e+00 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/rsqrt_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0.0422707237 : f32, -0.666451335 : f32] (actual) vs [4.227070e-02 : f32, -0.666451335 : f32] (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/integer_pow_negative_overflow_shape_bfloat16_20_30__y_-127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: 2.871130e+38 : bf16 (actual) vs 0x7F80 : bf16 (expected) at index [5, 29]
+
+stablehlo-opt stablehlo/testdata/rsqrt_shape_float16_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: 4.235840e-01 : f16 (actual) vs 4.238280e-01 : f16 (expected) at index [0, 6]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_3.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [3.19483805 : f32, -1.227280e+01 : f32] (actual) vs [3.19483757 : f32, -1.227280e+01 : f32] (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/abs_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: 1.85280573 : f32 (actual) vs 1.8528055 : f32 (expected) at index [0, 2]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_2.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-2.31278801 : f32, -60.6698189 : f32] (actual) vs [-2.31278849 : f32, -60.6698189 : f32] (expected) at index [0, 2]
+
+stablehlo-opt stablehlo/testdata/acosh_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-0.767831981 : f32, 3.11109543 : f32] (actual) vs [-0.767831921 : f32, 3.11109543 : f32] (expected) at index [0, 2]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_-2.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0.0319432653 : f32, -0.00355914957 : f32] (actual) vs [0.0319432653 : f32, -0.00355914934 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/asinh_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-1.73512292 : f32, -0.963815033 : f32] (actual) vs [-1.73512387 : f32, -0.963814198 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/logistic_shape_float32_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: 0.470821708 : f32 (actual) vs 0.470821768 : f32 (expected) at index [4, 11]
+
+stablehlo-opt stablehlo/testdata/cosh_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-6.1864295 : f32, 0.0405185856 : f32] (actual) vs [-6.186430e+00 : f32, 0.0405185893 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/integer_pow_overflow_shape_complex64_20_30__y_127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0x7FC00000 : f32, 0x7FC00000 : f32] (actual) vs [0xFFC00000 : f32, 0x7F800000 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/tanh_shape_float32_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: -0.992063522 : f32 (actual) vs -0.992063581 : f32 (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/logistic_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-0.502482951 : f32, 0.200218946 : f32] (actual) vs [-0.502482951 : f32, 0.200218976 : f32] (expected) at index [0, 2]
+
+stablehlo-opt stablehlo/testdata/integer_pow_overflow_shape_bfloat16_20_30__y_127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: -4.591770e-40 : bf16 (actual) vs -0.000000e+00 : bf16 (expected) at index [3, 28]
+
+stablehlo-opt stablehlo/testdata/log_shape_float32_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: -0.500682056 : f32 (actual) vs -5.006820e-01 : f32 (expected) at index [0, 17]
+
+stablehlo-opt stablehlo/testdata/log_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0.383723348 : f32, -1.62288785 : f32] (actual) vs [0.383723348 : f32, -1.62288773 : f32] (expected) at index [0, 8]
+
+stablehlo-opt stablehlo/testdata/integer_pow_dtypes_shape_complex64_20_30__y_-1.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-0.0944677814 : f32, -0.186618522 : f32] (actual) vs [-0.0944677814 : f32, -0.186618507 : f32] (expected) at index [0, 0]
+
+stablehlo-opt stablehlo/testdata/erf_shape_float32_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: 1.000000e+00 : f32 (actual) vs 0.999999821 : f32 (expected) at index [0, 11]
+
+stablehlo-opt stablehlo/testdata/integer_pow_negative_overflow_shape_float32_20_30__y_-127.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: -4.53643193E-39 : f32 (actual) vs -0.000000e+00 : f32 (expected) at index [6, 14]
+
+stablehlo-opt stablehlo/testdata/sqrt_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [0.192086026 : f32, 1.55824876 : f32] (actual) vs [0.192085952 : f32, 1.55824876 : f32] (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/mul_dtypes_lhs_complex64_20_20__rhs_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [12.2039766 : f32, -3.14242864 : f32] (actual) vs [12.2039766 : f32, -3.1424284 : f32] (expected) at index [0, 8]
+
+stablehlo-opt stablehlo/testdata/sin_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [24.5067234 : f32, 20.591589 : f32] (actual) vs [24.5067196 : f32, 20.591589 : f32] (expected) at index [0, 1]
+
+stablehlo-opt stablehlo/testdata/sinh_shape_complex64_20_20.mlir.0_9_0.bc --vhlo-to-version=target=current --vhlo-legalize-to-stablehlo -inline | stablehlo-interpreter --interpret
+LLVM ERROR: Error evaluating function: main.
+	Check almost_eq failed: Element values don't match: [-37.2364082 : f32, 14.6244335 : f32] (actual) vs [-37.236412 : f32, 14.6244335 : f32] (expected) at index [0, 1]
