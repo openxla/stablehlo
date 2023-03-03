@@ -25,6 +25,7 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <utility>
@@ -217,7 +218,7 @@ LogicalResult verifyPairwiseCompatibleShapes(TypeRange values) {
   return success();
 }
 
-LogicalResult verifyBatchNorm(Optional<Location> location,
+LogicalResult verifyBatchNorm(std::optional<Location> location,
                               ValueRange multiDimOperands,
                               ValueRange singleDimOperands,
                               int64_t featureIndex) {
@@ -261,7 +262,7 @@ LogicalResult verifyBatchNorm(Optional<Location> location,
 }
 
 LogicalResult inferBatchNormOp(
-    Optional<Location> location, ValueRange multiDimOperands,
+    std::optional<Location> location, ValueRange multiDimOperands,
     ValueRange singleDimOperands, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes,
     bool is_inference) {
@@ -1236,8 +1237,8 @@ void reifyGatherDimSizes(int64_t resultRank,
 //  P1. Verify 0 <= offset_dims[i] < output_shape_rank, for every i.
 //      (output_shape_rank = size(offset_dims) + rank(start_indices) -1)
 static LogicalResult inferGatherReturnTypeComponents(
-    Optional<Location> location, ShapeAdaptor operandShape, Value startIndices,
-    llvm::function_ref<int64_t(int64_t)> getSliceDim,
+    std::optional<Location> location, ShapeAdaptor operandShape,
+    Value startIndices, llvm::function_ref<int64_t(int64_t)> getSliceDim,
     ArrayRef<int64_t> offsetDims, ArrayRef<int64_t> collapsedSliceDims,
     ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
@@ -1301,8 +1302,8 @@ static LogicalResult inferGatherReturnTypeComponents(
 }
 
 // Used by IfOp and CaseOp
-LogicalResult inferConditionalOp(Optional<Location> location, Value operand,
-                                 RegionRange branches,
+LogicalResult inferConditionalOp(std::optional<Location> location,
+                                 Value operand, RegionRange branches,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
   // case_i1, if_i1
   auto operandRankedTy = operand.getType().dyn_cast<RankedTensorType>();
@@ -1461,7 +1462,7 @@ LogicalResult inferAllToAllOp(
 }
 
 LogicalResult inferBatchNormGradOp(
-    Optional<Location> location, Value operand, Value scale, Value mean,
+    std::optional<Location> location, Value operand, Value scale, Value mean,
     Value variance, Value gradOutput, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return inferBatchNormOp(location, {operand, gradOutput},
@@ -1470,7 +1471,7 @@ LogicalResult inferBatchNormGradOp(
 }
 
 LogicalResult inferBatchNormInferenceOp(
-    Optional<Location> location, Value operand, Value scale, Value offset,
+    std::optional<Location> location, Value operand, Value scale, Value offset,
     Value mean, Value variance, int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return inferBatchNormOp(location, {operand}, {scale, offset, mean, variance},
@@ -1479,7 +1480,7 @@ LogicalResult inferBatchNormInferenceOp(
 }
 
 LogicalResult inferBatchNormTrainingOp(
-    Optional<Location> location, Value operand, Value scale, Value offset,
+    std::optional<Location> location, Value operand, Value scale, Value offset,
     int64_t featureIndex,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   return inferBatchNormOp(location, {operand}, {scale, offset}, featureIndex,
@@ -1510,7 +1511,7 @@ LogicalResult inferBroadcastOp(
   return success();
 }
 
-LogicalResult inferCaseOp(Optional<Location> location, Value index,
+LogicalResult inferCaseOp(std::optional<Location> location, Value index,
                           RegionRange branches,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
   return inferConditionalOp(location, index, branches, inferredReturnTypes);
