@@ -1924,7 +1924,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
   let results = (outs HLO_FpOrComplexTensor:$result);
 
   let assemblyFormat = [{
-    $a `,` `lower` `=` $lower attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
+    $a (`,` `lower` `=` $lower^)? attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
   }];
 }
 
