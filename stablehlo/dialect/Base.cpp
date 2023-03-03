@@ -302,6 +302,13 @@ FailureOr<TensorType> inferTypeWithCustomFn(
         std::optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
         inferDimAndBoundFn) {
   auto rank = rankedTypes[0].getRank();
+  for (auto& type : rankedTypes) {
+    if (type.getRank() != rank) {
+      return emitOptionalError(location, "Mismatched ranks of types",
+                               rankedTypes[0].getRank(), " vs ",
+                               type.getRank());
+    }
+  }
   SmallVector<int64_t> inferredSizes = to_vector(rankedTypes[0].getShape());
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
   ArrayRef<int64_t> bounds = encodingToBounds(rankedTypes[0].getEncoding());
