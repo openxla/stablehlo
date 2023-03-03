@@ -34,13 +34,13 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 get_source_files() {
-  git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.cpp\|.*\.h\|.*\.md\|.*\.mlir\|.*\.sh\|.*\.td\|.*\.txt\|.*\.yml\|.*\.yaml' | xargs
+  git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$' | xargs
 }
 echo "Checking whitespace:"
 echo "  $(get_source_files)"
 
 files_without_eof_newline() {
-  get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
+  [[ -z $(get_source_files) ]] || get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
 }
 
 files_with_trailing_whitespace() {
