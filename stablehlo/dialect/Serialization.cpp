@@ -15,12 +15,17 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
+#include <sstream>
+
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/Version.h"
+#include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
@@ -51,7 +56,12 @@ LogicalResult serializePortableArtifact(ModuleOp module,
     }
   }
 
-  BytecodeWriterConfig config("VHLO_v0.9.0");
+  // Writes the header VHLO_<serializerVersion>_<targetVersion>
+  std::string artifactHeader;
+  llvm::raw_string_ostream headerOs(artifactHeader);
+  headerOs << "VHLO_" << vhlo::Version::getCurrentVersion() << "_"
+           << vhlo::Version::fromString(targetVersion);
+  BytecodeWriterConfig config(artifactHeader);
   writeBytecodeToFile(module, os, config);
   return success();
 }
