@@ -40,6 +40,7 @@ mlir_check_all_link_libraries(stablehlo-opt)
 add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)
 llvm_update_compile_flags(stablehlo-interpreter)
 target_link_libraries(stablehlo-interpreter PRIVATE
+  ${dialect_libs}
   MLIRFuncDialect
   MLIRIR
   MLIRSupport
@@ -49,6 +50,8 @@ target_link_libraries(stablehlo-interpreter PRIVATE
   StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceTensor
+  StablehloRegister
+  StablehloSerialization
 )
 
 mlir_check_all_link_libraries(stablehlo-interpreter)

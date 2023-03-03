@@ -102,6 +102,20 @@ add_mlir_dialect_library(StablehloAssemblyFormat
   MLIRIR
 )
 
+add_mlir_dialect_library(StablehloSerialization
+  PARTIAL_SOURCES_INTENDED
+  Serialization.cpp
+
+  LINK_LIBS PUBLIC
+  ChloOps
+  MLIRIR
+  MLIRBytecodeWriter
+  StablehloOps
+  StablehloPasses
+  VhloOps
+  MLIRIR
+)
+
 add_mlir_dialect_library(StablehloTypeInference
   PARTIAL_SOURCES_INTENDED
   TypeInference.cpp

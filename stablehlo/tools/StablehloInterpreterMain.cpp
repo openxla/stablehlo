@@ -15,10 +15,15 @@ limitations under the License.
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/InitAllDialects.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Scope.h"
@@ -74,6 +79,30 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
       registry.insert<func::FuncDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
       registry.insert<stablehlo::StablehloDialect>();
+    });
+
+llvm::cl::opt<std::string> _target(
+    "target", llvm::cl::desc("Target version for serialization"),
+    llvm::cl::init(""));
+
+TranslateFromMLIRRegistration stablehlo_serialize(
+    "serialize", "Serialize StableHLO program into portable artifact",
+    [](ModuleOp module, raw_ostream &os) -> LogicalResult {
+      return stablehlo::serializePortableArtifact(module, _target, os);
+    },
+    [](DialectRegistry &registry) {
+      mlir::registerAllDialects(registry);
+      mlir::stablehlo::registerAllDialects(registry);
+    });
+
+TranslateToMLIRRegistration stablehlo_deserialize(
+    "deserialize", "Deserialize a portable artifact into a StableHLO program",
+    [](llvm::StringRef input, mlir::MLIRContext *context) {
+      return stablehlo::deserializePortableArtifact(input, context);
+    },
+    [](DialectRegistry &registry) {
+      mlir::registerAllDialects(registry);
+      mlir::stablehlo::registerAllDialects(registry);
     });
 
 }  //  namespace mlir

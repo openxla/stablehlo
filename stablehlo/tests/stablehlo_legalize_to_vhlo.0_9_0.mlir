@@ -1,6 +1,6 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: stablehlo-opt --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --mlir-print-op-generic %s.bc | FileCheck %s
-// RUN: diff <(stablehlo-opt --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo %s.bc) <(stablehlo-opt %s)
+// RUN: stablehlo-interpreter --deserialize %s.bc | stablehlo-interpreter --serialize --target=0.9.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: diff <(stablehlo-interpreter --deserialize %s.bc | stablehlo-opt ) <(stablehlo-opt %s)
 
 // ============ ATTRIBUTES ============
 

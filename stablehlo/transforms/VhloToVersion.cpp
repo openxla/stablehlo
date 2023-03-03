@@ -79,8 +79,7 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   if (failed(failOrVersion)) {
     if (versionRef.empty())
       return emitError(op->getLoc())
-             << "No target version specified. Specify target using: "
-                "--vhlo-to-version='target=[targetVersion]'\n"
+             << "No target version specified.\n"
              << "Target version must be of the form #.#.# or 'current'.";
     return emitError(op->getLoc())
            << "Invalid target version argument '" << versionRef << "'\n"

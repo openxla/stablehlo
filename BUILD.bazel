@@ -723,6 +723,29 @@ cc_library(
 )
 
 cc_library(
+    name = "stablehlo_serialization",
+    srcs = [
+        "stablehlo/dialect/Serialization.cpp",
+    ],
+    hdrs = [
+        "stablehlo/dialect/Serialization.h",
+    ],
+    deps = [
+        ":chlo_ops",
+        ":stablehlo_ops",
+        ":stablehlo_passes",
+        ":vhlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeReader",
+        "@llvm-project//mlir:BytecodeWriter",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
     name = "stablehlo_type_inference",
     srcs = [
         "stablehlo/dialect/TypeInference.cpp",
@@ -780,8 +803,12 @@ cc_binary(
     ],
     deps = [
         ":reference_ops",
+        ":register",
         ":check_ops",
         ":stablehlo_ops",
+        ":stablehlo_serialization",
+        ":vhlo_ops",
+        "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
