@@ -4237,7 +4237,7 @@ and produces a `result` tensor. More formally,
 ```mlir
 // %operand = [[1, 2], [3, 4], [5, 6]]
 %result = "stablehlo.reverse"(%operand) {
-  dimensions = dense<1> : tensor<i64>
+  dimensions = dense<1> : tensor<1xi64>
 } : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
