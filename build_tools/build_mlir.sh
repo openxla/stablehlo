@@ -37,7 +37,7 @@ mkdir -p "$build_dir"
 echo "Beginning build (commands will echo)"
 set -x
 
-[[ uname != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
+[[ "$(uname)" != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
 cmake -GNinja \
   "-H$LLVM_SRC_DIR/llvm" \
   "-B$build_dir" \

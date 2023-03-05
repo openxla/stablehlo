@@ -44,7 +44,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
    recommend setting it to `ON` on Linux and to `OFF` on macOS.
 
    ```sh
-   [[ uname != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
+   [[ "$(uname)" != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
    ```
 
 3. Clone the StableHLO repo and the LLVM repository:
