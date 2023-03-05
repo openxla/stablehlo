@@ -18,13 +18,10 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
-#include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
@@ -369,6 +366,29 @@ void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target) {
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
+}
+
+void printTypeExtensions(BoundedAttrInterface attr, DialectAsmPrinter& os) {
+  os << "bounds<";
+  auto printBound = [&](int64_t bound) { os << dimSizeToString(bound); };
+  llvm::interleaveComma(attr.getBounds(), os, printBound);
+  os << ">";
+}
+
+Attribute parseTypeExtensions(HloDialectInterface* dialect,
+                              DialectAsmParser& parser) {
+  SmallVector<int64_t> bounds;
+  auto parseBound = [&]() -> ParseResult {
+    if (!parser.parseOptionalQuestion()) {
+      bounds.push_back(ShapedType::kDynamic);
+      return success();
+    }
+    return parser.parseInteger(bounds.emplace_back());
+  };
+  if (failed(parser.parseCommaSeparatedList(AsmParser::Delimiter::LessGreater,
+                                            parseBound)))
+    return nullptr;
+  return dialect->createTypeExtensions(bounds);
 }
 
 }  // namespace hlo
