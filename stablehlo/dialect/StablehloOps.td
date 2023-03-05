@@ -2196,15 +2196,9 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
 
     Example:
     ```mlir
-    %result = "stablehlo.dot_general"(%lhs, %rhs) {
-      dot_dimension_numbers = #stablehlo.dot<
-        lhs_batching_dimensions = [0],
-        rhs_batching_dimensions = [0],
-        lhs_contracting_dimensions = [2],
-        rhs_contracting_dimensions = [1]
-      >,
-      precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
-    } : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
+    %result = stablehlo.dot_general %lhs, %rhs,
+      batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT]
+      : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
     ```
   }];
   let arguments = (ins
@@ -2216,6 +2210,13 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
 
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
+
+  // Use empty `` to prevent extra whitespace before precision config.
+  let assemblyFormat = [{
+    $lhs `,` $rhs `,` custom<DotDimensionNumbers>($dot_dimension_numbers) ``
+    custom<PrecisionConfig>($precision_config) attr-dict
+      `:` functional-type(operands, results)
+  }];
 }
 
 def StableHLO_EinsumOp: StableHLO_Op<"einsum", [Pure]> {

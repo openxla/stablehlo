@@ -426,7 +426,7 @@ func.func @refine_custom_call(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*x
 
 // CHECK-LABEL: @refine_dot_general
 func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<*xf32> {
-  // CHECK: "stablehlo.dot_general"{{.*}} -> tensor<2x4x5xf32>
+  // CHECK: stablehlo.dot_general{{.*}} -> tensor<2x4x5xf32>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
