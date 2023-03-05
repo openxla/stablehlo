@@ -21,7 +21,7 @@ specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
 along with an MLIR-based implementation in C++ and Python, which you can use to
 define StableHLO programs for consumption by compilers such as XLA and IREE.
 
-## Build instruction
+## Build instructions
 
 Here's how to build the StableHLO repo on Linux or macOS:
 
@@ -33,7 +33,11 @@ Here's how to build the StableHLO repo on Linux or macOS:
    and hardware configurations.
 
    ```sh
+   # On Linux
    sudo apt install cmake ninja lld
+
+   # On macOS
+   brew install cmake ninja
    ```
 
 2. Set the `LLVM_ENABLE_LLD` shell variable depending on your preferences. We
