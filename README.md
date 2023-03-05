@@ -34,7 +34,7 @@ Here's how to build the StableHLO repo on Linux or macOS:
 
    ```sh
    # On Linux
-   sudo apt install cmake ninja lld
+   sudo apt install cmake ninja-build lld
 
    # On macOS
    brew install cmake ninja
