@@ -9,6 +9,6 @@ func.func @dynamic_slice() {
   %result = "stablehlo.dynamic_slice"(%operand, %start_indices0, %start_indices1) {
     slice_sizes = dense<[3, 3]> : tensor<2xi64>
   } : (tensor<3x3xi64>, tensor<i64>, tensor<i64>) -> tensor<3x3xi64>
-  check.eq %result, dense<[[1, 1, 1], [1, 1, 1], [1, 1, 1]]> : tensor<3x3xi64>
+  check.expect_eq_const %result, dense<[[1, 1, 1], [1, 1, 1], [1, 1, 1]]> : tensor<3x3xi64>
   func.return
 }

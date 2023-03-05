@@ -9,6 +9,6 @@ func.func @slice_op() {
     limit_indices = dense<[3, 6]> : tensor<2xi64>,
     strides = dense<[2, 3]> : tensor<2xi64>
   } : (tensor<3x6xi64>) -> tensor<2x2xi64>
-  check.eq %result, dense<[[1, 1], [1, 1]]> : tensor<2x2xi64>
+  check.expect_eq_const %result, dense<[[1, 1], [1, 1]]> : tensor<2x2xi64>
   func.return
 }

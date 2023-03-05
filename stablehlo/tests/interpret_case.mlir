@@ -9,8 +9,8 @@ func.func @case_negative_index_default() {
   }, {
     stablehlo.return %result_branch1, %result_branch1 : tensor<2xi64>, tensor<2xi64>
   }) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
-  check.eq %result0, dense<[1, 1]> : tensor<2xi64>
-  check.eq %result1, dense<[1, 1]> : tensor<2xi64>
+  check.expect_eq_const %result0, dense<[1, 1]> : tensor<2xi64>
+  check.expect_eq_const %result1, dense<[1, 1]> : tensor<2xi64>
   func.return
 }
 
@@ -25,8 +25,8 @@ func.func @case_in_bound_index() {
   }, {
     stablehlo.return %result_branch1, %result_branch1 : tensor<2xi64>, tensor<2xi64>
   }) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
-  check.eq %result0, dense<[0, 0]> : tensor<2xi64>
-  check.eq %result1, dense<[0, 0]> : tensor<2xi64>
+  check.expect_eq_const %result0, dense<[0, 0]> : tensor<2xi64>
+  check.expect_eq_const %result1, dense<[0, 0]> : tensor<2xi64>
   func.return
 }
 
@@ -41,7 +41,7 @@ func.func @case_out_of_bound_index_default() {
   }, {
     stablehlo.return %result_branch1, %result_branch1 : tensor<2xi64>, tensor<2xi64>
   }) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
-  check.eq %result0, dense<[1, 1]> : tensor<2xi64>
-  check.eq %result1, dense<[1, 1]> : tensor<2xi64>
+  check.expect_eq_const %result0, dense<[1, 1]> : tensor<2xi64>
+  check.expect_eq_const %result1, dense<[1, 1]> : tensor<2xi64>
   func.return
 }

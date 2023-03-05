@@ -38,9 +38,9 @@ def CHECK_Dialect : Dialect {
 // CHECK op definitions.
 //===----------------------------------------------------------------------===//
 
-def CHECK_AlmostEqOp :
+def CHECK_ExpectAlmostEqConstOp :
     Op<CHECK_Dialect,
-       "almost_eq", [AllTypesMatch<["lhs", "value"]>]> {
+       "expect_almost_eq_const", [AllTypesMatch<["lhs", "value"]>]> {
   let summary = [{Checks the tensor operand is almost equal to some constant}];
   let description =  [{
     Verifies that the tensor operand with floating-point or complex element
@@ -48,7 +48,7 @@ def CHECK_AlmostEqOp :
     implementation-defined tolerance.
 
     ```mlir
-    check.almost_eq %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
+    check.expect_almost_eq_const %arg0, dense<[0.999999, 2.0]> : tensor<2xf32>
     ```
   }];
 
@@ -60,14 +60,34 @@ def CHECK_AlmostEqOp :
   let assemblyFormat = "$lhs `,` $value attr-dict";
 }
 
-def CHECK_EqOp :
-    Op<CHECK_Dialect, "eq", [AllTypesMatch<["lhs", "value"]>]> {
+def CHECK_ExpectAlmostEqOp :
+    Op<CHECK_Dialect, "expect_almost_eq", [SameTypeOperands]> {
+  let summary = [{Checks that the tensor operands are almost equal}];
+  let description = [{
+    Verifies that the tensor operands with floating-point or complex element
+    types are almost equal within an implementation-defined tolerance.
+
+    ```mlir
+    check.expect_almost_eq %arg0, %arg1 : tensor<2xf32>
+    ```
+  }];
+
+  let arguments = (ins
+      TensorOf<[AnyFloat, AnyComplex]>:$lhs,
+      TensorOf<[AnyFloat, AnyComplex]>:$rhs
+  );
+
+  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
+}
+
+def CHECK_ExpectEqConstOp :
+    Op<CHECK_Dialect, "expect_eq_const", [AllTypesMatch<["lhs", "value"]>]> {
   let summary = [{Checks the tensor operand is equal to some constant}];
   let description =  [{
     Verifies that the tensor operand is exactly equal to a constant attribute.
 
     ```mlir
-    check.eq %arg0, dense<[1, 2]> : tensor<2xi32>
+    check.expect_eq_const %arg0, dense<[1, 2]> : tensor<2xi32>
     ```
   }];
 
@@ -77,6 +97,24 @@ def CHECK_EqOp :
   );
 
   let assemblyFormat = "$lhs `,` $value attr-dict";
+}
+
+def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
+  let summary = [{Checks that the tensor operands are equal}];
+  let description = [{
+    Verifies that the operands are exactly equal.
+
+    ```mlir
+    check.expect_eq %arg0, %arg1 : tensor<2xi32>
+    ```
+  }];
+
+  let arguments = (ins
+      HLO_Tensor:$lhs,
+      HLO_Tensor:$rhs
+  );
+
+  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
 #endif  // STABLEHLO_DIALECT_CHECK_OPS
