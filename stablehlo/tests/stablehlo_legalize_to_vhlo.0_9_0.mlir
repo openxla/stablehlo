@@ -1,6 +1,6 @@
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
 // RUN: stablehlo-interpreter --deserialize %s.bc | stablehlo-interpreter --serialize --target=0.9.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
-// RUN: diff <(stablehlo-interpreter --deserialize %s.bc | stablehlo-opt ) <(stablehlo-opt %s)
+// RUN: diff <(stablehlo-interpreter --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt %s)
 
 // ============ ATTRIBUTES ============
 

@@ -32,15 +32,15 @@ namespace mlir {
 namespace stablehlo {
 
 LogicalResult serializePortableArtifact(ModuleOp module,
-                                        std::string const& targetVersion,
+                                        StringRef targetVersion,
                                         raw_ostream& os) {
   MLIRContext* context = module.getContext();
 
   // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
   {
-    mlir::PassManager pm(context);
-    pm.addPass(mlir::stablehlo::createStablehloLegalizeToVhloPass());
-    if (!mlir::succeeded(pm.run(module))) {
+    PassManager pm(context);
+    pm.addPass(stablehlo::createStablehloLegalizeToVhloPass());
+    if (!succeeded(pm.run(module))) {
       return failure();
     }
   }
@@ -49,9 +49,9 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // Doing separately for now since we need to improve error messaging around
   // target version failures.
   {
-    mlir::PassManager pm(context);
-    pm.addPass(mlir::stablehlo::createVhloToVersionPass({targetVersion}));
-    if (!mlir::succeeded(pm.run(module))) {
+    PassManager pm(context);
+    pm.addPass(stablehlo::createVhloToVersionPass({targetVersion.str()}));
+    if (!succeeded(pm.run(module))) {
       return failure();
     }
   }
@@ -66,19 +66,18 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   return success();
 }
 
-mlir::OwningOpRef<mlir::ModuleOp> deserializePortableArtifact(
-    llvm::StringRef sourceStr, MLIRContext* context) {
-  // FIXME: Not sure if the lifetime is correct here.
+OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
+                                                  MLIRContext* context) {
   auto module = parseSourceString<ModuleOp>(sourceStr, context);
   if (!module) {
     return nullptr;
   }
 
   // Convert VHLO --> VHLO(current) --> StableHLO
-  mlir::PassManager pm(context);
-  pm.addPass(mlir::stablehlo::createVhloToVersionPass({"current"}));
-  pm.addPass(mlir::stablehlo::createVhloLegalizeToStablehloPass());
-  if (!mlir::succeeded(pm.run(*module))) {
+  PassManager pm(context);
+  pm.addPass(stablehlo::createVhloToVersionPass({"current"}));
+  pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
+  if (!succeeded(pm.run(*module))) {
     return nullptr;
   }
 

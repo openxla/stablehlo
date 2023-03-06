@@ -1,4 +1,4 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
-#define STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
+#ifndef STABLEHLO_DIALECT_SERIALIZATION_H
+#define STABLEHLO_DIALECT_SERIALIZATION_H
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
@@ -25,14 +25,14 @@ namespace stablehlo {
 
 // Write a StableHLO program to a portable artifact
 LogicalResult serializePortableArtifact(ModuleOp module,
-                                        std::string const& targetVersion,
+                                        StringRef targetVersion,
                                         raw_ostream& os);
 
 // Read StableHLO portable artifact
-mlir::OwningOpRef<mlir::ModuleOp> deserializePortableArtifact(
-    llvm::StringRef sourceStr, MLIRContext* context);
+OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
+                                                  MLIRContext* context);
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_DIALECT_ASSEMBLYFORMAT_H
+#endif  // STABLEHLO_DIALECT_SERIALIZATION_H

@@ -1,4 +1,4 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ limitations under the License.
 
 namespace mlir {
 
-TranslateFromMLIRRegistration stablehlo_interpreter(
+TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
@@ -81,21 +81,21 @@ TranslateFromMLIRRegistration stablehlo_interpreter(
       registry.insert<stablehlo::StablehloDialect>();
     });
 
-llvm::cl::opt<std::string> _target(
+llvm::cl::opt<std::string> targetOption(
     "target", llvm::cl::desc("Target version for serialization"),
     llvm::cl::init(""));
 
-TranslateFromMLIRRegistration stablehlo_serialize(
-    "serialize", "Serialize StableHLO program into portable artifact",
+TranslateFromMLIRRegistration serializeRegistration(
+    "serialize", "Serialize StableHLO program into a portable artifact",
     [](ModuleOp module, raw_ostream &os) -> LogicalResult {
-      return stablehlo::serializePortableArtifact(module, _target, os);
+      return stablehlo::serializePortableArtifact(module, targetOption, os);
     },
     [](DialectRegistry &registry) {
       mlir::registerAllDialects(registry);
       mlir::stablehlo::registerAllDialects(registry);
     });
 
-TranslateToMLIRRegistration stablehlo_deserialize(
+TranslateToMLIRRegistration deserializeRegistration(
     "deserialize", "Deserialize a portable artifact into a StableHLO program",
     [](llvm::StringRef input, mlir::MLIRContext *context) {
       return stablehlo::deserializePortableArtifact(input, context);

@@ -731,7 +731,6 @@ cc_library(
         "stablehlo/dialect/Serialization.h",
     ],
     deps = [
-        ":chlo_ops",
         ":stablehlo_ops",
         ":stablehlo_passes",
         ":vhlo_ops",
