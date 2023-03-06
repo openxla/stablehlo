@@ -577,14 +577,13 @@ Element power(const Element &e1, const Element &e2) {
       if (base.abs().isOne())
         exponent = exponent.abs();
       else
-        return Element(type, (int64_t)0);
+        return Element(type, 0l);
     }
     APInt result(base.getBitWidth(), 1, isSigned);
     while (!exponent.isZero()) {
       if (!(exponent & 1).isZero()) result *= base;
       base *= base;
-      exponent = isSupportedSignedIntegerType(type) ? exponent.ashr(1)
-                                                    : exponent.lshr(1);
+      exponent = exponent.lshr(1);
     }
     return Element(type, result);
   }
