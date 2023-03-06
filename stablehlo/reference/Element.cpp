@@ -144,12 +144,17 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
                                      debugString(type).c_str()));
 }
 
+// Assumes that x and y are finite values (zero, subnormal, or normal) with
+// same signs.
 template <typename T>
 std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
     T x, T y) {
+  if (x == 0.0 || y == 0.0)
+    return std::fabs(x - y) < std::numeric_limits<T>::epsilon();
+
   // The machine epsilon has to be scaled to the magnitude of the values used,
   return std::fabs(x - y) <=
-             std::numeric_limits<T>::epsilon() * std::fmax(x, y) ||
+             std::numeric_limits<T>::epsilon() * std::fabs(x + y) ||
          // unless the result is subnormal
          std::fabs(x - y) < std::numeric_limits<T>::min();
 }
@@ -161,9 +166,24 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
   llvm::APFloatBase::cmpResult cmpResult = f.compare(g);
   if (cmpResult == APFloat::cmpEqual) return true;
   if (cmpResult == APFloat::cmpUnordered) return f.isNaN() == g.isNaN();
-  if (!f.isFiniteNonZero() || !g.isFiniteNonZero()) return false;
+  if (!f.isFiniteNonZero() || !g.isFiniteNonZero()) {
+    // f and g could have the following cases
+    //          f                           g
+    //  (1) non-finite or zero      non-finite or zero
+    //  (2) non-finite or zero      finite and non-zero
+    //    (2.1) non-finite              finite and non-zero
+    //    (2.2) zero                    finite and non-zero
+    //  (3) finite and non-zero     non-finite or zero
+    //    (3.1) finite and non-zero     non-finite
+    //    (3.2) finite and non-zero     zero
+    //
+    // The equality of the cases (1), (2.1) and (3.1) have already been handled,
+    // and it safe to return false for these case. The remaining cases (2.2)
+    // and (3.2) will be handled in the following code.
+    if (!f.isZero() && !g.isZero()) return false;
+  }
 
-  // Both f and g are normal values.
+  // Both f and g are finite (zero, subnormal, or normal) values.
   if (f.isNegative() != g.isNegative()) return false;
   if (&f.getSemantics() == &llvm::APFloat::IEEEdouble())
     return areApproximatelyEqual<double>(f.convertToDouble(),
