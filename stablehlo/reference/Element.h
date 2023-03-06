@@ -149,6 +149,9 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
+/// Returns the exponentiation of first element to the power of second element.
+Element power(const Element &e1, const Element &e2);
+
 /// Returns the real part extracted from the Element object with floating-point
 /// or complex type.
 Element real(const Element &e);

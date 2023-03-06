@@ -116,6 +116,34 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                                      debugString(type).c_str()));
 }
 
+template <typename FloatFn, typename ComplexFn>
+Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
+                              FloatFn floatFn, ComplexFn complexFn) {
+  Type type = lhs.getType();
+  if (lhs.getType() != rhs.getType())
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(lhs.getType()).c_str(),
+                                       debugString(rhs.getType()).c_str()));
+
+  if (isSupportedFloatType(type)) {
+    return Element(type, floatFn(lhs.getFloatValue().convertToDouble(),
+                                 rhs.getFloatValue().convertToDouble()));
+  }
+
+  if (isSupportedComplexType(type)) {
+    return Element(
+        type, complexFn(std::complex<double>(
+                            lhs.getComplexValue().real().convertToDouble(),
+                            lhs.getComplexValue().imag().convertToDouble()),
+                        std::complex<double>(
+                            rhs.getComplexValue().real().convertToDouble(),
+                            rhs.getComplexValue().imag().convertToDouble())));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 template <typename T>
 std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
     T x, T y) {
@@ -535,6 +563,35 @@ Element min(const Element &e1, const Element &e2) {
                           ? lhs.imag() < rhs.imag()
                           : lhs.real() < rhs.real();
         return cmpRes ? lhs : rhs;
+      });
+}
+
+Element power(const Element &e1, const Element &e2) {
+  Type type = e1.getType();
+
+  if (isSupportedIntegerType(type)) {
+    bool isSigned = isSupportedSignedIntegerType(type);
+    APInt base = e1.getIntegerValue();
+    APInt exponent = e2.getIntegerValue();
+    if (isSigned && exponent.isNegative()) {
+      if (base.abs().isOne())
+        exponent = exponent.abs();
+      else
+        return Element(type, 0l);
+    }
+    APInt result(base.getBitWidth(), 1, isSigned);
+    while (!exponent.isZero()) {
+      if (!(exponent & 1).isZero()) result *= base;
+      base *= base;
+      exponent = exponent.lshr(1);
+    }
+    return Element(type, result);
+  }
+
+  return mapWithUpcastToDouble(
+      e1, e2, [](double lhs, double rhs) { return std::pow(lhs, rhs); },
+      [](std::complex<double> lhs, std::complex<double> rhs) {
+        return std::pow(lhs, rhs);
       });
 }
 

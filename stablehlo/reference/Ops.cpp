@@ -292,6 +292,14 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   return result;
 }
 
+Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs,
+                   TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, power(lhs.get(*it), rhs.get(*it)));
+  return result;
+}
+
 Tensor evalRealOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
@@ -575,6 +583,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalPadOp(runtimeOperand, runtimePaddingValue, edgePaddingLow,
                     interiorPadding, padOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto powerOp = dyn_cast<PowOp>(op)) {
+      Tensor runtimeLhs = scope.find(powerOp.getLhs());
+      Tensor runtimeRhs = scope.find(powerOp.getRhs());
+      Tensor runtimeResult =
+          evalPowerOp(runtimeLhs, runtimeRhs, powerOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
       Tensor runtimeLhs = scope.find(remOp.getLhs());

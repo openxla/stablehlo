@@ -114,7 +114,7 @@ one of the following tracking labels.
 | pad                      | yes           | yes          | yes            | yes             | yes         |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
 | popcnt                   | yes           | yes          | yes            | yes             | no          |
-| power                    | yes           | yes          | yes            | yes             | no          |
+| power                    | yes           | yes          | yes            | yes             | yes         |
 | real                     | yes           | yes          | yes            | yes             | yes         |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |

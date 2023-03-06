@@ -805,8 +805,9 @@ def StableHLO_MulOp : StableHLO_BinaryElementwiseOp<"multiply",
 }
 
 def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntFpOrComplexTensor> {
-  let summary = "Pow operation";
+      [Pure, HLO_CompatibleOperandsAndResultType /* pow_c1 */],
+      HLO_IntFpOrComplexTensor /* pow_i1, pow_i2 */> {
+  let summary = "Power operation";
   let description = [{
     Performs element-wise exponentiation of `lhs` tensor by `rhs` tensor and
     produces a `result` tensor.
@@ -816,7 +817,7 @@ def StableHLO_PowOp : StableHLO_BinaryElementwiseOp<"power",
 
     Example:
     ```mlir
-    %result = stablehlo.power %lhs, %rhs : tensor<6xf32>
+    %result = stablehlo.power %lhs, %rhs : tensor<6xf64>
     ```
   }];
 }
