@@ -107,11 +107,10 @@ against the user-provided expected data values. The data values (B) are
 hard-coded in the program itself using `stablehlo.constant` operations. The
 interpreter evaluates the input program. The output(s) of the op under test
 is checked via checks (e.g. `check.expect_eq`, `check.expect_almost_eq`), as
-shown below.
-`check.expect_eq` and `check.expect_eq_const` checks for bitwise equality for
-any supported type and `check.expect_almost_eq` and
-`check.expect_almost_eq_const`checks for nearly equality within a tolerance,
-described below, for floating point and complex types.
+shown below. `check.expect_eq` and `check.expect_eq_const` check for bitwise
+equality for any supported type and `check.expect_almost_eq` and
+`check.expect_almost_eq_const` check for near equality within a tolerance,
+explained in testing guideline (G6), for floating point and complex types.
 
 ```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
