@@ -1,4 +1,4 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -79,8 +79,7 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
   if (failed(failOrVersion)) {
     if (versionRef.empty())
       return emitError(op->getLoc())
-             << "No target version specified. Specify target using: "
-                "--vhlo-to-version='target=[targetVersion]'\n"
+             << "No target version specified.\n"
              << "Target version must be of the form #.#.# or 'current'.";
     return emitError(op->getLoc())
            << "Invalid target version argument '" << versionRef << "'\n"

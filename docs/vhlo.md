@@ -86,45 +86,35 @@ optional and should only be used if forward compatibility is needed.
 
 ### Using the `stablehlo-opt` tool
 
-This is the easiest way to create and read a stable artifact. MLIR passes and
+This is the easiest way to create and read a portable artifact. MLIR passes and
 flags can be used to convert and serialize programs.
 
 ```bash
-# Create a bytecode
-$ stablehlo-opt file.mlir --stablehlo-legalize-to-vhlo --vhlo-to-version='target=0.9.0' --emit-bytecode > portable_artifact.mlir.bc
+# Create a portable artifact
+$ stablehlo-interpreter --serialize file.mlir --target=0.9.0 > portable_artifact.mlir.bc
 
 # Load program (guaranteed within compatibility window)
 # Works on both the old and new versions of stablehlo-opt
-$ stablehlo-opt portable_artifact.mlir.bc --vhlo-to-version='target=current' --vhlo-legalize-to-stablehlo
+$ stablehlo-interpreter --deserialize portable_artifact.mlir.bc
 ```
 
 ### Using C++ APIs
 
-For programmatic workflows, StableHLO provides passes to conver mlir modules:
+For programmatic workflows, StableHLO provides the following APIs to create
+portable artifacts:
 
 ```c++
-#include "stablehlo/transforms/Passes.h"
+// From: #include "stablehlo/dialect/Serialization.h"
 
-// Convert StableHLO to VHLO, downgrade if needed
-PassManager pm(&context);
-pm.addPass(stablehlo::createStablehloLegalizeToVhloPass());
-pm.addPass(stablehlo::createVhloToVersionPass({"0.9.0"}));
-if (!succeeded(pm.run(*module))) {
-  return failure();
-}
+// Write a StableHLO program to a portable artifact
+LogicalResult serializePortableArtifact(ModuleOp module,
+                                        StringRef targetVersion,
+                                        raw_ostream& os);
 
-// Upgrade VHLO, convert to StableHLO
-PassManager pm(context);
-pm.addPass(stablehlo::createVhloToVersionPass({"current"}));
-pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
-if (!succeeded(pm.run(**module))) {
-  return failure();
-}
+// Read StableHLO portable artifact
+OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
+                                                  MLIRContext* context);
 ```
-
-Bytecode can be written using [writeBytecodeToFile](https://mlir.llvm.org/doxygen/namespacemlir.html#ae60045f177ed8332dba883593aaabea8)
-and read using [parseSourceFile](https://mlir.llvm.org/doxygen/namespacemlir.html#a731c3e653fe7b19e18f2ca619aa763fa)
-or [parseSourceString](https://mlir.llvm.org/doxygen/namespacemlir.html#a44bf3f5340c3c0e98c02de173392fe8c).
 
 ### Using Python APIs
 
