@@ -24,12 +24,12 @@ set(STABLEHLO_TEST_DEPENDS
         stablehlo-opt
         stablehlo-interpreter
 )
-add_lit_testsuite(check-stablehlo-compatibility-lit "Running the StableHLO compatibility tests"
+add_lit_testsuite(check-stablehlo-testdata "Running the testdata/ suite"
         ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${STABLEHLO_TEST_DEPENDS}
         )
-set_target_properties(check-stablehlo-compatibility-lit PROPERTIES FOLDER "Tests")
-add_lit_testsuites(STABLEHLO_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
+set_target_properties(check-stablehlo-testdata PROPERTIES FOLDER "Tests")
+add_lit_testsuites(STABLEHLO_TESTDATA_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
 
-add_dependencies(check-stablehlo check-stablehlo-compatibility-lit)
+add_dependencies(check-stablehlo check-stablehlo-testdata)
 
