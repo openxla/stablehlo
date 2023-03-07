@@ -42,7 +42,6 @@ class Element {
   Element(Type type, std::complex<APFloat> value);
   Element(Type type, std::complex<double> value);
   Element(const Element &other) = default;
-  Element() = default;
   /// @}
 
   /// Assignment operator.

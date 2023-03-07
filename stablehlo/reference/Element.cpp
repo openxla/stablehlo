@@ -190,16 +190,32 @@ Element::Element(Type type, bool value) : type_(type), value_(value) {}
 
 Element::Element(Type type, APFloat value) : type_(type), value_(value) {}
 
+// The double `value` can be used to construct two types: floating-point or
+// complex element types. By specifying a double value for complex element type,
+// the real part is set to `value`, and the imaginary part is zero.
 Element::Element(Type type, double value) {
-  if (!isSupportedFloatType(type))
+  if (isSupportedFloatType(type)) {
+    APFloat floatVal(value);
+    bool roundingErr;
+    floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
+                     APFloat::rmNearestTiesToEven, &roundingErr);
+    type_ = type;
+    value_ = floatVal;
+  } else if (isSupportedComplexType(type)) {
+    APFloat real(value);
+    APFloat imag(0.0);
+    auto floatTy = type.cast<ComplexType>().getElementType().cast<FloatType>();
+    bool roundingErr;
+    real.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    type_ = type;
+    value_ = std::make_pair(real, imag);
+  } else {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
-  APFloat floatVal(static_cast<double>(value));
-  bool roundingErr;
-  floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
-                   APFloat::rmNearestTiesToEven, &roundingErr);
-  type_ = type;
-  value_ = floatVal;
+  }
 }
 
 Element::Element(Type type, std::complex<APFloat> value)
@@ -531,10 +547,7 @@ Element log(const Element &el) {
 }
 
 Element logistic(const Element &el) {
-  Element one;
-  if (isSupportedFloatType(el.getType())) one = Element(el.getType(), 1.0);
-  if (isSupportedComplexType(el.getType()))
-    one = Element(el.getType(), std::complex<double>(1.0));
+  auto one = Element(el.getType(), 1.0);
   return one / (one + exponential(-el));
 }
 
