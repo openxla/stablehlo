@@ -577,7 +577,7 @@ Element power(const Element &e1, const Element &e2) {
       if (base.abs().isOne())
         exponent = exponent.abs();
       else
-        return Element(type, 0l);
+        return Element(type, static_cast<int64_t>(0));
     }
     APInt result(base.getBitWidth(), 1, isSigned);
     while (!exponent.isZero()) {
