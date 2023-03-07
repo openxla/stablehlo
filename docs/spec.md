@@ -5186,8 +5186,6 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 #### Examples
 
 ```mlir
-// Sort along dimension 0
-
 // %input0 = [[1, 2, 3], [3, 2, 1]]
 // %input1 = [[3, 2, 1], [1, 2, 3]]
 %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
@@ -5202,25 +5200,9 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 } : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
 // %result0 = [[3, 2, 3], [1, 2, 1]]
 // %result1 = [[1, 2, 1], [3, 2, 3]]
-
-
-// Sort along dimension 1
-
-// %input0 = [[1, 2, 3], [3, 2, 1]]
-// %input1 = [[3, 2, 1], [1, 2, 3]]
-%result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %predicate = "stablehlo.compare"(%arg0, %arg1) {
-      comparison_direction = #stablehlo<comparison_direction GT>
-    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-    "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
-}) {
-  dimension = 1 : i64,
-  is_stable = true
-} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
-// %result0 = [[3, 2, 1], [3, 2, 1]]
-// %result1 = [[1, 2, 3], [1, 2, 3]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_sort.mlir)
 
 ### sqrt
 

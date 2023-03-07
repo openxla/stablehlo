@@ -143,7 +143,7 @@ one of the following tracking labels.
 | sign                     | yes           | yes          | yes            | yes             | no          |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | yes         |
-| sort                     | yes           | yes          | yes            | no              | no          |
+| sort                     | yes           | yes          | yes            | no              | yes         |
 | sqrt                     | yes           | yes          | yes            | yes             | yes         |
 | subtract                 | yes           | yes          | yes            | yes             | yes         |
 | tanh                     | yes           | yes          | yes            | yes             | yes         |

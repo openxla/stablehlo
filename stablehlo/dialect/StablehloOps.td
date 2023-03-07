@@ -2601,8 +2601,9 @@ def StableHLO_SetDimensionSizeOp: StableHLO_Op<"set_dimension_size", [Pure,
 }
 
 def StableHLO_SortOp : StableHLO_Op<"sort",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape, InferTensorType]> {
-  let summary = "Sort operation";
+      [RecursiveMemoryEffects, SameOperandsAndResultShape /*sort_c1, sort_c3*/,
+      InferTensorType /*sort_c2*/]> {
+  let summary = "Sort operator";
   let description = [{
     Sorts a variadic number of tensors in `inputs` together, according to a
     custom `comparator`, along the given `dimension` and produces a variadic
@@ -2614,26 +2615,23 @@ def StableHLO_SortOp : StableHLO_Op<"sort",
     Example:
     ```mlir
     %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-        %predicate = "stablehlo.compare"(%arg0, %arg1) {
-          comparison_direction = #stablehlo<comparison_direction GT>
-          } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-        "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>, %arg2: tensor<i64>, %arg3: tensor<i64>):
+        %predicate = stablehlo.compare GT, %arg0, %arg1 : (tensor<i64>, tensor<i64>) -> tensor<i1>
+        stablehlo.return %predicate : tensor<i1>
     }) {
       dimension = 0 : i64,
       is_stable = true
-    } : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
-    ```
+    } : (tensor<2x3xi64>, tensor<2x3xi64>) -> (tensor<2x3xi64>, tensor<2x3xi64>)
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    DefaultValuedOptionalAttr<I64Attr, "-1">:$dimension,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_stable
+    Variadic<HLO_Tensor>:$inputs /*sort_i1*/,
+    DefaultValuedOptionalAttr<I64Attr, "-1">:$dimension /*sort_i2*/,
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_stable /*sort_i3*/
   );
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  let regions = (region SizedRegion<1>:$comparator);
+  let regions = (region SizedRegion<1>:$comparator /*sort_i4*/);
 
   let builders = [
     OpBuilder<(ins "ValueRange":$inputs, CArg<"int64_t", "-1">:$dimension,

@@ -2667,26 +2667,84 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
 
 // -----
 
-func.func @sort_no_operands() {
-  // expected-error @+1 {{expected named operation to have at least 1 result}}
-  %0:0 = "stablehlo.sort"() ({
-  ^bb0(%arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<i32>, %arg4: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg1, %arg2) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+func.func @sort_c4(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{dimension attribute value must be in range [-2, 2), but found -3}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
     "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : () -> ()
+  }) {dimension = -3 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
 }
 
 // -----
 
-// CHECK-LABEL: func @sort_unknown_rank
-func.func @sort_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>) {
+func.func @sort_c4(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{dimension attribute value must be in range [-2, 2), but found 2}}
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
     %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    %8 = "stablehlo.select"(%7, %7, %7) : (tensor<i1>, tensor<i1>, tensor<i1>) -> tensor<*xi1>
-    "stablehlo.return"(%8) : (tensor<*xi1>) -> ()
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  }) {dimension = 2 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator block should have 4 arguments}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_c5(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator block argument #0 should be of type 'tensor<f32>' but got 'tensor<i32>'}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<*xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator block argument #2 should be of type 'tensor<i32>' but got 'tensor<f32>'}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator must return single output but got 2}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%7, %7) : (tensor<i1>, tensor<i1>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
+  func.return
+}
+
+// -----
+
+func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{comparator must return tensor<i1> but got 'tensor<i32>'}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    "stablehlo.return"(%arg2) : (tensor<i32>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
   func.return
 }
 
@@ -2703,132 +2761,14 @@ func.func @sort_dynamism(%input0: tensor<?x16xf32>, %input1: tensor<16x16xi32>) 
 
 // -----
 
+// CHECK-LABEL: func @sort_unknown_rank
 func.func @sort_unknown_rank(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator block argument #0 should be of type 'tensor<f32>' but got 'tensor<i32>'}}
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<i32>, tensor<i32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    %8 = "stablehlo.select"(%7, %7, %7) : (tensor<i1>, tensor<i1>, tensor<i1>) -> tensor<*xi1>
+    "stablehlo.return"(%8) : (tensor<*xi1>) -> ()
   }) {dimension = 1 : i64, is_stable = true} : (tensor<*xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_different_dims(%input0: tensor<16x8xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{op requires the same shape for all operands and results}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x8xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_dim_out_of_range(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{dimension attribute value must be in range [-2, 2), but found 10}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 10 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_dim_out_of_range(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{dimension attribute value must be in range [-2, 2), but found -3}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = -3 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_wrong_block_arg_count(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator block should have 4 arguments}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_wrong_block_arg_type(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator block argument #3 should be of type 'tensor<i32>' but got 'tensor<f32>'}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<f32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_invalid_comparator_return_type(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator must return tensor<i1> but got 'tensor<3xi64>'}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %cst = stablehlo.constant dense<[2, 3, 5]> : tensor<3xi64>
-    "stablehlo.return"(%cst) : (tensor<3xi64>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_invalid_comparator_return_type(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator must return tensor<i1> but got 'tensor<i32>'}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    "stablehlo.return"(%arg2) : (tensor<i32>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_invalid_comparator_return_type(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator must return single output but got 2}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7, %7) : (tensor<i1>, tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_invalid_return_types(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{op inferred type(s) 'tensor<16x16xf32>', 'tensor<16x16xi32>' are incompatible with return type(s) of operation 'tensor<16x16xf32>'}}
-  %0 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_invalid_return_types(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{inferred type(s) 'tensor<16x16xf32>', 'tensor<16x16xi32>' are incompatible with return type(s) of operation 'tensor<16x16xf32>', 'tensor<16x16xf32>'}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xf32>)
   func.return
 }
 

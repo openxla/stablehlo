@@ -418,6 +418,18 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) -> tenso
 
 // -----
 
+func.func @sort_c2(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
+  // expected-error @+1 {{inferred type(s) 'tensor<16x16xf32>', 'tensor<16x16xi32>' are incompatible with return type(s) of operation 'tensor<16x16xf32>', 'tensor<16x16xf32>'}}
+  %0:2 = "stablehlo.sort"(%input0, %input1) ({
+  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+    %7 = "stablehlo.compare"(%arg0, %arg1) {compare_type = #stablehlo<comparison_type FLOAT>, comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
+    "stablehlo.return"(%7) : (tensor<i1>) -> ()
+  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xf32>)
+  func.return
+}
+
+// -----
+
 // CHECK-LABEL: func @outfeed
 func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.outfeed"(%arg0, %arg1) {

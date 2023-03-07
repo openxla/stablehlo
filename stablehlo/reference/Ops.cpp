@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "stablehlo/reference/Ops.h"
 
+#include <algorithm>
+#include <numeric>
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Errc.h"
@@ -268,6 +271,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto sortOp = dyn_cast<SortOp>(op)) {
+      SmallVector<Tensor> runtimeOperands = scope.find(sortOp.getInputs());
+      auto runtimeResults =
+          evalSortOp(runtimeOperands, sortOp.getDimension(),
+                     sortOp.getIsStable(), sortOp.getComparator(), scope);
+      scope.add(op.getResults(), {runtimeResults});
     } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
       Tensor runtimeOperand = scope.find(sqrtOp.getOperand());
       Tensor runtimeResult = evalSqrtOp(runtimeOperand, sqrtOp.getType());
@@ -728,6 +737,56 @@ Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
     result.set(*resultIt, operand.get(startIndices + *resultIt * strides));
   }
   return result;
+}
+
+SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
+                               bool isStable, Region &comparator,
+                               Scope &scope) {
+  SmallVector<Tensor> runtimeResults;
+  for (auto input : inputs) runtimeResults.push_back(Tensor(input.getType()));
+  if (dimension < 0) dimension += inputs[0].getRank();
+  SmallVector<int64_t> indices(inputs.front().getShape()[dimension]);
+  auto inputShape = inputs.front().getShape();
+  inputShape[dimension] = 1;
+  auto inputSizes = Sizes(inputShape);
+  for (auto resultIt = IndexSpaceIterator(inputSizes, Index(inputShape.size()));
+       resultIt != IndexSpaceIterator(inputSizes, std::nullopt); ++resultIt) {
+    std::iota(indices.begin(), indices.end(), 0);
+    auto compare = [&](int64_t lhs, int64_t rhs) {
+      SmallVector<Tensor> args;
+      auto lhsIndex = *resultIt;
+      auto rhsIndex = *resultIt;
+      lhsIndex[dimension] = lhs;
+      rhsIndex[dimension] = rhs;
+      for (auto input : inputs) {
+        auto type =
+            comparator.front().getArgumentTypes()[0].dyn_cast<TensorType>();
+        auto lhs = Tensor(type);
+        auto rhs = Tensor(type);
+        lhs.set({}, input.get(lhsIndex));
+        rhs.set({}, input.get(rhsIndex));
+        args.push_back(lhs);
+        args.push_back(rhs);
+      }
+      auto cmpResult = eval(comparator, args, &scope);
+      return cmpResult[0].get({}).getBooleanValue();
+    };
+
+    if (isStable)
+      std::stable_sort(indices.begin(), indices.end(), compare);
+    else
+      std::sort(indices.begin(), indices.end(), compare);
+    auto resultIdx = *resultIt;
+    for (auto [dst, src] : llvm::enumerate(indices)) {
+      for (auto [input, result] : llvm::zip(inputs, runtimeResults)) {
+        resultIdx[dimension] = src;
+        Element resultElement = input.get(resultIdx);
+        resultIdx[dimension] = static_cast<int64_t>(dst);
+        result.set(resultIdx, resultElement);
+      }
+    }
+  }
+  return runtimeResults;
 }
 
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType) {
