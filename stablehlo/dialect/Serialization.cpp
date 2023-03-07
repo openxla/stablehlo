@@ -56,13 +56,9 @@ LogicalResult serializePortableArtifact(ModuleOp module,
     }
   }
 
-  // Writes the header VHLO_<serializerVersion>_<targetVersion>
-  std::string artifactHeader;
-  llvm::raw_string_ostream headerOs(artifactHeader);
-  headerOs << "VHLO_" << vhlo::Version::getCurrentVersion() << "_"
-           << vhlo::Version::fromString(targetVersion);
-  BytecodeWriterConfig config(artifactHeader);
-  writeBytecodeToFile(module, os, config);
+  // TODO(#1282): Consider adding a header to identify StableHLO portable
+  // artifact versions.
+  writeBytecodeToFile(module, os);
   return success();
 }
 
