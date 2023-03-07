@@ -91,11 +91,11 @@ flags can be used to convert and serialize programs.
 
 ```bash
 # Create a portable artifact
-$ stablehlo-interpreter --serialize file.mlir --target=0.9.0 > portable_artifact.mlir.bc
+$ stablehlo-translate --serialize file.mlir --target=0.9.0 > portable_artifact.mlir.bc
 
 # Load program (guaranteed within compatibility window)
 # Works on both the old and new versions of stablehlo-opt
-$ stablehlo-interpreter --deserialize portable_artifact.mlir.bc
+$ stablehlo-translate --deserialize portable_artifact.mlir.bc
 ```
 
 ### Using C++ APIs

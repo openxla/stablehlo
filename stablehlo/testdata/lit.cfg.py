@@ -64,7 +64,7 @@ tool_dirs = [
 ]
 tools = [
     'stablehlo-opt',
-    'stablehlo-interpreter',
+    'stablehlo-translate',
 ]
 
 llvm_config.add_tool_substitutions(tools, tool_dirs)

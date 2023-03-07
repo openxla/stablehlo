@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @clamp_op_test_si64() {
   %min = stablehlo.constant dense<[1, 5, -5]> : tensor<3xi64>

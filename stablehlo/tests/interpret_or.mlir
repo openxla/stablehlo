@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @or_op_test_si4() {
   %0 = stablehlo.constant dense<[7, -8, -8]> : tensor<3xi4>

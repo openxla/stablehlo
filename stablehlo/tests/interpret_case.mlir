@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @case_negative_index_default() {
   %index = stablehlo.constant dense<-1> : tensor<i32>

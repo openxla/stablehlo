@@ -122,8 +122,8 @@ func.func @add_op_test_ui4() {
 }
 ```
 
-A test utility `stablehlo-interpreter`
-([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/tools/StablehloInterpreterMain.cpp))
+A test utility `stablehlo-translate --interpret`
+([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/tools/StablehloTranslateMain.cpp))
 is responsible for parsing the program, interpreting each function including the
 operations constituting the function. We have a dedicated test-suite, consisting
 of several tests exercising various runtime behaviors, for each StableHLO Op.

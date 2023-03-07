@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @slice_op() {
   %operand = stablehlo.constant dense<[[0, 0, 1, 0, 0, 1],

@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @select_op_test_si64() {
   %pred = stablehlo.constant dense<[true, false, true]> : tensor<3xi1>

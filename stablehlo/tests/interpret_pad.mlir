@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @pad() {
   %operand = stablehlo.constant dense<[[0, 0, 0, 0],

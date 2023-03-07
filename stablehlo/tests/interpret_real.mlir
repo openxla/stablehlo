@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @real_op_test_f64() {
   %0 = stablehlo.constant dense<[1.0, 2.0]> : tensor<2xf64>

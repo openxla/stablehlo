@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @reshape_op_test_si32() {
   %0 = stablehlo.constant dense<[[1,2,3,4,5,6]]> : tensor<1x6xi32>
