@@ -796,9 +796,9 @@ cc_library(
 )
 
 cc_binary(
-    name = "stablehlo-interpreter",
+    name = "stablehlo-translate",
     srcs = [
-        "stablehlo/tools/StablehloInterpreterMain.cpp",
+        "stablehlo/tools/StablehloTranslateMain.cpp",
     ],
     deps = [
         ":reference_ops",
@@ -833,7 +833,7 @@ filegroup(
     name = "test_data",
     testonly = True,
     data = [
-        ":stablehlo-interpreter",
+        ":stablehlo-translate",
         ":stablehlo-opt",
         "@llvm-project//llvm:FileCheck",
     ],

@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @abs_op_test_si64() {
   %operand = stablehlo.constant dense<[-2, 0, 2]> : tensor<3xi64>

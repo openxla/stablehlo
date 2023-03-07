@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @while() {
   // int i = 10;

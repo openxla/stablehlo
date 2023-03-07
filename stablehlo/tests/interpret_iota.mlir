@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @iota_op_test_si4_dim_0() {
   %0 = stablehlo.iota dim = 0 : tensor<3x4xi4>

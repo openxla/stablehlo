@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @broadcast_in_dim() {
   %operand = stablehlo.constant dense<[[1], [2], [3]]> : tensor<3x1xi64>

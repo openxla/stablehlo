@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @rsqrt_op_test_f64() {
   %operand = stablehlo.constant dense<[[1.0, 4.0], [9.0, 25.0]]> : tensor<2x2xf64>

@@ -1,4 +1,4 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @floor_op_test_bf16() {
   %0 = stablehlo.constant dense<[0xFF80, -2.5, 0x8001, -0.0, 0.0, 0x0001, 2.5, 0x7F80, 0x7FC0]>  : tensor<9xbf16>
