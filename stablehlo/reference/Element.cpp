@@ -144,21 +144,6 @@ Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
                                      debugString(type).c_str()));
 }
 
-// Assumes that x and y are finite values (zero, subnormal, or normal) with
-// same signs.
-template <typename T>
-std::enable_if_t<std::is_floating_point<T>::value, bool> areApproximatelyEqual(
-    T x, T y) {
-  if (x == 0.0 || y == 0.0)
-    return std::fabs(x - y) < std::numeric_limits<T>::epsilon();
-
-  // The machine epsilon has to be scaled to the magnitude of the values used,
-  return std::fabs(x - y) <=
-             std::numeric_limits<T>::epsilon() * std::fabs(x + y) ||
-         // unless the result is subnormal
-         std::fabs(x - y) < std::numeric_limits<T>::min();
-}
-
 // Checks if two APFloat values, f and g, are almost equal.
 bool areApproximatelyEqual(APFloat f, APFloat g) {
   if (&f.getSemantics() != &g.getSemantics()) return false;
@@ -185,12 +170,7 @@ bool areApproximatelyEqual(APFloat f, APFloat g) {
 
   // Both f and g are finite (zero, subnormal, or normal) values.
   if (f.isNegative() != g.isNegative()) return false;
-  if (&f.getSemantics() == &llvm::APFloat::IEEEdouble())
-    return areApproximatelyEqual<double>(f.convertToDouble(),
-                                         g.convertToDouble());
-
-  // Convert the half and bfloat16 types to float before comparison.
-  return areApproximatelyEqual<float>(f.convertToFloat(), g.convertToFloat());
+  return std::fabs(f.convertToDouble() - g.convertToDouble()) <= 0.0001;
 }
 
 }  // namespace
