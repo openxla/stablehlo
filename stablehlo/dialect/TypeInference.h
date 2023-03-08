@@ -258,8 +258,8 @@ LogicalResult inferOptimizationBarrierOp(
 LogicalResult inferOutfeedOp(Dialect* dialect, std::optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes);
 
-LogicalResult inferPadOp(std::optional<Location> location, Value operand,
-                         Value paddingValue,
+LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
+                         Type paddingValueType,
                          DenseIntElementsAttr edgePaddingLow,
                          DenseIntElementsAttr edgePaddingHigh,
                          DenseIntElementsAttr interiorPadding,
