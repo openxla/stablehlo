@@ -2461,14 +2461,14 @@ LogicalResult inferOutfeedOp(Dialect* dialect, std::optional<Location> location,
   return success();
 }
 
-LogicalResult inferPadOp(std::optional<Location> location, Value operand,
-                         Value paddingValue,
+LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
+                         Type paddingValueType,
                          DenseIntElementsAttr edgePaddingLow,
                          DenseIntElementsAttr edgePaddingHigh,
                          DenseIntElementsAttr interiorPadding,
                          SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto inputType = operand.getType().cast<RankedTensorType>();
-  auto padType = paddingValue.getType().cast<RankedTensorType>();
+  auto inputType = operandType.cast<RankedTensorType>();
+  auto padType = paddingValueType.cast<RankedTensorType>();
 
   // pad_i2
   if (padType.getRank() != 0)

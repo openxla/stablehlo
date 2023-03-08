@@ -754,7 +754,8 @@ struct RefineDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
 
     SmallVector<Type> inferredReturnTypes;
     if (failed(hlo::inferPadOp(
-            /*location=*/{}, op.getOperand(), op.getPaddingValue(),
+            /*location=*/{}, op.getOperand().getType(),
+            op.getPaddingValue().getType(),
             rewriter.getI64TensorAttr(edgePaddingLow),
             rewriter.getI64TensorAttr(edgePaddingHigh),
             rewriter.getI64TensorAttr(interiorPadding), inferredReturnTypes)))
