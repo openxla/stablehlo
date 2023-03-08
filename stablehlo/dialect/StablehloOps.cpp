@@ -185,7 +185,6 @@ INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(PopulationCountOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(PowOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ReducePrecisionOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(RemOp)
-INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(ReverseOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(RoundNearestEvenOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(RoundOp)
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(RsqrtOp)
@@ -1795,6 +1794,15 @@ LogicalResult OptimizationBarrierOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 LogicalResult ReverseOp::verify() {
   return hlo::verifyReverseOp(getLoc(), getOperand(), getDimensions());
+}
+
+LogicalResult ReverseOp::inferReturnTypeComponents(
+    MLIRContext* context, std::optional<Location> location,
+    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  ReverseOp::Adaptor adaptor(operands, attributes, regions);
+  return hlo::inferReverseOp(location, adaptor.getOperand().getType(),
+                             inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
