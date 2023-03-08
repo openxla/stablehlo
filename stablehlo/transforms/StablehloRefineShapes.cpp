@@ -621,9 +621,9 @@ struct RefineConvolutionOpPattern : public OpRewritePattern<ConvolutionOp> {
                                 PatternRewriter& rewriter) const override {
     SmallVector<ShapedTypeComponents> inferredReturnShapes;
     if (failed(hlo::inferConvolutionOp(
-            /*location=*/{}, op.getLhs(), op.getRhs(), op.getWindowStrides(),
-            op.getPadding(), op.getLhsDilation(), op.getRhsDilation(),
-            op.getWindowReversal(),
+            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
+            op.getWindowStrides(), op.getPadding(), op.getLhsDilation(),
+            op.getRhsDilation(), op.getWindowReversal(),
             op.getDimensionNumbers().getInputBatchDimension(),
             op.getDimensionNumbers().getInputFeatureDimension(),
             op.getDimensionNumbers().getInputSpatialDimensions(),
@@ -707,9 +707,9 @@ struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
 
     SmallVector<ShapedTypeComponents> inferredReturnShapes;
     if (failed(hlo::inferConvolutionOp(
-            /*location=*/{}, op.getLhs(), op.getRhs(), op.getWindowStrides(),
-            paddingAttr, op.getLhsDilation(), op.getRhsDilation(),
-            op.getWindowReversal(),
+            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
+            op.getWindowStrides(), paddingAttr, op.getLhsDilation(),
+            op.getRhsDilation(), op.getWindowReversal(),
             op.getDimensionNumbers().getInputBatchDimension(),
             op.getDimensionNumbers().getInputFeatureDimension(),
             op.getDimensionNumbers().getInputSpatialDimensions(),

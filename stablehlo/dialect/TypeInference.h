@@ -165,7 +165,7 @@ LogicalResult inferConvertOp(
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferConvolutionOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<DenseIntElementsAttr> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
     std::optional<DenseIntElementsAttr> lhsDilation,
@@ -372,7 +372,7 @@ LogicalResult verifyCollectivePermuteOp(std::optional<Location> location,
                                         DenseIntElementsAttr sourceTargetPairs);
 
 LogicalResult verifyConvolutionOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<DenseIntElementsAttr> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
     std::optional<DenseIntElementsAttr> lhsDilation,
@@ -384,7 +384,7 @@ LogicalResult verifyConvolutionOp(
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    std::optional<ArrayAttr> precisionConfig, Value result);
+    std::optional<ArrayAttr> precisionConfig, Type resultType);
 
 LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
                           Value rhs, std::optional<ArrayAttr> precisionConfig,

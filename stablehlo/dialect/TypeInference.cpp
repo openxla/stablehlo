@@ -756,7 +756,7 @@ LogicalResult verifyRegionNotEmpty(std::optional<Location> location,
 //  dimensions in the range [0,num) because of the presence of 'unknown'
 //  dimensions (ref. `printConvolutionDimensions()`)
 LogicalResult isSpatialDimensionsValid(
-    Value lhs, int64_t inputBatchDimension, int64_t inputFeatureDimension,
+    Type lhsType, int64_t inputBatchDimension, int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
@@ -792,7 +792,7 @@ LogicalResult isSpatialDimensionsValid(
   std::copy(outputSpatialDimensions.begin(), outputSpatialDimensions.end(),
             OutputDimNums.begin() + 2);
 
-  auto numDims = lhs.getType().cast<RankedTensorType>().getRank();
+  auto numDims = lhsType.cast<RankedTensorType>().getRank();
   const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
 
   if (!llvm::all_of(inputDimNums, inRange) ||
@@ -856,7 +856,7 @@ LogicalResult verifyPrecisionConfig(std::optional<Location> loc,
 //          dim(rhs, o) (or dim(output, f')) % fgc == 0
 //  P3. Precision config is null, of size 0 or of size 2.
 LogicalResult verifyConvolutionAttributes(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     int64_t inputBatchDimension, int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
@@ -866,7 +866,7 @@ LogicalResult verifyConvolutionAttributes(
     std::optional<ArrayAttr> precisionConfig) {
   // P1.
   if (failed(isSpatialDimensionsValid(
-          lhs, inputBatchDimension, inputFeatureDimension,
+          lhsType, inputBatchDimension, inputFeatureDimension,
           inputSpatialDimensions, kernelInputFeatureDimension,
           kernelOutputFeatureDimension, kernelSpatialDimensions,
           outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
@@ -891,15 +891,15 @@ LogicalResult verifyConvolutionAttributes(
         "greater than 1. Got ",
         batchGroupCount, " and ", featureGroupCount, " resp.");
 
-  auto lhsType = lhs.getType().cast<RankedTensorType>();
-  const int64_t inputFeatures = lhsType.getShape()[inputFeatureDimension];
-  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
+  auto rankedLhsType = lhsType.cast<RankedTensorType>();
+  const int64_t inputFeatures = rankedLhsType.getShape()[inputFeatureDimension];
+  const int64_t inputBatch = rankedLhsType.getShape()[inputBatchDimension];
 
-  auto rhsType = rhs.getType().cast<RankedTensorType>();
+  auto rankedRhsType = rhsType.cast<RankedTensorType>();
   const int64_t kernelInputFeatures =
-      rhsType.getShape()[kernelInputFeatureDimension];
+      rankedRhsType.getShape()[kernelInputFeatureDimension];
   const int64_t kernelOutputFeatures =
-      rhsType.getShape()[kernelOutputFeatureDimension];
+      rankedRhsType.getShape()[kernelOutputFeatureDimension];
 
   if (!isDynamicDimSize(kernelOutputFeatures)) {
     if (kernelOutputFeatures % batchGroupCount != 0)
@@ -1733,7 +1733,7 @@ LogicalResult inferConvertOp(
  *      TODO(b/232574102): Verify the element-type of return-value.
  */
 LogicalResult inferConvolutionOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<DenseIntElementsAttr> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
     std::optional<DenseIntElementsAttr> lhsDilation,
@@ -1747,34 +1747,33 @@ LogicalResult inferConvolutionOp(
     int64_t featureGroupCount, int64_t batchGroupCount,
     std::optional<ArrayAttr> precisionConfig,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto lhsType = lhs.getType().dyn_cast<RankedTensorType>();
-  auto rhsType = rhs.getType().dyn_cast<RankedTensorType>();
-  if (!lhsType || !rhsType) {
+  auto rankedLhsType = lhsType.dyn_cast<RankedTensorType>();
+  auto rankedRhsType = rhsType.dyn_cast<RankedTensorType>();
+  if (!rankedLhsType || !rankedRhsType) {
     inferredReturnShapes.push_back({});
     return success();
   }
 
   // P1.
-  int numDims = lhsType.getRank();
-  if (numDims != rhsType.getRank())
+  int numDims = rankedLhsType.getRank();
+  if (numDims != rankedRhsType.getRank())
     return emitOptionalError(location,
                              "expects convolution arguments to have same "
                              "number of dimensions. Got: ",
-                             lhsType, " and ", rhsType, ".");
-
+                             rankedLhsType, " and ", rankedRhsType, ".");
   if (numDims < 2)
     return emitOptionalError(
         location,
-        "expects convolution arguments to have >= 2 dimensions. Got: ", lhsType,
-        " and ", rhsType, ".");
-
+        "expects convolution arguments to have >= 2 dimensions. Got: ",
+        rankedLhsType, " and ", rankedRhsType, ".");
   // P2.
   if (failed(verifyConvolutionAttributes(
-          location, lhs, rhs, inputBatchDimension, inputFeatureDimension,
-          inputSpatialDimensions, kernelInputFeatureDimension,
-          kernelOutputFeatureDimension, kernelSpatialDimensions,
-          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
-          featureGroupCount, batchGroupCount, precisionConfig)))
+          location, lhsType, rhsType, inputBatchDimension,
+          inputFeatureDimension, inputSpatialDimensions,
+          kernelInputFeatureDimension, kernelOutputFeatureDimension,
+          kernelSpatialDimensions, outputBatchDimension, outputFeatureDimension,
+          outputSpatialDimensions, featureGroupCount, batchGroupCount,
+          precisionConfig)))
     return failure();
 
   if ((size_t)numDims != inputSpatialDimensions.size() + 2)
@@ -1785,7 +1784,7 @@ LogicalResult inferConvolutionOp(
   // P3.
   SmallVector<int64_t> windowDimensions(kernelSpatialDimensions.size());
   for (size_t i = 0; i < windowDimensions.size(); i++)
-    windowDimensions[i] = rhsType.getShape()[kernelSpatialDimensions[i]];
+    windowDimensions[i] = rankedRhsType.getShape()[kernelSpatialDimensions[i]];
 
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
@@ -1814,15 +1813,15 @@ LogicalResult inferConvolutionOp(
     return failure();
 
   // P5.
-  SmallVector<int64_t> outputDimensions(lhsType.getShape().size(),
+  SmallVector<int64_t> outputDimensions(rankedLhsType.getShape().size(),
                                         ShapedType::kDynamic);
 
   // Infer the output spatial dimensions.
   auto numSpatialDims = inputSpatialDimensions.size();
   SmallVector<int64_t> inputSpatialDimVals(numSpatialDims);
   for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
-    inputSpatialDimVals[i] = lhsType.getShape()[inputSpatialDimensions[i]];
-
+    inputSpatialDimVals[i] =
+        rankedLhsType.getShape()[inputSpatialDimensions[i]];
   auto windowOutputShape =
       inferWindowOutputShape(inputSpatialDimVals, *windowOrErr);
 
@@ -1830,10 +1829,9 @@ LogicalResult inferConvolutionOp(
     outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
 
   // Infer the output-batch-dimension and output-feature-dimension.
-  const int64_t inputBatch = lhsType.getShape()[inputBatchDimension];
+  const int64_t inputBatch = rankedLhsType.getShape()[inputBatchDimension];
   const int64_t kernelOutputFeatures =
-      rhsType.getShape()[kernelOutputFeatureDimension];
-
+      rankedRhsType.getShape()[kernelOutputFeatureDimension];
   outputDimensions[outputBatchDimension] = isDynamicDimSize(inputBatch)
                                                ? ShapedType::kDynamic
                                                : inputBatch / batchGroupCount;
@@ -3252,7 +3250,7 @@ LogicalResult verifyCollectivePermuteOp(
 }
 
 LogicalResult verifyConvolutionOp(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<DenseIntElementsAttr> windowStrides,
     std::optional<DenseIntElementsAttr> padding,
     std::optional<DenseIntElementsAttr> lhsDilation,
@@ -3264,26 +3262,27 @@ LogicalResult verifyConvolutionOp(
     ArrayRef<int64_t> kernelSpatialDimensions, int64_t outputBatchDimension,
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
-    std::optional<ArrayAttr> precisionConfig, Value result) {
+    std::optional<ArrayAttr> precisionConfig, Type resultType) {
   SmallVector<ShapedTypeComponents> inferredReturnShapes;
   if (failed(inferConvolutionOp(
-          location, lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
-          windowReversal, inputBatchDimension, inputFeatureDimension,
-          inputSpatialDimensions, kernelInputFeatureDimension,
-          kernelOutputFeatureDimension, kernelSpatialDimensions,
-          outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
-          featureGroupCount, batchGroupCount, precisionConfig,
-          inferredReturnShapes)))
+          location, lhsType, rhsType, windowStrides, padding, lhsDilation,
+          rhsDilation, windowReversal, inputBatchDimension,
+          inputFeatureDimension, inputSpatialDimensions,
+          kernelInputFeatureDimension, kernelOutputFeatureDimension,
+          kernelSpatialDimensions, outputBatchDimension, outputFeatureDimension,
+          outputSpatialDimensions, featureGroupCount, batchGroupCount,
+          precisionConfig, inferredReturnShapes)))
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];
-  auto resultType = result.getType().dyn_cast<ShapedType>();
-  if (inferredShape.hasRank() && resultType.hasRank() &&
+  auto shapedResultType = resultType.dyn_cast<ShapedType>();
+  if (inferredShape.hasRank() && shapedResultType.hasRank() &&
       failed(verifyCompatibleShape(inferredShape.getDims(),
-                                   resultType.getShape())))
-    return emitOptionalError(
-        location, "inferred shape '", dimSizesToString(inferredShape.getDims()),
-        "' ", "is incompatible with return type of operation ", resultType, "");
+                                   shapedResultType.getShape())))
+    return emitOptionalError(location, "inferred shape '",
+                             dimSizesToString(inferredShape.getDims()), "' ",
+                             "is incompatible with return type of operation ",
+                             shapedResultType, "");
 
   return success();
 }
