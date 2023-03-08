@@ -1884,7 +1884,7 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
+* `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations[:] - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
 * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
@@ -4027,7 +4027,7 @@ More formally,
 where:
 
 <!-- markdownlint-disable line-length -->
-* `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations - 1)`.
+* `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations[:] - 1)`.
 * `window_start = result_index * window_strides`.
 * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
 <!-- markdownlint-enable line-length -->
