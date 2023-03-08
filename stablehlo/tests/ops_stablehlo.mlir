@@ -4967,6 +4967,26 @@ func.func @eltwise_static_and_dynamic_type(%arg0: tensor<10x10xf32>, %arg1: tens
 
 // -----
 
+// CHECK-LABEL: func @conv_i4
+func.func @conv_i4(%arg0: tensor<64x8x8x8xi4>, %arg1: tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8> {
+  // Note: This has been lowered and adapted from:
+  // %0 = "tf.Conv2D"(%arg0, %arg1) {
+  //        data_format = "NHWC",
+  //        dilations = [1, 2, 2, 1],
+  //        explicit_paddings = [0, 0, 0, 1, 0, 1, 0, 0],
+  //        padding = "EXPLICIT",
+  //        strides = [1, 1, 1, 1]} :
+  //      (tensor<64x8x8x8xf32>, tensor<4x4x8x32xf32>) -> tensor<64x3x3x32xf32>
+  %0 = stablehlo.convolution(%arg0, %arg1)
+         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
+         window = {stride = [1, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [2, 2]}
+         {batch_group_count = 1 : i64, feature_group_count = 1 : i64} :
+       (tensor<64x8x8x8xi4>, tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8>
+  func.return %0 : tensor<64x3x3x32xi8>
+}
+
+// -----
+
 // CHECK: func @quantized_conv2d
 // CHECK: stablehlo.convolution
 // CHECK-SAME: dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]
@@ -5112,26 +5132,6 @@ func.func @einsum_i4xi4_i8(%arg0: tensor<1x2xi4>, %arg1: tensor<2x1xi4>) -> tens
 func.func @einsum_i8xi8_i16(%arg0: tensor<1x2xi8>, %arg1: tensor<2x1xi8>) -> tensor<1x1xi16> {
   %0 = "stablehlo.einsum"(%arg0, %arg1) {einsum_config = "ab,bc->ac"} : (tensor<1x2xi8>, tensor<2x1xi8>) -> tensor<1x1xi16>
   func.return %0: tensor<1x1xi16>
-}
-
-// -----
-
-// CHECK-LABEL: func @conv_i4
-func.func @conv_i4(%arg0: tensor<64x8x8x8xi4>, %arg1: tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8> {
-  // Note: This has been lowered and adapted from:
-  // %0 = "tf.Conv2D"(%arg0, %arg1) {
-  //        data_format = "NHWC",
-  //        dilations = [1, 2, 2, 1],
-  //        explicit_paddings = [0, 0, 0, 1, 0, 1, 0, 0],
-  //        padding = "EXPLICIT",
-  //        strides = [1, 1, 1, 1]} :
-  //      (tensor<64x8x8x8xf32>, tensor<4x4x8x32xf32>) -> tensor<64x3x3x32xf32>
-  %0 = stablehlo.convolution(%arg0, %arg1)
-         dim_numbers = [b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f],
-         window = {stride = [1, 1], pad = [[0, 1], [0, 1]], rhs_dilate = [2, 2]}
-         {batch_group_count = 1 : i64, feature_group_count = 1 : i64} :
-       (tensor<64x8x8x8xi4>, tensor<4x4x8x32xi4>) -> tensor<64x3x3x32xi8>
-  func.return %0 : tensor<64x3x3x32xi8>
 }
 
 // -----
