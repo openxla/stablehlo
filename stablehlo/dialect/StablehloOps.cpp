@@ -807,8 +807,8 @@ LogicalResult CollectivePermuteOp::verify() {
 
 LogicalResult ConvolutionOp::verify() {
   return hlo::verifyConvolutionOp(
-      getLoc(), getLhs(), getRhs(), getWindowStrides(), getPadding(),
-      getLhsDilation(), getRhsDilation(), getWindowReversal(),
+      getLoc(), getLhs().getType(), getRhs().getType(), getWindowStrides(),
+      getPadding(), getLhsDilation(), getRhsDilation(), getWindowReversal(),
       getDimensionNumbers().getInputBatchDimension(),
       getDimensionNumbers().getInputFeatureDimension(),
       getDimensionNumbers().getInputSpatialDimensions(),
@@ -819,7 +819,7 @@ LogicalResult ConvolutionOp::verify() {
       getDimensionNumbers().getOutputFeatureDimension(),
       getDimensionNumbers().getOutputSpatialDimensions(),
       getFeatureGroupCount(), getBatchGroupCount(), getPrecisionConfig(),
-      getResult());
+      getResult().getType());
 }
 
 //===----------------------------------------------------------------------===//
