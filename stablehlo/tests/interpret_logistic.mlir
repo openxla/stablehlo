@@ -1,6 +1,6 @@
-// RUN: stablehlo-interpreter --interpret -split-input-file %s
+// RUN: stablehlo-translate --interpret -split-input-file %s
 
-func.func @logistic_op_test_i64() {
+func.func @logistic_op_test_f64() {
   %operand = stablehlo.constant dense<[[1.0, 2.0], [3.0, 4.0]]> : tensor<2x2xf64>
   %result = stablehlo.logistic %operand : tensor<2x2xf64>
   check.expect_almost_eq_const %result,

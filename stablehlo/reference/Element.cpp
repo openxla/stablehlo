@@ -190,9 +190,6 @@ Element::Element(Type type, bool value) : type_(type), value_(value) {}
 
 Element::Element(Type type, APFloat value) : type_(type), value_(value) {}
 
-// The double `value` can be used to construct two types: floating-point or
-// complex element types. By specifying a double value for complex element type,
-// the real part is set to `value`, and the imaginary part is zero.
 Element::Element(Type type, double value) {
   if (isSupportedFloatType(type)) {
     APFloat floatVal(value);
