@@ -28,10 +28,9 @@ commits which are less than 1 month apart, unless the program is using new
 features introduced since the old version.
 
 \* StableHLO programs are converted to/from portable artifacts via
-[dedicated APIs](vhlo.md#vhlo-cookbook), and semantics of these programs are
-defined by [the StableHLO spec](spec.md). In the future, we will provide a
-reference implementation which will provide an executable version of the
-specification.
+[serialization APIs](bytecode.md), and semantics of these programs are defined
+by [the StableHLO spec](spec.md). In the future, we will provide a reference
+implementation which will provide an executable version of the specification.
 
 ## Out of scope
 
