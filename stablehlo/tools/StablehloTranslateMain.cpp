@@ -41,6 +41,16 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
   return stablehlo::makeTensor(res);
 }
 
+llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
+                       llvm::StringRef fallbackName) {
+  if (status)
+    return stablehlo::invalidArgument(
+        "Error evaluating function: %s. \n\tFallback for %s failed: %s",
+        funcName.data(), fallbackName.data(),
+        toString(std::move(status)).c_str());
+  return llvm::Error::success();
+}
+
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
                                   stablehlo::Scope &scope) {
   if (op->getNumOperands() != 2) {
@@ -64,81 +74,54 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 
 llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
                                 llvm::StringRef funcName) {
-  // custom_call(...) implementation
   if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
     if (customCall.getCallTargetName() == "check.eq") {
       auto status = evalCustomCallCheckEq(customCall, scope);
-      if (status)
-        return stablehlo::invalidArgument(
-            "Error evaluating function: %s. \n\tCheck eq failed: %s",
-            funcName.data(), toString(std::move(status)).c_str());
-      return llvm::Error::success();
+      return wrapStatus(std::move(status), funcName,
+                        "stablehlo.custom_call(@check.eq)");
     }
 
     return stablehlo::invalidArgument("Unsupported custom call: %s",
                                       debugString(op).c_str());
   }
 
-  // check.expect_almost_eq implementation
   if (auto expectAlmostEqOp =
           dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
     stablehlo::Tensor runtimeLhs = scope.find(expectAlmostEqOp.getLhs());
     stablehlo::Tensor runtimeRhs = scope.find(expectAlmostEqOp.getRhs());
     auto status =
         stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
-    if (status)
-      return stablehlo::invalidArgument(
-          "Error evaluating function: %s. \n\tCheck expect_almost_eq "
-          "failed: "
-          "%s",
-          funcName.data(), toString(std::move(status)).c_str());
-    return llvm::Error::success();
+    return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
   }
 
-  // check.expect_almost_eq_const implementation
   if (auto expectAlmostEqConstOp =
           dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
     stablehlo::Tensor runtimeOperand =
         scope.find(expectAlmostEqConstOp.getLhs());
     auto status = stablehlo::check::evalExpectAlmostEqConstOp(
         runtimeOperand, expectAlmostEqConstOp.getValue());
-    if (status)
-      return stablehlo::invalidArgument(
-          "Error evaluating function: %s. \n\tCheck expect_almost_eq_const "
-          "failed: "
-          "%s",
-          funcName.data(), toString(std::move(status)).c_str());
-    return llvm::Error::success();
+    return wrapStatus(std::move(status), funcName,
+                      "check.expect_almost_eq_const");
   }
 
-  // check.expect_eq implementation
   if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
     stablehlo::Tensor runtimeLhs = scope.find(expectEqOp.getLhs());
     stablehlo::Tensor runtimeRhs = scope.find(expectEqOp.getRhs());
     auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
-    if (status)
-      return stablehlo::invalidArgument(
-          "Error evaluating function: %s. \n\tCheck expect_eq failed: "
-          "%s",
-          funcName.data(), toString(std::move(status)).c_str());
-    return llvm::Error::success();
+    return wrapStatus(std::move(status), funcName, "check.expect_eq");
   }
 
-  // check.expect_eq_const implementation
   if (auto expectEqConstOp = dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
     stablehlo::Tensor runtimeOperand = scope.find(expectEqConstOp.getLhs());
     auto status = stablehlo::check::evalExpectEqConstOp(
         runtimeOperand, expectEqConstOp.getValue());
-    if (status)
-      return stablehlo::invalidArgument(
-          "Error evaluating function: %s. \n\tCheck expect_eq_const failed: %s",
-          funcName.data(), toString(std::move(status)).c_str());
-    return llvm::Error::success();
+    return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
   }
 
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
+
 }  // namespace
 
 TranslateFromMLIRRegistration interpretRegistration(
