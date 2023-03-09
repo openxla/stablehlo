@@ -2384,6 +2384,7 @@ LogicalResult UniformDequantizeOp::inferReturnTypeComponents(
 using mlir::hlo::parseComplexOpType;
 using mlir::hlo::parseCustomCallTarget;
 using mlir::hlo::parseDenseI64Array;
+using mlir::hlo::parseDotDimensionNumbers;
 using mlir::hlo::parseExponentMantissa;
 using mlir::hlo::parsePairwiseOpType;
 using mlir::hlo::parseSameOperandsAndResultType;
@@ -2394,6 +2395,7 @@ using mlir::hlo::parseVariadicSameOperandsAndResultType;
 using mlir::hlo::printComplexOpType;
 using mlir::hlo::printCustomCallTarget;
 using mlir::hlo::printDenseI64Array;
+using mlir::hlo::printDotDimensionNumbers;
 using mlir::hlo::printExponentMantissa;
 using mlir::hlo::printPairwiseOpType;
 using mlir::hlo::printSameOperandsAndResultType;
