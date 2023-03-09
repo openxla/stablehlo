@@ -37,8 +37,9 @@ After implementing the interpreter:
 
        ```td
         def StableHLO_XyzOp: StableHLO_FooOp<"xyz", [Trait1,
-            Trait2 /*xyz_c1, xyz_c2*/, InferTensorType /*xyz_c3*/]> /*xyz_c4*/ {
+            Trait2 /*xyz_c1, xyz_c2*/, InferTensorType /*xyz_c3*/]> { /*xyz_c4*/
              ...
+          let summary = "Xyz operation";
           let arguments = (ins
              1DTensorOf<[HLO_Float]>:$a, /*xyz_c5, xyz_i1*/
              HLO_Tensor:$b, /*xyz_i2*/
