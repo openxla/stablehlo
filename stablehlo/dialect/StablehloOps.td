@@ -1454,11 +1454,7 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveMemoryEffects,
-<<<<<<< HEAD
       SameVariadicOperandSize /*reduce_c3*/,
-=======
-      SameVariadicOperandSize,
->>>>>>> d5e2d20f (Add interpreter for ReduceOp)
       InferTensorTypeWithReify /*reduce_c7*/,
       SingleBlockImplicitTerminator<"ReturnOp">
     ]> { /*reduce_c7*/
