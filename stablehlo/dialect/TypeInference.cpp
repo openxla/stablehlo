@@ -492,7 +492,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
       return emitOptionalError(location,
                                "Duplicate reduction dimension: ", dimension);
   }
-  // reduce_c7
+
   if (!allInputsUnranked) {
     auto rankedInput = inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
     ArrayRef<int64_t> inputBounds = encodingToBounds(rankedInput.getEncoding());
@@ -2564,7 +2564,7 @@ LogicalResult inferReduceOp(
                                                initValueTensorTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
-
+  // reduce_c2, reduce_c3, reduce_c7
   for (uint64_t inputIdx = 0; inputIdx < inputTypes.size(); ++inputIdx) {
     ShapedType inputType = inputArgTensorTypes[inputIdx];
     Type elementType = inputType.getElementType();
@@ -3629,7 +3629,7 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
-  // reduce_c1, reduce_c4, reduce_c5, reduce_c7
+  // reduce_c1, reduce_c4, reduce_c5
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
                                                initValueTypes, dimensions,
                                                newDimensions, encoding)))
@@ -3644,7 +3644,7 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
     }
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
-  // reduce_c2, reduce_c3, reduce_c6
+  // reduce_c2, reduce_c6
   Block& block = body.front();
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, newDimensions, allInputsUnranked)))

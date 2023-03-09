@@ -67,47 +67,6 @@ func.func @reduce_c2(%input: tensor<1x6xi64>, %init_value: tensor<i32>) -> tenso
 
 // -----
 
-func.func @reduce_c3(%input0: tensor<1x6xi64>, %input1: tensor<1x6xi64>, %init_value: tensor<i64>) -> tensor<1xi64> {
-  // expected-error@+1 {{Reduction-region must take 2 parameters, but takes 3 parameter(s)}}
-  %0 = "stablehlo.reduce"(%input0, %input1, %init_value) ({
-    ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>, %arg2: tensor<i64>):
-      %1 = stablehlo.add %arg0, %arg1 : tensor<i64>
-      stablehlo.return %1 : tensor<i64>
-  }) {
-    dimensions = dense<1> : tensor<1xi64>
-  } : (tensor<1x6xi64>, tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
-  func.return %0 : tensor<1xi64>
-}
-
-// -----
-
-func.func @reduce_c3() -> tensor<0xi64> {
-  // expected-error@+1 {{The reduction-region expected to return some value(s)}}
-  %0 = "stablehlo.reduce"() ({
-    ^bb0():
-      stablehlo.return
-  }) {
-    dimensions = dense<> : tensor<0xi64>
-  } : () -> tensor<0xi64>
-  func.return %0 : tensor<0xi64>
-}
-
-// -----
-
-func.func @reduce_c3(%input0: tensor<1x6xi64>, %input1: tensor<1x6xi64>, %init_value0: tensor<i64>, %init_value1: tensor<i64>) -> tensor<1xi64> {
-  // expected-error@+1 {{Reduction-region here must produce 2 tensors, but produces 1 instead}}
-  %0 = "stablehlo.reduce"(%input0, %input1, %init_value0, %init_value0) ({
-    ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>, %arg2: tensor<i64>,  %arg3: tensor<i64>):
-      %1 = stablehlo.add %arg0, %arg1 : tensor<i64>
-      stablehlo.return %1 : tensor<i64>
-  }) {
-    dimensions = dense<1> : tensor<1xi64>
-  } : (tensor<1x6xi64>, tensor<1x6xi64>, tensor<i64>, tensor<i64>) -> tensor<1xi64>
-  func.return %0 : tensor<1xi64>
-}
-
-// -----
-
 func.func @reduce_c4(%input: tensor<1x6xi64>, %init_value: tensor<i64>) -> tensor<1xi64> {
   // expected-error@+1 {{Out-of-bounds dimension -1 for input-tensor rank: 2}}
   %0 = "stablehlo.reduce"(%input, %init_value) ({
