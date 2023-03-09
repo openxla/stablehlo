@@ -10,14 +10,12 @@ interoperability between various ML frameworks (such as TensorFlow, JAX and
 PyTorch) and ML compilers (such as XLA and IREE).
 
 StableHLO is based on the MHLO dialect and enhances it with additional
-functionality, including serialization and versioning. This provides
-[backward and forward
-compatibility](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md)
-guarantees for StableHLO programs and ensures compatibility between frameworks
-and compilers, even as StableHLO continues to evolve.
+functionality, including serialization and versioning. We use MLIR bytecode
+as [serialization format](docs/bytecode.md) and provide [backward and forward
+compatibility](docs/compatibility.md) guarantees. This ensures compatibility
+between frameworks and compilers, even as StableHLO continues to evolve.
 
-This repository includes the [StableHLO
-specification](https://github.com/openxla/stablehlo/blob/main/docs/spec.md)
+This repository includes the [StableHLO specification](docs/spec.md)
 along with an MLIR-based implementation in C++ and Python, which you can use to
 define StableHLO programs for consumption by compilers such as XLA and IREE.
 
