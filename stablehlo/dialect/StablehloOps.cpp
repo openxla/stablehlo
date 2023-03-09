@@ -86,6 +86,16 @@ using mlir::hlo::printDimSizes;
 namespace mlir {
 namespace stablehlo {
 namespace {
+
+//===----------------------------------------------------------------------===//
+// Utilities
+//===----------------------------------------------------------------------===//
+
+hlo::HloDialectInterface* getStablehloDialect(MLIRContext* context) {
+  StablehloDialect* dialect = context->getLoadedDialect<StablehloDialect>();
+  return dialect->getRegisteredInterface<hlo::HloDialectInterface>();
+}
+
 void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
                 ArrayRef<Type> types,
                 SmallVector<OpAsmParser::Argument>& args) {
@@ -96,10 +106,6 @@ void createArgs(ArrayRef<OpAsmParser::UnresolvedOperand> operands,
   }
 }
 
-//===----------------------------------------------------------------------===//
-// Utilities for the canonicalize patterns
-//===----------------------------------------------------------------------===//
-
 // Returns a new scalar integer value having type `type`. Here `type` must be
 // an integer or index type.
 Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
@@ -108,10 +114,6 @@ Value maybeCastTo(OpBuilder& b, Location loc, Value value, Type type) {
   return b.create<arith::IndexCastOp>(loc, type, value);
 }
 }  // namespace
-
-//===----------------------------------------------------------------------===//
-// Utilities for attributes
-//===----------------------------------------------------------------------===//
 
 LogicalResult TypeExtensionsAttr::verifyEncoding(
     llvm::ArrayRef<int64_t> shape, mlir::Type elementType,
@@ -206,8 +208,8 @@ LogicalResult AfterAllOp::inferReturnTypes(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto dialect = context->getLoadedDialect<StablehloDialect>();
-  return hlo::inferAfterAllOp(dialect, location, inferredReturnTypes);
+  return hlo::inferAfterAllOp(getStablehloDialect(context), location,
+                              inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -317,8 +319,8 @@ LogicalResult CreateTokenOp::inferReturnTypes(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto dialect = context->getLoadedDialect<StablehloDialect>();
-  return hlo::inferCreateTokenOp(dialect, location, inferredReturnTypes);
+  return hlo::inferCreateTokenOp(getStablehloDialect(context), location,
+                                 inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1259,8 +1261,8 @@ LogicalResult RealDynamicSliceOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult InfeedOp::verify() {
-  auto dialect = getContext()->getLoadedDialect<StablehloDialect>();
-  return hlo::verifyInfeedOp(dialect, getLoc(), getLayout(), getResults());
+  return hlo::verifyInfeedOp(getStablehloDialect(getContext()), getLoc(),
+                             getLayout(), getResults());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1291,8 +1293,8 @@ LogicalResult OutfeedOp::inferReturnTypes(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto dialect = context->getLoadedDialect<StablehloDialect>();
-  return hlo::inferOutfeedOp(dialect, location, inferredReturnTypes);
+  return hlo::inferOutfeedOp(getStablehloDialect(context), location,
+                             inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1302,8 +1304,8 @@ LogicalResult OutfeedOp::inferReturnTypes(
 LogicalResult SendOp::inferReturnTypes(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
     DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto dialect = context->getLoadedDialect<StablehloDialect>();
-  return hlo::inferSendOp(dialect, location, inferredReturnTypes);
+  return hlo::inferSendOp(getStablehloDialect(context), location,
+                          inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1311,8 +1313,8 @@ LogicalResult SendOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult RecvOp::verify() {
-  auto dialect = getContext()->getLoadedDialect<StablehloDialect>();
-  return hlo::verifyRecvOp(dialect, getLoc(), getResults());
+  return hlo::verifyRecvOp(getStablehloDialect(getContext()), getLoc(),
+                           getResults());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1869,10 +1871,9 @@ LogicalResult SetDimensionSizeOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   SetDimensionSizeOp::Adaptor adaptor(operands, attributes, regions);
-  auto dialect = context->getLoadedDialect<StablehloDialect>();
   return hlo::inferSetDimensionSizeOp(
-      dialect, location, adaptor.getOperand().getType(), adaptor.getSize(),
-      adaptor.getDimension(), inferredReturnShapes);
+      getStablehloDialect(context), location, adaptor.getOperand().getType(),
+      adaptor.getSize(), adaptor.getDimension(), inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2474,7 +2475,7 @@ Type StablehloDialect::parseType(DialectAsmParser& parser) const {
 
   if (dataType == "token") return TokenType::get(getContext());
   parser.emitError(parser.getNameLoc())
-      << "unknown stablehlo type: " << dataType;
+      << "unknown StableHLO type: " << dataType;
   return nullptr;
 }
 
@@ -2483,7 +2484,7 @@ void StablehloDialect::printType(Type type, DialectAsmPrinter& os) const {
     os << "token";
     return;
   }
-  os << "<unknown stablehlo type>";
+  os << "<unknown StableHLO type>";
 }
 
 // Entry point for Attribute parsing, TableGen generated code will handle the
@@ -2494,7 +2495,14 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
   Attribute attr;
   auto parseResult = generatedAttributeParser(parser, &attrTag, type, attr);
   if (parseResult.has_value()) return attr;
-  parser.emitError(parser.getNameLoc(), "unknown stablehlo attribute");
+  if (attrTag == "bounds")
+    return hlo::parseTypeExtensions(
+        // Casting to dialect interfaces doesn't work for const pointers,
+        // so we have to cast away the constness of this.
+        const_cast<StablehloDialect*>(this)
+            ->getRegisteredInterface<hlo::HloDialectInterface>(),
+        parser);
+  parser.emitError(parser.getNameLoc(), "unknown StableHLO attribute");
   return Attribute();
 }
 
@@ -2502,6 +2510,10 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
 // dispatch to the individual classes.
 void StablehloDialect::printAttribute(Attribute attr,
                                       DialectAsmPrinter& os) const {
+  if (auto type_extensions = attr.dyn_cast<TypeExtensionsAttr>()) {
+    hlo::printTypeExtensions(attr, os);
+    return;
+  }
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));

@@ -59,7 +59,6 @@ limitations under the License.
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
-#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
@@ -1385,11 +1384,10 @@ LogicalResult inferAbsOp(std::optional<Location>, Value operand,
   return success();
 }
 
-LogicalResult inferAfterAllOp(Dialect* dialect,
+LogicalResult inferAfterAllOp(HloDialectInterface* dialect,
                               std::optional<Location> location,
                               SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  inferredReturnTypes.push_back(hloDialect->createTokenType());
+  inferredReturnTypes.push_back(dialect->createTokenType());
   return success();
 }
 
@@ -1841,11 +1839,10 @@ LogicalResult inferConvolutionOp(
   return success();
 }
 
-LogicalResult inferCreateTokenOp(Dialect* dialect,
+LogicalResult inferCreateTokenOp(HloDialectInterface* dialect,
                                  std::optional<Location> location,
                                  SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  inferredReturnTypes.push_back(hloDialect->createTokenType());
+  inferredReturnTypes.push_back(dialect->createTokenType());
   return success();
 }
 
@@ -2452,10 +2449,10 @@ LogicalResult inferOptimizationBarrierOp(
   return success();
 }
 
-LogicalResult inferOutfeedOp(Dialect* dialect, std::optional<Location> location,
+LogicalResult inferOutfeedOp(HloDialectInterface* dialect,
+                             std::optional<Location> location,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  inferredReturnTypes.push_back(hloDialect->createTokenType());
+  inferredReturnTypes.push_back(dialect->createTokenType());
   return success();
 }
 
@@ -2714,16 +2711,16 @@ LogicalResult inferSelectAndScatterOp(
   return success();
 }
 
-LogicalResult inferSendOp(Dialect* dialect, std::optional<Location> location,
+LogicalResult inferSendOp(HloDialectInterface* dialect,
+                          std::optional<Location> location,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  inferredReturnTypes.push_back(hloDialect->createTokenType());
+  inferredReturnTypes.push_back(dialect->createTokenType());
   return success();
 }
 
 LogicalResult inferSetDimensionSizeOp(
-    Dialect* dialect, std::optional<Location> location, Type operandType,
-    Value size, int64_t dimension,
+    HloDialectInterface* dialect, std::optional<Location> location,
+    Type operandType, Value size, int64_t dimension,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto sizeType = size.getType().dyn_cast<RankedTensorType>();
   if (sizeType && sizeType.getRank() != 0)
@@ -2765,9 +2762,8 @@ LogicalResult inferSetDimensionSizeOp(
   if (llvm::all_of(bounds, [&](auto b) { return isDynamicDimSize(b); }))
     inferredReturnShapes.emplace_back(shape, inputType.getElementType());
   else
-    inferredReturnShapes.emplace_back(
-        shape, inputType.getElementType(),
-        cast<HloDialectInterface>(dialect)->createTypeExtensions(bounds));
+    inferredReturnShapes.emplace_back(shape, inputType.getElementType(),
+                                      dialect->createTypeExtensions(bounds));
   return success();
 }
 
@@ -3484,7 +3480,8 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
 
 // Checks that the result type is of the form `zero_or_more_type(s),
 // stablehlo::token`
-LogicalResult verifyInfeedOp(Dialect* dialect, std::optional<Location> location,
+LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
+                             std::optional<Location> location,
                              std::optional<ArrayAttr> layout,
                              ValueRange results) {
   auto resultTypes = results.getType();
@@ -3493,8 +3490,7 @@ LogicalResult verifyInfeedOp(Dialect* dialect, std::optional<Location> location,
         location, "result is expected to be at least of size 1, but got ",
         resultTypes.size());
 
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+  if (!dialect->isTokenType(resultTypes[resultTypes.size() - 1]))
     return emitOptionalError(location,
                              "last element of result types is expected to "
                              "be of token type, but got ",
@@ -3579,7 +3575,8 @@ LogicalResult verifyRealDynamicSliceOp(std::optional<Location> location,
 
 // Checks that the result type is of the form `zero_or_more_type(s),
 // stablehlo::token`
-LogicalResult verifyRecvOp(Dialect* dialect, std::optional<Location> location,
+LogicalResult verifyRecvOp(HloDialectInterface* dialect,
+                           std::optional<Location> location,
                            ValueRange results) {
   auto resultTypes = results.getTypes();
   if (resultTypes.empty())
@@ -3587,8 +3584,7 @@ LogicalResult verifyRecvOp(Dialect* dialect, std::optional<Location> location,
         location, "result is expected to be at least of size 1, but got ",
         resultTypes.size());
 
-  auto hloDialect = cast<HloDialectInterface>(dialect);
-  if (!hloDialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+  if (!dialect->isTokenType(resultTypes[resultTypes.size() - 1]))
     return emitOptionalError(location,
                              "last element of result types is expected to "
                              "be of token type, but got ",
