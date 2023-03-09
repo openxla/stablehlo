@@ -1454,10 +1454,10 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveMemoryEffects,
-      SameVariadicOperandSize,
+      SameVariadicOperandSize /*reduce_c3*/,
       InferTensorTypeWithReify /*reduce_c7*/,
       SingleBlockImplicitTerminator<"ReturnOp">
-    ]> {
+    ]> { /*reduce_c7*/
   let summary = "Reduce operation";
   let description = [{
     Applies a reduction function `body` to `inputs` and `init_values` along the
@@ -1478,10 +1478,13 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     ```
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs /*reduce_i1*/,
-    Variadic<HLO_Tensor>:$init_values /*reduce_i2*/,
+    Variadic<HLO_Tensor>:$inputs, /*reduce_i1*/
+    Variadic<HLO_Tensor>:$init_values, /*reduce_i2*/
     I64ElementsAttr:$dimensions /*reduce_i3*/
   );
+  // TODO(hinsu): Verify that the attached body arguments and results are
+  // compatible with reduce op's operands.
+  let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
   let results = (outs Variadic<HLO_Tensor>);
 
@@ -1489,9 +1492,6 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 
   let hasVerifier = 1;
 
-  // TODO(hinsu): Verify that the attached body arguments and results are
-  // compatible with reduce op's operands.
-  let regions = (region SizedRegion<1>:$body);
 }
 
 //===----------------------------------------------------------------------===//
