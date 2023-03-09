@@ -2629,6 +2629,13 @@ LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
   return success();
 }
 
+LogicalResult inferReverseOp(
+    std::optional<Location> location, Type operandType,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  return hlo::inferMostSpecificTypeComponents(location, operandType,
+                                              inferredReturnShapes);
+}
+
 LogicalResult inferRngOp(
     std::optional<Location> location, Value a, Value b, Value shape,
     bool isRngDistributionUniform,
