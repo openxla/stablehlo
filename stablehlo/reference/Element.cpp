@@ -191,15 +191,28 @@ Element::Element(Type type, bool value) : type_(type), value_(value) {}
 Element::Element(Type type, APFloat value) : type_(type), value_(value) {}
 
 Element::Element(Type type, double value) {
-  if (!isSupportedFloatType(type))
+  if (isSupportedFloatType(type)) {
+    APFloat floatVal(value);
+    bool roundingErr;
+    floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
+                     APFloat::rmNearestTiesToEven, &roundingErr);
+    type_ = type;
+    value_ = floatVal;
+  } else if (isSupportedComplexType(type)) {
+    APFloat real(value);
+    APFloat imag(0.0);
+    auto floatTy = type.cast<ComplexType>().getElementType().cast<FloatType>();
+    bool roundingErr;
+    real.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    imag.convert(floatTy.getFloatSemantics(), APFloat::rmNearestTiesToEven,
+                 &roundingErr);
+    type_ = type;
+    value_ = std::make_pair(real, imag);
+  } else {
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
-  APFloat floatVal(static_cast<double>(value));
-  bool roundingErr;
-  floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
-                   APFloat::rmNearestTiesToEven, &roundingErr);
-  type_ = type;
-  value_ = floatVal;
+  }
 }
 
 Element::Element(Type type, std::complex<APFloat> value)
@@ -528,6 +541,11 @@ Element log(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log(e); },
       [](std::complex<double> e) { return std::log(e); });
+}
+
+Element logistic(const Element &el) {
+  auto one = Element(el.getType(), 1.0);
+  return one / (one + exponential(-el));
 }
 
 Element max(const Element &e1, const Element &e2) {

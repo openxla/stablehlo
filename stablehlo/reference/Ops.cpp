@@ -231,6 +231,13 @@ Tensor evalLogOp(const Tensor &operand, TensorType resultType) {
   return result;
 }
 
+Tensor evalLogisticOp(const Tensor &operand, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, logistic(operand.get(*it)));
+  return result;
+}
+
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -545,6 +552,11 @@ SmallVector<Tensor> eval(
     } else if (auto logOp = dyn_cast<LogOp>(op)) {
       Tensor runtimeOperand = scope.find(logOp.getOperand());
       Tensor runtimeResult = evalLogOp(runtimeOperand, logOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto logisticOp = dyn_cast<LogisticOp>(op)) {
+      Tensor runtimeOperand = scope.find(logisticOp.getOperand());
+      Tensor runtimeResult =
+          evalLogisticOp(runtimeOperand, logisticOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       Tensor runtimeLhs = scope.find(maxOp.getLhs());

@@ -3149,13 +3149,11 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
-%result = "stablehlo.logistic"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+%result = "stablehlo.logistic"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
 // %result: [[0.5, 0.73105858], [0.88079708, 0.95257413]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.logistic"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: (1.02141536, 0.40343871)
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_logistic.mlir)
 
 ### map
 
