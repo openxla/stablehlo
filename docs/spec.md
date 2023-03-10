@@ -614,7 +614,6 @@ Afterwards, within each `process_group`:
 * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-  [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C6)`type(result) = type(operand)` except:
   * `dim(result, all_gather_dim)` =
     `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
@@ -698,7 +697,6 @@ Afterwards, within each `process_group`:
 * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
-       [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
 * (C6) type(`result`) $=$ type(`operand`).
@@ -1618,7 +1616,8 @@ the following IEEE-754 operations:
 
 For floating-point element types and `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754.
+IEEE-754. This feature appears to be unused, so in the future we are planning
+to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
@@ -1888,6 +1887,8 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
 * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
+  This feature appears to be unused, so in the future we are planning to remove
+  it ([#1181](https://github.com/openxla/stablehlo/issues/1181)).
 * `dot_product = dot_general(reversed_lhs_window, rhs,
     lhs_batching_dimensions=[],
     lhs_contracting_dimensions=input_spatial_dimensions + [input_feature_dimension],
@@ -2114,6 +2115,11 @@ Encapsulates an implementation-defined operation `call_target_name` that takes
 `inputs` and `called_computations` and produces `results`. `has_side_effect`,
 `backend_config` and `api_version` may be used to provide additional
 implementation-defined metadata.
+
+At the moment, this operation contains a fairly disorganized collection of
+metadata which reflects organic evolution of its counterpart operation in
+the XLA compiler. In the future, we are planning to unify this metadata
+([#741](https://github.com/openxla/stablehlo/issues/741)).
 
 #### Inputs
 
@@ -2936,7 +2942,9 @@ Semantics of `infeed_config` is implementation-defined.
 
 `results` consist of payload values which come first and a token which comes
 last. The operation produces a token to reify the side effect of this operation
-as a value that other operations can take a data dependency on.
+as a value that other operations can take a data dependency on. In the future,
+we are planning to split the payload and the token into two separate outputs
+to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
 
@@ -2955,8 +2963,6 @@ as a value that other operations can take a data dependency on.
 
 * (C1) size(`results`) $\ge$ 1.
 * (C2) type(`results`[-1]) $=$ `token`.
-* -- [Verify layout in
-  InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
 #### Examples
 
@@ -3737,11 +3743,15 @@ Receives data from a channel with `channel_id` and produces `results`.
 
 If `is_host_transfer` is `true`, then the operation transfers data from the
 host. Otherwise, it transfers data from another device. What this means is
-implementation-defined.
+implementation-defined. This flag duplicates the information provided in
+`channel_type`, so in the future we are planning to only keep one of them
+([#666](https://github.com/openxla/stablehlo/issues/666)).
 
 `results` consist of payload values which come first and a token which comes
 last. The operation produces a token to reify its side effects as a value that
-other operations can take a data dependency on.
+other operations can take a data dependency on. In the future, we are planning
+to split the payload and the token into two separate outputs to improve clarity
+([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
 
@@ -3760,8 +3770,7 @@ other operations can take a data dependency on.
 
 #### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579)
-  `channel_type` must be
+* (C1) `channel_type` must be
   * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 * (C2) size(`results`) $\ge$ 1.
@@ -3966,7 +3975,6 @@ Afterwards, within each `process_group`:
 * (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
-       [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
 * (C8) `type(result) = type(operand)` except:
@@ -4262,6 +4270,10 @@ If `b` $\lt$ 0, the behavior is undefined.
 The exact way how random numbers are generated is implementation-defined. For
 example, they may or may not be deterministic, and they may or may not use
 hidden state.
+
+In conversations with many stakeholders, this op has come up as effectively
+deprecated, so in the future we are planning to explore removing it
+([#597](https://github.com/openxla/stablehlo/issues/597)).
 
 #### Inputs
 
@@ -4769,7 +4781,9 @@ as a value that other operations can take a data dependency on.
 
 If `is_host_transfer` is `true`, then the operation transfers data to the
 host. Otherwise, it transfers data to another device. What this means is
-implementation-defined.
+implementation-defined. This flag duplicates the information provided in
+`channel_type`, so in the future we are planning to only keep one of them
+([#666](https://github.com/openxla/stablehlo/issues/666)).
 
 #### Inputs
 
@@ -4789,8 +4803,7 @@ implementation-defined.
 
 #### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
-  must be
+* (C1) `channel_type` must be:
   * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 
