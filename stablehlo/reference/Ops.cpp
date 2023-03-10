@@ -107,9 +107,24 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      std::optional<ComparisonType> compareType,
                      TensorType resultType) {
   Tensor result(resultType);
-  auto elementTy = result.getType().dyn_cast<TensorType>().getElementType();
+  auto elementTy = lhs.getElementType();
+
+  if (isSupportedComplexType(elementTy) &&
+      (comparisonDirection == ComparisonDirection::GE ||
+       comparisonDirection == ComparisonDirection::GT ||
+       comparisonDirection == ComparisonDirection::LE ||
+       comparisonDirection == ComparisonDirection::LT)) {
+    report_fatal_error(invalidArgument(
+        "Unsupported element type %s for comparison direction %s",
+        debugString(elementTy).c_str(),
+        debugString(comparisonDirection).c_str()));
+  }
+
   auto comparisonType = ComparisonType::NOTYPE;
-  if (compareType && *compareType != ComparisonType::NOTYPE) {
+  if (compareType) {
+    if (*compareType == ComparisonType::NOTYPE)
+      report_fatal_error(invalidArgument("Unsupported comparison type: %s",
+                                         debugString(*compareType).c_str()));
     comparisonType = *compareType;
   } else if (isSupportedUnsignedIntegerType(elementTy) ||
              isSupportedBooleanType(elementTy)) {
@@ -214,7 +229,7 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
         break;
       }
     }
-    result.set(*it, Element(elementTy, cmpResult));
+    result.set(*it, Element(resultType.getElementType(), cmpResult));
   }
   return result;
 }

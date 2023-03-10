@@ -405,14 +405,6 @@ bool Element::operator<(const Element &other) const {
     return floatLhs < floatRhs;
   }
 
-  if (isSupportedComplexType(type)) {
-    auto complexLhs = getComplexValue();
-    auto complexRhs = other.getComplexValue();
-    if (complexLhs.real() < complexRhs.real()) return true;
-    if (!(complexLhs.real() == complexRhs.real())) return false;
-    return complexLhs.imag() < complexRhs.imag();
-  }
-
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
@@ -481,14 +473,6 @@ bool Element::operator>(const Element &other) const {
     auto floatLhs = getFloatValue();
     auto floatRhs = other.getFloatValue();
     return floatLhs > floatRhs;
-  }
-
-  if (isSupportedComplexType(type)) {
-    auto complexLhs = getComplexValue();
-    auto complexRhs = other.getComplexValue();
-    if (complexLhs.real() > complexRhs.real()) return true;
-    if (!(complexLhs.real() == complexRhs.real())) return false;
-    return complexLhs.imag() > complexRhs.imag();
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",

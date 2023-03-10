@@ -241,9 +241,9 @@ func.func @pairwise_ops(%arg0 : tensor<4xf32>) -> () {
 // CHECK-LABEL: func @compare_op
 func.func @compare_op(%arg0 : tensor<3xi32>) -> () {
   // CHECK:      %0 = stablehlo.compare LT, %arg0, %arg0 : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
-  // CHECK-NEXT: %1 = stablehlo.compare LT, %arg0, %arg0, SIGNED : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+  // CHECK-NEXT: %1 = stablehlo.compare LT, %arg0, %arg0, TOTALORDER : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
    %0 = "stablehlo.compare"(%arg0, %arg0) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
-   %1 = "stablehlo.compare"(%arg0, %arg0) {compare_type = #stablehlo<comparison_type SIGNED>, comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
+   %1 = "stablehlo.compare"(%arg0, %arg0) {compare_type = #stablehlo<comparison_type TOTALORDER>, comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<3xi32>, tensor<3xi32>) -> tensor<3xi1>
   "stablehlo.return"() : () -> ()
 }
 
