@@ -8,14 +8,14 @@ Based on discussions held over the past two months, and new use cases and
 feedback left in comments on the first revision of this RFC, we propose the
 following path forward for compatibility guarantees for StableHLO programs:
 
-- Proposal 1: Add StableHLO forks of modularity ops, as well as builtin/quant
+* Proposal 1: Add StableHLO forks of modularity ops, as well as builtin/quant
   types and attributes. Maintain conversion patterns to their upstream
   equivalents.
-- Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
-- Proposal 3: Provide forward / backward compatibility within a major release,
+* Proposal 2: Use _Major.Minor.Patch_ versioning for StableHLO releases.
+* Proposal 3: Provide forward / backward compatibility within a major release,
   with major releases spaced at least 5 years apart. Additionally provide
   backward compatibility for serialized artifacts across 1 major release.
-- Proposal 4: Maintain a shallow versioned copy of StableHLO (VHLO) which is
+* Proposal 4: Maintain a shallow versioned copy of StableHLO (VHLO) which is
   used for serialization/deserialization, and upgrade/downgrades. Keep the
   StableHLO opset at the latest version of VHLO.
 
@@ -28,9 +28,9 @@ of providing a self-contained opset that satisfies current use cases.
 
 These include:
 
-- Modularity ops: `ModuleOp`, `FuncOp`, `CallOp`.
-- Forks of types / attributes from Builtin and Quant dialect.
-- Additional new ops, attributes and types may be proposed and added by the
+* Modularity ops: `ModuleOp`, `FuncOp`, `CallOp`.
+* Forks of types / attributes from Builtin and Quant dialect.
+* Additional new ops, attributes and types may be proposed and added by the
   Dynamism RFC, Sparsity RFC or other RFCs in the future.
 
 For all ops, attributes and types that are introduced in StableHLO but are not
