@@ -111,6 +111,6 @@ requires collaboration across the whole ML industry, so we're happy to have
 your help on the StableHLO project.
 
 We're using GitHub issues / pull requests to organize development and
-[GitHub discussions](https://github.com/orgs/openxla/discussions/categories/stablehlo)
+[openxla-discuss](https://groups.google.com/a/openxla.org/g/openxla-discuss/)
 to have longer discussions. We also have a `#stablehlo`
 channel on [the OpenXLA Discord server](https://discord.gg/PeWUTaecrA).
