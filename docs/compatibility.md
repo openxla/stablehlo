@@ -16,10 +16,10 @@ Future work section for more details.
 
 ## Guarantees
 
-**1 month of backward compatibility:** Portable artifacts serialized by an old
+**6 months of backward compatibility:** Portable artifacts serialized by an old
 version of libStablehlo have the same semantics* when deserialized by a new
 version of libStablehlo if these versions are built from openxla/stablehlo
-commits which are less than 1 month apart.
+commits which are less than 6 months apart.
 
 **1 month of forward compatibility:** Portable artifacts serialized by a new
 version of libStablehlo have the same semantics* when deserialized by an old
