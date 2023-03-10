@@ -16,7 +16,13 @@ name: Lint
 
 on:
   pull_request:
-    paths-ignore: ['**.md', 'docs/**']
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    # Run once a day
+    - cron:  '0 12 * * *'
+  workflow_dispatch:
 
 jobs:
   clang-format:

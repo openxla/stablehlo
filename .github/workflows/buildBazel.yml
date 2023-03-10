@@ -17,10 +17,8 @@ name: Bazel Build
 on:
   pull_request:
     branches: [ main ]
-    paths-ignore: ['**.md', 'docs/**']
   push:
     branches: [ main ]
-    paths-ignore: ['**.md', 'docs/**']
   schedule:
     # Run once a day
     - cron:  '0 12 * * *'
