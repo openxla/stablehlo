@@ -4,7 +4,7 @@ Status: Approved<br/>
 Initial version: 9/12/2022<br/>
 Last updated: 3/9/2022
 
-Version log
+## Version log
 
 * 9/12/2022: Initial version.
 * 11/9/2022: Major updates based on a prototype implementation and conversations
