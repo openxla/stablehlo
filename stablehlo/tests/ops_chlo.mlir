@@ -133,3 +133,10 @@ func.func @top_k(%arg0 : tensor<16x16xf32>) {
   %0:2 = chlo.top_k(%arg0, k=8) : tensor<16x16xf32> -> (tensor<16x8xf32>, tensor<16x8xi32>)
   return
 }
+
+// -----
+
+func.func @erf_inv(%arg0 : tensor<16x16xf32>) {
+  %0 = chlo.erf_inv %arg0 : tensor<16x16xf32> -> tensor<16x16xf32>
+  return
+}

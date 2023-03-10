@@ -22,21 +22,16 @@ def VHLO_Dialect : Dialect {
   let cppNamespace = "::mlir::vhlo";
 
   let description = [{
-    A shim opset of Versioned StableHLO ops for versions 0.x.x and 1.x.x.
+    A "shallow" versioned copy of the StableHLO dialect that has been simplified
+    down to a bare minimum which is used for upgrades, downgrades, and
+    serialization/deserialization.
 
     Version log:
-      0.3.0: Bootstrap from MHLO: https://github.com/openxla/stablehlo/pull/1.
-      0.4.0: Add AllGatherOp::use_global_device_ids: https://github.com/openxla/stablehlo/pull/272.
-             Add CollectivePermuteOp::channel_handle: https://github.com/openxla/stablehlo/pull/388.
-             Add CustomCallOp::output_operand_aliases: https://github.com/openxla/stablehlo/pull/403.
-             Add PartitionIdOp: https://github.com/openxla/stablehlo/pull/673.
-             Add AllToAllOp::channel_handle: https://github.com/openxla/stablehlo/pull/794.
-             Add f8E4M3FN, f8E5M2 data types: https://github.com/openxla/stablehlo/pull/774.
+      0.9.0: Initial stability guarantees.
   }];
 
   let useDefaultAttributePrinterParser = 0;
   let useDefaultTypePrinterParser = 0;
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 #endif

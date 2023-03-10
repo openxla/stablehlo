@@ -197,18 +197,20 @@ func.func @single_attr_scalar_ops(%arg0 : tensor<2x2xf32>,
                                   %arg2 : tensor<4x2xf32>,
                                   %arg3 : tensor<1xindex>,
                                   %arg4 : tensor<i32>) -> () {
-  // CHECK:      %0 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
-  // CHECK-NEXT: %1 = stablehlo.concatenate %arg1, %arg2, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
-  // CHECK-NEXT: %2 = stablehlo.dynamic_iota %arg3, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
-  // CHECK-NEXT: %3 = stablehlo.iota dim = 1 : tensor<1x10xf32>
-  // CHECK-NEXT: %4 = stablehlo.get_dimension_size %arg2, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
-  // CHECK-NEXT: %5 = stablehlo.set_dimension_size %arg2, %arg4, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
-  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<2x2xf32>) -> tensor<2x2xf32>
-  %1 = "stablehlo.concatenate"(%arg1, %arg2) {dimension = 1 : i64} : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
-  %2 = "stablehlo.dynamic_iota"(%arg3) {iota_dimension = 0 : i64} : (tensor<1xindex>) -> tensor<4xi32>
-  %3 = "stablehlo.iota"() {iota_dimension = 1 : i64}  : () -> tensor<1x10xf32>
-  %4 = "stablehlo.get_dimension_size"(%arg2) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
-  %5 = "stablehlo.set_dimension_size"(%arg2, %arg4) {dimension = 1 : i64} : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  // CHECK:      %0 = stablehlo.cholesky %arg0 : tensor<2x2xf32>
+  // CHECK-NEXT: %1 = stablehlo.cholesky %arg0, lower = true : tensor<2x2xf32>
+  // CHECK-NEXT: %2 = stablehlo.concatenate %arg1, %arg2, dim = 1 : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+  // CHECK-NEXT: %3 = stablehlo.dynamic_iota %arg3, dim = 0 : (tensor<1xindex>) -> tensor<4xi32>
+  // CHECK-NEXT: %4 = stablehlo.iota dim = 1 : tensor<1x10xf32>
+  // CHECK-NEXT: %5 = stablehlo.get_dimension_size %arg2, dim = 1 : (tensor<4x2xf32>) -> tensor<i32>
+  // CHECK-NEXT: %6 = stablehlo.set_dimension_size %arg2, %arg4, dim = 1 : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
+  %0 = "stablehlo.cholesky"(%arg0) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  %1 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<2x2xf32>) -> tensor<2x2xf32>
+  %2 = "stablehlo.concatenate"(%arg1, %arg2) {dimension = 1 : i64} : (tensor<4x1xf32>, tensor<4x2xf32>) -> tensor<4x3xf32>
+  %3 = "stablehlo.dynamic_iota"(%arg3) {iota_dimension = 0 : i64} : (tensor<1xindex>) -> tensor<4xi32>
+  %4 = "stablehlo.iota"() {iota_dimension = 1 : i64}  : () -> tensor<1x10xf32>
+  %5 = "stablehlo.get_dimension_size"(%arg2) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>
+  %6 = "stablehlo.set_dimension_size"(%arg2, %arg4) {dimension = 1 : i64} : (tensor<4x2xf32>, tensor<i32>) -> tensor<4x2xf32>
   "stablehlo.return"() : () -> ()
 }
 
@@ -279,10 +281,13 @@ func.func @fft_op(%arg0: tensor<16xcomplex<f32>>) -> tensor<16xcomplex<f32>> {
 }
 
 // CHECK-LABEL: func @extensions
-func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>,
-                %arg1 : tensor<i32>) -> () {
-  // CHECK:      %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>, tensor<i32>) -> tensor<*xf32>
-  %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>, tensor<i32>) -> tensor<*xf32>
+func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.bounds<3, ?>>,
+                      %arg1 : tensor<i32>,
+                      %arg2 : tensor<f32, #stablehlo.bounds<>>) -> () {
+  // CHECK:      %0 = stablehlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<?x?xf32, #stablehlo.bounds<3, ?>>, tensor<i32>) -> tensor<*xf32>
+  // CHECK-NEXT: %1 = stablehlo.set_dimension_size %arg0, %arg1, dim = 1 : (tensor<?x?xf32, #stablehlo.bounds<3, ?>>, tensor<i32>) -> tensor<*xf32>
+  %0 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.bounds<3, ?>>, tensor<i32>) -> tensor<*xf32>
+  %1 = "stablehlo.set_dimension_size"(%arg0, %arg1) {dimension = 1 : i64} : (tensor<?x?xf32, #stablehlo.type_extensions<bounds = [3, ?]>>, tensor<i32>) -> tensor<*xf32>
   "stablehlo.return"() : () -> ()
 }
 
@@ -310,4 +315,46 @@ func.func @encodings(%arg0: tensor<10x20xf32, #CSR>,
   %3 = "stablehlo.abs"(%arg0) : (tensor<10x20xf32, #CSR>) -> tensor<10x20xf32, #CSR>
   %4 = "stablehlo.complex"(%arg0, %arg0) : (tensor<10x20xf32, #CSR>, tensor<10x20xf32, #CSR>) -> tensor<10x20xcomplex<f32>>
   func.return %0 : tensor<10x20xf32>
+}
+
+func.func @dot_general(%arg0: tensor<2x2x2xi8>, %arg1: tensor<2x2x3xi8>, %arg2: tensor<2x2xi8>, %arg3: tensor<2x3xi8>) -> tensor<2x2x3xi32> {
+  //      CHECK: {{%.*}} = stablehlo.dot_general %arg0, %arg1, batching_dims = [0] x [0], contracting_dims = [2] x [1] : (tensor<2x2x2xi8>, tensor<2x2x3xi8>) -> tensor<2x2x3xi32>
+  // CHECK-NEXT: {{%.*}} = stablehlo.dot_general %arg0, %arg1, batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT] : (tensor<2x2x2xi8>, tensor<2x2x3xi8>) -> tensor<2x2x3xi32>
+  // CHECK-NEXT: {{%.*}} = stablehlo.dot_general %arg2, %arg3, contracting_dims = [1] x [0] : (tensor<2x2xi8>, tensor<2x3xi8>) -> tensor<2x3xi32>
+  // CHECK-NEXT: {{%.*}} = stablehlo.dot_general %arg2, %arg3, contracting_dims = [1] x [0], precision = [DEFAULT, DEFAULT] : (tensor<2x2xi8>, tensor<2x3xi8>) -> tensor<2x3xi32>
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [2],
+      rhs_batching_dimensions = [0],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<2x2x2xi8>, tensor<2x2x3xi8>) -> tensor<2x2x3xi32>
+  %1 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [2],
+      rhs_batching_dimensions = [0],
+      rhs_contracting_dimensions = [1]
+    >,
+    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+  } : (tensor<2x2x2xi8>, tensor<2x2x3xi8>) -> tensor<2x2x3xi32>
+  %2 = "stablehlo.dot_general"(%arg2, %arg3) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [],
+      lhs_contracting_dimensions = [1],
+      rhs_batching_dimensions = [],
+      rhs_contracting_dimensions = [0]
+    >
+  } : (tensor<2x2xi8>, tensor<2x3xi8>) -> tensor<2x3xi32>
+  %3 = "stablehlo.dot_general"(%arg2, %arg3) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [],
+      lhs_contracting_dimensions = [1],
+      rhs_batching_dimensions = [],
+      rhs_contracting_dimensions = [0]
+    >,
+    precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+  } : (tensor<2x2xi8>, tensor<2x3xi8>) -> tensor<2x3xi32>
+  func.return %0 : tensor<2x2x3xi32>
 }

@@ -18,13 +18,10 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
-#include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Base.h"
 
 namespace mlir {
 namespace hlo {
@@ -278,6 +275,14 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   return success();
 }
 
+ParseResult dimSizeFromString(AsmParser& parser, int64_t& result) {
+  if (succeeded(parser.parseOptionalQuestion())) {
+    result = ShapedType::kDynamic;
+    return success();
+  }
+  return parser.parseInteger(result);
+}
+
 std::string dimSizeToString(int64_t dimSize) {
   if (hlo::isDynamicDimSize(dimSize)) return "?";
   return std::to_string(dimSize);
@@ -310,14 +315,9 @@ FailureOr<SmallVector<int64_t>> parseDimSizes(AsmParser& parser) {
 }
 
 ParseResult parseDimSizes(AsmParser& parser, SmallVector<int64_t>& dimSizes) {
-  auto parseElt = [&]() -> ParseResult {
-    if (!parser.parseOptionalQuestion()) {
-      dimSizes.push_back(ShapedType::kDynamic);
-      return success();
-    }
-    return parser.parseInteger(dimSizes.emplace_back());
-  };
-  return parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseElt);
+  return parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, [&]() {
+    return dimSizeFromString(parser, dimSizes.emplace_back());
+  });
 }
 
 // Print attributes as e#m#
@@ -369,6 +369,23 @@ void printCustomCallTarget(AsmPrinter& p, Operation*, StringAttr target) {
 
 ParseResult parseCustomCallTarget(AsmParser& parser, StringAttr& target) {
   return parser.parseSymbolName(target);
+}
+
+void printTypeExtensions(BoundedAttrInterface attr, DialectAsmPrinter& os) {
+  os << "bounds<";
+  llvm::interleaveComma(attr.getBounds(), os,
+                        [&](int64_t bound) { os << dimSizeToString(bound); });
+  os << ">";
+}
+
+Attribute parseTypeExtensions(HloDialectInterface* dialect,
+                              DialectAsmParser& parser) {
+  SmallVector<int64_t> bounds;
+  if (failed(parser.parseCommaSeparatedList(
+          AsmParser::Delimiter::LessGreater,
+          [&]() { return dimSizeFromString(parser, bounds.emplace_back()); })))
+    return nullptr;
+  return dialect->createTypeExtensions(bounds);
 }
 
 }  // namespace hlo

@@ -16,22 +16,13 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_INDEX_H_
 #define STABLEHLO_REFERENCE_INDEX_H_
 
-#include <cstdint>
 #include <optional>
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
-#include "mlir/Support/LogicalResult.h"
+#include "stablehlo/reference/Sizes.h"
 
 namespace mlir {
 namespace stablehlo {
-
-/// Check if the 'index' is a valid index in the index space of a tensor with
-/// shape 'shape'. Specifically, for a shape '(d0)x(d1)x...x(dR-1)' and an index
-/// '{i0, i1, ..., iR-1}', we check if 0 <= i[k] <= d[k] for k in
-/// {0, 1, ..., R-1}. Note that the check also implies that 'd[k]' >= 1.
-LogicalResult verifyIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index);
 
 /// Iterates over the index space of a tensor with a given shape, producing
 /// indices in lexicographical order. As an example, for a tensor with shape
@@ -41,10 +32,9 @@ LogicalResult verifyIndex(ArrayRef<int64_t> shape, ArrayRef<int64_t> index);
 class IndexSpaceIterator {
  public:
   /// \name Constructor
-  IndexSpaceIterator(llvm::ArrayRef<int64_t> shape,
-                     std::optional<llvm::SmallVector<int64_t>> index)
+  IndexSpaceIterator(Sizes shape, std::optional<Index> index)
       : shape_(shape), index_(index) {
-    if (index && failed(verifyIndex(shape, (*index))))
+    if (index && !index->inBounds(shape))
       llvm::report_fatal_error(
           "Incompatible index and shape found while creating "
           "an IndexSpaceIterator");
@@ -54,7 +44,8 @@ class IndexSpaceIterator {
   /// At any point in time, the iterator can either reference an actual index
   /// or the past-the-end element in the index space.
   /// Dereferencing a past-the-end iterator will result in a fatal error.
-  llvm::ArrayRef<int64_t> operator*() const;
+  const Index &operator*() const;
+  const Index *operator->() const;
 
   /// Compare the iterator to another iterator.
   /// Two iterators are equal if they have the same underlying shape and
@@ -74,11 +65,11 @@ class IndexSpaceIterator {
 
  private:
   /// Shape of the tensor whose index space to be iterated on.
-  llvm::SmallVector<int64_t> shape_;
+  Sizes shape_;
 
   /// Current multi-dimensional index.
   /// If the optional is empty, then we're at the end
-  std::optional<llvm::SmallVector<int64_t>> index_;
+  std::optional<Index> index_;
 };
 
 }  // namespace stablehlo

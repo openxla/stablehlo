@@ -474,9 +474,9 @@ tensor. Depending on the element type, does the following:
 
 #### Outputs
 
-| Name     | Type                                                      | Constraints |
-|----------|-----------------------------------------------------------|-------------|
-| `result` | tensor of signed integer, floating-point, or complex type | (C1), (C2)  |
+| Name     | Type                                            | Constraints |
+|----------|-------------------------------------------------|-------------|
+| `result` | tensor of signed integer or floating-point type | (C1), (C2)  |
 
 #### Constraints
 
@@ -493,6 +493,8 @@ tensor. Depending on the element type, does the following:
 %result = "stablehlo.abs"(%operand) : (tensor<3xi32>) -> tensor<3xi32>
 // %result: [2, 0, 2]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_abs.mlir)
 
 ### add
 
@@ -612,7 +614,6 @@ Afterwards, within each `process_group`:
 * (C4) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-  [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C6)`type(result) = type(operand)` except:
   * `dim(result, all_gather_dim)` =
     `dim(operand, all_gather_dim) * dim(process_groups, 1)`.
@@ -696,7 +697,6 @@ Afterwards, within each `process_group`:
 * (C3) $0 \le$ `replica_groups`[i] $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
-       [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
 * (C6) type(`result`) $=$ type(`operand`).
@@ -1305,6 +1305,8 @@ dimensions `k` in `operand`.
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_broadcast_in_dim.mlir)
+
 ### case
 
 #### Semantics
@@ -1318,7 +1320,7 @@ returned.
 
 | Label | Name       | Type                                | Constraints |
 |-------|------------|-------------------------------------|-------------|
-| (I1)  | `index`    | 1-dimensional tensor of type `si32` |             |
+| (I1)  | `index`    | 0-dimensional tensor of type `si32` |             |
 | (I2)  | `branches` | variadic number of functions        | (C1-C4)     |
 
 #### Outputs
@@ -1337,16 +1339,19 @@ returned.
 #### Examples
 
 ```mlir
-// %result_branch0: 10
-// %result_branch1: 11
-// %index: 1
-%result = "stablehlo.case"(%index) ({
-  "stablehlo.return"(%result_branch0) : (tensor<i32>) -> ()
+// %index: -1
+// %result_branch0: [0, 0]
+// %result_branch1: [1, 1]
+%result0, %result1 = "stablehlo.case"(%index) ({
+  "stablehlo.return"(%result_branch0, %result_branch0) : (tensor<2xi64>, tensor<2xi64>) -> ()
 }, {
-  "stablehlo.return"(%result_branch1) : (tensor<i32>) -> ()
-}) : (tensor<i32>) -> tensor<i32>
-// %result: 11
+  "stablehlo.return"(%result_branch1, %result_branch1) : (tensor<2xi64>, tensor<2xi64>) -> ()
+}) : (tensor<i32>) -> (tensor<2xi64>, tensor<2xi64>)
+// %result0: [1, 1]
+// %result1: [1, 1]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_case.mlir)
 
 ### cbrt
 
@@ -1514,6 +1519,8 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 // %result: [5, 13, 20]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_clamp.mlir)
+
 ### collective_permute
 
 #### Semantics
@@ -1609,7 +1616,8 @@ the following IEEE-754 operations:
 
 For floating-point element types and `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754.
+IEEE-754. This feature appears to be unused, so in the future we are planning
+to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
 performed using the provided `comparison_direction` and `compare_type`.
@@ -1737,9 +1745,11 @@ tensor. More formally,
 // %input1: [[7, 8]]
 %result = "stablehlo.concatenate"(%input0, %input1) {
   dimension = 0 : i64
-} : (tensor<3x2xi32>, tensor<1x2xi32>) -> tensor<4x2xi32>
+} : (tensor<3x2xi64>, tensor<1x2xi64>) -> tensor<4x2xi64>
 // %result: [[1, 2], [3, 4], [5, 6], [7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_concatenate.mlir)
 
 ### constant
 
@@ -1873,10 +1883,12 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations)`.
+* `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations[:] - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
 * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in [0, size(window_reversal) and window_reversal[dim] = true])`.
+  This feature appears to be unused, so in the future we are planning to remove
+  it ([#1181](https://github.com/openxla/stablehlo/issues/1181)).
 * `dot_product = dot_general(reversed_lhs_window, rhs,
     lhs_batching_dimensions=[],
     lhs_contracting_dimensions=input_spatial_dimensions + [input_feature_dimension],
@@ -1900,27 +1912,27 @@ If `batch_group_count > 1`:
 
 #### Inputs
 
-| Label | Name                              | Type                                                        | Constraints                                  |
-|-------|-----------------------------------|-------------------------------------------------------------|----------------------------------------------|
-| (I1)  | `lhs`                             | tensor                                                      | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
-| (I2)  | `rhs`                             | tensor                                                      | (C1), (C2), (C15-C17), (C26)                 |
-| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C26)                            |
-| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                | (C5), (C26)                                  |
-| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C6), (C7), (C26)                            |
-| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                | (C8), (C9), (C26)                            |
-| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                  | (C10)                                        |
-| (I8)  | `input_batch_dimension`           | constant of type `si64`                                     | (C11), (C14), (C26)                          |
-| (I9)  | `input_feature_dimension`         | constant of type `si64`                                     | (C12), (C14), (C15)                          |
-| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                | (C13), (C14), (C26)                          |
-| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                     | (C15), (C19)                                 |
-| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                     | (C16), (C17), (C19), (C26)                   |
-| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C18), (C19), (C26)                          |
-| (I14) | `output_batch_dimension`          | constant of type `si64`                                     | (C21), (C26)                                 |
-| (I15) | `output_feature_dimension`        | constant of type `si64`                                     | (C21), (C26)                                 |
-| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                | (C20), (C21), (C26)                          |
-| (I17) | `feature_group_count`             | constant of type `si64`                                     | (C12), (C15), (C17), (C22), (C24)            |
-| (I18) | `batch_group_count`               | constant of type `si64`                                     | (C11), (C16), (C23), (C24), (C26)            |
-| (I19) | `precision_config`                | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
+| Label | Name                              | Type                                                         | Constraints                                  |
+|-------|-----------------------------------|--------------------------------------------------------------|----------------------------------------------|
+| (I1)  | `lhs`                             | tensor                                                       | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
+| (I2)  | `rhs`                             | tensor                                                       | (C1), (C2), (C15-C17), (C26)                 |
+| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C26)                            |
+| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C5), (C26)                                  |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C6), (C7), (C26)                            |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C8), (C9), (C26)                            |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C10)                                        |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C11), (C14), (C26)                          |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C12), (C14), (C15)                          |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C13), (C14), (C26)                          |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C15), (C19)                                 |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C16), (C17), (C19), (C26)                   |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C18), (C19), (C26)                          |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C21), (C26)                                 |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C21), (C26)                                 |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C20), (C21), (C26)                          |
+| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C12), (C15), (C17), (C22), (C24)            |
+| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C11), (C16), (C23), (C24), (C26)            |
+| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C25)                                        |
 
 #### Outputs
 
@@ -2104,16 +2116,21 @@ Encapsulates an implementation-defined operation `call_target_name` that takes
 `backend_config` and `api_version` may be used to provide additional
 implementation-defined metadata.
 
+At the moment, this operation contains a fairly disorganized collection of
+metadata which reflects organic evolution of its counterpart operation in
+the XLA compiler. In the future, we are planning to unify this metadata
+([#741](https://github.com/openxla/stablehlo/issues/741)).
+
 #### Inputs
 
-| Label | Name                  | Type                         |
-|-------|-----------------------|------------------------------|
-| (I1)  | `inputs`              | variadic number of values    |
-| (I2)  | `call_target_name`    | constant of type `string`    |
-| (I3)  | `has_side_effect`     | constant of type `i1`        |
-| (I4)  | `backend_config`      | constant of type `string`    |
-| (I5)  | `api_version`         | constant of type `si32`      |
-| (I6)  | `called_computations` | variadic number of functions |
+| Label | Name                  | Type                                          |
+|-------|-----------------------|-----------------------------------------------|
+| (I1)  | `inputs`              | variadic number of values                     |
+| (I2)  | `call_target_name`    | constant of type `string`                     |
+| (I3)  | `has_side_effect`     | constant of type `i1`                         |
+| (I4)  | `backend_config`      | constant of type `string`                     |
+| (I5)  | `api_version`         | constant of type `si32`                       |
+| (I6)  | `called_computations` | variadic number of constants of type `string` |
 
 #### Outputs
 
@@ -2168,12 +2185,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %rhs: [3.0, 3.0, -3.0, -3.0]
 %result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
 // %result: [5.66666651, -5.66666651, -5.66666651, 5.66666651]
-
-// %lhs: [17, -17, 17, -17]
-// %rhs: [3, 3, -3, -3]
-%result = "stablehlo.divide"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
-// %result: [5, -5, -5, 5]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_divide.mlir)
 
 ### dot_general
 
@@ -2219,15 +2233,15 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                        | Constraints                           |
-|-------|------------------------------|-------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor                                                      | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor                                                      | (C1), (C8), (C9), (C10), (C11), (C13) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C4), (C6), (C10), (C13)        |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                | (C2), (C5), (C8), (C10)               |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C4), (C7), (C11)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                | (C3), (C5), (C9), (C11)               |
-| (I7)  | `precision_config`           | variadic number of enum of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+| Label | Name                         | Type                                                         | Constraints                           |
+|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
+| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
+| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C5), (C9), (C11)               |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
 
 #### Outputs
 
@@ -2331,7 +2345,7 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 * (C1) `operand` and `result` have the same element type.
 * (C2) size(`start_indices`) $=$ size(`slice_sizes`) $=$ rank(`operand`).
 * (C3) All `start_indices` have the same type.
-* (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)) for all `k` $\in$ [0,
+* (C4) `slice_sizes[k]` $\in$ [0, dim(`operand`, `k`)] for all `k` $\in$ [0,
   rank(`operand`)).
 * (C5) shape(`result`) $=$ `slice_sizes`.
 
@@ -2354,6 +2368,8 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 //           [1, 1]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_dynamic_slice.mlir)
 
 ### dynamic_update_slice
 
@@ -2418,6 +2434,8 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_dynamic_update_slice.mlir)
+
 ### exponential
 
 #### Semantics
@@ -2448,13 +2466,11 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
-%result = "stablehlo.exponential"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
-// %result: [[1.0, 2.71828183], [7.38905610, 20.08553692]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.exponential"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: (-1.13120438, 2.47172667)
+%result = "stablehlo.exponential"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[1.0, 2.7182818284590451], [7.3890560989306504, 20.085536923187668]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_exponential.mlir)
 
 ### exponential_minus_one
 
@@ -2845,11 +2861,11 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 #### Inputs
 
-| Label | Name           | Type                                       | Constraints |
-|-------|----------------|--------------------------------------------|-------------|
-| (I1)  | `pred`         | 1-dimensional tensor constant of type `i1` |             |
-| (I2)  | `true_branch`  | function                                   | (C1-C3)     |
-| (I3)  | `false_branch` | function                                   | (C1), (C2)  |
+| Label | Name           | Type                              | Constraints |
+|-------|----------------|-----------------------------------|-------------|
+| (I1)  | `pred`         | 0-dimensional tensor of type `i1` |             |
+| (I2)  | `true_branch`  | function                          | (C1-C3)     |
+| (I3)  | `false_branch` | function                          | (C1), (C2)  |
 
 #### Outputs
 
@@ -2876,6 +2892,8 @@ output of `true_branch` is returned, else if pred is `false`, output of
 }) : (tensor<i1>) -> tensor<i32>
 // %result: 10
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_if.mlir)
 
 ### imag
 
@@ -2912,6 +2930,8 @@ Extracts the imaginary part, element-wise, from the `operand` and produces a
 // %result: [2.0, 4.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_imag.mlir)
+
 ### infeed
 
 #### Semantics
@@ -2922,7 +2942,9 @@ Semantics of `infeed_config` is implementation-defined.
 
 `results` consist of payload values which come first and a token which comes
 last. The operation produces a token to reify the side effect of this operation
-as a value that other operations can take a data dependency on.
+as a value that other operations can take a data dependency on. In the future,
+we are planning to split the payload and the token into two separate outputs
+to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
 
@@ -2941,8 +2963,6 @@ as a value that other operations can take a data dependency on.
 
 * (C1) size(`results`) $\ge$ 1.
 * (C2) type(`results`[-1]) $=$ `token`.
-* -- [Verify layout in
-  InfeedOp](https://github.com/openxla/stablehlo/issues/639) --
 
 #### Examples
 
@@ -3065,13 +3085,11 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [[1.0, 2.0], [3.0, 4.0]]
-%result = "stablehlo.log"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
-// %result: [[0.0, 0.69314718], [1.09861229, 1.38629436]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.log"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: (0.80471896, 1.10714871)
+%result = "stablehlo.log"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
+// %result: [[0.0, 0.69314718055994529], [1.0986122886681098, 1.3862943611198906]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_log.mlir)
 
 ### log_plus_one
 
@@ -3137,13 +3155,11 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [[0.0, 1.0], [2.0, 3.0]]
-%result = "stablehlo.logistic"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
+%result = "stablehlo.logistic"(%operand) : (tensor<2x2xf64>) -> tensor<2x2xf64>
 // %result: [[0.5, 0.73105858], [0.88079708, 0.95257413]]
-
-// %operand: (1.0, 2.0)
-%result = "stablehlo.logistic"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: (1.02141536, 0.40343871)
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_logistic.mlir)
 
 ### map
 
@@ -3592,6 +3608,8 @@ and `di = dim(operand, i)`.
 //          ]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_pad.mlir)
+
 ### partition_id
 
 #### Semantics
@@ -3674,9 +3692,11 @@ produces a `result` tensor. Depending on the element type, does the following:
 ```mlir
 // %lhs: [-2.0, -0.0, -36.0, 5.0, 3.0, 10000.0]
 // %rhs: [2.0, 2.0, 1.1, 2.0, -1.0, 10.0]
-%result = "stablehlo.power"(%lhs, %rhs) : (tensor<6xf32>, tensor<6xf32>) -> tensor<6xf32>
+%result = "stablehlo.power"(%lhs, %rhs) : (tensor<6xf64>, tensor<6xf64>) -> tensor<6xf64>
 // %result: [4.0, 0.0, -nan, 25.0, 0.333333343, inf]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_power.mlir)
 
 ### real
 
@@ -3713,6 +3733,8 @@ tensor. More formally, for each element `x`:
 // %result: [1.0, 3.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_real.mlir)
+
 ### recv
 
 #### Semantics
@@ -3721,11 +3743,15 @@ Receives data from a channel with `channel_id` and produces `results`.
 
 If `is_host_transfer` is `true`, then the operation transfers data from the
 host. Otherwise, it transfers data from another device. What this means is
-implementation-defined.
+implementation-defined. This flag duplicates the information provided in
+`channel_type`, so in the future we are planning to only keep one of them
+([#666](https://github.com/openxla/stablehlo/issues/666)).
 
 `results` consist of payload values which come first and a token which comes
 last. The operation produces a token to reify its side effects as a value that
-other operations can take a data dependency on.
+other operations can take a data dependency on. In the future, we are planning
+to split the payload and the token into two separate outputs to improve clarity
+([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
 
@@ -3744,8 +3770,7 @@ other operations can take a data dependency on.
 
 #### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579)
-  `channel_type` must be
+* (C1) `channel_type` must be
   * `HOST_TO_DEVICE`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 * (C2) size(`results`) $\ge$ 1.
@@ -3843,7 +3868,7 @@ sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 Performs element-wise conversion of `operand` to another floating-point type
 that uses `exponent_bits` and `mantissa_bits` and back to the original
-floating-point type and produces a `result` tensor.
+floating-point type and produces an `output` tensor.
 
 More formally:
 
@@ -3869,11 +3894,11 @@ More formally:
 
 | Name     | Type                          | Constraints |
 |----------|-------------------------------|-------------|
-| `result` | tensor of floating-point type | (C1)        |
+| `output` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `result` have the same type.
+* (C1) `operand` and `output` have the same type.
 * (C2) `exponent_bits` $\ge$ 1.
 * (C3) `mantissa_bits` $\ge$ 0.
 
@@ -3882,12 +3907,12 @@ More formally:
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
 // %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
-%result = "stablehlo.reduce_precision"(%operand) {
+%output = "stablehlo.reduce_precision"(%operand) {
   exponent_bits = 5 : i32,
   mantissa_bits = 2 : i32
 } : (tensor<6xf32>) -> tensor<6xf32>
 // Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
-// %result: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
+// %output: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
 
 ### reduce_scatter
@@ -3950,7 +3975,6 @@ Afterwards, within each `process_group`:
 * (C5) $0 \le$ `replica_groups[i]` $\lt$ size(`replica_groups`) $\forall i$
        in `indices(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
-       [todo](https://github.com/openxla/stablehlo/issues/654)
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
 * (C8) `type(result) = type(operand)` except:
@@ -4009,7 +4033,7 @@ More formally,
 where:
 
 <!-- markdownlint-disable line-length -->
-* `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations)`.
+* `padded_inputs = pad(inputs[:], init_values[:], padding[:, 0], padding[:, 1], base_dilations[:] - 1)`.
 * `window_start = result_index * window_strides`.
 * `windows = slice(padded_inputs[:], window_start, window_start + window_dimensions, window_dilations)`.
 <!-- markdownlint-enable line-length -->
@@ -4122,16 +4146,13 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 #### Examples
 
 ```mlir
-// %lhs: [17.1, -17.1, 17.1, -17.1]
-// %rhs: [3.0, 3.0, -3.0, -3.0]
-%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xf32>, tensor<4xf32>) -> tensor<4xf32>
-// %result: [2.1, -2.1, 2.1, -2.1]
-
 // %lhs: [17, -17, 17, -17]
 // %rhs: [3, 3, -3, -3]
-%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi32>, tensor<4xi32>) -> tensor<4xi32>
+%result = "stablehlo.remainder"(%lhs, %rhs) : (tensor<4xi64>, tensor<4xi64>) -> tensor<4xi64>
 // %result: [2, -2, 2, -2]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_rem.mlir)
 
 ### replica_id
 
@@ -4224,7 +4245,7 @@ and produces a `result` tensor. More formally,
 ```mlir
 // %operand = [[1, 2], [3, 4], [5, 6]]
 %result = "stablehlo.reverse"(%operand) {
-  dimensions = dense<1> : tensor<i64>
+  dimensions = dense<1> : tensor<1xi64>
 } : (tensor<3x2xi32>) -> tensor<3x2xi32>
 // %result: [[2, 1], [4, 3], [6, 5]]
 ```
@@ -4249,6 +4270,10 @@ If `b` $\lt$ 0, the behavior is undefined.
 The exact way how random numbers are generated is implementation-defined. For
 example, they may or may not be deterministic, and they may or may not use
 hidden state.
+
+In conversations with many stakeholders, this op has come up as effectively
+deprecated, so in the future we are planning to explore removing it
+([#597](https://github.com/openxla/stablehlo/issues/597)).
 
 #### Inputs
 
@@ -4293,8 +4318,8 @@ hidden state.
 #### Semantics
 
 Returns an `output` filled with uniform random bits and an updated output state
-`output_state` given an initial state `initial_state` using the pseudorandom
-number generator algorithm `rng_algorithm`. The output is guaranteed to be
+`output_state` using the pseudorandom number generator algorithm `rng_algorithm`
+given an initial state `initial_state`. The output is guaranteed to be
 deterministic function of `initial_state`, but it is not guaranteed to be
 deterministic between implementations.
 
@@ -4311,8 +4336,8 @@ deterministic between implementations.
 
 | Label | Name            | Type                                         | Constraints |
 |-------|-----------------|----------------------------------------------|-------------|
-| (I1)  | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
-| (I2)  | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
+| (I1)  | `rng_algorithm` | enum of `DEFAULT`, `THREE_FRY`, and `PHILOX` | (C2)        |
+| (I2)  | `initial_state` | 1-dimensional tensor of type `ui64`          | (C1), (C2)  |
 
 #### Outputs
 
@@ -4440,11 +4465,9 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %operand: [[1.0, 4.0], [9.0, 25.0]]
 %result = "stablehlo.rsqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[1.0, 0.5], [0.33333343, 0.2]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.rsqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(0.56886448, -0.35157758)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_rsqrt.mlir)
 
 ### scatter
 
@@ -4640,6 +4663,8 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 // %result: [[5, 2], [3, 8]]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_select.mlir)
+
 ### select_and_scatter
 
 #### Semantics
@@ -4756,7 +4781,9 @@ as a value that other operations can take a data dependency on.
 
 If `is_host_transfer` is `true`, then the operation transfers data to the
 host. Otherwise, it transfers data to another device. What this means is
-implementation-defined.
+implementation-defined. This flag duplicates the information provided in
+`channel_type`, so in the future we are planning to only keep one of them
+([#666](https://github.com/openxla/stablehlo/issues/666)).
 
 #### Inputs
 
@@ -4776,8 +4803,7 @@ implementation-defined.
 
 #### Constraints
 
-* (C1) [todo](https://github.com/openxla/stablehlo/issues/579) `channel_type`
-  must be
+* (C1) `channel_type` must be:
   * `DEVICE_TO_HOST`, if `is_host_transfer` $=$ `true`,
   * `DEVICE_TO_DEVICE`, otherwise.
 
@@ -5161,11 +5187,9 @@ Performs element-wise square root operation on `operand` tensor and produces a
 // %operand: [[0.0, 1.0], [4.0, 9.0]]
 %result = "stablehlo.sqrt"(%operand) : (tensor<2x2xf32>) -> tensor<2x2xf32>
 // %result: [[0.0, 1.0], [2.0, 3.0]]
-
-// %operand: [(1.0, 2.0)]
-%result = "stablehlo.sqrt"(%operand) : (tensor<complex<f32>>) -> tensor<complex<f32>>
-// %result: [(1.27201965, 0.78615138)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_sqrt.mlir)
 
 ### subtract
 
@@ -5406,7 +5430,7 @@ Produces the output from executing `body` function 0 or more times while the
 using Python-like syntax as follows:
 
 ```python
-internal_state = operands
+internal_state = operand
 while cond(internal_state) == True:
   internal_state = body(internal_state)
 results = internal_state
@@ -5417,11 +5441,11 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name       | Type                                 | Constraints |
-|-------|------------|--------------------------------------|-------------|
-| (I1)  | `operands` | variadic number of tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`     | function                             | (C1)        |
-| (I3)  | `body`     | function                             | (C2)        |
+| Label | Name      | Type                                 | Constraints |
+|-------|-----------|--------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                             | (C1)        |
+| (I3)  | `body`    | function                             | (C2)        |
 
 #### Outputs
 
@@ -5432,18 +5456,18 @@ The behavior of an infinite loop is TBD
 #### Constraints
 
 * (C1) `cond` has type `(T0, ..., TN-1) -> tensor<i1>`, where
-       `Ti` = `type(operands[i])`.
+       `Ti` = `type(operand[i])`.
 * (C2) `body` has type `(T0, ..., TN-1) -> (T0, ..., TN-1)`, where
-       `Ti` = `type(operands[i])`.
-* (C3) For all `i`, `type(results[i])` = `type(operands[i])`.
+       `Ti` = `type(operand[i])`.
+* (C3) For all `i`, `type(results[i])` = `type(operand[i])`.
 
 #### Examples
 
 ```mlir
 // %constant0: 1
-// %input0: 0
-// %input1: 10
-%results0, %results1 = "stablehlo.while"(%input0, %input1) ({
+// %operand0: 0
+// %operand1: 10
+%results0, %results1 = "stablehlo.while"(%operand0, %operand1) ({
   ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
     %0 = "stablehlo.compare"(%arg0, %arg1) {
       comparison_direction = #stablehlo<comparison_direction LT>
@@ -5703,13 +5727,20 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
+### Accuracy
+
+At the moment, StableHLO does not provide guarantees about numerical accuracy,
+but this may change in the future
+([#1156](https://github.com/openxla/stablehlo/issues/1156)).
+
 ### Errors
 
 StableHLO programs are validated through an extensive set of constraints for
 individual ops, which rules out many classes of errors prior to run time.
 However, error conditions are still possible, e.g. through integer overflows,
 out-of-bounds accesses, etc. Unless explicitly called out, all these errors
-result in implementation-defined behavior.
+result in implementation-defined behavior, but this may change in the
+future ([#1157](https://github.com/openxla/stablehlo/issues/1157)).
 
 As an exception to this rule, floating-point exceptions in StableHLO programs
 have well-defined behavior. Operations which result in exceptions defined by the

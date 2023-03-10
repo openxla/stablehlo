@@ -157,8 +157,8 @@ func.func @eval_compare_lt() -> tensor<i1> {
 
 // -----
 
-// CHECK-LABEL: func @eval_concatenate
-func.func @eval_concatenate() -> tensor<4xi64> {
+// CHECK-LABEL: func @eval_concatenate_1d
+func.func @eval_concatenate_1d() -> tensor<4xi64> {
   // CHECK-NOT: stablehlo.concatenate
   // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
   // CHECK: return [[RESULT]]
@@ -166,6 +166,19 @@ func.func @eval_concatenate() -> tensor<4xi64> {
   %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
   %2 = stablehlo.concatenate %0, %1, dim = 0 : (tensor<2xi64>, tensor<2xi64>) -> tensor<4xi64>
   func.return %2 : tensor<4xi64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_concatenate_2d
+func.func @eval_concatenate_2d() -> tensor<2x2xi64> {
+  // CHECK-NOT: stablehlo.concatenate
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<{{\[}}[1, 2], [3, 4]]> : tensor<2x2xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[[1, 2]]> : tensor<1x2xi64>
+  %1 = stablehlo.constant dense<[[3, 4]]> : tensor<1x2xi64>
+  %2 = stablehlo.concatenate %0, %1, dim = 0 : (tensor<1x2xi64>, tensor<1x2xi64>) -> tensor<2x2xi64>
+  func.return %2 : tensor<2x2xi64>
 }
 
 // -----
@@ -178,6 +191,19 @@ func.func @eval_convert() -> tensor<i64> {
   %0 = stablehlo.constant dense<4> : tensor<i32>
   %1 = stablehlo.convert %0 : (tensor<i32>) -> tensor<i64>
   func.return %1 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_divide
+func.func @eval_divide() -> tensor<i64> {
+  // CHECK-NOT: stablehlo.divide
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<1> : tensor<i64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<2> : tensor<i64>
+  %1 = stablehlo.constant dense<2> : tensor<i64>
+  %2 = stablehlo.divide %0, %1 : tensor<i64>
+  func.return %2 : tensor<i64>
 }
 
 // -----
@@ -258,6 +284,18 @@ func.func @eval_select() -> tensor<2xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_sign
+func.func @eval_sign() -> tensor<3xi64> {
+  // CHECK-NOT: stablehlo.sign
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
+  %1 = stablehlo.sign %0 : (tensor<3xi64>) -> tensor<3xi64>
+  func.return %1 : tensor<3xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_slice
 func.func @eval_slice() -> tensor<2xi64> {
   // CHECK-NOT: stablehlo.slice
@@ -283,6 +321,45 @@ func.func @eval_subtract() -> tensor<i64> {
   %1 = stablehlo.constant dense<2> : tensor<i64>
   %2 = stablehlo.subtract %0, %1 : tensor<i64>
   func.return %2 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @refine_all_gather_cross_replica
+func.func @refine_all_gather_cross_replica(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x16xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @refine_all_gather_cross_replica_and_partition
+func.func @refine_all_gather_cross_replica_and_partition(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x?xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @refine_all_gather_flattened_ids
+func.func @refine_all_gather_flattened_ids(%arg0: tensor<4x4xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.all_gather"{{.*}} -> tensor<4x16xf32>
+  %0 = "stablehlo.all_gather"(%arg0) {
+    all_gather_dim = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    use_global_device_ids
+  } : (tensor<4x4xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
 }
 
 // -----
@@ -334,9 +411,22 @@ func.func @refine_convolution(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3
 
 // -----
 
+// CHECK-LABEL: @refine_custom_call
+func.func @refine_custom_call(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*xf32>) {
+  // CHECK: stablehlo.custom_call{{.*}} -> (tensor<1x2xf32>, tensor<3x4xf32>)
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %2:2 = stablehlo.custom_call @foo(%arg0, %0, %1) {
+    indices_of_shape_operands = dense<[1, 2]> : tensor<2xi64>
+  } : (tensor<4xf32>, tensor<2xi64>, tensor<2xi64>) -> (tensor<*xf32>, tensor<*xf32>)
+  func.return %2#0, %2#1 : tensor<*xf32>, tensor<*xf32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_dot_general
 func.func @refine_dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<*xf32> {
-  // CHECK: "stablehlo.dot_general"{{.*}} -> tensor<2x4x5xf32>
+  // CHECK: stablehlo.dot_general{{.*}} -> tensor<2x4x5xf32>
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -356,6 +446,23 @@ func.func @refine_dynamic_broadcast_in_dim(%arg0: tensor<4xf32>) -> tensor<*xf32
   %0 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
   %1 = stablehlo.dynamic_broadcast_in_dim %arg0, %0, dims = [1] : (tensor<4xf32>, tensor<2xi64>) -> tensor<*xf32>
   func.return %1 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_dynamic_conv
+func.func @refine_dynamic_conv(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3x3x1x32xf32>) -> tensor<*xf32> {
+  // CHECK: stablehlo.dynamic_conv{{.*}} -> tensor<100x28x28x1xf32>
+  %0 = stablehlo.constant dense<[[2, 2], [2, 2]]> : tensor<2x2xi32>
+  %1 = "stablehlo.dynamic_conv"(%arg0, %arg1, %0) {
+    dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, o, i]->[b, 0, 1, f]>,
+    window_strides = dense<[1, 1]> : tensor<2xi64>,
+    lhs_dilation = dense<[1, 1]> : tensor<2xi64>,
+    rhs_dilation = dense<[1, 1]> : tensor<2xi64>,
+    feature_group_count = 1 : i64,
+    batch_group_count = 1 : i64
+  } : (tensor<100x26x26x32xf32>, tensor<3x3x1x32xf32>, tensor<2x2xi32>) -> tensor<*xf32>
+  return %1 : tensor<*xf32>
 }
 
 // -----
@@ -447,6 +554,60 @@ func.func @refine_real_dynamic_slice_using_slice(%arg0: tensor<4xf32>) -> tensor
   %3 = stablehlo.real_dynamic_slice %arg0, %0, %1, %2
            : (tensor<4xf32>, tensor<1xi64>, tensor<1xi64>, tensor<1xi64>) -> tensor<*xf32>
   func.return %3 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_cross_replica
+func.func @refine_reduce_scatter_cross_replica(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x4xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_cross_replica_and_partition
+func.func @refine_reduce_scatter_cross_replica_and_partition(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x?xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
+}
+
+// -----
+
+// CHECK-LABEL: @refine_reduce_scatter_flattened_ids
+func.func @refine_reduce_scatter_flattened_ids(%data: tensor<4x16xf32>) -> tensor<4x?xf32> {
+  // CHECK: "stablehlo.reduce_scatter"{{.*}}
+  // CHECK: -> tensor<4x4xf32>
+  %0 = "stablehlo.reduce_scatter"(%data) ({
+  ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
+    %1 = stablehlo.add %arg2, %arg3 : tensor<f32>
+    stablehlo.return %1 : tensor<f32>
+  }) {
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>,
+    scatter_dimension = 1 : i64,
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 0>,
+    use_global_device_ids
+  } : (tensor<4x16xf32>) -> tensor<4x?xf32>
+  func.return %0 : tensor<4x?xf32>
 }
 
 // -----

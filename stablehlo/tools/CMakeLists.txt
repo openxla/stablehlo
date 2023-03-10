@@ -1,5 +1,5 @@
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@
 
 set(LLVM_OPTIONAL_SOURCES
   StablehloOptMain.cpp
-  StablehloInterpreterMain.cpp
+  StablehloTranslateMain.cpp
+  Interpreter.cpp
 )
 
 # stablehlo-opt
@@ -35,17 +36,23 @@ target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
 
 mlir_check_all_link_libraries(stablehlo-opt)
 
-# stablehlo-interpreter
-add_llvm_executable(stablehlo-interpreter StablehloInterpreterMain.cpp)
-llvm_update_compile_flags(stablehlo-interpreter)
-target_link_libraries(stablehlo-interpreter PRIVATE
+# stablehlo-translate
+add_llvm_executable(stablehlo-translate StablehloTranslateMain.cpp)
+llvm_update_compile_flags(stablehlo-translate)
+target_link_libraries(stablehlo-translate PRIVATE
+  ${dialect_libs}
   MLIRFuncDialect
   MLIRIR
   MLIRSupport
   MLIRTranslateLib
+  CheckOps
   StablehloOps
-  StablehloReferenceInterpreter
+  StablehloReferenceOps
+  StablehloReferenceScope
   StablehloReferenceTensor
+  StablehloRegister
+  StablehloSerialization
+  VhloOps
 )
 
-mlir_check_all_link_libraries(stablehlo-interpreter)
+mlir_check_all_link_libraries(stablehlo-translate)

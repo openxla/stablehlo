@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "stablehlo/dialect/Base.h"
 
+#include <optional>
+
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -133,7 +135,7 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
                                  rankedTensorTy.getEncoding());
   if (auto unrankedTensorTy = tensorType.dyn_cast<UnrankedTensorType>())
     return UnrankedTensorType::get(elementType);
-  llvm_unreachable("unhandled type");
+  llvm::report_fatal_error("unsupported type");
 }
 
 // createRealType takes a tensor type that may have complex elements and
@@ -228,7 +230,7 @@ std::pair<int64_t, int64_t> inferConcatenatedDimAndBound(int64_t leftSize,
 //  c5:  ?              ?, B            ?, B
 //  c6:  ?, B           ?, C            ?, min(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferMostSpecificDimAndBound(
-    Optional<Location> location, int64_t dim, int64_t leftSize,
+    std::optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
@@ -268,7 +270,7 @@ FailureOr<std::pair<int64_t, int64_t>> inferMostSpecificDimAndBound(
 //  c4:  ?              ?, B            ?
 //  c5:  ?, B           ?, C            ?, max(B, C)
 FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
-    Optional<Location> location, int64_t dim, int64_t leftSize,
+    std::optional<Location> location, int64_t dim, int64_t leftSize,
     int64_t rightSize, int64_t leftBound, int64_t rightBound) {
   bool isLeftStaticDim = !isDynamicDimSize(leftSize);
   bool isRightStaticDim = !isDynamicDimSize(rightSize);
@@ -295,11 +297,18 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
 }
 
 FailureOr<TensorType> inferTypeWithCustomFn(
-    Optional<Location> location, SmallVector<RankedTensorType> rankedTypes,
+    std::optional<Location> location, SmallVector<RankedTensorType> rankedTypes,
     std::function<FailureOr<std::pair<int64_t, int64_t>>(
-        Optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
+        std::optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
         inferDimAndBoundFn) {
   auto rank = rankedTypes[0].getRank();
+  for (auto& type : rankedTypes) {
+    if (type.getRank() != rank) {
+      return emitOptionalError(location, "Mismatched ranks of types",
+                               rankedTypes[0].getRank(), " vs ",
+                               type.getRank());
+    }
+  }
   SmallVector<int64_t> inferredSizes = to_vector(rankedTypes[0].getShape());
   SmallVector<int64_t> inferredBounds(rank, ShapedType::kDynamic);
   ArrayRef<int64_t> bounds = encodingToBounds(rankedTypes[0].getEncoding());
@@ -331,7 +340,7 @@ FailureOr<TensorType> inferTypeWithCustomFn(
           anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
 }
 
-FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
+FailureOr<Type> inferLeastSpecificType(std::optional<Location> location,
                                        TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
@@ -343,7 +352,7 @@ FailureOr<Type> inferLeastSpecificType(Optional<Location> location,
                                inferLeastSpecificDimAndBound);
 }
 
-FailureOr<Type> inferMostSpecificType(Optional<Location> location,
+FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
                                       TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)

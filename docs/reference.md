@@ -99,39 +99,37 @@ folding in MHLO, at which point we'll improve ergonomics of the code snippet
 above (e.g. we could have a helper function which packs constant operands into
 `Tensor` objects and unpacks `Tensor` results into `OpFoldResult`).
 
-## Testing the interpreter
+## Testing the StableHLO interpreter
 
 The interpreter takes as inputs (A) a StableHLO program, and (B) data values to
 be fed to the program, and generates output data values, which are matched
-against the user-provided expected data values.
-
-In the current implementation, we package the inputs (MLIR program + input data
-values) and outputs in a
-[lit-based](https://llvm.org/docs/CommandGuide/lit.html) test as follows:
+against the user-provided expected data values. The data values (B) are
+hard-coded in the program itself using `stablehlo.constant` operations. The
+interpreter evaluates the input program. The output(s) of the op under test
+is checked via checks (e.g. `check.expect_eq`, `check.expect_almost_eq`), as
+shown below. `check.expect_eq` and `check.expect_eq_const` check for bitwise
+equality for any supported type and `check.expect_almost_eq` and
+`check.expect_almost_eq_const` check for near equality within a tolerance,
+explained in testing guideline (G6), for floating point and complex types.
 
 ```C++
 // CHECK-LABEL: Evaluated results of function: add_op_test_ui4
-func.func @add_op_test_ui4() -> tensor<2xui4> {
+func.func @add_op_test_ui4() {
   %0 = stablehlo.constant dense<[0, 2]> : tensor<2xui4>
   %1 = stablehlo.constant dense<[15, 3]> : tensor<2xui4>
   %2 = stablehlo.add %0, %1 : tensor<2xui4>
-  func.return %2 : tensor<2xui4>
-  // CHECK-NEXT:  tensor<2xui4>
-  // CHECK-NEXT:    15 : ui4
-  // CHECK-NEXT:    5 : ui4
+  check.expect_eq_const %2, [15, 5] : tensor<2xui4>
+  func.return
 }
 ```
 
-A test utility `stablehlo-interpreter`
-([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/tools/StablehloInterpreterMain.cpp))
-is responsible for parsing the program, interpreting each function, and
-returning the resulting tensor(s) to be matched against the output tensor
-provided in [FileCheck
-directives](https://llvm.org/docs/CommandGuide/FileCheck.html). We have a
-dedicated test-suite, consisting of several tests exercising various runtime
-behaviors, for each StableHLO Op. The tests can be found
-[here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/) (e.g.
-interpret\_\*.mlir).
+A test utility `stablehlo-translate --interpret`
+([code](https://github.com/openxla/stablehlo/tree/main/stablehlo/tools/StablehloTranslateMain.cpp))
+is responsible for parsing the program, interpreting each function including the
+operations constituting the function. We have a dedicated test-suite, consisting
+of several tests exercising various runtime behaviors, for each StableHLO Op.
+The tests can be found [here](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests/)
+(e.g. interpret\_\*.mlir).
 
 ### Testing guidelines
 
@@ -201,13 +199,41 @@ generalized. Tests exercising undefined behavior do not contribute towards
 the understanding of the op's behavior.
 
 **(G6) While writing tests for floating-point type, to what precision the
-results need to be specified in llvm lit checks?**
+expected result need to be specified in checks?**
 
-The current lit-based interpreter testing fails if the result is computed with a
-different precision than what is mentioned in the lit CHECK directives. As a
-quick-fix, we allow the lit checks to measure the accuracy up to an arbitrary
-places after the decimal point. But the solution is far from ideal. We plan to
-resolve it using [ticket](https://github.com/openxla/stablehlo/issues/268).
+For elementary operations (addition, subtraction, multiplication, division, and
+square), an implementation following IEEE specification is expected to provide a
+rounded result within 0.5 ULP of the mathematically exact result. That said, we
+can safely imagine the expected result coming out of these operations to be at
+most 1 ULP apart. However, this may not work for transcendental functions
+(`sine`, `cosine`, etc.) for which the precision guarantees are
+implementation-defined ([rationale](https://github.com/openxla/stablehlo/issues/96)).
+
+The current implementation uses a "one-size-fits-all" tolerance value of 0.0001.
+The following example demonstrates the above tolerance in action.
+
+```mlir
+func.func @check_tolerance() {
+  %0 = stablehlo.constant dense<0.2> : tensor<f32>
+
+  // The following check succeeds as %0 is almost equal to the provided
+  // constant modulo the tolerance, mentioned above.
+  check.expect_almost_eq_const %0, dense<0.19999> : tensor<f32>
+
+  // The following check fails as %0 is not bitwise equal to the provided
+  // constant.
+  check.expect_eq_const %0, dense<0.19999> : tensor<f32>
+
+  func.return
+}
+```
+
+This is just the first step in testing numerical accuracy of StableHLO ops. At
+the moment, this is an underspecced area of the StableHLO spec, and there is
+ongoing work to figure it out [#1156](https://github.com/openxla/stablehlo/issues/1156)
+based on our experience with using StableHLO in practice and on feedback from
+stakeholders. As this works proceeds, we will update this infrastructure
+accordingly.
 
 **(G7) Anything about the coding-style of the tests?**
 

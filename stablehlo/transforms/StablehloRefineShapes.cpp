@@ -74,9 +74,36 @@ LogicalResult matchInts(Value value, SmallVector<T>& result) {
 }
 
 template <typename OpType, typename FuncType>
+LogicalResult evalUnary(PatternRewriter& rewriter, OpType op, FuncType fn) {
+  if (op->getNumOperands() != 1)
+    llvm::report_fatal_error("expected one operand");
+
+  auto resultType = op.getResult().getType().template cast<ShapedType>();
+  if (!resultType.hasRank() || !resultType.getElementType().isIntOrIndex())
+    return rewriter.notifyMatchFailure(
+        op, "expected integer or index result tensor type");
+
+  SmallVector<APInt> operand, result;
+  if (failed(matchInts(op.getOperand(), operand)))
+    return rewriter.notifyMatchFailure(op, "expected constant operand");
+  for (const auto& operandEl : operand) {
+    result.push_back(fn(operandEl));
+  }
+
+  rewriter.replaceOpWithNewOp<ConstantOp>(
+      op, DenseIntElementsAttr::get(resultType, result));
+  return success();
+}
+
+template <typename OpType, typename FuncType>
 LogicalResult evalBinary(PatternRewriter& rewriter, OpType op, FuncType fn) {
   if (op->getNumOperands() != 2)
-    return rewriter.notifyMatchFailure(op, "expected two operands");
+    llvm::report_fatal_error("expected two operands");
+
+  auto resultType = op.getResult().getType().template cast<ShapedType>();
+  if (!resultType.hasRank() || !resultType.getElementType().isIntOrIndex())
+    return rewriter.notifyMatchFailure(
+        op, "expected integer or index result tensor type");
 
   SmallVector<APInt> lhs, rhs, result;
   if (failed(matchInts(op.getLhs(), lhs)) ||
@@ -87,7 +114,7 @@ LogicalResult evalBinary(PatternRewriter& rewriter, OpType op, FuncType fn) {
   }
 
   rewriter.replaceOpWithNewOp<ConstantOp>(
-      op, DenseIntElementsAttr::get(op.getResult().getType(), result));
+      op, DenseIntElementsAttr::get(resultType, result));
   return success();
 }
 
@@ -172,8 +199,8 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getResult().getType().dyn_cast<RankedTensorType>();
-    if (!resultType || resultType.getRank() != 1)
-      return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
+    if (!resultType || op.getDimension() != 0)
+      return rewriter.notifyMatchFailure(op, "expected dimension = 0");
 
     SmallVector<APInt> result;
     for (Value operand : op->getOperands()) {
@@ -191,27 +218,25 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
-    auto operandType = op.getOperand().getType().dyn_cast<RankedTensorType>();
+    auto operandType = op.getOperand().getType().cast<ShapedType>();
     auto isOperandUnsigned = operandType.getElementType().isUnsignedInteger();
+    auto resultType = op.getResult().getType().cast<ShapedType>();
+    auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
+    return evalUnary(rewriter, op, [&](APInt operand) {
+      return APSInt(operand, isOperandUnsigned).extOrTrunc(resultBitwidth);
+    });
+  }
+};
 
-    auto resultType = op.getResult().getType().dyn_cast<RankedTensorType>();
-    if (!resultType || !resultType.getElementType().isIntOrIndex())
-      return rewriter.notifyMatchFailure(
-          op, "expected integer or index result element type");
-
-    SmallVector<APInt> operand, result;
-    if (failed(matchInts(op.getOperand(), operand)))
-      return rewriter.notifyMatchFailure(op, "expected constant operand");
-    for (const auto& operandEl : operand) {
-      auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
-      auto resultEl =
-          APSInt(operandEl, isOperandUnsigned).extOrTrunc(resultBitwidth);
-      result.push_back(resultEl);
-    }
-
-    rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get(resultType, result));
-    return success();
+struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(DivOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getResult().getType().cast<ShapedType>();
+    auto isResultUnsigned = resultType.getElementType().isUnsignedInteger();
+    return evalBinary(rewriter, op, [&](APInt lhs, APInt rhs) {
+      return isResultUnsigned ? lhs.udiv(rhs) : lhs.sdiv(rhs);
+    });
   }
 };
 
@@ -299,6 +324,25 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
     rewriter.replaceOpWithNewOp<ConstantOp>(
         op, DenseIntElementsAttr::get(op.getResult().getType(), result));
     return success();
+  }
+};
+
+struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(SignOp op,
+                                PatternRewriter& rewriter) const override {
+    auto resultType = op.getResult().getType().cast<ShapedType>();
+    auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
+    return evalUnary(rewriter, op, [&](APInt operand) {
+      int64_t result;
+      if (operand.isNegative())
+        result = -1;
+      else if (operand.isZero())
+        result = 0;
+      else
+        result = 1;
+      return APInt(resultBitwidth, result, /*isSigned=*/true);
+    });
   }
 };
 
@@ -514,6 +558,29 @@ LogicalResult refineReturnShape(PatternRewriter& rewriter, OpType op,
   return refineReturnShape(rewriter, op, shape);
 }
 
+struct RefineAllGatherOpPattern : public OpRewritePattern<AllGatherOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(AllGatherOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandType = op.getOperand().getType().cast<ShapedType>();
+    if (!operandType.hasRank())
+      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
+
+    // This represents the cross_replica_and_partition process grouping strategy
+    // that requires num_partitions to compute shardCount. Since we don't know
+    // num_partitions at this point, we error out.
+    if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
+      return rewriter.notifyMatchFailure(op, "unsupported strategy");
+    DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
+    auto shardCount = replicaGroups.getType().getDimSize(1);
+
+    SmallVector<int64_t> refinement(operandType.getShape());
+    if (!operandType.isDynamicDim(op.getAllGatherDim()))
+      refinement[op.getAllGatherDim()] *= shardCount;
+    return refineReturnShape(rewriter, op, refinement);
+  }
+};
+
 struct RefineBitcastConvertOpPattern
     : public OpRewritePattern<BitcastConvertOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -554,9 +621,9 @@ struct RefineConvolutionOpPattern : public OpRewritePattern<ConvolutionOp> {
                                 PatternRewriter& rewriter) const override {
     SmallVector<ShapedTypeComponents> inferredReturnShapes;
     if (failed(hlo::inferConvolutionOp(
-            /*location=*/{}, op.getLhs(), op.getRhs(), op.getWindowStrides(),
-            op.getPadding(), op.getLhsDilation(), op.getRhsDilation(),
-            op.getWindowReversal(),
+            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
+            op.getWindowStrides(), op.getPadding(), op.getLhsDilation(),
+            op.getRhsDilation(), op.getWindowReversal(),
             op.getDimensionNumbers().getInputBatchDimension(),
             op.getDimensionNumbers().getInputFeatureDimension(),
             op.getDimensionNumbers().getInputSpatialDimensions(),
@@ -570,6 +637,32 @@ struct RefineConvolutionOpPattern : public OpRewritePattern<ConvolutionOp> {
             op.getPrecisionConfig(), inferredReturnShapes)))
       return rewriter.notifyMatchFailure(op, "inferConvolutionOp failed");
     return refineReturnTypes(rewriter, op, inferredReturnShapes);
+  }
+};
+
+struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(CustomCallOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandIndicesAttr = op->getAttr("indices_of_shape_operands")
+                                  .dyn_cast_or_null<DenseIntElementsAttr>();
+    if (!operandIndicesAttr)
+      return rewriter.notifyMatchFailure(
+          op, "expected an indices_of_shape_operands attribute");
+
+    SmallVector<ShapedTypeComponents> refinements;
+    for (auto operandIndexElt : operandIndicesAttr.getValues<APInt>()) {
+      int64_t operandIndex = operandIndexElt.getSExtValue();
+      if (operandIndex < 0 || operandIndex >= op->getNumOperands())
+        return rewriter.notifyMatchFailure(op, "expected valid operand index");
+      SmallVector<int64_t> refinement;
+      if (failed(matchInts(op->getOperand(operandIndex), refinement)))
+        return rewriter.notifyMatchFailure(op, "expected constant operand");
+      if (llvm::any_of(refinement, [&](int64_t x) { return x < 0; }))
+        return rewriter.notifyMatchFailure(op, "expected non-negative sizes");
+      refinements.emplace_back(refinement);
+    }
+    return refineReturnTypes(rewriter, op, refinements);
   }
 };
 
@@ -596,6 +689,40 @@ struct RefineDynamicBroadcastInDimOpPattern
   LogicalResult matchAndRewrite(DynamicBroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
     return refineReturnShape(rewriter, op, op.getOutputDimensions());
+  }
+};
+
+struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(DynamicConvOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<int64_t> padding;
+    if (failed(matchInts(op.getDPadding(), padding)))
+      return rewriter.notifyMatchFailure(op, "expected constant d_padding");
+    if (op.getPadding().has_value())
+      return rewriter.notifyMatchFailure(op, "expected empty padding");
+    auto paddingType = RankedTensorType::get(
+        op.getDPadding().getType().getShape(), rewriter.getIntegerType(64));
+    auto paddingAttr = DenseIntElementsAttr::get(paddingType, padding);
+
+    SmallVector<ShapedTypeComponents> inferredReturnShapes;
+    if (failed(hlo::inferConvolutionOp(
+            /*location=*/{}, op.getLhs().getType(), op.getRhs().getType(),
+            op.getWindowStrides(), paddingAttr, op.getLhsDilation(),
+            op.getRhsDilation(), op.getWindowReversal(),
+            op.getDimensionNumbers().getInputBatchDimension(),
+            op.getDimensionNumbers().getInputFeatureDimension(),
+            op.getDimensionNumbers().getInputSpatialDimensions(),
+            op.getDimensionNumbers().getKernelInputFeatureDimension(),
+            op.getDimensionNumbers().getKernelOutputFeatureDimension(),
+            op.getDimensionNumbers().getKernelSpatialDimensions(),
+            op.getDimensionNumbers().getOutputBatchDimension(),
+            op.getDimensionNumbers().getOutputFeatureDimension(),
+            op.getDimensionNumbers().getOutputSpatialDimensions(),
+            op.getFeatureGroupCount(), op.getBatchGroupCount(),
+            op.getPrecisionConfig(), inferredReturnShapes)))
+      return rewriter.notifyMatchFailure(op, "inferConvolutionOp failed");
+    return refineReturnTypes(rewriter, op, inferredReturnShapes);
   }
 };
 
@@ -627,7 +754,8 @@ struct RefineDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
 
     SmallVector<Type> inferredReturnTypes;
     if (failed(hlo::inferPadOp(
-            /*location=*/{}, op.getOperand(), op.getPaddingValue(),
+            /*location=*/{}, op.getOperand().getType(),
+            op.getPaddingValue().getType(),
             rewriter.getI64TensorAttr(edgePaddingLow),
             rewriter.getI64TensorAttr(edgePaddingHigh),
             rewriter.getI64TensorAttr(interiorPadding), inferredReturnTypes)))
@@ -736,6 +864,29 @@ struct RefineRealDynamicSliceOpPattern
         op,
         "expected either fully static attributes (SliceOp style) "
         "or static sliceSizes (DynamicSliceOp style)");
+  }
+};
+
+struct RefineReduceScatterOpPattern : public OpRewritePattern<ReduceScatterOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(ReduceScatterOp op,
+                                PatternRewriter& rewriter) const override {
+    auto operandType = op.getOperand().getType().cast<ShapedType>();
+    if (!operandType.hasRank())
+      return rewriter.notifyMatchFailure(op, "expected ranked operand type");
+
+    // This represents the cross_replica_and_partition process grouping strategy
+    // that requires num_partitions to compute shardCount. Since we don't know
+    // num_partitions at this point, we error out.
+    if (op.getChannelHandle() && !op.getUseGlobalDeviceIds())
+      return rewriter.notifyMatchFailure(op, "unsupported strategy");
+    DenseIntElementsAttr replicaGroups = op.getReplicaGroups();
+    auto shardCount = replicaGroups.getType().getDimSize(1);
+
+    SmallVector<int64_t> refinement(operandType.getShape());
+    if (!operandType.isDynamicDim(op.getScatterDimension()))
+      refinement[op.getScatterDimension()] /= shardCount;
+    return refineReturnShape(rewriter, op, refinement);
   }
 };
 
@@ -904,24 +1055,30 @@ struct StablehloRefineShapesPass
     patterns.add<EvalCompareOpPattern>(&getContext());
     patterns.add<EvalConcatenateOpPattern>(&getContext());
     patterns.add<EvalConvertOpPattern>(&getContext());
+    patterns.add<EvalDivOpPattern>(&getContext());
     patterns.add<EvalGetDimensionSizeOpPattern>(&getContext());
     patterns.add<EvalMaxOpPattern>(&getContext());
     patterns.add<EvalMulOpPattern>(&getContext());
     patterns.add<EvalRemOpPattern>(&getContext());
     patterns.add<EvalReshapeOpPattern>(&getContext());
     patterns.add<EvalSelectOpPattern>(&getContext());
+    patterns.add<EvalSignOpPattern>(&getContext());
     patterns.add<EvalSliceOpPattern>(&getContext());
     patterns.add<EvalSubtractOpPattern>(&getContext());
+    patterns.add<RefineAllGatherOpPattern>(&getContext());
     patterns.add<RefineBitcastConvertOpPattern>(&getContext());
     patterns.add<RefineConvertOpPattern>(&getContext());
     patterns.add<RefineConvolutionOpPattern>(&getContext());
+    patterns.add<RefineCustomCallOpPattern>(&getContext());
     patterns.add<RefineDotGeneralOpPattern>(&getContext());
     patterns.add<RefineDynamicBroadcastInDimOpPattern>(&getContext());
+    patterns.add<RefineDynamicConvOpPattern>(&getContext());
     patterns.add<RefineDynamicIotaOpPattern>(&getContext());
     patterns.add<RefineDynamicPadOpPattern>(&getContext());
     patterns.add<RefineDynamicReshapeOpPattern>(&getContext());
     patterns.add<RefineInferTypeOpInterfacePattern>(&getContext());
     patterns.add<RefineRealDynamicSliceOpPattern>(&getContext());
+    patterns.add<RefineReduceScatterOpPattern>(&getContext());
     patterns.add<RefineRngOpPattern>(&getContext());
     patterns.add<RefineUniformQuantizeOpPattern>(&getContext());
     patterns.add<RefineWhileOpPattern>(&getContext());

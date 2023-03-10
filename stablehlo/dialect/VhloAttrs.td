@@ -17,15 +17,10 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_VHLO_ATTRS
 #define STABLEHLO_DIALECT_VHLO_ATTRS
 
+include "mlir/IR/AttrTypeBase.td"
 include "stablehlo/dialect/VhloBase.td"
 include "stablehlo/dialect/VhloDialect.td"
 include "stablehlo/dialect/VhloTypes.td"
-
-include "mlir/IR/AttrTypeBase.td"
-
-//===----------------------------------------------------------------------===//
-// Attribute Versioning
-//===----------------------------------------------------------------------===//
 
 def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
   let cppNamespace = "::mlir::vhlo";
@@ -39,79 +34,29 @@ def VHLO_VersionedAttrInterface : AttrInterface<"VersionedAttrInterface"> {
   ];
 }
 
-class VHLO_AttrDef<string name,
-                   string minVersion = "0.3.0",
-                   string maxVersion = "current">
+class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   : AttrDef<VHLO_Dialect, name, [VHLO_VersionedAttrInterface]> {
+  let cppNamespace = "::mlir::vhlo";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
       auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
-      if (failed(version)) llvm_unreachable("invalid version }] # minVersion # [{ in }] # name # [{");
+      if (failed(version)) llvm::report_fatal_error("invalid version }] # minVersion # [{ in }] # name # [{");
       return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
       if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
       auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
-      if (failed(version)) llvm_unreachable("invalid version }] # maxVersion # [{ in }] # name # [{");
+      if (failed(version)) llvm::report_fatal_error("invalid version }] # maxVersion # [{ in }] # name # [{");
       return *version;
     }
   }];
 }
 
-//===----------------------------------------------------------------------===//
-// VHLO Attributes
-//===----------------------------------------------------------------------===//
-
-def VHLO_ScatterDimensionNumbersAttrV1 : VHLO_AttrDef<"ScatterDimensionNumbersV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "scatter";
-  let parameters = (ins
-      VHLO_Dims:$updateWindowDims,
-      VHLO_Dims:$insertedWindowDims,
-      VHLO_Dims:$scatterDimsToOperandDims,
-      "int64_t":$indexVectorDim
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_GatherDimensionNumbersAttrV1 : VHLO_AttrDef<"GatherDimensionNumbersV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "gather";
-  let parameters = (ins
-      VHLO_Dims:$offsetDims,
-      VHLO_Dims:$collapsedSliceDims,
-      VHLO_Dims:$startIndexMap,
-      "int64_t":$indexVectorDim
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_DotDimensionNumbersAttrV1 : VHLO_AttrDef<"DotDimensionNumbersV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "dot";
-  let parameters = (ins
-      VHLO_Dims:$lhsBatchingDimensions,
-      VHLO_Dims:$rhsBatchingDimensions,
-      VHLO_Dims:$lhsContractingDimensions,
-      VHLO_Dims:$rhsContractingDimensions
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.4.0"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "output_operand_alias";
-  let parameters = (ins
-    VHLO_Dims:$outputTupleIndices,
-    "int64_t":$operandIndex,
-    VHLO_Dims:$operandTupleIndices
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "result_alias";
+// TODO(#740): ArgResultAlias is not yet part of the StableHLO spec.
+// At the moment, it is used to represent buffer donation, and we're planning
+// to look into it as part of the work on speccing buffer donation in StableHLO.
+def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.9.0", "current"> {
+  let mnemonic = "result_alias_v1";
   let parameters = (ins
     VHLO_Dims:$argTupleIndices,
     "int64_t":$resultIndex,
@@ -121,59 +66,10 @@ def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1"> {
   let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_ChannelHandleAttrV1 : VHLO_AttrDef<"ChannelHandleV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "channel_handle";
-  let parameters = (ins "int64_t":$handle, "int64_t":$type);
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "type_extensions";
-  let parameters = (ins VHLO_Dims:$bounds);
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_ConvDimensionNumbersAttrV1 : VHLO_AttrDef<"ConvDimensionNumbersV1"> {
-  let cppNamespace = "::mlir::vhlo";
-  let mnemonic = "conv";
-  let parameters = (ins
-    "int64_t":$inputBatchDimension,
-    "int64_t":$inputFeatureDimension,
-    VHLO_Dims:$inputSpatialDimensions,
-
-    "int64_t":$kernelInputFeatureDimension,
-    "int64_t":$kernelOutputFeatureDimension,
-    VHLO_Dims:$kernelSpatialDimensions,
-
-    "int64_t":$outputBatchDimension,
-    "int64_t":$outputFeatureDimension,
-    VHLO_Dims:$outputSpatialDimensions
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
-def VHLO_ConvolutionAttributesV1 {
-  dag attributes = (ins
-    OptionalAttr<VHLO_AnyAttr>:$window_strides,
-    OptionalAttr<VHLO_AnyAttr>:$padding,
-    OptionalAttr<VHLO_AnyAttr>:$lhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$rhs_dilation,
-    OptionalAttr<VHLO_AnyAttr>:$window_reversal,
-    VHLO_AnyAttr:$dimension_numbers,
-    VHLO_AnyAttr:$feature_group_count,
-    VHLO_AnyAttr:$batch_group_count,
-    OptionalAttr<VHLO_AnyAttr>:$precision_config
-  );
-}
-
-//===----------------------------------------------------------------------===//
-// Forked Attributes
-//===----------------------------------------------------------------------===//
-
-def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
-  let mnemonic = "array";
+// Represents attributes from the StableHLO spec which say "variadic number of",
+// although not called out explicitly in the "Constants" section.
+def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.9.0", "current"> {
+  let mnemonic = "array_v1";
   let parameters = (ins ArrayRefParameter<"mlir::Attribute">:$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -186,26 +82,19 @@ def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1"> {
   let assemblyFormat = "`<` custom<AttributeArray>($value) `>`";
 }
 
-def VHLO_DenseIntOrFPElementsData : AttrParameter<"::llvm::ArrayRef<char>", "Array of int"> {
-  // Custom allocator to copy dense elements data into MLIR Context
-  let allocator = "$_dst = $_allocator.copyInto($_self);";
-}
-def VHLO_DenseIntOrFPElementsAttrV1 : VHLO_AttrDef<"DenseIntOrFPElementsV1"> {
-  let mnemonic = "dense";
-  let parameters = (ins "::mlir::Type":$type, VHLO_DenseIntOrFPElementsData:$raw_data);
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    LogicalResult DenseIntOrFPElementsV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
-      if (!isFromVhlo(type)) errFn() << "expected VHLO type";
-      return success();
-    }
-  }];
-  let hasCustomAssemblyFormat = 1;
+// Corresponds to BooleanConstant from the StableHLO spec.
+def VHLO_BooleanAttrV1 : VHLO_AttrDef<"BooleanV1", "0.9.0", "current"> {
+  let mnemonic = "bool_v1";
+  let parameters = (ins "bool":$value);
+  let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
-  let mnemonic = "dict";
+// TODO(#425): DictionaryConstant is not part of the StableHLO spec.
+// At the moment, it is used to represent argument and result attributes of
+// StableHLO functions, and we're planning to look into it as part of the work
+// on speccing Module/Func/Call/Return ops in StableHLO.
+def VHLO_DictionaryAttrV1 : VHLO_AttrDef<"DictionaryV1", "0.9.0", "current"> {
+  let mnemonic = "dict_v1";
   let parameters = (ins ArrayRefParameter<"std::pair<mlir::Attribute, mlir::Attribute>", "">:$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -221,22 +110,9 @@ def VHLO_DictionaryAttr : VHLO_AttrDef<"DictionaryV1"> {
   let assemblyFormat = "`<` custom<AttributeDictionary>($value) `>`";
 }
 
-def VHLO_FlatSymbolRefAttrV1 : VHLO_AttrDef<"FlatSymbolRefV1"> {
-  let mnemonic = "sym";
-  let parameters = (ins "::mlir::Attribute":$root_reference);
-  let genVerifyDecl = 1;
-  let extraClassDefinition = [{
-    LogicalResult FlatSymbolRefV1Attr::verify(
-        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Attribute rootReference) {
-      if (!isFromVhlo(rootReference)) return errFn() << "expected VHLO attribute";
-      return success();
-    }
-  }];
-  let assemblyFormat = "`<` $root_reference `>`";
-}
-
-def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
-  let mnemonic = "float";
+// Corresponds to FloatConstant from the StableHLO spec.
+def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1", "0.9.0", "current"> {
+  let mnemonic = "float_v1";
   let parameters = (ins "mlir::Type":$type, VHLO_APFloatV1:$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -249,8 +125,9 @@ def VHLO_FloatAttrV1 : VHLO_AttrDef<"FloatV1"> {
   let assemblyFormat = "`<` $value `:` $type `>`";
 }
 
-def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
-  let mnemonic = "integer";
+// Corresponds to IntegerConstant from the StableHLO spec.
+def VHLO_IntegerAttrV1 : VHLO_AttrDef<"IntegerV1", "0.9.0", "current"> {
+  let mnemonic = "integer_v1";
   let parameters = (ins "mlir::Type":$type, "APInt":$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -263,14 +140,50 @@ def VHLO_IntegerAttrV1  : VHLO_AttrDef<"IntegerV1"> {
   let hasCustomAssemblyFormat = 1;
 }
 
-def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1"> {
-  let mnemonic = "string";
-  let parameters = (ins StringRefParameter<"">:$value);
-  let assemblyFormat = "`<` $value `>`";
+// TODO(#740): OutputOperandAlias is not yet part of the StableHLO spec.
+// At the moment, it is used to represent buffer donation, and we're planning
+// to look into it as part of the work on speccing buffer donation in StableHLO.
+def VHLO_OutputOperandAliasAttrV1 : VHLO_AttrDef<"OutputOperandAliasV1", "0.9.0", "current"> {
+  let mnemonic = "output_operand_alias_v1";
+  let parameters = (ins
+    VHLO_Dims:$outputTupleIndices,
+    "int64_t":$operandIndex,
+    VHLO_Dims:$operandTupleIndices
+  );
+  let assemblyFormat = "`<` struct(params) `>`";
 }
 
-def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1"> {
-  let mnemonic = "type";
+// Corresponds to StringConstant from the StableHLO spec.
+def VHLO_StringAttrV1 : VHLO_AttrDef<"StringV1", "0.9.0", "current"> {
+  let mnemonic = "string_v1";
+  let parameters = (ins StringRefParameter<"">:$value);
+  let assemblyFormat = "`<` custom<EscapedString>($value) `>`";
+}
+
+// Corresponds to TensorConstant from the StableHLO spec.
+def VHLO_TensorDataV1 : AttrParameter<"::llvm::ArrayRef<char>", ""> {
+  let allocator = "$_dst = $_allocator.copyInto($_self);";
+}
+def VHLO_TensorAttrV1 : VHLO_AttrDef<"TensorV1", "0.9.0", "current"> {
+  let mnemonic = "tensor_v1";
+  let parameters = (ins "::mlir::Type":$type, VHLO_TensorDataV1:$data);
+  let genVerifyDecl = 1;
+  let extraClassDefinition = [{
+    LogicalResult TensorV1Attr::verify(
+        llvm::function_ref<mlir::InFlightDiagnostic ()> errFn, mlir::Type type, ArrayRef<char>) {
+      if (!isFromVhlo(type)) errFn() << "expected VHLO type";
+      return success();
+    }
+  }];
+  let hasCustomAssemblyFormat = 1;
+}
+
+// TODO(#425): TypeConstant is not part of the StableHLO spec.
+// At the moment, it is used to represent types of StableHLO functions, and
+// we're planning to look into it as part of the work on speccing
+// Module/Func/Call/Return ops in StableHLO.
+def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1", "0.9.0", "current"> {
+  let mnemonic = "type_v1";
   let parameters = (ins "::mlir::Type":$value);
   let genVerifyDecl = 1;
   let extraClassDefinition = [{
@@ -283,15 +196,14 @@ def VHLO_TypeAttrV1 : VHLO_AttrDef<"TypeV1"> {
   let assemblyFormat = "`<` $value `>`";
 }
 
-def VHLO_UnitAttrV1 : VHLO_AttrDef<"UnitV1"> {
-  let mnemonic = "unit";
-  let storageType = [{ ::mlir::UnitAttr }];
-  let constBuilderCall = "(($0) ? $_builder.getUnitAttr() : nullptr)";
-  let convertFromStorage = "$_self != nullptr";
-  let returnType = "bool";
-  let defaultValue = "false";
-  let valueType = NoneType;
-  let isOptional = 1;
+// TODO(#8): TypeExtensions is not part of the StableHLO spec.
+// At the moment, it is used to represent dimension bounds to support bounded
+// dynamism, and we're planning to look into it as part of the work on the
+// dynamism RFC.
+def VHLO_TypeExtensionsAttrV1 : VHLO_AttrDef<"TypeExtensionsV1", "0.9.0", "current"> {
+  let mnemonic = "type_extensions_v1";
+  let parameters = (ins VHLO_Dims:$bounds);
+  let assemblyFormat = "`<` struct(params) `>`";
 }
 
 #endif // STABLEHLO_DIALECT_VHLO_ATTRS

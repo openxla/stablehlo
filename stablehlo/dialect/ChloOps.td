@@ -53,7 +53,6 @@ def CHLO_Dialect : Dialect {
     and provide conversion patterns to fully materialize into lower level
     dialects.
   }];
-  let useFoldAPI = kEmitFoldAdaptorFolder;
 }
 
 class CHLO_Op<string mnemonic, list<Trait> traits> :
@@ -671,6 +670,14 @@ def CHLO_ErfOp : CHLO_UnaryElementwiseOp<"erf",
 
     erf(x) = erf_impl(x)            if |x| < 1
            = 1 - erfc_impl(x)       otherwise
+  }];
+}
+
+def CHLO_ErfInvOp : CHLO_UnaryElementwiseOp<"erf_inv",
+    [HLO_CompatibleOperandsAndResultType], HLO_FpTensor, HLO_FpTensor> {
+  let summary = "Inverse Erf";
+  let description = [{
+    Returns `ErfInv(operand)` element-wise.
   }];
 }
 

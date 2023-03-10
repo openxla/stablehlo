@@ -28,12 +28,12 @@ namespace {
 static int64_t parseNumber(llvm::StringRef numRef) {
   int64_t num;
   if (numRef.getAsInteger(/*radix=*/10, num)) {
-    llvm_unreachable("failed to parse version number");
+    llvm::report_fatal_error("failed to parse version number");
   }
   return num;
 }
 
-/// Validate version argument is `#.#.#` (ex: 0.3.0, 1.2.3, 0.123.0)
+/// Validate version argument is `#.#.#` (ex: 0.9.0, 0.99.0, 1.2.3)
 /// Returns the vector of 3 matches (major, minor, patch) if successful,
 /// else returns failure.
 static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(

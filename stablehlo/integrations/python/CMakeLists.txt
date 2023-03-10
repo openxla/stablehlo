@@ -46,6 +46,18 @@ declare_mlir_dialect_python_bindings(
   SOURCES dialects/stablehlo.py
   DIALECT_NAME stablehlo)
 
+declare_mlir_python_sources(VhloPythonSources)
+declare_mlir_python_sources(VhloPythonSources.Dialects
+  ADD_TO_PARENT VhloPythonSources
+)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT VhloPythonSources.Dialects
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/VhloOps.td
+  SOURCES dialects/vhlo.py
+  DIALECT_NAME vhlo)
+
 ################################################################################
 # Extensions
 ################################################################################
@@ -74,6 +86,18 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
     LLVMSupport
 )
 
+declare_mlir_python_sources(VhloPythonExtensions)
+declare_mlir_python_extension(VhloPythonExtensions.Main
+  MODULE_NAME _vhlo
+  ADD_TO_PARENT VhloPythonExtensions
+  SOURCES
+    VhloModule.cpp
+  EMBED_CAPI_LINK_LIBS
+    VhloCAPI
+  PRIVATE_LINK_LIBS
+    LLVMSupport
+)
+
 ################################################################################
 # Generate packages and shared libraries
 ################################################################################
@@ -95,6 +119,8 @@ add_mlir_python_common_capi_library(StablehloUnifiedPythonCAPI
     ChloPythonExtensions
     StablehloPythonSources
     StablehloPythonExtensions
+    VhloPythonSources
+    VhloPythonExtensions
 )
 
 add_mlir_python_modules(StablehloUnifiedPythonModules
@@ -107,6 +133,8 @@ add_mlir_python_modules(StablehloUnifiedPythonModules
     ChloPythonExtensions
     StablehloPythonSources
     StablehloPythonExtensions
+    VhloPythonSources
+    VhloPythonExtensions
   COMMON_CAPI_LINK_LIBS
     StablehloUnifiedPythonCAPI
   )

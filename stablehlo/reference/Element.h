@@ -34,11 +34,22 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  Element(Type type, APInt value) : type_(type), value_(value) {}
-  Element(Type type, bool value) : type_(type), value_(value) {}
-  Element(Type type, APFloat value) : type_(type), value_(value) {}
-  Element(Type type, std::complex<APFloat> value)
-      : type_(type), value_(std::make_pair(value.real(), value.imag())) {}
+  Element(Type type, APInt value);
+
+  Element(Type type, int64_t value);
+
+  Element(Type type, bool value);
+
+  Element(Type type, APFloat value);
+
+  /// The double `value` can be used to construct two types: floating-point or
+  /// complex element types. By specifying a double value for complex element
+  /// type, the real part is set to `value`, and the imaginary part is zero.
+  Element(Type type, double value);
+
+  Element(Type type, std::complex<APFloat> value);
+
+  Element(Type type, std::complex<double> value);
 
   Element(const Element &other) = default;
   /// @}
@@ -65,11 +76,20 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Overloaded equality operator.
+  bool operator==(const Element &other) const;
+
+  /// Overloaded inequality operator.
+  bool operator!=(const Element &other) const;
+
   /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
 
   /// Overloaded add operator.
   Element operator+(const Element &other) const;
+
+  /// Overloaded divide operator.
+  Element operator/(const Element &other) const;
 
   /// Overloaded multiply operator.
   Element operator*(const Element &other) const;
@@ -100,14 +120,36 @@ class Element {
   std::variant<APInt, bool, APFloat, std::pair<APFloat, APFloat>> value_;
 };
 
-/// Returns element-wise ceil of Element object.
+/// Returns abs of Element object.
+Element abs(const Element &e);
+
+/// For floating point type T, checks if two normal values f1 and f2 are equal
+/// within a tolerance given by 0.0001.
+/// For complex element type, checks if both real and imaginary parts are
+/// individually equal modulo the tolerance.
+bool areApproximatelyEqual(const Element &e1, const Element &e2);
+
+/// Returns ceil of Element object.
 Element ceil(const Element &e);
 
-/// Returns element-wise cosine of Element object.
+/// Returns cosine of Element object.
 Element cosine(const Element &e);
 
-/// Returns element-wise floor of Element object.
+/// Returns exponential of Element object.
+Element exponential(const Element &el);
+
+/// Returns floor of Element object.
 Element floor(const Element &e);
+
+/// Returns the imaginary part extracted from the Element object with
+/// floating-point or complex type.
+Element imag(const Element &el);
+
+/// Returns log of Element object.
+Element log(const Element &el);
+
+/// Returns logistic of Element object.
+Element logistic(const Element &el);
 
 /// Returns the maximum between two Element objects.
 Element max(const Element &e1, const Element &e2);
@@ -115,10 +157,26 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
-/// Returns element-wise sine of Element object.
+/// Returns the exponentiation of first element to the power of second element.
+Element power(const Element &e1, const Element &e2);
+
+/// Returns the real part extracted from the Element object with floating-point
+/// or complex type.
+Element real(const Element &e);
+
+/// Returns the remainder for two Element objects.
+Element rem(const Element &e1, const Element &e2);
+
+/// Returns reverse square root of Element object.
+Element rsqrt(const Element &e);
+
+/// Returns sine of Element object.
 Element sine(const Element &e);
 
-/// Returns element-wise tanh of Element object.
+/// Returns square root of Element object.
+Element sqrt(const Element &e);
+
+/// Returns tanh of Element object.
 Element tanh(const Element &e);
 
 /// Print utilities for Element objects.

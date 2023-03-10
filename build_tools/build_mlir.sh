@@ -37,11 +37,12 @@ mkdir -p "$build_dir"
 echo "Beginning build (commands will echo)"
 set -x
 
+[[ "$(uname)" != "Darwin" ]] && LLVM_ENABLE_LLD="ON" || LLVM_ENABLE_LLD="OFF"
 cmake -GNinja \
   "-H$LLVM_SRC_DIR/llvm" \
   "-B$build_dir" \
   -DLLVM_INSTALL_UTILS=ON \
-  -DLLVM_ENABLE_LLD=ON \
+  -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
   -DLLVM_ENABLE_PROJECTS=mlir \
   -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;AMDGPU" \
   -DLLVM_INCLUDE_TOOLS=ON \
@@ -51,4 +52,4 @@ cmake -GNinja \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DLLVM_ENABLE_ASSERTIONS=On
 
-cmake --build "$build_dir" --target all --target mlir-cpu-runner
+cmake --build "$build_dir" --target all

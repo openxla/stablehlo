@@ -1,5 +1,5 @@
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -102,6 +102,18 @@ add_mlir_dialect_library(StablehloAssemblyFormat
   MLIRIR
 )
 
+add_mlir_dialect_library(StablehloSerialization
+  PARTIAL_SOURCES_INTENDED
+  Serialization.cpp
+
+  LINK_LIBS PUBLIC
+  StablehloOps
+  StablehloPasses
+  VhloOps
+  MLIRBytecodeWriter
+  MLIRIR
+)
+
 add_mlir_dialect_library(StablehloTypeInference
   PARTIAL_SOURCES_INTENDED
   TypeInference.cpp
@@ -184,6 +196,8 @@ add_mlir_dialect_library(VhloOps
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
+  VhloTypes
+  VhloVersion
   MLIRIR
   MLIRQuantDialect
   MLIRShapeDialect

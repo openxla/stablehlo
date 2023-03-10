@@ -17,9 +17,11 @@ print_usage() {
 }
 
 FORMAT_MODE='validate'
-while getopts 'f' flag; do
+BASE_BRANCH="$(git merge-base HEAD origin/main)"
+while getopts 'fb:' flag; do
   case "${flag}" in
     f) FORMAT_MODE="fix" ;;
+    b) BASE_BRANCH="$OPTARG" ;;
     *) print_usage
        exit 1 ;;
   esac
@@ -32,11 +34,13 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 get_source_files() {
-  find . -iname '*.h' -o -iname '*.cpp' -o -iname '*.td' -o -iname '*.md' -o -iname '*.txt' -o -iname '*.mlir' -o -iname '*.yml'
+  git diff $BASE_BRANCH HEAD --name-only --diff-filter=d | grep '.*\.cpp$\|.*\.h$\|.*\.md$\|.*\.mlir$\|.*\.sh$\|.*\.td$\|.*\.txt$\|.*\.yml$\|.*\.yaml$' | xargs
 }
+echo "Checking whitespace:"
+echo "  $(get_source_files)"
 
 files_without_eof_newline() {
-  get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
+  [[ -z $(get_source_files) ]] || get_source_files | xargs -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "$0"'
 }
 
 files_with_trailing_whitespace() {
@@ -67,7 +71,7 @@ else
     echo $TRAIL_WS
     echo
     echo "Auto-fix using:"
-    echo "  $ lint_whitespace_checks.sh -f"
+    echo "  $ ./build_tools/github_actions/lint_whitespace_checks.sh -f"
     exit 1
   else
     echo "No whitespace issues found."

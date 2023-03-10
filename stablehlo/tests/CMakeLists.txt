@@ -23,16 +23,16 @@ configure_lit_site_cfg(
 set(STABLEHLO_TEST_DEPENDS
         FileCheck count not
         stablehlo-opt
-        stablehlo-interpreter
+        stablehlo-translate
 )
-add_lit_testsuite(check-stablehlo-lit "Running the StableHLO regression tests"
+add_lit_testsuite(check-stablehlo-tests "Running the tests/ suite"
         ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS ${STABLEHLO_TEST_DEPENDS}
         )
-set_target_properties(check-stablehlo-lit PROPERTIES FOLDER "Tests")
-add_lit_testsuites(STABLEHLO_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
+set_target_properties(check-stablehlo-tests PROPERTIES FOLDER "Tests")
+add_lit_testsuites(STABLEHLO_TESTS_SUITE ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${STABLEHLO_TEST_DEPENDS})
 
-add_dependencies(check-stablehlo check-stablehlo-lit)
+add_dependencies(check-stablehlo check-stablehlo-tests)
 
 set(LLVM_TARGET_DEFINITIONS TestUtils.td)
 mlir_tablegen(TestUtils.h.inc -gen-pass-decls -name HloTest)
@@ -54,4 +54,24 @@ add_mlir_library(StablehloTestUtils
   MLIRSupport
   MLIRTransformUtils
   StablehloAssemblyFormat
+)
+
+set(LLVM_TARGET_DEFINITIONS CheckOps.td)
+mlir_tablegen(CheckOps.h.inc -gen-op-decls)
+mlir_tablegen(CheckOps.cpp.inc -gen-op-defs)
+add_public_tablegen_target(CheckOpsIncGen)
+add_dependencies(mlir-headers CheckOpsIncGen)
+
+add_mlir_dialect_library(CheckOps
+  PARTIAL_SOURCES_INTENDED
+  CheckOps.cpp
+
+  DEPENDS
+  CheckOpsIncGen
+
+  LINK_LIBS PUBLIC
+  StablehloBase
+  StablehloReferenceTensor
+  MLIRIR
+  MLIRSupport
 )
