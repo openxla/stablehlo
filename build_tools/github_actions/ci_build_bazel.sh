@@ -18,4 +18,4 @@ if [[ $# -ne 0 ]] ; then
 fi
 
 # Build and Check StableHLO
-bazel test //:all
+bazel test //...
