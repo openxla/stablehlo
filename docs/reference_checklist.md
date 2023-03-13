@@ -65,6 +65,13 @@ After implementing the interpreter:
 1. In [interpreter tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests):
     1. Add file called `interpret_<op_mnemonic>.mlir`.
     1. Write tests following the [testing guidelines](https://github.com/openxla/stablehlo/blob/main/docs/reference.md#testing-guidelines).
+1. In [testdata directory](https://github.com/openxla/stablehlo/tree/main/stablehlo/testdata):
+    1. Run any disabled tests which is covered by the newly added operation.
+    1. If the tests pass, enable them by converting `RUN-DISABLED` to `RUN`.
+    1. If the test fails due to reason other than precision mismatches, fix the
+       implementation/test.
+    1. For precision mismatches, tag the test with `RUN-DISABLED(#1278)` if not
+       already done so.
 1. In [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir):
     1. Make sure that there is at least one test for each constraint in verifier
        and type inference methods; constraints covered in ODS will not be
