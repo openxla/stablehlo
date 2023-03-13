@@ -782,17 +782,19 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues)) {
-    Tensor result = Tensor(resultType);
+    Tensor result(resultType);
     for (auto resultIt = result.index_begin(); resultIt != result.index_end();
          ++resultIt)
       result.set(*resultIt, initValue.get({}));
     results.push_back(result);
   }
+
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
     Index resultIndex = *inputIt;
-    for (int64_t dim : llvm::reverse(dimensions))
+    for (auto dim : llvm::reverse(dimensions))
       resultIndex.erase(resultIndex.begin() + dim);
+
     SmallVector<Tensor> args;
     for (auto [runtimeResult, initValue] : llvm::zip(results, initValues)) {
       auto arg = Tensor(initValue.getType());
@@ -804,7 +806,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       arg.set({}, input.get(*inputIt));
       args.push_back(arg);
     }
-    SmallVector<Tensor> reducedValues = eval(body, args, &scope);
+
+    auto reducedValues = eval(body, args, &scope);
     for (auto [result, value] : llvm::zip(results, reducedValues))
       result.set(resultIndex, value.get({}));
   }
