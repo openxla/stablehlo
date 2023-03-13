@@ -17,6 +17,5 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
-# Build StableHLO
-echo "=== Building StableHLO ==="
-bazel build //:all
+# Build and Test StableHLO
+bazel test //...

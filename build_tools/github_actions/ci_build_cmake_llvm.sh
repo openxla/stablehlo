@@ -45,4 +45,4 @@ cmake -GNinja \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
 # Build LLVM/MLIR
-cmake --build "$LLVM_BUILD_DIR" --target all --target mlir-cpu-runner
+cmake --build "$LLVM_BUILD_DIR" --target all

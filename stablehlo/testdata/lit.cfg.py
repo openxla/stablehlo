@@ -1,6 +1,6 @@
 """Lit configuration to drive test in this repo."""
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -20,51 +20,22 @@ import os
 
 import lit.formats
 from lit.llvm import llvm_config
-import lit.util
 
-# Configuration file for the 'lit' test runner.
-
-# name: The name of this test suite.
-config.name = 'STABLEHLO_TESTDATA_SUITE'
-
+# Populate Lit configuration with the minimal required metadata.
+# Some metadata is populated in lit.site.cfg.py.in.
+config.name = 'STABLEHLO_TESTS_SUITE'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
-
-# suffixes: A list of file extensions to treat as test files.
-config.suffixes = ['.mlir', '.mlir.py']
-
-# test_source_root: The root path where tests are located.
+config.suffixes = ['.mlir']
 config.test_source_root = os.path.dirname(__file__)
 
-# test_exec_root: The root path where tests should be run.
-config.test_exec_root = os.path.join(config.stablehlo_obj_root, 'test')
-
-config.substitutions.append(('%PATH%', config.environment['PATH']))
-config.substitutions.append(('%shlibext', config.llvm_shlib_ext))
-
-llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
-
-llvm_config.use_default_substitutions()
-
-# excludes: A list of directories to exclude from the testsuite.
-config.excludes = []
-
-# test_source_root: The root path where tests are located.
-config.test_source_root = os.path.dirname(__file__)
-
-# test_exec_root: The root path where tests should be run.
-config.test_exec_root = os.path.join(config.stablehlo_obj_root, 'testdata')
-config.stablehlo_tools_dir = os.path.join(config.stablehlo_obj_root, 'bin')
-
-# Tweak the PATH to include the tools dir.
-llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
-
-tool_dirs = [
-    config.stablehlo_tools_dir,
-    config.llvm_tools_dir,
-]
+# Make LLVM and StableHLO tools available in RUN directives
 tools = [
-    'stablehlo-opt',
-    'stablehlo-translate',
+  'FileCheck',
+  'stablehlo-opt',
+  'stablehlo-translate',
 ]
-
+tool_dirs = [
+  config.llvm_tools_dir,
+  config.stablehlo_tools_dir,
+]
 llvm_config.add_tool_substitutions(tools, tool_dirs)

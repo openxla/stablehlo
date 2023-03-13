@@ -41,6 +41,6 @@ cmake -GNinja \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
   -DSTABLEHLO_ENABLE_STRICT_BUILD=On
 
-# Build and Check StableHLO
+# Build and Test StableHLO
 cd "$STABLEHLO_BUILD_DIR"
 ninja check-stablehlo

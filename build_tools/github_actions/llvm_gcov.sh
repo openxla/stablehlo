@@ -13,5 +13,5 @@
 # limitations under the License.
 
 # This is a helper script used by lcov in
-# ci_build_stablehlo_code_coverage.sh
+# ci_build_cmake_code_coverage.sh
 exec llvm-cov-14 gcov "$@"

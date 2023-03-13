@@ -545,53 +545,6 @@ cc_library(
     alwayslink = True,
 )
 
-cc_library(
-    name = "check_ops",
-    srcs = [
-        "stablehlo/tests/CheckOps.cpp",
-    ],
-    hdrs = [
-        "stablehlo/tests/CheckOps.h",
-    ],
-    strip_include_prefix = ".",
-    deps = [
-        ":base",
-        ":check_ops_inc_gen",
-        ":reference_tensor",
-    ],
-)
-
-gentbl_cc_library(
-    name = "check_ops_inc_gen",
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "stablehlo/tests/CheckOps.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "stablehlo/tests/CheckOps.cpp.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/tests/CheckOps.td",
-    strip_include_prefix = ".",
-    deps = [
-        ":check_ops_td_files",
-    ],
-)
-
-td_library(
-    name = "check_ops_td_files",
-    srcs = [
-        "stablehlo/tests/CheckOps.td",
-    ],
-    includes = ["."],
-    deps = [
-        ":base_td_files",
-    ],
-)
-
 gentbl_cc_library(
     name = "stablehlo_enums_inc_gen",
     strip_include_prefix = ".",
@@ -818,7 +771,6 @@ cc_binary(
         "stablehlo/tools/StablehloTranslateMain.cpp",
     ],
     deps = [
-        ":check_ops",
         ":reference_errors",
         ":reference_ops",
         ":reference_scope",
@@ -826,8 +778,9 @@ cc_binary(
         ":register",
         ":stablehlo_ops",
         ":stablehlo_serialization",
-        ":test_utils",
         ":vhlo_ops",
+        "//stablehlo/tests:check_ops",
+        "//stablehlo/tests:test_utils",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
@@ -844,72 +797,9 @@ cc_binary(
     deps = [
         ":register",
         ":stablehlo_passes",
-        ":test_utils",
+        "//stablehlo/tests:test_utils",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
-    ],
-)
-
-filegroup(
-    name = "test_data",
-    testonly = True,
-    data = [
-        ":stablehlo-opt",
-        ":stablehlo-translate",
-        "@llvm-project//llvm:FileCheck",
-    ],
-)
-
-gentbl_cc_library(
-    name = "test_utils_inc_gen",
-    strip_include_prefix = ".",
-    tbl_outs = [
-        (
-            [
-                "-gen-pass-decls",
-                "-name=HloTest",
-            ],
-            "stablehlo/tests/TestUtils.h.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/tests/TestUtils.td",
-    deps = [
-        ":test_utils_td_files",
-    ],
-)
-
-td_library(
-    name = "test_utils_td_files",
-    srcs = [
-        "stablehlo/tests/TestUtils.td",
-    ],
-    includes = ["."],
-    deps = [
-        "@llvm-project//mlir:PassBaseTdFiles",
-    ],
-)
-
-cc_library(
-    name = "test_utils",
-    srcs = [
-        "stablehlo/tests/TestUtils.cpp",
-    ],
-    hdrs = [
-        "stablehlo/tests/TestUtils.h",
-    ],
-    strip_include_prefix = ".",
-    deps = [
-        ":stablehlo_assembly_format",
-        ":test_utils_inc_gen",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:ShapeDialect",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:Transforms",
     ],
 )
 
