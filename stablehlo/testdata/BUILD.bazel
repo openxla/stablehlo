@@ -44,7 +44,7 @@ expand_template(
             "//:stablehlo-opt",
             "//:stablehlo-translate",
             "@llvm-project//llvm:FileCheck",
-        ] + glob(["%s.0_9_0.bc" % src]),
+        ] + glob(["%s.*.bc" % src]),
         size = "small",
     )
     for src in glob(["**/*.mlir"])

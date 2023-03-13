@@ -17,5 +17,5 @@ if [[ $# -ne 0 ]] ; then
   exit 1
 fi
 
-# Build and Check StableHLO
+# Build and Test StableHLO
 bazel test //...
