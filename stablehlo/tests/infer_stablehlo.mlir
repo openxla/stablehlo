@@ -781,6 +781,7 @@ func.func @reduce_c7(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.reduce' op inferred type(s) 'tensor<?xf32>' are incompatible with return type(s) of operation 'tensor<?xi32>'}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
+
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
     %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<f32>, tensor<f32>) -> tensor<f32>
     "stablehlo.return"(%1) : (tensor<f32>) -> ()
