@@ -78,7 +78,9 @@ print_autofix() {
 update_llvm_commit_and_sha256() {
   LLVM_COMMIT=$(llvm_commit_from_version_txt)
   LLVM_SHA256=$(llvm_sha256_from_archive)
+  echo "Bumping commit to: $LLVM_COMMIT"
   sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
+  echo "Bumping sha256 to: $LLVM_SHA256"
   sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
 }
 
