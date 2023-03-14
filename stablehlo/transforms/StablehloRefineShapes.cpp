@@ -221,6 +221,9 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
     auto operandType = op.getOperand().getType().cast<ShapedType>();
     auto isOperandUnsigned = operandType.getElementType().isUnsignedInteger();
     auto resultType = op.getResult().getType().cast<ShapedType>();
+    if (!resultType.getElementType().isIntOrIndex())
+      return rewriter.notifyMatchFailure(op,
+                                         "expected integer result tensor type");
     auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalUnary(rewriter, op, [&](APInt operand) {
       return APSInt(operand, isOperandUnsigned).extOrTrunc(resultBitwidth);
@@ -332,6 +335,9 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   LogicalResult matchAndRewrite(SignOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getResult().getType().cast<ShapedType>();
+    if (!resultType.getElementType().isIntOrIndex())
+      return rewriter.notifyMatchFailure(op,
+                                         "expected integer result tensor type");
     auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalUnary(rewriter, op, [&](APInt operand) {
       int64_t result;
@@ -595,8 +601,14 @@ struct RefineBitcastConvertOpPattern
     // This complicates the logic quite a bit and is not needed to pass the
     // current tests, so we leave this for future work.
     auto resultType = op.getResult().getType().cast<ShapedType>();
-    if (operandType.getElementType().getIntOrFloatBitWidth() !=
-        resultType.getElementType().getIntOrFloatBitWidth())
+    auto getBitWidthFn = [](ShapedType type) {
+      auto elementType = type.getElementType();
+      if (auto complexType = elementType.dyn_cast<ComplexType>())
+        return complexType.getElementType().getIntOrFloatBitWidth();
+      return elementType.getIntOrFloatBitWidth();
+    };
+
+    if (getBitWidthFn(operandType) != getBitWidthFn(resultType))
       return rewriter.notifyMatchFailure(op, "unsupported bitwidth");
 
     return refineReturnShape(rewriter, op, operandType.getShape());
