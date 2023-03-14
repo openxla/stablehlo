@@ -81,7 +81,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   std::optional<size_t> expectedGroupSize);
 
 LogicalResult verifyConvolutionAttributes(
-    std::optional<Location> location, Value lhs, Value rhs,
+    std::optional<Location> location, Type lhsType, Type rhsType,
     int64_t inputBatchDimension, int64_t inputFeatureDimension,
     ArrayRef<int64_t> inputSpatialDimensions,
     int64_t kernelInputFeatureDimension, int64_t kernelOutputFeatureDimension,
