@@ -23,6 +23,7 @@ limitations under the License.
 #include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -360,14 +361,14 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
     if (!resultType || resultType.getRank() != 1)
       return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
 
-    SmallVector<int64_t> operand;
+    SmallVector<APInt> operand;
     if (failed(matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
     int64_t start = op.getStartIndices().getValues<int64_t>()[0];
     int64_t limit = op.getLimitIndices().getValues<int64_t>()[0];
     int64_t stride = op.getStrides().getValues<int64_t>()[0];
-    SmallVector<int64_t> result;
+    SmallVector<APInt> result;
     for (auto i = start; i < limit; i += stride) {
       result.push_back(operand[i]);
     }
