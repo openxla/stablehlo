@@ -43,6 +43,11 @@ void reifyGatherDimSizes(int64_t resultRank,
                          ArrayRef<int64_t> startIndexMap,
                          int64_t indexVectorDim, SmallVectorImpl<Value>& shape);
 
+// Convert a Nx2 dense int64 padding attribute to a list of tuples.
+FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
+    std::optional<DenseIntElementsAttr> optionalAttr,
+    std::optional<Location> loc);
+
 // Convert a 1D dense bool attribute to a list of values.
 FailureOr<SmallVector<bool>> convertWindowReversalAttribute(
     std::optional<DenseElementsAttr> optionalAttr, std::optional<Location> loc,

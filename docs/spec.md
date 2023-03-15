@@ -4203,10 +4203,10 @@ where:
 
 <!-- markdownlint-disable line-length -->
 * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
-       N $\ge$ 1.
+  N $\ge$ 1.
 * (C2) All `inputs` have the same shape.
-* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for any k
-    $\in$ [0, N).
+* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for all k
+  $\in$ [0, N).
 * (C4) size(`window_dimensions`) $=$ rank(`inputs[0]`).
 * (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
 * (C6) size(`window_strides`) $=$ rank(`inputs[0]`).
@@ -4217,15 +4217,15 @@ where:
 * (C11) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
 * (C12) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
 * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-        where `Ek = element_type(inputs[0])`.
+  where `Ek = element_type(inputs[0])`.
 * (C14) All `results` have the same shape.
 * (C15) `shape(results[0]) = num_windows`
   * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
   * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
   * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
   * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
-    $\in$ [0, N).
+* (C16) `element_type(results[k]) = element_type(init_values[k])` for all k
+  $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4234,18 +4234,20 @@ where:
 // %input = [[1, 2], [3, 4], [5, 6]]
 // %init_value = 0
 %result = "stablehlo.reduce_window"(%input, %init_value) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   window_dimensions = dense<[2, 1]> : tensor<2xi64>,
   window_strides = dense<[4, 1]> : tensor<2xi64>,
   base_dilations = dense<[2, 1]> : tensor<2xi64>,
   window_dilations = dense<[3, 1]> : tensor<2xi64>,
   padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
-} : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
+} : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
 // %result = [[0, 0], [3, 4]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_window.mlir)
 
 ### remainder
 
