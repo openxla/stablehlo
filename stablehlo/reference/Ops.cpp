@@ -22,7 +22,6 @@ limitations under the License.
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/dialect/TypeInference.h"
@@ -151,8 +150,13 @@ void failOnDecomposableOp(Operation &op) {
 }
 
 template <typename T>
-DenseIntElementsAttr getDenseIntElementsAttr(SmallVector<int64_t> shape,
-                                             Type elementType, T values) {
+DenseIntElementsAttr getDenseIntElementsAttr(
+    Type elementType, T values,
+    std::optional<SmallVector<int64_t>> valuesShape) {
+  SmallVector<int64_t> shape =
+      valuesShape.has_value()
+          ? *valuesShape
+          : SmallVector<int64_t>({static_cast<int64_t>(values.size())});
   return DenseIntElementsAttr::get(RankedTensorType::get(shape, elementType),
                                    values);
 }
@@ -170,6 +174,128 @@ SmallVector<SmallVector<uint32_t>> getReplicaGroups(
     }
   }
   return replicaGroups;
+}
+
+ShapedType inferConvolutionOpType(
+    ShapedType lhsType, ShapedType rhsType, ArrayRef<int64_t> windowStrides,
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, Axes inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    Axes kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, Axes outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount,
+    std::optional<ArrayAttr> precisionConfig, ShapedType resultType) {
+  Builder builder = mlir::Builder(lhsType.getContext());
+  Type i64Type = builder.getI64Type();
+  Type i1Type = builder.getI1Type();
+  auto flattenPadding = [&](ArrayRef<std::pair<int64_t, int64_t>> padding) {
+    SmallVector<int64_t> paddingVector;
+    for (auto pair : padding) {
+      paddingVector.push_back(pair.first);
+      paddingVector.push_back(pair.second);
+    }
+    return paddingVector;
+  };
+  SmallVector<int64_t> paddingShape{static_cast<int64_t>(padding.size()), 2};
+  SmallVector<ShapedTypeComponents> inferredConvolutionType;
+  auto convolutionStatus = hlo::inferConvolutionOp(
+      /*location=*/{}, lhsType, rhsType,
+      getDenseIntElementsAttr(i64Type, windowStrides, {}),
+      getDenseIntElementsAttr(i64Type, flattenPadding(padding), paddingShape),
+      getDenseIntElementsAttr(i64Type, lhsDilation, {}),
+      getDenseIntElementsAttr(i64Type, rhsDilation, {}),
+      getDenseIntElementsAttr(i1Type, windowReversal, {}),
+      static_cast<int64_t>(inputBatchDimension),
+      static_cast<int64_t>(inputFeatureDimension),
+      ArrayRef<int64_t>(inputSpatialDimensions),
+      static_cast<int64_t>(kernelInputFeatureDimension),
+      static_cast<int64_t>(kernelOutputFeatureDimension),
+      ArrayRef<int64_t>(kernelSpatialDimensions),
+      static_cast<int64_t>(outputBatchDimension),
+      static_cast<int64_t>(outputFeatureDimension),
+      ArrayRef<int64_t>(outputSpatialDimensions),
+      /*featureGroupCount=*/1, batchGroupCount,
+      /*precisionConfig=*/{}, inferredConvolutionType);
+  if (failed(convolutionStatus))
+    report_fatal_error(
+        invalidArgument("Could not infer ConvolutionOp's return type"));
+  return RankedTensorType::get(inferredConvolutionType[0].getDims(),
+                               resultType.getElementType());
+}
+
+ShapedType inferDotGeneralOpType(ShapedType lhsType, ShapedType rhsType,
+                                 ArrayRef<int64_t> lhsContractingDimensions,
+                                 ArrayRef<int64_t> rhsContractingDimensions) {
+  SmallVector<ShapedTypeComponents> inferredDotGeneralType;
+  auto dotGeneralStatus = hlo::inferDotGeneralOp(
+      /*location=*/{}, lhsType, rhsType,
+      /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions*/ {},
+      lhsContractingDimensions, rhsContractingDimensions,
+      /*precisionConfig=*/{}, inferredDotGeneralType);
+  if (failed(dotGeneralStatus))
+    report_fatal_error(
+        invalidArgument("Could not infer DotGeneralOp's return type"));
+  return RankedTensorType::get(inferredDotGeneralType[0].getDims(),
+                               lhsType.getElementType());
+}
+
+ShapedType inferPadOpType(ArrayRef<std::pair<int64_t, int64_t>> lhsPadding,
+                          Type operandType, Type resultElementType,
+                          ArrayRef<int64_t> interiorPadding) {
+  Builder builder = mlir::Builder(operandType.getContext());
+  Type i64Type = builder.getI64Type();
+  SmallVector<int64_t> lhsPaddingLow;
+  SmallVector<int64_t> lhsPaddingHigh;
+  for (auto paddingPair : lhsPadding) {
+    lhsPaddingLow.push_back(paddingPair.first);
+    lhsPaddingHigh.push_back(paddingPair.second);
+  }
+  SmallVector<Type> inferredPadType;
+  auto padStatus = hlo::inferPadOp(
+      {}, operandType, RankedTensorType::get({}, resultElementType),
+      getDenseIntElementsAttr(i64Type, lhsPaddingLow, {}),
+      getDenseIntElementsAttr(i64Type, lhsPaddingHigh, {}),
+      getDenseIntElementsAttr(i64Type, interiorPadding, {}), inferredPadType);
+  if (failed(padStatus))
+    report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
+  return inferredPadType[0].cast<ShapedType>();
+}
+
+ShapedType inferSliceOpType(Type operandType,
+                            SmallVector<int64_t> lhsWindowStart,
+                            SmallVector<int64_t> limitIndices,
+                            SmallVector<int64_t> lhsWindowDilations) {
+  Builder builder = mlir::Builder(operandType.getContext());
+  Type i64Type = builder.getI64Type();
+  SmallVector<Type> inferredSliceType;
+  auto sliceStatus = hlo::inferSliceOp(
+      {}, operandType, getDenseIntElementsAttr(i64Type, lhsWindowStart, {}),
+      getDenseIntElementsAttr(i64Type, limitIndices, {}),
+      getDenseIntElementsAttr(i64Type, lhsWindowDilations, {}),
+      inferredSliceType);
+  if (failed(sliceStatus))
+    report_fatal_error(
+        invalidArgument("Could not infer SliceOp's return type"));
+  return inferredSliceType[0].cast<ShapedType>();
+}
+
+template <typename T>
+SmallVector<T> concatAndPermute(T n, SmallVector<T> hw, T c, int64_t dimA,
+                                SmallVector<int64_t> dimB, int64_t dimC) {
+  SmallVector<T> permInput;
+  permInput.push_back(n);
+  permInput.append(hw.begin(), hw.end());
+  permInput.push_back(c);
+  SmallVector<int64_t> permDims;
+  permDims.push_back(dimA);
+  permDims.append(dimB.begin(), dimB.end());
+  permDims.push_back(dimC);
+  SmallVector<T> permOutput(permDims.size());
+  for (auto [idx, dim] : llvm::enumerate(permDims))
+    permOutput[dim] = permInput[idx];
+  return permOutput;
 }
 
 Tensor makeScalar(const Element &initValue) {
@@ -394,34 +520,30 @@ SmallVector<InterpreterValue> eval(
       auto lhs = scope.findTensor(convolutionOp.getLhs());
       auto rhs = scope.findTensor(convolutionOp.getRhs());
       auto rank = lhs.getRank();
-      auto windowStrides = SmallVector<int64_t>(rank - 2, 1);
-      auto padding = SmallVector<SmallVector<int64_t>>(rank - 2, {0, 0});
-      auto lhsDilation = SmallVector<int64_t>(rank - 2, 1);
-      auto rhsDilation = SmallVector<int64_t>(rank - 2, 1);
-      auto windowReversal = SmallVector<bool>(rank - 2, false);
+      SmallVector<int64_t> windowStrides(rank - 2, 1);
       if (convolutionOp.getWindowStrides().has_value())
         windowStrides = llvm::to_vector(
             convolutionOp.getWindowStridesAttr().getValues<int64_t>());
+      SmallVector<std::pair<int64_t, int64_t>> padding(rank - 2, {0, 0});
       if (convolutionOp.getPadding().has_value()) {
         auto paddingOrErr =
             hlo::convertPaddingAttribute(convolutionOp.getPadding(), {});
         if (failed(paddingOrErr))
           report_fatal_error(invalidArgument("Invalid padding format found."));
-        for (auto i = 0; i < rank - 2; ++i) {
-          padding[i][0] = (*paddingOrErr)[i].first;
-          padding[i][1] = (*paddingOrErr)[i].second;
-        }
+        padding = *paddingOrErr;
       }
+      SmallVector<int64_t> lhsDilation(rank - 2, 1);
       if (convolutionOp.getLhsDilation().has_value())
         lhsDilation = llvm::to_vector(
             convolutionOp.getLhsDilationAttr().getValues<int64_t>());
+      SmallVector<int64_t> rhsDilation(rank - 2, 1);
       if (convolutionOp.getRhsDilation().has_value())
         rhsDilation = llvm::to_vector(
             convolutionOp.getRhsDilationAttr().getValues<int64_t>());
+      SmallVector<bool> windowReversal(rank - 2, false);
       if (convolutionOp.getWindowReversal().has_value())
         windowReversal = llvm::to_vector(
             convolutionOp.getWindowReversalAttr().getValues<bool>());
-
       auto result = evalConvolutionOp(
           lhs, rhs, windowStrides, padding, lhsDilation, rhsDilation,
           windowReversal,
@@ -1239,14 +1361,14 @@ Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalConvolutionOp(
     const Tensor &lhs, const Tensor &rhs, ArrayRef<int64_t> windowStrides,
-    SmallVector<SmallVector<int64_t>> padding, ArrayRef<int64_t> lhsDilation,
-    ArrayRef<int64_t> rhsDilation, ArrayRef<bool> windowReversal,
-    Axis inputBatchDimension, Axis inputFeatureDimension,
-    Axes inputSpatialDimensions, Axis kernelInputFeatureDimension,
-    Axis kernelOutputFeatureDimension, Axes kernelSpatialDimensions,
-    Axis outputBatchDimension, Axis outputFeatureDimension,
-    Axes outputSpatialDimensions, int64_t featureGroupCount,
-    int64_t batchGroupCount, ShapedType resultType) {
+    ArrayRef<std::pair<int64_t, int64_t>> padding,
+    ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
+    ArrayRef<bool> windowReversal, Axis inputBatchDimension,
+    Axis inputFeatureDimension, Axes inputSpatialDimensions,
+    Axis kernelInputFeatureDimension, Axis kernelOutputFeatureDimension,
+    Axes kernelSpatialDimensions, Axis outputBatchDimension,
+    Axis outputFeatureDimension, Axes outputSpatialDimensions,
+    int64_t featureGroupCount, int64_t batchGroupCount, ShapedType resultType) {
   Tensor result(resultType);
 
   // This check is necessary here as we are not looping over result tensor but
@@ -1254,51 +1376,13 @@ Tensor evalConvolutionOp(
   // fail if the dimension size is zero.
   if (resultType.getNumElements() == 0) return result;
 
-  Builder builder = mlir::Builder(resultType.getContext());
-  Type i64Type = builder.getI64Type();
-  Type i1Type = builder.getI1Type();
-
-  auto flattenPadding = [&](auto padding) {
-    SmallVector<int64_t> paddingVector;
-    for (auto pair : padding) paddingVector.append(pair.begin(), pair.end());
-    return paddingVector;
-  };
-
   if (featureGroupCount > 1) {
-    auto flatPadding = flattenPadding(padding);
     auto lhses = split(lhs, featureGroupCount, inputFeatureDimension,
                        resultType.getContext());
     auto rhses = split(rhs, featureGroupCount, kernelOutputFeatureDimension,
                        resultType.getContext());
-    SmallVector<int64_t> paddingShape{static_cast<int64_t>(padding.size()), 2};
     SmallVector<Tensor> results;
     for (auto [left, right] : llvm::zip(lhses, rhses)) {
-      SmallVector<ShapedTypeComponents> inferredConvolutionType;
-      auto convolutionStatus = hlo::inferConvolutionOp(
-          /*location=*/{}, left.getType(), right.getType(),
-          getDenseIntElementsAttr({static_cast<int64_t>(windowStrides.size())},
-                                  i64Type, windowStrides),
-          getDenseIntElementsAttr(paddingShape, i64Type, flatPadding),
-          getDenseIntElementsAttr({static_cast<int64_t>(lhsDilation.size())},
-                                  i64Type, lhsDilation),
-          getDenseIntElementsAttr({static_cast<int64_t>(rhsDilation.size())},
-                                  i64Type, rhsDilation),
-          getDenseIntElementsAttr({static_cast<int64_t>(windowReversal.size())},
-                                  i1Type, windowReversal),
-          static_cast<int64_t>(inputBatchDimension),
-          static_cast<int64_t>(inputFeatureDimension),
-          ArrayRef<int64_t>(inputSpatialDimensions),
-          static_cast<int64_t>(kernelInputFeatureDimension),
-          static_cast<int64_t>(kernelOutputFeatureDimension),
-          ArrayRef<int64_t>(kernelSpatialDimensions),
-          static_cast<int64_t>(outputBatchDimension),
-          static_cast<int64_t>(outputFeatureDimension),
-          ArrayRef<int64_t>(outputSpatialDimensions),
-          /*featureGroupCount=*/1, batchGroupCount,
-          /*precisionConfig=*/{}, inferredConvolutionType);
-      if (failed(convolutionStatus))
-        report_fatal_error(
-            invalidArgument("Could not infer ConvolutionOp's return type"));
       auto convolutionResult = evalConvolutionOp(
           left, right, windowStrides, padding, lhsDilation, rhsDilation,
           windowReversal, inputBatchDimension, inputFeatureDimension,
@@ -1306,47 +1390,26 @@ Tensor evalConvolutionOp(
           kernelOutputFeatureDimension, kernelSpatialDimensions,
           outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
           /*featureGroupCount=*/1, batchGroupCount,
-          RankedTensorType::get(inferredConvolutionType[0].getDims(),
-                                result.getElementType()));
+          inferConvolutionOpType(
+              left.getType(), right.getType(), windowStrides, padding,
+              lhsDilation, rhsDilation, windowReversal, inputBatchDimension,
+              inputFeatureDimension, inputSpatialDimensions,
+              kernelInputFeatureDimension, kernelOutputFeatureDimension,
+              kernelSpatialDimensions, outputBatchDimension,
+              outputFeatureDimension, outputSpatialDimensions,
+              /*featureGroupCount=*/1, batchGroupCount,
+              /*precisionConfig=*/{}, resultType));
       results.push_back(convolutionResult);
     }
     return evalConcatenateOp(results, outputFeatureDimension, result.getType());
   }
   if (batchGroupCount > 1) {
-    auto flatPadding = flattenPadding(padding);
     auto lhses = split(lhs, batchGroupCount, inputBatchDimension,
                        resultType.getContext());
     auto rhses = split(rhs, batchGroupCount, kernelOutputFeatureDimension,
                        resultType.getContext());
-    SmallVector<int64_t> paddingShape{static_cast<int64_t>(padding.size()), 2};
     SmallVector<Tensor> results;
     for (auto [left, right] : llvm::zip(lhses, rhses)) {
-      SmallVector<ShapedTypeComponents> inferredConvolutionType;
-      auto convolutionStatus = hlo::inferConvolutionOp(
-          /*location=*/{}, left.getType(), right.getType(),
-          getDenseIntElementsAttr({static_cast<int64_t>(windowStrides.size())},
-                                  i64Type, windowStrides),
-          getDenseIntElementsAttr(paddingShape, i64Type, flatPadding),
-          getDenseIntElementsAttr({static_cast<int64_t>(lhsDilation.size())},
-                                  i64Type, lhsDilation),
-          getDenseIntElementsAttr({static_cast<int64_t>(rhsDilation.size())},
-                                  i64Type, rhsDilation),
-          getDenseIntElementsAttr({static_cast<int64_t>(windowReversal.size())},
-                                  i1Type, windowReversal),
-          static_cast<int64_t>(inputBatchDimension),
-          static_cast<int64_t>(inputFeatureDimension),
-          ArrayRef<int64_t>(inputSpatialDimensions),
-          static_cast<int64_t>(kernelInputFeatureDimension),
-          static_cast<int64_t>(kernelOutputFeatureDimension),
-          ArrayRef<int64_t>(kernelSpatialDimensions),
-          static_cast<int64_t>(outputBatchDimension),
-          static_cast<int64_t>(outputFeatureDimension),
-          ArrayRef<int64_t>(outputSpatialDimensions), featureGroupCount,
-          /*batchGroupCount=*/1,
-          /*precisionConfig=*/{}, inferredConvolutionType);
-      if (failed(convolutionStatus))
-        report_fatal_error(
-            invalidArgument("Could not infer ConvolutionOp's return type"));
       auto convolutionResult = evalConvolutionOp(
           left, right, windowStrides, padding, lhsDilation, rhsDilation,
           windowReversal, inputBatchDimension, inputFeatureDimension,
@@ -1354,112 +1417,70 @@ Tensor evalConvolutionOp(
           kernelOutputFeatureDimension, kernelSpatialDimensions,
           outputBatchDimension, outputFeatureDimension, outputSpatialDimensions,
           featureGroupCount, /*batchGroupCount=*/1,
-          RankedTensorType::get(inferredConvolutionType[0].getDims(),
-                                result.getElementType()));
+          inferConvolutionOpType(
+              left.getType(), right.getType(), windowStrides, padding,
+              lhsDilation, rhsDilation, windowReversal, inputBatchDimension,
+              inputFeatureDimension, inputSpatialDimensions,
+              kernelInputFeatureDimension, kernelOutputFeatureDimension,
+              kernelSpatialDimensions, outputBatchDimension,
+              outputFeatureDimension, outputSpatialDimensions,
+              featureGroupCount, /*batchGroupCount=*/1,
+              /*precisionConfig=*/{}, resultType));
       results.push_back(convolutionResult);
     }
     return evalConcatenateOp(results, outputFeatureDimension, result.getType());
   }
-  auto lhsShape = [&](auto n, auto hw, auto c) {
-    SmallVector<int64_t> permInput;
-    permInput.push_back(n);
-    permInput.append(hw.begin(), hw.end());
-    permInput.push_back(c);
-    SmallVector<int64_t> permDims;
-    permDims.push_back(inputBatchDimension);
-    permDims.append(inputSpatialDimensions.begin(),
-                    inputSpatialDimensions.end());
-    permDims.push_back(inputFeatureDimension);
-    SmallVector<int64_t> permOutput(permDims.size());
-    for (auto [idx, dim] : llvm::enumerate(permDims))
-      permOutput[dim] = permInput[idx];
-    return permOutput;
-  };
-  auto lhsShapePadding = [&](auto n, auto hw, auto c) {
-    SmallVector<SmallVector<int64_t>> permInput;
-    permInput.push_back(n);
-    permInput.append(hw.begin(), hw.end());
-    permInput.push_back(c);
-    SmallVector<int64_t> permDims;
-    permDims.push_back(inputBatchDimension);
-    permDims.append(inputSpatialDimensions.begin(),
-                    inputSpatialDimensions.end());
-    permDims.push_back(inputFeatureDimension);
-    SmallVector<SmallVector<int64_t>> permOutput(permDims.size());
-    for (auto [idx, dim] : llvm::enumerate(permDims))
-      permOutput[dim] = permInput[idx];
-    return permOutput;
-  };
-
-  auto lhsWindowDimensions =
-      lhsShape(lhs.getShape()[inputBatchDimension],
-               extractElements(rhs.getShape(), kernelSpatialDimensions),
-               lhs.getShape()[inputFeatureDimension]);
-  auto lhsWindowStrides = lhsShape(1, windowStrides, 1);
-  auto lhsPadding = lhsShapePadding(SmallVector<int64_t>(2, 0), padding,
-                                    SmallVector<int64_t>(2, 0));
-  auto lhsBaseDilations = lhsShape(0, Sizes(lhsDilation) - 1, 0);
-  auto lhsWindowDilations = lhsShape(1, rhsDilation, 1);
+  auto lhsWindowDimensions = concatAndPermute(
+      lhs.getShape()[inputBatchDimension],
+      extractElements(rhs.getShape(), kernelSpatialDimensions),
+      lhs.getShape()[inputFeatureDimension], inputBatchDimension,
+      inputSpatialDimensions, inputFeatureDimension);
+  auto lhsWindowStrides = concatAndPermute(
+      1L, llvm::to_vector(windowStrides), 1L, inputBatchDimension,
+      inputSpatialDimensions, inputFeatureDimension);
+  auto lhsPadding = concatAndPermute(
+      {0, 0}, llvm::to_vector(padding), {0, 0}, inputBatchDimension,
+      inputSpatialDimensions, inputFeatureDimension);
+  auto lhsBaseDilations =
+      concatAndPermute(0L, Sizes(lhsDilation) - 1, 0L, inputBatchDimension,
+                       inputSpatialDimensions, inputFeatureDimension);
+  auto lhsWindowDilations = concatAndPermute(
+      1L, llvm::to_vector(rhsDilation), 1L, inputBatchDimension,
+      inputSpatialDimensions, inputFeatureDimension);
 
   auto outputSpacialIndexIt = IndexSpaceIterator(
       Sizes(extractElements(result.getShape(), outputSpatialDimensions)),
       Index(outputSpatialDimensions.size()));
-
   auto outputSpacialIndexItEnd = IndexSpaceIterator(
       Sizes(extractElements(result.getShape(), outputSpatialDimensions)),
       std::nullopt);
-  auto resultElementType = result.getElementType();
   for (; outputSpacialIndexIt != outputSpacialIndexItEnd;
        ++outputSpacialIndexIt) {
     SmallVector<int64_t> lhsPaddingLow;
-    SmallVector<int64_t> lhsPaddingHigh;
-    for (auto paddingPair : lhsPadding) {
-      lhsPaddingLow.push_back(paddingPair[0]);
-      lhsPaddingHigh.push_back(paddingPair[1]);
-    }
-    SmallVector<Type> inferredPadType;
-    auto padStatus = hlo::inferPadOp(
-        {}, lhs.getType(), RankedTensorType::get({}, resultElementType),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsPaddingLow.size())},
-                                i64Type, lhsPaddingLow),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsPaddingHigh.size())},
-                                i64Type, lhsPaddingHigh),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsBaseDilations.size())},
-                                i64Type, llvm::to_vector(lhsBaseDilations)),
-        inferredPadType);
-    if (failed(padStatus))
-      report_fatal_error(
-          invalidArgument("Could not infer PadOp's return type"));
-    auto paddedLhs = evalPadOp(lhs, makeScalar(convert(resultElementType, 0.0)),
-                               Sizes(lhsPaddingLow), Sizes(lhsBaseDilations),
-                               inferredPadType[0].cast<ShapedType>());
+    for (auto paddingPair : lhsPadding)
+      lhsPaddingLow.push_back(paddingPair.first);
+    auto paddedLhs =
+        evalPadOp(lhs, makeScalar(convert(result.getElementType(), 0.0)),
+                  Sizes(lhsPaddingLow), Sizes(lhsBaseDilations),
+                  inferPadOpType(lhsPadding, lhs.getType(),
+                                 result.getElementType(), lhsBaseDilations));
 
     SmallVector<int64_t> lhsWindowStart;
-    for (auto [i, offset] :
-         llvm::enumerate(lhsShape(0, *outputSpacialIndexIt, 0)))
+    for (auto [i, offset] : llvm::enumerate(
+             concatAndPermute(0L, llvm::to_vector(*outputSpacialIndexIt), 0L,
+                              inputBatchDimension, inputSpatialDimensions,
+                              inputFeatureDimension)))
       lhsWindowStart.push_back(lhsWindowStrides[i] * offset);
     SmallVector<int64_t> limitIndices;
     for (size_t i = 0; i < lhsWindowStart.size(); ++i)
       limitIndices.push_back(std::min(
           lhsWindowStart[i] + lhsWindowDimensions[i] * lhsWindowDilations[i],
           paddedLhs.getShape()[i]));
-    SmallVector<Type> inferredSliceType;
-    auto sliceStatus = hlo::inferSliceOp(
-        {}, paddedLhs.getType(),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsWindowStart.size())},
-                                i64Type, llvm::to_vector(lhsWindowStart)),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsWindowStart.size())},
-                                i64Type, llvm::to_vector(limitIndices)),
-        getDenseIntElementsAttr({static_cast<int64_t>(lhsWindowStart.size())},
-                                i64Type, llvm::to_vector(lhsWindowDilations)),
-        inferredSliceType);
-    if (failed(sliceStatus))
-      report_fatal_error(
-          invalidArgument("Could not infer SliceOp's return type"));
-
     auto lhsWindow =
         evalSliceOp(paddedLhs, Sizes(lhsWindowStart), Sizes(lhsWindowDilations),
-                    inferredSliceType[0].cast<ShapedType>());
+                    inferSliceOpType(paddedLhs.getType(), lhsWindowStart,
+                                     limitIndices, lhsWindowDilations));
+
     SmallVector<int64_t> reverseDims;
     for (auto [i, isReverse] : llvm::enumerate(windowReversal))
       if (isReverse) reverseDims.push_back(inputSpatialDimensions[i]);
@@ -1472,31 +1493,23 @@ Tensor evalConvolutionOp(
     auto rhsContractingDimensions = llvm::to_vector(kernelSpatialDimensions);
     rhsContractingDimensions.push_back(
         static_cast<int64_t>(kernelInputFeatureDimension));
-    SmallVector<ShapedTypeComponents> inferredDotGeneralType;
-    auto dotGeneralStatus = hlo::inferDotGeneralOp(
-        /*location=*/{}, reversedLhsWindow.getType(), rhs.getType(),
-        /*lhsBatchingDimensions=*/{}, /*rhsBatchingDimensions*/ {},
-        lhsContractingDimensions, rhsContractingDimensions,
-        /*precisionConfig=*/{}, inferredDotGeneralType);
-    if (failed(dotGeneralStatus))
-      report_fatal_error(
-          invalidArgument("Could not infer DotGeneralOp's return type"));
-
     auto dotProduct = evalDotGeneralOp(
         reversedLhsWindow, rhs, /*lhsBatchingDimensions=*/{},
         /*rhsBatchingDimensions=*/{}, Axes(lhsContractingDimensions),
         Axes(rhsContractingDimensions),
-        RankedTensorType::get(inferredDotGeneralType[0].getDims(),
-                              reversedLhsWindow.getElementType()));
+        inferDotGeneralOpType(reversedLhsWindow.getType(), rhs.getType(),
+                              lhsContractingDimensions,
+                              rhsContractingDimensions));
 
-    auto resultShape = [&](auto it) {
+    auto resultShape = [&](auto resultOffsetIt) {
       SmallVector<int64_t> resultIndex;
-      int64_t outputSpacialIndexItIdx = 0;
-      int64_t indexer = 0;
-      for (auto i = 0; i < result.getRank(); ++i) {
-        if (llvm::find(outputSpatialDimensions, i) ==
+      for (auto outputSpacialDimensionsIdx = 0, resultOffsetItIdx = 0,
+                outputSpacialIndexItIdx = 0;
+           outputSpacialDimensionsIdx < result.getRank();
+           ++outputSpacialDimensionsIdx) {
+        if (llvm::find(outputSpatialDimensions, outputSpacialDimensionsIdx) ==
             outputSpatialDimensions.end())
-          resultIndex.push_back((*it)[indexer++]);
+          resultIndex.push_back((*resultOffsetIt)[resultOffsetItIdx++]);
         else
           resultIndex.push_back(
               (*outputSpacialIndexIt)[outputSpacialIndexItIdx++]);
