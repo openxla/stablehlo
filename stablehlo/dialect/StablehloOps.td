@@ -2073,10 +2073,10 @@ def StableHLO_ConvolutionOp : StableHLO_Op<"convolution", [Pure]> {
         pad = [[0, 0], [0, 0]],
         lhs_dilate = [2, 2],
         rhs_dilate = [1, 1],
-        reverse = [false, false]
+        reverse = [0, 0]
       } {
-        feature_group_count = 1 : i64,
         batch_group_count = 1 : i64,
+        feature_group_count = 1 : i64,
         precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
       } :
     (tensor<1x4x4x1xi64>, tensor<3x3x1x1xi64>) -> tensor<1x2x2x1xi64>

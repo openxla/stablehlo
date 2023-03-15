@@ -318,18 +318,18 @@ verifyWindowAttributesAndInferWindowDimensions(
         " to have same dimension-size as size of window dimensions (",
         windowDimensions.size(), "), but got: ", attrSize, ".");
   };
-  // convolution_c4, reduce_window_c6, select_and_scatter_c6
+  // convolution_c3, reduce_window_c6, select_and_scatter_c6
   if (failed(verifySize(windowStrides.size(), "window-strides")))
     return failure();
-  // convolution_c7, reduce_window_c8
+  // convolution_c6, reduce_window_c8
   if (failed(verifySize(lhsDilation.size(), "base-dilation factors")))
     return failure();
-  // convolution_c9, reduce_window_c10
+  // convolution_c8, reduce_window_c10
   if (failed(verifySize(rhsDilation.size(), "window-dilation factors")))
     return failure();
-  // convolution_c6, reduce_window_c12
+  // convolution_c5, reduce_window_c12
   if (failed(verifySize(padding.size(), "padding-entries"))) return failure();
-  // convolution_c11
+  // convolution_c10
   if (failed(verifySize(windowReversal.size(), "window-reversal")))
     return failure();
 
@@ -345,21 +345,21 @@ verifyWindowAttributesAndInferWindowDimensions(
                                "-th window dimension, but got ", dim.size, ".");
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
-    // convolution_c5, reduce_window_c7, select_and_scatter_c7
+    // convolution_c4, reduce_window_c7, select_and_scatter_c7
     if (dim.stride <= 0)
       return emitOptionalError(
           loc, "expects window to have positive stride for ", i,
           "-th window dimension, but got ", dim.stride, ".");
 
     if (!lhsDilation.empty()) dim.baseDilation = lhsDilation[i];
-    // convolution_c8, reduce_window_c9
+    // convolution_c7, reduce_window_c9
     if (dim.baseDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive base dilation factor for ", i,
           "-th window dimension, but got ", dim.baseDilation, ".");
 
     if (!rhsDilation.empty()) dim.windowDilation = rhsDilation[i];
-    // convolution_c10, reduce_window_c11
+    // convolution_c9, reduce_window_c11
     if (dim.windowDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive window dilation factor for ", i,
@@ -757,7 +757,7 @@ LogicalResult isSpatialDimensionsValid(
     int64_t outputFeatureDimension, ArrayRef<int64_t> outputSpatialDimensions,
     std::optional<Location> location) {
   uint64_t spatialDimNum = inputSpatialDimensions.size();
-  // convolution_c19, convolution_c21
+  // convolution_c18, convolution_c20
   if ((spatialDimNum != kernelSpatialDimensions.size()) ||
       (spatialDimNum != outputSpatialDimensions.size()))
     return emitOptionalError(location,
@@ -787,7 +787,7 @@ LogicalResult isSpatialDimensionsValid(
 
   auto numDims = lhsType.cast<RankedTensorType>().getRank();
   const auto inRange = [numDims](int64_t i) { return 0 <= i && i < numDims; };
-  // convolution_c15, convolution_c20, convolution_c22
+  // convolution_c14, convolution_c19, convolution_c21
   if (!llvm::all_of(inputDimNums, inRange) ||
       !llvm::all_of(windowDimNums, inRange) ||
       !llvm::all_of(outputDimNums, inRange))
@@ -795,17 +795,17 @@ LogicalResult isSpatialDimensionsValid(
                              "expects input, kernel, and output "
                              "dimension-numbers to be in-range [0, ",
                              numDims, ").");
-  // convolution_c15
+  // convolution_c14
   if (hasDuplicates(inputDimNums))
     return emitOptionalError(
         location, "expects input dimension-numbers to be unique, got {",
         inputDimNums, "}.");
-  // convolution_c20
+  // convolution_c19
   if (hasDuplicates(windowDimNums))
     return emitOptionalError(
         location, "expects kernel dimension-numbers to be unique, got {",
         windowDimNums, "}.");
-  // convolution_c22
+  // convolution_c21
   if (hasDuplicates(outputDimNums))
     return emitOptionalError(
         location, "expects output dimension-numbers to be unique, got {",
@@ -844,17 +844,17 @@ LogicalResult verifyConvolutionAttributes(
           location)))
     return failure();
 
-  // convolution_c23
+  // convolution_c22
   if (featureGroupCount <= 0)
     return emitOptionalError(
         location, "expects feature_group_count to be a positive number, got ",
         featureGroupCount, ".");
-  // convolution_c24
+  // convolution_c23
   if (batchGroupCount <= 0)
     return emitOptionalError(
         location, "expects batch_group_count to be a positive number, got ",
         batchGroupCount, ".");
-  // convolution_c25
+  // convolution_c24
   if (batchGroupCount > 1 && featureGroupCount > 1)
     return emitOptionalError(
         location,
@@ -872,7 +872,7 @@ LogicalResult verifyConvolutionAttributes(
   const int64_t kernelOutputFeatures =
       rankedRhsType.getShape()[kernelOutputFeatureDimension];
 
-  // convolution_c12
+  // convolution_c11
   if (!isDynamicDimSize(inputBatch) && inputBatch % batchGroupCount != 0)
     return emitOptionalError(location, "expects input batch dimension (",
                              inputBatch,
@@ -880,14 +880,14 @@ LogicalResult verifyConvolutionAttributes(
                              "batch_group_count. Got batch_group_count = ",
                              batchGroupCount, ".");
   if (!isDynamicDimSize(inputFeatures)) {
-    // convolution_c13
+    // convolution_c12
     if (inputFeatures % featureGroupCount != 0)
       return emitOptionalError(location, "expects input feature dimension (",
                                inputFeatures,
                                ") to be a multiple of feature_group_count. Got "
                                "feature_group_count = ",
                                featureGroupCount, ".");
-    // convolution_c16
+    // convolution_c15
     if (!isDynamicDimSize(kernelInputFeatures) &&
         inputFeatures / featureGroupCount != kernelInputFeatures)
       return emitOptionalError(
@@ -898,14 +898,14 @@ LogicalResult verifyConvolutionAttributes(
           "). Got feature_group_count = ", featureGroupCount, ".");
   }
   if (!isDynamicDimSize(kernelOutputFeatures)) {
-    // convolution_c17
+    // convolution_c16
     if (kernelOutputFeatures % batchGroupCount != 0)
       return emitOptionalError(
           location, "expects output feature dimension size (",
           kernelOutputFeatures,
           ") to be a multiple of batch_group_count. Got batch_group_count = ",
           batchGroupCount, ".");
-    // convolution_c18
+    // convolution_c17
     if (kernelOutputFeatures % featureGroupCount != 0)
       return emitOptionalError(location,
                                "expects kernel output feature dimension (",
@@ -915,7 +915,7 @@ LogicalResult verifyConvolutionAttributes(
                                featureGroupCount, ".");
   }
 
-  // convolution_c26
+  // convolution_c25
   if (failed(verifyPrecisionConfig(location, precisionConfig)))
     return failure();
 
@@ -1692,7 +1692,6 @@ LogicalResult inferConvertOp(
   return success();
 }
 
-// TODO(b/232574102): Verify the element-type of return-value.
 LogicalResult inferConvolutionOp(
     std::optional<Location> location, Type lhsType, Type rhsType,
     std::optional<DenseIntElementsAttr> windowStrides,
@@ -1715,20 +1714,20 @@ LogicalResult inferConvolutionOp(
     return success();
   }
 
-  // convolution_c1
+  // convolution_c14
   int numDims = rankedLhsType.getRank();
   if (numDims < 2)
     return emitOptionalError(
         location,
         "expects convolution arguments to have >= 2 dimensions. Got: ",
         rankedLhsType, " and ", rankedRhsType, ".");
-  // convolution_c2
+  // convolution_c1
   if (numDims != rankedRhsType.getRank())
     return emitOptionalError(location,
                              "expects convolution arguments to have same "
                              "number of dimensions. Got: ",
                              rankedLhsType, " and ", rankedRhsType, ".");
-  // convolution_c3
+  // convolution_c2
   if (!isCompatibleForHloTypeInference(rankedLhsType.getElementType(),
                                        rankedRhsType.getElementType()))
     return emitOptionalError(
@@ -1744,7 +1743,7 @@ LogicalResult inferConvolutionOp(
           outputSpatialDimensions, featureGroupCount, batchGroupCount,
           precisionConfig)))
     return failure();
-  // convolution_c14
+  // convolution_c13
   if ((size_t)numDims != inputSpatialDimensions.size() + 2)
     return emitOptionalError(location, "expects convolution arguments to have ",
                              inputSpatialDimensions.size() + 2,
@@ -1754,7 +1753,7 @@ LogicalResult inferConvolutionOp(
   for (size_t i = 0; i < windowDimensions.size(); i++)
     windowDimensions[i] = rankedRhsType.getShape()[kernelSpatialDimensions[i]];
 
-  // convolution_c6, convolution_i4
+  // convolution_c5, convolution_i4
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
 
@@ -1780,10 +1779,9 @@ LogicalResult inferConvolutionOp(
       *rhsDilationOrErr, *windowReversalOrErr, location);
   if (failed(windowOrErr)) return failure();
 
+  // convolution_c26
   SmallVector<int64_t> outputDimensions(rankedLhsType.getShape().size(),
                                         ShapedType::kDynamic);
-
-  // Infer the output spatial dimensions.
   auto numSpatialDims = inputSpatialDimensions.size();
   SmallVector<int64_t> inputSpatialDimVals(numSpatialDims);
   for (int64_t i = 0; i < static_cast<int64_t>(numSpatialDims); ++i)
@@ -1795,7 +1793,6 @@ LogicalResult inferConvolutionOp(
   for (int64_t i = 0; i < static_cast<int64_t>(windowOrErr->size()); ++i)
     outputDimensions[outputSpatialDimensions[i]] = windowOutputShape[i];
 
-  // Infer the output-batch-dimension and output-feature-dimension.
   const int64_t inputBatch = rankedLhsType.getShape()[inputBatchDimension];
   const int64_t kernelOutputFeatures =
       rankedRhsType.getShape()[kernelOutputFeatureDimension];
@@ -3329,7 +3326,7 @@ LogicalResult verifyConvolutionOp(
 
   auto inferredShape = inferredReturnShapes[0];
   auto shapedResultType = resultType.cast<ShapedType>();
-  // convolution_c27
+  // convolution_c26
   if (inferredShape.hasRank() && shapedResultType.hasRank() &&
       failed(verifyCompatibleShape(inferredShape.getDims(),
                                    shapedResultType.getShape())))
