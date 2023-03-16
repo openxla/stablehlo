@@ -104,7 +104,6 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
 
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
-                     std::optional<ComparisonType> compareType,
                      TensorType resultType) {
   Tensor result(resultType);
   auto elementTy = lhs.getElementType();
@@ -120,114 +119,27 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
         debugString(comparisonDirection).c_str()));
   }
 
-  auto comparisonType = ComparisonType::NOTYPE;
-  if (compareType) {
-    if (*compareType == ComparisonType::NOTYPE)
-      report_fatal_error(invalidArgument("Unsupported comparison type: %s",
-                                         debugString(*compareType).c_str()));
-    comparisonType = *compareType;
-  } else if (isSupportedUnsignedIntegerType(elementTy) ||
-             isSupportedBooleanType(elementTy)) {
-    comparisonType = ComparisonType::UNSIGNED;
-  } else if (isSupportedSignedIntegerType(elementTy)) {
-    comparisonType = ComparisonType::SIGNED;
-  } else if (isSupportedFloatType(elementTy) ||
-             isSupportedComplexType(elementTy)) {
-    comparisonType = ComparisonType::FLOAT;
-  } else {
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(elementTy).c_str()));
-  }
-
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     bool cmpResult = false;
     switch (comparisonDirection) {
-      case ComparisonDirection::EQ: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          cmpResult = lhs.get(*it).getFloatValue().bitcastToAPInt() ==
-                      rhs.get(*it).getFloatValue().bitcastToAPInt();
-        } else {
-          cmpResult = lhs.get(*it) == rhs.get(*it);
-        }
+      case ComparisonDirection::EQ:
+        cmpResult = lhs.get(*it) == rhs.get(*it);
         break;
-      }
-      case ComparisonDirection::NE: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          cmpResult = lhs.get(*it).getFloatValue().bitcastToAPInt() !=
-                      rhs.get(*it).getFloatValue().bitcastToAPInt();
-        } else {
-          cmpResult = lhs.get(*it) != rhs.get(*it);
-        }
+      case ComparisonDirection::NE:
+        cmpResult = lhs.get(*it) != rhs.get(*it);
         break;
-      }
-      case ComparisonDirection::GE: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
-            cmpResult = rhsFloat.isNegative();
-          else
-            cmpResult =
-                lhsFloat.isNegative()
-                    ? lhsFloat.bitcastToAPInt().ule(rhsFloat.bitcastToAPInt())
-                    : lhsFloat.bitcastToAPInt().uge(rhsFloat.bitcastToAPInt());
-        } else {
-          cmpResult = lhs.get(*it) >= rhs.get(*it);
-        }
+      case ComparisonDirection::GE:
+        cmpResult = lhs.get(*it) >= rhs.get(*it);
         break;
-      }
-      case ComparisonDirection::GT: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
-            cmpResult = rhsFloat.isNegative();
-          else
-            cmpResult =
-                lhsFloat.isNegative()
-                    ? lhsFloat.bitcastToAPInt().ult(rhsFloat.bitcastToAPInt())
-                    : lhsFloat.bitcastToAPInt().ugt(rhsFloat.bitcastToAPInt());
-        } else {
-          cmpResult = lhs.get(*it) > rhs.get(*it);
-        }
+      case ComparisonDirection::GT:
+        cmpResult = lhs.get(*it) > rhs.get(*it);
         break;
-      }
-      case ComparisonDirection::LE: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
-            cmpResult = lhsFloat.isNegative();
-          else
-            cmpResult =
-                lhsFloat.isNegative()
-                    ? lhsFloat.bitcastToAPInt().uge(rhsFloat.bitcastToAPInt())
-                    : lhsFloat.bitcastToAPInt().ule(rhsFloat.bitcastToAPInt());
-        } else {
-          cmpResult = lhs.get(*it) <= rhs.get(*it);
-        }
+      case ComparisonDirection::LE:
+        cmpResult = lhs.get(*it) <= rhs.get(*it);
         break;
-      }
-      case ComparisonDirection::LT: {
-        if (comparisonType == ComparisonType::TOTALORDER) {
-          auto lhsFloat = lhs.get(*it).getFloatValue();
-          auto rhsFloat = rhs.get(*it).getFloatValue();
-          if (lhsFloat.isNegative() ^ rhsFloat.isNegative())
-            cmpResult = lhsFloat.isNegative();
-          else
-            cmpResult =
-                lhsFloat.isNegative()
-                    ? lhsFloat.bitcastToAPInt().ugt(rhsFloat.bitcastToAPInt())
-                    : lhsFloat.bitcastToAPInt().ult(rhsFloat.bitcastToAPInt());
-        } else {
-          cmpResult = lhs.get(*it) < rhs.get(*it);
-        }
+      case ComparisonDirection::LT:
+        cmpResult = lhs.get(*it) < rhs.get(*it);
         break;
-      }
     }
     result.set(*it, Element(resultType.getElementType(), cmpResult));
   }
@@ -623,10 +535,8 @@ SmallVector<Tensor> eval(
       Tensor runtimeLhs = scope.find(compareOp.getLhs());
       Tensor runtimeRhs = scope.find(compareOp.getRhs());
       auto comparisonDirection = compareOp.getComparisonDirection();
-      auto compareType = compareOp.getCompareType();
-      auto runtimeResult =
-          evalCompareOp(runtimeLhs, runtimeRhs, comparisonDirection,
-                        compareType, compareOp.getType());
+      auto runtimeResult = evalCompareOp(
+          runtimeLhs, runtimeRhs, comparisonDirection, compareOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto runtimeOperands = scope.find(concatenateOp.getOperands());

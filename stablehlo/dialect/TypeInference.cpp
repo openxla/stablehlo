@@ -1584,9 +1584,11 @@ LogicalResult inferClampOp(
 LogicalResult inferCompareOp(
     MLIRContext* context, std::optional<Location>, Value lhs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // compare_c1
   ShapedTypeComponents& components =
       inferredReturnShapes.emplace_back(IntegerType::get(context, /*width=*/1));
   auto argTy = lhs.getType().cast<TensorType>();
+  // compare_c2
   if (argTy.hasRank())
     components =
         ShapedTypeComponents(argTy.getShape(), components.getElementType());

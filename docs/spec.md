@@ -1604,10 +1604,8 @@ For boolean and integer element types:
 * `LE`: `lhs` $\le$ `rhs`.
 * `LT`: `lhs` $\lt$ `rhs`.
 
-For floating-point element types with `compare_type = FLOAT`, the op implements
-the following IEEE-754 operations. If any of `lhs` or `rhs` is `NaN`, the op
-returns `false` except for `comparison_direction = NE` for which it returns
-`true` to make `lhs != rhs` equivalent to `!(lhs == rhs)`.
+For floating-point element types and `compare_type = FLOAT`, the op implements
+the following IEEE-754 operations:
 
 * `EQ`: `compareQuietEqual`.
 * `NE`: `compareQuietNotEqual`.
@@ -1618,7 +1616,7 @@ returns `false` except for `comparison_direction = NE` for which it returns
 
 For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754. This feature appears to be unused, so in the future we are planning
+IEEE-754. This feature appears to be unused, so in the future, we are planning
 to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
