@@ -3792,7 +3792,7 @@ to split the payload and the token into two separate outputs to improve clarity
 #### Semantics
 
 Applies a reduction function `body` to `inputs` and `init_values` along the
-`dimensions` and produces a `result` tensor.
+`dimensions` and produces `results` tensors.
 
 The order of reductions is implementation-defined, which means that `body` and
 `init_values` must form a monoid to guarantee that the operation produces the
