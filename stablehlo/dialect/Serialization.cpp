@@ -63,6 +63,7 @@ LogicalResult serializePortableArtifact(ModuleOp module,
 
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context) {
+  context->loadDialect<vhlo::VhloDialect>();
   auto module = parseSourceString<ModuleOp>(sourceStr, context);
   if (!module) {
     return nullptr;
