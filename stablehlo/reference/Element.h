@@ -23,7 +23,6 @@ limitations under the License.
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
-#include "stablehlo/dialect/StablehloOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -150,11 +149,6 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Returns ceil of Element object.
 Element ceil(const Element &e);
-
-/// Returns comparison of Element objects.
-bool compare(const Element &e1, const Element &e2,
-             ComparisonDirection comparisonDirection,
-             ComparisonType compareType);
 
 /// Returns cosine of Element object.
 Element cosine(const Element &e);

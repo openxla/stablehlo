@@ -316,7 +316,6 @@ cc_library(
     deps = [
         ":reference_errors",
         ":reference_types",
-        ":stablehlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:ComplexDialect",
         "@llvm-project//mlir:IR",
