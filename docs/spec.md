@@ -1604,7 +1604,7 @@ For boolean and integer element types:
 * `LE`: `lhs` $\le$ `rhs`.
 * `LT`: `lhs` $\lt$ `rhs`.
 
-For floating-point element types and `compare_type = FLOAT`, the op implements
+For floating-point element types with `compare_type = FLOAT`, the op implements
 the following IEEE-754 operations:
 
 * `EQ`: `compareQuietEqual`.

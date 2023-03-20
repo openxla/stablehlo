@@ -120,28 +120,28 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
   }
 
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    bool cmpResult = false;
+    bool resultElement;
     switch (comparisonDirection) {
       case ComparisonDirection::EQ:
-        cmpResult = lhs.get(*it) == rhs.get(*it);
+        resultElement = lhs.get(*it) == rhs.get(*it);
         break;
       case ComparisonDirection::NE:
-        cmpResult = lhs.get(*it) != rhs.get(*it);
+        resultElement = lhs.get(*it) != rhs.get(*it);
         break;
       case ComparisonDirection::GE:
-        cmpResult = lhs.get(*it) >= rhs.get(*it);
+        resultElement = lhs.get(*it) >= rhs.get(*it);
         break;
       case ComparisonDirection::GT:
-        cmpResult = lhs.get(*it) > rhs.get(*it);
+        resultElement = lhs.get(*it) > rhs.get(*it);
         break;
       case ComparisonDirection::LE:
-        cmpResult = lhs.get(*it) <= rhs.get(*it);
+        resultElement = lhs.get(*it) <= rhs.get(*it);
         break;
       case ComparisonDirection::LT:
-        cmpResult = lhs.get(*it) < rhs.get(*it);
+        resultElement = lhs.get(*it) < rhs.get(*it);
         break;
     }
-    result.set(*it, Element(resultType.getElementType(), cmpResult));
+    result.set(*it, Element(resultType.getElementType(), resultElement));
   }
   return result;
 }
