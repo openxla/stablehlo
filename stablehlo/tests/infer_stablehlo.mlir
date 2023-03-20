@@ -1,6 +1,17 @@
 // RUN: stablehlo-opt --hlo-test-infer --allow-unregistered-dialect --split-input-file --verify-diagnostics %s | FileCheck %s
 
 // CHECK-LABEL: @compare
+func.func @compare(%a : tensor<2x2xf32>, %b : tensor<2x2xf32>) -> tensor<2x2xindex> {
+  %0 = "stablehlo.compare"(%a, %b) {comparison_direction = #stablehlo<comparison_direction NE>}
+      : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xi1>
+  // CHECK: types0 = tensor<2x2xi1>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x2xi1>) -> tensor<2x2xindex>
+  func.return %1 : tensor<2x2xindex>
+}
+
+// -----
+
+// CHECK-LABEL: @compare
 // CHECK-SAME: (%[[A:.*]]: tensor<2x?xf32>,
 func.func @compare(%a : tensor<2x?xf32>, %b : tensor<2x?xf32>) -> tensor<2xindex> {
   // CHECK: %[[SHAPE:.*]] = shape.shape_of %[[A]] : tensor<2x?xf32> -> tensor<2xindex>
@@ -22,17 +33,6 @@ func.func @select(%pred : tensor<i1>, %a : tensor<?x2x3xf32>, %b : tensor<1x?x3x
   // CHECK: types0 = tensor<1x2x3xf32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xf32>) -> tensor<1x2x3xindex>
   func.return %1 : tensor<1x2x3xindex>
-}
-
-// -----
-
-// CHECK-LABEL: @compare
-func.func @compare(%a : tensor<2x2xf32>, %b : tensor<2x2xf32>) -> tensor<2x2xindex> {
-  %0 = "stablehlo.compare"(%a, %b) {comparison_direction = #stablehlo<comparison_direction NE>}
-      : (tensor<2x2xf32>, tensor<2x2xf32>) -> tensor<2x2xi1>
-  // CHECK: types0 = tensor<2x2xi1>
-  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x2xi1>) -> tensor<2x2xindex>
-  func.return %1 : tensor<2x2xindex>
 }
 
 // -----

@@ -1529,8 +1529,10 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
   }];
 }
 
-def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
-    SameOperandsAndResultShape, Elementwise, InferTensorTypeWithReify]> {
+def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
+    SameOperandsElementType /*compare_c1*/,
+    SameOperandsAndResultShape /*compare_c2*/,
+    InferTensorTypeWithReify /*compare_c1, compare_c2*/]> {
   let summary = "Compare operation";
   let description = [{
     Performs element-wise comparison of `lhs` and `rhs` tensors according to
@@ -1545,10 +1547,10 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, SameOperandsElementType,
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$lhs,
-    HLO_Tensor:$rhs,
-    StableHLO_ComparisonDirectionAttr:$comparison_direction,
-    OptionalAttr<StableHLO_ComparisonTypeAttr>:$compare_type
+    HLO_Tensor:$lhs /*compare_i1*/,
+    HLO_Tensor:$rhs /*compare_i2*/,
+    StableHLO_ComparisonDirectionAttr:$comparison_direction /*compare_i3*/,
+    OptionalAttr<StableHLO_ComparisonTypeAttr>:$compare_type /*compare_i4*/
   );
   let results = (outs HLO_PredTensor);
 

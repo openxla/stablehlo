@@ -1604,7 +1604,7 @@ For boolean and integer element types:
 * `LE`: `lhs` $\le$ `rhs`.
 * `LT`: `lhs` $\lt$ `rhs`.
 
-For floating-point element types and `compare_type = FLOAT`, the op implements
+For floating-point element types with `compare_type = FLOAT`, the op implements
 the following IEEE-754 operations:
 
 * `EQ`: `compareQuietEqual`.
@@ -1614,9 +1614,9 @@ the following IEEE-754 operations:
 * `LE`: `compareQuietLessEqual`.
 * `LT`: `compareQuietLess`.
 
-For floating-point element types and `compare_type = TOTALORDER`, the op
+For floating-point element types with `compare_type = TOTALORDER`, the op
 uses the combination of `totalOrder` and `compareQuietEqual` operations from
-IEEE-754. This feature appears to be unused, so in the future we are planning
+IEEE-754. This feature appears to be unused, so in the future, we are planning
 to remove it ([#584](https://github.com/openxla/stablehlo/issues/584)).
 
 For complex element types, lexicographic comparison of `(real, imag)` pairs is
@@ -1664,6 +1664,8 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 } : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xi1>
 // %result: [true, false]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_compare.mlir)
 
 ### complex
 

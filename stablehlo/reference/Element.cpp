@@ -263,42 +263,6 @@ std::complex<APFloat> Element::getComplexValue() const {
   return std::complex<APFloat>(floatPair.first, floatPair.second);
 }
 
-bool Element::operator==(const Element &other) const {
-  Type type = other.getType();
-  if (type_ != type)
-    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
-                                       debugString(type_).c_str(),
-                                       debugString(type).c_str()));
-
-  if (isSupportedIntegerType(type)) {
-    auto intLhs = getIntegerValue();
-    auto intRhs = other.getIntegerValue();
-    return intLhs == intRhs;
-  }
-
-  if (isSupportedBooleanType(type)) {
-    auto boolLhs = getBooleanValue();
-    auto boolRhs = other.getBooleanValue();
-    return boolLhs == boolRhs;
-  }
-
-  if (isSupportedFloatType(type)) {
-    auto floatLhs = getFloatValue();
-    auto floatRhs = other.getFloatValue();
-    return floatLhs.compare(floatRhs) == APFloat::cmpEqual;
-  }
-
-  if (isSupportedComplexType(type)) {
-    auto complexLhs = getComplexValue();
-    auto complexRhs = other.getComplexValue();
-    return complexLhs.real().compare(complexRhs.real()) == APFloat::cmpEqual &&
-           complexLhs.imag().compare(complexRhs.imag()) == APFloat::cmpEqual;
-  }
-
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
-}
-
 bool Element::operator!=(const Element &other) const {
   return !(*this == other);
 }
@@ -316,6 +280,19 @@ Element Element::operator&(const Element &other) const {
       });
 }
 
+Element Element::operator*(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
+      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
+      [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // TODO(#226): Use std::complex::operator*
+        auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
+        auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
 Element Element::operator+(const Element &other) const {
   return map(
       *this, other, [](APInt lhs, APInt rhs) { return lhs + rhs; },
@@ -327,6 +304,33 @@ Element Element::operator+(const Element &other) const {
         // needs operator+= which is not defined on APFloat.
         auto resultReal = lhs.real() + rhs.real();
         auto resultImag = lhs.imag() + rhs.imag();
+        return std::complex<APFloat>(resultReal, resultImag);
+      });
+}
+
+Element Element::operator-() const {
+  return map(
+      *this, [&](APInt val) { return -val; },
+      [](bool val) -> bool {
+        llvm::report_fatal_error("-bool is unsupported");
+      },
+      [&](APFloat val) { return -val; },
+      [](std::complex<APFloat> val) { return -val; });
+}
+
+Element Element::operator-(const Element &other) const {
+  return map(
+      *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
+      [](bool lhs, bool rhs) -> bool {
+        llvm::report_fatal_error("bool - bool is unsupported");
+      },
+      [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
+      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
+        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
+        // because the default implementation for the std::complex template
+        // needs operator-= which is not defined on APFloat.
+        auto resultReal = lhs.real() - rhs.real();
+        auto resultImag = lhs.imag() - rhs.imag();
         return std::complex<APFloat>(resultReal, resultImag);
       });
 }
@@ -375,44 +379,108 @@ Element Element::operator/(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-Element Element::operator*(const Element &other) const {
-  return map(
-      *this, other, [](APInt lhs, APInt rhs) { return lhs * rhs; },
-      [](bool lhs, bool rhs) -> bool { return lhs & rhs; },
-      [](APFloat lhs, APFloat rhs) { return lhs * rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // TODO(#226): Use std::complex::operator*
-        auto resultReal = lhs.real() * rhs.real() - lhs.imag() * rhs.imag();
-        auto resultImag = lhs.real() * rhs.imag() + lhs.imag() * rhs.real();
-        return std::complex<APFloat>(resultReal, resultImag);
-      });
+bool Element::operator<(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return isSupportedSignedIntegerType(type) ? intLhs.slt(intRhs)
+                                              : intLhs.ult(intRhs);
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs < boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs < floatRhs;
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
 }
 
-Element Element::operator-() const {
-  return map(
-      *this, [&](APInt val) { return -val; },
-      [](bool val) -> bool {
-        llvm::report_fatal_error("-bool is unsupported");
-      },
-      [&](APFloat val) { return -val; },
-      [](std::complex<APFloat> val) { return -val; });
+bool Element::operator<=(const Element &other) const {
+  return (*this < other) || (*this == other);
 }
 
-Element Element::operator-(const Element &other) const {
-  return map(
-      *this, other, [](APInt lhs, APInt rhs) { return lhs - rhs; },
-      [](bool lhs, bool rhs) -> bool {
-        llvm::report_fatal_error("bool - bool is unsupported");
-      },
-      [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
-      [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
-        // because the default implementation for the std::complex template
-        // needs operator-= which is not defined on APFloat.
-        auto resultReal = lhs.real() - rhs.real();
-        auto resultImag = lhs.imag() - rhs.imag();
-        return std::complex<APFloat>(resultReal, resultImag);
-      });
+bool Element::operator==(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return intLhs == intRhs;
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs == boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs == floatRhs;
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto complexLhs = getComplexValue();
+    auto complexRhs = other.getComplexValue();
+    return complexLhs.real() == complexRhs.real() &&
+           complexLhs.imag() == complexRhs.imag();
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+bool Element::operator>(const Element &other) const {
+  Type type = other.getType();
+  if (type_ != type)
+    report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
+                                       debugString(type_).c_str(),
+                                       debugString(type).c_str()));
+
+  if (isSupportedIntegerType(type)) {
+    auto intLhs = getIntegerValue();
+    auto intRhs = other.getIntegerValue();
+    return isSupportedSignedIntegerType(type) ? intLhs.sgt(intRhs)
+                                              : intLhs.ugt(intRhs);
+  }
+
+  if (isSupportedBooleanType(type)) {
+    auto boolLhs = getBooleanValue();
+    auto boolRhs = other.getBooleanValue();
+    return boolLhs > boolRhs;
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto floatLhs = getFloatValue();
+    auto floatRhs = other.getFloatValue();
+    return floatLhs > floatRhs;
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
+bool Element::operator>=(const Element &other) const {
+  return (*this > other) || (*this == other);
 }
 
 Element Element::operator^(const Element &other) const {

@@ -102,6 +102,50 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
+Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
+                     ComparisonDirection comparisonDirection,
+                     TensorType resultType) {
+  Tensor result(resultType);
+  auto elementTy = lhs.getElementType();
+
+  if (isSupportedComplexType(elementTy) &&
+      (comparisonDirection == ComparisonDirection::GE ||
+       comparisonDirection == ComparisonDirection::GT ||
+       comparisonDirection == ComparisonDirection::LE ||
+       comparisonDirection == ComparisonDirection::LT)) {
+    report_fatal_error(invalidArgument(
+        "Unsupported element type %s for comparison direction %s",
+        debugString(elementTy).c_str(),
+        debugString(comparisonDirection).c_str()));
+  }
+
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    bool resultElement;
+    switch (comparisonDirection) {
+      case ComparisonDirection::EQ:
+        resultElement = lhs.get(*it) == rhs.get(*it);
+        break;
+      case ComparisonDirection::NE:
+        resultElement = lhs.get(*it) != rhs.get(*it);
+        break;
+      case ComparisonDirection::GE:
+        resultElement = lhs.get(*it) >= rhs.get(*it);
+        break;
+      case ComparisonDirection::GT:
+        resultElement = lhs.get(*it) > rhs.get(*it);
+        break;
+      case ComparisonDirection::LE:
+        resultElement = lhs.get(*it) <= rhs.get(*it);
+        break;
+      case ComparisonDirection::LT:
+        resultElement = lhs.get(*it) < rhs.get(*it);
+        break;
+    }
+    result.set(*it, Element(resultType.getElementType(), resultElement));
+  }
+  return result;
+}
+
 Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          TensorType resultType) {
   Tensor result(resultType);
@@ -486,6 +530,13 @@ SmallVector<Tensor> eval(
       Tensor runtimeMax = scope.find(clampOp.getMax());
       Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
                                          clampOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
+    } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
+      Tensor runtimeLhs = scope.find(compareOp.getLhs());
+      Tensor runtimeRhs = scope.find(compareOp.getRhs());
+      auto comparisonDirection = compareOp.getComparisonDirection();
+      auto runtimeResult = evalCompareOp(
+          runtimeLhs, runtimeRhs, comparisonDirection, compareOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto runtimeOperands = scope.find(concatenateOp.getOperands());

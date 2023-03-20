@@ -76,29 +76,41 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
-  /// Overloaded equality operator.
-  bool operator==(const Element &other) const;
-
   /// Overloaded inequality operator.
   bool operator!=(const Element &other) const;
 
   /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
 
-  /// Overloaded add operator.
-  Element operator+(const Element &other) const;
-
-  /// Overloaded divide operator.
-  Element operator/(const Element &other) const;
-
   /// Overloaded multiply operator.
   Element operator*(const Element &other) const;
+
+  /// Overloaded add operator.
+  Element operator+(const Element &other) const;
 
   /// Overloaded negate operator.
   Element operator-() const;
 
   /// Overloaded subtract operator.
   Element operator-(const Element &other) const;
+
+  /// Overloaded divide operator.
+  Element operator/(const Element &other) const;
+
+  /// Overloaded less-than operator.
+  bool operator<(const Element &other) const;
+
+  /// Overloaded less-than-or-equal-to operator.
+  bool operator<=(const Element &other) const;
+
+  /// Overloaded equality operator.
+  bool operator==(const Element &other) const;
+
+  /// Overloaded greater-than operator.
+  bool operator>(const Element &other) const;
+
+  /// Overloaded greater-than-or-equal-to operator.
+  bool operator>=(const Element &other) const;
 
   /// Overloaded xor (bitwise) operator.
   Element operator^(const Element &other) const;
