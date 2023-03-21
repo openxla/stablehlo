@@ -1880,6 +1880,7 @@ This reframing uses the following helper functions:
 
 * `lhs_shape(n, hw, c) = permute([n] + hw + [c], [input_batch_dimension] + input_spatial_dimensions + [input_feature_dimension])`.
 * `result_shape(n1, hw, c1) = permute([n1] + hw + [c1], [output_batch_dimension] + output_spatial_dimensions + [output_feature_dimension])`.
+* `permute([j0, j1, ..., jR-1], permutation)` produces `[i0, i1, ..., iR-1]` such that `j[d] = i[permutation[d]]`.
 
 If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in the index space of `dim(result, output_spatial_dimensions)`,
