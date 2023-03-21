@@ -79,7 +79,13 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   return module;
 }
 
-StringRef getEarliestForwardCompatibleVersion() { return "0.9.0"; }
+std::string getEarliestForwardCompatibleVersion() {
+  return mlir::vhlo::Version::getMinimumVersion().toString();
+}
+
+std::string getCurrentVersion() {
+  return mlir::vhlo::Version::getMinimumVersion().toString();
+}
 
 }  // namespace stablehlo
 }  // namespace mlir

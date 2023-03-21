@@ -32,9 +32,8 @@ LogicalResult serializePortableArtifact(ModuleOp module,
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context);
 
-// Get the earliest version of StableHLO supported in the forward compatibility
-// window.
-StringRef getEarliestForwardCompatibleVersion();
+std::string getCurrentVersion();
+std::string getEarliestForwardCompatibleVersion();
 
 }  // namespace stablehlo
 }  // namespace mlir

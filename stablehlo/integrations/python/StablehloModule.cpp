@@ -13,6 +13,8 @@ limitations under the License.
 
 #include "mlir-c/IR.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
@@ -474,4 +476,42 @@ PYBIND11_MODULE(_stablehlo, m) {
                                        stablehloTypeExtensionsGetBoundsSize,
                                        stablehloTypeExtensionsGetBoundsElem);
       });
+
+  //
+  // Serialization APIs.
+  //
+
+  m.def("get_current_version",
+        []() { return mlir::stablehlo::getCurrentVersion(); });
+  m.def("get_earliest_forward_compatible_version", []() {
+    return mlir::stablehlo::getEarliestForwardCompatibleVersion();
+  });
+  m.def(
+      "serialize_portable_artifact",
+      [](MlirModule module, std::string target) -> py::bytes {
+        std::string buffer;
+        llvm::raw_string_ostream os(buffer);
+        if (failed(mlir::stablehlo::serializePortableArtifact(unwrap(module),
+                                                              target, os))) {
+          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
+          return "";
+        }
+
+        return py::bytes(buffer);
+      },
+      py::arg("module"), py::arg("target"));
+  m.def(
+      "deserialize_portable_artifact",
+      [](MlirContext context, std::string artifact) -> MlirModule {
+        auto module = mlir::stablehlo::deserializePortableArtifact(
+            artifact, unwrap(context));
+
+        if (!module) {
+          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
+          return {};
+        }
+
+        return {module.release()};
+      },
+      py::arg("module"), py::arg("target"));
 }

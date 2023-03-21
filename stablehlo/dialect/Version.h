@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cstdint>
+#include <sstream>
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
@@ -59,6 +61,11 @@ class Version {
   }
   bool operator<=(const Version& other) const {
     return majorMinorPatch <= other.majorMinorPatch;
+  }
+  std::string toString() const {
+    std::ostringstream os;
+    os << getMajor() << '.' << getMinor() << '.' << getPatch();
+    return os.str();
   }
 
  private:
