@@ -20,29 +20,6 @@ func.func @while(%arg0: tensor<4xf32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %
 
 // -----
 
-// CHECK-LABEL: while_with_different_types
-func.func @while_with_different_types(%arg0: tensor<3xf32>) -> tensor<3xf32> {
-  %cst_0 = arith.constant dense<0> : tensor<1xi32>
-  %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
-  %cst_2 = arith.constant dense<1.00> : tensor<1xf32>
-  %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
-  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %2 = arith.constant dense<0> : tensor<i32>
-    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
-    %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
-    %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
-    "stablehlo.return"(%5) : (tensor<i1>) -> ()
-  },  {
-  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
-    %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
-    "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
-  }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
-  func.return %1#3: tensor<3xf32>
-}
-
-// -----
-
 // CHECK-LABEL: while_dynamic
 func.func @while_dynamic(%arg0: tensor<3xf32>) -> tensor<*xf32> {
   %cst_0 = arith.constant dense<0> : tensor<1xi32>
@@ -87,7 +64,28 @@ func.func @while_unranked(%arg0: tensor<3xf32>) -> tensor<*xf32> {
   func.return %1#3: tensor<*xf32>
 }
 
-// Negative tests below
+// -----
+
+// CHECK-LABEL: while_with_different_types
+func.func @while_with_different_types(%arg0: tensor<3xf32>) -> tensor<3xf32> {
+  %cst_0 = arith.constant dense<0> : tensor<1xi32>
+  %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
+  %cst_2 = arith.constant dense<1.00> : tensor<1xf32>
+  %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
+    %2 = arith.constant dense<0> : tensor<i32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
+    %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
+    "stablehlo.return"(%5) : (tensor<i1>) -> ()
+  },  {
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
+    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
+    %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
+    "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
+  }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
+  func.return %1#3: tensor<3xf32>
+}
 
 // -----
 
@@ -201,26 +199,6 @@ func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
 
 // -----
 
-func.func @while_c1(%arg0: tensor<3xf32>) -> tensor<3xf32> {
-  %cst_0 = arith.constant dense<0> : tensor<1xi32>
-  %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
-  %cst_2 = arith.constant dense<1.00> : tensor<1xf32>
-  // expected-error @+1 {{expect condition block return a zero-ranked tensor of i1 but got 'tensor<f32>'}}
-  %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
-  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %2 = "stablehlo.reshape"(%arg3) : (tensor<1xf32>) -> tensor<f32>
-    "stablehlo.return"(%2) : (tensor<f32>) -> ()
-  },  {
-  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
-    %3 = "stablehlo.broadcast_in_dim"(%arg3) {broadcast_dimensions = dense<0> : tensor<1xi64>} : (tensor<1xf32>) -> tensor<3xf32>
-    %4 = stablehlo.add %3, %arg4 : tensor<3xf32>
-    "stablehlo.return"(%arg1, %arg2, %arg3, %4) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
-  }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
-  func.return %1#3: tensor<3xf32>
-}
-
-// -----
-
 func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   %cst_0 = arith.constant dense<0> : tensor<1xi32>
   %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
@@ -281,6 +259,27 @@ func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
   },  {
   ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
     "stablehlo.return"(%arg1, %arg2, %arg3, %arg3) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<1xf32>) -> ()
+  }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
+  func.return %1#3: tensor<3xf32>
+}
+
+// -----
+
+func.func @while_c2(%arg0: tensor<3xf32>) -> tensor<3xf32> {
+  %cst_0 = arith.constant dense<0> : tensor<1xi32>
+  %cst_1 = arith.constant dense<[100, 100]> : tensor<2xi32>
+  %cst_2 = arith.constant dense<1.00> : tensor<1xf32>
+  // expected-error @+1 {{expect operands to be compatible with body block return types but got 'tensor<1xi32>', 'tensor<2xi32>', 'tensor<1xf32>', 'tensor<3xf32>' vs 'tensor<1xf32>', 'tensor<2xi32>', 'tensor<1xf32>', 'tensor<3xf32>'}}
+  %1:4 = "stablehlo.while"(%cst_0, %cst_1, %cst_2, %arg0) ({
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
+    %2 = arith.constant dense<0> : tensor<i32>
+    %3 = "stablehlo.slice"(%arg2) {limit_indices = dense<[1]> : tensor<1xi64>, start_indices = dense<[0]> : tensor<1xi64>, strides = dense<1> : tensor<1xi64>} : (tensor<2xi32>) -> tensor<1xi32>
+    %4 = "stablehlo.compare"(%arg1, %3) {comparison_direction = #stablehlo<comparison_direction LT>} : (tensor<1xi32>, tensor<1xi32>) -> tensor<1xi1>
+    %5 = "stablehlo.reshape"(%4) : (tensor<1xi1>) -> tensor<i1>
+    "stablehlo.return"(%5) : (tensor<i1>) -> ()
+  },  {
+  ^bb0(%arg1: tensor<1xi32>, %arg2: tensor<2xi32>, %arg3: tensor<1xf32>, %arg4: tensor<3xf32>):
+    "stablehlo.return"(%arg3, %arg2, %arg3, %arg4) : (tensor<1xf32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> ()
   }) : (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>) -> (tensor<1xi32>, tensor<2xi32>, tensor<1xf32>, tensor<3xf32>)
   func.return %1#3: tensor<3xf32>
 }

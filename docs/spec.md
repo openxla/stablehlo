@@ -5472,15 +5472,15 @@ The behavior of an infinite loop is TBD
 // %one: 1
 // %ten: 10
 %results0, %results1 = "stablehlo.while"(%init_i, %init_sum) ({
-  ^bb0(%curr_i: tensor<i64>, %curr_sum: tensor<i64>):
-    %cond = "stablehlo.compare"(%curr_i, %ten) {
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %cond = "stablehlo.compare"(%arg0, %ten) {
       comparison_direction = #stablehlo<comparison_direction LT>
     } : (tensor<i64>, tensor<i64>) -> tensor<i1>
     stablehlo.return %cond : tensor<i1>
   }, {
-  ^bb0(%curr_i: tensor<i64>, %curr_sum: tensor<i64>):
-    %new_sum = stablehlo.add %curr_sum, %one : tensor<i64>
-    %new_i = stablehlo.add %curr_i, %one : tensor<i64>
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %new_sum = stablehlo.add %arg1, %one : tensor<i64>
+    %new_i = stablehlo.add %arg0, %one : tensor<i64>
     stablehlo.return %new_i, %new_sum : tensor<i64>, tensor<i64>
 }) : (tensor<i64>, tensor<i64>) -> (tensor<i64>, tensor<i64>)
 // %results0: 10
