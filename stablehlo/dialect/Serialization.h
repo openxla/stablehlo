@@ -32,7 +32,10 @@ LogicalResult serializePortableArtifact(ModuleOp module,
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context);
 
+// Get the current target version of the StableHLO opset
 std::string getCurrentVersion();
+
+// Get the earliest supported target version of the StableHLO opset
 std::string getEarliestForwardCompatibleVersion();
 
 }  // namespace stablehlo
