@@ -127,7 +127,6 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
 
-// Convert a Nx2 dense int64 padding attribute to a list of tuples.
 FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     std::optional<DenseIntElementsAttr> optionalAttr,
     std::optional<Location> loc) {
@@ -705,7 +704,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
       windowReversal, location, "window_reversal");
   if (failed(windowReversalOrErr)) return failure();
 
-  // reduce_window_c5, reduce_window_c7, reduce_window_c9
+  // reduce_window_c5, reduce_window_c7, reduce_window_c9, reduce_window_c11
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/*baseDilationsOrErr,

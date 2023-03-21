@@ -2805,9 +2805,9 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       RecursiveMemoryEffects,
-      SameVariadicOperandSize /*reduce_window_c2*/,
+      SameVariadicOperandSize /*reduce_window_c1*/,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      InferTensorType /*reduce_window_c1, reduce_window_c14 reduce_window_c15, reduce_window_c16*/]> {
+      InferTensorType /*reduce_window_c1, reduce_window_c14, reduce_window_c15, reduce_window_c16*/]> {
   let summary = "ReduceWindow operation";
   let description = [{
     Applies a reduction function `body` to windows of `inputs` and `init_values`
