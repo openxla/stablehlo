@@ -1227,7 +1227,7 @@ def StableHLO_CaseOp: StableHLO_Op<"case", [
 def StableHLO_WhileOp: StableHLO_Op<"while", [
       RecursiveMemoryEffects,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>,
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*while_c3*/,
       OpAsmOpInterface
     ]> {
   let summary = "While operation";
@@ -1239,23 +1239,22 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#while
 
     Example:
-    ```mlir
-    %results0, %results1 = "stablehlo.while"(%operand0, %operand1) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.compare"(%arg0, %arg1) {
-          comparison_direction = #stablehlo<comparison_direction LT>
-        } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-        "stablehlo.return"(%0) : (tensor<i1>) -> ()
-    }, {
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-        "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
-    }) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
-    ```
+    %results0, %results1 = stablehlo.while(%curr_i = %init_i, %curr_sum = %init_sum) : tensor<i64>, tensor<i64>
+    cond {
+      %cond = stablehlo.compare LT, %curr_i, %ten : (tensor<i64>, tensor<i64>) -> tensor<i1>
+      stablehlo.return %cond : tensor<i1>
+    } do {
+      %new_sum = stablehlo.add %curr_sum, %one : tensor<i64>
+      %new_i = stablehlo.add %curr_i, %one : tensor<i64>
+      stablehlo.return %new_i, %new_sum : tensor<i64>, tensor<i64>
+    }
   }];
-  let arguments = (ins Variadic<HLO_TensorOrToken>:$operand);
+  let arguments = (ins Variadic<HLO_TensorOrToken>:$operand /*while_i1*/);
 
-  let regions = (region SizedRegion<1>:$cond, SizedRegion<1>:$body);
+  let regions = (region
+    SizedRegion<1>:$cond /*while_i2*/,
+    SizedRegion<1>:$body /*while_i3*/
+  );
 
   let results = (outs Variadic<HLO_TensorOrToken>);
 

@@ -2990,6 +2990,7 @@ LogicalResult inferUniformQuantizeOp(
 
 LogicalResult inferWhileOp(std::optional<Location>, ValueRange operand,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
+  // while_c3
   for (const auto& resultType : operand.getType())
     inferredReturnTypes.push_back(resultType);
   return success();
@@ -4158,29 +4159,32 @@ LogicalResult verifyWhileOp(std::optional<Location> location,
   auto operandTypes = operand.getTypes();
   auto condArgsTypes = cond.front().getArgumentTypes();
   auto bodyArgsTypes = body.front().getArgumentTypes();
+  // while_c1
   if (!isCompatibleForHloTypeInference(operandTypes, condArgsTypes))
     return emitOptionalError(location,
-                             "expect operands are compatible with condition "
+                             "expect operands to be compatible with condition "
                              "block arguments but got ",
                              operandTypes, " vs ", condArgsTypes);
+  // while_c2
   if (!isCompatibleForHloTypeInference(operandTypes, bodyArgsTypes))
     return emitOptionalError(
         location,
-        "expect operands are compatible with body block arguments but got ",
+        "expect operands to be compatible with body block arguments but got ",
         operandTypes, " vs ", bodyArgsTypes);
-
+  // while_c2
   auto bodyReturnTypes = body.front().getTerminator()->getOperandTypes();
   if (!isCompatibleForHloTypeInference(operandTypes, bodyReturnTypes))
-    return emitOptionalError(
-        location,
-        "expect operands are compatible with body block return types but got ",
-        operandTypes, " vs ", bodyReturnTypes);
-
+    return emitOptionalError(location,
+                             "expect operands to be compatible with body block "
+                             "return types but got ",
+                             operandTypes, " vs ", bodyReturnTypes);
+  // while_c1
   auto condReturnTypes = cond.front().back().getOperandTypes();
   if (condReturnTypes.size() != 1)
     return emitOptionalError(
         location, "expect condition body returns a single value but got ",
         condReturnTypes.size());
+  // while_c1
   auto operandType = condReturnTypes[0].cast<TensorType>();
   if ((operandType.hasRank() && operandType.getRank() != 0) ||
       !operandType.getElementType().isInteger(1))
