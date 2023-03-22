@@ -5296,7 +5296,7 @@ where `i[d] = j[permutation[d]]`.
 * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
 rank of `operand`.
 * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
-where `j = permutation[i]`.
+where `i = permutation[j]`.
 
 #### Examples
 
