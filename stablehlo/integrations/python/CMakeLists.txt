@@ -1,5 +1,5 @@
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
   EMBED_CAPI_LINK_LIBS
     StablehloCAPI
   PRIVATE_LINK_LIBS
+    StablehloSerialization
     LLVMSupport
 )
 

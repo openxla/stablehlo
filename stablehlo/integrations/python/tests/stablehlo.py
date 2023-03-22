@@ -200,3 +200,25 @@ def test_type_extensions():
   attr = stablehlo.TypeExtensions.get(bounds=[128, dyn_size])
   assert attr is not None
   assert attr.bounds == [128, dyn_size]
+
+
+@run
+def test_serialization_apis():
+  curr_version = stablehlo.get_current_version()
+  assert curr_version == "0.9.0"
+  
+  ASM = """
+  func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+    %0 = stablehlo.add %arg0, %arg0 : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+    func.return %0 : tensor<2xf32>
+  }
+  """
+
+  with ir.Context() as context:
+    stablehlo.register_dialect(context)
+    m = ir.Module.parse(ASM)
+    module_str = str(m)
+    assert m is not None
+    serialized = stablehlo.serialize_portable_artifact(m, curr_version)
+    deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
+    assert module_str == str(deserialized)

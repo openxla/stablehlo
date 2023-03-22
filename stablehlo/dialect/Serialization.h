@@ -23,6 +23,9 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+// Get current StableHLO version
+std::string getCurrentVersion();
+
 // Write a StableHLO program to a portable artifact
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,

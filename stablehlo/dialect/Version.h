@@ -1,4 +1,4 @@
-/* Copyright 2022 The StableHLO Authors.
+/* Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cstdint>
+#include <sstream>
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
@@ -59,6 +60,11 @@ class Version {
   }
   bool operator<=(const Version& other) const {
     return majorMinorPatch <= other.majorMinorPatch;
+  }
+  std::string toString() const {
+    std::ostringstream os;
+    os << getMajor() << '.' << getMinor() << '.' << getPatch();
+    return os.str();
   }
 
  private:

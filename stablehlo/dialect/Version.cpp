@@ -1,5 +1,5 @@
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-   Copyright 2022 The StableHLO Authors.
+   Copyright 2023 The StableHLO Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,11 +46,6 @@ static FailureOr<std::array<int64_t, 3>> extractVersionNumbers(
                                 parseNumber(matches[3])};
 }
 
-template <typename OutputT>
-OutputT& dump(OutputT& out, const Version& version) {
-  return out << version.getMajor() << '.' << version.getMinor() << '.'
-             << version.getPatch();
-}
 }  // namespace
 
 FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
@@ -61,10 +56,10 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
-  return dump<mlir::Diagnostic>(diag, version);
+  return diag << version.toString();
 }
-llvm::raw_ostream& operator<<(llvm::raw_ostream& diag, const Version& version) {
-  return dump<llvm::raw_ostream>(diag, version);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const Version& version) {
+  return os << version.toString();
 }
 
 }  // namespace vhlo

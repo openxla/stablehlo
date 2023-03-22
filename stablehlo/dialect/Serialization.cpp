@@ -80,5 +80,9 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   return module;
 }
 
+std::string getCurrentVersion() {
+  return mlir::vhlo::Version::getCurrentVersion().toString();
+}
+
 }  // namespace stablehlo
 }  // namespace mlir
