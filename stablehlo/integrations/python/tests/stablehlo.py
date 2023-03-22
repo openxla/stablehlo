@@ -205,9 +205,7 @@ def test_type_extensions():
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  earliest_version = stablehlo.get_earliest_forward_compatible_version()
   assert curr_version == "0.9.0"
-  assert earliest_version == "0.9.0"
   
   ASM = """
   func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
@@ -221,6 +219,6 @@ def test_serialization_apis():
     m = ir.Module.parse(ASM)
     module_str = str(m)
     assert m is not None
-    serialized = stablehlo.serialize_portable_artifact(m, earliest_version)
+    serialized = stablehlo.serialize_portable_artifact(m, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
     assert module_str == str(deserialized)

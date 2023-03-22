@@ -16,9 +16,12 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_SERIALIZATION_H
 #define STABLEHLO_DIALECT_SERIALIZATION_H
 
+#include <cstdint>
+
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/Version.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -32,11 +35,8 @@ LogicalResult serializePortableArtifact(ModuleOp module,
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context);
 
-// Get the current target version of the StableHLO opset
+// Get current StableHLO version number
 std::string getCurrentVersion();
-
-// Get the earliest supported target version of the StableHLO opset
-std::string getEarliestForwardCompatibleVersion();
 
 }  // namespace stablehlo
 }  // namespace mlir
