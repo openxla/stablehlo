@@ -187,23 +187,21 @@ ShapedType inferConvolutionOpType(
     Axis outputFeatureDimension, Axes outputSpatialDimensions,
     int64_t featureGroupCount, int64_t batchGroupCount,
     std::optional<ArrayAttr> precisionConfig, ShapedType resultType) {
-  Builder builder = mlir::Builder(lhsType.getContext());
-  Type i64Type = builder.getI64Type();
-  Type i1Type = builder.getI1Type();
-  auto flattenPadding = [&](ArrayRef<std::pair<int64_t, int64_t>> padding) {
-    SmallVector<int64_t> paddingVector;
-    for (auto pair : padding) {
-      paddingVector.push_back(pair.first);
-      paddingVector.push_back(pair.second);
-    }
-    return paddingVector;
-  };
+  auto i64Type = IntegerType::get(lhsType.getContext(), 64);
+  auto i1Type = IntegerType::get(lhsType.getContext(), 1);
+
+  SmallVector<int64_t> paddingVector;
+  for (auto pair : padding) {
+    paddingVector.push_back(pair.first);
+    paddingVector.push_back(pair.second);
+  }
+
   SmallVector<int64_t> paddingShape{static_cast<int64_t>(padding.size()), 2};
   SmallVector<ShapedTypeComponents> inferredConvolutionType;
   auto convolutionStatus = hlo::inferConvolutionOp(
       /*location=*/{}, lhsType, rhsType,
       getDenseIntElementsAttr(i64Type, windowStrides, {}),
-      getDenseIntElementsAttr(i64Type, flattenPadding(padding), paddingShape),
+      getDenseIntElementsAttr(i64Type, paddingVector, paddingShape),
       getDenseIntElementsAttr(i64Type, lhsDilation, {}),
       getDenseIntElementsAttr(i64Type, rhsDilation, {}),
       getDenseIntElementsAttr(i1Type, windowReversal, {}),
@@ -241,23 +239,24 @@ ShapedType inferDotGeneralOpType(ShapedType lhsType, ShapedType rhsType,
                                lhsType.getElementType());
 }
 
-ShapedType inferPadOpType(ArrayRef<std::pair<int64_t, int64_t>> lhsPadding,
-                          Type operandType, Type resultElementType,
+ShapedType inferPadOpType(ArrayRef<std::pair<int64_t, int64_t>> padding,
+                          Type operandType, Type paddingValueElementType,
                           ArrayRef<int64_t> interiorPadding) {
-  Builder builder = mlir::Builder(operandType.getContext());
-  Type i64Type = builder.getI64Type();
   SmallVector<int64_t> lhsPaddingLow;
   SmallVector<int64_t> lhsPaddingHigh;
-  for (auto paddingPair : lhsPadding) {
+  for (auto paddingPair : padding) {
     lhsPaddingLow.push_back(paddingPair.first);
     lhsPaddingHigh.push_back(paddingPair.second);
   }
+
   SmallVector<Type> inferredPadType;
+  auto i64Type = IntegerType::get(operandType.getContext(), 64);
   auto padStatus = hlo::inferPadOp(
-      {}, operandType, RankedTensorType::get({}, resultElementType),
+      {}, operandType, RankedTensorType::get({}, paddingValueElementType),
       getDenseIntElementsAttr(i64Type, lhsPaddingLow, {}),
       getDenseIntElementsAttr(i64Type, lhsPaddingHigh, {}),
       getDenseIntElementsAttr(i64Type, interiorPadding, {}), inferredPadType);
+
   if (failed(padStatus))
     report_fatal_error(invalidArgument("Could not infer PadOp's return type"));
   return inferredPadType[0].cast<ShapedType>();
@@ -267,35 +266,38 @@ ShapedType inferSliceOpType(Type operandType,
                             SmallVector<int64_t> lhsWindowStart,
                             SmallVector<int64_t> limitIndices,
                             SmallVector<int64_t> lhsWindowDilations) {
-  Builder builder = mlir::Builder(operandType.getContext());
-  Type i64Type = builder.getI64Type();
   SmallVector<Type> inferredSliceType;
+  auto i64Type = IntegerType::get(operandType.getContext(), 64);
   auto sliceStatus = hlo::inferSliceOp(
       {}, operandType, getDenseIntElementsAttr(i64Type, lhsWindowStart, {}),
       getDenseIntElementsAttr(i64Type, limitIndices, {}),
       getDenseIntElementsAttr(i64Type, lhsWindowDilations, {}),
       inferredSliceType);
+
   if (failed(sliceStatus))
     report_fatal_error(
         invalidArgument("Could not infer SliceOp's return type"));
   return inferredSliceType[0].cast<ShapedType>();
 }
 
+// Returns `result` with the effect of applying `permutation`
+// (= [dimA] + dimsB + [dimC]) to `input` (= [n] + hw + [c]) such that
+// result[permutation[i]] = input[i].
 template <typename T>
-SmallVector<T> concatAndPermute(T n, SmallVector<T> hw, T c, int64_t dimA,
-                                SmallVector<int64_t> dimB, int64_t dimC) {
-  SmallVector<T> permInput;
-  permInput.push_back(n);
-  permInput.append(hw.begin(), hw.end());
-  permInput.push_back(c);
-  SmallVector<int64_t> permDims;
-  permDims.push_back(dimA);
-  permDims.append(dimB.begin(), dimB.end());
-  permDims.push_back(dimC);
-  SmallVector<T> permOutput(permDims.size());
-  for (auto [idx, dim] : llvm::enumerate(permDims))
-    permOutput[dim] = permInput[idx];
-  return permOutput;
+SmallVector<T> concatAndPermute(T n, SmallVector<T> hw, T c,
+                                const Axes &permutation) {
+  SmallVector<T> input;
+  input.push_back(n);
+  input.append(hw.begin(), hw.end());
+  input.push_back(c);
+
+  if (input.size() != permutation.size())
+    llvm::report_fatal_error(
+        "Expect same size for permutation and the array to be permuted");
+
+  SmallVector<T> result(permutation.size());
+  for (auto [idx, dim] : llvm::enumerate(permutation)) result[dim] = input[idx];
+  return result;
 }
 
 Tensor makeScalar(const Element &initValue) {
@@ -1371,11 +1373,6 @@ Tensor evalConvolutionOp(
     int64_t featureGroupCount, int64_t batchGroupCount, ShapedType resultType) {
   Tensor result(resultType);
 
-  // This check is necessary here as we are not looping over result tensor but
-  // instead creating iterators using output spatial dimension size, which may
-  // fail if the dimension size is zero.
-  if (resultType.getNumElements() == 0) return result;
-
   if (featureGroupCount > 1) {
     auto lhses = split(lhs, featureGroupCount, inputFeatureDimension,
                        resultType.getContext());
@@ -1403,6 +1400,7 @@ Tensor evalConvolutionOp(
     }
     return evalConcatenateOp(results, outputFeatureDimension, result.getType());
   }
+
   if (batchGroupCount > 1) {
     auto lhses = split(lhs, batchGroupCount, inputBatchDimension,
                        resultType.getContext());
@@ -1430,35 +1428,42 @@ Tensor evalConvolutionOp(
     }
     return evalConcatenateOp(results, outputFeatureDimension, result.getType());
   }
-  auto lhsWindowDimensions = concatAndPermute(
-      lhs.getShape()[inputBatchDimension],
-      extractElements(rhs.getShape(), kernelSpatialDimensions),
-      lhs.getShape()[inputFeatureDimension], inputBatchDimension,
-      inputSpatialDimensions, inputFeatureDimension);
-  auto lhsWindowStrides = concatAndPermute(
-      1L, llvm::to_vector(windowStrides), 1L, inputBatchDimension,
-      inputSpatialDimensions, inputFeatureDimension);
-  auto lhsPadding = concatAndPermute(
-      {0, 0}, llvm::to_vector(padding), {0, 0}, inputBatchDimension,
-      inputSpatialDimensions, inputFeatureDimension);
-  auto lhsBaseDilations =
-      concatAndPermute(0L, Sizes(lhsDilation) - 1, 0L, inputBatchDimension,
-                       inputSpatialDimensions, inputFeatureDimension);
-  auto lhsWindowDilations = concatAndPermute(
-      1L, llvm::to_vector(rhsDilation), 1L, inputBatchDimension,
-      inputSpatialDimensions, inputFeatureDimension);
 
-  auto outputSpacialIndexIt = IndexSpaceIterator(
+  Axes lhsPermutation;
+  lhsPermutation.push_back(inputBatchDimension);
+  lhsPermutation.append(inputSpatialDimensions.begin(),
+                        inputSpatialDimensions.end());
+  lhsPermutation.push_back(inputFeatureDimension);
+
+  auto lhsWindowDimensions =
+      concatAndPermute(lhs.getShape()[inputBatchDimension],
+                       extractElements(rhs.getShape(), kernelSpatialDimensions),
+                       lhs.getShape()[inputFeatureDimension], lhsPermutation);
+
+  auto lhsWindowStrides =
+      concatAndPermute(1L, llvm::to_vector(windowStrides), 1L, lhsPermutation);
+
+  auto lhsPadding = concatAndPermute({0, 0}, llvm::to_vector(padding), {0, 0},
+                                     lhsPermutation);
+
+  auto lhsBaseDilations =
+      concatAndPermute(0L, Sizes(lhsDilation) - 1, 0L, lhsPermutation);
+
+  auto lhsWindowDilations =
+      concatAndPermute(1L, llvm::to_vector(rhsDilation), 1L, lhsPermutation);
+
+  auto outputSpatialIndexIt = IndexSpaceIterator(
       Sizes(extractElements(result.getShape(), outputSpatialDimensions)),
       Index(outputSpatialDimensions.size()));
-  auto outputSpacialIndexItEnd = IndexSpaceIterator(
+  auto outputSpatialIndexItEnd = IndexSpaceIterator(
       Sizes(extractElements(result.getShape(), outputSpatialDimensions)),
       std::nullopt);
-  for (; outputSpacialIndexIt != outputSpacialIndexItEnd;
-       ++outputSpacialIndexIt) {
+  for (; outputSpatialIndexIt != outputSpatialIndexItEnd;
+       ++outputSpatialIndexIt) {
     SmallVector<int64_t> lhsPaddingLow;
     for (auto paddingPair : lhsPadding)
       lhsPaddingLow.push_back(paddingPair.first);
+
     auto paddedLhs =
         evalPadOp(lhs, makeScalar(convert(result.getElementType(), 0.0)),
                   Sizes(lhsPaddingLow), Sizes(lhsBaseDilations),
@@ -1466,16 +1471,16 @@ Tensor evalConvolutionOp(
                                  result.getElementType(), lhsBaseDilations));
 
     SmallVector<int64_t> lhsWindowStart;
-    for (auto [i, offset] : llvm::enumerate(
-             concatAndPermute(0L, llvm::to_vector(*outputSpacialIndexIt), 0L,
-                              inputBatchDimension, inputSpatialDimensions,
-                              inputFeatureDimension)))
+    for (auto [i, offset] : llvm::enumerate(concatAndPermute(
+             0L, llvm::to_vector(*outputSpatialIndexIt), 0L, lhsPermutation)))
       lhsWindowStart.push_back(lhsWindowStrides[i] * offset);
+
     SmallVector<int64_t> limitIndices;
     for (size_t i = 0; i < lhsWindowStart.size(); ++i)
       limitIndices.push_back(std::min(
           lhsWindowStart[i] + lhsWindowDimensions[i] * lhsWindowDilations[i],
           paddedLhs.getShape()[i]));
+
     auto lhsWindow =
         evalSliceOp(paddedLhs, Sizes(lhsWindowStart), Sizes(lhsWindowDilations),
                     inferSliceOpType(paddedLhs.getType(), lhsWindowStart,
@@ -1490,9 +1495,11 @@ Tensor evalConvolutionOp(
     auto lhsContractingDimensions = llvm::to_vector(inputSpatialDimensions);
     lhsContractingDimensions.push_back(
         static_cast<int64_t>(inputFeatureDimension));
+
     auto rhsContractingDimensions = llvm::to_vector(kernelSpatialDimensions);
     rhsContractingDimensions.push_back(
         static_cast<int64_t>(kernelInputFeatureDimension));
+
     auto dotProduct = evalDotGeneralOp(
         reversedLhsWindow, rhs, /*lhsBatchingDimensions=*/{},
         /*rhsBatchingDimensions=*/{}, Axes(lhsContractingDimensions),
@@ -1501,34 +1508,25 @@ Tensor evalConvolutionOp(
                               lhsContractingDimensions,
                               rhsContractingDimensions));
 
-    auto resultShape = [&](auto resultOffsetIt) {
-      SmallVector<int64_t> resultIndex;
-      for (auto outputSpacialDimensionsIdx = 0, resultOffsetItIdx = 0,
-                outputSpacialIndexItIdx = 0;
-           outputSpacialDimensionsIdx < result.getRank();
-           ++outputSpacialDimensionsIdx) {
-        if (llvm::find(outputSpatialDimensions, outputSpacialDimensionsIdx) ==
-            outputSpatialDimensions.end())
-          resultIndex.push_back((*resultOffsetIt)[resultOffsetItIdx++]);
-        else
-          resultIndex.push_back(
-              (*outputSpacialIndexIt)[outputSpacialIndexItIdx++]);
-      }
-      return resultIndex;
-    };
-
-    SmallVector<int64_t> resultOffset;
+    Sizes resultNonSpatialDims;
     for (auto i = 0; i < result.getRank(); ++i)
       if (llvm::find(outputSpatialDimensions, i) ==
           outputSpatialDimensions.end())
-        resultOffset.push_back(result.getShape()[i]);
+        resultNonSpatialDims.push_back(result.getShape()[i]);
 
-    auto resultOffsetIt =
-        IndexSpaceIterator(Sizes(resultOffset), Index(resultOffset.size()));
+    Axes resultPermutation;
+    resultPermutation.push_back(outputBatchDimension);
+    resultPermutation.append(outputSpatialDimensions.begin(),
+                             outputSpatialDimensions.end());
+    resultPermutation.push_back(outputFeatureDimension);
+    auto resultNonSpatialIt = IndexSpaceIterator(
+        resultNonSpatialDims, Index(resultNonSpatialDims.size()));
     for (auto dotProductIt = dotProduct.index_begin();
          dotProductIt != dotProduct.index_end();
-         ++dotProductIt, ++resultOffsetIt) {
-      auto resultIndex = resultShape(resultOffsetIt);
+         ++dotProductIt, ++resultNonSpatialIt) {
+      auto resultIndex =
+          concatAndPermute((*resultNonSpatialIt)[0], *outputSpatialIndexIt,
+                           (*resultNonSpatialIt)[1], resultPermutation);
       result.set(Index(resultIndex), dotProduct.get(*dotProductIt));
     }
   }
