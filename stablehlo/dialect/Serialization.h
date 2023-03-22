@@ -16,8 +16,6 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_SERIALIZATION_H
 #define STABLEHLO_DIALECT_SERIALIZATION_H
 
-#include <cstdint>
-
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LogicalResult.h"
