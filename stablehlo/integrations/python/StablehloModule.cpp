@@ -483,6 +483,7 @@ PYBIND11_MODULE(_stablehlo, m) {
 
   m.def("get_current_version",
         []() { return mlir::stablehlo::getCurrentVersion(); });
+
   m.def(
       "serialize_portable_artifact",
       [](MlirModule module, std::string target) -> py::bytes {
@@ -497,6 +498,7 @@ PYBIND11_MODULE(_stablehlo, m) {
         return py::bytes(buffer);
       },
       py::arg("module"), py::arg("target"));
+
   m.def(
       "deserialize_portable_artifact",
       [](MlirContext context, std::string artifact) -> MlirModule {

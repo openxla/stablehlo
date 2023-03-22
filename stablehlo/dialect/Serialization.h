@@ -19,10 +19,12 @@ limitations under the License.
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Version.h"
 
 namespace mlir {
 namespace stablehlo {
+
+// Get current StableHLO version
+std::string getCurrentVersion();
 
 // Write a StableHLO program to a portable artifact
 LogicalResult serializePortableArtifact(ModuleOp module,
@@ -32,9 +34,6 @@ LogicalResult serializePortableArtifact(ModuleOp module,
 // Read StableHLO portable artifact
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context);
-
-// Get current StableHLO version number
-std::string getCurrentVersion();
 
 }  // namespace stablehlo
 }  // namespace mlir
