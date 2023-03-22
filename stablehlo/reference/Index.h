@@ -34,10 +34,11 @@ class IndexSpaceIterator {
   /// \name Constructor
   IndexSpaceIterator(Sizes shape, std::optional<Index> index)
       : shape_(shape), index_(index) {
-    if (index && !index->inBounds(shape))
-      llvm::report_fatal_error(
-          "Incompatible index and shape found while creating "
-          "an IndexSpaceIterator");
+    if (index && !index->inBounds(shape)) index_ = std::nullopt;
+  }
+
+  IndexSpaceIterator(Sizes shape) : shape_(shape) {
+    index_ = Index(shape.size());
   }
 
   /// Get the current index.

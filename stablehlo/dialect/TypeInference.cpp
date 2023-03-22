@@ -1073,6 +1073,7 @@ static LogicalResult verifyGather(
       return emitOptionalError(location, "index_vector_dim ", indexVectorDim,
                                " is out of bounds for start indices with rank ",
                                startIndicesShape.getRank());
+
     // gather_c3
     bool impliedTrailingDim = indexVectorDim == startIndicesShape.getRank();
     if (impliedTrailingDim || !startIndicesShape.isDynamicDim(indexVectorDim)) {

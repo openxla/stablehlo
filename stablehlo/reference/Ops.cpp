@@ -303,13 +303,14 @@ SmallVector<Tensor> eval(
     } else if (auto gatherOp = dyn_cast<GatherOp>(op)) {
       auto operand = scope.find(gatherOp.getOperand());
       auto startIndices = scope.find(gatherOp.getStartIndices());
-      auto dimNumbers = gatherOp.getDimensionNumbers();
-      auto sliceSizes = Sizes(gatherOp.getSliceSizes());
       auto result = evalGatherOp(
-          operand, startIndices, dimNumbers.getOffsetDims(),
-          dimNumbers.getCollapsedSliceDims(), dimNumbers.getStartIndexMap(),
-          dimNumbers.getIndexVectorDim(), sliceSizes,
-          gatherOp.getIndicesAreSorted(), gatherOp.getType());
+          operand, startIndices,
+          Axes(gatherOp.getDimensionNumbers().getOffsetDims()),
+          Axes(gatherOp.getDimensionNumbers().getCollapsedSliceDims()),
+          Axes(gatherOp.getDimensionNumbers().getStartIndexMap()),
+          Axis(gatherOp.getDimensionNumbers().getIndexVectorDim()),
+          Sizes(gatherOp.getSliceSizes()), gatherOp.getIndicesAreSorted(),
+          gatherOp.getType());
       scope.add(op.getResults(), {result});
     } else if (auto getDimensionSizeOp = dyn_cast<GetDimensionSizeOp>(op)) {
       auto operand = scope.find(getDimensionSizeOp.getOperand());
@@ -909,54 +910,44 @@ Tensor evalFloorOp(const Tensor &operand, ShapedType resultType) {
 }
 
 Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
-                    ArrayRef<int64_t> offsetDims,
-                    ArrayRef<int64_t> collapsedSliceDims,
-                    ArrayRef<int64_t> startIndexMap, int64_t indexVectorDim,
-                    Sizes sliceSizes, bool indicesAreSorted,
+                    const Axes &offsetDims, const Axes &collapsedSliceDims,
+                    const Axes &startIndexMap, Axis indexVectorDim,
+                    const Sizes &sliceSizes, bool indicesAreSorted,
                     ShapedType resultType) {
   Tensor result(resultType);
 
   SmallVector<int64_t> batchDims;
-  for (auto i = 0; i < result.getType().getRank(); ++i)
+  for (auto i = 0; i < result.getRank(); ++i)
     if (!llvm::is_contained(offsetDims, i)) batchDims.push_back(i);
 
   SmallVector<int64_t> nonCollapsedSliceDims;
-  for (auto i = 0; i < operand.getType().getRank(); ++i)
+  for (auto i = 0; i < operand.getRank(); ++i)
     if (!llvm::is_contained(collapsedSliceDims, i))
       nonCollapsedSliceDims.push_back(i);
 
-  Sizes startIndicesShape(startIndices.getType().getShape());
-  if (indexVectorDim < static_cast<int64_t>(startIndicesShape.size()))
-    startIndicesShape[indexVectorDim] = 1;
-
-  Index startIndicesBeginIndex(startIndicesShape.size());
-  auto startIndicesIt =
-      IndexSpaceIterator(startIndicesShape, startIndicesBeginIndex);
-  auto startIndicesItEnd = IndexSpaceIterator(startIndicesShape, {});
-  for (; startIndicesIt != startIndicesItEnd; ++startIndicesIt) {
-    Index operandBaseIdx(operand.getType().getRank());
+  for (auto startIndicesIt = startIndices.index_begin();
+       startIndicesIt != startIndices.index_end(); ++startIndicesIt) {
+    Index operandBaseIdx(operand.getRank());
     Index startIndicesIndex(*startIndicesIt);
-    for (auto [i, dim] : llvm::enumerate(startIndexMap)) {
-      if (indexVectorDim < startIndices.getType().getRank())
-        startIndicesIndex[indexVectorDim] = i;
-      operandBaseIdx[dim] = std::max<int64_t>(
-          0, std::min(startIndices.get(startIndicesIndex)
-                          .getIntegerValue()
-                          .getSExtValue(),
-                      operand.getType().getShape()[dim] - sliceSizes[dim]));
-    }
-    Index sliceSizesBeginIdx(sliceSizes.size());
-    auto sliceSizesIt = IndexSpaceIterator(sliceSizes, sliceSizesBeginIdx);
-    auto sliceSizesItEnd = IndexSpaceIterator(sliceSizes, {});
-    for (; sliceSizesIt != sliceSizesItEnd; ++sliceSizesIt) {
-      Index operandIdx;
-      for (auto i = 0; i < operand.getType().getRank(); ++i)
-        operandIdx.push_back(operandBaseIdx[i] + (*sliceSizesIt)[i]);
 
-      Index resultIdx(result.getType().getRank());
+    for (auto [i, dim] : llvm::enumerate(startIndexMap)) {
+      if (indexVectorDim < startIndices.getRank())
+        startIndicesIndex[indexVectorDim] = i;
+      operandBaseIdx[dim] = std::clamp(
+          startIndices.get(startIndicesIndex).getIntegerValue().getSExtValue(),
+          0L, operand.getShape()[dim] - sliceSizes[dim]);
+    }
+
+    for (auto sliceSizesIt = IndexSpaceIterator(sliceSizes);
+         sliceSizesIt != IndexSpaceIterator(sliceSizes, std::nullopt);
+         ++sliceSizesIt) {
+      Index operandIdx = operandBaseIdx + *sliceSizesIt;
+      Index resultIdx(result.getRank());
+
       for (auto [outputDim, sliceDim] :
            llvm::zip(offsetDims, nonCollapsedSliceDims))
         resultIdx[outputDim] = (*sliceSizesIt)[sliceDim];
+
       for (auto [batchIndex, outputDim] : llvm::enumerate(batchDims))
         resultIdx[outputDim] =
             (*startIndicesIt)[static_cast<int64_t>(batchIndex) >= indexVectorDim

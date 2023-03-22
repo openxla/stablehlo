@@ -8,16 +8,18 @@ func.func @gather() {
                                              [[0, 1], [1, 1], [0, 2]]]> : tensor<2x3x2xi64>
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
-      offset_dims = [1, 3],
-      collapsed_slice_dims = [2],
+      offset_dims = [2, 3],
+      collapsed_slice_dims = [0],
       start_index_map = [1, 0],
       index_vector_dim = 2>,
-    slice_sizes = dense<[2, 2, 1]> : tensor<3xi64>,
+    slice_sizes = dense<[1, 2, 2]> : tensor<3xi64>,
     indices_are_sorted = false
-  } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>) -> tensor<2x2x3x2xi64>
-  check.expect_eq_const %result, dense<[[[[1, 3], [3, 5], [13, 15]],
-                                         [[9, 11], [11, 13], [21, 23]]],
-                                        [[[9, 11], [11, 13], [9, 11]],
-                                         [[17, 19], [19, 21], [17, 19]]]]> : tensor<2x2x3x2xi64>
+  } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>) -> tensor<2x3x2x2xi64>
+  check.expect_eq_const %result, dense<[[[[1, 2], [3, 4]],
+                                         [[3, 4], [5, 6]],
+                                         [[13, 14], [15, 16]]],
+                                        [[[9, 10], [11, 12]],
+                                         [[11, 12], [13, 14]],
+                                         [[17, 18], [19, 20]]]]> : tensor<2x3x2x2xi64>
   func.return
 }
