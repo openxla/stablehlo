@@ -39,7 +39,6 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    TensorType resultType);
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
-                     std::optional<ComparisonType> compareType,
                      TensorType resultType);
 Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          TensorType resultType);
