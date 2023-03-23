@@ -1692,7 +1692,8 @@ LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
 LogicalResult inferConvertOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandType = operand.getType().cast<ShapedType>();
+  auto operandType = operand.getType().dyn_cast<ShapedType>();
+  // convert_c1
   inferredReturnShapes.emplace_back(
       operandType.hasRank() ? operandType.getShape() : ArrayRef<int64_t>{});
   return success();

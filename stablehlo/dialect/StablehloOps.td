@@ -252,7 +252,7 @@ def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
 }
 
 def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
-    [Pure, SameOperandsAndResultShape], HLO_Tensor> {
+    [Pure, SameOperandsAndResultShape /*convert_c1*/], HLO_Tensor> { /*convert_i1*/
   let summary = "Convert operation";
   let description = [{
     Performs an element-wise conversion from one element type to another on
@@ -263,7 +263,7 @@ def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
 
     Example:
     ```mlir
-    %result = stablehlo.convert %operand : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
+    %result = stablehlo.convert %operand : (tensor<3xi64>) -> tensor<3xcomplex<f64>>
     ```
   }];
   let builders = [

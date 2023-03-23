@@ -42,9 +42,13 @@ class Element {
 
   Element(Type type, APFloat value);
 
-  /// The double `value` can be used to construct two types: floating-point or
-  /// complex element types. By specifying a double value for complex element
-  /// type, the real part is set to `value`, and the imaginary part is zero.
+  /// The double `value` can be used to construct other element types. By
+  /// specifying a double value for:
+  /// * boolean: non-zero value is converted to 'true' otherwise false.
+  /// * integer: fractional part is truncated.
+  /// * float: exactly representable value, TBD(#180) otherwise.
+  /// * complex: the real part is set to exactly representable value or
+  ///   TBD(#180) otherwise, and the imaginary part is zero.
   Element(Type type, double value);
 
   Element(Type type, std::complex<APFloat> value);

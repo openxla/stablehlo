@@ -519,14 +519,97 @@ Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
 }
 
-// This is an simplified implementation of convert op semantics dealing only
-// with integer to bool conversion. To be updated as part of #969.
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  Type elementType = result.getElementType();
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, Element(elementType,
-                            operand.get(*it).getIntegerValue().getBoolValue()));
+  Type operandElementType = operand.getElementType();
+  Type resultElementType = result.getElementType();
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    if (isSupportedBooleanType(operandElementType)) {
+      result.set(*it, Element(resultElementType,
+                              operand.get(*it).getBooleanValue() ? 1.0 : 0.0));
+    } else if (isSupportedIntegerType(operandElementType)) {
+      if (isSupportedBooleanType(resultElementType)) {
+        result.set(*it, Element(resultElementType,
+                                !operand.get(*it).getIntegerValue().isZero()));
+      } else if (isSupportedIntegerType(resultElementType)) {
+        result.set(
+            *it,
+            Element(resultElementType,
+                    APInt(resultElementType.getIntOrFloatBitWidth(),
+                          operand.get(*it).getIntegerValue().getSExtValue(),
+                          isSupportedSignedIntegerType(resultElementType))));
+      } else if (isSupportedFloatType(resultElementType)) {
+        // If the source value cannot be exactly represented in the destination
+        // type, the behavior is TBD(#180).
+        result.set(
+            *it,
+            Element(resultElementType,
+                    operand.get(*it).getIntegerValue().roundToDouble(
+                        isSupportedSignedIntegerType(operandElementType))));
+      } else if (isSupportedComplexType(resultElementType)) {
+        // If the source value cannot be exactly represented in the destination
+        // type, the behavior is TBD(#180).
+        result.set(
+            *it,
+            Element(resultElementType,
+                    operand.get(*it).getIntegerValue().roundToDouble(
+                        isSupportedSignedIntegerType(operandElementType))));
+      }
+    } else if (isSupportedFloatType(operandElementType)) {
+      if (isSupportedBooleanType(resultElementType)) {
+        result.set(*it, Element(resultElementType,
+                                !operand.get(*it).getFloatValue().isZero()));
+      } else if (isSupportedIntegerType(resultElementType)) {
+        // If the real part of the truncated source value cannot be represented
+        // in the destination type, the behavior is TBD(#180).
+        result.set(
+            *it, Element(resultElementType,
+                         llvm::APIntOps::RoundDoubleToAPInt(
+                             operand.get(*it).getFloatValue().convertToDouble(),
+                             resultElementType.getIntOrFloatBitWidth())));
+      } else if (isSupportedFloatType(resultElementType)) {
+        // If the source value cannot be exactly represented in the destination
+        // type, the behavior is TBD(#180).
+        result.set(
+            *it, Element(resultElementType, operand.get(*it).getFloatValue()));
+      } else if (isSupportedComplexType(resultElementType)) {
+        // If the source value cannot be exactly represented in the real part of
+        // the destination type, the behavior is TBD(#180).
+        APFloat real = operand.get(*it).getFloatValue();
+        APFloat imag(0.0);
+        result.set(
+            *it, Element(resultElementType, std::complex<APFloat>(real, imag)));
+      }
+    } else if (isSupportedComplexType(operandElementType)) {
+      if (isSupportedBooleanType(resultElementType)) {
+        result.set(
+            *it,
+            Element(resultElementType,
+                    operand.get(*it).getComplexValue().real().isNonZero() ||
+                        operand.get(*it).getComplexValue().imag().isNonZero()));
+      } else if (isSupportedIntegerType(resultElementType)) {
+        // If the real part of the truncated source value cannot be represented
+        // in the destination type, the behavior is TBD(#180).
+        result.set(
+            *it,
+            Element(
+                resultElementType,
+                llvm::APIntOps::RoundDoubleToAPInt(
+                    operand.get(*it).getComplexValue().real().convertToDouble(),
+                    resultElementType.getIntOrFloatBitWidth())));
+      } else if (isSupportedFloatType(resultElementType)) {
+        // If the real part of the source value cannot be exactly represented in
+        // the destination type, the behavior is TBD(#180).
+        result.set(*it, Element(resultElementType,
+                                operand.get(*it).getComplexValue().real()));
+      } else if (isSupportedComplexType(resultElementType)) {
+        // If the source value cannot be exactly represented in the destination
+        // type, the behavior is TBD(#180).
+        result.set(*it, Element(resultElementType,
+                                operand.get(*it).getComplexValue()));
+      }
+    }
+  }
   return result;
 }
 

@@ -1942,10 +1942,12 @@ converted to zero, and the value `true` is converted to one. For
 #### Examples
 
 ```mlir
-// %operand: [1, 2, 3]
-%result = "stablehlo.convert"(%operand) : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
-// %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
+// %operand: [-1, 0, 1]
+%result = "stablehlo.convert"(%operand) : (tensor<3xi64>) -> tensor<3xcomplex<f64>>
+// %result: [(-1.0, 0.0), (0.0, 0.0), (1.0, 0.0)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_convert.mlir)
 
 ### convolution
 
