@@ -17,3 +17,7 @@
 # pylint: disable=wildcard-import,relative-beyond-top-level,g-import-not-at-top
 from ._stablehlo_ops_gen import *
 from .._mlir_libs._stablehlo import *
+
+
+# Version number for StableHLO Python APIs. Increment on all Python API changes.
+api_version = 1
