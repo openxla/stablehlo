@@ -140,11 +140,26 @@ which may allow us to remove tuple types from StableHLO
 
 ```ebnf
 ElementType ::= BooleanType | IntegerType | FloatType | ComplexType
+              | QuantizedType
 BooleanType ::= 'i1'
 IntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
               | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType   ::= 'f8E4M3FN' | 'f8E5M2' | 'bf16' | 'f16' | 'f32' | 'f64'
 ComplexType ::= 'complex' '<' ('f32' | 'f64') '>'
+QuantizedType ::= '!quant.uniform' '<' QuantizationStorageType
+                  ':' QuantizationExpressedType
+                  ':' QuantizationStorageMin
+                  ':' QuantizationStorageMax
+                  ':' QuantizationScales
+                  ':' QuantizationZeroPoints
+                  {':' QuantizationDimension} '>'
+QuantizationStorageType ::= IntegerType
+QuantizationExpressedType ::= FloatType
+QuantizationStorageMin ::= IntegerConstant
+QuantizationStorageMax ::= IntegerConstant
+QuantizationScales ::= '[' FloatConstant {',' FloatConstant} ']'
+QuantizationZeroPoints ::= '[' IntegerConstant {',' IntegerConstant} ']'
+QuantizationDimension ::= IntegerConstant
 ```
 
 **Element types** represent elements of tensor types. Unlike in many programming
@@ -173,10 +188,48 @@ values of type `tensor<T>`).
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
   (both parts are of type `f64`).
-* In the future, we are also planning to introduce **quantized types** that
-  represent integer values obtained via uniform quantization of floating-point
-  values using given scales and zero points
-  ([#588](https://github.com/openxla/stablehlo/issues/588)).
+* **Quantized types** represent integer values of a **storage type** in the
+  range from `storage_min` to `storage_max` (inclusive) that correspond to
+  floating-point values of an **expressed type**. For a given integer value `i`,
+  the corresponding floating-point value `f` can be computed as
+  `f = (i - zero_point) * scale`, where `scale` and `zero_point` are called
+  **quantization parameters**.
+
+Quantization can be **per-tensor**, meaning, having one `scale` and/or
+`zero_point` for the entire tensor or can be **per-axis**, meaning, having
+multiple `scales` and/or `zero_points`, one pair per slice of a particular
+dimension `quantized_dimension`. More formally, in a tensor `t` of per-axis
+quantized element type, there are `dim(t, quantized_dimension)` slices of the
+`quantized_dimension`: `t[:, ..., 0, ..., :], t[:, ..., 1, ..., :]`, etc. All
+elements in the `i`th slice use `scales[i]` and `zero_points[i]` as their
+quantization parameters.
+
+Quantized types satisfy the following constraints:
+
+* (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
+* (C2) `type(storage_min) = storage_type`.
+* (C3) `type(storage_max) = storage_type`.
+* (C4) `storage_min` and `storage_max` have the following values:
+  * If `is_signed(storage_type)` and `d = num_bits(storage_type)`:
+    * `storage_min = -2^(d-1)`, `storage_max = 2^(d-1)-1` OR
+    * `storage_min = -2^(d-1)+1`, `storage_max = 2^(d-1)-1`.
+  * If `is_unsigned(storage_type)`:
+    * `storage_min = 0`, `storage_max = 2^d - 1`.
+* (C5) For all `i`, `type(scales[i]) = expressed_type`.
+* (C6) For all `i`, `scales[i] > 0`.
+* (C7) For all `i`, `type(zero_points[i]) = i64`.
+* (C8) `size(scales) = size(zero_points)`.
+* (C9) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C10) If `quantization_dimension` is not empty, then
+  `0 <= quantization_dimension`.
+
+Furthermore, tensors of quantized types satisfy the following constraints:
+
+* For per-tensor quantization:
+  * No additional constraints.
+* For per-axis quantization:
+  * (C10) `size(scales) = shape[quantization_dimension]`.
+  * (C11) `quantization_dimension < size(shape)`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
@@ -507,23 +560,35 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * For integers: integer addition.
 * For floats: `addition` from IEEE-754.
 * For complex numbers: complex addition.
+* For quantized types:
+  * `float_result = (lhs - zero_point(lhs)) * scale(lhs) +
+    (rhs - zero_point(rhs)) * scale(rhs)`.
+  * `rounded_result = round_nearest_even(float_result / scale(result))`.
+  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
 
 #### Inputs
 
 | Label | Name  | Type   | Constraints |
 |-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)        |
-| (I2)  | `rhs` | tensor | (C1)        |
+| (I1)  | `lhs` | tensor | (C1)-(C5)   |
+| (I2)  | `rhs` | tensor | (C1)-(C5)   |
 
 #### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| `result` | tensor | (C1)-(C5)   |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
+* If the operation doesn't use quantized types:
+  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+* If the operation uses quantized types:
+  * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
+    except for scales and zero points which may differ.
+  * (C4) `abs(storage_min(lhs)) != abs(storage_max(lhs))`.
+  * (C5) `quantization_dimension(lhs)` is empty.
 
 #### Examples
 
