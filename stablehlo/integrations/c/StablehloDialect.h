@@ -22,6 +22,9 @@ extern "C" {
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Stablehlo, stablehlo);
 
+// Get the current version of StableHLO API's. Incremented with all changes.
+MLIR_CAPI_EXPORTED int getStablehloApiVersion();
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,11 @@ limitations under the License.
 
 #include "mlir/CAPI/Registration.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/Version.h"
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Stablehlo, stablehlo,
                                       mlir::stablehlo::StablehloDialect)
+
+int getStablehloApiVersion() {
+  return static_cast<int>(mlir::vhlo::Version::getApiVersion());
+}

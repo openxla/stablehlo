@@ -478,6 +478,11 @@ PYBIND11_MODULE(_stablehlo, m) {
       });
 
   //
+  // Utility APIs.
+  //
+  m.def("get_api_version", []() { return getStablehloApiVersion(); });
+
+  //
   // Serialization APIs.
   //
 

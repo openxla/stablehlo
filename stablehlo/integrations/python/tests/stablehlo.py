@@ -204,7 +204,8 @@ def test_type_extensions():
 
 @run
 def test_api_version():
-  assert stablehlo.api_version == 1
+  assert stablehlo.get_api_version() == 1
+
 
 @run
 def test_serialization_apis():

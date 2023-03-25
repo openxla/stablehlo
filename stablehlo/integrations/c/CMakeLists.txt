@@ -30,6 +30,7 @@ add_mlir_public_c_api_library(StablehloCAPI
 
   LINK_LIBS PUBLIC
   StablehloOps
+  VhloVersion
 )
 
 add_mlir_public_c_api_library(VhloCAPI

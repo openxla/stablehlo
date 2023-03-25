@@ -518,6 +518,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":stablehlo_ops",
+        ":version",
         "@llvm-project//mlir:CAPIIR",
     ],
 )
@@ -540,6 +541,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":stablehlo_ops",
+        ":version",
         "@llvm-project//mlir:CAPIIRObjects",
     ],
     alwayslink = True,
