@@ -37,6 +37,7 @@ SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
 Tensor evalCeilOp(const Tensor &operand, TensorType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    TensorType resultType);
+Tensor evalClzOp(const Tensor &operand, TensorType resultType);
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
                      TensorType resultType);
