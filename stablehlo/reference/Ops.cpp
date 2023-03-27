@@ -971,8 +971,7 @@ SmallVector<Tensor> evalReduceWindowOp(
     SmallVector<Tensor> windows;
     auto windowStart = (*resultIt) * windowStrides;
     for (auto paddedInput : paddedInputs) {
-      SmallVector<int64_t> limitIndices =
-          llvm::to_vector(windowStart + windowDimensions * baseDilations);
+      auto limitIndices = llvm::to_vector(windowStart + windowDimensions);
       auto inferredSliceType =
           inferSliceOpType(paddedInput.getType(), llvm::to_vector(windowStart),
                            limitIndices, llvm::to_vector(windowDilations));
