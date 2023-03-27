@@ -228,8 +228,8 @@ Furthermore, tensors of quantized types satisfy the following constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C10) `size(scales) = shape[quantization_dimension]`.
   * (C11) `quantization_dimension < size(shape)`.
+  * (C12) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
