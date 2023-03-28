@@ -43,10 +43,6 @@ class Version {
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
 
-  /// Return the current version for StableHLO APIs.
-  /// Increments on all C++/C/Python API changes
-  static int64_t getApiVersion() { return 1; }
-
   /// Construct Version from major, minor, patch integers.
   Version(int64_t major, int64_t minor, int64_t patch)
       : majorMinorPatch({major, minor, patch}) {}
