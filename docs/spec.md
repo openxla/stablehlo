@@ -146,22 +146,21 @@ IntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
               | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType   ::= 'f8E4M3FN' | 'f8E5M2' | 'bf16' | 'f16' | 'f32' | 'f64'
 ComplexType ::= 'complex' '<' ('f32' | 'f64') '>'
-
-QuantizedType ::= '!quant.uniform' '<' QuantizationStorageTypeSpec
-                ':' QuantizationExpressedType
-                [':' QuantizationDimension]
-                ',' QuantizationScalesAndZeroPoints '>'
-QuantizationStorageTypeSpec ::= QuantizationStorageType
-                              ['<' QuantizationStorageMin ':' QuantizationStorageMax '>']
+QuantizedType ::= '!quant.uniform' '<'
+                  QuantizationStorageType
+                  ['<' QuantizationStorageMin ':' QuantizationStorageMax '>']
+                  ':' QuantizationExpressedType
+                  [':' QuantizationDimension]
+                  ',' QuantizationParameters '>'
 QuantizationStorageType ::= IntegerType
 QuantizationStorageMin ::= IntegerConstant
 QuantizationStorageMax ::= IntegerConstant
 QuantizationExpressedType ::= FloatType
 QuantizationDimension ::= IntegerConstant
-QuantizationScalesAndZeroPoints ::= (QuantizationScaleAndZero
-                                  | '{' QuantizationScaleAndZero {',' QuantizationScaleAndZero} '}')
-QuantizationScaleAndZero ::= QuantizationScale ':' QuantizationZeroPoint
-QuantizationScale ::=  FloatConstant
+QuantizationParameters ::= QuantizationParameter
+                         | '{' QuantizationParameter {',' QuantizationParameter} '}'
+QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
+QuantizationScale ::= FloatConstant
 QuantizationZeroPoint ::=  IntegerConstant
 ```
 
@@ -218,12 +217,12 @@ Quantized types satisfy the following constraints:
     * `storage_min = -2^(d-1)+1`, `storage_max = 2^(d-1)-1`.
   * If `is_unsigned(storage_type)`:
     * `storage_min = 0`, `storage_max = 2^d - 1`.
-* (C5) `type(scale) = expressed_type`.
-* (C6) `scale > 0`.
-* (C7) `type(zero_point) = i64`.
-* (C8) If `quantization_dimension` is empty, then
-  `size(scales_and_zero_points) = 1`.
-* (C9) If `quantization_dimension` is not empty, then
+* (C5) For all `i`, `type(scales[i]) = expressed_type`.
+* (C6) For all `i`, `scales[i] > 0`.
+* (C7) For all `i`, `type(zero_points[i]) = i64`.
+* (C8) `size(scales) = size(zero_points)`.
+* (C9) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C10) If `quantization_dimension` is not empty, then
   `0 <= quantization_dimension`.
 
 Furthermore, tensors of quantized types satisfy the following constraints:
@@ -231,8 +230,8 @@ Furthermore, tensors of quantized types satisfy the following constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C10) `quantization_dimension < size(shape)`.
-  * (C11) `size(scales_and_zero_points) = shape[quantization_dimension]`.
+  * (C11) `quantization_dimension < size(shape)`.
+  * (C12) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
