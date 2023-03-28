@@ -19,7 +19,3 @@ limitations under the License.
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Stablehlo, stablehlo,
                                       mlir::stablehlo::StablehloDialect)
-
-int getStablehloApiVersion() {
-  return static_cast<int>(mlir::vhlo::Version::getApiVersion());
-}

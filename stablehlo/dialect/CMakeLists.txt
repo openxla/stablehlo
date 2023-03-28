@@ -163,6 +163,15 @@ target_include_directories(StablehloOps INTERFACE
   $<BUILD_INTERFACE:${STABLEHLO_BINARY_DIR}>
 )
 
+add_mlir_dialect_library(Version
+  PARTIAL_SOURCES_INTENDED
+  Version.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+)
+
 set(LLVM_TARGET_DEFINITIONS VhloOps.td)
 mlir_tablegen(VhloOps.h.inc -gen-op-decls)
 mlir_tablegen(VhloOps.cpp.inc -gen-op-defs)
@@ -197,7 +206,7 @@ add_mlir_dialect_library(VhloOps
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
   VhloTypes
-  VhloVersion
+  Version
   MLIRIR
   MLIRQuantDialect
   MLIRShapeDialect
@@ -213,19 +222,10 @@ add_mlir_dialect_library(VhloTypes
 
   LINK_LIBS PUBLIC
   StablehloAssemblyFormat
-  VhloVersion
+  Version
   MLIRIR
   MLIRQuantDialect
   MLIRShapeDialect
   MLIRSupport
   MLIRTransformUtils
-)
-
-add_mlir_dialect_library(VhloVersion
-  PARTIAL_SOURCES_INTENDED
-  Version.cpp
-
-  LINK_LIBS PUBLIC
-  MLIRIR
-  MLIRSupport
 )
