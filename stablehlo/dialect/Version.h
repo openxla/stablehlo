@@ -75,6 +75,14 @@ mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const Version& version);
 
 }  // namespace vhlo
+
+namespace stablehlo {
+
+/// Return the current version for StableHLO APIs.
+/// Increments on all C++/C/Python API changes
+inline int64_t getApiVersion() { return 1; }
+
+}  // namespace stablehlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_DIALECT_VERSION_H

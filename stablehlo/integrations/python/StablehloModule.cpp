@@ -15,6 +15,7 @@ limitations under the License.
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "stablehlo/dialect/Serialization.h"
+#include "stablehlo/dialect/Version.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
@@ -476,6 +477,12 @@ PYBIND11_MODULE(_stablehlo, m) {
                                        stablehloTypeExtensionsGetBoundsSize,
                                        stablehloTypeExtensionsGetBoundsElem);
       });
+
+  //
+  // Utility APIs.
+  //
+
+  m.def("get_api_version", []() { return mlir::stablehlo::getApiVersion(); });
 
   //
   // Serialization APIs.

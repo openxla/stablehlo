@@ -203,6 +203,11 @@ def test_type_extensions():
 
 
 @run
+def test_api_version():
+  assert stablehlo.get_api_version() == 1
+
+
+@run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
   assert curr_version == "0.9.0"
