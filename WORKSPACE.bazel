@@ -26,9 +26,9 @@ http_archive(
     ],
 )
 
-LLVM_COMMIT = "42058eea7912183aa8ac1be4e8d47f39d272bafa"
+LLVM_COMMIT = "c6a132a8023db649a658aeceb2edaf046097dbff"
 
-LLVM_SHA256 = "0da11558e0dce5e218e3e3f5d1a0ed0c7f11a45a2ee42a9bc694108a8a4c20b8"
+LLVM_SHA256 = "073c904299ca7195c9be5f456fc1ee3a599a398c2e3ef04c0c0ad0188fc81594"
 
 http_archive(
     name = "llvm-raw",
@@ -36,6 +36,19 @@ http_archive(
     sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT)],
+)
+
+# This is needed since https://reviews.llvm.org/D143344.
+# Not sure if it's a bug or a feature, but it doesn't hurt to keep an additional
+# dependency here.
+http_archive(
+  name = "llvm_zstd",
+  build_file = "@llvm-raw//utils/bazel/third_party_build:zstd.BUILD",
+  sha256 = "7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0",
+  strip_prefix = "zstd-1.5.2",
+  urls = [
+      "https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz"
+  ],
 )
 
 load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
