@@ -69,7 +69,8 @@ StableHLO v1.0.
 is dedicated to providing all the information that StableHLO producers or
 consumers might need. The StableHLO specification is a major deliverable, as
 well as a reference for the StableHLO API and StableHLO serialization format.
-Critical pieces of the workstream will be delivered in StableHLO v1.0, with lower-priority items addressed on a rolling basis.
+Critical pieces of the workstream will be delivered in StableHLO v1.0, with
+lower-priority items addressed on a rolling basis.
 
 (P1) The [Conformance suite](https://github.com/orgs/openxla/projects/8)
 workstream consists of delivering a test suite that compares a reference

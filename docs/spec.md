@@ -18,6 +18,7 @@ individual ops. Finally, the [Execution](#execution) section provides semantics
 for all these ops executing together within a program.
 
 <a id="programs"></a>
+
 ## Programs
 
 ```ebnf
@@ -455,6 +456,7 @@ escape sequences. They are encoding-agnostic, so the interpretation of these
 bytes is implementation-defined. String literals have type `string`.
 
 <a id="ops"></a>
+
 ## Ops
 
 ### abs
@@ -5531,6 +5533,7 @@ tensor. Depending on the element type, does the following:
 ```
 
 <a id="execution"></a>
+
 ## Execution
 
 ### Sequential execution

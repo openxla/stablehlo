@@ -6,7 +6,8 @@ and it inherited the MHLO implementation of type inference. The implementation
 progress is tracked in
 [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md).
 
-The proposed guidelines below are intended to ensure the implementation of high-quality verifiers and shape functions for StableHLO ops.
+The proposed guidelines below are intended to ensure the implementation of
+high-quality verifiers and shape functions for StableHLO ops.
 
 ## Proposal
 
@@ -84,6 +85,7 @@ The solution is as follows:
       the Op definition.
 
 <a id="testing-guidelines"></a>
+
 ### (P4) Establish testing guidelines
 
 **Do we need to add/maintain tests for verifications that are covered by ODS?**
