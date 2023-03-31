@@ -24,7 +24,6 @@ limitations under the License.
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -53,8 +52,6 @@ namespace stablehlo {
 
 #define GEN_PASS_DEF_STABLEHLOREFINESHAPESPASS
 #include "stablehlo/transforms/Passes.h.inc"
-
-#define DEBUG_TYPE "stablehlo-refine-shapes"
 
 namespace {
 
@@ -1004,7 +1001,6 @@ struct UpdateFunctionTypePattern : public OpRewritePattern<func::ReturnOp> {
     auto func = cast<func::FuncOp>(op->getParentOp());
     func.setType(
         rewriter.getFunctionType(func.getArgumentTypes(), updatedResultTypes));
-    LLVM_DEBUG(llvm::dbgs() << func);
 
     return success();
   }
