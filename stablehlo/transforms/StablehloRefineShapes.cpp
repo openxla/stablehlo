@@ -21,6 +21,7 @@ limitations under the License.
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -964,6 +965,7 @@ struct UpdateFunctionTypePattern : public OpRewritePattern<func::ReturnOp> {
     // refining individual ops. This pattern cleans this up.
     bool needsUpdate = false;
     SmallVector<Type> updatedResultTypes(op.getOperandTypes());
+    llvm::SmallSet<tensor::CastOp, 4> castsToReplace;
     for (auto [i, operand] : llvm::enumerate(op.getOperands())) {
       auto cast = dyn_cast_or_null<tensor::CastOp>(operand.getDefiningOp());
       if (!cast) continue;
@@ -981,10 +983,17 @@ struct UpdateFunctionTypePattern : public OpRewritePattern<func::ReturnOp> {
       // and that the return type of the function needs an update.
       needsUpdate = true;
       updatedResultTypes[i] = sourceType;
-      rewriter.replaceOp(cast, cast->getOperands());
+
+      // Insert into set and continue iterating.
+      // ReturnOp may point to same value more than once.
+      castsToReplace.insert(cast);
     }
     if (!needsUpdate)
       return rewriter.notifyMatchFailure(op, "doesn't need update");
+
+    // Replace CastOps with more specific operands than results.
+    for (auto cast : castsToReplace)
+      rewriter.replaceOp(cast, cast->getOperands());
 
     // If the type of the enclosing `func.func` needs an update, we simply
     // call setType. We can afford this simplicity because our algorithm

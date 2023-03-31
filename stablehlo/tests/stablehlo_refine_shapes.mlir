@@ -667,6 +667,16 @@ func.func @update_function_type(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 
 // -----
 
+// CHECK-LABEL: func @update_function_type_multiple_outputs
+// CHECK-SAME: (%arg0: tensor<4xf32>) -> (tensor<4xf32>, tensor<4xf32>)
+func.func @update_function_type_multiple_outputs(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*xf32>) {
+  // CHECK-NOT: tensor.cast
+  %0 = tensor.cast %arg0 : tensor<4xf32> to tensor<*xf32>
+  return %0, %0 : tensor<*xf32>, tensor<*xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @update_region_type
 func.func @update_region_type(%arg0: tensor<i32>, %arg1: tensor<4xf32>) -> tensor<*xf32> {
   // CHECK: "stablehlo.case"
