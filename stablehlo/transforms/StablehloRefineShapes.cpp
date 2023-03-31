@@ -1001,7 +1001,6 @@ struct UpdateFunctionTypePattern : public OpRewritePattern<func::ReturnOp> {
     auto func = cast<func::FuncOp>(op->getParentOp());
     func.setType(
         rewriter.getFunctionType(func.getArgumentTypes(), updatedResultTypes));
-
     return success();
   }
 };
