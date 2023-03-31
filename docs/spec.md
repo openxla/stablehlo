@@ -10,13 +10,14 @@ interoperability between various ML frameworks (such as TensorFlow, JAX and
 PyTorch) and ML compilers (such as XLA and IREE). Towards that end, this
 document provides a specification for the StableHLO programming language.
 
-This specification contains three major sections. First, the "Programs" section
-describes the structure of StableHLO programs which consist of StableHLO
-functions which themselves consist of StableHLO ops. Within that structure, the
-"Ops" section specifies semantics of individual ops. Finally, the "Execution"
-section provides semantics for all these ops executing together within
-a program.
+This specification contains three major sections. First, the
+[Programs](#programs) section describes the structure of StableHLO programs
+which consist of StableHLO functions which themselves consist of StableHLO ops.
+Within that structure, the [Ops](#ops) section specifies the semantics of
+individual ops. Finally, the [Execution](#execution) section provides semantics
+for all these ops executing together within a program.
 
+<a id="programs"></a>
 ## Programs
 
 ```ebnf
@@ -122,7 +123,7 @@ TokenType ::= 'token'
 
 **Token types** represent tokens, i.e. opaque values produced and consumed
 by some operations. Tokens are used for imposing execution order on operations
-as described in the "Execution" section.
+as described in the [Execution](#execution) section.
 
 ```ebnf
 TupleType ::= 'tuple' '<' [ValueType {',' ValueType}] '>'
@@ -453,6 +454,7 @@ escapeSequence  ::= '\' ('"' | '\' | 'n' | 't' | (hexadecimalDigit hexadecimalDi
 escape sequences. They are encoding-agnostic, so the interpretation of these
 bytes is implementation-defined. String literals have type `string`.
 
+<a id="ops"></a>
 ## Ops
 
 ### abs
@@ -5528,6 +5530,7 @@ tensor. Depending on the element type, does the following:
 // %result: [[false, true], [true, false]]
 ```
 
+<a id="execution"></a>
 ## Execution
 
 ### Sequential execution
