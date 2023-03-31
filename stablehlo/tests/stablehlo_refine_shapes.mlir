@@ -500,14 +500,6 @@ func.func @refine_dynamic_reshape(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 
 // -----
 
-// CHECK-LABEL: @refine_function_type
-func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> (tensor<?xf32>, tensor<?xf32>) {
-  %0 = stablehlo.add %arg0, %arg1 : (tensor<2xf32>, tensor<2xf32>) -> tensor<?xf32>
-  return %0, %0 : tensor<?xf32>, tensor<?xf32>
-}
-
-// -----
-
 // CHECK-LABEL: @refine_infer_type_op_interface_supported_dialect_chlo
 func.func @refine_infer_type_op_interface_supported_dialect_chlo(%arg0: tensor<4xf32>, %arg1: tensor<4xf32>) -> tensor<*xf32> {
   // CHECK: chlo.broadcast_add{{.*}} -> tensor<4xf32>
@@ -671,6 +663,16 @@ func.func @update_function_type(%arg0: tensor<4xf32>) -> tensor<*xf32> {
   // CHECK-NOT: tensor.cast
   %0 = tensor.cast %arg0 : tensor<4xf32> to tensor<*xf32>
   return %0 : tensor<*xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @update_function_type_multiple_outputs
+// CHECK-SAME: (%arg0: tensor<4xf32>) -> (tensor<4xf32>, tensor<4xf32>)
+func.func @update_function_type_multiple_outputs(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*xf32>) {
+  // CHECK-NOT: tensor.cast
+  %0 = tensor.cast %arg0 : tensor<4xf32> to tensor<*xf32>
+  return %0, %0 : tensor<*xf32>, tensor<*xf32>
 }
 
 // -----
