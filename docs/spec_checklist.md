@@ -39,7 +39,7 @@ reviews:
       1. Uses generic MLIR syntax which can be obtained by running
          `stablehlo-opt -mlir-print-op-generic` (we stick to generic syntax in
          the spec to avoid having to change the spec on prettyprinter changes).
-  1. Check that the `description` in op's ODS:
+  1. Check that the `description` in the op's ODS:
       1. Includes the first sentence of the spec.
       1. Then links to the corresponding section of the spec.
       1. Then uses the same example as the spec but via pretty syntax which can
