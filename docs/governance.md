@@ -5,7 +5,7 @@
 We aim to establish an open governance model drawing from standards such as
 LLVM, with particular emphasis on open design/roadmap discussions, public
 process for gaining technical steering rights, and OSS-first docs & repo
-governance (e.g. location, CLA, etc), repo location.
+governance (e.g. repo location, CLA, etc.).
 
 ## Near-term governance
 

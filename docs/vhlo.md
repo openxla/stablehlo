@@ -4,13 +4,13 @@
 
 The VHLO (Versioned StableHLO) Dialect is used for serialization and stability.
 It provides a snapshot of the StableHLO dialect at a given point in time by
-versioning individual program elements
+versioning individual program elements.
 
-VHLO is an **add-only dialect** with **versioned ops, types and attributes**,
-which means that once an feature is added to the dialect, it cannot be modified
+VHLO is an **add-only dialect** with **versioned ops, types, and attributes**,
+which means that once a feature is added to the dialect, it cannot be modified
 in any way that impact the semantics.
 
-Any changes to an op, type or attribute require a new version to be added to
+Any changes to an op, type, or attribute require a new version to be added to
 the dialect. For example, if a hypothetical `my_op` was added to StableHLO in
 0.9.0, but was changed in 0.11.0, we would have the following in VHLO:
 
@@ -35,8 +35,9 @@ def VHLO_MyOpV2 : VHLO_Op<"my_op_v2", "0.11.0", "current"> {
 ```
 
 The StableHLO dialect only has the latest version of the ops. In the running
-example, StableHLO dialect at v0.11.0 would only have `StableHLO_MyOp` that has
-`operand` and `attr`, while VHLO captures each phase of the op's evolution.
+example, the StableHLO dialect at v0.11.0 would only have the `StableHLO_MyOp`
+that has `operand` and `attr`, while VHLO captures each phase of the op's
+evolution.
 
 ## Why is VHLO useful?
 
@@ -55,7 +56,7 @@ opset at that time.
 
 This downgrade conversion will fail if ops or features that do not exist in the
 previous version of the opset are used. This means that forward compatibility
-are discovered on the producer, rather than at runtime.
+is discovered on the producer, rather than at runtime.
 
 **Backward compatibility:** Backward compatibility is provided by upgrading
 VHLO ops to their latest version (if needed), then converting an op back to
