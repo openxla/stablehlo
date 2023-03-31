@@ -502,9 +502,9 @@ func.func @refine_dynamic_reshape(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 
 // Test for #1350
 // CHECK-LABEL: @refine_function_type
-func.func @refine_function_type(%arg0: tensor<3x2xf32>, %arg1: tensor<3x2xf32>) -> (tensor<3x2xf32>, tensor<3x2xf32>) {
-  %0 = stablehlo.add %arg0, %arg1 : tensor<3x2xf32>
-  return %0, %0 : tensor<3x2xf32>, tensor<3x2xf32>
+func.func @main(%arg0: tensor<2xf32>, %arg1: tensor<2xf32>) -> (tensor<?xf32>, tensor<?xf32>) {
+  %0 = stablehlo.add %arg0, %arg1 : (tensor<2xf32>, tensor<2xf32>) -> tensor<?xf32>
+  return %0, %0 : tensor<?xf32>, tensor<?xf32>
 }
 
 // -----
