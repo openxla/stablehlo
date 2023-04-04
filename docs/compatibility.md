@@ -12,7 +12,7 @@ The current version of StableHLO is **0.9.0**.
 In the 0.x.x series, StableHLO is providing limited compatibility guarantees
 as described in the Guarantees section. In H2 2023, we are planning to release
 StableHLO 1.0.0, which will provide full compatibility guarantees - see the
-Future work section for more details.
+[Future work](#future-work) section for more details.
 
 ## Guarantees
 
@@ -28,9 +28,10 @@ commits which are less than 1 month apart, unless the program is using new
 features introduced since the old version.
 
 \* StableHLO programs are converted to/from portable artifacts via
-[serialization APIs](bytecode.md), and semantics of these programs are defined
-by [the StableHLO spec](spec.md). In the future, we will provide a reference
-implementation which will provide an executable version of the specification.
+[serialization APIs](bytecode.md), and the semantics of these programs are
+defined by [the StableHLO spec](spec.md). In the future, we will provide a
+reference implementation which will provide an executable version of the
+specification.
 
 ## Out of scope
 
@@ -58,14 +59,14 @@ issues, StableHLO will be ready for full compatibility guarantees - 5 years of
 forward and backward compatibility. See [roadmap.md](roadmap.md) for details.
 
 **Organize compatibility suite.** At the moment, the compatibility suite
-is one directory with a ton of unstructured files. We are planning to triage and
+is one directory with many unstructured files. We are planning to triage and
 organize it, making sure that it's organized, comprehensive and deduplicated
 ([#1240](https://github.com/openxla/stablehlo/issues/1240)).
 
 **Use reference implementation.** At the moment, compatibility testing consists
 of deserializing the compatibility suite serialized by older versions of
 libStablehlo and making sure that deserialization produces syntactically
-identical programs. We are planning to also use reference implementation in
+identical programs. We are planning to also use a reference implementation in
 these tests, relaxing the overly onerous requirement of syntactical identity
 and comprehensively testing the reference implementation
 ([#1245](https://github.com/openxla/stablehlo/issues/1245)).
