@@ -62,6 +62,8 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLogOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType);
+Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
+                 ShapedType resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs,

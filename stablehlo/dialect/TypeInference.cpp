@@ -2353,6 +2353,12 @@ LogicalResult inferMapOp(
     std::optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // map_i2
+  if (dimensions.getType().getRank() != 1)
+    return emitOptionalError(location,
+                             "dimensions should be rank 1 but got rank ",
+                             dimensions.getType().getRank());
+
   if (failed(verifyRegionNotEmpty(location, computation))) return failure();
 
   // Checks if the number of `operands` match the arity of the map `computation`

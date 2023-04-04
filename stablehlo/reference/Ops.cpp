@@ -176,6 +176,11 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalLogisticOp(runtimeOperand, logisticOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto mapOp = dyn_cast<MapOp>(op)) {
+      SmallVector<Tensor> runtimeInputs = scope.find(mapOp.getInputs());
+      auto runtimeResults = evalMapOp(runtimeInputs, mapOp.getComputation(),
+                                      scope, mapOp.getType());
+      scope.add(op.getResults(), {runtimeResults});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       Tensor runtimeLhs = scope.find(maxOp.getLhs());
       Tensor runtimeRhs = scope.find(maxOp.getRhs());
@@ -565,6 +570,23 @@ Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, logistic(operand.get(*it)));
+  return result;
+}
+
+Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
+                 ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
+       ++inputIt) {
+    SmallVector<Tensor> args;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      auto tensor =
+          Tensor(RankedTensorType::get({}, inputs[i].get(*inputIt).getType()));
+      tensor.set({}, inputs[i].get(*inputIt));
+      args.push_back(tensor);
+    }
+    result.set(*inputIt, eval(computation, args, &scope)[0].get({}));
+  }
   return result;
 }
 

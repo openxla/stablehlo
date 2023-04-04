@@ -3200,8 +3200,7 @@ and will likely be removed in the future
 * (C2) size(`inputs`) $=$ N $\ge$ 1.
 * (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
 * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
-  where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$
-  element_type(`result`).
+  where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$ element_type(`result`).
 
 #### Examples
 
@@ -3209,14 +3208,16 @@ and will likely be removed in the future
 // %input0: [[0, 1], [2, 3]]
 // %input1: [[4, 5], [6, 7]]
 %result = "stablehlo.map"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = stablehlo.multiply %arg0, %arg1 : tensor<i32>
-    stablehlo.return %0 : tensor<i32>
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = stablehlo.multiply %arg0, %arg1 : tensor<i64>
+    stablehlo.return %0 : tensor<i64>
 }) {
   dimensions = dense<[0, 1]> : tensor<2xi64>
-} : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+} : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x2xi64>
 // %result: [[0, 5], [12, 21]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_map.mlir)
 
 ### maximum
 
