@@ -42,14 +42,14 @@ and tied these workstreams to the milestones. A limited number of tickets
 any specific milestone.
 
 (P0) The
-[Compatibility implementation](https://github.com/orgs/openxla/projects/4)
+[Compatibility Implementation](https://github.com/orgs/openxla/projects/4)
 workstream is dedicated to implementing
 [the compatibility RFC](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md)
 along with a compatibility test suite. Most of this work is expected to be
 completed in StableHLO v0.9, and the rest will be done in StableHLO v1.0.
 
 (P0) The
-[Frontend contract](https://github.com/orgs/openxla/projects/6) workstream
+[Frontend Contract](https://github.com/orgs/openxla/projects/6) workstream
 consists of implementing 100% of the features which are used by StableHLO
 frontends but are not yet in the StableHLO specification. The goal of this
 workstream is to ensure that StableHLO programs only include ops from the
@@ -58,7 +58,7 @@ attributes. We are planning to complete all or almost all work in this
 workstream in StableHLO v1.0.
 
 (P0) The
-[Reference implementation](https://github.com/orgs/openxla/projects/7)
+[Reference Implementation](https://github.com/orgs/openxla/projects/7)
 workstream organizes the work on implementing
 [an interpreter](https://github.com/openxla/stablehlo/blob/main/docs/reference.md)
 for 100% of StableHLO ops as defined in the StableHLO specification. We are
@@ -72,7 +72,7 @@ well as a reference for the StableHLO API and StableHLO serialization format.
 Critical pieces of the workstream will be delivered in StableHLO v1.0, with
 lower-priority items addressed on a rolling basis.
 
-(P1) The [Conformance suite](https://github.com/orgs/openxla/projects/8)
+(P1) The [Conformance Suite](https://github.com/orgs/openxla/projects/8)
 workstream consists of delivering a test suite that compares a reference
 implementation with implementations provided by StableHLO backends. Tests for
 the reference implementation will provide a conformance suite of sorts, so this
@@ -81,14 +81,14 @@ with additional interesting test cases will likely be a useful area for future
 work.
 
 (P1) The
-[Specification compliance](https://github.com/orgs/openxla/projects/9)
+[Specification Compliance](https://github.com/orgs/openxla/projects/9)
 workstream ensures that 100% of StableHLO ops are implemented in the StableHLO
 dialect as defined in the StableHLO specification. The StableHLO dialect is
 already reasonably compliant, so this workstream does not have P0 priority,
 but a lot of minor items still remain (especially in the corner cases of
 verifier implementation) and will be addressed on a rolling basis.
 
-(P1) The [New features](https://github.com/orgs/openxla/projects/10) workstream
+(P1) The [New Features](https://github.com/orgs/openxla/projects/10) workstream
 concludes the StableHLO roadmap and consists of a ragtag collection of new
 functionality for the StableHLO opset (not the StableHLO dialect or the
 StableHLO bindings - that would be other workstreams). A few of these new

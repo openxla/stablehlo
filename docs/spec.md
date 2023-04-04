@@ -17,8 +17,6 @@ Within that structure, the [Ops](#ops) section specifies the semantics of
 individual ops. Finally, the [Execution](#execution) section provides semantics
 for all these ops executing together within a program.
 
-<a id="programs"></a>
-
 ## Programs
 
 ```ebnf
@@ -454,8 +452,6 @@ escapeSequence  ::= '\' ('"' | '\' | 'n' | 't' | (hexadecimalDigit hexadecimalDi
 **String literals** consist of bytes specified using ASCII characters and
 escape sequences. They are encoding-agnostic, so the interpretation of these
 bytes is implementation-defined. String literals have type `string`.
-
-<a id="ops"></a>
 
 ## Ops
 
@@ -5531,8 +5527,6 @@ tensor. Depending on the element type, does the following:
 %result = "stablehlo.xor"(%lhs, %rhs) : (tensor<2x2xi1>, tensor<2x2xi1>) -> tensor<2x2xi1>
 // %result: [[false, true], [true, false]]
 ```
-
-<a id="execution"></a>
 
 ## Execution
 

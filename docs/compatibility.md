@@ -49,8 +49,6 @@ request, we are testing that deserialization of the compatibility suite at HEAD
 produces StableHLO programs which are syntactically identical to the original
 StableHLO programs that were serialized by the latest release of libStablehlo.
 
-<a id="future-work"></a>
-
 ## Future work
 
 **5 years of compatibility guarantees.** In H2 2023, we are planning to release
