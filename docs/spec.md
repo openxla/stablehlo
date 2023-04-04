@@ -335,11 +335,6 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
   `real_dynamic_slice`, `set_dimension_size`
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
-* "Quantization" category of StableHLO operations - they were bootstrapped from
-  MHLO, but we haven't specced them yet: `uniform_quantize`
-  ([#531](https://github.com/openxla/stablehlo/issues/531)) and
-  `uniform_dequantize`
-  ([#530](https://github.com/openxla/stablehlo/issues/530)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 
@@ -5533,6 +5528,89 @@ Produces a `result` tuple from values `val`.
 // %val1: (3)
 %result = "stablehlo.tuple"(%val0, %val1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
 // %result: ([1.0, 2.0], (3))
+```
+
+### uniform_dequantize
+
+#### Semantics
+
+Performs element-wise conversion of uniform quantized tensor `operand` to a
+floating point tensor `result` according to the quantization parameters defined
+by the `operand` type.
+
+Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
+
+#### Inputs
+
+| Label | Name      | Type             | Constraints |
+|-------|-----------|------------------|-------------|
+| (I1)  | `operand` | quantized tensor | (C1), (C2)  |
+
+#### Outputs
+
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1), (C2)  |
+
+#### Constraints
+
+* (C1) `expressed_type(operand) = element_type(result)`.
+* (C2) `shape(operand) = shape(result)`.
+
+#### Examples
+
+```mlir
+// %operand: 20
+%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>) -> tensor<f32>
+// %result: 20.0
+```
+
+### uniform_quantize
+
+#### Semantics
+
+Performs element-wise conversion of floating-point tensor or uniform quantized
+tensor `operand` to a uniform quantized tensor `result` according to the
+quantization parameters defined by the `result` type.
+
+Formally,
+
+* For `element_type(operand)` a floating-point type,
+  * `rounded_result = round_nearest_even(operand / scale(result))`.
+  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
+
+* For `element_type(operand)` a quantized type,
+  * `float_result = (operand - zero_point(operand)) * scale(operand)`.
+  * `rounded_result = round_nearest_even(float_result / scale(result))`.
+  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
+
+#### Inputs
+
+| Label | Name      | Type                                        | Constraints      |
+|-------|-----------|---------------------------------------------|------------------|
+| (I1)  | `operand` | tensor of floating-point or quantized  type | (C1), (C2), (C3) |
+
+#### Outputs
+
+| Name     | Type                     | Constraints      |
+|----------|--------------------------|------------------|
+| `result` | quantized tensor | (C1), (C2), (C3) |
+
+#### Constraints
+
+* (C1) If `element_type(operand)` is a floating-point type,
+  * `element_type(operand) = expressed_type(result)`.
+* (C2) If `element_type(operand)` is a quantized type,
+  * `num_bits(storage_type(operand)) >= num_bits(storage_type(result))`.
+  * `expressed_type(operand) = expressed_type(result)`.
+* (C3) `shape(operand) = shape(result)`.
+
+#### Examples
+
+```mlir
+// %operand: 20.0
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<f32>) -> tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>
+// %result: 20
 ```
 
 ### while
