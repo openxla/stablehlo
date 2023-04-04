@@ -195,7 +195,9 @@ values of type `tensor<T>`).
   floating-point values of an **expressed type**. For a given integer value `i`,
   the corresponding floating-point value `f` can be computed as
   `f = (i - zero_point) * scale`, where `scale` and `zero_point` are called
-  **quantization parameters**.
+  **quantization parameters**. The `storage_min` and `storage_max`, being
+  optional, have default values which should satisfy the associated constraints
+  as laid out in this document.
 
 Quantization can be **per-tensor**, meaning, having one `scale` and/or
 `zero_point` for the entire tensor or can be **per-axis**, meaning, having
@@ -219,10 +221,11 @@ Quantized types satisfy the following constraints:
     * `storage_min = 0`, `storage_max = 2^d - 1`.
 * (C5) For all `i`, `type(scales[i]) = expressed_type`.
 * (C6) For all `i`, `scales[i] > 0`.
-* (C7) For all `i`, `type(zero_points[i]) = i64`.
-* (C8) `size(scales) = size(zero_points)`.
-* (C9) If `quantization_dimension` is empty, then `size(scales) = 1`.
-* (C10) If `quantization_dimension` is not empty, then
+* (C7) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
+* (C8) For all `i`, `type(zero_points[i]) = storage_type`.
+* (C9) `size(scales) = size(zero_points)`.
+* (C10) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C11) If `quantization_dimension` is not empty, then
   `0 <= quantization_dimension`.
 
 Furthermore, tensors of quantized types satisfy the following constraints:
@@ -230,8 +233,8 @@ Furthermore, tensors of quantized types satisfy the following constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C11) `quantization_dimension < size(shape)`.
-  * (C12) `size(scales) = shape[quantization_dimension]`.
+  * (C12) `quantization_dimension < size(shape)`.
+  * (C13) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
