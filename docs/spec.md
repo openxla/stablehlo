@@ -2105,10 +2105,12 @@ tensor and produces a `result` tensor.
 #### Examples
 
 ```mlir
-// %operand: [[0, 1], [127, -1]]
-%result = "stablehlo.count_leading_zeros"(%operand) : (tensor<2x2xi8>) -> tensor<2x2xi8>
-// %result: [[8, 7], [1, 0]]
+// %operand: [[0, 1], [128, -1]]
+%result = "stablehlo.count_leading_zeros"(%operand) : (tensor<2x2xi64>) -> tensor<2x2xi64>
+// %result: [[64, 63], [56, 0]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_count_leading_zeros.mlir)
 
 ### custom_call
 

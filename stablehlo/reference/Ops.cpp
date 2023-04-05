@@ -89,6 +89,10 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
                                          clampOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto clzOp = dyn_cast<ClzOp>(op)) {
+      Tensor runtimeOperand = scope.find(clzOp.getOperand());
+      Tensor runtimeResult = evalClzOp(runtimeOperand, clzOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
       Tensor runtimeLhs = scope.find(compareOp.getLhs());
       Tensor runtimeRhs = scope.find(compareOp.getRhs());
@@ -440,6 +444,19 @@ Tensor evalCosineOp(const Tensor &operand, TensorType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, cosine(operand.get(*it)));
+  return result;
+}
+
+Tensor evalClzOp(const Tensor &operand, TensorType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    auto element = Element(
+        resultType.getElementType(),
+        static_cast<int64_t>(
+            operand.get(*resultIt).getIntegerValue().countLeadingZeros()));
+    result.set(*resultIt, element);
+  }
   return result;
 }
 

@@ -269,7 +269,8 @@ def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
 }
 
 def StableHLO_ClzOp: StableHLO_UnaryElementwiseOp<"count_leading_zeros",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*count_leading_zeros_c1*/],
+     HLO_IntTensor /*count_leading_zeros_i1*/> { /*count_leading_zeros_c1*/
   let summary = "Clz operation";
   let description = [{
     Performs element-wise count of the number of leading zero bits in the
@@ -280,7 +281,7 @@ def StableHLO_ClzOp: StableHLO_UnaryElementwiseOp<"count_leading_zeros",
 
     Example:
     ```mlir
-    %result = stablehlo.count_leading_zeros %operand : tensor<2x2xi8>
+    %result = stablehlo.count_leading_zeros %operand : tensor<2x2xi64>
     ```
   }];
 }
