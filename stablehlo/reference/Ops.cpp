@@ -211,44 +211,37 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalPowerOp(runtimeLhs, runtimeRhs, powerOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto realOp = dyn_cast<RealOp>(op)) {
+      Tensor runtimeOperand = scope.find(realOp.getOperand());
+      Tensor runtimeResult = evalRealOp(runtimeOperand, realOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
       Tensor runtimeLhs = scope.find(remOp.getLhs());
       Tensor runtimeRhs = scope.find(remOp.getRhs());
       Tensor runtimeResult = evalRemOp(runtimeLhs, runtimeRhs, remOp.getType());
       scope.add(op.getResults(), {runtimeResult});
-    } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
-      SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
-                                         whileOp.getOperand().end());
-      auto runtimeInputs = scope.find(runtimeOperands);
-      auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
-                                        whileOp.getBody(), scope);
-      scope.add(op.getResults(), runtimeResults);
-    } else if (auto realOp = dyn_cast<RealOp>(op)) {
-      Tensor runtimeOperand = scope.find(realOp.getOperand());
-      Tensor runtimeResult = evalRealOp(runtimeOperand, realOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       Tensor runtimeOperand = scope.find(reshapeOp.getOperand());
       Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
+      return scope.find(returnOp.getOperands());
+    } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
+      return scope.find(returnOp.getResults());
     } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
       Tensor runtimeOperand = scope.find(reverseOp.getOperand());
       auto dimensions = Axes(reverseOp.getDimensions());
       Tensor runtimeResult =
           evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
       scope.add(op.getResults(), {runtimeResult});
-    } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
-      return scope.find(returnOp.getOperands());
-    } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
-      return scope.find(returnOp.getResults());
+    } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
+      Tensor runtimeOperand = scope.find(rsqrtOp.getOperand());
+      Tensor runtimeResult = evalRsqrtOp(runtimeOperand, rsqrtOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
       Tensor runtimeResult = evalSelectOp(
           scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
           scope.find(selectOp.getOnFalse()), selectOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
-    } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
-      Tensor runtimeOperand = scope.find(rsqrtOp.getOperand());
-      Tensor runtimeResult = evalRsqrtOp(runtimeOperand, rsqrtOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
@@ -281,6 +274,13 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
+      SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
+                                         whileOp.getOperand().end());
+      auto runtimeInputs = scope.find(runtimeOperands);
+      auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
+                                        whileOp.getBody(), scope);
+      scope.add(op.getResults(), runtimeResults);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       Tensor runtimeLhs = scope.find(xorOp.getLhs());
       Tensor runtimeRhs = scope.find(xorOp.getRhs());
