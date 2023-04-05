@@ -2375,8 +2375,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
 }
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
-      [RecursiveMemoryEffects, SameVariadicOperandSize /*map_c2*/,
-       SameOperandsAndResultShape /*map_c1*/,
+      [RecursiveMemoryEffects, SameOperandsAndResultShape /*map_c1, map_c2*/,
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operation";
   let description = [{

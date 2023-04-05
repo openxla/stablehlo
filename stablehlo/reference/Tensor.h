@@ -72,6 +72,7 @@ class Tensor {
   Tensor();
   explicit Tensor(ShapedType type);
   explicit Tensor(ShapedType type, AsmResourceBlob blob);
+  explicit Tensor(ShapedType, const Element &);
   Tensor(const Tensor &other) = default;
   /// @}
 
