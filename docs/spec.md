@@ -213,19 +213,24 @@ Quantized types satisfy the following constraints:
 * (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
 * (C2) `type(storage_min) = storage_type`.
 * (C3) `type(storage_max) = storage_type`.
-* (C4) `storage_min` and `storage_max` have the following values:
-  * If `is_signed(storage_type)` and `d = num_bits(storage_type)`:
-    * `storage_min = -2^(d-1)`, `storage_max = 2^(d-1)-1` OR
-    * `storage_min = -2^(d-1)+1`, `storage_max = 2^(d-1)-1`.
-  * If `is_unsigned(storage_type)`:
-    * `storage_min = 0`, `storage_max = 2^d - 1`.
-* (C5) For all `i`, `type(scales[i]) = expressed_type`.
-* (C6) For all `i`, `scales[i] > 0`.
-* (C7) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
-* (C8) For all `i`, `type(zero_points[i]) = storage_type`.
-* (C9) `size(scales) = size(zero_points)`.
-* (C10) If `quantization_dimension` is empty, then `size(scales) = 1`.
-* (C11) If `quantization_dimension` is not empty, then
+* (C4) If `storage_min` is empty and `d = num_bits(storage_type)`:
+  * `storage_min = is_signed(storage_type) ? -2^(d-1) : 0`.
+* (C5) If `storage_max` is empty:
+  * `storage_max = is_signed(storage_type) ? 2^(d-1) : 2^d - 1`.
+* (C6) If `storage_min` is not empty:
+  * If `is_signed(storage_type)`, `storage_min >= -2^(d-1)`.
+  * If `is_unsigned(storage_type)`, `storage_min >= 0`.
+* (C7) If `storage_max` is not empty:
+  * If `is_signed(storage_type)`, `storage_max <= 2^(d-1)-1`
+  * If `is_unsigned(storage_type)`, `storage_max <= 2^d - 1`.
+* (C8) `storage_max - storage_min > 0`.
+* (C9) For all `i`, `type(scales[i]) = expressed_type`.
+* (C10) For all `i`, `scales[i] > 0`.
+* (C11) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
+* (C12) For all `i`, `type(zero_points[i]) = storage_type`.
+* (C13) `size(scales) = size(zero_points)`.
+* (C14) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C15) If `quantization_dimension` is not empty, then
   `0 <= quantization_dimension`.
 
 Furthermore, tensors of quantized types satisfy the following constraints:
@@ -233,8 +238,8 @@ Furthermore, tensors of quantized types satisfy the following constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C12) `quantization_dimension < size(shape)`.
-  * (C13) `size(scales) = shape[quantization_dimension]`.
+  * (C16) `quantization_dimension < size(shape)`.
+  * (C17) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
@@ -592,8 +597,9 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * If the operation uses quantized types:
   * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for scales and zero points which may differ.
-  * (C4) `abs(storage_min(lhs)) != abs(storage_max(lhs))`.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C4) `storage_min = is_signed(storage_type) ? -2^(d-1) : 0, where d = num_bits(storage_type)`.
+  * (C5) `storage_max = is_signed(storage_type) ? 2^(d-1) : 2^d - 1`.
+  * (C6) `quantization_dimension(lhs)` is empty.
 
 #### Examples
 
