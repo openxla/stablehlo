@@ -742,50 +742,63 @@ Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
 SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator,
                                Scope &scope) {
-  SmallVector<Tensor> runtimeResults;
-  for (auto input : inputs) runtimeResults.push_back(Tensor(input.getType()));
-  if (dimension < 0) dimension += inputs[0].getRank();
-  Index indices(inputs.front().getShape()[dimension]);
-  Sizes inputShape(inputs.front().getShape());
-  inputShape[dimension] = 1;
-  for (auto offsetIt = IndexSpaceIterator(inputShape, Index(inputShape.size()));
-       offsetIt != IndexSpaceIterator(inputShape, std::nullopt); ++offsetIt) {
-    std::iota(indices.begin(), indices.end(), 0);
-    auto compare = [&](int64_t lhs, int64_t rhs) {
+  SmallVector<Tensor> results;
+  for (auto input : inputs) results.push_back(Tensor(input.getType()));
+  auto adjustedDimension =
+      dimension >= 0 ? dimension : dimension + inputs[0].getRank();
+
+  for (auto resultIt = results[0].index_begin();
+       resultIt != results[0].index_end(); ++resultIt) {
+    // resultIt iterates through all indices in the index space, but sorting
+    // only needs to be done once per slice.
+    if ((*resultIt)[adjustedDimension] != 0) continue;
+
+    // Instead of literally putting the slices together into a vector of tuples,
+    // we're representing these tuples with integer handles, with each handle
+    // being an index within the slice.
+    // Then, instead of sorting a vector of tuples, we're sorting a vector of
+    // handles, and the comparator knows how to use these handles to fetch
+    // the actual input elements being compared.
+    Index inputsTogether(inputs[0].getShape()[adjustedDimension]);
+    std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
+    auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {
       SmallVector<Tensor> args;
-      auto lhsIndex = *offsetIt;
-      auto rhsIndex = *offsetIt;
-      lhsIndex[dimension] = lhs;
-      rhsIndex[dimension] = rhs;
-      for (const auto &indexedInput : llvm::enumerate(inputs)) {
-        auto type = comparator.front()
-                        .getArgumentTypes()[2 * indexedInput.index()]
-                        .dyn_cast<TensorType>();
-        auto lhs = Tensor(type);
-        auto rhs = Tensor(type);
-        lhs.set({}, indexedInput.value().get(lhsIndex));
-        rhs.set({}, indexedInput.value().get(rhsIndex));
-        args.push_back(lhs);
-        args.push_back(rhs);
+      auto lhsIndex = *resultIt;
+      auto rhsIndex = *resultIt;
+      lhsIndex[adjustedDimension] = lhsHandle;
+      rhsIndex[adjustedDimension] = rhsHandle;
+      for (const auto &input : inputs) {
+        auto argType = RankedTensorType::get({}, input.getElementType());
+        auto lhsEl = Tensor(argType);
+        auto rhsEl = Tensor(argType);
+        lhsEl.set({}, input.get(lhsIndex));
+        rhsEl.set({}, input.get(rhsIndex));
+        args.push_back(lhsEl);
+        args.push_back(rhsEl);
       }
       auto cmpResult = eval(comparator, args, &scope);
       return cmpResult[0].get({}).getBooleanValue();
     };
     if (isStable)
-      std::stable_sort(indices.begin(), indices.end(), compare);
+      std::stable_sort(inputsTogether.begin(), inputsTogether.end(),
+                       comparatorTogether);
     else
-      std::sort(indices.begin(), indices.end(), compare);
-    auto resultIdx = *offsetIt;
-    auto operandIdx = *offsetIt;
-    for (auto [dst, src] : llvm::enumerate(indices)) {
-      for (auto [input, result] : llvm::zip(inputs, runtimeResults)) {
-        operandIdx[dimension] = src;
-        resultIdx[dimension] = static_cast<int64_t>(dst);
-        result.set(resultIdx, input.get(operandIdx));
+      std::sort(inputsTogether.begin(), inputsTogether.end(),
+                comparatorTogether);
+
+    // After the vector of handles has been sorted, we apply the results of
+    // this sort by reshuffling input elements into result elements.
+    for (auto [inputHandle, resultHandle] : llvm::enumerate(inputsTogether)) {
+      for (auto [input, result] : llvm::zip(inputs, results)) {
+        auto inputIdx = *resultIt;
+        auto resultIdx = *resultIt;
+        inputIdx[adjustedDimension] = inputHandle;
+        resultIdx[adjustedDimension] = resultHandle;
+        result.set(resultIdx, input.get(inputIdx));
       }
     }
   }
-  return runtimeResults;
+  return results;
 }
 
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType) {
