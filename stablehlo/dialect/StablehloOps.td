@@ -1239,6 +1239,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#while
 
     Example:
+    ```mlir
     %results0, %results1 = stablehlo.while(%arg0 = %init_i, %arg1 = %init_sum) : tensor<i64>, tensor<i64>
     cond {
       %cond = stablehlo.compare LT, %arg0, %ten : (tensor<i64>, tensor<i64>) -> tensor<i1>
@@ -1248,6 +1249,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
       %new_i = stablehlo.add %arg0, %one : tensor<i64>
       stablehlo.return %new_i, %new_sum : tensor<i64>, tensor<i64>
     }
+    ```
   }];
   let arguments = (ins Variadic<HLO_TensorOrToken>:$operand /*while_i1*/);
 

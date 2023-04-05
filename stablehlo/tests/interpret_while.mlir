@@ -5,7 +5,7 @@ func.func @while() {
   // int sum = 0;
   // while (i < 10) {
   //   sum += 1;
-  //   i += ;
+  //   i += 1;
   // }
   %init_i = stablehlo.constant dense<0> : tensor<i64>
   %init_sum = stablehlo.constant dense<0> : tensor<i64>
