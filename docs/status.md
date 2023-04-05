@@ -155,5 +155,5 @@ one of the following tracking labels.
 | unary_einsum             | no            | revisit      | no             | yes             | no          |
 | uniform_dequantize       | no            | yes\*        | yes\*          | yes             | no          |
 | uniform_quantize         | no            | yes\*        | infeasible     | yes             | no          |
-| while                    | yes           | revisit      | yes            | revisit         | no          |
+| while                    | yes           | revisit      | yes            | revisit         | yes         |
 | xor                      | yes           | yes          | yes            | yes             | yes         |

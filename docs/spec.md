@@ -5467,23 +5467,27 @@ The behavior of an infinite loop is TBD
 #### Examples
 
 ```mlir
-// %constant0: 1
-// %operand0: 0
-// %operand1: 10
-%results0, %results1 = "stablehlo.while"(%operand0, %operand1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.compare"(%arg0, %arg1) {
+// %init_i: 1
+// %init_sum: 0
+// %one: 1
+// %ten: 10
+%results0, %results1 = "stablehlo.while"(%init_i, %init_sum) ({
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %cond = "stablehlo.compare"(%arg0, %ten) {
       comparison_direction = #stablehlo<comparison_direction LT>
-    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-    "stablehlo.return"(%0) : (tensor<i1>) -> ()
-}, {
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %constant0) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0, %arg1) : (tensor<i32>, tensor<i32>) -> ()
-}) : (tensor<i32>, tensor<i32>) -> (tensor<i32>, tensor<i32>)
+    } : (tensor<i64>, tensor<i64>) -> tensor<i1>
+    stablehlo.return %cond : tensor<i1>
+  }, {
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %new_sum = stablehlo.add %arg1, %one : tensor<i64>
+    %new_i = stablehlo.add %arg0, %one : tensor<i64>
+    stablehlo.return %new_i, %new_sum : tensor<i64>, tensor<i64>
+}) : (tensor<i64>, tensor<i64>) -> (tensor<i64>, tensor<i64>)
 // %results0: 10
 // %results1: 10
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_while.mlir)
 
 ### xor
 
