@@ -60,14 +60,22 @@ inline static bool isStaticDimSize(int64_t val) {
 //  different element types.
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);
 
-// Returns true if the given types are the same for the purposes of HLO type
-// inference, accounting for special properties of quantization and sparsity.
+// Returns true if the given types are compatible for the purposes of HLO type
+// inference, accounting for special properties of dynamism, quantization and
+// sparsity.
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 
-// Returns true if the given type ranges have same types for the purposes of HLO
-// type inference, accounting for special properties of quantization and
-// sparsity.
+// Returns true if the given type ranges are compatible for the purposes of HLO
+// type inference, accounting for special properties of dynamism, quantization
+// and sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
+
+// Returns true if the given shape, expressed as a runtime value, is compatible
+// with the given type for the purposes of HLO type inference.
+// If we know that this runtime value is a constant, then we perform the check.
+// If we don't, then we return true - because shape mismatches at runtime are
+// undefined behavior.
+bool isCompatibleForHloTypeInference(Value shape1, Type tp2);
 
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
