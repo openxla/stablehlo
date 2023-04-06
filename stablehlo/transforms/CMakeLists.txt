@@ -18,6 +18,7 @@ add_public_tablegen_target(PassesIncGen)
 
 add_mlir_dialect_library(StablehloPasses
   PARTIAL_SOURCES_INTENDED
+  StablehloCanonicalizeDynamism.cpp
   StablehloLegalizeToVhlo.cpp
   StablehloRefineShapes.cpp
   VhloLegalizeToStablehlo.cpp
@@ -35,6 +36,7 @@ add_mlir_dialect_library(StablehloPasses
   MLIRSupport
   MLIRTensorDialect
   MLIRTransformUtils
+  StablehloBase
   StablehloTypeInference
   StablehloOps
   VhloOps

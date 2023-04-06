@@ -3424,6 +3424,34 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                                " does not refer to a "
                                "valid operand dimension");
 
+  SmallVector<int64_t> outputDimensionsVec;
+  if (succeeded(matchInts(outputDimensions, outputDimensionsVec))) {
+    auto inferredResultType =
+        RankedTensorType::get(outputDimensionsVec, resultType.getElementType());
+    if (!isCompatibleForHloTypeInference(inferredResultType, resultType))
+      return emitOptionalError(
+          location, "inferred type ", inferredResultType,
+          " is incompatible with return type of operation ", resultType);
+  }
+
+  return success();
+}
+
+LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
+                                  Value outputShape, int64_t outputDimension,
+                                  Value result) {
+  auto resultType = result.getType().cast<ShapedType>();
+
+  SmallVector<int64_t> outputShapeVec;
+  if (succeeded(matchInts(outputShape, outputShapeVec))) {
+    auto inferredResultType =
+        RankedTensorType::get(outputShapeVec, resultType.getElementType());
+    if (!isCompatibleForHloTypeInference(inferredResultType, resultType))
+      return emitOptionalError(
+          location, "inferred type ", inferredResultType,
+          " is incompatible with return type of operation ", resultType);
+  }
+
   return success();
 }
 
@@ -3471,13 +3499,22 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result) {
-  auto resultType = result.getType().dyn_cast<RankedTensorType>();
-  auto outputShapeType = outputShape.getType().dyn_cast<RankedTensorType>();
-  if (resultType && outputShapeType && outputShapeType.hasStaticShape() &&
+  auto resultType = result.getType().dyn_cast<ShapedType>();
+  auto outputShapeType = outputShape.getType().dyn_cast<ShapedType>();
+  if (resultType.hasRank() && outputShapeType.hasStaticShape() &&
       outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
+  SmallVector<int64_t> outputShapeVec;
+  if (succeeded(matchInts(outputShape, outputShapeVec))) {
+    auto inferredResultType =
+        RankedTensorType::get(outputShapeVec, resultType.getElementType());
+    if (!isCompatibleForHloTypeInference(inferredResultType, resultType))
+      return emitOptionalError(
+          location, "inferred type ", inferredResultType,
+          " is incompatible with return type of operation ", resultType);
+  }
   return success();
 }
 

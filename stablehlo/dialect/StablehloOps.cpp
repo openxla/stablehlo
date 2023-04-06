@@ -768,6 +768,11 @@ LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
   return success();
 }
 
+LogicalResult DynamicIotaOp::verify() {
+  return hlo::verifyDynamicIotaOp(getLoc(), getOutputShape(),
+                                  getIotaDimension(), getResult());
+}
+
 //===----------------------------------------------------------------------===//
 // DynamicUpdateSliceOp
 //===----------------------------------------------------------------------===//

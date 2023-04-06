@@ -20,6 +20,7 @@ limitations under the License.
 #include <algorithm>
 #include <optional>
 
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
@@ -31,6 +32,7 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectInterface.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Types.h"
@@ -99,6 +101,21 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+
+// Matches a constant tensor with integer values into a 1-dimensional vector.
+template <typename T>
+LogicalResult matchInts(Value value, SmallVector<T> &result) {
+  DenseIntElementsAttr attr;
+  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  for (auto element : attr.getValues<APInt>()) {
+    if constexpr (std::is_same<T, int64_t>::value) {
+      result.push_back(element.getSExtValue());
+    } else {
+      result.push_back(element);
+    }
+  }
+  return success();
+}
 
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form

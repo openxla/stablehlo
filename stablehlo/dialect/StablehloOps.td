@@ -141,6 +141,7 @@ def StableHLO_DynamicIotaOp: StableHLO_ShapedInterfaceOp<"dynamic_iota", [Pure]>
 
   let arguments = (ins HLO_DimensionTensor:$output_shape, I64Attr:$iota_dimension);
   let results = (outs HLO_Tensor:$result);
+  let hasVerifier = 1;
 
   let assemblyFormat = [{
     $output_shape `,` `dim` `=` $iota_dimension attr-dict `:` functional-type(operands, results)
