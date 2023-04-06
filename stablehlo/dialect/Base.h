@@ -20,6 +20,7 @@ limitations under the License.
 #include <algorithm>
 #include <optional>
 
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
@@ -31,6 +32,7 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectInterface.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Types.h"
@@ -58,14 +60,22 @@ inline static bool isStaticDimSize(int64_t val) {
 //  different element types.
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);
 
-// Returns true if the given types are the same for the purposes of HLO type
-// inference, accounting for special properties of quantization and sparsity.
+// Returns true if the given types are compatible for the purposes of HLO type
+// inference, accounting for special properties of dynamism, quantization and
+// sparsity.
 bool isCompatibleForHloTypeInference(Type tp1, Type tp2);
 
-// Returns true if the given type ranges have same types for the purposes of HLO
-// type inference, accounting for special properties of quantization and
-// sparsity.
+// Returns true if the given type ranges are compatible for the purposes of HLO
+// type inference, accounting for special properties of dynamism, quantization
+// and sparsity.
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2);
+
+// Returns true if the given shape, expressed as a runtime value, is compatible
+// with the given type for the purposes of HLO type inference.
+// If we know that this runtime value is a constant, then we perform the check.
+// If we don't, then we return true - because shape mismatches at runtime are
+// undefined behavior.
+bool isCompatibleForHloTypeInference(Value shape1, Type tp2);
 
 // TODO(zhouxin) Move type inference related methods to TypeInference.cpp
 
@@ -99,6 +109,21 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
 LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
+
+// Matches a constant tensor with integer values into a 1-dimensional vector.
+template <typename T>
+LogicalResult matchInts(Value value, SmallVector<T> &result) {
+  DenseIntElementsAttr attr;
+  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  for (auto element : attr.getValues<APInt>()) {
+    if constexpr (std::is_same<T, int64_t>::value) {
+      result.push_back(element.getSExtValue());
+    } else {
+      result.push_back(element);
+    }
+  }
+  return success();
+}
 
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form

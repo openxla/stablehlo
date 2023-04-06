@@ -413,6 +413,10 @@ LogicalResult verifyDynamicBroadcastInDimOp(
     std::optional<DenseIntElementsAttr> knownNonexpandingDimensions,
     Value result);
 
+LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
+                                  Value outputShape, int64_t outputDimension,
+                                  Value result);
+
 LogicalResult verifyDynamicPadOp(std::optional<Location> location,
                                  Value operand, Value paddingValue,
                                  Value edgePaddingLow, Value edgePaddingHigh,

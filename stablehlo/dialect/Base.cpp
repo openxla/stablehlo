@@ -116,6 +116,22 @@ bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
   return true;
 }
 
+bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
+  auto stp2 = tp2.dyn_cast<ShapedType>();
+  if (!stp2) return false;
+  return isCompatibleForHloTypeInference(
+      RankedTensorType::get(shape1, stp2.getElementType()), tp2);
+}
+
+bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
+  SmallVector<int64_t> shapeVec1;
+  if (!succeeded(matchInts(shape1, shapeVec1))) return true;
+  auto stp2 = tp2.dyn_cast<ShapedType>();
+  if (!stp2) return false;
+  auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
+  return isCompatibleForHloTypeInference(tp1, tp2);
+}
+
 LogicalResult deriveShapeFromOperand(
     OpBuilder* builder, Operation* op, Value operand,
     SmallVectorImpl<Value>* reifiedReturnShapes) {

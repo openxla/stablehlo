@@ -42,6 +42,7 @@ limitations under the License.
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/TypeInference.h"
@@ -60,20 +61,6 @@ namespace {
 // dynamic_broadcast_in_dim, dynamic_iota and dynamic_reshape whose shape
 // depends on the value of their shape operands.
 
-template <typename T>
-LogicalResult matchInts(Value value, SmallVector<T>& result) {
-  DenseIntElementsAttr attr;
-  if (!matchPattern(value, m_Constant(&attr))) return failure();
-  for (auto element : attr.getValues<APInt>()) {
-    if constexpr (std::is_same<T, int64_t>::value) {
-      result.push_back(element.getSExtValue());
-    } else {
-      result.push_back(element);
-    }
-  }
-  return success();
-}
-
 template <typename OpType, typename FuncType>
 LogicalResult evalUnary(PatternRewriter& rewriter, OpType op, FuncType fn) {
   if (op->getNumOperands() != 1)
@@ -85,7 +72,7 @@ LogicalResult evalUnary(PatternRewriter& rewriter, OpType op, FuncType fn) {
         op, "expected integer or index result tensor type");
 
   SmallVector<APInt> operand, result;
-  if (failed(matchInts(op.getOperand(), operand)))
+  if (failed(hlo::matchInts(op.getOperand(), operand)))
     return rewriter.notifyMatchFailure(op, "expected constant operand");
   for (const auto& operandEl : operand) {
     result.push_back(fn(operandEl));
@@ -107,8 +94,8 @@ LogicalResult evalBinary(PatternRewriter& rewriter, OpType op, FuncType fn) {
         op, "expected integer or index result tensor type");
 
   SmallVector<APInt> lhs, rhs, result;
-  if (failed(matchInts(op.getLhs(), lhs)) ||
-      failed(matchInts(op.getRhs(), rhs)))
+  if (failed(hlo::matchInts(op.getLhs(), lhs)) ||
+      failed(hlo::matchInts(op.getRhs(), rhs)))
     return rewriter.notifyMatchFailure(op, "expected constant operands");
   for (auto [lhsEl, rhsEl] : llvm::zip(lhs, rhs)) {
     result.push_back(fn(lhsEl, rhsEl));
@@ -152,7 +139,7 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
       return rewriter.notifyMatchFailure(op, "expected 0-dimensional type");
 
     SmallVector<APInt> operand;
-    if (failed(matchInts(op.getOperand(), operand)))
+    if (failed(hlo::matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operands");
     auto scalar = operand[0];
 
@@ -205,7 +192,7 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
 
     SmallVector<APInt> result;
     for (Value operand : op->getOperands()) {
-      if (failed(matchInts(operand, result)))
+      if (failed(hlo::matchInts(operand, result)))
         return rewriter.notifyMatchFailure(op, "expected constant operands");
     }
 
@@ -314,9 +301,9 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
   LogicalResult matchAndRewrite(SelectOp op,
                                 PatternRewriter& rewriter) const override {
     SmallVector<APInt> pred, onTrue, onFalse;
-    if (failed(matchInts(op.getPred(), pred)) ||
-        failed(matchInts(op.getOnTrue(), onTrue)) ||
-        failed(matchInts(op.getOnFalse(), onFalse)))
+    if (failed(hlo::matchInts(op.getPred(), pred)) ||
+        failed(hlo::matchInts(op.getOnTrue(), onTrue)) ||
+        failed(hlo::matchInts(op.getOnFalse(), onFalse)))
       return rewriter.notifyMatchFailure(op, "expected constant operands");
 
     SmallVector<APInt> result;
@@ -362,7 +349,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
       return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
 
     SmallVector<int64_t> operand;
-    if (failed(matchInts(op.getOperand(), operand)))
+    if (failed(hlo::matchInts(op.getOperand(), operand)))
       return rewriter.notifyMatchFailure(op, "expected constant operand");
 
     int64_t start = op.getStartIndices().getValues<int64_t>()[0];
@@ -560,7 +547,7 @@ LogicalResult refineReturnShape(PatternRewriter& rewriter, OpType op,
   // shape values which serves the current use cases well.
   // Support for partially static shape values is left for future work.
   SmallVector<int64_t> shape;
-  if (failed(matchInts(shapeValue, shape)))
+  if (failed(hlo::matchInts(shapeValue, shape)))
     return rewriter.notifyMatchFailure(op, "expected constant output shape");
   return refineReturnShape(rewriter, op, shape);
 }
@@ -669,7 +656,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
       if (operandIndex < 0 || operandIndex >= op->getNumOperands())
         return rewriter.notifyMatchFailure(op, "expected valid operand index");
       SmallVector<int64_t> refinement;
-      if (failed(matchInts(op->getOperand(operandIndex), refinement)))
+      if (failed(hlo::matchInts(op->getOperand(operandIndex), refinement)))
         return rewriter.notifyMatchFailure(op, "expected constant operand");
       if (llvm::any_of(refinement, [&](int64_t x) { return x < 0; }))
         return rewriter.notifyMatchFailure(op, "expected non-negative sizes");
@@ -710,7 +697,7 @@ struct RefineDynamicConvOpPattern : public OpRewritePattern<DynamicConvOp> {
   LogicalResult matchAndRewrite(DynamicConvOp op,
                                 PatternRewriter& rewriter) const override {
     SmallVector<int64_t> padding;
-    if (failed(matchInts(op.getDPadding(), padding)))
+    if (failed(hlo::matchInts(op.getDPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected constant d_padding");
     if (op.getPadding().has_value())
       return rewriter.notifyMatchFailure(op, "expected empty padding");
@@ -755,13 +742,13 @@ struct RefineDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
     // shape values which serves the current use cases well.
     // Support for partially static shape values is left for future work.
     SmallVector<int64_t> edgePaddingLow, edgePaddingHigh, interiorPadding;
-    if (failed(matchInts(op.getEdgePaddingLow(), edgePaddingLow)))
+    if (failed(hlo::matchInts(op.getEdgePaddingLow(), edgePaddingLow)))
       return rewriter.notifyMatchFailure(op,
                                          "expected constant edge_padding_low");
-    if (failed(matchInts(op.getEdgePaddingHigh(), edgePaddingHigh)))
+    if (failed(hlo::matchInts(op.getEdgePaddingHigh(), edgePaddingHigh)))
       return rewriter.notifyMatchFailure(op,
                                          "expected constant edge_padding_high");
-    if (failed(matchInts(op.getInteriorPadding(), interiorPadding)))
+    if (failed(hlo::matchInts(op.getInteriorPadding(), interiorPadding)))
       return rewriter.notifyMatchFailure(op,
                                          "expected constant interior_padding");
 
@@ -819,9 +806,9 @@ struct RefineRealDynamicSliceOpPattern
                                 PatternRewriter& rewriter) const override {
     // Alternative #1: All attributes are fully static (SliceOp style).
     SmallVector<int64_t> startIndices, limitIndices, strides;
-    if (succeeded(matchInts(op.getStartIndices(), startIndices)) &&
-        succeeded(matchInts(op.getLimitIndices(), limitIndices)) &&
-        succeeded(matchInts(op.getStrides(), strides))) {
+    if (succeeded(hlo::matchInts(op.getStartIndices(), startIndices)) &&
+        succeeded(hlo::matchInts(op.getLimitIndices(), limitIndices)) &&
+        succeeded(hlo::matchInts(op.getStrides(), strides))) {
       SmallVector<Type> inferredReturnTypes;
       if (failed(hlo::inferSliceOp(/*location=*/{}, op.getOperand().getType(),
                                    rewriter.getI64TensorAttr(startIndices),
@@ -844,7 +831,7 @@ struct RefineRealDynamicSliceOpPattern
             op.getLimitIndices(),
             m_Op<AddOp>(m_Constant(&sliceSizesAttr), m_startIndices))) {
       SmallVector<int64_t> strides;
-      if (!succeeded(matchInts(op.getStrides(), strides)) ||
+      if (!succeeded(hlo::matchInts(op.getStrides(), strides)) ||
           !llvm::all_of(strides, [&](int64_t stride) { return stride == 1; }))
         return rewriter.notifyMatchFailure(op, "expected unit strides");
 

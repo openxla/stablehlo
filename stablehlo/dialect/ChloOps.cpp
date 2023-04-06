@@ -139,8 +139,8 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
       attributes.get("broadcast_dimensions")
           .dyn_cast_or_null<DenseIntElementsAttr>();
 
-  ShapedType lhsType = operands[0].getType().dyn_cast<ShapedType>();
-  ShapedType rhsType = operands[1].getType().dyn_cast<ShapedType>();
+  ShapedType lhsType = operands[0].getType().cast<ShapedType>();
+  ShapedType rhsType = operands[1].getType().cast<ShapedType>();
   if (!lhsType || !rhsType ||
       lhsType.getElementType() != rhsType.getElementType())
     return emitOptionalError(location, "mismatched operand types");
@@ -190,8 +190,7 @@ LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes,
     RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
-  ShapedType lhsType = operands[0].getType().dyn_cast<ShapedType>();
-  if (!lhsType) return emitOptionalError(location, "expected ShapedType");
+  ShapedType lhsType = operands[0].getType().cast<ShapedType>();
   Type elementType = ComplexType::get(lhsType.getElementType());
   return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
                                                     attributes, elementType,
@@ -380,12 +379,11 @@ LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
     DictionaryAttr, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
-  auto predType = op.getPred().getType().dyn_cast<ShapedType>();
-  auto onTrueType = op.getOnTrue().getType().dyn_cast<ShapedType>();
-  auto onFalseType = op.getOnFalse().getType().dyn_cast<ShapedType>();
+  auto predType = op.getPred().getType().cast<ShapedType>();
+  auto onTrueType = op.getOnTrue().getType().cast<ShapedType>();
+  auto onFalseType = op.getOnFalse().getType().cast<ShapedType>();
 
-  if (!predType || !onTrueType || !onFalseType ||
-      onTrueType.getElementType() != onFalseType.getElementType())
+  if (onTrueType.getElementType() != onFalseType.getElementType())
     return emitOptionalError(location, "mismatched operand types");
 
   Type elementType = onTrueType.getElementType();

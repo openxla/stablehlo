@@ -1612,7 +1612,7 @@ LogicalResult inferConcatenateOp(std::optional<Location> location,
   RankedTensorType firstRankedType;
   int firstRankedIndex = -1;
   for (uint64_t i = 0; i < inputTypes.size(); i++) {
-    auto secondType = inputTypes[i].dyn_cast<ShapedType>();
+    auto secondType = inputTypes[i].cast<ShapedType>();
     if (!secondType.hasRank()) continue;
     if (!firstRankedType) {
       firstRankedType = secondType.cast<RankedTensorType>();
@@ -1717,7 +1717,7 @@ LogicalResult inferConstantOp(std::optional<Location>, ElementsAttr value,
 LogicalResult inferConvertOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandType = operand.getType().dyn_cast<ShapedType>();
+  auto operandType = operand.getType().cast<ShapedType>();
   inferredReturnShapes.emplace_back(
       operandType.hasRank() ? operandType.getShape() : ArrayRef<int64_t>{});
   return success();
@@ -2974,7 +2974,7 @@ LogicalResult inferUniformDequantizeOp(
   auto operandType = operand.getType().cast<ShapedType>();
   // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
   auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
-  auto shape = operandType.dyn_cast<ShapedType>().getShape();
+  auto shape = operandType.cast<ShapedType>().getShape();
   inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
   return success();
 }
@@ -2982,7 +2982,7 @@ LogicalResult inferUniformDequantizeOp(
 LogicalResult inferUniformQuantizeOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  auto operandType = operand.getType().dyn_cast<ShapedType>();
+  auto operandType = operand.getType().cast<ShapedType>();
   inferredReturnShapes.emplace_back(
       operandType.hasRank() ? operandType.getShape() : ArrayRef<int64_t>{});
   return success();
@@ -3281,7 +3281,7 @@ LogicalResult verifyConvolutionOp(
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];
-  auto shapedResultType = resultType.dyn_cast<ShapedType>();
+  auto shapedResultType = resultType.cast<ShapedType>();
   if (inferredShape.hasRank() && shapedResultType.hasRank() &&
       failed(verifyCompatibleShape(inferredShape.getDims(),
                                    shapedResultType.getShape())))
@@ -3302,7 +3302,7 @@ LogicalResult verifyDotOp(std::optional<Location> location, Value lhs,
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];
-  auto resultType = result.getType().dyn_cast<ShapedType>();
+  auto resultType = result.getType().cast<ShapedType>();
   if (inferredShape.hasRank() && resultType.hasRank() &&
       failed(verifyCompatibleShape(inferredShape.getDims(),
                                    resultType.getShape())))
@@ -3328,7 +3328,7 @@ LogicalResult verifyDotGeneralOp(std::optional<Location> location, Value lhs,
     return failure();
 
   auto inferredShape = inferredReturnShapes[0];
-  auto resultType = result.getType().dyn_cast<ShapedType>();
+  auto resultType = result.getType().cast<ShapedType>();
   if (inferredShape.hasRank() && resultType.hasRank() &&
       failed(verifyCompatibleShape(inferredShape.getDims(),
                                    resultType.getShape())))
@@ -3424,6 +3424,22 @@ LogicalResult verifyDynamicBroadcastInDimOp(
                                " does not refer to a "
                                "valid operand dimension");
 
+  if (!isCompatibleForHloTypeInference(outputDimensions, resultType))
+    return emitOptionalError(
+        location,
+        "output_dimensions are incompatible with return type of operation ",
+        resultType);
+
+  return success();
+}
+
+LogicalResult verifyDynamicIotaOp(std::optional<Location> location,
+                                  Value outputShape, int64_t outputDimension,
+                                  Value result) {
+  if (!isCompatibleForHloTypeInference(outputShape, result.getType()))
+    return emitOptionalError(
+        location, "output_shape is incompatible with return type of operation ",
+        result.getType());
   return success();
 }
 
@@ -3471,13 +3487,17 @@ LogicalResult verifyDynamicPadOp(std::optional<Location> location,
 
 LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
                                      Value outputShape, Value result) {
-  auto resultType = result.getType().dyn_cast<RankedTensorType>();
-  auto outputShapeType = outputShape.getType().dyn_cast<RankedTensorType>();
-  if (resultType && outputShapeType && outputShapeType.hasStaticShape() &&
+  auto resultType = result.getType().cast<ShapedType>();
+  auto outputShapeType = outputShape.getType().cast<ShapedType>();
+  if (resultType.hasRank() && outputShapeType.hasStaticShape() &&
       outputShapeType.getDimSize(0) != resultType.getRank())
     return emitOptionalError(location,
                              "output should have a rank equal to the number of "
                              "elements in output_shape");
+  if (!isCompatibleForHloTypeInference(outputShape, resultType))
+    return emitOptionalError(
+        location, "output_shape is incompatible with return type of operation ",
+        resultType);
   return success();
 }
 
