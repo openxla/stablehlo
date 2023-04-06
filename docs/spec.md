@@ -574,14 +574,14 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 | Label | Name  | Type   | Constraints |
 |-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)-(C5)   |
-| (I2)  | `rhs` | tensor | (C1)-(C5)   |
+| (I1)  | `lhs` | tensor | (C1)-(C6)   |
+| (I2)  | `rhs` | tensor | (C1)-(C6)   |
 
 #### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
-| `result` | tensor | (C1)-(C5)   |
+| `result` | tensor | (C1)-(C6)   |
 
 #### Constraints
 
@@ -591,8 +591,8 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * If the operation uses quantized types:
   * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for scales and zero points which may differ.
-  * (C4) `storage_min = min_value(storage_type)`.
-  * (C5) `storage_max = max_value(storage_type)`.
+  * (C4) `storage_min(lhs) = min_value(storage_type)`.
+  * (C5) `storage_max(lhs) = max_value(storage_type)`.
   * (C6) `quantization_dimension(lhs)` is empty.
 
 #### Examples
