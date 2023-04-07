@@ -210,6 +210,19 @@ quantization parameters. Quantized tensor types have the following constraints:
   * (C12) `quantization_dimension < rank(self)`.
   * (C13) `dim(self, quantization_dimension) = size(scales)`.
 
+For simplicity, we only define individual operation semantics for per-tensor
+quantized type. Semantics of per-axis type, if supported by the op, can be
+derived as follows:
+
+Given an operation specification with per-tensor quantized type, let the
+semantics of the operation includes some application of the quantization
+parameters `zero_point` and `scale` to a tensor element`e` at index = `[i0, ...,
+id, ..., iR-1]`. The specification for the semantics of the same operation on
+tensor element `e`, with per-axis quantized type with quantization dimension `d`
+, would exactly be the same as the one with per-tensor type except that the
+`zero_point` and `scale` will be replaced with their per-axis counterparts,
+`zero_points[id]` and `scales[id]` resp.
+
 ```ebnf
 TokenType ::= 'token'
 ```
@@ -3652,19 +3665,19 @@ More formally, `result[result_index]` is defined as:
 
 #### Inputs
 
-| Label | Name                | Type                                         | Constraints      |
-|-------|---------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`           | tensor                                       | (C1), (C2), (C4) |
-| (I2)  | `padding_value`     | 0-dimensional tensor                         | (C1)             |
-| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
-| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
-| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)          |
+| Label | Name                | Type                                         | Constraints   |
+|-------|---------------------|----------------------------------------------|---------------|
+| (I1)  | `operand`           | tensor or quantized tensor                   | (C1-C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor or quantized tensor     | (C1)          |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
+| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1)        |
 
 #### Constraints
 
