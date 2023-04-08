@@ -4331,14 +4331,14 @@ and produces a `result` tensor. More formally,
 
 | Label | Name         | Type                                         | Constraints |
 |-------|--------------|----------------------------------------------|-------------|
-| (I1)  | `operand`    | tensor                                       | (C1)        |
+| (I1)  | `operand`    | tensor   or quantized tensor                 | (C1), (C3)  |
 | (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C3)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
