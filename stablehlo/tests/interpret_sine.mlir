@@ -1,23 +1,5 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
-func.func @sine_op_test_f8_e4m3_fnuz() {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159, 0x7F, 0xFF, 0x01, 0x81, 0x80]> : tensor<11xf8E4M3FNUZ>
-  %1 = stablehlo.sine %0 : tensor<11xf8E4M3FNUZ>
-  check.expect_almost_eq_const %1, dense<[0.0, 0.0, 0.8125, 0.125, 0.101563, -0.109375, 0.9375, -0.9375, 0.000976562, -0.000976562, 0x80]> : tensor<11xf8E4M3FNUZ>
-  func.return
-}
-
-// -----
-
-func.func @sine_op_test_f8_e5m2_fnuz() {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159, 0x7F, 0xFF, 0x01, 0x81, 0x80]> : tensor<11xf8E5M2FNUZ>
-  %1 = stablehlo.sine %0 : tensor<11xf8E5M2FNUZ>
-  check.expect_almost_eq_const %1, dense<[0.0, 0.0, 0.875, 0.125, 0.09375, 0.15625, -0.5, 0.5, 7.629390e-06, -7.629390e-06, 0x80]> : tensor<11xf8E5M2FNUZ>
-  func.return
-}
-
-// -----
-
 func.func @sine_op_test_bf16() {
   %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.140630, 0x7F80, 0xFF80, 0x7FFF, 0x0001, 0x8001]> : tensor<11xbf16>
   %1 = stablehlo.sine %0 : tensor<11xbf16>

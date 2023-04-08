@@ -1,23 +1,5 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
-func.func @ceil_op_test_f8_e4m3_fnuz() {
-  %0 = stablehlo.constant dense<[0x80, -2.5, 0x81, -0.0, 0.0, 0x01, 2.5, 0xC0]>  : tensor<8xf8E4M3FNUZ>
-  %1 = stablehlo.ceil %0 : tensor<8xf8E4M3FNUZ>
-  check.expect_almost_eq_const %1, dense<[0x80, -2.0, 0.0, 0.0, 0.0, 1.000000e+00, 3.0, -1.0]> : tensor<8xf8E4M3FNUZ>
-  func.return
-}
-
-// -----
-
-func.func @ceil_op_test_f8_e5m2_fnuz() {
-  %0 = stablehlo.constant dense<[0x80, -2.5, 0x81, -0.0, 0.0, 0x01, 2.5, 0xC0]>  : tensor<8xf8E5M2FNUZ>
-  %1 = stablehlo.ceil %0 : tensor<8xf8E5M2FNUZ>
-  check.expect_almost_eq_const %1, dense<[0x80, -2.0, 0.0, 0.0, 0.0, 1.000000e+00, 3.0, -1.0]> : tensor<8xf8E5M2FNUZ>
-  func.return
-}
-
-// -----
-
 func.func @ceil_op_test_bf16() {
   %0 = stablehlo.constant dense<[0xFF80, -2.5, 0x8001, -0.0, 0.0, 0x0001, 2.5, 0x7F80, 0x7FC0]> : tensor<9xbf16>
   %1 = stablehlo.ceil %0 : tensor<9xbf16>

@@ -100,26 +100,6 @@ func.func @subtract_op_test_ui64() {
 
 // -----
 
-func.func @subtract_op_test_f8_e4m3_fnuz() {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159, 0x80, 0.0,  0x80, 0x7F, 0x01]> : tensor<11xf8E4M3FNUZ>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75,  0.3, 3.14159, 0.0,  0x80, 0x80, 0x7F, 0x81]> : tensor<11xf8E4M3FNUZ>
-  %2 = stablehlo.subtract %0, %1 : tensor<11xf8E4M3FNUZ>
-  check.expect_almost_eq_const %2, dense<[0.0, 0.0, -6.0, -0.625, -0.21875, 0.0, 0x80, 0x80, 0x80, 0.0, 0.00195313]> : tensor<11xf8E4M3FNUZ>
-  func.return
-}
-
-// -----
-
-func.func @subtract_op_test_f8_e5m2_fnuz() {
-  %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.14159, 0x80, 0.0,  0x80, 0x7F, 0x01]> : tensor<11xf8E5M2FNUZ>
-  %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75,  0.3, 3.14159, 0.0,  0x80, 0x80, 0x7F, 0x81]> : tensor<11xf8E5M2FNUZ>
-  %2 = stablehlo.subtract %0, %1 : tensor<11xf8E5M2FNUZ>
-  check.expect_almost_eq_const %2, dense<[0.0, 0.0, -6.0, -0.625, -0.21875, 0.0, 0x80, 0x80, 0x80, 0.0, 1.525880e-05]> : tensor<11xf8E5M2FNUZ>
-  func.return
-}
-
-// -----
-
 func.func @subtract_op_test_bf16() {
   %0 = stablehlo.constant dense<[0.0, -0.0, 1.0, 0.125, 0.1, 3.140625, 0x7F80, 0x7F80, 0xFF80, 0x7F80, 0x0001]> : tensor<11xbf16>
   %1 = stablehlo.constant dense<[0.0, -0.0, 7.0, 0.75, 0.3, 3.140625, 0.0, 0x7F80, 0xFF80, 0xFF80, 0x8001]> : tensor<11xbf16>

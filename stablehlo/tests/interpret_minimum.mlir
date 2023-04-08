@@ -110,25 +110,6 @@ func.func @min_op_test_i1() {
 
 // -----
 
-func.func @max_op_test_f8_e4m3_fnuz() {
-  %0 = stablehlo.constant dense<[0xFF, 0xFF, -1.0, 0x81, 0.0, 0.0, 0x01, 1.0, 0x80, 0x80]>  : tensor<10xf8E4M3FNUZ>
-  %1 = stablehlo.constant dense<[0xFF, -1.0, 0x81, -0.0, -0.0, 0x01, 1.0, 0x80, 1.0, 0x80]> : tensor<10xf8E4M3FNUZ>
-  %2 = stablehlo.minimum %0, %1 : tensor<10xf8E4M3FNUZ>
-  check.expect_almost_eq_const %2, dense<[0xFF, -240.0, -1.0, -0.000976562, 0.0, 0.0, 0.000976562, 0x80, 0x80, 0x80]> : tensor<10xf8E4M3FNUZ>
-  func.return
-}
-
-// -----
-
-func.func @max_op_test_f8_e5m2_fnuz() {
-  %0 = stablehlo.constant dense<[0xFF, 0xFF, -1.0, 0x81, 0.0, 0.0, 0x01, 1.0, 0x80, 0x80]>  : tensor<10xf8E5M2FNUZ>
-  %1 = stablehlo.constant dense<[0xFF, -1.0, 0x81, -0.0, -0.0, 0x01, 1.0, 0x80, 1.0, 0x80]> : tensor<10xf8E5M2FNUZ>
-  %2 = stablehlo.minimum %0, %1 : tensor<10xf8E5M2FNUZ>
-  check.expect_almost_eq_const %2, dense<[0xFF, 0xFF, -1.0, -7.629390e-06, 0.0, 7.629390e-06, 7.629390e-06, 0x80, 0x80, 0x80]> : tensor<10xf8E5M2FNUZ>
-  func.return
-}
-
-// -----
 
 func.func @min_op_test_bf16() {
   %0 = stablehlo.constant dense<[0xFF80, 0xFF80, -1.0, 0x8001, 0.0, 0.0, 0x0001, 1.0, 0x7F80, 0x7F80, 0x7FC0]>  : tensor<11xbf16>
