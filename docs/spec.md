@@ -5145,16 +5145,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Label | Name            | Type                                         | Constraints      |
 |-------|-----------------|----------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                       | (C1-C3), (C5)    |
+| (I1)  | `operand`       | tensor or quantized tensor                   | (C1-C3), (C5-C7) |
 | (I2)  | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I3)  | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I4)  | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C5)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -5167,6 +5167,9 @@ rank(`operand`).
 * (C5) `dim(result, d)` =
 $\lceil$`(limit_indices[d]-start_indices[d])/stride[d]`$\rceil$ for all
 dimension `d` in `operand`.
+* If the operation uses quantized types:
+  * (C6) `storage_min(operand) = min_value(storage_type)`.
+  * (C7) `storage_max(operand) = max_value(storage_type)`.
 
 #### Examples
 
