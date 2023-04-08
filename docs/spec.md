@@ -5403,14 +5403,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
-| (I1)  | `operand`     | tensor                                       | (C1-C3)     |
+| (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C5)     |
 | (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C3)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
@@ -5419,6 +5419,9 @@ where `i[d] = j[permutation[d]]`.
 rank of `operand`.
 * (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
 where `i = permutation[j]`.
+* If the operation uses quantized types:
+  * (C4) `storage_min(operand) = min_value(storage_type)`.
+  * (C5) `storage_max(operand) = max_value(storage_type)`.
 
 #### Examples
 
