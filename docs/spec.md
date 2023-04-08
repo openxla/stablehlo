@@ -4296,18 +4296,21 @@ spaces of `result` and `operand`.
 
 | Label | Name      | Type   | Constraints |
 |-------|-----------|--------|-------------|
-| (I1)  | `operand` | tensor | (C1), (C2)  |
+| (I1)  | `operand` | tensor | (C1-C4)     |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C2)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1, (C2)   |
 
 #### Constraints
 
 * (C1) `operand` and `result` have the same element type.
 * (C2) `operand` and `result` have the same number of elements.
+* If the operation uses quantized types:
+  * (C3) `storage_min(operand) = min_value(storage_type)`.
+  * (C4) `storage_max(operand) = max_value(storage_type)`.
 
 #### Examples
 
