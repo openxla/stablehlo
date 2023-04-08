@@ -28,6 +28,7 @@ def VHLO_Dialect : Dialect {
 
     Version log:
       0.9.0: Initial stability guarantees.
+      0.10.0: Introduce `f8E4M3FNUZ` and `f8E5M2FNUZ` types.
   }];
 
   let useDefaultAttributePrinterParser = 0;
