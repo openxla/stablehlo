@@ -575,13 +575,13 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 | Label | Name  | Type   | Constraints |
 |-------|-------|--------|-------------|
 | (I1)  | `lhs` | tensor | (C1)-(C6)   |
-| (I2)  | `rhs` | tensor | (C1)-(C6)   |
+| (I2)  | `rhs` | tensor | (C1)-(C3)   |
 
 #### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
-| `result` | tensor | (C1)-(C6)   |
+| `result` | tensor | (C1)-(C3)   |
 
 #### Constraints
 
