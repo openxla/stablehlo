@@ -552,9 +552,9 @@ LogicalResult DotGeneralOp::verify() {
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto lhsType = getLhs().getType().dyn_cast<ShapedType>();
-  auto rhsType = getRhs().getType().dyn_cast<ShapedType>();
-  if (!lhsType || !rhsType) return failure();
+  auto lhsType = getLhs().getType().cast<ShapedType>();
+  auto rhsType = getRhs().getType().cast<ShapedType>();
+  if (!lhsType.hasRank() || !rhsType.hasRank()) return failure();
 
   Adaptor adaptor(operands);
   auto dimNumbers = getDotDimensionNumbers();
@@ -766,6 +766,11 @@ LogicalResult DynamicIotaOp::reifyReturnTypeShapes(
   reifiedReturnShapes.push_back(
       castToIndexTensor(builder, getLoc(), adaptor.getOutputShape()));
   return success();
+}
+
+LogicalResult DynamicIotaOp::verify() {
+  return hlo::verifyDynamicIotaOp(getLoc(), getOutputShape(),
+                                  getIotaDimension(), getResult());
 }
 
 //===----------------------------------------------------------------------===//

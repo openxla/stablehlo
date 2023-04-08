@@ -467,6 +467,23 @@ func.func @refine_dynamic_conv(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<
 
 // -----
 
+// CHECK-LABEL: @refine_dynamic_gather
+func.func @refine_dynamic_gather(%arg0 : tensor<2x4x9xi32>, %arg1 : tensor<1x5x2xi32>, %arg2 : tensor<3xi32>) -> tensor<*xi32> {
+  // CHECK: stablehlo.dynamic_gather{{.*}} -> tensor<1x5x8xi32>
+  %0 = stablehlo.constant dense<[1, 1, 8]> : tensor<3xi32>
+  %1 = "stablehlo.dynamic_gather"(%arg0, %arg1, %0) {
+    dimension_numbers = #stablehlo.gather<
+      collapsed_slice_dims = [0, 1],
+      index_vector_dim = 2,
+      offset_dims = [2],
+      start_index_map = [0, 1]
+    >
+  } : (tensor<2x4x9xi32>, tensor<1x5x2xi32>, tensor<3xi32>) -> tensor<*xi32>
+  return %1 : tensor<*xi32>
+}
+
+// -----
+
 // CHECK-LABEL: @refine_dynamic_iota
 func.func @refine_dynamic_iota() -> tensor<*xf32> {
   // CHECK: stablehlo.dynamic_iota{{.*}} -> tensor<4xf32>
@@ -652,8 +669,10 @@ func.func @refine_while(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 // -----
 
 // TODO: Implement support for these ops.
-// * custom_call (#851).
 // * dynamic_conv (#867).
+// * dynamic_fft (#1366).
+// * dynamic_reduce_window (#1258).
+// * dynamic_rng_bit_generator (#1344).
 
 // -----
 

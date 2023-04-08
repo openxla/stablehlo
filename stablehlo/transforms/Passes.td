@@ -15,6 +15,18 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
+def StablehloCanonicalizeDynamismPass : Pass<"stablehlo-canonicalize-dynamism", "func::FuncOp"> {
+  let summary = "Canonicalizes dynamic StableHLO ops into static ops.";
+  let description = [{
+    Replaces dynamic StableHLO ops like DynamicReshapeOp with the corresponding
+    static counterparts like ReshapeOp if all the dynamic elements of these ops
+    are actually constant.
+
+    For example, if the output_shape operand of DynamicReshapeOp is a constant
+    value, then the operation can be transformed to ReshapeOp.
+  }];
+}
+
 def StablehloLegalizeToVhloPass : Pass<"stablehlo-legalize-to-vhlo", "ModuleOp"> {
   let summary = "Legalize StableHLO to VHLO.";
   let dependentDialects = ["mlir::vhlo::VhloDialect"];
