@@ -5038,6 +5038,8 @@ def sign(x):
 // %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_sign.mlir)
+
 ### sine
 
 #### Semantics

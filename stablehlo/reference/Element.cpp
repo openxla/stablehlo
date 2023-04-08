@@ -747,6 +747,72 @@ Element rsqrt(const Element &el) {
       [](std::complex<double> e) { return 1.0 / std::sqrt(e); });
 }
 
+Element sign(const Element &el) {
+  Type type = el.getType();
+
+  if (isSupportedIntegerType(type)) {
+    auto intEl = el.getIntegerValue();
+    if (intEl.isZero()) {
+      return Element(type, (int64_t)0);
+    } else if (intEl.isNegative()) {
+      return Element(type, (int64_t)-1);
+    } else {
+      return Element(type, (int64_t)1);
+    }
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto elVal = el.getFloatValue();
+
+    if (elVal.isNaN()) {
+      return Element(el);
+    } else {
+      if (elVal.isNegZero()) {
+        return Element(type, (double)-0.0);
+      } else if (elVal.isPosZero()) {
+        return Element(type, (double)+0.0);
+      } else if (elVal.isNegInfinity()) {
+        return Element(type, (double)-1.0);
+      } else if (elVal.isPosInfinity()) {
+        return Element(type, (double)+1.0);
+      } else if (elVal.isNegative()) {
+        return Element(type, (double)-1.0);
+      } else if (!elVal.isNegative()) {
+        return Element(type, (double)+1.0);
+      }
+    }
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto elVal = el.getComplexValue();
+    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+    if (elVal.real().isNaN() || elVal.imag().isNaN()) {
+      return Element(type,
+                     std::complex<APFloat>(APFloat::getNaN(elSemantics),
+                                           APFloat::getZero(elSemantics)));
+    } else {
+      auto absElValDouble = abs(el).getFloatValue().convertToDouble();
+      auto signVal =
+          std::complex<double>(elVal.real().convertToDouble() / absElValDouble,
+                               elVal.imag().convertToDouble() / absElValDouble);
+
+      bool roundingErr;
+      APFloat resultReal(signVal.real());
+      resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven,
+                         &roundingErr);
+      APFloat resultImag(signVal.imag());
+      resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven,
+                         &roundingErr);
+      auto retVal =
+          Element(type, std::complex<APFloat>(resultReal, resultImag));
+      return retVal;
+    }
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element sine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },

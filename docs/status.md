@@ -140,7 +140,7 @@ one of the following tracking labels.
 | shift_left               | yes           | yes          | yes            | yes             | no          |
 | shift_right_arithmetic   | yes           | yes          | yes            | yes             | no          |
 | shift_right_logical      | yes           | yes          | yes            | yes             | no          |
-| sign                     | yes           | yes          | yes            | yes             | no          |
+| sign                     | yes           | yes          | yes            | yes             | yes         |
 | sine                     | yes           | yes          | yes            | yes             | yes         |
 | slice                    | yes           | yes          | yes            | no              | yes         |
 | sort                     | yes           | yes          | yes            | no              | no          |

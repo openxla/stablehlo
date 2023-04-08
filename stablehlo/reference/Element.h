@@ -191,6 +191,9 @@ Element rem(const Element &e1, const Element &e2);
 /// Returns reverse square root of Element object.
 Element rsqrt(const Element &e);
 
+/// Returns sign of Element object.
+Element sign(const Element &e);
+
 /// Returns sine of Element object.
 Element sine(const Element &e);
 

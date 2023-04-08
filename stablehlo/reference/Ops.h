@@ -82,8 +82,9 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
                      ShapedType resultType);
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
-                    const Tensor &onFalse, ShapedType resultType);
-Tensor evalSineOp(const Tensor &operand, ShapedType resultType);
+                    const Tensor &onFalse, TensorType resultType);
+Tensor evalSignOp(const Tensor &operand, TensorType resultType);
+Tensor evalSineOp(const Tensor &operand, TensorType resultType);
 Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
                    ShapedType resultType);
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType);
