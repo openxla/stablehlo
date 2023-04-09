@@ -43,7 +43,6 @@ def StablehloRefineShapesPass : Pass<"stablehlo-refine-shapes", "ModuleOp"> {
     static shapes and running this pass will propagate static shapes across
     the program.
   }];
-  let dependentDialects = ["mlir::tensor::TensorDialect"];
 }
 
 def VhloLegalizeToStablehloPass : Pass<"vhlo-legalize-to-stablehlo", "ModuleOp"> {
