@@ -411,8 +411,8 @@ LogicalResult getShapeRefinements(
   if (indicesAttr.getNumElements() != op->getNumResults())
     return emitOptionalError(location, "indices_of_shape_operands: number of ",
                              "elements (", indicesAttr.getNumElements(), ") ",
-                             "must be equal to the number of results (",
-                             op->getNumResults(), ")");
+                             "must be equal to the number of operation results",
+                             " (", op->getNumResults(), ")");
   if (indicesAttr.getType().getRank() != 1)
     return emitOptionalError(location, "indices_of_shape_operands: must have ",
                              "rank = 1");

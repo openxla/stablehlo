@@ -14,7 +14,7 @@ func.func @custom_call_success(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor
 // -----
 
 func.func @custom_call_failure_number_of_elements(%arg0: tensor<4xf32>) -> tensor<1x2xf32> {
-  // expected-error@+3{{indices_of_shape_operands: number of elements (2) must be equal to the number of results (1)}}
+  // expected-error@+3{{indices_of_shape_operands: number of elements (2) must be equal to the number of operation results (1)}}
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
   %2 = stablehlo.custom_call @foo(%arg0, %0, %1) {
