@@ -544,6 +544,13 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
   return result;
 }
 
+Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, is_finite(operand.get(*it)));
+  return result;
+}
+
 Tensor evalLogOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)

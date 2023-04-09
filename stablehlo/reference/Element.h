@@ -157,6 +157,9 @@ Element floor(const Element &e);
 /// floating-point or complex type.
 Element imag(const Element &el);
 
+/// Return a boolean element if the float type element is of finite value.
+Element is_finite(const Element &el);
+
 /// Returns log of Element object.
 Element log(const Element &el);
 
