@@ -144,7 +144,7 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
     auto scalar = operand[0];
 
     rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get(op.getResult().getType(), scalar));
+        op, DenseIntElementsAttr::get(op.getType(), scalar));
     return success();
   }
 };
@@ -186,7 +186,7 @@ struct EvalConcatenateOpPattern : public OpRewritePattern<ConcatenateOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(ConcatenateOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getResult().getType();
+    auto resultType = op.getType();
     if (!resultType.hasRank() || op.getDimension() != 0)
       return rewriter.notifyMatchFailure(op, "expected dimension = 0");
 
@@ -312,7 +312,7 @@ struct EvalSelectOpPattern : public OpRewritePattern<SelectOp> {
     }
 
     rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, DenseIntElementsAttr::get(op.getResult().getType(), result));
+        op, DenseIntElementsAttr::get(op.getType(), result));
     return success();
   }
 };
@@ -343,7 +343,7 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SliceOp op,
                                 PatternRewriter& rewriter) const override {
-    auto resultType = op.getResult().getType();
+    auto resultType = op.getType();
     if (!resultType.hasRank() || resultType.getRank() != 1)
       return rewriter.notifyMatchFailure(op, "expected 1-dimensional type");
 
