@@ -421,8 +421,8 @@ LogicalResult getShapeRefinements(
                              "i64 element type");
 
   auto resultIndex = 0;
-  for (auto [operandIndex, result] :
-       llvm::zip(indicesAttr.getValues<int64_t>(), op->getResults())) {
+  for (auto [operandIndex, resultType] :
+       llvm::zip(indicesAttr.getValues<int64_t>(), op->getResultTypes())) {
     if (operandIndex < 0 || operandIndex >= op->getNumOperands())
       return emitOptionalError(location, "indices_of_shape_operands: index #",
                                resultIndex, " (", operandIndex, ") ",
@@ -432,11 +432,11 @@ LogicalResult getShapeRefinements(
     Value operand = op->getOperand(operandIndex);
     SmallVector<int64_t> refinement;
     if (failed(hlo::matchInts(operand, refinement))) return failure();
-    if (!isCompatibleForHloTypeInference(operand, result.getType()))
+    if (!isCompatibleForHloTypeInference(operand, resultType))
       return emitOptionalError(
           location, "indices_of_shape_operands: refinement #", resultIndex,
           " ([", refinement, "]) must be compatible with operation result (",
-          result.getType(), ")");
+          resultType, ")");
     refinements.emplace_back(refinement);
     ++resultIndex;
   }

@@ -41,7 +41,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
                                 PatternRewriter& rewriter) const override {
     SmallVector<ShapedTypeComponents> refinements;
     if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
-      return rewriter.notifyMatchFailure(op, "expected shape refinements");
+      return rewriter.notifyMatchFailure(op, "expected valid refinements");
     auto indicesAttr =
         op->getAttr("indices_of_shape_operands").cast<DenseIntElementsAttr>();
     DenseSet<int64_t> indices(indicesAttr.value_begin<int64_t>(),
@@ -61,10 +61,20 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
 
     // Discard the operands that correspond to indices_of_shape_operands.
     // Similarly, we rely on the verification logic implemented in
-    // getShapeRefinements to make sure that everything checks out.
+    // getShapeRefinements to make sure that indices_of_shape_operands is
+    // consistent with these operands.
     SmallVector<Value> newOperands;
+    auto resultIndex = 0;
     for (auto& operand : op->getOpOperands()) {
-      if (indices.contains(operand.getOperandNumber())) continue;
+      if (indices.contains(operand.getOperandNumber())) {
+        auto resultType =
+            op->getResult(resultIndex).getType().dyn_cast<ShapedType>();
+        if (!resultType || !resultType.hasStaticShape())
+          return rewriter.notifyMatchFailure(op,
+                                             "expected static result types");
+        ++resultIndex;
+        continue;
+      }
       newOperands.push_back(operand.get());
     }
     rewriter.replaceOpWithNewOp<CustomCallOp>(op, op.getResultTypes(),

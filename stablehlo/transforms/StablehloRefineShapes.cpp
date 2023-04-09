@@ -646,7 +646,7 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
                                 PatternRewriter& rewriter) const override {
     SmallVector<ShapedTypeComponents> refinements;
     if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
-      return rewriter.notifyMatchFailure(op, "expected shape refinements");
+      return rewriter.notifyMatchFailure(op, "expected valid refinements");
     return refineReturnTypes(rewriter, op, refinements);
   }
 };
