@@ -81,7 +81,7 @@ completely numeric to simplify generation of StableHLO programs.
 
 ```ebnf
 Type         ::= ValueType | NonValueType
-ValueType    ::= TensorType | TokenType | TupleType
+ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType
 NonValueType ::= ElementType | FunctionType | StringType
 ```
 
@@ -117,6 +117,70 @@ types, for example, to include layouts
 ([#1078](https://github.com/openxla/stablehlo/issues/1078)).
 
 ```ebnf
+QuantizedTensorType ::= 'tensor' '<' TensorShape QuantizedElementType '>'
+QuantizedElementType ::= '!quant.uniform' '<'
+                  QuantizationStorageType
+                  ['<' QuantizationStorageMin ':' QuantizationStorageMax '>']
+                  ':' QuantizationExpressedType
+                  [':' QuantizationDimension]
+                  ',' QuantizationParameters '>'
+QuantizationStorageType ::= IntegerType
+QuantizationStorageMin ::= IntegerConstant
+QuantizationStorageMax ::= IntegerConstant
+QuantizationExpressedType ::= FloatType
+QuantizationDimension ::= IntegerConstant
+QuantizationParameters ::= QuantizationParameter
+                         | '{' QuantizationParameter {',' QuantizationParameter} '}'
+QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
+QuantizationScale ::= FloatConstant
+QuantizationZeroPoint ::=  IntegerConstant
+```
+
+**Quantized element types** represent integer values of a **storage type** in
+the range from `storage_min` to `storage_max` (inclusive) that correspond to
+floating-point values of an **expressed type**. For a given integer value `i`,
+the corresponding floating-point value `f` can be computed as
+`f = (i - zero_point) * scale`, where `scale` and `zero_point` are called
+**quantization parameters**. The `storage_min` and `storage_max` are optional
+in the grammar, but have default values of `min_value(storage_type)` and
+`max_value(storage_type)` respectively. Quantized element types have the
+following constraints:
+
+* (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
+* (C2) `type(storage_min) = storage_type`.
+* (C3) `type(storage_max) = storage_type`.
+* (C4) `storage_min >= min_value(storage_type)`.
+* (C5) `storage_max <= max_value(storage_type)`.
+* (C6) `storage_max - storage_min > 0`.
+* (C7) For all `i`, `type(scales[i]) = expressed_type`.
+* (C8) For all `i`, `scales[i] > 0`.
+* (C9) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
+* (C10) For all `i`, `type(zero_points[i]) = storage_type`.
+* (C11) `size(scales) = size(zero_points)`.
+* (C12) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C13) If `quantization_dimension` is not empty, then
+  `0 <= quantization_dimension`.
+
+**Quantized tensor types** represent tensors with quantized elements. These
+tensors are exactly the same as regular tensors, except that their elements
+have quantized element types, instead of regular element types.
+
+In quantized tensors, quantization can be **per-tensor**, meaning, having
+one `scale` and `zero_point` for the entire tensor or can be **per-axis**,
+meaning, having multiple `scales` and `zero_points`, one pair per slice of
+a particular dimension `quantized_dimension`. More formally, in a tensor `t` of
+with per-axis quantization, there are `dim(t, quantized_dimension)` slices
+of the `quantized_dimension`: `t[:, ..., 0, ..., :], t[:, ..., 1, ..., :]`, etc.
+All elements in the `i`th slice use `scales[i]` and `zero_points[i]` as their
+quantization parameters. Quantized tensor types have the following constraints:
+
+* For per-tensor quantization:
+  * No additional constraints.
+* For per-axis quantization:
+  * (C14) `quantization_dimension < size(shape)`.
+  * (C15) `size(scales) = shape[quantization_dimension]`.
+
+```ebnf
 TokenType ::= 'token'
 ```
 
@@ -140,28 +204,11 @@ which may allow us to remove tuple types from StableHLO
 
 ```ebnf
 ElementType ::= BooleanType | IntegerType | FloatType | ComplexType
-              | QuantizedType
 BooleanType ::= 'i1'
 IntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
               | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType   ::= 'f8E4M3FN' | 'f8E5M2' | 'bf16' | 'f16' | 'f32' | 'f64'
 ComplexType ::= 'complex' '<' ('f32' | 'f64') '>'
-QuantizedType ::= '!quant.uniform' '<'
-                  QuantizationStorageType
-                  ['<' QuantizationStorageMin ':' QuantizationStorageMax '>']
-                  ':' QuantizationExpressedType
-                  [':' QuantizationDimension]
-                  ',' QuantizationParameters '>'
-QuantizationStorageType ::= IntegerType
-QuantizationStorageMin ::= IntegerConstant
-QuantizationStorageMax ::= IntegerConstant
-QuantizationExpressedType ::= FloatType
-QuantizationDimension ::= IntegerConstant
-QuantizationParameters ::= QuantizationParameter
-                         | '{' QuantizationParameter {',' QuantizationParameter} '}'
-QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
-QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::=  IntegerConstant
 ```
 
 **Element types** represent elements of tensor types. Unlike in many programming
@@ -190,50 +237,6 @@ values of type `tensor<T>`).
   and an **imaginary part** of the same **element type**. Supported complex
   types are `complex<f32>` (both parts are of type `f32`) and `complex<f64>`
   (both parts are of type `f64`).
-* **Quantized types** represent integer values of a **storage type** in the
-  range from `storage_min` to `storage_max` (inclusive) that correspond to
-  floating-point values of an **expressed type**. For a given integer value `i`,
-  the corresponding floating-point value `f` can be computed as
-  `f = (i - zero_point) * scale`, where `scale` and `zero_point` are called
-  **quantization parameters**. The `storage_min` and `storage_max`, being
-  optional, have default values which should satisfy the associated constraints
-  as laid out in this document. The `storage_min` and `storage_max` are optional
-  in the grammar, but have default values of `min_value(storage_type)` and
-  `max_value(storage_type)` respectively.
-
-Quantization can be **per-tensor**, meaning, having one `scale` and/or
-`zero_point` for the entire tensor or can be **per-axis**, meaning, having
-multiple `scales` and/or `zero_points`, one pair per slice of a particular
-dimension `quantized_dimension`. More formally, in a tensor `t` of per-axis
-quantized element type, there are `dim(t, quantized_dimension)` slices of the
-`quantized_dimension`: `t[:, ..., 0, ..., :], t[:, ..., 1, ..., :]`, etc. All
-elements in the `i`th slice use `scales[i]` and `zero_points[i]` as their
-quantization parameters.
-
-Quantized types satisfy the following constraints:
-
-* (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
-* (C2) `type(storage_min) = storage_type`.
-* (C3) `type(storage_max) = storage_type`.
-* (C4) `storage_min >= min_value(storage_type)`.
-* (C5) `storage_max <= max_value(storage_type)`.
-* (C6) `storage_max - storage_min > 0`.
-* (C7) For all `i`, `type(scales[i]) = expressed_type`.
-* (C8) For all `i`, `scales[i] > 0`.
-* (C9) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
-* (C10) For all `i`, `type(zero_points[i]) = storage_type`.
-* (C11) `size(scales) = size(zero_points)`.
-* (C12) If `quantization_dimension` is empty, then `size(scales) = 1`.
-* (C13) If `quantization_dimension` is not empty, then
-  `0 <= quantization_dimension`.
-
-Furthermore, tensors of quantized types satisfy the following constraints:
-
-* For per-tensor quantization:
-  * No additional constraints.
-* For per-axis quantization:
-  * (C14) `quantization_dimension < size(shape)`.
-  * (C15) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 FunctionType ::= '(' [ValueType {',' ValueType}] ')' '->' '(' [ValueType {',' ValueType}] ')'
@@ -572,23 +575,23 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 #### Inputs
 
-| Label | Name  | Type   | Constraints |
-|-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)-(C6)   |
-| (I2)  | `rhs` | tensor | (C1)-(C3)   |
+| Label | Name  | Type                       | Constraints |
+|-------|-------|----------------------------|-------------|
+| (I1)  | `lhs` | tensor or quantized tensor | (C1)-(C6)   |
+| (I2)  | `rhs` | tensor or quantized tensor | (C1)-(C3)   |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)-(C3)   |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1)-(C3)   |
 
 #### Constraints
 
 * (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation doesn't use quantized types:
+* If the operation uses non-quantized tensors:
   * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized types:
+* If the operation uses quantized tensors:
   * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for scales and zero points which may differ.
   * (C4) `storage_min(lhs) = min_value(storage_type)`.
@@ -661,7 +664,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints |
 |-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor of non-quantized type                 | (C1), (C6)  |
+| (I1)  | `operand`               | tensor                                       | (C1), (C6)  |
 | (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
@@ -669,9 +672,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C6)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C6)        |
 
 #### Constraints
 
@@ -745,7 +748,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor of non-quantized type                                     | (C5), (C6)  |
+| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
 | (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
 | (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
 | (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
@@ -753,9 +756,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C6)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C6)        |
 
 #### Constraints
 
@@ -843,7 +846,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name               | Type                                         | Constraints      |
 |-------|--------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`          | tensor of non-quantized type                 | (C1)             |
+| (I1)  | `operand`          | tensor                                       | (C1)             |
 | (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
 | (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
 | (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
@@ -852,9 +855,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C8)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C8)        |
 
 #### Constraints
 
@@ -1282,15 +1285,15 @@ representation of element types is implementation-defined as well.
 
 #### Inputs
 
-| Label | Name      | Type                         | Constraints |
-|-------|-----------|------------------------------|-------------|
-| (I1)  | `operand` | tensor of non-quantized type | (C1), (C2)  |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C2)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C2)  |
 
 #### Constraints
 
@@ -1332,14 +1335,14 @@ dimensions `k` in `operand`.
 
 | Label | Name                   | Type                                         | Constraints   |
 |-------|------------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`              | tensor of non-quantized type                 | (C1-C3), (C5) |
+| (I1)  | `operand`              | tensor                                       | (C1-C3), (C5) |
 | (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
 
 #### Outputs
 
-| Name     | Type                         | Constraints      |
-|----------|------------------------------|------------------|
-| `result` | tensor of non-quantized type | (C1), (C3), (C5) |
+| Name     | Type   | Constraints      |
+|----------|--------|------------------|
+| `result` | tensor | (C1), (C3), (C5) |
 
 #### Constraints
 
@@ -1395,9 +1398,9 @@ returned.
 
 #### Outputs
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type or tokens | (C4)        |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `results` | variadic number of tensors or tokens | (C4)        |
 
 #### Constraints
 
@@ -1560,17 +1563,17 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
-| Label | Name      | Type                         | Constraints |
-|-------|-----------|------------------------------|-------------|
-| (I1)  | `min`     | tensor of non-quantized type | (C1), (C3)  |
-| (I2)  | `operand` | tensor of non-quantized type | (C1-C4)     |
-| (I3)  | `max`     | tensor of non-quantized type | (C2), (C3)  |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `min`     | tensor | (C1), (C3)  |
+| (I2)  | `operand` | tensor | (C1-C4)     |
+| (I3)  | `max`     | tensor | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C4)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C4)        |
 
 #### Constraints
 
@@ -1617,15 +1620,15 @@ Afterwards, `result@process` is given by:
 
 | Label | Name                  | Type                                         | Constraints |
 |-------|-----------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`             | tensor of non-quantized type                 | (C5)        |
+| (I1)  | `operand`             | tensor                                       | (C5)        |
 | (I2)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64` | (C1-C4)     |
 | (I3)  | `channel_id`          | constant of type `si64`                      |             |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -1700,8 +1703,8 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 
 | Label | Name                   | Type                                                    | Constraints |
 |-------|------------------------|---------------------------------------------------------|-------------|
-| (I1)  | `lhs`                  | tensor of non-quantized type                            | (C1-C3)     |
-| (I2)  | `rhs`                  | tensor of non-quantized type                            | (C1), (C2)  |
+| (I1)  | `lhs`                  | tensor                                                  | (C1-C3)     |
+| (I2)  | `rhs`                  | tensor                                                  | (C1), (C2)  |
 | (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
 | (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
 
@@ -1787,16 +1790,16 @@ tensor. More formally,
 
 #### Inputs
 
-| Label | Name        | Type                                             | Constraints      |
-|-------|-------------|--------------------------------------------------|------------------|
-| (I1)  | `inputs`    | variadic number of tensors of non-quantized type | (C1-C6)          |
-| (I2)  | `dimension` | constant of type `si64`                          | (C2), (C4), (C6) |
+| Label | Name        | Type                       | Constraints      |
+|-------|-------------|----------------------------|------------------|
+| (I1)  | `inputs`    | variadic number of tensors | (C1-C6)          |
+| (I2)  | `dimension` | constant of type `si64`    | (C2), (C4), (C6) |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C5), (C6)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C5), (C6)  |
 
 #### Constraints
 
@@ -1837,9 +1840,9 @@ Produces an `output` tensor from a constant `value`.
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `output` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `output` | tensor | (C1)        |
 
 #### Constraints
 
@@ -1904,15 +1907,15 @@ converted to zero, and the value `true` is converted to one. For
 
 #### Inputs
 
-| Label | Name      | Type                         | Constraints |
-|-------|-----------|------------------------------|-------------|
-| (I1)  | `operand` | tensor of non-quantized type | (C1)        |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -1987,8 +1990,8 @@ If `batch_group_count > 1`:
 
 | Label | Name                              | Type                                                         | Constraints                                  |
 |-------|-----------------------------------|--------------------------------------------------------------|----------------------------------------------|
-| (I1)  | `lhs`                             | tensor of non-quantized type                                 | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
-| (I2)  | `rhs`                             | tensor of non-quantized type                                 | (C1), (C2), (C15-C17), (C26)                 |
+| (I1)  | `lhs`                             | tensor                                                       | (C1), (C2), (C11), (C12), (C15) (C26), (C27) |
+| (I2)  | `rhs`                             | tensor                                                       | (C1), (C2), (C15-C17), (C26)                 |
 | (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C26)                            |
 | (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C5), (C26)                                  |
 | (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C6), (C7), (C26)                            |
@@ -2009,9 +2012,9 @@ If `batch_group_count > 1`:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C26-C28)   |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C26-C28)   |
 
 #### Constraints
 
@@ -2312,8 +2315,8 @@ planning to address this in
 
 | Label | Name                         | Type                                                         | Constraints                           |
 |-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor of non-quantized type                                 | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor of non-quantized type                                 | (C1), (C8), (C9), (C10), (C11), (C13) |
+| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
+| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
 | (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
 | (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
 | (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
@@ -2322,9 +2325,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C13)       |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C13)       |
 
 #### Constraints
 
@@ -2407,15 +2410,15 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 | Label | Name            | Type                                                     | Constraints      |
 |-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor of non-quantized type                             | (C1), (C2), (C4) |
+| (I1)  | `operand`       | tensor                                                   | (C1), (C2), (C4) |
 | (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
 | (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C5)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -2466,15 +2469,15 @@ More formally, `result[i0, ..., iR-1]` is defined as:
 
 | Label | Name            | Type                                                     | Constraints      |
 |-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor of non-quantized type                             | (C1-C4), (C6)    |
-| (I2)  | `update`        | tensor of non-quantized type                             | (C3), (C3), (C6) |
+| (I1)  | `operand`       | tensor                                                   | (C1-C4), (C6)    |
+| (I2)  | `update`        | tensor                                                   | (C3), (C3), (C6) |
 | (I3)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C4), (C5)       |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -2776,7 +2779,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 | Label | Name                   | Type                                         | Constraints                   |
 |-------|------------------------|----------------------------------------------|-------------------------------|
-| (I1)  | `operand`              | tensor of non-quantized type                 | (C1), (C10-C12), (C15)        |
+| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C15)        |
 | (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
 | (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
 | (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
@@ -2787,9 +2790,9 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 #### Outputs
 
-| Name     | Type                         | Constraints        |
-|----------|------------------------------|--------------------|
-| `result` | tensor of non-quantized type | (C5), (C13), (C15) |
+| Name     | Type   | Constraints        |
+|----------|--------|--------------------|
+| `result` | tensor | (C5), (C13), (C15) |
 
 #### Constraints
 
@@ -2869,7 +2872,7 @@ Produces the size of the given `dimension` of the `operand`.
 
 | Label | Name        | Type                         | Constraints |
 |-------|-------------|------------------------------|-------------|
-| (I1)  | `operand`   | tensor of non-quantized type | (C1)        |
+| (I1)  | `operand`   | tensor                       | (C1)        |
 | (I2)  | `dimension` | constant of type `si64`      | (C1)        |
 
 #### Outputs
@@ -2946,9 +2949,9 @@ output of `true_branch` is returned, else if pred is `false`, output of
 
 #### Outputs
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type or tokens | (C3)        |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `results` | variadic number of tensors or tokens | (C3)        |
 
 #### Constraints
 
@@ -3032,9 +3035,9 @@ to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Outputs
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type or tokens | (C1), (C2)  |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `results` | variadic number of tensors or tokens | (C1), (C2)  |
 
 #### Constraints
 
@@ -3254,17 +3257,17 @@ and will likely be removed in the future
 
 #### Inputs
 
-| Label | Name          | Type                                             | Constraints |
-|-------|---------------|--------------------------------------------------|-------------|
-| (I1)  | `inputs`      | variadic number of tensors of non-quantized type | (C1-C4)     |
-| (I2)  | `dimensions`  | 1-dimensional tensor constant of type `si64`     | (C3)        |
-| (I3)  | `computation` | function                                         | (C4)        |
+| Label | Name          | Type                                         | Constraints |
+|-------|---------------|----------------------------------------------|-------------|
+| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4)     |
+| (I2)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C3)        |
+| (I3)  | `computation` | function                                     | (C4)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C4)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C4)  |
 
 #### Constraints
 
@@ -3308,16 +3311,16 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
 
 #### Inputs
 
-| Label | Name  | Type                         | Constraints |
-|-------|-------|------------------------------|-------------|
-| (I1)  | `lhs` | tensor of non-quantized type | (C1)        |
-| (I2)  | `rhs` | tensor of non-quantized type | (C1)        |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -3351,16 +3354,16 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
 
 #### Inputs
 
-| Label | Name  | Type                         | Constraints |
-|-------|-------|------------------------------|-------------|
-| (I1)  | `lhs` | tensor of non-quantized type | (C1)        |
-| (I2)  | `rhs` | tensor of non-quantized type | (C1)        |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -3391,16 +3394,16 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 
 #### Inputs
 
-| Label | Name  | Type                         | Constraints |
-|-------|-------|------------------------------|-------------|
-| (I1)  | `lhs` | tensor of non-quantized type | (C1)        |
-| (I2)  | `rhs` | tensor of non-quantized type | (C1)        |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -3513,15 +3516,15 @@ an identity, i.e. `result` = `operand`.
 
 #### Arguments
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `operand` | variadic number of tensors of non-quantized type or tokens | (C1), (C2)  |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `operand` | variadic number of tensors or tokens | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type                                                       | Constraints |
-|----------|------------------------------------------------------------|-------------|
-| `result` | variadic number of tensors of non-quantized type or tokens | (C1), (C2)  |
+| Name     | Type                                 | Constraints |
+|----------|--------------------------------------|-------------|
+| `result` | variadic number of tensors or tokens | (C1), (C2)  |
 
 #### Constraints
 
@@ -3594,11 +3597,11 @@ as a value that other operations can take a data dependency on.
 
 #### Inputs
 
-| Label | Name             | Type                                             |
-|-------|------------------|--------------------------------------------------|
-| (I1)  | `inputs`         | variadic number of tensors of non-quantized type |
-| (I2)  | `token`          | `token`                                          |
-| (I3)  | `outfeed_config` | constant of type `string`                        |
+| Label | Name             | Type                       |
+|-------|------------------|----------------------------|
+| (I1)  | `inputs`         | variadic number of tensors |
+| (I2)  | `token`          | `token`                    |
+| (I3)  | `outfeed_config` | constant of type `string`  |
 
 #### Outputs
 
@@ -3642,17 +3645,17 @@ More formally, `result[i0, ..., iR-1]` is equal to:
 
 | Label | Name                | Type                                         | Constraints      |
 |-------|---------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`           | tensor of non-quantized type                 | (C1), (C2), (C4) |
-| (I2)  | `padding_value`     | 0-dimensional tensor of non-quantized type   | (C1)             |
+| (I1)  | `operand`           | tensor                                       | (C1), (C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor                         | (C1)             |
 | (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 | (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 | (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)          |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
@@ -3844,9 +3847,9 @@ to split the payload and the token into two separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type or tokens | (C2), (C3)  |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `results` | variadic number of tensors or tokens | (C2), (C3)  |
 
 #### Constraints
 
@@ -3898,18 +3901,18 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 #### Inputs
 
-| Label | Name          | Type                                                           | Constraints         |
-|-------|---------------|----------------------------------------------------------------|---------------------|
-| (I1)  | `inputs`      | variadic number of tensors of non-quantized type               | (C1-C4), (C6), (C7) |
-| (I2)  | `init_values` | variadic number of 0-dimensional tensors of non-quantized type | (C2), (C3)          |
-| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64`                   | (C4), (C5), (C7)    |
-| (I4)  | `body`        | function                                                       | (C6)                |
+| Label | Name          | Type                                         | Constraints         |
+|-------|---------------|----------------------------------------------|---------------------|
+| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4), (C6), (C7) |
+| (I2)  | `init_values` | variadic number of 0-dimensional tensors     | (C2), (C3)          |
+| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C7)    |
+| (I4)  | `body`        | function                                     | (C6)                |
 
 #### Outputs
 
-| Name      | Type                                             | Constraints      |
-|-----------|--------------------------------------------------|------------------|
-| `results` | variadic number of tensors of non-quantized type | (C2), (C3), (C7) |
+| Name      | Type                       | Constraints      |
+|-----------|----------------------------|------------------|
+| `results` | variadic number of tensors | (C2), (C3), (C7) |
 
 #### Constraints
 
@@ -4029,7 +4032,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints            |
 |-------|-------------------------|----------------------------------------------|------------------------|
-| (I1)  | `operand`               | tensor of non-quantized type                 | (C1), (C2), (C7), (C8) |
+| (I1)  | `operand`               | tensor                                       | (C1), (C2), (C7), (C8) |
 | (I2)  | `scatter_dimension`     | constant of type `si64`                      | (C1), (C2), (C8)       |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)                |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C6)                   |
@@ -4038,9 +4041,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C8)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C8)        |
 
 #### Constraints
 
@@ -4120,22 +4123,22 @@ where:
 
 #### Inputs
 
-| Label | Name                | Type                                                           | Constraints                                     |
-|-------|---------------------|----------------------------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`            | variadic number of tensors of non-quantized type               | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
-| (I2)  | `init_values`       | variadic number of 0-dimensional tensors of non-quantized type | (C1), (C13), (C16)                              |
-| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64`                   | (C4), (C5), (C15)                               |
-| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64`                   | (C6), (C7), (C15)                               |
-| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64`                   | (C8), (C9), (C15)                               |
-| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64`                   | (C10), (C11), (C15)                             |
-| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64`                   | (C12), (C15)                                    |
-| (I8)  | `body`              | function                                                       | (C13)                                           |
+| Label | Name                | Type                                         | Constraints                                     |
+|-------|---------------------|----------------------------------------------|-------------------------------------------------|
+| (I1)  | `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
+| (I2)  | `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
+| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
+| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
+| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
+| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
+| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
+| (I8)  | `body`              | function                                     | (C13)                                           |
 
 #### Outputs
 
-| Name      | Type                                             | Constraints     |
-|-----------|--------------------------------------------------|-----------------|
-| `results` | variadic number of tensors of non-quantized type | (C1), (C14-C16) |
+| Name      | Type                       | Constraints     |
+|-----------|----------------------------|-----------------|
+| `results` | variadic number of tensors | (C1), (C14-C16) |
 
 #### Constraints
 
@@ -4266,15 +4269,15 @@ spaces of `result` and `operand`.
 
 #### Inputs
 
-| Label | Name      | Type                         | Constraints |
-|-------|-----------|------------------------------|-------------|
-| (I1)  | `operand` | tensor of non-quantized type | (C1), (C2)  |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C2)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C2)  |
 
 #### Constraints
 
@@ -4304,14 +4307,14 @@ and produces a `result` tensor. More formally,
 
 | Label | Name         | Type                                         | Constraints |
 |-------|--------------|----------------------------------------------|-------------|
-| (I1)  | `operand`    | tensor of non-quantized type                 | (C1)        |
+| (I1)  | `operand`    | tensor                                       | (C1)        |
 | (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C3)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C3)  |
 
 #### Constraints
 
@@ -4611,24 +4614,24 @@ undefined.
 
 #### Inputs
 
-| Label | Name                           | Type                                             | Constraints                                     |
-|-------|--------------------------------|--------------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`                       | variadic number of tensors of non-quantized type | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
-| (I2)  | `scatter_indices`              | tensor of integer type                           | (C4), (C11), (C14)                              |
-| (I3)  | `updates`                      | variadic number of tensors of non-quantized type | (C3-C6), (C8)                                   |
-| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64`     | (C2), (C4), (C7), (C8)                          |
-| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`     | (C2), (C4), (C9), (C10)                         |
-| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`     | (C11-C13)                                       |
-| (I7)  | `index_vector_dim`             | constant of type `si64`                          | (C4), (C11), (C14)                              |
-| (I8)  | `indices_are_sorted`           | constant of type `i1`                            |                                                 |
-| (I9)  | `unique_indices`               | constant of type `i1`                            |                                                 |
-| (I10) | `update_computation`           | function                                         | (C15)                                           |
+| Label | Name                           | Type                                         | Constraints                                     |
+|-------|--------------------------------|----------------------------------------------|-------------------------------------------------|
+| (I1)  | `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
+| (I2)  | `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                              |
+| (I3)  | `updates`                      | variadic number of tensors                   | (C3-C6), (C8)                                   |
+| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                          |
+| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                         |
+| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11-C13)                                       |
+| (I7)  | `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                              |
+| (I8)  | `indices_are_sorted`           | constant of type `i1`                        |                                                 |
+| (I9)  | `unique_indices`               | constant of type `i1`                        |                                                 |
+| (I10) | `update_computation`           | function                                     | (C15)                                           |
 
 #### Outputs
 
-| Name      | Type                                             |
-|-----------|--------------------------------------------------|
-| `results` | variadic number of tensors of non-quantized type |
+| Name      | Type                       |
+|-----------|----------------------------|
+| `results` | variadic number of tensors |
 
 #### Constraints
 
@@ -4719,14 +4722,14 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 | Label | Name       | Type                         | Constraints |
 |-------|------------|------------------------------|-------------|
 | (I1)  | `pred`     | tensor of type `i1`          | (C1)        |
-| (I2)  | `on_true`  | tensor of non-quantized type | (C1), (C2)  |
-| (I3)  | `on_false` | tensor of non-quantized type | (C2)        |
+| (I2)  | `on_true`  | tensor                       | (C1), (C2)  |
+| (I3)  | `on_false` | tensor                       | (C2)        |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C2)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C2)        |
 
 #### Constraints
 
@@ -4791,9 +4794,9 @@ More formally:
 
 | Label | Name                | Type                                         | Constraints             |
 |-------|---------------------|----------------------------------------------|-------------------------|
-| (I1)  | `operand`           | tensor of non-quantized type                 | (C1-C5), (C7), (C9-C12) |
-| (I2)  | `source`            | tensor of non-quantized type                 | (C2), (C3)              |
-| (I3)  | `init_value`        | 0-dimensional tensor of non-quantized type   | (C4)                    |
+| (I1)  | `operand`           | tensor                                       | (C1-C5), (C7), (C9-C12) |
+| (I2)  | `source`            | tensor                                       | (C2), (C3)              |
+| (I3)  | `init_value`        | 0-dimensional tensor                         | (C4)                    |
 | (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)  |
 | (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)        |
 | (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)              |
@@ -4802,9 +4805,9 @@ More formally:
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C12)       |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C12)       |
 
 #### Constraints
 
@@ -4867,13 +4870,13 @@ implementation-defined. This flag duplicates the information provided in
 
 #### Inputs
 
-| Label | Name               | Type                                             | Constraints |
-|-------|--------------------|--------------------------------------------------|-------------|
-| (I1)  | `inputs`           | variadic number of tensors of non-quantized type |             |
-| (I2)  | `token`            | `token`                                          |             |
-| (I3)  | `channel_id`       | constant of type `si64`                          |             |
-| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`  | (C1)        |
-| (I5)  | `is_host_transfer` | constant of type `i1`                            | (C1)        |
+| Label | Name               | Type                                            | Constraints |
+|-------|--------------------|-------------------------------------------------|-------------|
+| (I1)  | `inputs`           | variadic number of tensors                      |             |
+| (I2)  | `token`            | `token`                                         |             |
+| (I3)  | `channel_id`       | constant of type `si64`                         |             |
+| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
+| (I5)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
 
 #### Outputs
 
@@ -5107,16 +5110,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Label | Name            | Type                                         | Constraints      |
 |-------|-----------------|----------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor of non-quantized type                 | (C1-C3), (C5)    |
+| (I1)  | `operand`       | tensor                                       | (C1-C3), (C5)    |
 | (I2)  | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I3)  | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I4)  | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C5)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -5173,18 +5176,18 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 
 #### Inputs
 
-| Label | Name         | Type                                             | Constraints |
-|-------|--------------|--------------------------------------------------|-------------|
-| (I1)  | `inputs`     | variadic number of tensors of non-quantized type | (C1)        |
-| (I2)  | `dimension`  | constant of type `si64`                          | (C4)        |
-| (I3)  | `is_stable`  | constant of type `i1`                            |             |
-| (I4)  | `comparator` | function                                         | (C5)        |
+| Label | Name         | Type                       | Constraints |
+|-------|--------------|----------------------------|-------------|
+| (I1)  | `inputs`     | variadic number of tensors | (C1)        |
+| (I2)  | `dimension`  | constant of type `si64`    | (C4)        |
+| (I3)  | `is_stable`  | constant of type `i1`      |             |
+| (I4)  | `comparator` | function                   | (C5)        |
 
 #### Outputs
 
-| Name      | Type                                             | Constraints |
-|-----------|--------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type | (C2), (C3)  |
+| Name      | Type                       | Constraints |
+|-----------|----------------------------|-------------|
+| `results` | variadic number of tensors | (C2), (C3)  |
 
 #### Constraints
 
@@ -5358,14 +5361,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
-| (I1)  | `operand`     | tensor of non-quantized type                 | (C1-C3)     |
+| (I1)  | `operand`     | tensor                                       | (C1-C3)     |
 | (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type                         | Constraints |
-|----------|------------------------------|-------------|
-| `result` | tensor of non-quantized type | (C1), (C3)  |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C3)  |
 
 #### Constraints
 
@@ -5521,17 +5524,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                                       | Constraints |
-|-------|-----------|------------------------------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of tensors of non-quantized type or tokens | (C1-C3)     |
-| (I2)  | `cond`    | function                                                   | (C1)        |
-| (I3)  | `body`    | function                                                   | (C2)        |
+| Label | Name      | Type                                 | Constraints |
+|-------|-----------|--------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                             | (C1)        |
+| (I3)  | `body`    | function                             | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                                       | Constraints |
-|-----------|------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors of non-quantized type or tokens | (C3)        |
+| Name      | Type                                 | Constraints |
+|-----------|--------------------------------------|-------------|
+| `results` | variadic number of tensors or tokens | (C3)        |
 
 #### Constraints
 
