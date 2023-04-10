@@ -516,26 +516,74 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     });
 
   SmallVector<Type> flattenedRefinedTypes;
-  for (auto [currentType, refinement] :
-       llvm::zip(flattenedTypes, refinements)) {
-    auto refinedElementType = refinement.getElementType();
-    if (!refinedElementType) {
-      auto currentShapedType = currentType.dyn_cast<ShapedType>();
-      if (!currentShapedType)
-        return rewriter.notifyMatchFailure(
-            op, "refineReturnTypes failed: expected shaped return types");
-      refinedElementType = currentShapedType.getElementType();
+  for (auto it : llvm::zip(flattenedTypes, refinements)) {
+    // Cannot use structured bindings to simplify this because capturing
+    // structured bindings in a lambda is a C++ 20 extension.
+    ShapedType currentType = std::get<0>(it).dyn_cast<ShapedType>();
+    ShapedTypeComponents refinement = std::get<1>(it);
+    auto failure = [&](StringRef reason) {
+      return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
+        diag << "refineTypes failed: refining " << currentType
+             << "with refinement: {";
+        if (refinement.hasRank()) {
+          diag << "shape = [" << refinement.getDims() << "]";
+          if (refinement.getAttribute())
+            diag << "attribute = " << refinement.getAttribute();
+        } else {
+          diag << "hasRank = false";
+        }
+        diag << ", elementType = " << refinement.getElementType();
+        diag << "} failed: " << reason;
+      });
+    };
+
+    // If the current type is not a shaped type, then the refinement must
+    // be completely empty.
+    if (!currentType) {
+      if (refinement.hasRank() || refinement.getElementType() ||
+          refinement.getAttribute())
+        return failure("unsupported refinement");
+      refinedTypes.push_back(currentType);
+      continue;
     }
-    if (refinement.hasRank()) {
-      auto refinedShape = refinement.getDims();
-      auto refinedEncoding = refinement.getAttribute();
-      flattenedRefinedTypes.push_back(RankedTensorType::get(
-          refinedShape, refinedElementType, refinedEncoding));
-    } else {
-      flattenedRefinedTypes.push_back(
-          UnrankedTensorType::get(refinedElementType));
+
+    // If the refinement has an element type, then it must be the same as
+    // the current element type.
+    Type currentElementType = currentType.getElementType();
+    if (refinement.getElementType() &&
+        currentElementType != refinement.getElementType())
+      return failure("expected compatible element types");
+
+    // If neither the current type nor the refinement are ranked, then there's
+    // nothing to refine, and we return the current type.
+    bool hasRank = currentType.hasRank() || refinement.hasRank();
+    if (!hasRank) {
+      flattenedRefinedTypes.push_back(currentType);
+      continue;
     }
+
+    // If either the current type or the refinement have encodings, then
+    // we fail. Encodings are left for future work.
+    Attribute currentEncoding = nullptr;
+    if (auto currentRankedType = currentType.dyn_cast<RankedTensorType>()) {
+      currentEncoding = currentRankedType.getEncoding();
+    }
+    Attribute refinedEncoding = refinement.getAttribute();
+    if (currentEncoding || refinedEncoding)
+      return failure("expected compatible encodings");
+
+    // If both the current type and the refinement have shapes, use the shape
+    // from the refinement. Otherwise, pick whatever is available.
+    // Make sure that the resulting type is compatible with the current type
+    // to avoid creating invalid code.
+    auto refinedShape =
+        refinement.hasRank() ? refinement.getDims() : currentType.getShape();
+    auto refinedType = RankedTensorType::get(refinedShape, currentElementType);
+    if (!hlo::isCompatibleForHloTypeInference(currentType, refinedType))
+      return failure("expected compatible shapes");
+    flattenedRefinedTypes.push_back(refinedType);
   }
+
 
   SmallVector<Type> refinedTypes;
   if (failed(hlo::unflattenTupleTypes(op->getResultTypes(),
