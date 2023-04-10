@@ -538,8 +538,8 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
   }
 
   SmallVector<Type> refinedTypes;
-  if (failed(hlo::unflattenTupleTypes(op->getResultTypes(), flattenedRefinedTypes,
-                                  refinedTypes)))
+  if (failed(hlo::unflattenTupleTypes(op->getResultTypes(),
+                                      flattenedRefinedTypes, refinedTypes)))
     return failure();
   return refineReturnTypes(rewriter, op, refinedTypes);
 }
