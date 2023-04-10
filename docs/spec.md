@@ -149,16 +149,14 @@ following constraints:
 * (C1) `num_bits(storage_type) < num_bits(expressed_type)`.
 * (C2) `type(storage_min) = storage_type`.
 * (C3) `type(storage_max) = storage_type`.
-* (C4) `storage_min >= min_value(storage_type)`.
-* (C5) `storage_max <= max_value(storage_type)`.
-* (C6) `storage_max - storage_min > 0`.
-* (C7) For all `i`, `type(scales[i]) = expressed_type`.
-* (C8) For all `i`, `scales[i] > 0`.
-* (C9) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
-* (C10) For all `i`, `type(zero_points[i]) = storage_type`.
-* (C11) `size(scales) = size(zero_points)`.
-* (C12) If `quantization_dimension` is empty, then `size(scales) = 1`.
-* (C13) If `quantization_dimension` is not empty, then
+* (C4) `min_value(storage_type) <= storage_min < storage_max <= max_value(storage_type)`.
+* (C5) For all `i`, `type(scales[i]) = expressed_type`.
+* (C6) For all `i`, `scales[i] > 0`.
+* (C7) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
+* (C8) For all `i`, `type(zero_points[i]) = storage_type`.
+* (C9) `size(scales) = size(zero_points)`.
+* (C10) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C11) If `quantization_dimension` is not empty, then
   `0 <= quantization_dimension`.
 
 **Quantized tensor types** represent tensors with quantized elements. These
@@ -177,8 +175,8 @@ quantization parameters. Quantized tensor types have the following constraints:
 * For per-tensor quantization:
   * No additional constraints.
 * For per-axis quantization:
-  * (C14) `quantization_dimension < size(shape)`.
-  * (C15) `size(scales) = shape[quantization_dimension]`.
+  * (C12) `quantization_dimension < size(shape)`.
+  * (C13) `size(scales) = shape[quantization_dimension]`.
 
 ```ebnf
 TokenType ::= 'token'
