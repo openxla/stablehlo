@@ -85,7 +85,7 @@ func.func @sign_op_test_bf16() -> tensor<8xbf16> {
 // -----
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_f16
-func.func @sign_op_test_f16() -> tensor<6xf16>{
+func.func @sign_op_test_f16() -> tensor<6xf16> {
   // -0.0, +0.0, -3.14, +3.14, -NaN, +NaN, -Inf, +Inf
   %operand = stablehlo.constant dense<[-0.0, 0.0, -3.141, 3.141, 0xFFFF, 0x7FFF]> : tensor<6xf16>
   %result = stablehlo.sign %operand : tensor<6xf16>
@@ -102,7 +102,7 @@ func.func @sign_op_test_f16() -> tensor<6xf16>{
 // -----
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_f32
-func.func @sign_op_test_f32() -> tensor<8xf32>{
+func.func @sign_op_test_f32() -> tensor<8xf32> {
   // -0.0, +0.0, -3.14, +3.14, -NaN, +NaN, -Inf, +Inf
   %operand = stablehlo.constant dense<[-0.0, 0.0, -3.14159265, 3.14159265, 0xFFFFFFFF, 0x7FFFFFFF, 0xFF800000, 0x7F800000]> : tensor<8xf32>
   %result = stablehlo.sign %operand : tensor<8xf32>
@@ -121,7 +121,7 @@ func.func @sign_op_test_f32() -> tensor<8xf32>{
 // -----
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_f64
-func.func @sign_op_test_f64() -> tensor<8xf64>{
+func.func @sign_op_test_f64() -> tensor<8xf64> {
   // -0.0, +0.0, -3.14, +3.14, -NaN, +NaN, -Inf, +Inf
   %operand = stablehlo.constant dense<[-0.0, 0.0, -3.14159265358979323846, 3.14159265358979323846, 0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0xFFF0000000000000, 0x7FF0000000000000]> : tensor<8xf64>
   %result = stablehlo.sign %operand : tensor<8xf64>
@@ -140,29 +140,29 @@ func.func @sign_op_test_f64() -> tensor<8xf64>{
 // -----
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_c64
-func.func @sign_op_test_c64() {
+func.func @sign_op_test_c64() -> tensor<3xcomplex<f32>> {
   // (+NaN, +0.0), (+0.0, +NaN), (-1.0, 0.0)
   // (+NaN, +0.0), (+0.0, +NaN), (1.0, 1.0)
   %operand = stablehlo.constant dense<[(0x7FFFFFFF, 0.0), (0.0, 0x7FFFFFFF), (-1.0, 0.0)]> : tensor<3xcomplex<f32>>
   %result = stablehlo.sign %operand : tensor<3xcomplex<f32>>
   func.return %result : tensor<3xcomplex<f32>>
-  // CHECK-LABEL: tensor<3xcomplex<f32>>
-  // CHECK-LABEL: [0x7FFFFFFF : f32, 0.000000e+00 : f32]
-  // CHECK-LABEL: [0x7FFFFFFF : f32, 0.000000e+00 : f32]
-  // CHECK-LABEL: [-1.000000e+00 : f32, 0.000000e+00 : f32]
+  // CHECK-NEXT: tensor<3xcomplex<f32>>
+  // CHECK-NEXT: [0x7FFFFFFF : f32, 0.000000e+00 : f32]
+  // CHECK-NEXT: [0x7FFFFFFF : f32, 0.000000e+00 : f32]
+  // CHECK-NEXT: [-1.000000e+00 : f32, 0.000000e+00 : f32]
 }
 
 // -----
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_c128
-func.func @sign_op_test_c128() {
+func.func @sign_op_test_c128() -> tensor<3xcomplex<f64>> {
   // (+NaN, +0.0), (+0.0, +NaN), (0.0, 1.0)
   // (+NaN, +0.0), (+Nan, +0.0), (1.0, 1.0)
   %operand = stablehlo.constant dense<[(0x7FF0000000000001, 0x0000000000000000), (0x0000000000000000, 0x7FF0000000000001), (0.0, 1.0)]> : tensor<3xcomplex<f64>>
   %result = stablehlo.sign %operand : tensor<3xcomplex<f64>>
   func.return %result : tensor<3xcomplex<f64>>
-  // CHECK-LABEL: tensor<3xcomplex<f64>>
-  // CHECK-LABEL: [0x7FF0000000000001, 0x0000000000000000]
-  // CHECK-LABEL: [0x7FF0000000000001, 0x0000000000000000]
-  // CHECK-LABEL: [0.000000e+00, 1.000000e+00]
+  // CHECK-NEXT: tensor<3xcomplex<f64>>
+  // CHECK-NEXT: [0x7FF0000000000001, 0x0000000000000000]
+  // CHECK-NEXT: [0x7FF0000000000001, 0x0000000000000000]
+  // CHECK-NEXT: [0.000000e+00, 1.000000e+00]
 }
