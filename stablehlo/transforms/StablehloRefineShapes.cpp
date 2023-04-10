@@ -543,7 +543,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
       if (refinement.hasRank() || refinement.getElementType() ||
           refinement.getAttribute())
         return failure("unsupported refinement");
-      refinedTypes.push_back(currentType);
+      flattenedRefinedTypes.push_back(currentType);
       continue;
     }
 
@@ -583,7 +583,6 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
       return failure("expected compatible shapes");
     flattenedRefinedTypes.push_back(refinedType);
   }
-
 
   SmallVector<Type> refinedTypes;
   if (failed(hlo::unflattenTupleTypes(op->getResultTypes(),
