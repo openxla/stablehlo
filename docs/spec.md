@@ -2117,9 +2117,11 @@ tensor and produces a `result` tensor.
 #### Semantics
 
 Encapsulates an implementation-defined operation `call_target_name` that takes
-`inputs` and `called_computations` and produces `results`. `has_side_effect`,
-`backend_config` and `api_version` may be used to provide additional
-implementation-defined metadata.
+`inputs` and `called_computations` and produces `results`. The metadata
+`has_side_effect` is used to prevent optimizations like speculation (e.g
+loop-invariant code motion) and dead-code elimination. `backend_config`
+and `api_version` may be used to provide additional implementation-defined
+metadata.
 
 At the moment, this operation contains a fairly disorganized collection of
 metadata which reflects organic evolution of its counterpart operation in
