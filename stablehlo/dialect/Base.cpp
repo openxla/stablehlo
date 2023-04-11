@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <optional>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
@@ -126,6 +127,7 @@ bool isCompatibleForHloTypeInference(ArrayRef<int64_t> shape1, Type tp2) {
 bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   SmallVector<int64_t> shapeVec1;
   if (!succeeded(matchInts(shape1, shapeVec1))) return true;
+  if (llvm::any_of(shapeVec1, [&](int64_t x) { return x < 0; })) return false;
   auto stp2 = tp2.dyn_cast<ShapedType>();
   if (!stp2) return false;
   auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
@@ -396,6 +398,48 @@ LogicalResult inferMostSpecificTypeComponents(
                                       rankedResultType.getEncoding());
   }
 
+  return success();
+}
+
+LogicalResult getShapeRefinements(
+    std::optional<Location> location, Operation* op,
+    SmallVector<ShapedTypeComponents>& refinements) {
+  auto indicesAttr = op->getAttr("indices_of_shape_operands")
+                         .dyn_cast_or_null<DenseIntElementsAttr>();
+  if (!indicesAttr) return failure();
+
+  if (indicesAttr.getNumElements() != op->getNumResults())
+    return emitOptionalError(location, "indices_of_shape_operands: number of ",
+                             "elements (", indicesAttr.getNumElements(), ") ",
+                             "must be equal to the number of operation results",
+                             " (", op->getNumResults(), ")");
+  if (indicesAttr.getType().getRank() != 1)
+    return emitOptionalError(location, "indices_of_shape_operands: must have ",
+                             "rank = 1");
+  if (!indicesAttr.getType().getElementType().isInteger(64))
+    return emitOptionalError(location, "indices_of_shape_operands: must have ",
+                             "i64 element type");
+
+  auto resultIndex = 0;
+  for (auto [operandIndex, resultType] :
+       llvm::zip(indicesAttr.getValues<int64_t>(), op->getResultTypes())) {
+    if (operandIndex < 0 || operandIndex >= op->getNumOperands())
+      return emitOptionalError(location, "indices_of_shape_operands: index #",
+                               resultIndex, " (", operandIndex, ") ",
+                               "must be within bounds for operation operands ",
+                               "(from 0 to ", op->getNumOperands(), ")");
+
+    Value operand = op->getOperand(operandIndex);
+    SmallVector<int64_t> refinement;
+    if (failed(hlo::matchInts(operand, refinement))) return failure();
+    if (!isCompatibleForHloTypeInference(operand, resultType))
+      return emitOptionalError(
+          location, "indices_of_shape_operands: refinement #", resultIndex,
+          " ([", refinement, "]) must be compatible with operation result (",
+          resultType, ")");
+    refinements.emplace_back(refinement);
+    ++resultIndex;
+  }
   return success();
 }
 

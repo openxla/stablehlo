@@ -162,6 +162,16 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding);
 // the underlying dialect that knows how to create these attributes.
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 
+// Get refinements for return types from an indices_of_shape_operands attribute.
+// If the attribute doesn't exist, returns failure.
+// If the attribute exists but is not invalid with respect to the operation,
+// reports an optional error and returns failure.
+// If the attribute is valid but not all shape operands are constants,
+// returns failure.
+LogicalResult getShapeRefinements(
+    std::optional<Location> location, Operation *operation,
+    SmallVector<ShapedTypeComponents> &refinements);
+
 // This interface is implemented by both StableHLO and MHLO dialects
 // and is used as the foundation for sharing verification, type inference and
 // prettyprinting logic between them.

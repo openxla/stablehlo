@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -33,6 +34,54 @@ namespace stablehlo {
 #include "stablehlo/transforms/Passes.h.inc"
 
 namespace {
+
+struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(CustomCallOp op,
+                                PatternRewriter& rewriter) const override {
+    SmallVector<ShapedTypeComponents> refinements;
+    if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
+      return rewriter.notifyMatchFailure(op, "expected valid refinements");
+    auto indicesAttr =
+        op->getAttr("indices_of_shape_operands").cast<DenseIntElementsAttr>();
+    DenseSet<int64_t> indices(indicesAttr.value_begin<int64_t>(),
+                              indicesAttr.value_end<int64_t>());
+
+    // Discard the indices_of_shape_operands attribute.
+    // We rely on the verification logic implemented in getShapeRefinements to
+    // make sure that its value are consistent with the result type.
+    // In the future, when we upgrade indices_of_shape_operands from an
+    // experiment to a full-fledged StableHLO feature, this logic will be moved
+    // to a proper verifier.
+    SmallVector<NamedAttribute> newAttrs;
+    for (auto attr : op->getAttrs()) {
+      if (attr.getName() == "indices_of_shape_operands") continue;
+      newAttrs.push_back(attr);
+    }
+
+    // Discard the operands that correspond to indices_of_shape_operands.
+    // Similarly, we rely on the verification logic implemented in
+    // getShapeRefinements to make sure that indices_of_shape_operands is
+    // consistent with these operands.
+    SmallVector<Value> newOperands;
+    auto resultIndex = 0;
+    for (auto& operand : op->getOpOperands()) {
+      if (indices.contains(operand.getOperandNumber())) {
+        auto resultType =
+            op->getResult(resultIndex).getType().dyn_cast<ShapedType>();
+        if (!resultType || !resultType.hasStaticShape())
+          return rewriter.notifyMatchFailure(op,
+                                             "expected static result types");
+        ++resultIndex;
+        continue;
+      }
+      newOperands.push_back(operand.get());
+    }
+    rewriter.replaceOpWithNewOp<CustomCallOp>(op, op.getResultTypes(),
+                                              newOperands, newAttrs);
+    return success();
+  }
+};
 
 struct CanonicalizeDynamicBroadcastInDimOpPattern
     : public OpRewritePattern<DynamicBroadcastInDimOp> {
@@ -89,6 +138,7 @@ struct CanonicalizeDynamicGatherOpPattern
     return success();
   }
 };
+
 struct CanonicalizeDynamicIotaOpPattern
     : public OpRewritePattern<DynamicIotaOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -230,6 +280,7 @@ struct StablehloCanonicalizeDynamismPass
     config.strictMode = GreedyRewriteStrictness::AnyOp;
 
     RewritePatternSet patterns(&getContext());
+    patterns.add<CanonicalizeCustomCallOpPattern>(&getContext());
     patterns.add<CanonicalizeDynamicBroadcastInDimOpPattern>(&getContext());
     patterns.add<CanonicalizeDynamicConvOpPattern>(&getContext());
     patterns.add<CanonicalizeDynamicGatherOpPattern>(&getContext());

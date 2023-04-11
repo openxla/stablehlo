@@ -644,24 +644,9 @@ struct RefineCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(CustomCallOp op,
                                 PatternRewriter& rewriter) const override {
-    auto operandIndicesAttr = op->getAttr("indices_of_shape_operands")
-                                  .dyn_cast_or_null<DenseIntElementsAttr>();
-    if (!operandIndicesAttr)
-      return rewriter.notifyMatchFailure(
-          op, "expected an indices_of_shape_operands attribute");
-
     SmallVector<ShapedTypeComponents> refinements;
-    for (auto operandIndexElt : operandIndicesAttr.getValues<APInt>()) {
-      int64_t operandIndex = operandIndexElt.getSExtValue();
-      if (operandIndex < 0 || operandIndex >= op->getNumOperands())
-        return rewriter.notifyMatchFailure(op, "expected valid operand index");
-      SmallVector<int64_t> refinement;
-      if (failed(hlo::matchInts(op->getOperand(operandIndex), refinement)))
-        return rewriter.notifyMatchFailure(op, "expected constant operand");
-      if (llvm::any_of(refinement, [&](int64_t x) { return x < 0; }))
-        return rewriter.notifyMatchFailure(op, "expected non-negative sizes");
-      refinements.emplace_back(refinement);
-    }
+    if (failed(hlo::getShapeRefinements(op.getLoc(), op, refinements)))
+      return rewriter.notifyMatchFailure(op, "expected valid refinements");
     return refineReturnTypes(rewriter, op, refinements);
   }
 };
