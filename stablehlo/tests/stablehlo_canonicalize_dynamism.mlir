@@ -1,7 +1,19 @@
 // RUN: stablehlo-opt --stablehlo-canonicalize-dynamism --split-input-file --verify-diagnostics %s | FileCheck %s
 
-// CHECK-LABEL: func @custom_call_success
-func.func @custom_call_success(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>) {
+// CHECK-LABEL: func @custom_call_success_one_output
+func.func @custom_call_success_one_output(%arg0: tensor<4xf32>) -> tensor<1x2xf32> {
+  // CHECK: stablehlo.custom_call @foo(%arg0) : (tensor<4xf32>) -> tensor<1x2xf32>
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  %1 = stablehlo.custom_call @foo(%arg0, %0) {
+    indices_of_shape_operands = dense<[1]> : tensor<1xi64>
+  } : (tensor<4xf32>, tensor<2xi64>) -> tensor<1x2xf32>
+  return %1 : tensor<1x2xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @custom_call_success_multiple_outputs
+func.func @custom_call_success_multiple_outputs(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>) {
   // CHECK: stablehlo.custom_call @foo(%arg0) : (tensor<4xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
@@ -9,6 +21,31 @@ func.func @custom_call_success(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor
     indices_of_shape_operands = dense<[1, 2]> : tensor<2xi64>
   } : (tensor<4xf32>, tensor<2xi64>, tensor<2xi64>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
   return %2#0, %2#1 : tensor<1x2xf32>, tensor<3x4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @custom_call_success_mixed_positions
+func.func @custom_call_success_mixed_positions(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>) {
+  // CHECK: stablehlo.custom_call @foo(%arg0) : (tensor<4xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %2:2 = stablehlo.custom_call @foo(%0, %arg0, %1) {
+    indices_of_shape_operands = dense<[0, 2]> : tensor<2xi64>
+  } : (tensor<2xi64>, tensor<4xf32>, tensor<2xi64>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
+  return %2#0, %2#1 : tensor<1x2xf32>, tensor<3x4xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @custom_call_success_repeating_operands
+func.func @custom_call_success_repeating_operands(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor<1x2xf32>) {
+  // CHECK: stablehlo.custom_call @foo(%arg0) : (tensor<4xf32>) -> (tensor<1x2xf32>, tensor<1x2xf32>)
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  %1:2 = stablehlo.custom_call @foo(%arg0, %0, %0) {
+    indices_of_shape_operands = dense<[1, 2]> : tensor<2xi64>
+  } : (tensor<4xf32>, tensor<2xi64>, tensor<2xi64>) -> (tensor<1x2xf32>, tensor<1x2xf32>)
+  return %1#0, %1#1 : tensor<1x2xf32>, tensor<1x2xf32>
 }
 
 // -----
