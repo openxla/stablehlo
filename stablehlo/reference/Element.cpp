@@ -599,6 +599,12 @@ Element imag(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
+bool isFinite(const Element &el) {
+  if (isSupportedFloatType(el.getType())) return el.getFloatValue().isFinite();
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(el.getType()).c_str()));
+}
+
 Element cosine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::cos(e); },

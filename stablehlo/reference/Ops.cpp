@@ -162,6 +162,11 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto isFiniteOp = dyn_cast<IsFiniteOp>(op)) {
+      Tensor runtimeOperand = scope.find(isFiniteOp.getOperand());
+      Tensor runtimeResult =
+          evalIsFiniteOp(runtimeOperand, isFiniteOp.getResult().getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto logOp = dyn_cast<LogOp>(op)) {
       Tensor runtimeOperand = scope.find(logOp.getOperand());
       Tensor runtimeResult = evalLogOp(runtimeOperand, logOp.getType());
@@ -541,6 +546,15 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
                                          debugString(elementType).c_str()));
     }
   }
+  return result;
+}
+
+Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(
+        *it, Element(resultType.getElementType(), isFinite(operand.get(*it))));
+
   return result;
 }
 

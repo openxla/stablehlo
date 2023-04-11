@@ -98,7 +98,7 @@ one of the following tracking labels.
 | imag                     | yes           | yes          | yes            | yes             | yes         |
 | infeed                   | yes           | revisit      | infeasible     | no              | no          |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
-| is_finite                | yes           | yes          | yes            | yes             | no          |
+| is_finite                | yes           | yes          | yes            | yes             | yes         |
 | log                      | yes           | yes          | yes            | yes             | yes         |
 | log_plus_one             | yes           | yes          | yes            | yes             | no          |
 | logistic                 | yes           | yes          | yes            | yes             | yes         |

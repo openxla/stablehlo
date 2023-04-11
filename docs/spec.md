@@ -3055,10 +3055,12 @@ operation from the IEEE-754 specification.
 
 ```mlir
 // Logical values: -Inf, +Inf, NaN, ...
-// %x: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
-%y = "stablehlo.is_finite"(%x) : (tensor<7xf32>) -> tensor<7xi1>
+// %x: [0xFFF0000000000000, 0x7FF0000000000000, 0x7FF8000000000000, -10.0, -0.0, 0.0, 10.0]
+%y = "stablehlo.is_finite"(%x) : (tensor<7xf64) -> tensor<7xi1>
 // %y: [false, false, false, true, true, true, true]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_is_finite.mlir)
 
 ### log
 
