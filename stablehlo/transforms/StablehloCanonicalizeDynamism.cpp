@@ -49,7 +49,7 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
 
     // Discard the indices_of_shape_operands attribute.
     // We rely on the verification logic implemented in getShapeRefinements to
-    // make sure that its value are consistent with the result type.
+    // make sure that its value is consistent with the result types.
     // In the future, when we upgrade indices_of_shape_operands from an
     // experiment to a full-fledged StableHLO feature, this logic will be moved
     // to a proper verifier.
@@ -60,9 +60,9 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     }
 
     // Discard the operands that correspond to indices_of_shape_operands.
-    // Similarly, we rely on the verification logic implemented in
-    // getShapeRefinements to make sure that indices_of_shape_operands is
-    // consistent with these operands.
+    // We rely on the verification logic implemented in getShapeRefinements to
+    // make sure that: 1) these operands are static, 2) the values of these
+    // operands are consistent with the result types.
     SmallVector<Value> newOperands;
     auto resultIndex = 0;
     for (auto& operand : op->getOpOperands()) {
@@ -88,12 +88,16 @@ struct CanonicalizeDynamicBroadcastInDimOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DynamicBroadcastInDimOp op,
                                 PatternRewriter& rewriter) const override {
-    // This pattern ignores and discards the output_dimensions operand as well
-    // as the known_expanding_dimensions and known_nonexpanding_dimensions
-    // attributes. We rely on the verifier to make sure that their values are
-    // consistent with the result type.
+    // This pattern discards the output_dimensions operand as well as the
+    // known_expanding_dimensions and known_nonexpanding_dimensions attributes.
+    // We rely on the verifier to make sure that their values are consistent
+    // with the result type.
     if (!op.getOperand().getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static operand type");
+    SmallVector<int64_t> outputDimensions;
+    if (!succeeded(hlo::matchInts(op.getOutputDimensions(), outputDimensions)))
+      return rewriter.notifyMatchFailure(op,
+                                         "expected static output_dimensions");
     if (!op.getType().cast<ShapedType>().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<BroadcastInDimOp>(
@@ -107,6 +111,8 @@ struct CanonicalizeDynamicConvOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DynamicConvOp op,
                                 PatternRewriter& rewriter) const override {
+    // ConvolutionOp supports dynamic shapes for operands and results, so we
+    // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> padding;
     if (!succeeded(hlo::matchInts(op.getDPadding(), padding)))
       return rewriter.notifyMatchFailure(op, "expected static padding");
@@ -129,12 +135,15 @@ struct CanonicalizeDynamicGatherOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DynamicGatherOp op,
                                 PatternRewriter& rewriter) const override {
+    // GatherOp supports dynamic shapes for operands and results, so we
+    // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> sliceSizes;
     if (!succeeded(hlo::matchInts(op.getSliceSizes(), sliceSizes)))
       return rewriter.notifyMatchFailure(op, "expected static slice_sizes");
     rewriter.replaceOpWithNewOp<GatherOp>(
-        op, op.getOperand(), op.getStartIndices(), op.getDimensionNumbersAttr(),
-        rewriter.getI64TensorAttr(sliceSizes), op.getIndicesAreSortedAttr());
+        op, op.getType(), op.getOperand(), op.getStartIndices(),
+        op.getDimensionNumbersAttr(), rewriter.getI64TensorAttr(sliceSizes),
+        op.getIndicesAreSortedAttr());
     return success();
   }
 };
@@ -144,8 +153,11 @@ struct CanonicalizeDynamicIotaOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DynamicIotaOp op,
                                 PatternRewriter& rewriter) const override {
-    // This pattern ignores and discards the output_shape operand. We rely on
-    // the verifier to make sure that its value is consistent with result type.
+    // This pattern discards the output_shape operand. We rely on the verifier
+    // to make sure that its value is consistent with result type.
+    SmallVector<int64_t> outputShape;
+    if (!succeeded(hlo::matchInts(op.getOutputShape(), outputShape)))
+      return rewriter.notifyMatchFailure(op, "expected static output_shape");
     if (!op.getType().cast<ShapedType>().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<IotaOp>(op, op.getType(),
@@ -158,6 +170,8 @@ struct CanonicalizeDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DynamicPadOp op,
                                 PatternRewriter& rewriter) const override {
+    // PadOp supports dynamic shapes for operands and results, so we
+    // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> edgePaddingLow, edgePaddingHigh, interiorPadding;
     if (!succeeded(hlo::matchInts(op.getEdgePaddingLow(), edgePaddingLow)))
       return rewriter.notifyMatchFailure(op, "expected static low");
@@ -166,7 +180,7 @@ struct CanonicalizeDynamicPadOpPattern : public OpRewritePattern<DynamicPadOp> {
     if (!succeeded(hlo::matchInts(op.getInteriorPadding(), interiorPadding)))
       return rewriter.notifyMatchFailure(op, "expected static interior");
     rewriter.replaceOpWithNewOp<PadOp>(
-        op, op.getOperand(), op.getPaddingValue(),
+        op, op.getType(), op.getOperand(), op.getPaddingValue(),
         rewriter.getI64TensorAttr(edgePaddingLow),
         rewriter.getI64TensorAttr(edgePaddingHigh),
         rewriter.getI64TensorAttr(interiorPadding));
@@ -181,6 +195,9 @@ struct CanonicalizeDynamicReshapeOpPattern
                                 PatternRewriter& rewriter) const override {
     // This pattern ignores and discards the output_shape operand. We rely on
     // the verifier to make sure that its value is consistent with result type.
+    SmallVector<int64_t> outputShape;
+    if (!succeeded(hlo::matchInts(op.getOutputShape(), outputShape)))
+      return rewriter.notifyMatchFailure(op, "expected static output_shape");
     if (!op.getType().cast<ShapedType>().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), op.getOperand());
@@ -193,6 +210,9 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
                                 PatternRewriter& rewriter) const override {
+    // DynamicSliceOp supports dynamic shapes for operands and results, so we
+    // don't check for that here unlike in some other patterns in this pass.
+
     // This rewrite only works for unit strides because DynamicSliceOp
     // doesn't support strides (i.e. it implicitly has unit strides).
     SmallVector<int64_t> strides;
@@ -227,19 +247,21 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
     // Adapt accordingly in order to be compatible with DynamicSliceOp.
     SmallVector<Value> startIndices;
     for (auto i = 0; i < static_cast<int64_t>(sliceSizes.size()); ++i) {
+      auto startIndexElementType =
+          op.getStartIndices().getType().cast<ShapedType>().getElementType();
+      auto startIndex1DType = RankedTensorType::get({1}, startIndexElementType);
       auto startIndex1D = rewriter.create<SliceOp>(
-          op.getLoc(), op.getStartIndices(), rewriter.getI64TensorAttr(i),
-          rewriter.getI64TensorAttr(i + 1), rewriter.getI64TensorAttr(1));
-      auto startIndex0DType = RankedTensorType::get(
-          {},
-          op.getStartIndices().getType().cast<ShapedType>().getElementType());
+          op.getLoc(), startIndex1DType, op.getStartIndices(),
+          rewriter.getI64TensorAttr(i), rewriter.getI64TensorAttr(i + 1),
+          rewriter.getI64TensorAttr(1));
+      auto startIndex0DType = RankedTensorType::get({}, startIndexElementType);
       auto startIndex0D = rewriter.create<ReshapeOp>(
           op.getLoc(), startIndex0DType, startIndex1D);
       startIndices.push_back(startIndex0D);
     }
 
     rewriter.replaceOpWithNewOp<DynamicSliceOp>(
-        op, op.getOperand(), startIndices,
+        op, op.getType(), op.getOperand(), startIndices,
         rewriter.getI64TensorAttr(sliceSizes));
     return success();
   }
@@ -250,6 +272,8 @@ struct CanonicalizeRealDynamicSliceOpToSliceOpPattern
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RealDynamicSliceOp op,
                                 PatternRewriter& rewriter) const override {
+    // SliceOp supports dynamic shapes for operands and results, so we
+    // don't check for that here unlike in some other patterns in this pass.
     SmallVector<int64_t> startIndices, limitIndices, strides;
     if (!succeeded(hlo::matchInts(op.getStartIndices(), startIndices)))
       return rewriter.notifyMatchFailure(op, "expected static start");
@@ -258,7 +282,8 @@ struct CanonicalizeRealDynamicSliceOpToSliceOpPattern
     if (!succeeded(hlo::matchInts(op.getStrides(), strides)))
       return rewriter.notifyMatchFailure(op, "expected static strides");
     rewriter.replaceOpWithNewOp<SliceOp>(
-        op, op.getOperand(), rewriter.getI64TensorAttr(startIndices),
+        op, op.getType(), op.getOperand(),
+        rewriter.getI64TensorAttr(startIndices),
         rewriter.getI64TensorAttr(limitIndices),
         rewriter.getI64TensorAttr(strides));
     return success();
