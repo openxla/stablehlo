@@ -226,7 +226,7 @@ OpFoldResult ConstantOp::fold(FoldAdaptor adaptor) {
 // Builds a constant op with the specified attribute `value`.
 void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
                        Attribute value) {
-  Type type;
+  ShapedType type;
   if (auto elemAttr = value.dyn_cast<ElementsAttr>()) {
     type = elemAttr.getType();
   } else if (value.isa<BoolAttr, FloatAttr, IntegerAttr>()) {
@@ -235,12 +235,11 @@ void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
     // need to wrap it up with ElementsAttr to construct valid XLA constants.
     type =
         RankedTensorType::get(/*shape=*/{}, value.cast<TypedAttr>().getType());
-    value = DenseElementsAttr::get(type.cast<TensorType>(), value);
+    value = DenseElementsAttr::get(type, value);
   } else if (auto complexAttr = value.dyn_cast<complex::NumberAttr>()) {
     type = RankedTensorType::get(/*shape=*/{},
                                  complexAttr.cast<TypedAttr>().getType());
-    value =
-        DenseElementsAttr::get(type.cast<TensorType>(), complexAttr.getValue());
+    value = DenseElementsAttr::get(type, complexAttr.getValue());
   }
 
   // TODO: support other XLA specific types.
@@ -260,8 +259,9 @@ LogicalResult ConstantOp::inferReturnTypes(
 
 bool ConstantOp::isCompatibleReturnTypes(TypeRange l, TypeRange r) {
   if (l.size() != r.size() || l.size() != 1) return false;
-  auto lhsTy = l.front().cast<TensorType>();
-  auto rhsTy = r.front().cast<TensorType>();
+  auto lhsTy = l.front().dyn_cast<ShapedType>();
+  auto rhsTy = r.front().dyn_cast<ShapedType>();
+  if (!lhsTy || !rhsTy) return false;
   // For comparisons of the uniform quantized element based tensor type, use the
   // storage type since the constant value will be stored through the underlying
   // storage type.
@@ -359,11 +359,11 @@ LogicalResult CustomCallOp::verify() {
         if (type.isa<TupleType>())
           return emitOpError() << "Tuple types are not fully supported with "
                                   "layout constraints yet";
-        auto tensorType = type.dyn_cast<TensorType>();
+        auto shapedType = type.dyn_cast<ShapedType>();
 
         // For non-tensor types such as !stablehlo.token, the layout should be
         // empty.
-        if (!tensorType) {
+        if (!shapedType) {
           if (layout.empty()) continue;
           return emitOpError()
                  << "Only tensor types can have non-empty layout: " << valueName
@@ -373,18 +373,18 @@ LogicalResult CustomCallOp::verify() {
 
         // For unranked tensors, we cannot verify the compatibility with layout
         // any further.
-        if (!tensorType.hasRank()) continue;
+        if (!shapedType.hasRank()) continue;
 
         // Layout must be a permutation of [0, N) where N is the rank of the
         // tensor type.
-        std::vector<int64_t> range(tensorType.getRank());
+        std::vector<int64_t> range(shapedType.getRank());
         std::iota(range.begin(), range.end(), 0);
-        if (tensorType.getRank() != layout.size() ||
+        if (shapedType.getRank() != layout.size() ||
             !std::is_permutation(range.begin(), range.end(), layout.begin()))
           return emitOpError()
                  << "incorrect layout " << layout << " for type " << type
                  << ", layout must be a permutation of [0, "
-                 << tensorType.getRank() << ")";
+                 << shapedType.getRank() << ")";
       }
       return success();
     };
@@ -552,8 +552,8 @@ LogicalResult DotGeneralOp::verify() {
 LogicalResult DotGeneralOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
     SmallVectorImpl<Value>& reifiedReturnShapes) {
-  auto lhsType = getLhs().getType().cast<ShapedType>();
-  auto rhsType = getRhs().getType().cast<ShapedType>();
+  auto lhsType = getLhs().getType();
+  auto rhsType = getRhs().getType();
   if (!lhsType.hasRank() || !rhsType.hasRank()) return failure();
 
   Adaptor adaptor(operands);
@@ -1465,7 +1465,7 @@ static bool isEligibleForCompactPrint(ReduceOp op) {
   if (op.getInputs().empty()) return false;
 
   auto elemType =
-      op.getInputs()[0].getType().cast<TensorType>().getElementType();
+      op.getInputs()[0].getType().cast<ShapedType>().getElementType();
   auto expectedInnerOpType = RankedTensorType::get(/*shape=*/{}, elemType);
   if (innerOp.getOperands()[0].getType() != expectedInnerOpType) return false;
 
@@ -3348,8 +3348,8 @@ static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
   Block* block = builder->createBlock(body);
   // Add two arguments for each element type.
   for (Type elementType : elementTypes) {
-    TensorType tensorType = RankedTensorType::get({}, elementType);
-    block->addArguments({tensorType, tensorType},
+    ShapedType shapedType = RankedTensorType::get({}, elementType);
+    block->addArguments({shapedType, shapedType},
                         SmallVector<Location, 2>(2, loc));
   }
 

@@ -147,11 +147,11 @@ LogicalResult deriveShapeFromOperand(
   return success();
 }
 
-TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
-  if (auto rankedTensorTy = tensorType.dyn_cast<RankedTensorType>())
+ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType) {
+  if (auto rankedTensorTy = shapedType.dyn_cast<RankedTensorType>())
     return RankedTensorType::get(rankedTensorTy.getShape(), elementType,
                                  rankedTensorTy.getEncoding());
-  if (auto unrankedTensorTy = tensorType.dyn_cast<UnrankedTensorType>())
+  if (auto unrankedTensorTy = shapedType.dyn_cast<UnrankedTensorType>())
     return UnrankedTensorType::get(elementType);
   llvm::report_fatal_error("unsupported type");
 }
@@ -159,7 +159,7 @@ TensorType getSameShapeTensorType(TensorType tensorType, Type elementType) {
 // createRealType takes a tensor type that may have complex elements and
 // returns a type that maintains the shape, but with real numeric data types.
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
-Type createRealType(TensorType type) {
+ShapedType createRealType(ShapedType type) {
   auto elementTy = type.getElementType();
   if (auto complexTy = elementTy.dyn_cast<ComplexType>())
     elementTy = complexTy.getElementType();
@@ -314,7 +314,7 @@ FailureOr<std::pair<int64_t, int64_t>> inferLeastSpecificDimAndBound(
   return std::make_pair(inferredSize, inferredBound);
 }
 
-FailureOr<TensorType> inferTypeWithCustomFn(
+FailureOr<ShapedType> inferTypeWithCustomFn(
     std::optional<Location> location, SmallVector<RankedTensorType> rankedTypes,
     std::function<FailureOr<std::pair<int64_t, int64_t>>(
         std::optional<Location>, int64_t, int64_t, int64_t, int64_t, int64_t)>
@@ -348,14 +348,14 @@ FailureOr<TensorType> inferTypeWithCustomFn(
     }
   }
 
-  return RankedTensorType::get(
+  return {RankedTensorType::get(
       inferredSizes, rankedTypes[0].getElementType(),
       boundsToEncoding(
           rankedTypes[0].getEncoding(),
           // Empty array as argument is an indicator to boundsToEncoding() that
           // there are no bounds at all in inputs, thus sparsity attributes will
           // be included in the return type
-          anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})));
+          anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})))};
 }
 
 FailureOr<Type> inferLeastSpecificType(std::optional<Location> location,

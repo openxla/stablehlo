@@ -98,7 +98,7 @@ struct CanonicalizeDynamicBroadcastInDimOpPattern
     if (!succeeded(hlo::matchInts(op.getOutputDimensions(), outputDimensions)))
       return rewriter.notifyMatchFailure(op,
                                          "expected static output_dimensions");
-    if (!op.getType().cast<ShapedType>().hasStaticShape())
+    if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<BroadcastInDimOp>(
         op, op.getType(), op.getOperand(), op.getBroadcastDimensions());
@@ -158,7 +158,7 @@ struct CanonicalizeDynamicIotaOpPattern
     SmallVector<int64_t> outputShape;
     if (!succeeded(hlo::matchInts(op.getOutputShape(), outputShape)))
       return rewriter.notifyMatchFailure(op, "expected static output_shape");
-    if (!op.getType().cast<ShapedType>().hasStaticShape())
+    if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<IotaOp>(op, op.getType(),
                                         op.getIotaDimension());
@@ -198,7 +198,7 @@ struct CanonicalizeDynamicReshapeOpPattern
     SmallVector<int64_t> outputShape;
     if (!succeeded(hlo::matchInts(op.getOutputShape(), outputShape)))
       return rewriter.notifyMatchFailure(op, "expected static output_shape");
-    if (!op.getType().cast<ShapedType>().hasStaticShape())
+    if (!op.getType().hasStaticShape())
       return rewriter.notifyMatchFailure(op, "expected static result type");
     rewriter.replaceOpWithNewOp<ReshapeOp>(op, op.getType(), op.getOperand());
     return success();
@@ -248,7 +248,7 @@ struct CanonicalizeRealDynamicSliceOpToDynamicSliceOpPattern
     SmallVector<Value> startIndices;
     for (auto i = 0; i < static_cast<int64_t>(sliceSizes.size()); ++i) {
       auto startIndexElementType =
-          op.getStartIndices().getType().cast<ShapedType>().getElementType();
+          op.getStartIndices().getType().getElementType();
       auto startIndex1DType = RankedTensorType::get({1}, startIndexElementType);
       auto startIndex1D = rewriter.create<SliceOp>(
           op.getLoc(), startIndex1DType, op.getStartIndices(),

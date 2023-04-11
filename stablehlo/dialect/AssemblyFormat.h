@@ -148,8 +148,8 @@ ParseResult parseVariadicOperandWithAttribute(
 //    %0 : tensor<4xcomplex<f32>>
 //    %1 : tensor<4xf32>
 //    %2 : tensor<4xf32>
-void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
-                        Type result);
+void printComplexOpType(OpAsmPrinter& p, Operation* op, ShapedType lhs,
+                        ShapedType rhs, ShapedType result);
 
 ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
                                Type& result);
@@ -163,8 +163,9 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
 //    %1 : tensor<2xi32>
 //    %2 : tensor<2xi32>
 //    %3 : tensor<2xi32>
-void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
-                       Type onFalse, Type result);
+void printSelectOpType(OpAsmPrinter& p, Operation* op, ShapedType pred,
+                       ShapedType onTrue, ShapedType onFalse,
+                       ShapedType result);
 
 ParseResult parseSelectOpType(OpAsmParser& parser, Type& pred, Type& onTrue,
                               Type& onFalse, Type& result);
