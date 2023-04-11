@@ -163,14 +163,6 @@ SmallVector<Tensor> eval(
           evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
       scope.add(op.getResults(), {runtimeResult});
     } else if (auto isFiniteOp = dyn_cast<IsFiniteOp>(op)) {
-      llvm::dbgs() << "isFiniteOp.getType(): ";
-      isFiniteOp.getType().print(llvm::dbgs());
-      llvm::dbgs() << "\n";
-      llvm::dbgs().flush();
-      llvm::dbgs() << "isFiniteOp.getResult().getType(): ";
-      isFiniteOp.getResult().getType().print(llvm::dbgs());
-      llvm::dbgs() << "\n";
-      llvm::dbgs().flush();
       Tensor runtimeOperand = scope.find(isFiniteOp.getOperand());
       Tensor runtimeResult =
           evalIsFiniteOp(runtimeOperand, isFiniteOp.getResult().getType());
@@ -559,10 +551,10 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
 
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    bool isFiniteRetVal = is_finite(operand.get(*it));
-    result.set(*it, Element(resultType.getElementType(), isFiniteRetVal));
-  }
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(
+        *it, Element(resultType.getElementType(), isFinite(operand.get(*it))));
+
   return result;
 }
 

@@ -599,11 +599,8 @@ Element imag(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-bool is_finite(const Element &el) {
-  if (isSupportedFloatType(el.getType())) {
-    auto elVal = el.getFloatValue();
-    return elVal.isFinite();
-  }
+bool isFinite(const Element &el) {
+  if (isSupportedFloatType(el.getType())) return el.getFloatValue().isFinite();
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(el.getType()).c_str()));
 }

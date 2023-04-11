@@ -376,6 +376,7 @@ def StableHLO_ImagOp: StableHLO_UnaryElementwiseOp<"imag",
 
 def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
     DeclareOpInterfaceMethods<InferTypeOpInterface>], HLO_Tensor> {
+    /*is_finite_c1*/
   let summary = "IsFinite operation";
   let description = [{
     Performs element-wise check whether the value in `x` is finite (i.e. is
@@ -386,10 +387,10 @@ def StableHLO_IsFiniteOp: StableHLO_UnaryElementwiseOp<"is_finite", [Pure,
 
     Example:
     ```mlir
-    %y = stablehlo.is_finite %x : (tensor<7xf32>) -> tensor<7xi1>
+    %y = stablehlo.is_finite %x : (tensor<7xf64>) -> tensor<7xi1>
     ```
   }];
-  let arguments = (ins HLO_FpTensor:$x);
+  let arguments = (ins HLO_FpTensor:$x); /*is_finite_i1*/
   let results = (outs HLO_PredTensor:$y);
 
   let assemblyFormat = [{
