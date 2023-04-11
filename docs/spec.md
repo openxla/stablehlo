@@ -3060,6 +3060,8 @@ operation from the IEEE-754 specification.
 // %y: [false, false, false, true, true, true, true]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_is_finite.mlir)
+
 ### log
 
 #### Semantics
