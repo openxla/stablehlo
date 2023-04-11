@@ -152,11 +152,12 @@ following constraints:
 * (C4) `min_value(storage_type) <= storage_min < storage_max <= max_value(storage_type)`.
 * (C5) For all `i`, `type(scales[i]) = expressed_type`.
 * (C6) For all `i`, `scales[i] > 0`.
-* (C7) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
-* (C8) For all `i`, `type(zero_points[i]) = storage_type`.
-* (C9) `size(scales) = size(zero_points)`.
-* (C10) If `quantization_dimension` is empty, then `size(scales) = 1`.
-* (C11) If `quantization_dimension` is not empty, then
+* (C7) For all `i`, `is_finite(scales[i]) = true`.
+* (C8) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
+* (C9) For all `i`, `type(zero_points[i]) = storage_type`.
+* (C10) `size(scales) = size(zero_points)`.
+* (C11) If `quantization_dimension` is empty, then `size(scales) = 1`.
+* (C12) If `quantization_dimension` is not empty, then
   `0 <= quantization_dimension`.
 
 **Quantized tensor types** represent tensors with quantized elements. These
