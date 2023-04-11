@@ -778,6 +778,11 @@ Element sign(const Element &el) {
                      std::complex<APFloat>(APFloat::getNaN(elSemantics),
                                            APFloat::getZero(elSemantics)));
 
+    if (elVal.real().isZero() && elVal.imag().isZero())
+      return Element(type,
+                     std::complex<APFloat>(APFloat::getZero(elSemantics),
+                                           APFloat::getZero(elSemantics)));
+
     auto absElValDouble = abs(el).getFloatValue().convertToDouble();
     bool roundingErr;
 
