@@ -717,14 +717,14 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
   return result;
 }
 
-Tensor evalSignOp(const Tensor &operand, TensorType resultType) {
+Tensor evalSignOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sign(operand.get(*it)));
   return result;
 }
 
-Tensor evalSineOp(const Tensor &operand, TensorType resultType) {
+Tensor evalSineOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, sine(operand.get(*it)));
