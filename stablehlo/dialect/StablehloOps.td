@@ -575,8 +575,8 @@ def StableHLO_RsqrtOp: StableHLO_UnaryElementwiseOp<"rsqrt", [Pure,
 }
 
 def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
-    [Pure, HLO_CompatibleOperandsAndResultType],
-    TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]>> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*sign_c1*/],
+    TensorOf<[HLO_SInt, HLO_Float, HLO_Complex]> /*sign_i1*/> { /*sign_c1*/
   let summary = "Sign operation";
   let description = [{
     Returns the sign of the `operand` element-wise and produces a `result`
@@ -587,7 +587,7 @@ def StableHLO_SignOp: StableHLO_UnaryElementwiseOp<"sign",
 
     Example:
     ```mlir
-    %result = stablehlo.sign %operand : tensor<7xf32>
+    %result = stablehlo.sign %operand : tensor<5xf64>
     ```
   }];
 }

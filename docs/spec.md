@@ -5032,10 +5032,11 @@ def sign(x):
 #### Examples
 
 ```mlir
-// Logical values: -Inf, +Inf, NaN, ...
-// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, -10.0, -0.0, 0.0, 10.0]
-%result = "stablehlo.sign"(%operand) : (tensor<7xf32>) -> tensor<7xf32>
-// %result: [-1.0, 1.0, 0x7FFFFFFF, -1.0, -0.0, 0.0, 1.0]
+// Logical values: +NaN, -1.0, -0.0, +0.0, 1.0
+// operand: [0x7FFFFFFFFFFFFFFF, -1.0, -0.0, 0.0, 1.0]
+%result = "stablehlo.sign"(%operand) : (tensor<5xf64>) -> tensor<5xf64>
+// Logical values: +NaN, -1.0, -0.0, +0.0, 1.0
+// %result: [0x7FFFFFFFFFFFFFFF, -1.0, -0.0, 0.0, 1.0]
 ```
 
 &nbsp;[More Examples](../stablehlo/tests/interpret_sign.mlir)

@@ -752,13 +752,12 @@ Element sign(const Element &el) {
 
   if (isSupportedIntegerType(type)) {
     auto intEl = el.getIntegerValue();
-    if (intEl.isZero()) {
+    if (intEl.isZero())
       return Element(type, (int64_t)0);
-    } else if (intEl.isNegative()) {
+    else if (intEl.isNegative())
       return Element(type, (int64_t)-1);
-    } else {
+    else
       return Element(type, (int64_t)1);
-    }
   }
 
   if (isSupportedFloatType(type)) {
@@ -766,20 +765,19 @@ Element sign(const Element &el) {
 
     if (elVal.isNaN()) {
       return Element(el);
-    } else {
-      if (elVal.isNegZero()) {
-        return Element(type, (double)-0.0);
-      } else if (elVal.isPosZero()) {
-        return Element(type, (double)+0.0);
-      } else if (elVal.isNegInfinity()) {
-        return Element(type, (double)-1.0);
-      } else if (elVal.isPosInfinity()) {
-        return Element(type, (double)+1.0);
-      } else if (elVal.isNegative()) {
-        return Element(type, (double)-1.0);
-      } else if (!elVal.isNegative()) {
-        return Element(type, (double)+1.0);
-      }
+    }
+    if (elVal.isNegZero()) {
+      return Element(type, (double)-0.0);
+    } else if (elVal.isPosZero()) {
+      return Element(type, (double)+0.0);
+    } else if (elVal.isNegInfinity()) {
+      return Element(type, (double)-1.0);
+    } else if (elVal.isPosInfinity()) {
+      return Element(type, (double)+1.0);
+    } else if (elVal.isNegative()) {
+      return Element(type, (double)-1.0);
+    } else if (!elVal.isNegative()) {
+      return Element(type, (double)+1.0);
     }
   }
 
@@ -790,23 +788,19 @@ Element sign(const Element &el) {
       return Element(type,
                      std::complex<APFloat>(APFloat::getNaN(elSemantics),
                                            APFloat::getZero(elSemantics)));
-    } else {
-      auto absElValDouble = abs(el).getFloatValue().convertToDouble();
-      auto signVal =
-          std::complex<double>(elVal.real().convertToDouble() / absElValDouble,
-                               elVal.imag().convertToDouble() / absElValDouble);
-
-      bool roundingErr;
-      APFloat resultReal(signVal.real());
-      resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven,
-                         &roundingErr);
-      APFloat resultImag(signVal.imag());
-      resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven,
-                         &roundingErr);
-      auto retVal =
-          Element(type, std::complex<APFloat>(resultReal, resultImag));
-      return retVal;
     }
+    auto absElValDouble = abs(el).getFloatValue().convertToDouble();
+    auto signVal =
+        std::complex<double>(elVal.real().convertToDouble() / absElValDouble,
+                             elVal.imag().convertToDouble() / absElValDouble);
+
+    bool roundingErr;
+    APFloat resultReal(signVal.real());
+    resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    APFloat resultImag(signVal.imag());
+    resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
+    auto retVal = Element(type, std::complex<APFloat>(resultReal, resultImag));
+    return retVal;
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
