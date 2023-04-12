@@ -264,8 +264,8 @@ std::complex<APFloat> Element::getComplexValue() const {
 }
 
 Element Element::operator!() const {
-  return Element(mlir::Builder(this->getType().getContext()).getI1Type(),
-                 !this->getBooleanValue());
+  return Element(IntegerType::get(getType().getContext(), 1),
+                 !getBooleanValue());
 }
 
 Element Element::operator!=(const Element &other) const {
@@ -386,7 +386,7 @@ Element Element::operator/(const Element &other) const {
 
 Element Element::operator<(const Element &other) const {
   Type type = other.getType();
-  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
+  auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -422,7 +422,7 @@ Element Element::operator<=(const Element &other) const {
 
 Element Element::operator==(const Element &other) const {
   Type type = other.getType();
-  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
+  auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -459,7 +459,7 @@ Element Element::operator==(const Element &other) const {
 
 Element Element::operator>(const Element &other) const {
   Type type = other.getType();
-  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
+  auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -520,8 +520,8 @@ Element Element::operator|(const Element &other) const {
 }
 
 Element Element::operator||(const Element &other) const {
-  return Element(mlir::Builder(this->getType().getContext()).getI1Type(),
-                 this->getBooleanValue() || other.getBooleanValue());
+  return Element(IntegerType::get(getType().getContext(), 1),
+                 getBooleanValue() || other.getBooleanValue());
 }
 
 Element Element::operator~() const {
@@ -562,7 +562,7 @@ Element abs(const Element &el) {
 
 Element areApproximatelyEqual(const Element &e1, const Element &e2) {
   Type type = e1.getType();
-  auto i1Type = mlir::Builder(e1.getType().getContext()).getI1Type();
+  auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type).c_str(),
@@ -620,7 +620,7 @@ Element imag(const Element &el) {
 
 Element isFinite(const Element &el) {
   if (isSupportedFloatType(el.getType()))
-    return Element(mlir::Builder(el.getType().getContext()).getI1Type(),
+    return Element(IntegerType::get(el.getType().getContext(), 1),
                    el.getFloatValue().isFinite());
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(el.getType()).c_str()));
