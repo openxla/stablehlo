@@ -388,28 +388,26 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
   }
 
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    bool resultElement;
     switch (comparisonDirection) {
       case ComparisonDirection::EQ:
-        resultElement = lhs.get(*it) == rhs.get(*it);
+        result.set(*it, lhs.get(*it) == rhs.get(*it));
         break;
       case ComparisonDirection::NE:
-        resultElement = lhs.get(*it) != rhs.get(*it);
+        result.set(*it, lhs.get(*it) != rhs.get(*it));
         break;
       case ComparisonDirection::GE:
-        resultElement = lhs.get(*it) >= rhs.get(*it);
+        result.set(*it, lhs.get(*it) >= rhs.get(*it));
         break;
       case ComparisonDirection::GT:
-        resultElement = lhs.get(*it) > rhs.get(*it);
+        result.set(*it, lhs.get(*it) > rhs.get(*it));
         break;
       case ComparisonDirection::LE:
-        resultElement = lhs.get(*it) <= rhs.get(*it);
+        result.set(*it, lhs.get(*it) <= rhs.get(*it));
         break;
       case ComparisonDirection::LT:
-        resultElement = lhs.get(*it) < rhs.get(*it);
+        result.set(*it, lhs.get(*it) < rhs.get(*it));
         break;
     }
-    result.set(*it, Element(resultType.getElementType(), resultElement));
   }
   return result;
 }
@@ -552,9 +550,7 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(
-        *it, Element(resultType.getElementType(), isFinite(operand.get(*it))));
-
+    result.set(*it, isFinite(operand.get(*it)));
   return result;
 }
 

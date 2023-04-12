@@ -263,7 +263,12 @@ std::complex<APFloat> Element::getComplexValue() const {
   return std::complex<APFloat>(floatPair.first, floatPair.second);
 }
 
-bool Element::operator!=(const Element &other) const {
+Element Element::operator!() const {
+  return Element(mlir::Builder(this->getType().getContext()).getI1Type(),
+                 !this->getBooleanValue());
+}
+
+Element Element::operator!=(const Element &other) const {
   return !(*this == other);
 }
 
@@ -379,8 +384,9 @@ Element Element::operator/(const Element &other) const {
                                      debugString(type).c_str()));
 }
 
-bool Element::operator<(const Element &other) const {
+Element Element::operator<(const Element &other) const {
   Type type = other.getType();
+  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -389,32 +395,34 @@ bool Element::operator<(const Element &other) const {
   if (isSupportedIntegerType(type)) {
     auto intLhs = getIntegerValue();
     auto intRhs = other.getIntegerValue();
-    return isSupportedSignedIntegerType(type) ? intLhs.slt(intRhs)
-                                              : intLhs.ult(intRhs);
+    return isSupportedSignedIntegerType(type)
+               ? Element(i1Type, intLhs.slt(intRhs))
+               : Element(i1Type, intLhs.ult(intRhs));
   }
 
   if (isSupportedBooleanType(type)) {
     auto boolLhs = getBooleanValue();
     auto boolRhs = other.getBooleanValue();
-    return boolLhs < boolRhs;
+    return Element(i1Type, boolLhs < boolRhs);
   }
 
   if (isSupportedFloatType(type)) {
     auto floatLhs = getFloatValue();
     auto floatRhs = other.getFloatValue();
-    return floatLhs < floatRhs;
+    return Element(i1Type, floatLhs < floatRhs);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
-bool Element::operator<=(const Element &other) const {
+Element Element::operator<=(const Element &other) const {
   return (*this < other) || (*this == other);
 }
 
-bool Element::operator==(const Element &other) const {
+Element Element::operator==(const Element &other) const {
   Type type = other.getType();
+  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -423,34 +431,35 @@ bool Element::operator==(const Element &other) const {
   if (isSupportedIntegerType(type)) {
     auto intLhs = getIntegerValue();
     auto intRhs = other.getIntegerValue();
-    return intLhs == intRhs;
+    return Element(i1Type, intLhs == intRhs);
   }
 
   if (isSupportedBooleanType(type)) {
     auto boolLhs = getBooleanValue();
     auto boolRhs = other.getBooleanValue();
-    return boolLhs == boolRhs;
+    return Element(i1Type, boolLhs == boolRhs);
   }
 
   if (isSupportedFloatType(type)) {
     auto floatLhs = getFloatValue();
     auto floatRhs = other.getFloatValue();
-    return floatLhs == floatRhs;
+    return Element(i1Type, floatLhs == floatRhs);
   }
 
   if (isSupportedComplexType(type)) {
     auto complexLhs = getComplexValue();
     auto complexRhs = other.getComplexValue();
-    return complexLhs.real() == complexRhs.real() &&
-           complexLhs.imag() == complexRhs.imag();
+    return Element(i1Type, complexLhs.real() == complexRhs.real() &&
+                               complexLhs.imag() == complexRhs.imag());
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
-bool Element::operator>(const Element &other) const {
+Element Element::operator>(const Element &other) const {
   Type type = other.getType();
+  auto i1Type = mlir::Builder(this->getType().getContext()).getI1Type();
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type_).c_str(),
@@ -459,27 +468,28 @@ bool Element::operator>(const Element &other) const {
   if (isSupportedIntegerType(type)) {
     auto intLhs = getIntegerValue();
     auto intRhs = other.getIntegerValue();
-    return isSupportedSignedIntegerType(type) ? intLhs.sgt(intRhs)
-                                              : intLhs.ugt(intRhs);
+    return isSupportedSignedIntegerType(type)
+               ? Element(i1Type, intLhs.sgt(intRhs))
+               : Element(i1Type, intLhs.ugt(intRhs));
   }
 
   if (isSupportedBooleanType(type)) {
     auto boolLhs = getBooleanValue();
     auto boolRhs = other.getBooleanValue();
-    return boolLhs > boolRhs;
+    return Element(i1Type, boolLhs > boolRhs);
   }
 
   if (isSupportedFloatType(type)) {
     auto floatLhs = getFloatValue();
     auto floatRhs = other.getFloatValue();
-    return floatLhs > floatRhs;
+    return Element(i1Type, floatLhs > floatRhs);
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
-bool Element::operator>=(const Element &other) const {
+Element Element::operator>=(const Element &other) const {
   return (*this > other) || (*this == other);
 }
 
@@ -507,6 +517,11 @@ Element Element::operator|(const Element &other) const {
          std::complex<APFloat> rhs) -> std::complex<APFloat> {
         llvm::report_fatal_error("complex | complex is unsupported");
       });
+}
+
+Element Element::operator||(const Element &other) const {
+  return Element(mlir::Builder(this->getType().getContext()).getI1Type(),
+                 this->getBooleanValue() || other.getBooleanValue());
 }
 
 Element Element::operator~() const {
@@ -545,21 +560,25 @@ Element abs(const Element &el) {
                                      debugString(type).c_str()));
 }
 
-bool areApproximatelyEqual(const Element &e1, const Element &e2) {
+Element areApproximatelyEqual(const Element &e1, const Element &e2) {
   Type type = e1.getType();
+  auto i1Type = mlir::Builder(e1.getType().getContext()).getI1Type();
   if (type != e2.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(type).c_str(),
                                        debugString(e2.getType()).c_str()));
 
   if (isSupportedFloatType(type))
-    return areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue());
+    return Element(
+        i1Type, areApproximatelyEqual(e1.getFloatValue(), e2.getFloatValue()));
 
   if (isSupportedComplexType(type)) {
     auto complexLhs = e1.getComplexValue();
     auto complexRhs = e2.getComplexValue();
-    return areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
-           areApproximatelyEqual(complexLhs.imag(), complexRhs.imag());
+    return Element(
+        i1Type,
+        areApproximatelyEqual(complexLhs.real(), complexRhs.real()) &&
+            areApproximatelyEqual(complexLhs.imag(), complexRhs.imag()));
   }
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
@@ -599,8 +618,10 @@ Element imag(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-bool isFinite(const Element &el) {
-  if (isSupportedFloatType(el.getType())) return el.getFloatValue().isFinite();
+Element isFinite(const Element &el) {
+  if (isSupportedFloatType(el.getType()))
+    return Element(mlir::Builder(el.getType().getContext()).getI1Type(),
+                   el.getFloatValue().isFinite());
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(el.getType()).c_str()));
 }
