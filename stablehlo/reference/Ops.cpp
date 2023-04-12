@@ -541,19 +541,20 @@ Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
       evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
   auto epsilonBroadcast = evalBroadcastInDimOp(
       makeTensor(DenseElementsAttr::get(
-          RankedTensorType::get({}, FloatType::getF32(resultType.getContext())),
-          {epsilon})),
+          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
       {}, operand.getType());
 
-  auto centeredOperand = evalSubtractOp(operand, meanBroadcast, resultType);
+  auto centeredOperand =
+      evalSubtractOp(operand, meanBroadcast, operand.getType());
   auto standardDeviation = evalSqrtOp(
-      evalAddOp(varianceBroadcast, epsilonBroadcast, resultType), resultType);
+      evalAddOp(varianceBroadcast, epsilonBroadcast, operand.getType()),
+      operand.getType());
   auto normalizedOperand =
-      evalDivideOp(centeredOperand, standardDeviation, resultType);
+      evalDivideOp(centeredOperand, standardDeviation, operand.getType());
 
   return evalAddOp(
-      evalMultiplyOp(scaleBroadcast, normalizedOperand, resultType),
-      offsetBroadcast, resultType);
+      evalMultiplyOp(scaleBroadcast, normalizedOperand, operand.getType()),
+      offsetBroadcast, operand.getType());
 }
 
 Tensor evalBroadcastInDimOp(const Tensor &operand,
