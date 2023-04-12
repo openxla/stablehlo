@@ -5027,7 +5027,7 @@ def sign(x):
     if compare(x, +0.0, EQ, FLOAT): return +0.0
     return 1.0
   elif is_complex(x):
-    if x.real is NaN or x.imag is NaN: return NaN
+    if x.real is NaN or x.imag is NaN: return (NaN, NaN)
     return divide(x, abs(x))
 ```
 
