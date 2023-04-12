@@ -5019,20 +5019,16 @@ def sign(x):
   if is_integer(x):
     if compare(x, 0, LT, SIGNED): return -1
     if compare(x, 0, EQ, SIGNED): return 0
-    if compare(x, 0, GT, SIGNED): return 1
+    return 1
   elif is_float(x):
-    if x is NaN:
-      return NaN
-    else:
-      if compare(x, 0.0, LT, FLOAT): return -1.0
-      if compare(x, -0.0, EQ, FLOAT): return -0.0
-      if compare(x, +0.0, EQ, FLOAT): return +0.0
-      if compare(x, 0.0, GT, FLOAT): return 1.0
+    if x is NaN: return NaN
+    if compare(x, 0.0, LT, FLOAT): return -1.0
+    if compare(x, -0.0, EQ, FLOAT): return -0.0
+    if compare(x, +0.0, EQ, FLOAT): return +0.0
+    return 1.0
   elif is_complex(x):
-    if x.real is NaN or x.imag is NaN:
-      return NaN
-    else:
-      return divide(x, abs(x))
+    if x.real is NaN or x.imag is NaN: return NaN
+    return divide(x, abs(x))
 ```
 
 #### Inputs
