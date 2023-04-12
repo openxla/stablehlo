@@ -909,6 +909,8 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 // %result: [0.0, 1.57079637, -1.57079637] // [0.0, pi/2, -pi/2]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_atan2.mlir)
+
 ### batch_norm_grad
 
 #### Semantics

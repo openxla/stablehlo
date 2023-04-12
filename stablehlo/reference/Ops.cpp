@@ -66,6 +66,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeRhs = scope.find(andOp.getRhs());
       Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto atan2Op = dyn_cast<Atan2Op>(op)) {
+      Tensor runtimeLhs = scope.find(atan2Op.getLhs());
+      Tensor runtimeRhs = scope.find(atan2Op.getRhs());
+      Tensor runtimeResult =
+          evalAtan2Op(runtimeLhs, runtimeRhs, atan2Op.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       Tensor runtimeOperand = scope.find(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -325,6 +331,15 @@ Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
     result.set(*it, lhs.get(*it) & rhs.get(*it));
+  return result;
+}
+
+Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
+                   ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, atan2(lhs.get(*resultIt), rhs.get(*resultIt)));
   return result;
 }
 

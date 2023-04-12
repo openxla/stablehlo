@@ -585,6 +585,22 @@ Element areApproximatelyEqual(const Element &e1, const Element &e2) {
                                      debugString(type).c_str()));
 }
 
+Element atan2(const Element &e1, const Element &e2) {
+  auto type = e1.getType();
+  if (isSupportedFloatType(e1.getType()))
+    return Element(type, std::atan2(e1.getFloatValue().convertToDouble(),
+                                    e2.getFloatValue().convertToDouble()));
+
+  if (isSupportedComplexType(type)) {
+    // atan2(y, x) = -i * log((x + i * y) / sqrt(x**2+y**2))
+    auto i = Element(type, std::complex<double>(0.0, 1.0));
+    return -i * log((e2 + i * e1) / sqrt(e2 * e2 + e1 * e1));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);
