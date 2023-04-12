@@ -751,22 +751,19 @@ Element sign(const Element &el) {
   Type type = el.getType();
 
   if (isSupportedIntegerType(type)) {
-    auto intEl = el.getIntegerValue();
-    if (intEl.isZero()) return Element(type, (int64_t)0);
-    if (intEl.isNegative())
-      return Element(type, (int64_t)-1);
-    else
-      return Element(type, (int64_t)1);
+    auto elVal = el.getIntegerValue();
+    if (elVal.isNegative()) return Element(type, (int64_t)-1);
+    if (elVal.isZero()) return Element(type, (int64_t)0);
+    return Element(type, (int64_t)1);
   }
 
   if (isSupportedFloatType(type)) {
     auto elVal = el.getFloatValue();
-
-    if (elVal.isNaN()) return Element(el);
+    if (elVal.isNaN()) return el;
     if (elVal.isNegZero()) return Element(type, (double)-0.0);
-    if (elVal.isPosZero()) return Element(type, (double)0.0);
+    if (elVal.isPosZero()) return Element(type, (double)+0.0);
     if (elVal.isNegative()) return Element(type, (double)-1.0);
-    if (!elVal.isNegative()) return Element(type, (double)1.0);
+    return Element(type, (double)1.0);
   }
 
   if (isSupportedComplexType(type)) {
@@ -774,21 +771,18 @@ Element sign(const Element &el) {
     const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
 
     if (elVal.real().isNaN() || elVal.imag().isNaN())
-      return Element(type,
-                     std::complex<APFloat>(APFloat::getNaN(elSemantics),
-                                           APFloat::getZero(elSemantics)));
+      return Element(type, std::complex<APFloat>(APFloat::getNaN(elSemantics),
+                                                 APFloat::getNaN(elSemantics)));
 
-    if (elVal.real().isZero() && elVal.imag().isZero())
-      return Element(type,
-                     std::complex<APFloat>(APFloat::getZero(elSemantics),
-                                           APFloat::getZero(elSemantics)));
+    auto absElVal = abs(el).getFloatValue();
+    if (absElVal.isZero()) return Element(type, (double)0.0);
 
-    auto absElValDouble = abs(el).getFloatValue().convertToDouble();
     bool roundingErr;
-
-    APFloat resultReal(elVal.real().convertToDouble() / absElValDouble);
+    APFloat resultReal(elVal.real().convertToDouble() /
+                       absElVal.convertToDouble());
     resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    APFloat resultImag(elVal.imag().convertToDouble() / absElValDouble);
+    APFloat resultImag(elVal.imag().convertToDouble() /
+                       absElVal.convertToDouble());
     resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
 
     return Element(type, std::complex<APFloat>(resultReal, resultImag));
