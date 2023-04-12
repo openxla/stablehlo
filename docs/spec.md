@@ -1196,12 +1196,14 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 %result = "stablehlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
-} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+} : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> tensor<2x2x2xf64>
 // %result: [
 //           [[0.0, 0.0], [2.0, 2.0]],
 //           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_inference.mlir)
 
 ### batch_norm_training
 
