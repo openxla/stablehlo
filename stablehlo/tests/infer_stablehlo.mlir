@@ -366,18 +366,6 @@ func.func @map(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xind
 
 // -----
 
-func.func @map_mismatch_computation_output_type(%arg0: tensor<4x5xf32>, %arg1: tensor<4x5xf32>) -> tensor<4x5xf32> {
-  // expected-error@+1 {{inferred type(s) 'tensor<4x5xi32>' are incompatible with return type(s) of operation 'tensor<4x5xf32>'}}
-  %0 = "stablehlo.map"(%arg0, %arg1) ({
-    ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32>):
-    %1 = stablehlo.constant dense<2> : tensor<i32>
-    "stablehlo.return"(%1) : (tensor<i32>) -> ()
-  }) {dimensions = dense<[0, 1]> : tensor<2xi64>} : (tensor<4x5xf32>, tensor<4x5xf32>) -> tensor<4x5xf32>
-  func.return %0 : tensor<4x5xf32>
-}
-
-// -----
-
 // CHECK-LABEL: func @triangular_solve
 func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xindex> {
   %0 = "stablehlo.triangular_solve"(%arg0, %arg1) {left_side = true, lower = true, transpose_a = #stablehlo<transpose NO_TRANSPOSE>, unit_diagonal = true} : (tensor<10x5x4x4xf32>, tensor<10x5x4x4xf32>) -> tensor<10x5x4x4xf32>

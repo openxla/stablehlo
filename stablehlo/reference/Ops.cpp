@@ -579,10 +579,11 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
   for (auto resultIt = inputs[0].index_begin();
        resultIt != inputs[0].index_end(); ++resultIt) {
     SmallVector<Tensor> args;
-    for (size_t i = 0; i < inputs.size(); ++i)
-      args.push_back(
-          Tensor(RankedTensorType::get({}, inputs[i].get(*resultIt).getType()),
-                 inputs[i].get(*resultIt)));
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      auto tensor = Tensor(computation.getArgument(i).getType());
+      tensor.set({}, inputs[i].get(*resultIt));
+      args.push_back(tensor);
+    }
     result.set(*resultIt, eval(computation, args, &scope)[0].get({}));
   }
   return result;

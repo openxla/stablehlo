@@ -2434,6 +2434,7 @@ LogicalResult inferMapOp(
     }
   }
 
+  // map_c4
   if (allInputsUnranked)
     inferredReturnShapes.emplace_back(computationOutputType.getElementType());
   else
