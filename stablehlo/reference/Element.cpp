@@ -774,18 +774,6 @@ Element sign(const Element &el) {
       return Element(type, std::complex<APFloat>(APFloat::getNaN(elSemantics),
                                                  APFloat::getNaN(elSemantics)));
 
-    // auto absElVal = abs(el).getFloatValue();
-    // if (absElVal.isZero()) return Element(type, (double)0.0);
-
-    // bool roundingErr;
-    // APFloat resultReal(elVal.real().convertToDouble() /
-    //                    absElVal.convertToDouble());
-    // resultReal.convert(elSemantics, APFloat::rmNearestTiesToEven,
-    // &roundingErr); APFloat resultImag(elVal.imag().convertToDouble() /
-    //                    absElVal.convertToDouble());
-    // resultImag.convert(elSemantics, APFloat::rmNearestTiesToEven,
-    // &roundingErr);
-
     return el / Element(type, abs(el).getFloatValue().convertToDouble());
   }
 
