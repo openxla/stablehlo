@@ -2375,7 +2375,7 @@ def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
 }
 
 def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
-      [RecursiveMemoryEffects, SameOperandsAndResultShape,
+      [RecursiveMemoryEffects, SameOperandsAndResultShape /*map_c1, map_c2*/,
        SingleBlockImplicitTerminator<"ReturnOp">, InferTensorTypeWithReify]> {
   let summary = "Map operation";
   let description = [{
@@ -2388,19 +2388,19 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
     Example:
     ```mlir
     %result = "stablehlo.map"(%input0, %input1) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = stablehlo.multiply %arg0, %arg1 : tensor<i32>
-        stablehlo.return %0 : tensor<i32>
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.multiply %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       dimensions = dense<[0, 1]> : tensor<2xi64>
-    } : (tensor<2x2xi32>, tensor<2x2xi32>) -> tensor<2x2xi32>
+    } : (tensor<2x2xi64>, tensor<2x2xi64>) -> tensor<2x2xi64>
     ```
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    I64ElementsAttr:$dimensions
+    Variadic<HLO_Tensor>:$inputs /*map_i1*/,
+    I64ElementsAttr:$dimensions /*map_i2*/
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region SizedRegion<1>:$computation /*map_i3*/);
   let results = (outs HLO_Tensor);
 }
 

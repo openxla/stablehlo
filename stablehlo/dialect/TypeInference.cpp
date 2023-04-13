@@ -2353,10 +2353,15 @@ LogicalResult inferMapOp(
     std::optional<Location> location, ValueRange inputs,
     DenseIntElementsAttr dimensions, Region& computation,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // map_i2
+  if (dimensions.getType().getRank() != 1)
+    return emitOptionalError(location,
+                             "dimensions should be rank 1 but got rank ",
+                             dimensions.getType().getRank());
+
   if (failed(verifyRegionNotEmpty(location, computation))) return failure();
 
-  // Checks if the number of `operands` match the arity of the map `computation`
-  // region.
+  // map_c4
   auto& computationBlock = computation.front();
   auto computationArgs = computationBlock.getArguments();
   if (inputs.size() != computationArgs.size())
@@ -2365,8 +2370,7 @@ LogicalResult inferMapOp(
                              "map computation, but got: ",
                              inputs.size(), " and ", computationArgs.size());
 
-  // The parameters of computation should all be scalars and match the element
-  // type of operands.
+  // map_c4
   for (const auto& indexedArg : llvm::enumerate(computationArgs)) {
     auto argType = indexedArg.value().getType().dyn_cast<RankedTensorType>();
     if (!argType || argType.getRank() != 0)
@@ -2386,15 +2390,14 @@ LogicalResult inferMapOp(
                                argType.getElementType());
   }
 
-  // Mapped computation must return single output
+  // map_c4
   auto computationOutputs = computationBlock.getTerminator()->getOperands();
   if (computationOutputs.size() != 1)
     return emitOptionalError(location,
                              "computation must return single output, but got: ",
                              computationOutputs.size());
 
-  // The output of computation must be scalar and have the same element type
-  // as op result.
+  // map_c4
   auto computationOutputType =
       computationOutputs[0].getType().dyn_cast<RankedTensorType>();
   if (!computationOutputType || computationOutputType.getRank() != 0)
@@ -2402,8 +2405,7 @@ LogicalResult inferMapOp(
                              "computation must return 0-rank tensor, but got: ",
                              computationOutputs[0].getType());
 
-  // Checks that the requested map dimension numbers are monotonically
-  // increasing.
+  // map_c3
   for (const auto& indexedValue :
        llvm::enumerate(dimensions.getValues<int64_t>())) {
     if (indexedValue.value() != static_cast<int64_t>(indexedValue.index()))
@@ -2413,9 +2415,7 @@ LogicalResult inferMapOp(
           dimensions);
   }
 
-  // Checks that number of dimensions of operands matches the size of
-  // `dimensions` since we currently only support mapping across all
-  // dimensions: i.e., scalar map functions.
+  // map_c3
   ArrayRef<int64_t> resultShape;
   bool allInputsUnranked = true;
   for (auto operand : inputs) {
@@ -2434,6 +2434,7 @@ LogicalResult inferMapOp(
     }
   }
 
+  // map_c4
   if (allInputsUnranked)
     inferredReturnShapes.emplace_back(computationOutputType.getElementType());
   else
