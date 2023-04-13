@@ -152,7 +152,7 @@ following constraints:
 * (C4) `min_value(storage_type) <= storage_min < storage_max <= max_value(storage_type)`.
 * (C5) For all `i`, `type(scales[i]) = expressed_type`.
 * (C6) For all `i`, `scales[i] > 0`.
-* (C7) For all `i`, `is_finite(scales[i]) = true`.
+* (C7) For all `i`, `is_finite(scales[i])`.
 * (C8) For all `i`, `storage_min <= zero_points[i] <= storage_max`.
 * (C9) For all `i`, `type(zero_points[i]) = storage_type`.
 * (C10) `size(scales) = size(zero_points)`.
