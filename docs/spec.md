@@ -5028,7 +5028,7 @@ def sign(x):
     return 1.0
   elif is_complex(x):
     if x.real is NaN or x.imag is NaN: return (NaN, NaN)
-    return divide(x, abs(x))
+    return divide(x, convert(abs(x), type(x)))
 ```
 
 #### Inputs
