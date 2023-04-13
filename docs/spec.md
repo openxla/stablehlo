@@ -3223,6 +3223,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_log_plus_one.mlir)
+
 ### logistic
 
 #### Semantics

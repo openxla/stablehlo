@@ -418,7 +418,8 @@ def StableHLO_LogOp: StableHLO_UnaryElementwiseOp<"log",
 }
 
 def StableHLO_Log1pOp: StableHLO_UnaryElementwiseOp<"log_plus_one",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*log_plus_one_c1*/],
+	HLO_FpOrComplexTensor /*log_plus_one_i1*/> {
   let summary = "Log1p operation";
   let description = [{
     Performs element-wise logarithm plus one operation on `operand` tensor and
