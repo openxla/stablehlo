@@ -1471,9 +1471,11 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 
 ```mlir
 // %operand: [0.0, 1.0, 8.0, 27.0]
-%result = "stablehlo.cbrt"(%operand) : (tensor<4xf32>) -> tensor<4xf32>
+%result = "stablehlo.cbrt"(%operand) : (tensor<4xf64>) -> tensor<4xf64>
 // %result: [0.0, 1.0, 2.0, 3.0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_cbrt.mlir)
 
 ### ceil
 

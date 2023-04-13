@@ -218,7 +218,8 @@ def StableHLO_AbsOp: StableHLO_UnaryElementwiseOp<"abs",
 }
 
 def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*cbrt_c1*/],
+    HLO_FpOrComplexTensor /*cbrt_i1*/> { /*cbrt_c1*/
   let summary = "Cbrt operation";
   let description = [{
     Performs element-wise cubic root operation on `operand` tensor and produces
@@ -229,7 +230,7 @@ def StableHLO_CbrtOp: StableHLO_UnaryElementwiseOp<"cbrt",
 
     Example:
     ```mlir
-    %result = stablehlo.cbrt %operand : tensor<4xf32>
+    %result = stablehlo.cbrt %operand : tensor<4xf64>
     ```
   }];
 }

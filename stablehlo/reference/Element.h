@@ -150,6 +150,9 @@ Element atan2(const Element &e1, const Element &e2);
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
+/// Returns cube root of Element object.
+Element cbrt(const Element &e);
+
 /// Returns ceil of Element object.
 Element ceil(const Element &e);
 

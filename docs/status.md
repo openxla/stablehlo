@@ -57,7 +57,7 @@ one of the following tracking labels.
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
 | case                     | yes           | revisit      | yes            | no              | yes         |
-| cbrt                     | yes           | yes          | yes            | yes             | no          |
+| cbrt                     | yes           | yes          | yes            | yes             | yes         |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
 | cholesky                 | yes           | yes          | yes            | yes             | no          |
 | clamp                    | yes           | revisit      | yes            | yes             | yes         |
