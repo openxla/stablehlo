@@ -182,6 +182,10 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(logOp.getOperand());
       auto result = evalLogOp(operand, logOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto log1pOp = dyn_cast<Log1pOp>(op)) {
+      auto operand = scope.find(log1pOp.getOperand());
+      auto result = evalLog1pOp(operand, log1pOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto logisticOp = dyn_cast<LogisticOp>(op)) {
       auto operand = scope.find(logisticOp.getOperand());
       auto result = evalLogisticOp(operand, logisticOp.getType());
@@ -620,6 +624,13 @@ Tensor evalLogOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, log(operand.get(*it)));
+  return result;
+}
+
+Tensor evalLog1pOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, log_plus_one(operand.get(*it)));
   return result;
 }
 

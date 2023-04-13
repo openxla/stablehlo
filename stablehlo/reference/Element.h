@@ -175,6 +175,9 @@ Element isFinite(const Element &el);
 /// Returns log of Element object.
 Element log(const Element &el);
 
+/// Returns logp1 of Element object.
+Element log_plus_one(const Element &el);
+
 /// Returns logistic of Element object.
 Element logistic(const Element &el);
 
