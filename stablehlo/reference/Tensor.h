@@ -39,8 +39,8 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
  public:
   /// \name Constructors
   /// @{
-  explicit Buffer(TensorType type);
-  Buffer(TensorType type, AsmResourceBlob blob);
+  explicit Buffer(ShapedType type);
+  Buffer(ShapedType type, AsmResourceBlob blob);
   Buffer(Buffer &&other) = default;
   /// @}
 
@@ -48,7 +48,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   Buffer &operator=(Buffer &&other) = delete;
 
   /// Returns type of the Buffer object.
-  TensorType getType() { return type_; }
+  ShapedType getType() { return type_; }
 
   /// Provides access to the underlying non-mutable storage.
   ArrayRef<char> getData() const { return blob_.getData(); }
@@ -57,7 +57,7 @@ class Buffer : public llvm::RefCountedBase<Buffer> {
   MutableArrayRef<char> getMutableData() { return blob_.getMutableData(); }
 
  private:
-  TensorType type_;
+  ShapedType type_;
   AsmResourceBlob blob_;
 };
 
@@ -70,8 +70,8 @@ class Tensor {
   /// \name Constructors
   /// @{
   Tensor();
-  explicit Tensor(TensorType type);
-  explicit Tensor(TensorType type, AsmResourceBlob blob);
+  explicit Tensor(ShapedType type);
+  explicit Tensor(ShapedType type, AsmResourceBlob blob);
   Tensor(const Tensor &other) = default;
   /// @}
 
@@ -79,7 +79,7 @@ class Tensor {
   Tensor &operator=(const Tensor &other) = default;
 
   /// Returns type of the Tensor object.
-  TensorType getType() const { return impl_->getType(); };
+  ShapedType getType() const { return impl_->getType(); };
 
   /// Returns rank of the Tensor object.
   int64_t getRank() const { return impl_->getType().getRank(); }

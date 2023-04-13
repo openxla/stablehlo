@@ -175,9 +175,9 @@ ParseResult parseVariadicOperandWithAttribute(
 // Operation Printers and Parsers
 //===----------------------------------------------------------------------===//
 
-void printComplexOpType(OpAsmPrinter& p, Operation* op, Type lhs, Type rhs,
-                        Type result) {
-  Type realType = createRealType(result.cast<TensorType>());
+void printComplexOpType(OpAsmPrinter& p, Operation* op, ShapedType lhs,
+                        ShapedType rhs, ShapedType result) {
+  Type realType = createRealType(result);
 
   if (lhs != realType || rhs != realType) {
     p.printFunctionalType(op);
@@ -198,19 +198,20 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
     return assignFromFunctionType(parser, loc, {&lhs, &rhs}, result, fnType);
 
   // Otherwise, operand type is inferred from complex type
-  auto tensorType = type.dyn_cast<TensorType>();
-  if (!tensorType || !tensorType.getElementType().isa<ComplexType>())
+  auto shapedType = type.dyn_cast<ShapedType>();
+  if (!shapedType || !shapedType.getElementType().isa<ComplexType>())
     return parser.emitError(loc, "expected tensor with complex element type");
 
   // Assign LHS and RHS to inferred type
-  Type realType = createRealType(type.cast<TensorType>());
+  Type realType = createRealType(type);
   lhs = rhs = realType;
   result = type;
   return success();
 }
 
-void printSelectOpType(OpAsmPrinter& p, Operation* op, Type pred, Type onTrue,
-                       Type onFalse, Type result) {
+void printSelectOpType(OpAsmPrinter& p, Operation* op, ShapedType pred,
+                       ShapedType onTrue, ShapedType onFalse,
+                       ShapedType result) {
   // Print functional type if true/false branches don't match return type.
   if (onTrue != result || onFalse != result) {
     p.printFunctionalType(op);

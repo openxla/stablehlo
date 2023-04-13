@@ -76,8 +76,11 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Overloaded not (logical) operator.
+  Element operator!() const;
+
   /// Overloaded inequality operator.
-  bool operator!=(const Element &other) const;
+  Element operator!=(const Element &other) const;
 
   /// Overloaded and (bitwise) operator.
   Element operator&(const Element &other) const;
@@ -98,25 +101,28 @@ class Element {
   Element operator/(const Element &other) const;
 
   /// Overloaded less-than operator.
-  bool operator<(const Element &other) const;
+  Element operator<(const Element &other) const;
 
   /// Overloaded less-than-or-equal-to operator.
-  bool operator<=(const Element &other) const;
+  Element operator<=(const Element &other) const;
 
   /// Overloaded equality operator.
-  bool operator==(const Element &other) const;
+  Element operator==(const Element &other) const;
 
   /// Overloaded greater-than operator.
-  bool operator>(const Element &other) const;
+  Element operator>(const Element &other) const;
 
   /// Overloaded greater-than-or-equal-to operator.
-  bool operator>=(const Element &other) const;
+  Element operator>=(const Element &other) const;
 
   /// Overloaded xor (bitwise) operator.
   Element operator^(const Element &other) const;
 
   /// Overloaded or (bitwise) operator.
   Element operator|(const Element &other) const;
+
+  /// Overloaded or (logical) operator.
+  Element operator||(const Element &other) const;
 
   /// Overloaded not (bitwise) operator.
   Element operator~() const;
@@ -139,7 +145,7 @@ Element abs(const Element &e);
 /// within a tolerance given by 0.0001.
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
-bool areApproximatelyEqual(const Element &e1, const Element &e2);
+Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Returns ceil of Element object.
 Element ceil(const Element &e);
@@ -156,6 +162,9 @@ Element floor(const Element &e);
 /// Returns the imaginary part extracted from the Element object with
 /// floating-point or complex type.
 Element imag(const Element &el);
+
+/// Returns if the floating-point element object is finite.
+Element isFinite(const Element &el);
 
 /// Returns log of Element object.
 Element log(const Element &el);

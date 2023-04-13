@@ -141,12 +141,12 @@ LogicalResult deriveShapeFromOperand(
     SmallVectorImpl<Value> *reifiedReturnShapes);
 
 // Type derivation function that returns a tensor type with a new element type.
-TensorType getSameShapeTensorType(TensorType tensorType, Type elementType);
+ShapedType getSameShapeTensorType(ShapedType shapedType, Type elementType);
 
 // Takes a tensor type that may have complex elements and returns a type that
 // maintains the shape, but with real numeric data types.
 //   Ex: tensor<4xcomplex<f32>>  -->  tensor<4xf32>
-Type createRealType(TensorType type);
+ShapedType createRealType(ShapedType type);
 
 // Verify bounds expressed by HLO_BoundedAttrInterface against the provided
 // type. See documentation for HLO_BoundedAttrInterface for the list of checks.
@@ -161,6 +161,16 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding);
 // bounds. Requires a prototype - an existing encoding attribute - to obtain
 // the underlying dialect that knows how to create these attributes.
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
+
+// Get refinements for return types from an indices_of_shape_operands attribute.
+// If the attribute doesn't exist, returns failure.
+// If the attribute exists but is not invalid with respect to the operation,
+// reports an optional error and returns failure.
+// If the attribute is valid but not all shape operands are constants,
+// returns failure.
+LogicalResult getShapeRefinements(
+    std::optional<Location> location, Operation *operation,
+    SmallVector<ShapedTypeComponents> &refinements);
 
 // This interface is implemented by both StableHLO and MHLO dialects
 // and is used as the foundation for sharing verification, type inference and
@@ -295,7 +305,9 @@ class CompatibleOperandsAndResultType
     if (failed(inferReturnTypes(context, location, operands.getValues(),
                                 attributes, regions, inferredReturnTypes)))
       return failure();
-    auto inferredReturnType = inferredReturnTypes[0].cast<ShapedType>();
+    if (inferredReturnTypes.size() != 1) return failure();
+    auto inferredReturnType = inferredReturnTypes[0].dyn_cast<ShapedType>();
+    if (!inferredReturnType) return failure();
     inferredReturnShapes.push_back(inferredReturnType);
     return success();
   }
