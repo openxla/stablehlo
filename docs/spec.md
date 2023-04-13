@@ -1143,7 +1143,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   offset_bcast = broadcast_in_dim(offset, [feature_index], shape(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, type(operand)), [], shape(operand))
 
   # Perform normalization using the provided `mean` and `variance` instead of
   # computing them like `batch_norm_training` does.
