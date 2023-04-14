@@ -621,6 +621,19 @@ Element exponential(const Element &el) {
       [](std::complex<double> e) { return std::exp(e); });
 }
 
+Element exponential_minus_one(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::expm1(e); },
+      [](std::complex<double> e) {
+        // expm1(a+b1) = exp(a+bi) - 1
+        //             = exp(a) * (cos(b) + i sin(b)) - 1
+        //             = (exp(a) * cos(b) - 1) + i (exp(a) * sin(b))
+        return std::complex<double>(
+            (std::exp(e.real()) * std::cos(e.imag())) - 1,
+            std::exp(e.real()) * std::sin(e.imag()));
+      });
+}
+
 Element floor(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);

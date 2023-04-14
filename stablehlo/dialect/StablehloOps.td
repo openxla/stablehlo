@@ -324,7 +324,8 @@ def StableHLO_ExpOp: StableHLO_UnaryElementwiseOp<"exponential",
 }
 
 def StableHLO_Expm1Op: StableHLO_UnaryElementwiseOp<"exponential_minus_one",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType],  /*exponential_minus_one_c1*/
+	HLO_FpOrComplexTensor /*exponential_minus_one_i1*/> {
   let summary = "Expm1 operation";
   let description = [{
     Performs element-wise exponential minus one operation on `operand` tensor

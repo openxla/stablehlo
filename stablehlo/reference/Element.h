@@ -162,6 +162,9 @@ Element cosine(const Element &e);
 /// Returns exponential of Element object.
 Element exponential(const Element &el);
 
+/// Returns exponential_minus_one of Element object.
+Element exponential_minus_one(const Element &el);
+
 /// Returns floor of Element object.
 Element floor(const Element &e);
 

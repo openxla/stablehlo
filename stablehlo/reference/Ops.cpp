@@ -150,6 +150,10 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(expOp.getOperand());
       auto result = evalExponentialOp(operand, expOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto expm1Op = dyn_cast<Expm1Op>(op)) {
+      auto operand = scope.find(expm1Op.getOperand());
+      auto result = evalExpm1Op(operand, expm1Op.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
       auto operand = scope.find(floorOp.getOperand());
       auto result = evalFloorOp(operand, floorOp.getType());
@@ -556,6 +560,13 @@ Tensor evalExponentialOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, exponential(operand.get(*it)));
+  return result;
+}
+
+Tensor evalExpm1Op(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, exponential_minus_one(operand.get(*it)));
   return result;
 }
 
