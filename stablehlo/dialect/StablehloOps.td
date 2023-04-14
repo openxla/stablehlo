@@ -710,7 +710,7 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 
     Example:
     ```mlir
-    %result = stablehlo.atan2 %lhs, %rhs : tensor<3xf32>
+    %result = stablehlo.atan2 %lhs, %rhs : tensor<3xf64>
     ```
   }];
 }
