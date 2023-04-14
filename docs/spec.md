@@ -566,36 +566,23 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * For integers: integer addition.
 * For floats: `addition` from IEEE-754.
 * For complex numbers: complex addition.
-* For quantized types:
-  * `float_result = (lhs - zero_point(lhs)) * scale(lhs) +
-    (rhs - zero_point(rhs)) * scale(rhs)`.
-  * `rounded_result = round_nearest_even(float_result / scale(result))`.
-  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                       | Constraints |
-|-------|-------|----------------------------|-------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1)-(C6)   |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1)-(C3)   |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1)-(C3)   |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for scales and zero points which may differ.
-  * (C4) `storage_min(lhs) = min_value(storage_type)`.
-  * (C5) `storage_max(lhs) = max_value(storage_type)`.
-  * (C6) `quantization_dimension(lhs)` is empty.
+* (C1) `lhs`, `rhs` and `result` have the same type.
 
 #### Examples
 
@@ -2189,11 +2176,9 @@ tensor and produces a `result` tensor.
 #### Semantics
 
 Encapsulates an implementation-defined operation `call_target_name` that takes
-`inputs` and `called_computations` and produces `results`. The metadata
-`has_side_effect` is used to prevent optimizations like speculation (e.g
-loop-invariant code motion) and dead-code elimination. `backend_config`
-and `api_version` may be used to provide additional implementation-defined
-metadata.
+`inputs` and `called_computations` and produces `results`. `has_side_effect`,
+`backend_config` and `api_version` may be used to provide additional
+implementation-defined metadata.
 
 At the moment, this operation contains a fairly disorganized collection of
 metadata which reflects organic evolution of its counterpart operation in
@@ -2869,10 +2854,10 @@ Produces the size of the given `dimension` of the `operand`.
 
 #### Inputs
 
-| Label | Name        | Type                         | Constraints |
-|-------|-------------|------------------------------|-------------|
-| (I1)  | `operand`   | tensor                       | (C1)        |
-| (I2)  | `dimension` | constant of type `si64`      | (C1)        |
+| Label | Name        | Type                    | Constraints |
+|-------|-------------|-------------------------|-------------|
+| (I1)  | `operand`   | tensor                  | (C1)        |
+| (I2)  | `dimension` | constant of type `si64` | (C1)        |
 
 #### Outputs
 
@@ -4718,11 +4703,11 @@ where `pred_val = rank(pred) == 0 ? pred : pred[i0, ..., iR-1]`.
 
 #### Inputs
 
-| Label | Name       | Type                         | Constraints |
-|-------|------------|------------------------------|-------------|
-| (I1)  | `pred`     | tensor of type `i1`          | (C1)        |
-| (I2)  | `on_true`  | tensor                       | (C1), (C2)  |
-| (I3)  | `on_false` | tensor                       | (C2)        |
+| Label | Name       | Type                | Constraints |
+|-------|------------|---------------------|-------------|
+| (I1)  | `pred`     | tensor of type `i1` | (C1)        |
+| (I2)  | `on_true`  | tensor              | (C1), (C2)  |
+| (I3)  | `on_false` | tensor              | (C2)        |
 
 #### Outputs
 
