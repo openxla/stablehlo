@@ -2600,6 +2600,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 // %result: [0.0, 1.71828187]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_exponential_minus_one.mlir)
+
 ### fft
 
 #### Semantics
