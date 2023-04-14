@@ -525,89 +525,26 @@ Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Type resultElementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     if (isSupportedBooleanType(operandElementType)) {
-      result.set(*it, Element(resultElementType,
-                              operand.get(*it).getBooleanValue() ? 1.0 : 0.0));
-    } else if (isSupportedIntegerType(operandElementType)) {
-      if (isSupportedBooleanType(resultElementType)) {
-        result.set(*it, Element(resultElementType,
-                                !operand.get(*it).getIntegerValue().isZero()));
-      } else if (isSupportedIntegerType(resultElementType)) {
-        result.set(
-            *it,
-            Element(resultElementType,
-                    APInt(resultElementType.getIntOrFloatBitWidth(),
-                          operand.get(*it).getIntegerValue().getSExtValue(),
-                          isSupportedSignedIntegerType(resultElementType))));
-      } else if (isSupportedFloatType(resultElementType)) {
-        // If the source value cannot be exactly represented in the destination
-        // type, the behavior is TBD(#180).
-        result.set(
-            *it,
-            Element(resultElementType,
-                    operand.get(*it).getIntegerValue().roundToDouble(
-                        isSupportedSignedIntegerType(operandElementType))));
-      } else if (isSupportedComplexType(resultElementType)) {
-        // If the source value cannot be exactly represented in the destination
-        // type, the behavior is TBD(#180).
-        result.set(
-            *it,
-            Element(resultElementType,
-                    operand.get(*it).getIntegerValue().roundToDouble(
-                        isSupportedSignedIntegerType(operandElementType))));
-      }
+      result.set(
+          *it, convert(resultElementType, operand.get(*it).getBooleanValue()));
+    } else if (isSupportedSignedIntegerType(operandElementType)) {
+      result.set(*it,
+                 convert(resultElementType,
+                         operand.get(*it).getIntegerValue().getSExtValue()));
+    } else if (isSupportedUnsignedIntegerType(operandElementType)) {
+      result.set(*it,
+                 convert(resultElementType,
+                         operand.get(*it).getIntegerValue().getZExtValue()));
     } else if (isSupportedFloatType(operandElementType)) {
-      if (isSupportedBooleanType(resultElementType)) {
-        result.set(*it, Element(resultElementType,
-                                !operand.get(*it).getFloatValue().isZero()));
-      } else if (isSupportedIntegerType(resultElementType)) {
-        // If the real part of the truncated source value cannot be represented
-        // in the destination type, the behavior is TBD(#180).
-        result.set(
-            *it, Element(resultElementType,
-                         llvm::APIntOps::RoundDoubleToAPInt(
-                             operand.get(*it).getFloatValue().convertToDouble(),
-                             resultElementType.getIntOrFloatBitWidth())));
-      } else if (isSupportedFloatType(resultElementType)) {
-        // If the source value cannot be exactly represented in the destination
-        // type, the behavior is TBD(#180).
-        result.set(
-            *it, Element(resultElementType, operand.get(*it).getFloatValue()));
-      } else if (isSupportedComplexType(resultElementType)) {
-        // If the source value cannot be exactly represented in the real part of
-        // the destination type, the behavior is TBD(#180).
-        APFloat real = operand.get(*it).getFloatValue();
-        APFloat imag(0.0);
-        result.set(
-            *it, Element(resultElementType, std::complex<APFloat>(real, imag)));
-      }
+      result.set(*it,
+                 convert(resultElementType, operand.get(*it).getFloatValue()));
     } else if (isSupportedComplexType(operandElementType)) {
-      if (isSupportedBooleanType(resultElementType)) {
-        result.set(
-            *it,
-            Element(resultElementType,
-                    operand.get(*it).getComplexValue().real().isNonZero() ||
-                        operand.get(*it).getComplexValue().imag().isNonZero()));
-      } else if (isSupportedIntegerType(resultElementType)) {
-        // If the real part of the truncated source value cannot be represented
-        // in the destination type, the behavior is TBD(#180).
-        result.set(
-            *it,
-            Element(
-                resultElementType,
-                llvm::APIntOps::RoundDoubleToAPInt(
-                    operand.get(*it).getComplexValue().real().convertToDouble(),
-                    resultElementType.getIntOrFloatBitWidth())));
-      } else if (isSupportedFloatType(resultElementType)) {
-        // If the real part of the source value cannot be exactly represented in
-        // the destination type, the behavior is TBD(#180).
-        result.set(*it, Element(resultElementType,
-                                operand.get(*it).getComplexValue().real()));
-      } else if (isSupportedComplexType(resultElementType)) {
-        // If the source value cannot be exactly represented in the destination
-        // type, the behavior is TBD(#180).
-        result.set(*it, Element(resultElementType,
-                                operand.get(*it).getComplexValue()));
-      }
+      result.set(
+          *it, convert(resultElementType, operand.get(*it).getComplexValue()));
+    } else {
+      report_fatal_error(
+          invalidArgument("Unsupported element type: %s",
+                          debugString(operandElementType).c_str()));
     }
   }
   return result;
@@ -624,7 +561,7 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     auto element =
-        Element(resultType.getElementType(),
+        convert(resultType.getElementType(),
                 static_cast<int64_t>(
                     operand.get(*it).getIntegerValue().countLeadingZeros()));
     result.set(*it, element);
@@ -714,13 +651,13 @@ Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
   Type elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     if (isSupportedIntegerType(elementType)) {
-      result.set(*it, Element(elementType, (*it)[iotaDimension]));
+      result.set(*it, convert(elementType, (*it)[iotaDimension]));
     } else if (isSupportedFloatType(elementType)) {
       result.set(
-          *it, Element(elementType, static_cast<double>((*it)[iotaDimension])));
+          *it, convert(elementType, static_cast<double>((*it)[iotaDimension])));
     } else if (isSupportedComplexType(elementType)) {
       result.set(*it,
-                 Element(elementType,
+                 convert(elementType,
                          std::complex<double>(
                              static_cast<double>((*it)[iotaDimension]), 0.0)));
     } else {

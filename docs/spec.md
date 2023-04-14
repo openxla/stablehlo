@@ -1920,8 +1920,8 @@ part is ignored.
 
 For **boolean-to-any-supported-type** conversions, the value `false` is
 converted to zero, and the value `true` is converted to one. For
-**any-supported-type-to-boolean** conversions, a zero value is converted to
-`false` and any non-zero value is converted to `true`.
+**any-supported-type-to-boolean** conversions, a zero real value is converted to
+`false`, and a non-zero real value is converted to `true`.
 
 #### Inputs
 
