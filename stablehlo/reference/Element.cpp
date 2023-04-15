@@ -659,16 +659,11 @@ Element log(const Element &el) {
       [](std::complex<double> e) { return std::log(e); });
 }
 
-Element log_plus_one(const Element &el) {
+Element logPlusOne(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::log1p(e); },
       [](std::complex<double> e) {
-        // log1p(a+bi) = log((a+1)+bi)
-        //             = 0.5 * log((a+1)^2 +  b^2) + i atan2(b, (a+1))
-        return std::complex<double>(
-            0.5 * std::log(std::pow(e.real() + 1.0, 2.0) +
-                           std::pow(e.imag(), 2.0)),
-            std::atan2(e.imag(), e.real() + 1.0));
+        return std::log(e + std::complex<double>(1.0));
       });
 }
 

@@ -3219,7 +3219,7 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 ```mlir
 // %operand: [-2.0, -0.0, -0.999, 7.0, 6.38905621, 15.0]
-%result = "stablehlo.log_plus_one"(%operand) : (tensor<6xf32>) -> tensor<6xf32>
+%result = "stablehlo.log_plus_one"(%operand) : (tensor<6xf64>) -> tensor<6xf64>
 // %result: [-nan, 0.0, -6.90776825, 2.07944155, 2.0, 2.77258873]
 ```
 

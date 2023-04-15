@@ -64,8 +64,8 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType);
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType);
-Tensor evalLogOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLog1pOp(const Tensor &operand, ShapedType resultType);
+Tensor evalLogOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType);
 Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
                  ShapedType resultType);
