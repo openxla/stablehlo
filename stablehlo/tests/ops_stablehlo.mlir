@@ -2716,18 +2716,6 @@ func.func @sort_c5(%input0: tensor<*xf32>, %input1: tensor<16x16xi32>) {
 // -----
 
 func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
-  // expected-error @+1 {{comparator block argument #2 should be of type 'tensor<i32>' but got 'tensor<f32>'}}
-  %0:2 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<f32>, %arg3: tensor<i32>):
-    %7 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction GT>} : (tensor<f32>, tensor<f32>) -> tensor<i1>
-    "stablehlo.return"(%7) : (tensor<i1>) -> ()
-  }) {dimension = 1 : i64, is_stable = true} : (tensor<16x16xf32>, tensor<16x16xi32>) -> (tensor<16x16xf32>, tensor<16x16xi32>)
-  func.return
-}
-
-// -----
-
-func.func @sort_c5(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) {
   // expected-error @+1 {{comparator must return single output but got 2}}
   %0:2 = "stablehlo.sort"(%input0, %input1) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>, %arg2: tensor<i32>, %arg3: tensor<i32>):

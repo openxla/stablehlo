@@ -5167,6 +5167,7 @@ More formally, for all `result_index` in the index space of `results[0]`:
   that `comparator_together` returns `true` if the left-hand side argument is
   less than the right-hand second argument.
 * &#32;
+
   ```python
   def comparator_together(lhs_together, rhs_together):
     args = []
@@ -5175,6 +5176,7 @@ More formally, for all `result_index` in the index space of `results[0]`:
       args.append(rhs_el)
     return comparator(*args)
   ```
+
 * `(results[0][:], ..., results[N-1][:]) = results_together[:]`.
 
 #### Inputs
