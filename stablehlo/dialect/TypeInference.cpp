@@ -1597,7 +1597,9 @@ LogicalResult inferCompareOp(
 LogicalResult inferComplexOp(std::optional<Location> location, Value lhs,
                              SmallVectorImpl<Type>& inferredReturnTypes) {
   ShapedType operandType = lhs.getType().cast<ShapedType>();
+  // complex_c3
   ComplexType elementTy = ComplexType::get(operandType.getElementType());
+  // complex_c2
   inferredReturnTypes.push_back(getSameShapeTensorType(operandType, elementTy));
   return success();
 }
