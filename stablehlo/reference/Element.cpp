@@ -615,6 +615,18 @@ Element ceil(const Element &el) {
   return Element(el.getType(), val);
 }
 
+std::complex<double> complex(const Element &e1, const Element &e2) {
+  auto e1Type = e1.getType();
+  auto e2Type = e2.getType();
+  if (isSupportedFloatType(e1Type) && isSupportedFloatType(e2Type)) {
+    return std::complex<double>(e1.getFloatValue().convertToDouble(),
+                                e2.getFloatValue().convertToDouble());
+  }
+  report_fatal_error(invalidArgument("Unsupported element types: %s, %s",
+                                     debugString(e1Type).c_str(),
+                                     debugString(e2Type).c_str()));
+}
+
 Element exponential(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::exp(e); },

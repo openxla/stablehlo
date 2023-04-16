@@ -156,6 +156,9 @@ Element cbrt(const Element &e);
 /// Returns ceil of Element object.
 Element ceil(const Element &e);
 
+/// Returns a complex type Element.
+std::complex<double> complex(const Element &e1, const Element &e2);
+
 /// Returns cosine of Element object.
 Element cosine(const Element &e);
 
