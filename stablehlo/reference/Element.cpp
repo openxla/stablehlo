@@ -621,7 +621,7 @@ Element exponential(const Element &el) {
       [](std::complex<double> e) { return std::exp(e); });
 }
 
-Element exponential_minus_one(const Element &el) {
+Element exponentialMinusOne(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::expm1(e); },
       [](std::complex<double> e) {
@@ -762,9 +762,9 @@ Element rem(const Element &e1, const Element &e2) {
         llvm::report_fatal_error("rem(bool, bool) is unsupported");
       },
       [](APFloat lhs, APFloat rhs) {
-        // APFloat::fmod VS APFloat:remainder: the returned value of the
-        // latter is not guaranteed to have the same sign as lhs. So mod() is
-        // preferred here. The returned "APFloat::opStatus" is ignored.
+        // APFloat::fmod VS APFloat:remainder: the returned value of the latter
+        // is not guaranteed to have the same sign as lhs. So mod() is preferred
+        // here. The returned "APFloat::opStatus" is ignored.
         (void)lhs.mod(rhs);
         return lhs;
       },

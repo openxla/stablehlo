@@ -556,17 +556,17 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   return result;
 }
 
+Tensor evalExpm1Op(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, exponentialMinusOne(operand.get(*it)));
+  return result;
+}
+
 Tensor evalExponentialOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, exponential(operand.get(*it)));
-  return result;
-}
-
-Tensor evalExpm1Op(const Tensor &operand, ShapedType resultType) {
-  Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, exponential_minus_one(operand.get(*it)));
   return result;
 }
 
