@@ -698,7 +698,8 @@ def StableHLO_AddOp : StableHLO_BinaryElementwiseOp<"add",
 }
 
 def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpOrComplexTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType /*atan2_c1*/],
+      HLO_FpOrComplexTensor /*atan2_i1, atan2_i2*/> { /*atan2_c1*/
   let summary = "Atan2 operation";
   let description = [{
     Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces
@@ -709,7 +710,7 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 
     Example:
     ```mlir
-    %result = stablehlo.atan2 %lhs, %rhs : tensor<3xf32>
+    %result = stablehlo.atan2 %lhs, %rhs : tensor<3xf64>
     ```
   }];
 }

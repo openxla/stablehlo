@@ -141,6 +141,9 @@ class Element {
 /// Returns abs of Element object.
 Element abs(const Element &e);
 
+/// Returns atan2 of Element object.
+Element atan2(const Element &e1, const Element &e2);
+
 /// For floating point type T, checks if two normal values f1 and f2 are equal
 /// within a tolerance given by 0.0001.
 /// For complex element type, checks if both real and imaginary parts are
