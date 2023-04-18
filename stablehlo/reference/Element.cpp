@@ -763,6 +763,40 @@ Element rsqrt(const Element &el) {
       [](std::complex<double> e) { return 1.0 / std::sqrt(e); });
 }
 
+Element sign(const Element &el) {
+  Type type = el.getType();
+
+  if (isSupportedIntegerType(type)) {
+    auto elVal = el.getIntegerValue();
+    if (elVal.isNegative()) return Element(type, (int64_t)-1);
+    if (elVal.isZero()) return Element(type, (int64_t)0);
+    return Element(type, (int64_t)1);
+  }
+
+  if (isSupportedFloatType(type)) {
+    auto elVal = el.getFloatValue();
+    if (elVal.isNaN()) return el;
+    if (elVal.isNegZero()) return Element(type, (double)-0.0);
+    if (elVal.isPosZero()) return Element(type, (double)+0.0);
+    if (elVal.isNegative()) return Element(type, (double)-1.0);
+    return Element(type, (double)1.0);
+  }
+
+  if (isSupportedComplexType(type)) {
+    auto elVal = el.getComplexValue();
+    const llvm::fltSemantics &elSemantics = elVal.real().getSemantics();
+
+    if (elVal.real().isNaN() || elVal.imag().isNaN())
+      return Element(type, std::complex<APFloat>(APFloat::getNaN(elSemantics),
+                                                 APFloat::getNaN(elSemantics)));
+
+    return el / Element(type, abs(el).getFloatValue().convertToDouble());
+  }
+
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element sine(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::sin(e); },

@@ -263,6 +263,10 @@ SmallVector<Tensor> eval(
           scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
           scope.find(selectOp.getOnFalse()), selectOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto signOp = dyn_cast<SignOp>(op)) {
+      Tensor runtimeOperand = scope.find(signOp.getOperand());
+      Tensor runtimeResult = evalSignOp(runtimeOperand, signOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
       Tensor runtimeOperand = scope.find(sineOp.getOperand());
       Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
@@ -725,6 +729,13 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
     result.set(
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
+  return result;
+}
+
+Tensor evalSignOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, sign(operand.get(*it)));
   return result;
 }
 
