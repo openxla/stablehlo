@@ -171,6 +171,11 @@ potentially multiple zero points in a quantized tensor type. Based on the
 results of this discussion, the specification around zero points may change
 in the future ([#1405](https://github.com/openxla/stablehlo/issues/1405)).
 
+Another ongoing discussion involves the semantics of `QuantizationStorageMin`
+and `QuantizationStorageMax` to determine whether any constraints should be
+imposed on these values and on the values of quantized tensors
+([#1406](https://github.com/openxla/stablehlo/issues/1406)).
+
 Finally, we are planning to explore representing unknown scales and zero
 points, similarly to how we are planning to explore representing unknown
 dimension sizes ([#1407](https://github.com/openxla/stablehlo/issues/1407)).
