@@ -486,7 +486,8 @@ def StableHLO_NegOp: StableHLO_UnaryElementwiseOp<"negate",
 }
 
 def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*popcnt_c1*/],
+    HLO_IntTensor /*popcnt_i1*/> { /*popcnt_c1*/
   let summary = "PopulationCount operation";
   let description = [{
     Performs element-wise count of the number of bits set in the `operand`
@@ -497,7 +498,7 @@ def StableHLO_PopulationCountOp: StableHLO_UnaryElementwiseOp<"popcnt",
 
     Example:
     ```mlir
-    %result = stablehlo.popcnt %operand : tensor<4xi8>
+    %result = stablehlo.popcnt %operand : tensor<4xi64>
     ```
   }];
 }

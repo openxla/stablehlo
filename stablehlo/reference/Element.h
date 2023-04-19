@@ -181,6 +181,9 @@ Element max(const Element &e1, const Element &e2);
 /// Returns the minimum between two Element objects.
 Element min(const Element &e1, const Element &e2);
 
+/// Returns the population count of Element object.
+Element popcnt(const Element &el);
+
 /// Returns the exponentiation of first element to the power of second element.
 Element power(const Element &e1, const Element &e2);
 

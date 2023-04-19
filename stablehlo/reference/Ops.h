@@ -75,6 +75,7 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  Sizes edgePaddingLow, Sizes interiorPadding,
                  ShapedType resultType);
+Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType);
 Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalRealOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);

@@ -3744,9 +3744,11 @@ and produces a `result` tensor.
 
 ```mlir
 // %operand: [0, 1, 2, 127]
-%result = "stablehlo.popcnt"(%operand) : (tensor<4xi8>) -> tensor<4xi8>
+%result = "stablehlo.popcnt"(%operand) : (tensor<4xi64>) -> tensor<4xi64>
 // %result: [0, 1, 1, 7]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_popcnt.mlir)
 
 ### power
 
