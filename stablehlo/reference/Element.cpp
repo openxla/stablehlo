@@ -765,6 +765,16 @@ Element rem(const Element &e1, const Element &e2) {
       });
 }
 
+Element roundNearestAfz(const Element &el) {
+  auto type = el.getType();
+  if (!isSupportedFloatType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  auto val = el.getFloatValue();
+  val.roundToIntegral(llvm::RoundingMode::NearestTiesToAway);
+  return Element(type, val);
+}
+
 Element roundNearestEven(const Element &el) {
   auto type = el.getType();
   if (!isSupportedFloatType(type))
