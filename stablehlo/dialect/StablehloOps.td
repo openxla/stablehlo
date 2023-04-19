@@ -522,7 +522,8 @@ def StableHLO_RealOp: StableHLO_UnaryElementwiseOp<"real",
 }
 
 def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
-    [Pure, HLO_CompatibleOperandsAndResultType], HLO_FpTensor> {
+    [Pure, HLO_CompatibleOperandsAndResultType /*round_nearest_afz_c1*/],
+    HLO_FpTensor /*round_nearest_afz_i1*/> { /*round_nearest_afz_c1*/
   let summary = "Round operation";
   let description = [{
     Performs element-wise rounding towards the nearest integer, breaking ties
@@ -533,7 +534,7 @@ def StableHLO_RoundOp: StableHLO_UnaryElementwiseOp<"round_nearest_afz",
 
     Example:
     ```mlir
-    %result = stablehlo.round_nearest_afz %operand : tensor<5xf32>
+    %result = stablehlo.round_nearest_afz %operand : tensor<5xf64>
     ```
   }];
 }

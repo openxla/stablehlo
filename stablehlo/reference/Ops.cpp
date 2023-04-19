@@ -259,6 +259,10 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
+      Tensor runtimeOperand = scope.find(roundOp.getOperand());
+      Tensor runtimeResult = evalRoundOp(runtimeOperand, roundOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto roundNearestEvenOp = dyn_cast<RoundNearestEvenOp>(op)) {
       Tensor runtimeOperand = scope.find(roundNearestEvenOp.getOperand());
       Tensor runtimeResult =
@@ -728,6 +732,14 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
       operandIdx[dim] = (resultShape[dim] - 1) - operandIdx[dim];
     result.set(*resultIt, operand.get(operandIdx));
   }
+  return result;
+}
+
+Tensor evalRoundOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, roundNearestAfz(operand.get(*resultIt)));
   return result;
 }
 
