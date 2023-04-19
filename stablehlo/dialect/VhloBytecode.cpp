@@ -493,10 +493,9 @@ Attribute VhloBytecodeInterface::readAttribute(
 LogicalResult VhloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ArrayV1Attr, BooleanV1Attr,
-            ComparisonDirectionV1Attr, ComparisonTypeV1Attr,
-            CustomCallApiVersionV1Attr, DictionaryV1Attr, FftTypeV1Attr,
-            FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
+      .Case<ArrayV1Attr, BooleanV1Attr, ComparisonDirectionV1Attr,
+            ComparisonTypeV1Attr, CustomCallApiVersionV1Attr, DictionaryV1Attr,
+            FftTypeV1Attr, FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
             PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
             StringV1Attr, TensorV1Attr, TransposeV1Attr, TypeV1Attr,
             TypeExtensionsV1Attr>([&](auto attr) {

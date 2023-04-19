@@ -314,12 +314,11 @@ Attribute StablehloBytecodeInterface::readAttribute(
 LogicalResult StablehloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ChannelHandleAttr, ComparisonDirectionAttr,
-            ComparisonTypeAttr, ConvDimensionNumbersAttr,
-            DotDimensionNumbersAttr, FftTypeAttr, GatherDimensionNumbersAttr,
-            OutputOperandAliasAttr, PrecisionAttr, RngAlgorithmAttr,
-            RngDistributionAttr, ScatterDimensionNumbersAttr, TransposeAttr,
-            TypeExtensionsAttr>([&](auto attr) {
+      .Case<ChannelHandleAttr, ComparisonDirectionAttr, ComparisonTypeAttr,
+            ConvDimensionNumbersAttr, DotDimensionNumbersAttr, FftTypeAttr,
+            GatherDimensionNumbersAttr, OutputOperandAliasAttr, PrecisionAttr,
+            RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
+            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
         LOG_WRITE_CALL;
         write(attr, writer);
         return success();
