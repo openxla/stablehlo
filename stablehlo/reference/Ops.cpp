@@ -289,6 +289,13 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalShiftLeftOp(runtimeLhs, runtimeRhs, shiftLeftOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto shiftRightArithmeticOp =
+                   dyn_cast<ShiftRightArithmeticOp>(op)) {
+      Tensor runtimeLhs = scope.find(shiftRightArithmeticOp.getLhs());
+      Tensor runtimeRhs = scope.find(shiftRightArithmeticOp.getRhs());
+      Tensor runtimeResult = evalShiftRightArithmeticOp(
+          runtimeLhs, runtimeRhs, shiftRightArithmeticOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto shiftRightLogicalOp = dyn_cast<ShiftRightLogicalOp>(op)) {
       Tensor runtimeLhs = scope.find(shiftRightLogicalOp.getLhs());
       Tensor runtimeRhs = scope.find(shiftRightLogicalOp.getRhs());
@@ -802,6 +809,16 @@ Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
     result.set(*resultIt, shiftLeft(lhs.get(*resultIt), rhs.get(*resultIt)));
+  return result;
+}
+
+Tensor evalShiftRightArithmeticOp(const Tensor &lhs, const Tensor &rhs,
+                                  ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt,
+               shiftRightArithmetic(lhs.get(*resultIt), rhs.get(*resultIt)));
   return result;
 }
 

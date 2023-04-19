@@ -91,6 +91,8 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
                        ShapedType resultType);
+Tensor evalShiftRightArithmeticOp(const Tensor &lhs, const Tensor &rhs,
+                                  ShapedType resultType);
 Tensor evalShiftRightLogicalOp(const Tensor &lhs, const Tensor &rhs,
                                ShapedType resultType);
 Tensor evalSignOp(const Tensor &operand, ShapedType resultType);
