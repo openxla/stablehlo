@@ -1,10 +1,10 @@
 // RUN: stablehlo-translate --interpret -split-input-file %s
 
 func.func @power_op_test_si64() {
-  %lhs = stablehlo.constant dense<[-1, -1, -3, -3, 0]> : tensor<5xi64>
-  %rhs = stablehlo.constant dense<[1, 0, -3, 3, 2]> : tensor<5xi64>
-  %result = stablehlo.power %lhs, %rhs : tensor<5xi64>
-  check.expect_eq_const %result, dense<[-1, 1, 0, -27, 0]> : tensor<5xi64>
+  %lhs = stablehlo.constant dense<[-1, -1, -3, 1, -3, 0]> : tensor<6xi64>
+  %rhs = stablehlo.constant dense<[1, 0, -3, -3, 3, 2]> : tensor<6xi64>
+  %result = stablehlo.power %lhs, %rhs : tensor<6xi64>
+  check.expect_eq_const %result, dense<[-1, 1, 0, 1, -27, 0]> : tensor<6xi64>
   func.return
 }
 
