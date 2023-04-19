@@ -23,13 +23,15 @@ func.func @sign_op_test_f64() {
 
 // CHECK-LABEL: Evaluated results of function: sign_op_test_c128
 func.func @sign_op_test_c128() {
-  // (+NaN, +0.0), (+0.0, +NaN), (0.0, 1.0)
+  // (+NaN, +0.0), (+0.0, +NaN), (0.0, 0.0), (0.0, 1.0)
   %operand = stablehlo.constant dense<[(0x7FF0000000000001, 0x0000000000000000),
                                        (0x0000000000000000, 0x7FF0000000000001),
-                                       (0.0, 1.0)]> : tensor<3xcomplex<f64>>
-  %result = stablehlo.sign %operand : tensor<3xcomplex<f64>>
+                                       (0.0, 0.0),
+                                       (0.0, 1.0)]> : tensor<4xcomplex<f64>>
+  %result = stablehlo.sign %operand : tensor<4xcomplex<f64>>
   check.expect_almost_eq_const %result, dense<[(0x7FF0000000000001, 0x7FF0000000000001),
                                                (0x7FF0000000000001, 0x7FF0000000000001),
-                                               (0.0, 1.0)]> : tensor<3xcomplex<f64>>
+                                               (0.0, 0.0),
+                                               (0.0, 1.0)]> : tensor<4xcomplex<f64>>
   func.return
 }
