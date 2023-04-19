@@ -191,7 +191,8 @@ Element real(const Element &e);
 /// Returns the remainder for two Element objects.
 Element rem(const Element &e1, const Element &e2);
 
-/// Returns the value rounded to the nearest even of Element object.
+/// Returns the value rounded to nearest integer, breaking ties towards the
+/// even, of Element object.
 Element roundNearestEven(const Element &el);
 
 /// Returns reverse square root of Element object.
