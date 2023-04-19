@@ -695,6 +695,14 @@ Element min(const Element &e1, const Element &e2) {
       });
 }
 
+Element popcnt(const Element &el) {
+  auto type = el.getType();
+  if (!isSupportedIntegerType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(el.getType()).c_str()));
+  return Element(type, static_cast<int64_t>(el.getIntegerValue().popcount()));
+}
+
 Element power(const Element &e1, const Element &e2) {
   Type type = e1.getType();
 

@@ -113,7 +113,7 @@ one of the following tracking labels.
 | outfeed                  | yes           | yes          | yes            | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | yes         |
 | partition_id             | yes           | yes          | yes            | yes             | no          |
-| popcnt                   | yes           | yes          | yes            | yes             | no          |
+| popcnt                   | yes           | yes          | yes            | yes             | yes         |
 | power                    | yes           | yes          | yes            | yes             | yes         |
 | real                     | yes           | yes          | yes            | yes             | yes         |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |

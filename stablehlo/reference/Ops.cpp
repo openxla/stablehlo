@@ -225,6 +225,11 @@ SmallVector<Tensor> eval(
           evalPadOp(runtimeOperand, runtimePaddingValue, edgePaddingLow,
                     interiorPadding, padOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto populationCountOp = dyn_cast<PopulationCountOp>(op)) {
+      Tensor runtimeOperand = scope.find(populationCountOp.getOperand());
+      Tensor runtimeResult =
+          evalPopulationCountOp(runtimeOperand, populationCountOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto powerOp = dyn_cast<PowOp>(op)) {
       Tensor runtimeLhs = scope.find(powerOp.getLhs());
       Tensor runtimeRhs = scope.find(powerOp.getRhs());
@@ -666,6 +671,14 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
     if (resultIdx.inBounds(result.getShape()))
       result.set(resultIdx, operand.get(*operandIt));
   }
+  return result;
+}
+
+Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, popcnt(operand.get(*resultIt)));
   return result;
 }
 
