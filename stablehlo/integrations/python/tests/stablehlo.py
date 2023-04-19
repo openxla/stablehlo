@@ -210,7 +210,7 @@ def test_api_version():
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  assert curr_version == "0.9.0"
+  assert curr_version == "0.10.0"
   
   ASM = """
   func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {

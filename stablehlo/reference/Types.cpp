@@ -44,7 +44,8 @@ bool isSupportedIntegerType(Type type) {
 }
 
 bool isSupportedFloatType(Type type) {
-  return type.isF16() || type.isBF16() || type.isF32() || type.isF64();
+  return type.isFloat8E4M3FNUZ() || type.isFloat8E5M2FNUZ() || type.isF16() ||
+         type.isBF16() || type.isF32() || type.isF64();
 }
 
 bool isSupportedComplexType(Type type) {

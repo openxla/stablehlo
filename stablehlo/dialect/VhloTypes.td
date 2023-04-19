@@ -86,6 +86,12 @@ def VHLO_FloatF8E4M3FNV1 : VHLO_TypeDef<"FloatF8E4M3FNV1", "f8E4M3FN_v1", "0.9.0
 // Corresponds to the 'f8E5M2' FloatType from the StableHLO spec.
 def VHLO_FloatF8E5M2V1 : VHLO_TypeDef<"FloatF8E5M2V1", "f8E5M2_v1", "0.9.0", "current">;
 
+// Corresponds to the 'f8E4M3FNUZ' FloatType from the StableHLO spec.
+def VHLO_FloatF8E4M3FNUZV1 : VHLO_TypeDef<"FloatF8E4M3FNUZV1", "f8E4M3FNUZ_v1", "0.10.0", "current">;
+
+// Corresponds to the 'f8E5M2FNUZ' FloatType from the StableHLO spec.
+def VHLO_FloatF8E5M2FNUZV1 : VHLO_TypeDef<"FloatF8E5M2FNUZV1", "f8E5M2FNUZ_v1", "0.10.0", "current">;
+
 // Corresponds to FunctionType from the StableHLO spec.
 def VHLO_FunctionV1 : VHLO_TypeDef<"FunctionV1", "func_v1", "0.9.0", "current"> {
   let parameters = (ins

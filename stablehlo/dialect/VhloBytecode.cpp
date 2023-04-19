@@ -316,6 +316,14 @@ enum TypeCode {
   ///   WitnessV1Type {
   ///   }
   kWitnessV1Type = 26,
+
+  ///   FloatF8E4M3FNUZV1Type {
+  ///   }
+  kFloatF8E4M3FNUZV1Type = 27,
+
+  ///   FloatF8E5M2FNUZV1Type {
+  ///   }
+  kFloatF8E5M2FNUZV1Type = 28,
 };
 
 }  // namespace vhlo_encoding
@@ -693,7 +701,9 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
   if (type.isa<FloatF16V1Type>()) return APFloat::IEEEhalf();
   if (type.isa<FloatF32V1Type>()) return APFloat::IEEEsingle();
   if (type.isa<FloatF64V1Type>()) return APFloat::IEEEdouble();
+  if (type.isa<FloatF8E4M3FNUZV1Type>()) return APFloat::Float8E4M3FNUZ();
   if (type.isa<FloatF8E4M3FNV1Type>()) return APFloat::Float8E4M3FN();
+  if (type.isa<FloatF8E5M2FNUZV1Type>()) return APFloat::Float8E5M2FNUZ();
   if (type.isa<FloatF8E5M2V1Type>()) return APFloat::Float8E5M2();
   llvm::report_fatal_error("unsupported floating-point type");
 }
@@ -961,6 +971,10 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return FloatF8E5M2V1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3FNV1Type:
       return FloatF8E4M3FNV1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E5M2FNUZV1Type:
+      return FloatF8E5M2FNUZV1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E4M3FNUZV1Type:
+      return FloatF8E4M3FNUZV1Type::get(getContext());
     case vhlo_encoding::kFunctionV1Type:
       return readFunctionV1Type(reader);
     case vhlo_encoding::kIndexV1Type:
@@ -1043,6 +1057,16 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](FloatF8E5M2V1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloatF8E5M2V1Type), success();
+      })
+      .Case([&](FloatF8E4M3FNUZV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E4M3FNUZV1Type),
+               success();
+      })
+      .Case([&](FloatF8E5M2FNUZV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E5M2FNUZV1Type),
+               success();
       })
       .Case([&](IndexV1Type) {
         LOG_WRITE_CALL;

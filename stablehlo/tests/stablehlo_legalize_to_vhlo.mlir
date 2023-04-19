@@ -2152,6 +2152,20 @@ func.func @type_f8E5M2(%arg0: tensor<f8E5M2>, %arg1: tensor<f8E5M2>) -> tensor<f
 }
 // CHECK-LABEL: "type_f8E5M2"
 
+func.func @type_f8E4M3FNUZ(%arg0: tensor<f8E4M3FNUZ>, %arg1: tensor<f8E4M3FNUZ>) -> tensor<f8E4M3FNUZ> {
+  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.f8E4M3FNUZ_v1>, !vhlo.tensor_v1<!vhlo.f8E4M3FNUZ_v1>) -> !vhlo.tensor_v1<!vhlo.f8E4M3FNUZ_v1>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f8E4M3FNUZ>, tensor<f8E4M3FNUZ>) -> tensor<f8E4M3FNUZ>
+  func.return %0 : tensor<f8E4M3FNUZ>
+}
+// CHECK-LABEL: "type_f8E4M3FNUZ"
+
+func.func @type_f8E5M2FNUZ(%arg0: tensor<f8E5M2FNUZ>, %arg1: tensor<f8E5M2FNUZ>) -> tensor<f8E5M2FNUZ> {
+  // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.f8E5M2FNUZ_v1>, !vhlo.tensor_v1<!vhlo.f8E5M2FNUZ_v1>) -> !vhlo.tensor_v1<!vhlo.f8E5M2FNUZ_v1>
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f8E5M2FNUZ>, tensor<f8E5M2FNUZ>) -> tensor<f8E5M2FNUZ>
+  func.return %0 : tensor<f8E5M2FNUZ>
+}
+// CHECK-LABEL: "type_f8E5M2FNUZ"
+
 func.func @type_bf16(%arg0: tensor<bf16>, %arg1: tensor<bf16>) -> tensor<bf16> {
   // CHECK: "vhlo.add_v1"(%arg0, %arg1) : (!vhlo.tensor_v1<!vhlo.bf16_v1>, !vhlo.tensor_v1<!vhlo.bf16_v1>) -> !vhlo.tensor_v1<!vhlo.bf16_v1>
   %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<bf16>, tensor<bf16>) -> tensor<bf16>

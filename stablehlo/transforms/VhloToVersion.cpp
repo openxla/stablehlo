@@ -293,7 +293,8 @@ namespace stablehlo {
 void populateVhloToVersionPatterns(RewritePatternSet* patterns,
                                    TypeConverter* converter,
                                    MLIRContext* context) {
-  // Currently empty because we're starting from a clean slate in v0.9.0.
+  // Currently empty because we're starting from a clean slate in v0.9.0 and
+  // changes so far are additive.
 }
 
 }  // namespace stablehlo
