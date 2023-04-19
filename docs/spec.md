@@ -2202,9 +2202,11 @@ Encapsulates an implementation-defined operation `call_target_name` that takes
 `backend_config` and `api_version` may be used to provide additional
 implementation-defined metadata.
 
-At the moment, this operation contains a fairly disorganized collection of
-metadata which reflects organic evolution of its counterpart operation in
-the XLA compiler. In the future, we are planning to unify this metadata
+The metadata `has_side_effect` is used to prevent optimizations that can
+eliminate the op or execute it speculatively. The op has other metadata, like
+`backend_config` and `api_version`, which are fairly disorganized at the moment
+and refects organic evolution of its counterpart operation in the XLA compiler.
+In the future, we are planning to unify this metadata
 ([#741](https://github.com/openxla/stablehlo/issues/741)).
 
 #### Inputs
