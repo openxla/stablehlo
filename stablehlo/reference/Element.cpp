@@ -790,6 +790,11 @@ Element sign(const Element &el) {
       return Element(type, std::complex<APFloat>(APFloat::getNaN(elSemantics),
                                                  APFloat::getNaN(elSemantics)));
 
+    if (elVal.real().isZero() && elVal.imag().isZero())
+      return Element(type,
+                     std::complex<APFloat>(APFloat::getZero(elSemantics),
+                                           APFloat::getZero(elSemantics)));
+
     return el / Element(type, abs(el).getFloatValue().convertToDouble());
   }
 
