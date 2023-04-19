@@ -381,6 +381,13 @@ FailureOr<Type> inferMostSpecificShapedType(std::optional<Location> location,
                                inferMostSpecificDimAndBound);
 }
 
+// Applies `fn` to `inputTypes`, using `location` for errors.
+// If `inputTypes` are tuples, then applies `fn` to them elementwise and
+// wraps the results into a tuple, for example:
+//   mapOverTupleElements({tuple<T11, T12>, tuple<T21, T22>}, fn) =
+//     tuple<fn(T11, T21), fn(T12, T22)>
+// Only supports `inputTypes` where either all types are tuples or no types
+// are tuples.
 FailureOr<Type> mapOverTupleElements(
     std::optional<Location> location, TypeRange inputTypes,
     function_ref<FailureOr<Type>(std::optional<Location>, TypeRange types)>
@@ -510,29 +517,35 @@ void flattenTupleTypes(TypeRange types, SmallVector<Type>& result) {
 LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
                                   SmallVector<Type>& result) {
   // Recursively unflattens types into result according to the prototype
-  // and returns the number of consumed types, with -1 signifying an error.
+  // and returns the number of consumed types or a failure if the prototype
+  // and the types are incompatible.
   // This specific kind of return value is what enables a recursive formulation
   // of this algorithm which avoids mutable state except for the result.
-  std::function<int64_t(TypeRange, TypeRange, SmallVector<Type>&)> loop;
+  std::function<FailureOr<int64_t>(TypeRange, TypeRange, SmallVector<Type>&)>
+      loop;
   loop = [&](TypeRange prototype, TypeRange types,
-             SmallVector<Type>& result) -> int64_t {
-    if (prototype.empty() || types.empty())
-      return prototype.empty() && types.empty() ? 0 : -1;
-
-    if (auto tuplePrototype = prototype[0].dyn_cast<TupleType>()) {
-      SmallVector<Type> tupleResult;
-      auto consumed = loop(tuplePrototype.getTypes(), types, tupleResult);
-      if (consumed == -1) return -1;
-      result.push_back(
-          TupleType::get(tuplePrototype.getContext(), tupleResult));
-      return consumed +
-             loop(prototype.drop_front(), types.drop_front(consumed), result);
+             SmallVector<Type>& result) -> FailureOr<int64_t> {
+    if (prototype.empty() || types.empty()) {
+      if (prototype.empty() ^ types.empty()) return {};
+      return 0;
     }
 
-    result.push_back(types[0]);
+    if (auto prototypeFront = prototype.front().dyn_cast<TupleType>()) {
+      SmallVector<Type> tupleResult;
+      auto consumedFront = loop(prototypeFront.getTypes(), types, tupleResult);
+      if (failed(consumedFront)) return {};
+      auto consumedRest = loop(prototype.drop_front(),
+                               types.drop_front(*consumedFront), result);
+      if (failed(consumedRest)) return {};
+      result.push_back(
+          TupleType::get(prototypeFront.getContext(), tupleResult));
+      return *consumedFront + *consumedRest;
+    }
+
+    result.push_back(types.front());
     auto consumed = loop(prototype.drop_front(), types.drop_front(), result);
-    if (consumed == -1) return -1;
-    return consumed + 1;
+    if (failed(consumed)) return {};
+    return *consumed + 1;
   };
   auto consumed = loop(prototype, types, result);
   return success(/*succeeded=*/consumed != -1);

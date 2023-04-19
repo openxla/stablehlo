@@ -174,15 +174,15 @@ LogicalResult getShapeRefinements(
     SmallVector<ShapedTypeComponents> &refinements);
 
 // For each type in `types`, recursively flatten tuple types into `result`.
-// Result is populated via in-order traversal, i.e.:
+// Result is populated via in-order traversal of tuple types in `types`, i.e.:
 //   * Flattenings of individual types from `types` follow one another in the
 //     same order as `types`.
 //   * Same for flattenings of element types of tuple types.
 void flattenTupleTypes(TypeRange types, SmallVector<Type> &result);
 
 // Does the inverse of `flattenTupleTypes` - takes `types` and recursively
-// unflattens it, potentially creating tuple types following the structure of
-// `prototype`.
+// unflattens it, creating tuple types as needed to exactly match the structure
+// of `prototype`.
 // Fails if the number of elements in flattened prototype is different from
 // the number of elements in types.
 LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
