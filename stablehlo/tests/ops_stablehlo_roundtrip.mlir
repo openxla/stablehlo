@@ -775,17 +775,6 @@ func.func @test_attr_frontend_attributes_empty(%arg: tensor<3x4xf32>, %token: !s
   func.return %0 : !stablehlo.token
 }
 
-func.func @test_attr_result_alias (%arg0: tuple<tensor<f32>>
-    {stablehlo.result_alias = #stablehlo.result_alias<
-      tuple_indices = [0],
-      result_index = [0, 0],
-      must_alias>}
-    ) -> (tuple<tensor<f32>>) {
-  %0 = stablehlo.get_tuple_element %arg0[0] : (tuple<tensor<f32>>) -> tensor<f32>
-  %1 = stablehlo.tuple %0 : tuple<tensor<f32>>
-  func.return %1 : tuple<tensor<f32>>
-}
-
 func.func @test_attr_type_extensions(%arg: tensor<4xf32>, %size: tensor<i32>) -> tensor<?xf32> {
   %0 = "stablehlo.set_dimension_size"(%arg, %size) {dimension = 0 : i64} : (tensor<4xf32>, tensor<i32>) -> tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>>
   %1 = tensor.cast %0 : tensor<?xf32, #stablehlo.type_extensions<bounds = [4]>> to tensor<?xf32>
