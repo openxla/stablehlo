@@ -130,7 +130,7 @@ one of the following tracking labels.
 | rng                      | yes           | yes          | yes            | yes             | no          |
 | rng_bit_generator        | yes           | revisit      | infeasible     | yes             | no          |
 | round_nearest_afz        | yes           | yes          | yes            | yes             | no          |
-| round_nearest_even       | yes           | yes          | yes            | yes             | no          |
+| round_nearest_even       | yes           | yes          | yes            | yes             | yes         |
 | rsqrt                    | yes           | yes          | yes            | yes             | yes         |
 | scatter                  | yes           | revisit      | yes            | no              | no          |
 | select                   | yes           | yes          | yes            | yes             | yes         |

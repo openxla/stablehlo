@@ -81,6 +81,7 @@ Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType);
 Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
                      ShapedType resultType);
+Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
