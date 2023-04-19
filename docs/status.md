@@ -137,7 +137,7 @@ one of the following tracking labels.
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes\*        | yes\*          | yes             | no          |
-| shift_left               | yes           | yes          | yes            | yes             | no          |
+| shift_left               | yes           | yes          | yes            | yes             | yes         |
 | shift_right_arithmetic   | yes           | yes          | yes            | yes             | no          |
 | shift_right_logical      | yes           | yes          | yes            | yes             | no          |
 | sign                     | yes           | yes          | yes            | yes             | yes         |

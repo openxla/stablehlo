@@ -205,6 +205,9 @@ Element roundNearestEven(const Element &el);
 /// Returns reverse square root of Element object.
 Element rsqrt(const Element &e);
 
+/// Returns left-shift of Element object e1 by e2.
+Element shiftLeft(const Element &e1, const Element &e2);
+
 /// Returns sign of Element object.
 Element sign(const Element &e);
 

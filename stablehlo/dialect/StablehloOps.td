@@ -849,7 +849,8 @@ def StableHLO_RemOp : StableHLO_BinaryElementwiseOp<"remainder",
 }
 
 def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType /*shift_left_c1*/],
+      HLO_IntTensor /*shift_left_i1, shift_left_i2*/> { /*shift_left_c1*/
   let summary = "ShiftLeft operation";
   let description = [{
     Performs element-wise left-shift operation on the `lhs` tensor by `rhs`
@@ -860,7 +861,7 @@ def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
 
     Example:
     ```mlir
-    %result = stablehlo.shift_left %lhs, %rhs : tensor<6xi8>
+    %result = stablehlo.shift_left %lhs, %rhs : tensor<3xi64>
     ```
   }];
 }

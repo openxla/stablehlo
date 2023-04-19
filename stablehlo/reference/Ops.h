@@ -87,6 +87,8 @@ Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
+Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
+                       ShapedType resultType);
 Tensor evalSignOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSineOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,

@@ -4944,11 +4944,13 @@ of bits and produces a `result` tensor.
 #### Examples
 
 ```mlir
-// %lhs: [-1, -2, 3, 4, 7, 7]
-// %rhs: [1, 2, 3, 6, 7, 8]
-%result = "stablehlo.shift_left"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
-// %result: [-2, -8, 24, 0, -128, 0]
+// %lhs: [-1, 0, 1]
+// %rhs: [1, 2, 3]
+%result = "stablehlo.shift_left"(%lhs, %rhs): (tensor<3xi64>, tensor<3xi64>) -> tensor<3xi64>
+// %result: [-2, 0, 8]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_shift_left.mlir)
 
 ### shift_right_arithmetic
 
