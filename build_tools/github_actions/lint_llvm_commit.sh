@@ -56,7 +56,7 @@ llvm_sha256_from_workspace() {
   sed -n '/LLVM_SHA256 = /p' $PATH_TO_WORKSPACE  | sed 's/LLVM_SHA256 = //; s/\"//g'
 }
 llvm_sha256_from_archive() {
-  LLVM_COMMIT=$(llvm_commit_from_workspace)
+  LLVM_COMMIT="$1"
   HTTP_CODE=$(curl -sIL https://github.com/llvm/llvm-project/archive/$LLVM_COMMIT.tar.gz -o /dev/null -w "%{http_code}")
   if [[ "$HTTP_CODE" == "404" ]]; then
     echo "Error 404 downloading LLVM at commit '$LLVM_COMMIT'."
@@ -66,7 +66,7 @@ llvm_sha256_from_archive() {
   echo "$LLVM_SHA256"
 }
 llvm_sha256_diff() {
-  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive)
+  diff <(llvm_sha256_from_workspace) <(llvm_sha256_from_archive $(llvm_commit_from_workspace))
 }
 
 # Fix functions
@@ -76,10 +76,13 @@ print_autofix() {
 }
 
 update_llvm_commit_and_sha256() {
+  # Update WORKSPACE commit hash to match llvm_version.txt
   LLVM_COMMIT=$(llvm_commit_from_version_txt)
-  LLVM_SHA256=$(llvm_sha256_from_archive)
   echo "Bumping commit to: $LLVM_COMMIT"
   sed -i '/^LLVM_COMMIT/s/"[^"]*"/"'$LLVM_COMMIT'"/g' $PATH_TO_WORKSPACE
+
+  # Now update WORKSPACE SHA256 using the newly updated commit hash
+  LLVM_SHA256=$(llvm_sha256_from_archive $LLVM_COMMIT)
   echo "Bumping sha256 to: $LLVM_SHA256"
   sed -i '/^LLVM_SHA256/s/"[^"]*"/"'$LLVM_SHA256'"/g' $PATH_TO_WORKSPACE
 }
