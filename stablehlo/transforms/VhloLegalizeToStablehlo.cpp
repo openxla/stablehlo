@@ -77,7 +77,6 @@ class VhloToStablehloTypeConverter : public vhlo::VhloTypeConverter {
 
 Attribute convertGeneric(Attribute vhloAttr, TypeConverter* typeConverter) {
   LLVM_DEBUG(llvm::dbgs() << "Converting attr " << vhloAttr);
-  // TODO: ArgResultAliasV1Attr isn't handled yet.
   if (auto vhloAttrs = vhloAttr.dyn_cast<vhlo::ArrayV1Attr>()) {
     SmallVector<Attribute> stablehloAttrs;
     for (auto vhloAttr : vhloAttrs.getValue()) {
