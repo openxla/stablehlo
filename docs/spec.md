@@ -5012,11 +5012,13 @@ number of bits and produces a `result` tensor.
 #### Examples
 
 ```mlir
-// %lhs: [-1, -128, -36, 5, 3, 7]
-// %rhs: [1, 2, 3, 2, 1, 3]
-%result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<6xi8>, tensor<6xi8>) -> tensor<6xi8>
-// %result: [127, 32, 27, 1, 1, 0]
+// %lhs: [-1, 0, 1]
+// %rhs: [1, 2, 3]
+%result = "stablehlo.shift_right_logical"(%lhs, %rhs): (tensor<3xi64>, tensor<3xi64>) -> tensor<3xi64>
+// %result: [9223372036854775807, 0, 0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_shift_right_logical.mlir)
 
 ### sign
 

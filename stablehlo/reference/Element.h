@@ -208,6 +208,9 @@ Element rsqrt(const Element &e);
 /// Returns left-shift of Element object e1 by e2.
 Element shiftLeft(const Element &e1, const Element &e2);
 
+/// Returns logical right-shift of Element object e1 by e2.
+Element shiftRightLogical(const Element &e1, const Element &e2);
+
 /// Returns sign of Element object.
 Element sign(const Element &e);
 
