@@ -4520,9 +4520,11 @@ specification.
 
 ```mlir
 // %operand = [-2.5, 0.4, 0.5, 0.6, 2.5]
-%result = "stablehlo.round_nearest_even"(%operand) : (tensor<5xf32>) -> tensor<5xf32>
+%result = "stablehlo.round_nearest_even"(%operand) : (tensor<5xf64>) -> tensor<5xf64>
 // %result: [-2.0, 0.0, 0.0, 1.0, 2.0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_round_nearest_even.mlir)
 
 ### rsqrt
 
