@@ -21,8 +21,10 @@ this format, which we successfully did for StableHLO
 
 Portable artifacts can be created using either the `stablehlo-translate` tool,
 or directly in C++ or Python APIs. Serialization needs a target version of
-StableHLO to write an artifact (the current version is 0.10.0). Deserialization
-uses the current version of StableHLO to read an artifact.
+StableHLO to write an artifact written in `#.#.#` format (See [Version.h](
+https://github.com/openxla/stablehlo/search?q=filename%3AVersion.h+getCurrentVersion)
+for current version). Deserialization uses the current version of StableHLO to
+read an artifact.
 
 ### Using the `stablehlo-translate` tool
 
