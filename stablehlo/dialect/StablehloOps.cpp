@@ -2555,17 +2555,6 @@ static ParseResult parseDims(AsmParser& parser,
   return success();
 }
 
-static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
-                                                SmallVector<int64_t>& dimSizes,
-                                                int minElements) {
-  if (failed(parseDims(parser, dimSizes))) return failure();
-  if (static_cast<int64_t>(dimSizes.size()) < minElements)
-    return parser.emitError(parser.getCurrentLocation())
-           << "expected at least " << minElements << " element(s), found "
-           << dimSizes.size();
-  return success();
-}
-
 /// Parse a custom attribute that resembles a struct of the form
 /// <
 ///   foo = something_parsed_by_custom_parser,
@@ -3070,19 +3059,6 @@ Attribute ConvDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parseConvolutionDimensions(parser, dnums))) return {};
   if (failed(parser.parseGreater())) return {};
   return dnums;
-}
-
-// Returns the element type pointed to by `indices` in type `t`. If the indices
-// are invalid, returns nullptr.
-static Type getTypeFromTupleIndices(Type type, ArrayRef<int64_t> indices) {
-  Type current = type;
-  for (auto index : indices) {
-    TupleType tupleType = current.dyn_cast<TupleType>();
-    if (!tupleType || index >= static_cast<int64_t>(tupleType.size()))
-      return {};
-    current = tupleType.getType(index);
-  }
-  return current;
 }
 
 namespace {
