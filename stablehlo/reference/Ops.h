@@ -56,6 +56,8 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ShapedType resultType);
 Tensor evalExponentialOp(const Tensor &operand, ShapedType resultType);
 Tensor evalFloorOp(const Tensor &operand, ShapedType resultType);
+Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
+                              ShapedType resultType);
 SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
                              Region &falseBranch, Scope &scope);
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType);

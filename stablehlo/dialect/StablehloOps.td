@@ -2351,22 +2351,22 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
 }
 
 def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
-      [Pure, InferTensorType]> {
+      [Pure, InferTensorType /*get_dimension_size_c1*/]> {
   let summary = "GetDimensionSize operation";
   let description = [{
     Produces the size of the given `dimension` of the `operand`.
 
-    See
+    See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#get_dimension_size
 
     Example:
     ```mlir
-    %result = stablehlo.get_dimension_size %operand, dim = 1 : (tensor<2x3xf32>) -> tensor<i32>
+    %result = stablehlo.get_dimension_size %operand, dim = 1 : (tensor<2x3xi64>) -> tensor<i32>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64Attr:$dimension
+    HLO_Tensor:$operand, /*get_dimension_size_i1*/
+    I64Attr:$dimension /*get_dimension_size_i2*/
   );
   // TODO(hinsu): Allow 64-bit result types once XLA HLO dialect based on the
   // XLA semantics is available. This limitation is because of the current XLA
