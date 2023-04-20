@@ -8,7 +8,7 @@ that StableHLO provides, based on the process established in
 ## Versions
 
 The current version of StableHLO can be found in
-[Version.h](https://github.com/openxla/stablehlo/search?q=filename%3AVersion.h+getCurrentVersion).
+[Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h).
 
 In the 0.x.x series, StableHLO is providing limited compatibility guarantees
 as described in the Guarantees section. In H2 2023, we are planning to release
