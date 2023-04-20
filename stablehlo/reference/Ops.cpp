@@ -289,6 +289,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeResult =
           evalShiftLeftOp(runtimeLhs, runtimeRhs, shiftLeftOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto shiftRightLogicalOp = dyn_cast<ShiftRightLogicalOp>(op)) {
+      Tensor runtimeLhs = scope.find(shiftRightLogicalOp.getLhs());
+      Tensor runtimeRhs = scope.find(shiftRightLogicalOp.getRhs());
+      Tensor runtimeResult = evalShiftRightLogicalOp(
+          runtimeLhs, runtimeRhs, shiftRightLogicalOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto signOp = dyn_cast<SignOp>(op)) {
       Tensor runtimeOperand = scope.find(signOp.getOperand());
       Tensor runtimeResult = evalSignOp(runtimeOperand, signOp.getType());
@@ -796,6 +802,16 @@ Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt)
     result.set(*resultIt, shiftLeft(lhs.get(*resultIt), rhs.get(*resultIt)));
+  return result;
+}
+
+Tensor evalShiftRightLogicalOp(const Tensor &lhs, const Tensor &rhs,
+                               ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt,
+               shiftRightLogical(lhs.get(*resultIt), rhs.get(*resultIt)));
   return result;
 }
 
