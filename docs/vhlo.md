@@ -102,12 +102,12 @@ part the following will need to change:
   * Add StableHLO → VHLO conversion in [StablehloLegalizeToVhlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/StablehloLegalizeToVhlo.cpp)
   * Add VHLO → StableHLO conversion in [VhloLegalizeToStablehlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloLegalizeToStablehlo.cpp)
 * For new versions of existing ops:
-  * Add the op in [VhloOps.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.h)
+  * Add the op in [VhloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.td)
   * Update StableHLO to VHLO mapping in [MapStablehloToVhlo.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/MapStablehloToVhlo.h)
   * Add a conversion between new and old op versions in [VhloToVersion.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloToVersion.cpp)
 * For new types or attributes:
   * Add the type in [VhloTypes.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloTypes.td)
-  or [VhloAttrs.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloAttrs.td)
+  or the attribute in [VhloAttrs.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloAttrs.td)
   * Add StableHLO → VHLO conversion in [StablehloLegalizeToVhlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/StablehloLegalizeToVhlo.cpp)
   * Add VHLO → StableHLO conversion in [VhloLegalizeToStablehlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloLegalizeToStablehlo.cpp)
 
@@ -119,7 +119,7 @@ FP8 types, as well as their implementation in VHLO in [#1379](https://github.com
 The contributor of an incompatible change is responsible for both positive and
 negative unit tests of the feature, as well as compatibility unit tests.
 
-Compatibility unit testing involves updating [stablehlo_legalize_to_vhlo.mlir](FIXME)
+Compatibility unit testing involves updating [stablehlo_legalize_to_vhlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.mlir)
 to ensure that StableHLO round trips with the latest version of VHLO, as well
 as any additional forward or backward compatibility tests required.
 
