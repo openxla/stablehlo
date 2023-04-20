@@ -2351,7 +2351,7 @@ def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify, Pure]>
 }
 
 def StableHLO_GetDimensionSizeOp: StableHLO_Op<"get_dimension_size",
-      [Pure, InferTensorType /*get_dimension_size_c1*/]> {
+      [Pure, InferTensorType]> {
   let summary = "GetDimensionSize operation";
   let description = [{
     Produces the size of the given `dimension` of the `operand`.
