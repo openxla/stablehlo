@@ -807,6 +807,14 @@ Element shiftRightLogical(const Element &e1, const Element &e2) {
   return Element(type, e1.getIntegerValue().lshr(e2.getIntegerValue()));
 }
 
+Element shiftRightArithmetic(const Element &e1, const Element &e2) {
+  auto type = e1.getType();
+  if (!isSupportedIntegerType(type))
+    report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                       debugString(type).c_str()));
+  return Element(type, e1.getIntegerValue().ashr(e2.getIntegerValue()));
+}
+
 Element sign(const Element &el) {
   Type type = el.getType();
 
