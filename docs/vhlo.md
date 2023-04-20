@@ -71,3 +71,76 @@ frameworks (producers) only need to target StableHLO ops, and compiler
 backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
 maintainted in the StableHLO repo.
+
+## Contributing Incompatible Changes
+
+All changes with compatibility implications must go through the RFC process.
+This includes adding, deprecating, or renaming a feature. Once the RFC is
+approved, here are some contribution guidelines:
+
+### Bump the Version Number in Version.h
+
+Prior to updating VHLO ops, attribute, types, or conversions, increment the
+minor version number in [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h).
+Any new VHLO features added would use this bumped version, for example after
+bumping `0.10.0 --> 0.11.0`, a new op in [VhloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.td)
+would use:
+
+```tablegen
+VHLO_Op<"abs_v2", "0.11.0", "current">
+```
+
+### Add Required VHLO Implementation and Conversions
+
+The exact code needed to integrate a new feature will vary, but for the most
+part the following will need to change:
+
+* For all changes:
+  * Update the version log in [VhloDialect.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloDialect.td#L29)
+* For new ops:
+  * Add the op in [VhloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.td)
+  * Add StableHLO → VHLO conversion in [StablehloLegalizeToVhlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/StablehloLegalizeToVhlo.cpp)
+  * Add VHLO → StableHLO conversion in [VhloLegalizeToStablehlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloLegalizeToStablehlo.cpp)
+* For new versions of existing ops:
+  * Add the op in [VhloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloOps.td)
+  * Update StableHLO to VHLO mapping in [MapStablehloToVhlo.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/MapStablehloToVhlo.h)
+  * Add a conversion between new and old op versions in [VhloToVersion.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloToVersion.cpp)
+* For new types or attributes:
+  * Add the type in [VhloTypes.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloTypes.td)
+  or the attribute in [VhloAttrs.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/VhloAttrs.td)
+  * Add StableHLO → VHLO conversion in [StablehloLegalizeToVhlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/StablehloLegalizeToVhlo.cpp)
+  * Add VHLO → StableHLO conversion in [VhloLegalizeToStablehlo.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/transforms/VhloLegalizeToStablehlo.cpp)
+
+A recent example of a compatibility related submission was the addition of two
+FP8 types, as well as their implementation in VHLO in [#1379](https://github.com/openxla/stablehlo/pull/1379).
+
+### Add / Update Unit Tests
+
+The contributor of an incompatible change is responsible for both positive and
+negative unit tests of the feature, as well as compatibility unit tests.
+
+Compatibility unit testing involves updating [stablehlo_legalize_to_vhlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.mlir)
+to ensure that StableHLO round trips with the latest version of VHLO, as well
+as any additional forward or backward compatibility tests required.
+
+A few examples:
+
+* Backward compatibility, positive tests: [vhlo_to_version_upgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_upgrade.mlir#L2)
+* Forward compatibility, positive tests: [vhlo_to_version_downgrade.mlir](https://github.com/openxla/stablehlo/blob/6886b59f6cd4369674e7e3beff61301c145176e2/stablehlo/tests/vhlo_to_version_downgrade.mlir#L1)
+* Forward compatibility, negative tests: [vhlo_to_version_downgrade_invalid.0_9_0.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/vhlo_to_version_downgrade_invalid.0_9_0.mlir)
+
+### Add Versioned Serialization Test
+
+After adding a test point to `stablehlo_legalize_to_vhlo.mlir`, create a
+versioned copy of the file named `stablehlo_legalize_to_vhlo.0_X_0.mlir` as
+follows, along with a bytecoded version of said file with a `.0_X_0.mlir.bc`
+extension. Add [proper FileCheck lines](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir#L1-L3)
+for forward and backward compatibility testing.
+
+```bash
+$ cp stablehlo_legalize_to_vhlo.mlir stablehlo_legalize_to_vhlo.0_X_0.mlir
+$ stablehlo-translate --serialize stablehlo_legalize_to_vhlo.0_X_0.mlir --target=current > stablehlo_legalize_to_vhlo.0_X_0.mlir.bc
+# Edit RUN commands in stablehlo_legalize_to_vhlo.0_X_0.mlir to target 0.X.0
+```
+
+_Example of versioned test in [#1430](https://github.com/openxla/stablehlo/pull/1430)._
