@@ -867,7 +867,8 @@ def StableHLO_ShiftLeftOp : StableHLO_BinaryElementwiseOp<"shift_left",
 }
 
 def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_right_arithmetic",
-      [Pure, HLO_CompatibleOperandsAndResultType], HLO_IntTensor> {
+      [Pure, HLO_CompatibleOperandsAndResultType /*shift_right_arithmetic_c1*/],
+      HLO_IntTensor /*shift_right_arithmetic_i1, shift_right_arithmetic_i2*/> { /*shift_right_arithmetic_c1*/
   let summary = "ShiftRightArithmetic operation";
   let description = [{
     Performs element-wise arithmetic right-shift operation on the `lhs` tensor
@@ -878,7 +879,7 @@ def StableHLO_ShiftRightArithmeticOp : StableHLO_BinaryElementwiseOp<"shift_righ
 
     Example:
     ```mlir
-    %result = stablehlo.shift_right_arithmetic %lhs, %rhs : tensor<6xi8>
+    %result = stablehlo.shift_right_arithmetic %lhs, %rhs : tensor<3xi64>
     ```
   }];
 }

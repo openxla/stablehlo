@@ -4981,7 +4981,7 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 #### Examples
 
 ```mlir
-// %lhs: [-1, 0, 1]
+// %lhs: [-1, 0, 8]
 // %rhs: [1, 2, 3]
 %result = "stablehlo.shift_right_arithmetic"(%lhs, %rhs): (tensor<3xi64>, tensor<3xi64>) -> tensor<3xi64>
 // %result: [-1, 0, 1]
