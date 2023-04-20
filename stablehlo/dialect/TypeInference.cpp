@@ -2304,6 +2304,7 @@ LogicalResult inferGatherOp(
 LogicalResult inferGetDimensionSizeOp(
     std::optional<Location> location, Type operandType, int64_t dimension,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // get_dimension_size_c1
   if (failed(verifyDimInBounds(location, operandType.cast<ShapedType>(),
                                dimension)))
     return failure();

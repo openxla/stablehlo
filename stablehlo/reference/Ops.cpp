@@ -155,6 +155,12 @@ SmallVector<Tensor> eval(
       Tensor runtimeOperand = scope.find(floorOp.getOperand());
       Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto getDimensionSizeOp = dyn_cast<GetDimensionSizeOp>(op)) {
+      Tensor runtimeOperand = scope.find(getDimensionSizeOp.getOperand());
+      auto runtimeResults = evalGetDimensionSizeOp(
+          runtimeOperand, getDimensionSizeOp.getDimension(),
+          getDimensionSizeOp.getType());
+      scope.add(op.getResults(), runtimeResults);
     } else if (auto ifOp = dyn_cast<IfOp>(op)) {
       Tensor runtimePred = scope.find(ifOp.getPred());
       auto runtimeResults = evalIfOp(runtimePred, ifOp.getTrueBranch(),
@@ -553,6 +559,14 @@ Tensor evalFloorOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, floor(operand.get(*it)));
+  return result;
+}
+
+Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
+                              ShapedType resultType) {
+  Tensor result(resultType);
+  result.set(
+      {}, Element(resultType.getElementType(), operand.getShape()[dimension]));
   return result;
 }
 

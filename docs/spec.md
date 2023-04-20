@@ -2901,9 +2901,11 @@ Produces the size of the given `dimension` of the `operand`.
 // %operand: [[1, 2, 3], [4, 5, 6]]
 %result = "stablehlo.get_dimension_size"(%operand) {
   dimension = 1 : i64
-} : (tensor<2x3xf32>) -> tensor<i32>
+} : (tensor<2x3xi64>) -> tensor<i32>
 // %result: 3
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_get_dimension_size.mlir)
 
 ### get_tuple_element
 
