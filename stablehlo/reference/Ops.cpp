@@ -277,6 +277,12 @@ SmallVector<Tensor> eval(
           scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
           scope.find(selectOp.getOnFalse()), selectOp.getType());
       scope.add(op.getResults(), {runtimeResult});
+    } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
+      Tensor runtimeLhs = scope.find(shiftLeftOp.getLhs());
+      Tensor runtimeRhs = scope.find(shiftLeftOp.getRhs());
+      Tensor runtimeResult =
+          evalShiftLeftOp(runtimeLhs, runtimeRhs, shiftLeftOp.getType());
+      scope.add(op.getResults(), {runtimeResult});
     } else if (auto signOp = dyn_cast<SignOp>(op)) {
       Tensor runtimeOperand = scope.find(signOp.getOperand());
       Tensor runtimeResult = evalSignOp(runtimeOperand, signOp.getType());
@@ -767,6 +773,15 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
     result.set(
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
+  return result;
+}
+
+Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
+                       ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt)
+    result.set(*resultIt, shiftLeft(lhs.get(*resultIt), rhs.get(*resultIt)));
   return result;
 }
 
