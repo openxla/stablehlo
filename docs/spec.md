@@ -1791,9 +1791,8 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 #### Semantics
 
-Concatenates a variadic number of tensors in `inputs` along `dimension`
-dimension in the same order as the given arguments and produces a `result`
-tensor. More formally,
+Concatenates `inputs` along `dimension` dimension in the same order as the given
+arguments and produces a `result` tensor. More formally,
 `result[i0, ..., id, ..., iR-1] = inputs[k][i0, ..., kd, ..., iR-1]`, where:
 
 1. `id = d0 + ... + dk-1 + kd`.
@@ -5182,21 +5181,43 @@ dimension `d` in `operand`.
 
 #### Semantics
 
-Sorts a variadic number of tensors in `inputs` together, according to a custom
-`comparator`, along the given `dimension` and produces a variadic number of
-tensors as `results`. If `is_stable` is true, then the sorting is stable, that
-is, relative order of elements considered to be equal by the comparator is
-preserved. Two elements `e1` and `e2` are considered to be equal by the
-comparator if and only if `comparator(e1, e2) = comparator(e2, e1) = false`.
+Sorts 1-dimensional slices of `inputs` along the dimension `dimension` together,
+according to a `comparator` and produces `results`.
 
-More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
-`compare_i_j = compare_j_i = false` or `compare_i_j = true`, where:
+Unlike similar inputs in other operations, `dimension` allows negative values,
+with the semantics described below. In the future, this may be disallowed
+for consistency reasons
+([#1377](https://github.com/openxla/stablehlo/issues/1377)).
 
-1. `compare_i_j` $=$
-   `comparator(inputs[0][i], inputs[0][j], inputs[1][i], inputs[1][j], ...)`.
-1. For all indices `i = [i0, ..., iR-1]` and `j = [j0, ..., jR-1]`.
-1. Where `i` $=$ `j` everywhere except for the `d`th dimension.
-1. Where `d` $=$ `dimension >= 0 ? dimension : rank(inputs[0]) + dimension`.
+If `is_stable` is true, then the sorting is stable, that is, relative order of
+elements considered to be equal by the comparator is preserved. For the case
+where there is a single input, two elements `e1` and `e2` are considered to be
+equal by the comparator if and only if
+`comparator(e1, e2) = comparator(e2, e1) = false`. See the formalization below
+for how this generalizes to multiple inputs.
+
+More formally, for all `result_index` in the index space of `results[0]`:
+
+* `adjusted_dimension = dimension >= 0 ? dimension : rank(inputs[0]) + dimension`.
+* `result_slice = [ri0, ..., :, ..., riR-1]` where `riN` are individual
+  elements in `result_index`, and `:` is inserted at `adjusted_dimension`.
+* `inputs_together[:] = (inputs[0][:], ..., inputs[N-1][:])`.
+* `results_together[result_slice] = sort(inputs_together[result_slice], comparator_together)`.
+* where `sort` sorts a 1-dimensional slice in non-descending order expecting
+  that `comparator_together` returns `true` if the left-hand side argument is
+  less than the right-hand second argument.
+* &#32;
+
+  ```python
+  def comparator_together(lhs_together, rhs_together):
+    args = []
+    for (lhs_el, rhs_el) in zip(lhs_together, rhs_together):
+      args.append(lhs_el)
+      args.append(rhs_el)
+    return comparator(*args)
+  ```
+
+* `(results[0][:], ..., results[N-1][:]) = results_together[:]`.
 
 #### Inputs
 
@@ -5226,41 +5247,23 @@ More formally, for all `0 <= id < jd < dim(inputs[0], d)`, either
 #### Examples
 
 ```mlir
-// Sort along dimension 0
-
 // %input0 = [[1, 2, 3], [3, 2, 1]]
 // %input1 = [[3, 2, 1], [1, 2, 3]]
 %result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>, %arg2: tensor<i64>, %arg3: tensor<i64>):
     %predicate = "stablehlo.compare"(%arg0, %arg1) {
       comparison_direction = #stablehlo<comparison_direction GT>
-    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    } : (tensor<i64>, tensor<i64>) -> tensor<i1>
     "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
 }) {
   dimension = 0 : i64,
   is_stable = true
-} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
+} : (tensor<2x3xi64>, tensor<2x3xi64>) -> (tensor<2x3xi64>, tensor<2x3xi64>)
 // %result0 = [[3, 2, 3], [1, 2, 1]]
 // %result1 = [[1, 2, 1], [3, 2, 3]]
-
-
-// Sort along dimension 1
-
-// %input0 = [[1, 2, 3], [3, 2, 1]]
-// %input1 = [[3, 2, 1], [1, 2, 3]]
-%result0, %result1 = "stablehlo.sort"(%input0, %input1) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>, %arg2: tensor<i32>, %arg3: tensor<i32>):
-    %predicate = "stablehlo.compare"(%arg0, %arg1) {
-      comparison_direction = #stablehlo<comparison_direction GT>
-    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-    "stablehlo.return"(%predicate) : (tensor<i1>) -> ()
-}) {
-  dimension = 1 : i64,
-  is_stable = true
-} : (tensor<2x3xi32>, tensor<2x3xi32>) -> (tensor<2x3xi32>, tensor<2x3xi32>)
-// %result0 = [[3, 2, 1], [3, 2, 1]]
-// %result1 = [[1, 2, 3], [1, 2, 3]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_sort.mlir)
 
 ### sqrt
 
