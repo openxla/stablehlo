@@ -48,7 +48,8 @@ class Element {
   Element(Type type, APFloat value);
 
   /// Initializes Element object with type 'type' and value 'value'. 'type' must
-  /// be a complex type and the bitwidth of 'type' and 'value' must match.
+  /// be a complex type and the bitwidth, w.r.t. the real and imaginary part, of
+  /// 'type' and 'value' must match.
   Element(Type type, std::complex<APFloat> value);
 
   Element(const Element &other) = default;
@@ -185,13 +186,19 @@ Element convert(Type type, APFloat value);
 Element convert(Type type, double value);
 
 /// Returns converted Element object of type 'type' from source complex<APFloat>
-/// 'value'. If the value cannot be exactly represented in the destination type,
-/// then the behavior is TBD (#180).
+/// 'value'. Only the real part of 'value' is used to convert to non-complex
+/// destination types. If the value cannot be exactly represented in the complex
+/// destination type, then the behavior is TBD (#180). If the real part of
+/// 'value' cannot be exactly represented in the non-complex destination type,
+/// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<APFloat> value);
 
 /// Returns converted Element object of type 'type' from source complex<double>
-/// 'value'. If the value cannot be exactly represented in the destination type,
-/// then the behavior is TBD (#180).
+/// 'value'. Only the real part of 'value' is used to convert to non-complex
+/// destination types. If the value cannot be exactly represented in the complex
+/// destination type, then the behavior is TBD (#180). If the real part of
+/// 'value' cannot be exactly represented in the non-complex destination type,
+/// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<double> value);
 
 /// Returns cosine of Element object.

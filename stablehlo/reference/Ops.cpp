@@ -562,7 +562,7 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     auto element =
         convert(resultType.getElementType(),
-                static_cast<int64_t>(
+                static_cast<uint64_t>(
                     operand.get(*it).getIntegerValue().countLeadingZeros()));
     result.set(*it, element);
   }
@@ -629,7 +629,7 @@ Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType) {
   Tensor result(resultType);
   result.set(
-      {}, Element(resultType.getElementType(), operand.getShape()[dimension]));
+      {}, convert(resultType.getElementType(), operand.getShape()[dimension]));
   return result;
 }
 
