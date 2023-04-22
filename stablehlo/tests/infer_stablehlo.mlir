@@ -25,6 +25,16 @@ func.func @compare(%a : tensor<2x?xf32>, %b : tensor<2x?xf32>) -> tensor<2xindex
 
 // -----
 
+// CHECK-LABEL: @complex
+func.func @complex(%arg0: tensor<10x10xf32>, %arg1: tensor<10x10xf32>) -> tensor<10x10xindex> {
+  %0 = "stablehlo.complex"(%arg0, %arg1) {} : (tensor<10x10xf32>, tensor<10x10xf32>) -> tensor<10x10xcomplex<f32>>
+  // CHECK: types0 = tensor<10x10xcomplex<f32>>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<10x10xcomplex<f32>>) -> tensor<10x10xindex>
+  func.return %1 : tensor<10x10xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @select
 func.func @select(%pred : tensor<i1>, %a : tensor<?x2x3xf32>, %b : tensor<1x?x3xf32>)
     -> tensor<1x2x3xindex> {

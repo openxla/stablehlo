@@ -720,28 +720,26 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 }
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
-    SameOperandsElementType /* complex_c1 */,
-	SameOperandsAndResultShape /* complex_c2 */,
-    DeclareOpInterfaceMethods<InferTypeOpInterface> /* complex_c3 */]> {
+    SameOperandsElementType /*complex_c1*/,
+	SameOperandsAndResultShape /*complex_c2*/,
+    DeclareOpInterfaceMethods<InferTypeOpInterface> /*complex_c3*/]> {
   let summary = "Complex operation";
   let description = [{
     Performs element-wise conversion to a complex value from a pair of real and
     imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
-
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#complex
-
     Example:
     ```mlir
-    %result = stablehlo.complex %lhs, %rhs : tensor<2xcomplex<f32>>
+    %result = stablehlo.complex %lhs, %rhs : tensor<2xcomplex<f64>>
     ```
   }];
   let arguments = (ins
-     HLO_Fp32Or64Tensor:$lhs /* complex_c1, complex_c2, complex_c3, complex_i1 */,
-     HLO_Fp32Or64Tensor:$rhs /* complex_c1, complex_i2 */
+     HLO_Fp32Or64Tensor:$lhs /*complex_i1*/,
+     HLO_Fp32Or64Tensor:$rhs /*complex_i2*/
   );
   let results = (outs
-     HLO_ComplexTensor:$result /* complex_c2, complex_c3 */
+     HLO_ComplexTensor:$result
   );
 
   let assemblyFormat = [{
