@@ -304,9 +304,7 @@ Element Element::operator+(const Element &other) const {
       [](bool lhs, bool rhs) -> bool { return lhs | rhs; },
       [](APFloat lhs, APFloat rhs) { return lhs + rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // NOTE: lhs + rhs doesn't work for std::complex<APFloat>
-        // because the default implementation for the std::complex template
-        // needs operator+= which is not defined on APFloat.
+        // TODO(#226): Use std::complex::operator+
         auto resultReal = lhs.real() + rhs.real();
         auto resultImag = lhs.imag() + rhs.imag();
         return std::complex<APFloat>(resultReal, resultImag);
@@ -331,9 +329,7 @@ Element Element::operator-(const Element &other) const {
       },
       [](APFloat lhs, APFloat rhs) { return lhs - rhs; },
       [](std::complex<APFloat> lhs, std::complex<APFloat> rhs) {
-        // NOTE: lhs - rhs doesn't work for std::complex<APFloat>
-        // because the default implementation for the std::complex template
-        // needs operator-= which is not defined on APFloat.
+        // TODO(#226): Use std::complex::operator-
         auto resultReal = lhs.real() - rhs.real();
         auto resultImag = lhs.imag() - rhs.imag();
         return std::complex<APFloat>(resultReal, resultImag);
@@ -365,6 +361,7 @@ Element Element::operator/(const Element &other) const {
   }
 
   if (isSupportedComplexType(type)) {
+    // TODO(#226): Use std::complex::operator/
     auto lhsVal = lhs.getComplexValue();
     auto rhsVal = rhs.getComplexValue();
     const llvm::fltSemantics &elSemantics = lhsVal.real().getSemantics();
@@ -635,11 +632,8 @@ Element imag(const Element &el) {
 }
 
 Element isFinite(const Element &el) {
-  if (isSupportedFloatType(el.getType()))
-    return Element(IntegerType::get(el.getType().getContext(), 1),
-                   el.getFloatValue().isFinite());
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(el.getType()).c_str()));
+  return Element(IntegerType::get(el.getType().getContext(), 1),
+                 el.getFloatValue().isFinite());
 }
 
 Element cosine(const Element &el) {
@@ -696,11 +690,8 @@ Element min(const Element &e1, const Element &e2) {
 }
 
 Element popcnt(const Element &el) {
-  auto type = el.getType();
-  if (!isSupportedIntegerType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(el.getType()).c_str()));
-  return Element(type, static_cast<int64_t>(el.getIntegerValue().popcount()));
+  return Element(el.getType(),
+                 static_cast<int64_t>(el.getIntegerValue().popcount()));
 }
 
 Element power(const Element &e1, const Element &e2) {
@@ -767,9 +758,6 @@ Element rem(const Element &e1, const Element &e2) {
 
 Element roundNearestAfz(const Element &el) {
   auto type = el.getType();
-  if (!isSupportedFloatType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToAway);
   return Element(type, val);
@@ -777,9 +765,6 @@ Element roundNearestAfz(const Element &el) {
 
 Element roundNearestEven(const Element &el) {
   auto type = el.getType();
-  if (!isSupportedFloatType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
   auto val = el.getFloatValue();
   val.roundToIntegral(llvm::RoundingMode::NearestTiesToEven);
   return Element(type, val);
@@ -792,27 +777,15 @@ Element rsqrt(const Element &el) {
 }
 
 Element shiftLeft(const Element &e1, const Element &e2) {
-  auto type = e1.getType();
-  if (!isSupportedIntegerType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
-  return Element(type, e1.getIntegerValue() << e2.getIntegerValue());
+  return Element(e1.getType(), e1.getIntegerValue() << e2.getIntegerValue());
 }
 
 Element shiftRightLogical(const Element &e1, const Element &e2) {
-  auto type = e1.getType();
-  if (!isSupportedIntegerType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
-  return Element(type, e1.getIntegerValue().lshr(e2.getIntegerValue()));
+  return Element(e1.getType(), e1.getIntegerValue().lshr(e2.getIntegerValue()));
 }
 
 Element shiftRightArithmetic(const Element &e1, const Element &e2) {
-  auto type = e1.getType();
-  if (!isSupportedIntegerType(type))
-    report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                       debugString(type).c_str()));
-  return Element(type, e1.getIntegerValue().ashr(e2.getIntegerValue()));
+  return Element(e1.getType(), e1.getIntegerValue().ashr(e2.getIntegerValue()));
 }
 
 Element sign(const Element &el) {
