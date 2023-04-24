@@ -2327,26 +2327,27 @@ More formally, `result[result_index] = dot_product`, where:
 * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
 * For `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs)`:
   * `dot_product = reduce(
-    inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-    init_values=[0],
-    dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
-    body=lambda x, y: add(x, y))`.
+      inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
 * For `is_quantized_tensor(lhs) and is_quantized_tensor(rhs)`:
-  * `float_dot_product = reduce(
-    inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)) * scale(reshaped_lhs_slice),
-                     (reshaped_rhs_slice - zero_point(reshaped_rhs_slice)) * scale(reshaped_rhs_slice)],
-    init_values=[0],
-    dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
-    body=lambda x, y: add(x, y))`.
-  * `rounded_dot_product = round_nearest_even(float_dot_product / scale(result))`.
+  * `integer_dot_product = reduce(
+      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
+                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+  * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
   * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 * For `is_non_quantized_tensor(lhs) and is_quantized_tensor(rhs)`:
-  * `dot_product = reduce(
-    inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)) * scale(reshaped_lhs_slice),
-                     (reshaped_rhs_slice - zero_point(reshaped_rhs_slice)) * scale(reshaped_rhs_slice)],
-    init_values=[0],
-    dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
-    body=lambda x, y: add(x, y))`.
+  * `integer_dot_product = reduce(
+      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)) * scale(reshaped_lhs_slice),
+                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice)) * scale(reshaped_rhs_slice)],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+  * `dot_product = integer_dot_product * scale(reshaped_lhs_slice) * scale(reshape_rhs_slice)`.
 <!-- markdownlint-enable line-length -->
 
 `precision_config` controls the tradeoff between speed and accuracy for
