@@ -181,7 +181,8 @@ ParseResult parseFunctionBody(OpAsmParser& parser, Attribute& name,
 void TensorV1Attr::print(mlir::AsmPrinter& p) const {
   p << '<'
     << DenseIntOrFPElementsAttr::getFromRawBuffer(
-           convertTypeToBuiltinForPrint(getType()), getData())
+           convertTypeToBuiltinForPrint(getType()).cast<ShapedType>(),
+           getData())
     << '>';
 }
 

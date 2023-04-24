@@ -228,7 +228,7 @@ void ConstantOp::build(OpBuilder& /*builder*/, OperationState& result,
                        Attribute value) {
   ShapedType type;
   if (auto elemAttr = value.dyn_cast<ElementsAttr>()) {
-    type = elemAttr.getType();
+    type = elemAttr.getType().cast<ShapedType>();
   } else if (value.isa<BoolAttr, FloatAttr, IntegerAttr>()) {
     // All XLA types must be tensor types. In the build() method, we want to
     // provide more flexibility by allowing attributes of scalar types. But we
@@ -2518,7 +2518,7 @@ Attribute StablehloDialect::parseAttribute(DialectAsmParser& parser,
 void StablehloDialect::printAttribute(Attribute attr,
                                       DialectAsmPrinter& os) const {
   if (auto type_extensions = attr.dyn_cast<TypeExtensionsAttr>()) {
-    hlo::printTypeExtensions(attr, os);
+    hlo::printTypeExtensions(attr.cast<hlo::BoundedAttrInterface>(), os);
     return;
   }
   LogicalResult result = generatedAttributePrinter(attr, os);
