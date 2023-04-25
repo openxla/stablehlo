@@ -2298,11 +2298,11 @@ More formally, `result[result_index] = dot_product`, where:
 * `If lhs uses non-quantized tensor and rhs uses quantized tensor:`
 
   ```python
-   for each batch_size in [0, dim(lhs, lhs_batching_dimensions[0])]:
-    rmin = lhs[batch_size, :].min().
-    rmax = lhs[batch_size, :].max().
-    scale = (rmax - rmin) / (storage_max(rhs) - storage_min(rhs)).
-    zero_point = (rmax * storage_min(rhs) - rmin * storage_max(rhs)) / (rmax - rmin).
+   for batch_size in range(0, dim(lhs, lhs_batching_dimensions[0])):
+    rmin = lhs[batch_size, :].min()
+    rmax = lhs[batch_size, :].max()
+    scale = (rmax - rmin) / (storage_max(rhs) - storage_min(rhs))
+    zero_point = (rmax * storage_min(rhs) - rmin * storage_max(rhs)) / (rmax - rmin)
     effective_lhs[batch_size, :] = uniform.quantize(lhs[batch_size, :],
             storage_type=storage_type(rhs),
             storage_min=storage_min(rhs),
