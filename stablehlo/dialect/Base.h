@@ -110,15 +110,13 @@ LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
-inline bool matchNumericType(DenseIntElementsAttr attr,
-                             SmallVector<int64_t> &result) {
+inline bool matchNumericType(Type elementType, SmallVector<int64_t> &result) {
   // FIXME: Discuss if this should be signless 64?
-  return attr.getElementType().isSignlessInteger();
+  return elementType.isSignlessInteger();
 }
 
-inline bool matchNumericType(DenseIntElementsAttr attr,
-                             SmallVector<APInt> &result) {
-  return attr.isa<IntegerType>();
+inline bool matchNumericType(Type elementType, SmallVector<APInt> &result) {
+  return elementType.isa<IntegerType>();
 }
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
@@ -126,7 +124,7 @@ template <typename T>
 LogicalResult matchInts(Value value, SmallVector<T> &result) {
   DenseIntElementsAttr attr;
   if (!matchPattern(value, m_Constant(&attr))) return failure();
-  if (!matchNumericType(attr, result)) return failure();
+  if (!matchNumericType(attr.getElementType(), result)) return failure();
   for (auto element : attr.getValues<APInt>()) {
     if constexpr (std::is_same<T, int64_t>::value) {
       result.push_back(element.getSExtValue());
