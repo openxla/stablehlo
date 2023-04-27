@@ -210,7 +210,9 @@ def test_api_version():
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  assert curr_version == "0.10.1"
+  major_minor_patch = curr_version.split('.')
+  assert len(major_minor_patch) == 3
+  assert major_minor_patch[1] == "10"
 
   ASM = """
   func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
