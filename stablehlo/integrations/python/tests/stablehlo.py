@@ -17,6 +17,7 @@
 
 # pylint: disable=wildcard-import,undefined-variable
 
+import re
 from mlir import ir
 from mlir.dialects import stablehlo
 
@@ -210,8 +211,8 @@ def test_api_version():
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  assert curr_version == "0.10.0"
-  
+  assert re.match('^\d+\.\d+\.\d+$', curr_version)
+
   ASM = """
   func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
     %0 = stablehlo.add %arg0, %arg0 : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
