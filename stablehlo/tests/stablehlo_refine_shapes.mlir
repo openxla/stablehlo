@@ -312,8 +312,8 @@ func.func @eval_slice() -> tensor<2xi64> {
 
 // -----
 
-// CHECK-LABEL: func @eval_slice_uint
-func.func @eval_slice_uint() -> tensor<1xui64> {
+// CHECK-LABEL: func @eval_slice_uint_failure
+func.func @eval_slice_uint_failure() -> tensor<1xui64> {
   // CHECK: stablehlo.slice
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xui64>
   %1 = "stablehlo.slice"(%0) {
