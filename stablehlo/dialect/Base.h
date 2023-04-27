@@ -110,12 +110,17 @@ LogicalResult inferMostSpecificTypeComponents(
     std::optional<Location> location, TypeRange inputTypes,
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
-inline bool matchNumericType(Type elementType, SmallVector<int64_t> &result) {
+template <typename T>
+bool matchElementType(Type elementType) = delete;
+
+template <>
+inline bool matchElementType<int64_t>(Type elementType) {
   // FIXME: Discuss if this should be signless 64?
   return elementType.isSignlessInteger();
 }
 
-inline bool matchNumericType(Type elementType, SmallVector<APInt> &result) {
+template <>
+inline bool matchElementType<APInt>(Type elementType) {
   return elementType.isa<IntegerType>();
 }
 
@@ -124,7 +129,7 @@ template <typename T>
 LogicalResult matchInts(Value value, SmallVector<T> &result) {
   DenseIntElementsAttr attr;
   if (!matchPattern(value, m_Constant(&attr))) return failure();
-  if (!matchNumericType(attr.getElementType(), result)) return failure();
+  if (!matchElementType<T>(attr.getElementType())) return failure();
   for (auto element : attr.getValues<APInt>()) {
     if constexpr (std::is_same<T, int64_t>::value) {
       result.push_back(element.getSExtValue());
