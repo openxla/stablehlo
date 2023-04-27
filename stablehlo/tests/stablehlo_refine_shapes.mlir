@@ -312,6 +312,20 @@ func.func @eval_slice() -> tensor<2xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_slice_uint
+func.func @eval_slice_uint() -> tensor<1xui64> {
+  // CHECK: stablehlo.slice
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xui64>
+  %1 = "stablehlo.slice"(%0) {
+    start_indices = dense<0> : tensor<1xi64>,
+    limit_indices = dense<1> : tensor<1xi64>,
+    strides = dense<1> : tensor<1xi64>
+  } : (tensor<2xui64>) -> tensor<1xui64>
+  func.return %1 : tensor<1xui64>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_subtract
 func.func @eval_subtract() -> tensor<i64> {
   // CHECK-NOT: stablehlo.subtract
