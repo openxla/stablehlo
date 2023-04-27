@@ -190,7 +190,7 @@ LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes,
     RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
-  ShapedType lhsType = operands[0].getType();
+  ShapedType lhsType = operands[0].getType().cast<ShapedType>();
   Type elementType = ComplexType::get(lhsType.getElementType());
   return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
                                                     attributes, elementType,

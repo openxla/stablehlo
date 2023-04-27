@@ -203,7 +203,7 @@ ParseResult parseComplexOpType(OpAsmParser& parser, Type& lhs, Type& rhs,
     return parser.emitError(loc, "expected tensor with complex element type");
 
   // Assign LHS and RHS to inferred type
-  Type realType = createRealType(type);
+  Type realType = createRealType(shapedType);
   lhs = rhs = realType;
   result = type;
   return success();
