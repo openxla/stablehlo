@@ -211,7 +211,7 @@ def test_api_version():
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  assert bool(re.match('\d+\.\d+\.\d+', curr_version))
+  assert re.match('^\d+\.\d+\.\d+$', curr_version)
 
   ASM = """
   func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
