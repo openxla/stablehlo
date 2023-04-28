@@ -2342,8 +2342,8 @@ More formally, `result[result_index] = dot_product`, where:
   * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 * For `is_non_quantized_tensor(lhs) and is_quantized_tensor(rhs)`:
   * `integer_dot_product = reduce(
-      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)) * scale(reshaped_lhs_slice),
-                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice)) * scale(reshaped_rhs_slice)],
+      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
+                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
       init_values=[0],
       dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
       body=lambda x, y: add(x, y))`.
@@ -2395,9 +2395,9 @@ planning to address this in
   $\in$ [0, size(`lhs_batching_dimensions`)).
 * (C6) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_contracting_dimensions`)).
-* (C7) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C7) 0 $\le$ `rhs_batching_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_batching_dimensions`)).
-* (C8) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C8) 0 $\le$ `rhs_contracting_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_contracting_dimensions`)).
 * (C9) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
   dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
