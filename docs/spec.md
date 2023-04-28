@@ -2322,48 +2322,47 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                           |
-|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C5), (C9), (C11)               |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+| Label | Name                         | Type                                                         | Constraints                    |
+|-------|------------------------------|--------------------------------------------------------------|--------------------------------|
+| (I1)  | `lhs`                        | tensor                                                       | (C5), (C6), (C9), (C10), (C12) |
+| (I2)  | `rhs`                        | tensor                                                       | (C7), (C8), (C9), (C10), (C12) |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)  |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)         |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)        |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)        |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                          |
 
 #### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
-| `result` | tensor | (C13)       |
+| `result` | tensor | (C12)       |
 
 #### Constraints
 
-* (C1) `lhs` and `rhs` have the same element type.
-* (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
-* (C3) size(`lhs_contracting_dimensions`) $=$
+* (C1) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
+* (C2) size(`lhs_contracting_dimensions`) $=$
   size(`rhs_contracting_dimensions`).
-* (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
+* (C3) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
   unique.
-* (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
+* (C4) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
   unique.
-* (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C5) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_batching_dimensions`)).
-* (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C6) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_contracting_dimensions`)).
-* (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C7) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_batching_dimensions`)).
-* (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C8) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_contracting_dimensions`)).
-* (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
+* (C9) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
   dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_batching_dimensions`)).
-* (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
+* (C10) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
   dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_contracting_dimensions`)).
-* (C12) size(`precision_config`) $=$ 2.
-* (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
+* (C11) size(`precision_config`) $=$ 2.
+* (C12) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
   dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
 
 #### Examples
