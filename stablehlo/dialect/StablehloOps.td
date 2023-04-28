@@ -1925,7 +1925,8 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
 // directly.
 
 def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
-      [Pure, SameOperandsAndResultElementType, InferTensorType]> {
+      [Pure, SameOperandsAndResultElementType /*cholesky_c1*/,
+       InferTensorType /*cholesky_c1*/]> {
   let summary = "Cholesky operation";
   let description = [{
     Computes the Cholesky decomposition of a batch of matrices.
@@ -1935,7 +1936,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
 
     Example:
     ```mlir
-    %result = stablehlo.cholesky %a, lower = true : tensor<3x3xf32>
+    %result = stablehlo.cholesky %a, lower = true : tensor<3x3xf64>
     ```
   }];
   let arguments = (ins

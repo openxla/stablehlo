@@ -59,7 +59,7 @@ one of the following tracking labels.
 | case                     | yes           | revisit      | yes            | no              | yes         |
 | cbrt                     | yes           | yes          | yes            | yes             | yes         |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
-| cholesky                 | yes           | yes          | yes            | yes             | no          |
+| cholesky                 | yes           | yes          | yes            | yes             | yes         |
 | clamp                    | yes           | revisit      | yes            | yes             | yes         |
 | collective_permute       | yes           | revisit      | yes            | no              | no          |
 | compare                  | yes           | yes          | yes            | yes             | yes         |

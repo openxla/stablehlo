@@ -94,6 +94,11 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(ceilOp.getOperand());
       auto result = evalCeilOp(operand, ceilOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto choleskyOp = dyn_cast<CholeskyOp>(op)) {
+      auto a = scope.find(choleskyOp.getA());
+      auto result =
+          evalCholeskyOp(a, choleskyOp.getLower(), choleskyOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto clampOp = dyn_cast<ClampOp>(op)) {
       auto min = scope.find(clampOp.getMin());
       auto operand = scope.find(clampOp.getOperand());
@@ -447,6 +452,83 @@ Tensor evalCeilOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ceil(operand.get(*it)));
+  return result;
+}
+
+Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
+  Tensor result(resultType);
+  auto aShape = a.getShape();
+  auto cholesky = [&lower](Tensor A) {
+    Tensor L(A.getType());
+    auto conjugate = [&](Element el) {
+      return Element(el.getType(),
+                     std::complex<APFloat>(el.getComplexValue().real(),
+                                           -el.getComplexValue().imag()));
+    };
+
+    for (auto it = L.index_begin(); it != L.index_end(); ++it)
+      L.set(*it, Element(A.getElementType(), 0.0));
+
+    for (auto i = 0; i < A.getShape()[0]; ++i) {
+      for (auto j = 0; j <= i; ++j) {
+        Element sum(A.getElementType(), 0.0);
+        for (auto k = 0; k < j; ++k) {
+          if (isSupportedComplexType(A.getElementType()))
+            sum = sum + L.get(Index({i, k})) * conjugate(L.get(Index({j, k})));
+          else
+            sum = sum + L.get(Index({i, k})) * L.get(Index({j, k}));
+        }
+        if (i == j)
+          L.set(Index({i, j}), sqrt(A.get(Index({i, i})) - sum));
+        else
+          L.set(Index({i, j}),
+                ((A.get(Index({i, j})) - sum) / L.get(Index({j, j}))));
+      }
+    }
+
+    if (lower) return L;
+
+    if (isSupportedComplexType(A.getElementType()))
+      for (auto it = L.index_begin(); it != L.index_end(); ++it)
+        L.set(*it, conjugate(L.get(*it)));
+    return evalTransposeOp(L, {1, 0}, L.getType());
+  };
+
+  if (a.getRank() == 2) return cholesky(a);
+
+  auto getScalarTensor = [&](auto value) {
+    return makeTensor(DenseElementsAttr::get(
+        RankedTensorType::get({},
+                              IntegerType::get(a.getType().getContext(), 64)),
+        {value}));
+  };
+
+  SmallVector<int64_t> aSliceShape(aShape.end() - 2, aShape.end());
+  auto batchingSizes =
+      Sizes(SmallVector<int64_t>(aShape.begin(), aShape.end() - 2));
+  for (auto batchIt =
+           IndexSpaceIterator(batchingSizes, Sizes(a.getRank() - 2, 0));
+       batchIt != IndexSpaceIterator(batchingSizes, std::nullopt); ++batchIt) {
+    SmallVector<Tensor> startIndices;
+    for (auto index : *batchIt) startIndices.push_back(getScalarTensor(index));
+    startIndices.append({getScalarTensor(0L), getScalarTensor(0L)});
+
+    auto aReshaped = Sizes(a.getRank() - 2, 1);
+    aReshaped.append(aSliceShape);
+
+    auto aSliced = evalDynamicSliceOp(
+        a, startIndices, aReshaped,
+        RankedTensorType::get(aReshaped, a.getElementType()));
+
+    auto L = cholesky(evalReshapeOp(
+        aSliced, RankedTensorType::get(aSliceShape, a.getElementType())));
+
+    auto reshapedL =
+        evalReshapeOp(L, RankedTensorType::get(aReshaped, a.getElementType()));
+
+    result =
+        evalDynamicUpdateSliceOp(result, reshapedL, startIndices, resultType);
+  }
   return result;
 }
 

@@ -1455,16 +1455,7 @@ func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xf32> {
 
 // -----
 
-func.func @cholesky_error_nonsquare(%arg0: tensor<1x2x1xf32>) -> tensor<1x2x1xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{minor dimensions of 'a' must have equal size, got shape 1, 2, 1}}
-  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x1xf32>) -> tensor<1x2x1xf32>
-  func.return %0: tensor<1x2x1xf32>
-}
-
-// -----
-
-func.func @cholesky_invalid_rank(%arg0: tensor<1xf32>) -> tensor<1xf32> {
+func.func @cholesky_c2(%arg0: tensor<1xf32>) -> tensor<1xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{argument 'a' must have rank >= 2, got shape 1}}
   %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1xf32>) -> tensor<1xf32>
@@ -1473,19 +1464,11 @@ func.func @cholesky_invalid_rank(%arg0: tensor<1xf32>) -> tensor<1xf32> {
 
 // -----
 
-func.func @cholesky_invalid_elt(%arg0: tensor<1x2x2xi32>) -> tensor<1x2x2xi32> {
-  // expected-error@+1 {{operand #0 must be tensor of f8E4M3B11FNUZ type or f8E4M3FN type or f8E4M3FNUZ type or f8E5M2 type or f8E5M2FNUZ type or 16-bit float or 32-bit float or 64-bit float or bfloat16 type or complex type with 32-bit float or 64-bit float elements values, but got 'tensor<1x2x2xi32>'}}
-  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x2xi32>) -> tensor<1x2x2xi32>
-  func.return %0: tensor<1x2x2xi32>
-}
-
-// -----
-
-func.func @cholesky_wrong_infer_shape(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2x2xf32> {
+func.func @cholesky_c3(%arg0: tensor<1x2x1xf32>) -> tensor<1x2x1xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{'stablehlo.cholesky' op inferred type(s) 'tensor<1x2x2xf32>' are incompatible with return type(s) of operation 'tensor<1x2x2x2xf32>'}}
-  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x2xf32>) -> tensor<1x2x2x2xf32>
-  func.return %0: tensor<1x2x2x2xf32>
+  // expected-error@+1 {{minor dimensions of 'a' must have equal size, got shape 1, 2, 1}}
+  %0 = "stablehlo.cholesky"(%arg0) { lower = true } : (tensor<1x2x1xf32>) -> tensor<1x2x1xf32>
+  func.return %0: tensor<1x2x1xf32>
 }
 
 // -----
