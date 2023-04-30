@@ -616,8 +616,7 @@ Element ceil(const Element &el) {
 }
 
 Element complex(const Element &e1, const Element &e2) {
-  auto type = e1.getType();
-  auto complexType = ComplexType::get(type);
+  auto complexType = ComplexType::get(e1.getType());
   if (isSupportedComplexType(complexType))
     return Element(complexType, std::complex<APFloat>(e1.getFloatValue(),
                                                       e2.getFloatValue()));

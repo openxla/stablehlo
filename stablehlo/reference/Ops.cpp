@@ -475,8 +475,7 @@ Tensor evalComplexOp(const Tensor &lhs, const Tensor &rhs,
                      ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, Element(resultType.getElementType(),
-                            complex(lhs.get(*it), rhs.get(*it))));
+    result.set(*it, complex(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 

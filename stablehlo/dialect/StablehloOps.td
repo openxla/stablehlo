@@ -721,7 +721,7 @@ def StableHLO_Atan2Op : StableHLO_BinaryElementwiseOp<"atan2",
 
 def StableHLO_ComplexOp: StableHLO_BinaryElementwiseOp<"complex", [Pure,
     SameOperandsElementType /*complex_c1*/,
-	SameOperandsAndResultShape /*complex_c2*/,
+    SameOperandsAndResultShape /*complex_c2*/,
     DeclareOpInterfaceMethods<InferTypeOpInterface> /*complex_c3*/]> {
   let summary = "Complex operation";
   let description = [{
