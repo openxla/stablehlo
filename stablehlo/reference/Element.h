@@ -187,16 +187,18 @@ Element convert(Type type, double value);
 
 /// Returns converted Element object of type 'type' from source complex<APFloat>
 /// 'value'. Only the real part of 'value' is used to convert to non-complex
-/// destination types. If the value cannot be exactly represented in the complex
-/// destination type, then the behavior is TBD (#180). If the real part of
+/// destination types. If the value (or the real part of `value`) cannot be
+/// exactly represented in the complex destination type (or non-complex
+/// destination type), then then the behavior is TBD (#180). If the real part of
 /// 'value' cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<APFloat> value);
 
 /// Returns converted Element object of type 'type' from source complex<double>
 /// 'value'. Only the real part of 'value' is used to convert to non-complex
-/// destination types. If the value cannot be exactly represented in the complex
-/// destination type, then the behavior is TBD (#180). If the real part of
+/// destination types. If the value (or the real part of `value`) cannot be
+/// exactly represented in the complex destination type (or non-complex
+/// destination type), then then the behavior is TBD (#180). If the real part of
 /// 'value' cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<double> value);
