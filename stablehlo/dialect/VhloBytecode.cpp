@@ -324,6 +324,10 @@ enum TypeCode {
   ///   FloatF8E5M2FNUZV1Type {
   ///   }
   kFloatF8E5M2FNUZV1Type = 28,
+
+  ///   FloatF8E4M3B11FNUZV1Type {
+  ///   }
+  kFloatF8E4M3B11FNUZV1Type = 29,
 };
 
 }  // namespace vhlo_encoding
@@ -702,6 +706,7 @@ const llvm::fltSemantics &getFloatSemantics(Type type) {
   if (type.isa<FloatF32V1Type>()) return APFloat::IEEEsingle();
   if (type.isa<FloatF64V1Type>()) return APFloat::IEEEdouble();
   if (type.isa<FloatF8E4M3FNUZV1Type>()) return APFloat::Float8E4M3FNUZ();
+  if (type.isa<FloatF8E4M3B11FNUZV1Type>()) return APFloat::Float8E4M3B11FNUZ();
   if (type.isa<FloatF8E4M3FNV1Type>()) return APFloat::Float8E4M3FN();
   if (type.isa<FloatF8E5M2FNUZV1Type>()) return APFloat::Float8E5M2FNUZ();
   if (type.isa<FloatF8E5M2V1Type>()) return APFloat::Float8E5M2();
@@ -975,6 +980,8 @@ Type VhloBytecodeInterface::readType(DialectBytecodeReader &reader) const {
       return FloatF8E5M2FNUZV1Type::get(getContext());
     case vhlo_encoding::kFloatF8E4M3FNUZV1Type:
       return FloatF8E4M3FNUZV1Type::get(getContext());
+    case vhlo_encoding::kFloatF8E4M3B11FNUZV1Type:
+      return FloatF8E4M3B11FNUZV1Type::get(getContext());
     case vhlo_encoding::kFunctionV1Type:
       return readFunctionV1Type(reader);
     case vhlo_encoding::kIndexV1Type:
@@ -1061,6 +1068,11 @@ LogicalResult VhloBytecodeInterface::writeType(
       .Case([&](FloatF8E4M3FNUZV1Type) {
         LOG_WRITE_CALL;
         return writer.writeVarInt(vhlo_encoding::kFloatF8E4M3FNUZV1Type),
+               success();
+      })
+      .Case([&](FloatF8E4M3B11FNUZV1Type) {
+        LOG_WRITE_CALL;
+        return writer.writeVarInt(vhlo_encoding::kFloatF8E4M3B11FNUZV1Type),
                success();
       })
       .Case([&](FloatF8E5M2FNUZV1Type) {
