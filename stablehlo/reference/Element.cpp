@@ -599,22 +599,14 @@ Element atan2(const Element &e1, const Element &e2) {
 }
 
 Element cbrt(const Element &el) {
-  auto type = el.getType();
-  if (isSupportedFloatType(type))
-    return Element(type, std::cbrt(el.getFloatValue().convertToDouble()));
-
-  if (isSupportedComplexType(type)) {
-    auto real = el.getComplexValue().real().convertToDouble();
-    auto imag = el.getComplexValue().imag().convertToDouble();
-    // cbrt(a + bi) = cbrt(sqrt(a^2 + b^2)) * (cos(1/3 * atan2(b, a)) + i *
-    // sin(1/3 * atan2(b, a)))
-    auto theta = std::atan2(imag, real) / 3.0;
-    return Element(
-        type, std::pow(std::pow(real, 2.0) + std::pow(imag, 2.0), 1.0 / 6.0) *
-                  std::complex<double>(std::cos(theta), std::sin(theta)));
-  }
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::cbrt(e); },
+      [](std::complex<double> e) {
+        auto theta = std::atan2(e.imag(), e.real()) / 3.0;
+        return std::pow(std::pow(e.real(), 2.0) + std::pow(e.imag(), 2.0),
+                        1.0 / 6.0) *
+               std::complex<double>(std::cos(theta), std::sin(theta));
+      });
 }
 
 Element ceil(const Element &el) {
