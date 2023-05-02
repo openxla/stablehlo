@@ -227,7 +227,7 @@ BooleanType ::= 'i1'
 IntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
               | 'ui4' | 'ui8' | 'ui16' | 'ui32' | 'ui64'
 FloatType   ::= 'f8E4M3FN' | 'f8E5M2' | 'f8E4M3FNUZ' | 'f8E5M2FNUZ'
-              | 'bf16' | 'f16' | 'f32' | 'f64'
+              | 'f8E4M3B11FNUZ' | 'bf16' | 'f16' | 'f32' | 'f64'
 ComplexType ::= 'complex' '<' ('f32' | 'f64') '>'
 ```
 
@@ -250,6 +250,9 @@ values of type `tensor<T>`).
   * `f8E4M3FNUZ` and `f8E5M2FNUZ` types corresponding to the `E4M3` and `E5M2`
     encodings of the FP8 formats described in
     [8-bit Numerical Formats for Deep Neural Networks](https://arxiv.org/abs/2206.02915).
+  * `f8E4M3B11FNUZ` type corresponding to the `E4M3` encoding of the FP8 formats
+    described in
+    [Hybrid 8-bit Floating Point (HFP8) Training and Inference for Deep Neural Networks](https://proceedings.neurips.cc/paper_files/paper/2019/file/65fc9fb4897a89789352e211ca2d398f-Paper.pdf).
   * `bf16` type corresponding to the `bfloat16` format described in
     [BFloat16: The secret to high performance on Cloud TPUs](https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus).
   * `f16`, `f32` and `f64` types corresponding to respectively

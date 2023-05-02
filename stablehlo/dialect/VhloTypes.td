@@ -89,6 +89,9 @@ def VHLO_FloatF8E5M2V1 : VHLO_TypeDef<"FloatF8E5M2V1", "f8E5M2_v1", "0.9.0", "cu
 // Corresponds to the 'f8E4M3FNUZ' FloatType from the StableHLO spec.
 def VHLO_FloatF8E4M3FNUZV1 : VHLO_TypeDef<"FloatF8E4M3FNUZV1", "f8E4M3FNUZ_v1", "0.10.0", "current">;
 
+// Corresponds to the 'f8E4M3B11FNUZ' FloatType from the StableHLO spec.
+def VHLO_FloatF8E4M3B11FNUZV1 : VHLO_TypeDef<"FloatF8E4M3B11FNUZV1", "f8E4M3B11FNUZ_v1", "0.11.0", "current">;
+
 // Corresponds to the 'f8E5M2FNUZ' FloatType from the StableHLO spec.
 def VHLO_FloatF8E5M2FNUZV1 : VHLO_TypeDef<"FloatF8E5M2FNUZV1", "f8E5M2FNUZ_v1", "0.10.0", "current">;
 

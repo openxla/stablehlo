@@ -105,6 +105,11 @@ Element Tensor::get(const Index &index) const {
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3FNUZ(),
                                         APInt(8, *elementData)));
   }
+  if (elementType.isFloat8E4M3B11FNUZ()) {
+    auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
+    return Element(elementType, APFloat(llvm::APFloatBase::Float8E4M3B11FNUZ(),
+                                        APInt(8, *elementData)));
+  }
   if (elementType.isFloat8E5M2FNUZ()) {
     auto elementData = reinterpret_cast<const uint8_t *>(elementPtr);
     return Element(elementType, APFloat(llvm::APFloatBase::Float8E5M2FNUZ(),
@@ -217,7 +222,8 @@ void Tensor::set(const Index &index, const Element &element) {
       getSizeInBytes(elementType) * flattenIndex(getShape(), index);
 
   // Handle floating-point types.
-  if (elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E5M2FNUZ()) {
+  if (elementType.isFloat8E4M3FNUZ() || elementType.isFloat8E4M3B11FNUZ() ||
+      elementType.isFloat8E5M2FNUZ()) {
     auto elementData = reinterpret_cast<uint8_t *>(elementPtr);
     auto value = element.getFloatValue();
     *elementData = (uint8_t)value.bitcastToAPInt().getZExtValue();
@@ -371,14 +377,16 @@ Tensor makeTensor(DenseElementsAttr attr) {
   auto elemType = type.getElementType();
 
   // Handle floating-point types.
-  if (elemType.isFloat8E4M3FNUZ() || elemType.isFloat8E5M2FNUZ()) {
+  if (elemType.isFloat8E4M3FNUZ() || elemType.isFloat8E4M3B11FNUZ() ||
+      elemType.isFloat8E5M2FNUZ()) {
     auto floatValues = llvm::to_vector(llvm::map_range(
         attr.getValues<APFloat>(), [&](APFloat value) -> uint8_t {
           return value.bitcastToAPInt().getZExtValue();
         }));
 
-    // For both f8E4M3FNUZ and f8E5M2FNUZ floating-point types, we use uint8_t
-    // as their storage type because there are no builtin types for those.
+    // For f8E4M3FNUZ, f8E4M3B11FNUZ, and f8E5M2FNUZ floating-point types, we
+    // use uint8_t as their storage type because there are no builtin types for
+    // those.
     return Tensor(type, HeapAsmResourceBlob::allocateAndCopyInferAlign<uint8_t>(
                             floatValues));
   }
