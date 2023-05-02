@@ -56,308 +56,294 @@ SmallVector<Tensor> eval(
 
   for (Operation &op : block) {
     if (auto absOp = dyn_cast<AbsOp>(op)) {
-      Tensor runtimeOperand = scope.find(absOp.getOperand());
-      Tensor runtimeResult = evalAbsOp(runtimeOperand, absOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(absOp.getOperand());
+      auto result = evalAbsOp(operand, absOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto addOp = dyn_cast<AddOp>(op)) {
-      Tensor runtimeLhs = scope.find(addOp.getLhs());
-      Tensor runtimeRhs = scope.find(addOp.getRhs());
-      Tensor runtimeResult = evalAddOp(runtimeLhs, runtimeRhs, addOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(addOp.getLhs());
+      auto rhs = scope.find(addOp.getRhs());
+      auto result = evalAddOp(lhs, rhs, addOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
-      Tensor runtimeLhs = scope.find(andOp.getLhs());
-      Tensor runtimeRhs = scope.find(andOp.getRhs());
-      Tensor runtimeResult = evalAndOp(runtimeLhs, runtimeRhs, andOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(andOp.getLhs());
+      auto rhs = scope.find(andOp.getRhs());
+      auto result = evalAndOp(lhs, rhs, andOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto atan2Op = dyn_cast<Atan2Op>(op)) {
-      Tensor runtimeLhs = scope.find(atan2Op.getLhs());
-      Tensor runtimeRhs = scope.find(atan2Op.getRhs());
-      Tensor runtimeResult =
-          evalAtan2Op(runtimeLhs, runtimeRhs, atan2Op.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(atan2Op.getLhs());
+      auto rhs = scope.find(atan2Op.getRhs());
+      auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
-      Tensor runtimeOperand = scope.find(broadcastInDimOp.getOperand());
+      auto operand = scope.find(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
           Axes(broadcastInDimOp.getBroadcastDimensions());
-      Tensor runtimeResult = evalBroadcastInDimOp(
-          runtimeOperand, broadcastDimensions, broadcastInDimOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result = evalBroadcastInDimOp(operand, broadcastDimensions,
+                                         broadcastInDimOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
-      Tensor runtimeIndex = scope.find(caseOp.getIndex());
-      auto runtimeResults =
-          evalCaseOp(runtimeIndex, caseOp.getBranches(), scope);
-      scope.add(op.getResults(), {runtimeResults});
+      auto index = scope.find(caseOp.getIndex());
+      auto branches = caseOp.getBranches();
+      auto results = evalCaseOp(index, branches, scope);
+      scope.add(op.getResults(), {results});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
-      Tensor runtimeOperand = scope.find(ceilOp.getOperand());
-      Tensor runtimeResult = evalCeilOp(runtimeOperand, ceilOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(ceilOp.getOperand());
+      auto result = evalCeilOp(operand, ceilOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto clampOp = dyn_cast<ClampOp>(op)) {
-      Tensor runtimeMin = scope.find(clampOp.getMin());
-      Tensor runtimeOperand = scope.find(clampOp.getOperand());
-      Tensor runtimeMax = scope.find(clampOp.getMax());
-      Tensor runtimeResult = evalClampOp(runtimeMin, runtimeOperand, runtimeMax,
-                                         clampOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto min = scope.find(clampOp.getMin());
+      auto operand = scope.find(clampOp.getOperand());
+      auto max = scope.find(clampOp.getMax());
+      auto result = evalClampOp(min, operand, max, clampOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto clzOp = dyn_cast<ClzOp>(op)) {
-      Tensor runtimeOperand = scope.find(clzOp.getOperand());
-      Tensor runtimeResult = evalClzOp(runtimeOperand, clzOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(clzOp.getOperand());
+      auto result = evalClzOp(operand, clzOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
-      Tensor runtimeLhs = scope.find(compareOp.getLhs());
-      Tensor runtimeRhs = scope.find(compareOp.getRhs());
+      auto lhs = scope.find(compareOp.getLhs());
+      auto rhs = scope.find(compareOp.getRhs());
       auto comparisonDirection = compareOp.getComparisonDirection();
-      auto runtimeResult = evalCompareOp(
-          runtimeLhs, runtimeRhs, comparisonDirection, compareOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result =
+          evalCompareOp(lhs, rhs, comparisonDirection, compareOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
-      auto runtimeOperands = scope.find(concatenateOp.getOperands());
-      Tensor runtimeResult =
-          evalConcatenateOp(runtimeOperands, concatenateOp.getDimension(),
-                            concatenateOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operands = scope.find(concatenateOp.getOperands());
+      auto result = evalConcatenateOp(operands, concatenateOp.getDimension(),
+                                      concatenateOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
-      Tensor runtimeResult = evalConstantOp(constantOp.getValue());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result = evalConstantOp(constantOp.getValue());
+      scope.add(op.getResults(), {result});
     } else if (auto convertOp = dyn_cast<ConvertOp>(op)) {
-      Tensor runtimeOperand = scope.find(convertOp.getOperand());
-      Tensor runtimeResult = evalConvertOp(runtimeOperand, convertOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(convertOp.getOperand());
+      auto result = evalConvertOp(operand, convertOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
-      Tensor runtimeOperand = scope.find(cosineOp.getOperand());
-      Tensor runtimeResult = evalCosineOp(runtimeOperand, cosineOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(cosineOp.getOperand());
+      auto result = evalCosineOp(operand, cosineOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto divideOp = dyn_cast<DivOp>(op)) {
-      Tensor runtimeLhs = scope.find(divideOp.getLhs());
-      Tensor runtimeRhs = scope.find(divideOp.getRhs());
-      Tensor runtimeResult =
-          evalDivideOp(runtimeLhs, runtimeRhs, divideOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(divideOp.getLhs());
+      auto rhs = scope.find(divideOp.getRhs());
+      auto result = evalDivideOp(lhs, rhs, divideOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
-      Tensor runtimeOperand = scope.find(dynamicSliceOp.getOperand());
-      SmallVector<Tensor> runtimeStartIndices =
-          scope.find(dynamicSliceOp.getStartIndices());
-      auto runtimeSliceSizes = Sizes(dynamicSliceOp.getSliceSizes());
-      Tensor runtimeResult =
-          evalDynamicSliceOp(runtimeOperand, runtimeStartIndices,
-                             runtimeSliceSizes, dynamicSliceOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(dynamicSliceOp.getOperand());
+      auto startIndices = scope.find(dynamicSliceOp.getStartIndices());
+      auto sliceSizes = Sizes(dynamicSliceOp.getSliceSizes());
+      auto result = evalDynamicSliceOp(operand, startIndices, sliceSizes,
+                                       dynamicSliceOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
-      Tensor runtimeOperand = scope.find(dynamicUpdateSliceOp.getOperand());
-      Tensor runtimeUpdate = scope.find(dynamicUpdateSliceOp.getUpdate());
-      SmallVector<Tensor> runtimeStartIndices =
-          scope.find(dynamicUpdateSliceOp.getStartIndices());
-      Tensor runtimeResult = evalDynamicUpdateSliceOp(
-          runtimeOperand, runtimeUpdate, runtimeStartIndices,
-          dynamicUpdateSliceOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(dynamicUpdateSliceOp.getOperand());
+      auto update = scope.find(dynamicUpdateSliceOp.getUpdate());
+      auto startIndices = scope.find(dynamicUpdateSliceOp.getStartIndices());
+      auto result = evalDynamicUpdateSliceOp(operand, update, startIndices,
+                                             dynamicUpdateSliceOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto expOp = dyn_cast<ExpOp>(op)) {
-      Tensor runtimeOperand = scope.find(expOp.getOperand());
-      Tensor runtimeResult = evalExponentialOp(runtimeOperand, expOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(expOp.getOperand());
+      auto result = evalExponentialOp(operand, expOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
-      Tensor runtimeOperand = scope.find(floorOp.getOperand());
-      Tensor runtimeResult = evalFloorOp(runtimeOperand, floorOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(floorOp.getOperand());
+      auto result = evalFloorOp(operand, floorOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto getDimensionSizeOp = dyn_cast<GetDimensionSizeOp>(op)) {
-      Tensor runtimeOperand = scope.find(getDimensionSizeOp.getOperand());
-      auto runtimeResults = evalGetDimensionSizeOp(
-          runtimeOperand, getDimensionSizeOp.getDimension(),
-          getDimensionSizeOp.getType());
-      scope.add(op.getResults(), runtimeResults);
+      auto operand = scope.find(getDimensionSizeOp.getOperand());
+      auto dimension = getDimensionSizeOp.getDimension();
+      auto results = evalGetDimensionSizeOp(operand, dimension,
+                                            getDimensionSizeOp.getType());
+      scope.add(op.getResults(), results);
     } else if (auto ifOp = dyn_cast<IfOp>(op)) {
-      Tensor runtimePred = scope.find(ifOp.getPred());
-      auto runtimeResults = evalIfOp(runtimePred, ifOp.getTrueBranch(),
-                                     ifOp.getFalseBranch(), scope);
-      scope.add(op.getResults(), runtimeResults);
+      auto pred = scope.find(ifOp.getPred());
+      auto &trueBranch = ifOp.getTrueBranch();
+      auto &falseBranch = ifOp.getFalseBranch();
+      auto results = evalIfOp(pred, trueBranch, falseBranch, scope);
+      scope.add(op.getResults(), results);
     } else if (auto imagOp = dyn_cast<ImagOp>(op)) {
-      Tensor runtimeOperand = scope.find(imagOp.getOperand());
-      Tensor runtimeResult = evalImagOp(runtimeOperand, imagOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(imagOp.getOperand());
+      auto result = evalImagOp(operand, imagOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
-      Tensor runtimeResult =
-          evalIotaOp(iotaOp.getIotaDimension(), iotaOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto iotaDimension = iotaOp.getIotaDimension();
+      auto result = evalIotaOp(iotaDimension, iotaOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto isFiniteOp = dyn_cast<IsFiniteOp>(op)) {
-      Tensor runtimeOperand = scope.find(isFiniteOp.getOperand());
-      Tensor runtimeResult =
-          evalIsFiniteOp(runtimeOperand, isFiniteOp.getResult().getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(isFiniteOp.getOperand());
+      auto result = evalIsFiniteOp(operand, isFiniteOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto logOp = dyn_cast<LogOp>(op)) {
-      Tensor runtimeOperand = scope.find(logOp.getOperand());
-      Tensor runtimeResult = evalLogOp(runtimeOperand, logOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(logOp.getOperand());
+      auto result = evalLogOp(operand, logOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto logisticOp = dyn_cast<LogisticOp>(op)) {
-      Tensor runtimeOperand = scope.find(logisticOp.getOperand());
-      Tensor runtimeResult =
-          evalLogisticOp(runtimeOperand, logisticOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(logisticOp.getOperand());
+      auto result = evalLogisticOp(operand, logisticOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto mapOp = dyn_cast<MapOp>(op)) {
-      SmallVector<Tensor> runtimeInputs = scope.find(mapOp.getInputs());
-      auto runtimeResults = evalMapOp(runtimeInputs, mapOp.getComputation(),
-                                      scope, mapOp.getType());
-      scope.add(op.getResults(), {runtimeResults});
+      auto inputs = scope.find(mapOp.getInputs());
+      auto &computation = mapOp.getComputation();
+      auto results = evalMapOp(inputs, computation, scope, mapOp.getType());
+      scope.add(op.getResults(), {results});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
-      Tensor runtimeLhs = scope.find(maxOp.getLhs());
-      Tensor runtimeRhs = scope.find(maxOp.getRhs());
-      Tensor runtimeResult = evalMaxOp(runtimeLhs, runtimeRhs, maxOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(maxOp.getLhs());
+      auto rhs = scope.find(maxOp.getRhs());
+      auto result = evalMaxOp(lhs, rhs, maxOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto minOp = dyn_cast<MinOp>(op)) {
-      Tensor runtimeLhs = scope.find(minOp.getLhs());
-      Tensor runtimeRhs = scope.find(minOp.getRhs());
-      Tensor runtimeResult = evalMinOp(runtimeLhs, runtimeRhs, minOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(minOp.getLhs());
+      auto rhs = scope.find(minOp.getRhs());
+      auto result = evalMinOp(lhs, rhs, minOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto multiplyOp = dyn_cast<MulOp>(op)) {
-      Tensor runtimeLhs = scope.find(multiplyOp.getLhs());
-      Tensor runtimeRhs = scope.find(multiplyOp.getRhs());
-      Tensor runtimeResult =
-          evalMultiplyOp(runtimeLhs, runtimeRhs, multiplyOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(multiplyOp.getLhs());
+      auto rhs = scope.find(multiplyOp.getRhs());
+      auto result = evalMultiplyOp(lhs, rhs, multiplyOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
-      Tensor runtimeOperand = scope.find(negOp.getOperand());
-      Tensor runtimeResult = evalNegOp(runtimeOperand, negOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(negOp.getOperand());
+      auto result = evalNegOp(operand, negOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto notOp = dyn_cast<NotOp>(op)) {
-      Tensor runtimeOperand = scope.find(notOp.getOperand());
-      Tensor runtimeResult = evalNotOp(runtimeOperand, notOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(notOp.getOperand());
+      auto result = evalNotOp(operand, notOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto orOp = dyn_cast<OrOp>(op)) {
-      Tensor runtimeLhs = scope.find(orOp.getLhs());
-      Tensor runtimeRhs = scope.find(orOp.getRhs());
-      Tensor runtimeResult = evalOrOp(runtimeLhs, runtimeRhs, orOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(orOp.getLhs());
+      auto rhs = scope.find(orOp.getRhs());
+      auto result = evalOrOp(lhs, rhs, orOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto padOp = dyn_cast<PadOp>(op)) {
-      Tensor runtimeOperand = scope.find(padOp.getOperand());
-      Tensor runtimePaddingValue = scope.find(padOp.getPaddingValue());
+      auto operand = scope.find(padOp.getOperand());
+      auto paddingValue = scope.find(padOp.getPaddingValue());
       auto edgePaddingLow = Sizes(padOp.getEdgePaddingLow());
       auto interiorPadding = Sizes(padOp.getInteriorPadding());
-      Tensor runtimeResult =
-          evalPadOp(runtimeOperand, runtimePaddingValue, edgePaddingLow,
-                    interiorPadding, padOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result = evalPadOp(operand, paddingValue, edgePaddingLow,
+                              interiorPadding, padOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto populationCountOp = dyn_cast<PopulationCountOp>(op)) {
-      Tensor runtimeOperand = scope.find(populationCountOp.getOperand());
-      Tensor runtimeResult =
-          evalPopulationCountOp(runtimeOperand, populationCountOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(populationCountOp.getOperand());
+      auto result = evalPopulationCountOp(operand, populationCountOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto powerOp = dyn_cast<PowOp>(op)) {
-      Tensor runtimeLhs = scope.find(powerOp.getLhs());
-      Tensor runtimeRhs = scope.find(powerOp.getRhs());
-      Tensor runtimeResult =
-          evalPowerOp(runtimeLhs, runtimeRhs, powerOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(powerOp.getLhs());
+      auto rhs = scope.find(powerOp.getRhs());
+      auto result = evalPowerOp(lhs, rhs, powerOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto realOp = dyn_cast<RealOp>(op)) {
-      Tensor runtimeOperand = scope.find(realOp.getOperand());
-      Tensor runtimeResult = evalRealOp(runtimeOperand, realOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(realOp.getOperand());
+      auto result = evalRealOp(operand, realOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
-      Tensor runtimeLhs = scope.find(remOp.getLhs());
-      Tensor runtimeRhs = scope.find(remOp.getRhs());
-      Tensor runtimeResult = evalRemOp(runtimeLhs, runtimeRhs, remOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(remOp.getLhs());
+      auto rhs = scope.find(remOp.getRhs());
+      auto result = evalRemOp(lhs, rhs, remOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
-      Tensor runtimeOperand = scope.find(reshapeOp.getOperand());
-      Tensor runtimeResult = evalReshapeOp(runtimeOperand, reshapeOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(reshapeOp.getOperand());
+      auto result = evalReshapeOp(operand, reshapeOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       return scope.find(returnOp.getOperands());
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       return scope.find(returnOp.getResults());
     } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
-      Tensor runtimeOperand = scope.find(reverseOp.getOperand());
+      auto operand = scope.find(reverseOp.getOperand());
       auto dimensions = Axes(reverseOp.getDimensions());
-      Tensor runtimeResult =
-          evalReverseOp(runtimeOperand, dimensions, reverseOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result = evalReverseOp(operand, dimensions, reverseOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
-      Tensor runtimeOperand = scope.find(roundOp.getOperand());
-      Tensor runtimeResult = evalRoundOp(runtimeOperand, roundOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(roundOp.getOperand());
+      auto result = evalRoundOp(operand, roundOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto roundNearestEvenOp = dyn_cast<RoundNearestEvenOp>(op)) {
-      Tensor runtimeOperand = scope.find(roundNearestEvenOp.getOperand());
-      Tensor runtimeResult =
-          evalRoundNearestEvenOp(runtimeOperand, roundNearestEvenOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(roundNearestEvenOp.getOperand());
+      auto result =
+          evalRoundNearestEvenOp(operand, roundNearestEvenOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
-      Tensor runtimeOperand = scope.find(rsqrtOp.getOperand());
-      Tensor runtimeResult = evalRsqrtOp(runtimeOperand, rsqrtOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(rsqrtOp.getOperand());
+      auto result = evalRsqrtOp(operand, rsqrtOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
-      Tensor runtimeResult = evalSelectOp(
-          scope.find(selectOp.getPred()), scope.find(selectOp.getOnTrue()),
-          scope.find(selectOp.getOnFalse()), selectOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto pred = scope.find(selectOp.getPred());
+      auto onTrue = scope.find(selectOp.getOnTrue());
+      auto onFalse = scope.find(selectOp.getOnFalse());
+      auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
-      Tensor runtimeLhs = scope.find(shiftLeftOp.getLhs());
-      Tensor runtimeRhs = scope.find(shiftLeftOp.getRhs());
-      Tensor runtimeResult =
-          evalShiftLeftOp(runtimeLhs, runtimeRhs, shiftLeftOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(shiftLeftOp.getLhs());
+      auto rhs = scope.find(shiftLeftOp.getRhs());
+      auto result = evalShiftLeftOp(lhs, rhs, shiftLeftOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto shiftRightArithmeticOp =
                    dyn_cast<ShiftRightArithmeticOp>(op)) {
-      Tensor runtimeLhs = scope.find(shiftRightArithmeticOp.getLhs());
-      Tensor runtimeRhs = scope.find(shiftRightArithmeticOp.getRhs());
-      Tensor runtimeResult = evalShiftRightArithmeticOp(
-          runtimeLhs, runtimeRhs, shiftRightArithmeticOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(shiftRightArithmeticOp.getLhs());
+      auto rhs = scope.find(shiftRightArithmeticOp.getRhs());
+      auto result = evalShiftRightArithmeticOp(
+          lhs, rhs, shiftRightArithmeticOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto shiftRightLogicalOp = dyn_cast<ShiftRightLogicalOp>(op)) {
-      Tensor runtimeLhs = scope.find(shiftRightLogicalOp.getLhs());
-      Tensor runtimeRhs = scope.find(shiftRightLogicalOp.getRhs());
-      Tensor runtimeResult = evalShiftRightLogicalOp(
-          runtimeLhs, runtimeRhs, shiftRightLogicalOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(shiftRightLogicalOp.getLhs());
+      auto rhs = scope.find(shiftRightLogicalOp.getRhs());
+      auto result =
+          evalShiftRightLogicalOp(lhs, rhs, shiftRightLogicalOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto signOp = dyn_cast<SignOp>(op)) {
-      Tensor runtimeOperand = scope.find(signOp.getOperand());
-      Tensor runtimeResult = evalSignOp(runtimeOperand, signOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(signOp.getOperand());
+      auto result = evalSignOp(operand, signOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
-      Tensor runtimeOperand = scope.find(sineOp.getOperand());
-      Tensor runtimeResult = evalSineOp(runtimeOperand, sineOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(sineOp.getOperand());
+      auto result = evalSineOp(operand, sineOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
-      Tensor runtimeOperand = scope.find(sliceOp.getOperand());
+      auto operand = scope.find(sliceOp.getOperand());
       auto startIndices = Sizes(sliceOp.getStartIndices());
       auto strides = Sizes(sliceOp.getStrides());
-      Tensor runtimeResult =
-          evalSliceOp(runtimeOperand, startIndices, strides, sliceOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result =
+          evalSliceOp(operand, startIndices, strides, sliceOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto sortOp = dyn_cast<SortOp>(op)) {
-      SmallVector<Tensor> runtimeOperands = scope.find(sortOp.getInputs());
-      auto runtimeResults =
-          evalSortOp(runtimeOperands, sortOp.getDimension(),
-                     sortOp.getIsStable(), sortOp.getComparator(), scope);
-      scope.add(op.getResults(), {runtimeResults});
+      auto operands = scope.find(sortOp.getInputs());
+      auto dimension = sortOp.getDimension();
+      auto isStable = sortOp.getIsStable();
+      auto &comparator = sortOp.getComparator();
+      auto results =
+          evalSortOp(operands, dimension, isStable, comparator, scope);
+      scope.add(op.getResults(), {results});
     } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
-      Tensor runtimeOperand = scope.find(sqrtOp.getOperand());
-      Tensor runtimeResult = evalSqrtOp(runtimeOperand, sqrtOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(sqrtOp.getOperand());
+      auto result = evalSqrtOp(operand, sqrtOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
-      Tensor runtimeLhs = scope.find(subtractOp.getLhs());
-      Tensor runtimeRhs = scope.find(subtractOp.getRhs());
-      Tensor runtimeResult =
-          evalSubtractOp(runtimeLhs, runtimeRhs, subtractOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(subtractOp.getLhs());
+      auto rhs = scope.find(subtractOp.getRhs());
+      auto result = evalSubtractOp(lhs, rhs, subtractOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
-      Tensor runtimeOperand = scope.find(tanhOp.getOperand());
-      Tensor runtimeResult = evalTanhOp(runtimeOperand, tanhOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto operand = scope.find(tanhOp.getOperand());
+      auto result = evalTanhOp(operand, tanhOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
-      Tensor runtimeOperand = scope.find(transposeOp.getOperand());
+      auto operand = scope.find(transposeOp.getOperand());
       auto permutation = Axes(transposeOp.getPermutation());
-      Tensor runtimeResult =
-          evalTransposeOp(runtimeOperand, permutation, transposeOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto result =
+          evalTransposeOp(operand, permutation, transposeOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
-      SmallVector<Value> runtimeOperands(whileOp.getOperand().begin(),
-                                         whileOp.getOperand().end());
-      auto runtimeInputs = scope.find(runtimeOperands);
-      auto runtimeResults = evalWhileOp(runtimeInputs, whileOp.getCond(),
-                                        whileOp.getBody(), scope);
-      scope.add(op.getResults(), runtimeResults);
+      auto operand = scope.find(whileOp.getOperand());
+      auto &cond = whileOp.getCond();
+      auto &body = whileOp.getBody();
+      auto results = evalWhileOp(operand, cond, body, scope);
+      scope.add(op.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
-      Tensor runtimeLhs = scope.find(xorOp.getLhs());
-      Tensor runtimeRhs = scope.find(xorOp.getRhs());
-      Tensor runtimeResult = evalXorOp(runtimeLhs, runtimeRhs, xorOp.getType());
-      scope.add(op.getResults(), {runtimeResult});
+      auto lhs = scope.find(xorOp.getLhs());
+      auto rhs = scope.find(xorOp.getRhs());
+      auto result = evalXorOp(lhs, rhs, xorOp.getType());
+      scope.add(op.getResults(), {result});
     } else {
       if (!fallback)
         report_fatal_error(
@@ -386,7 +372,7 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) & rhs.get(*it));
   return result;
 }
@@ -394,9 +380,8 @@ Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
                    ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, atan2(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
@@ -446,19 +431,6 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
                      ShapedType resultType) {
   Tensor result(resultType);
-  auto elementTy = lhs.getElementType();
-
-  if (isSupportedComplexType(elementTy) &&
-      (comparisonDirection == ComparisonDirection::GE ||
-       comparisonDirection == ComparisonDirection::GT ||
-       comparisonDirection == ComparisonDirection::LE ||
-       comparisonDirection == ComparisonDirection::LT)) {
-    report_fatal_error(invalidArgument(
-        "Unsupported element type %s for comparison direction %s",
-        debugString(elementTy).c_str(),
-        debugString(comparisonDirection).c_str()));
-  }
-
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     switch (comparisonDirection) {
       case ComparisonDirection::EQ:
@@ -524,13 +496,12 @@ Tensor evalCosineOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt) {
-    auto element = Element(
-        resultType.getElementType(),
-        static_cast<int64_t>(
-            operand.get(*resultIt).getIntegerValue().countLeadingZeros()));
-    result.set(*resultIt, element);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto element =
+        Element(resultType.getElementType(),
+                static_cast<int64_t>(
+                    operand.get(*it).getIntegerValue().countLeadingZeros()));
+    result.set(*it, element);
   }
   return result;
 }
@@ -600,7 +571,7 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, imag(operand.get(*it)));
   return result;
 }
@@ -651,16 +622,15 @@ Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType) {
 Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
                  ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = inputs[0].index_begin();
-       resultIt != inputs[0].index_end(); ++resultIt) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     SmallVector<Tensor> args;
     for (size_t i = 0; i < inputs.size(); ++i) {
       auto tensor =
           Tensor(computation.getArgument(i).getType().cast<ShapedType>());
-      tensor.set({}, inputs[i].get(*resultIt));
+      tensor.set({}, inputs[i].get(*it));
       args.push_back(tensor);
     }
-    result.set(*resultIt, eval(computation, args, &scope)[0].get({}));
+    result.set(*it, eval(computation, args, &scope)[0].get({}));
   }
   return result;
 }
@@ -696,14 +666,14 @@ Tensor evalNegOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalNotOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ~operand.get(*it));
   return result;
 }
 
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) | rhs.get(*it));
   return result;
 }
@@ -728,9 +698,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, popcnt(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, popcnt(operand.get(*it)));
   return result;
 }
 
@@ -744,7 +713,7 @@ Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs,
 
 Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, real(operand.get(*it)));
   return result;
 }
@@ -780,25 +749,22 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
 
 Tensor evalRoundOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, roundNearestAfz(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, roundNearestAfz(operand.get(*it)));
   return result;
 }
 
 Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, roundNearestEven(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, roundNearestEven(operand.get(*it)));
   return result;
 }
 
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, rsqrt(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, rsqrt(operand.get(*it)));
   return result;
 }
 
@@ -816,29 +782,24 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
                        ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, shiftLeft(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftLeft(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
 Tensor evalShiftRightArithmeticOp(const Tensor &lhs, const Tensor &rhs,
                                   ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt,
-               shiftRightArithmetic(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftRightArithmetic(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
 Tensor evalShiftRightLogicalOp(const Tensor &lhs, const Tensor &rhs,
                                ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt,
-               shiftRightLogical(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftRightLogical(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
@@ -963,25 +924,25 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
 
 SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
                                 Region &body, Scope &scope) {
-  SmallVector<Tensor> runtimeResults(operand);
+  SmallVector<Tensor> results(operand);
 
   auto condResults = eval(cond, operand, &scope);
   if (condResults.size() != 1)
     llvm::report_fatal_error("Failed to evaluate cond");
 
-  while (condResults[0].get(*condResults[0].index_begin()).getBooleanValue()) {
-    runtimeResults = eval(body, runtimeResults, &scope);
-    condResults = eval(cond, runtimeResults, &scope);
+  while (condResults[0].get({}).getBooleanValue()) {
+    results = eval(body, results, &scope);
+    condResults = eval(cond, results, &scope);
     if (condResults.size() != 1)
       llvm::report_fatal_error("Failed to evaluate cond");
   }
 
-  return runtimeResults;
+  return results;
 }
 
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) ^ rhs.get(*it));
   return result;
 }
