@@ -41,8 +41,37 @@ func.func @error_unsupported_operation(%arg0: tensor<4xf32>, %arg1: tensor<4xf32
 
 // -----
 
-// CHECK-LABEL: func @eval_add
-func.func @eval_add() -> tensor<i64> {
+// We want to test eval patterns on a multitude of supported element types,
+// however we don't want to duplicate all these tests over and over again.
+// Therefore, we only test multiple element types for AddOp only - see below -
+// and all other eval patterns are tested with i64.
+
+// CHECK-LABEL: func @eval_add_f32
+func.func @eval_add_f32() -> tensor<f32> {
+  // CHECK: stablehlo.add
+  %0 = stablehlo.constant dense<2.0> : tensor<f32>
+  %1 = stablehlo.constant dense<2.0> : tensor<f32>
+  %2 = stablehlo.add %0, %1 : tensor<f32>
+  func.return %2 : tensor<f32>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_add_i32
+func.func @eval_add_i32() -> tensor<i32> {
+  // CHECK-NOT: stablehlo.add
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<4> : tensor<i32>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<2> : tensor<i32>
+  %1 = stablehlo.constant dense<2> : tensor<i32>
+  %2 = stablehlo.add %0, %1 : tensor<i32>
+  func.return %2 : tensor<i32>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_add_i64
+func.func @eval_add_i64() -> tensor<i64> {
   // CHECK-NOT: stablehlo.add
   // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<4> : tensor<i64>
   // CHECK: return [[RESULT]]
@@ -50,6 +79,19 @@ func.func @eval_add() -> tensor<i64> {
   %1 = stablehlo.constant dense<2> : tensor<i64>
   %2 = stablehlo.add %0, %1 : tensor<i64>
   func.return %2 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_add_ui64
+func.func @eval_add_ui64() -> tensor<ui64> {
+  // CHECK-NOT: stablehlo.add
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<4> : tensor<ui64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<2> : tensor<ui64>
+  %1 = stablehlo.constant dense<2> : tensor<ui64>
+  %2 = stablehlo.add %0, %1 : tensor<ui64>
+  func.return %2 : tensor<ui64>
 }
 
 // -----
