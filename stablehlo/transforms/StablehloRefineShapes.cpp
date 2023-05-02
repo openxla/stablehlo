@@ -368,8 +368,8 @@ struct EvalSliceOpPattern : public OpRewritePattern<SliceOp> {
       result.push_back(operand[i]);
     }
 
-    rewriter.replaceOpWithNewOp<ConstantOp>(
-        op, getTensorAttr(resultType, result));
+    rewriter.replaceOpWithNewOp<ConstantOp>(op,
+                                            getTensorAttr(resultType, result));
     return success();
   }
 };
