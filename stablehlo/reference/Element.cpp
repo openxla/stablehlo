@@ -34,7 +34,7 @@ template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
 Element map(const Element &el, IntegerFn integerFn, BooleanFn boolFn,
             FloatFn floatFn, ComplexFn complexFn) {
-  Type type = el.getType();
+  auto type = el.getType();
 
   if (isSupportedIntegerType(type)) {
     auto intEl = el.getIntegerValue();
@@ -65,7 +65,7 @@ template <typename IntegerFn, typename BooleanFn, typename FloatFn,
           typename ComplexFn>
 Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
             BooleanFn boolFn, FloatFn floatFn, ComplexFn complexFn) {
-  Type type = lhs.getType();
+  auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(lhs.getType()).c_str(),
@@ -102,7 +102,7 @@ Element map(const Element &lhs, const Element &rhs, IntegerFn integerFn,
 template <typename FloatFn, typename ComplexFn>
 Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
                               ComplexFn complexFn) {
-  Type type = el.getType();
+  auto type = el.getType();
 
   if (isSupportedFloatType(type))
     return Element(type, floatFn(el.getFloatValue().convertToDouble()));
@@ -119,7 +119,7 @@ Element mapWithUpcastToDouble(const Element &el, FloatFn floatFn,
 template <typename FloatFn, typename ComplexFn>
 Element mapWithUpcastToDouble(const Element &lhs, const Element &rhs,
                               FloatFn floatFn, ComplexFn complexFn) {
-  Type type = lhs.getType();
+  auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(lhs.getType()).c_str(),
@@ -340,7 +340,7 @@ Element Element::operator/(const Element &other) const {
   auto lhs = *this;
   auto rhs = other;
 
-  Type type = lhs.getType();
+  auto type = lhs.getType();
   if (lhs.getType() != rhs.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
                                        debugString(lhs.getType()).c_str(),
@@ -382,7 +382,7 @@ Element Element::operator/(const Element &other) const {
 }
 
 Element Element::operator<(const Element &other) const {
-  Type type = other.getType();
+  auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -418,7 +418,7 @@ Element Element::operator<=(const Element &other) const {
 }
 
 Element Element::operator==(const Element &other) const {
-  Type type = other.getType();
+  auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -455,7 +455,7 @@ Element Element::operator==(const Element &other) const {
 }
 
 Element Element::operator>(const Element &other) const {
-  Type type = other.getType();
+  auto type = other.getType();
   auto i1Type = IntegerType::get(getType().getContext(), 1);
   if (type_ != type)
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -534,7 +534,7 @@ Element Element::operator~() const {
 }
 
 Element abs(const Element &el) {
-  Type type = el.getType();
+  auto type = el.getType();
 
   if (isSupportedIntegerType(el.getType())) {
     auto intEl = el.getIntegerValue();
@@ -558,7 +558,7 @@ Element abs(const Element &el) {
 }
 
 Element areApproximatelyEqual(const Element &e1, const Element &e2) {
-  Type type = e1.getType();
+  auto type = e1.getType();
   auto i1Type = IntegerType::get(e1.getType().getContext(), 1);
   if (type != e2.getType())
     report_fatal_error(invalidArgument("Element types don't match: %s vs %s",
@@ -695,7 +695,7 @@ Element popcnt(const Element &el) {
 }
 
 Element power(const Element &e1, const Element &e2) {
-  Type type = e1.getType();
+  auto type = e1.getType();
 
   if (isSupportedIntegerType(type)) {
     bool isSigned = isSupportedSignedIntegerType(type);
@@ -789,7 +789,7 @@ Element shiftRightArithmetic(const Element &e1, const Element &e2) {
 }
 
 Element sign(const Element &el) {
-  Type type = el.getType();
+  auto type = el.getType();
 
   if (isSupportedIntegerType(type)) {
     auto elVal = el.getIntegerValue();

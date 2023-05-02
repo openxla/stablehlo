@@ -372,7 +372,7 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) & rhs.get(*it));
   return result;
 }
@@ -380,9 +380,8 @@ Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
                    ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, atan2(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
@@ -497,13 +496,12 @@ Tensor evalCosineOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt) {
-    auto element = Element(
-        resultType.getElementType(),
-        static_cast<int64_t>(
-            operand.get(*resultIt).getIntegerValue().countLeadingZeros()));
-    result.set(*resultIt, element);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto element =
+        Element(resultType.getElementType(),
+                static_cast<int64_t>(
+                    operand.get(*it).getIntegerValue().countLeadingZeros()));
+    result.set(*it, element);
   }
   return result;
 }
@@ -573,7 +571,7 @@ SmallVector<Tensor> evalIfOp(const Tensor &pred, Region &trueBranch,
 
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, imag(operand.get(*it)));
   return result;
 }
@@ -624,16 +622,15 @@ Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType) {
 Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
                  ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = inputs[0].index_begin();
-       resultIt != inputs[0].index_end(); ++resultIt) {
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     SmallVector<Tensor> args;
     for (size_t i = 0; i < inputs.size(); ++i) {
       auto tensor =
           Tensor(computation.getArgument(i).getType().cast<ShapedType>());
-      tensor.set({}, inputs[i].get(*resultIt));
+      tensor.set({}, inputs[i].get(*it));
       args.push_back(tensor);
     }
-    result.set(*resultIt, eval(computation, args, &scope)[0].get({}));
+    result.set(*it, eval(computation, args, &scope)[0].get({}));
   }
   return result;
 }
@@ -669,14 +666,14 @@ Tensor evalNegOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalNotOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ~operand.get(*it));
   return result;
 }
 
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) | rhs.get(*it));
   return result;
 }
@@ -701,9 +698,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, popcnt(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, popcnt(operand.get(*it)));
   return result;
 }
 
@@ -717,7 +713,7 @@ Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs,
 
 Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = operand.index_begin(); it != operand.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, real(operand.get(*it)));
   return result;
 }
@@ -753,25 +749,22 @@ Tensor evalReverseOp(const Tensor &operand, Axes dimensions,
 
 Tensor evalRoundOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, roundNearestAfz(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, roundNearestAfz(operand.get(*it)));
   return result;
 }
 
 Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, roundNearestEven(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, roundNearestEven(operand.get(*it)));
   return result;
 }
 
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, rsqrt(operand.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, rsqrt(operand.get(*it)));
   return result;
 }
 
@@ -789,29 +782,24 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
                        ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, shiftLeft(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftLeft(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
 Tensor evalShiftRightArithmeticOp(const Tensor &lhs, const Tensor &rhs,
                                   ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt,
-               shiftRightArithmetic(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftRightArithmetic(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
 Tensor evalShiftRightLogicalOp(const Tensor &lhs, const Tensor &rhs,
                                ShapedType resultType) {
   Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt,
-               shiftRightLogical(lhs.get(*resultIt), rhs.get(*resultIt)));
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, shiftRightLogical(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 
@@ -954,7 +942,7 @@ SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
 
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
-  for (auto it = lhs.index_begin(); it != lhs.index_end(); ++it)
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) ^ rhs.get(*it));
   return result;
 }
