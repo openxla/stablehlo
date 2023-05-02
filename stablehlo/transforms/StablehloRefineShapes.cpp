@@ -69,11 +69,8 @@ APSInt getAPSInt(Type type, uint64_t value) {
     numBits = integerType.getWidth();
     // Signless types are treated as signed, per StableHLO convention.
     isUnsigned = integerType.isUnsignedInteger();
-  } else if (auto indexType = type.dyn_cast<IndexType>()) {
-    numBits = IndexType::kInternalStorageBitWidth;
-    isUnsigned = false;
   } else {
-    llvm::report_fatal_error("expected integer or index type");
+    llvm::report_fatal_error("expected integer type");
   }
   return APSInt({/*numBits=*/numBits, value},
                 /*isUnsigned=*/isUnsigned);
@@ -90,9 +87,10 @@ LogicalResult evalUnary(PatternRewriter& rewriter, OpType op, FuncType fn) {
     llvm::report_fatal_error("expected one operand");
 
   auto resultType = op.getType();
-  if (!resultType.hasRank() || !resultType.getElementType().isIntOrIndex())
-    return rewriter.notifyMatchFailure(
-        op, "expected integer or index result tensor type");
+  if (!resultType.hasRank() ||
+      !resultType.getElementType().template isa<IntegerType>())
+    return rewriter.notifyMatchFailure(op,
+                                       "expected integer result tensor type");
 
   SmallVector<APSInt> operand, result;
   if (failed(hlo::matchInts(op.getOperand(), operand)))
@@ -112,9 +110,10 @@ LogicalResult evalBinary(PatternRewriter& rewriter, OpType op, FuncType fn) {
     llvm::report_fatal_error("expected two operands");
 
   auto resultType = op.getType();
-  if (!resultType.hasRank() || !resultType.getElementType().isIntOrIndex())
-    return rewriter.notifyMatchFailure(
-        op, "expected integer or index result tensor type");
+  if (!resultType.hasRank() ||
+      !resultType.getElementType().template isa<IntegerType>())
+    return rewriter.notifyMatchFailure(op,
+                                       "expected integer result tensor type");
 
   SmallVector<APSInt> lhs, rhs, result;
   if (failed(hlo::matchInts(op.getLhs(), lhs)) ||
@@ -228,9 +227,9 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
   LogicalResult matchAndRewrite(ConvertOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isIntOrIndex())
-      return rewriter.notifyMatchFailure(
-          op, "expected integer or index result tensor type");
+    if (!resultType.getElementType().isa<IntegerType>())
+      return rewriter.notifyMatchFailure(op,
+                                         "expected integer result tensor type");
     auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalUnary(rewriter, op, [&](APSInt operand) {
       return operand.extOrTrunc(resultBitwidth);
@@ -332,9 +331,9 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
   LogicalResult matchAndRewrite(SignOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    if (!resultType.getElementType().isIntOrIndex())
-      return rewriter.notifyMatchFailure(
-          op, "expected integer or index result tensor type");
+    if (!resultType.getElementType().isa<IntegerType>())
+      return rewriter.notifyMatchFailure(op,
+                                         "expected integer result tensor type");
     return evalUnary(rewriter, op, [&](APSInt operand) {
       int64_t result;
       if (operand.isNegative())
