@@ -35,6 +35,7 @@ Tensor evalBroadcastInDimOp(const Tensor &operand, Axes broadcastDimensions,
                             ShapedType resultType);
 SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
                                Scope &scope);
+Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    ShapedType resultType);

@@ -598,6 +598,17 @@ Element atan2(const Element &e1, const Element &e2) {
                                      debugString(type).c_str()));
 }
 
+Element cbrt(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::cbrt(e); },
+      [](std::complex<double> e) {
+        auto theta = std::atan2(e.imag(), e.real()) / 3.0;
+        return std::pow(std::pow(e.real(), 2.0) + std::pow(e.imag(), 2.0),
+                        1.0 / 6.0) *
+               std::complex<double>(std::cos(theta), std::sin(theta));
+      });
+}
+
 Element ceil(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardPositive);

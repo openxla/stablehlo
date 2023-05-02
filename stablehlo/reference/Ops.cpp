@@ -86,6 +86,10 @@ SmallVector<Tensor> eval(
       auto branches = caseOp.getBranches();
       auto results = evalCaseOp(index, branches, scope);
       scope.add(op.getResults(), {results});
+    } else if (auto cbrtOp = dyn_cast<CbrtOp>(op)) {
+      auto operand = scope.find(cbrtOp.getOperand());
+      auto result = evalCbrtOp(operand, cbrtOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
       auto operand = scope.find(ceilOp.getOperand());
       auto result = evalCeilOp(operand, ceilOp.getType());
@@ -406,6 +410,13 @@ SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
   if (idx < 0 || idx >= static_cast<int64_t>(branches.size()))
     idx = branches.size() - 1;
   return eval(*branches[idx], {}, &scope);
+}
+
+Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, cbrt(operand.get(*it)));
+  return result;
 }
 
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType) {
