@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <optional>
 
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
@@ -132,6 +133,31 @@ bool isCompatibleForHloTypeInference(Value shape1, Type tp2) {
   if (!stp2) return false;
   auto tp1 = RankedTensorType::get(shapeVec1, stp2.getElementType());
   return isCompatibleForHloTypeInference(tp1, tp2);
+}
+
+LogicalResult matchInts(Value value, SmallVector<int64_t>& result) {
+  DenseIntElementsAttr attr;
+  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  for (auto element : attr.getValues<APInt>()) {
+    result.push_back(element.getSExtValue());
+  }
+  return success();
+}
+
+LogicalResult matchInts(Value value, SmallVector<APSInt>& result) {
+  DenseIntElementsAttr attr;
+  if (!matchPattern(value, m_Constant(&attr))) return failure();
+  // Signless types are treated as signed, per StableHLO convention.
+  auto isUnsigned = attr.getType().getElementType().isUnsignedInteger();
+  for (auto element : attr.getValues<APInt>()) {
+    result.push_back(APSInt(element, /*isUnsigned=*/isUnsigned));
+  }
+  return success();
+}
+
+LogicalResult matchInts(Value value) {
+  DenseIntElementsAttr attr;
+  return success(/*isSuccess=*/matchPattern(value, m_Constant(&attr)));
 }
 
 LogicalResult deriveShapeFromOperand(

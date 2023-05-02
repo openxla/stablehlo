@@ -20,7 +20,7 @@ limitations under the License.
 #include <algorithm>
 #include <optional>
 
-#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/Sequence.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Bytecode/BytecodeImplementation.h"
@@ -111,19 +111,18 @@ LogicalResult inferMostSpecificTypeComponents(
     SmallVectorImpl<ShapedTypeComponents> &inferredReturnShapes);
 
 // Matches a constant tensor with integer values into a 1-dimensional vector.
-template <typename T>
-LogicalResult matchInts(Value value, SmallVector<T> &result) {
-  DenseIntElementsAttr attr;
-  if (!matchPattern(value, m_Constant(&attr))) return failure();
-  for (auto element : attr.getValues<APInt>()) {
-    if constexpr (std::is_same<T, int64_t>::value) {
-      result.push_back(element.getSExtValue());
-    } else {
-      result.push_back(element);
-    }
-  }
-  return success();
-}
+// Doesn't preserve the bitness or the signedness of the underlying values,
+// extracting them into int64_t.
+LogicalResult matchInts(Value value, SmallVector<int64_t> &result);
+
+// Matches a constant tensor with integer values into a 1-dimensional vector.
+// Preserves the bitness and the signedness of the underlying values.
+LogicalResult matchInts(Value value, SmallVector<APSInt> &result);
+
+// Matches a constant tensor with integer values.
+// Unlike the functions above, it doesn't return these values - it just checks
+// that the given argument is indeed a constant tensor with integer values.
+LogicalResult matchInts(Value value);
 
 // Shape derivation function that computes the shape of the result based on an
 // operand. For a 2-dimensional input tensor, this produces IR of the form
