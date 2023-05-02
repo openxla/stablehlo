@@ -521,7 +521,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     // structured bindings in a lambda is a C++ 20 extension.
     ShapedType currentType = std::get<0>(it).dyn_cast<ShapedType>();
     ShapedTypeComponents refinement = std::get<1>(it);
-    auto failure = [&](StringRef reason) {
+    auto failWithReason = [&](StringRef reason) {
       return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
         diag << "refineTypes failed: refining " << currentType
              << "with refinement: {";
@@ -542,7 +542,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     if (!currentType) {
       if (refinement.hasRank() || refinement.getElementType() ||
           refinement.getAttribute())
-        return failure("unsupported refinement");
+        return failWithReason("unsupported refinement");
       flattenedRefinedTypes.push_back(currentType);
       continue;
     }
@@ -552,7 +552,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     Type currentElementType = currentType.getElementType();
     if (refinement.getElementType() &&
         currentElementType != refinement.getElementType())
-      return failure("expected compatible element types");
+      return failWithReason("expected compatible element types");
 
     // If neither the current type nor the refinement are ranked, then there's
     // nothing to refine, and we return the current type.
@@ -570,7 +570,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     }
     Attribute refinedEncoding = refinement.getAttribute();
     if (currentEncoding || refinedEncoding)
-      return failure("expected compatible encodings");
+      return failWithReason("expected compatible encodings");
 
     // If both the current type and the refinement have shapes, use the shape
     // from the refinement. Otherwise, pick whatever is available.
@@ -580,7 +580,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
         refinement.hasRank() ? refinement.getDims() : currentType.getShape();
     auto refinedType = RankedTensorType::get(refinedShape, currentElementType);
     if (!hlo::isCompatibleForHloTypeInference(currentType, refinedType))
-      return failure("expected compatible shapes");
+      return failWithReason("expected compatible shapes");
     flattenedRefinedTypes.push_back(refinedType);
   }
 
