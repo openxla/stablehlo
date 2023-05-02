@@ -96,7 +96,7 @@ func.func @custom_call_failure_out_of_bounds_operand_index(%arg0: tensor<4xf32>)
 // -----
 
 func.func @custom_call_failure_incompatible_result_type(%arg0: tensor<4xf32>) -> tensor<1x2xf32> {
-  // expected-error@+2{{refinement #0 ([1, 1]) must be compatible with operation result ('tensor<1x2xf32>')}}
+  // expected-error@+2{{refinement #0 ([1, 1]) must be compatible with operation result #0 ('tensor<1x2xf32>')}}
   %0 = stablehlo.constant dense<[1, 1]> : tensor<2xi64>
   %1 = stablehlo.custom_call @foo(%arg0, %0) {
     indices_of_shape_operands = dense<[1]> : tensor<1xi64>

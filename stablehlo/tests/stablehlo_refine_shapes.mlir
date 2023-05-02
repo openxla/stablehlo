@@ -412,14 +412,15 @@ func.func @refine_convolution(%arg0 : tensor<100x26x26x32xf32>, %arg1 : tensor<3
 // -----
 
 // CHECK-LABEL: @refine_custom_call
-func.func @refine_custom_call(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*xf32>) {
-  // CHECK: stablehlo.custom_call{{.*}} -> (tensor<1x2xf32>, tensor<3x4xf32>)
+func.func @refine_custom_call(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tuple<tensor<*xf32>, tensor<*xf32>>) {
+  // CHECK: stablehlo.custom_call{{.*}} -> (tensor<1x2xf32>, tuple<tensor<3x4xf32>, tensor<5x6xf32>>)
   %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
   %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
-  %2:2 = stablehlo.custom_call @foo(%arg0, %0, %1) {
-    indices_of_shape_operands = dense<[1, 2]> : tensor<2xi64>
-  } : (tensor<4xf32>, tensor<2xi64>, tensor<2xi64>) -> (tensor<*xf32>, tensor<*xf32>)
-  func.return %2#0, %2#1 : tensor<*xf32>, tensor<*xf32>
+  %2 = stablehlo.constant dense<[5, 6]> : tensor<2xi64>
+  %3:2 = stablehlo.custom_call @foo(%arg0, %0, %1, %2) {
+    indices_of_shape_operands = dense<[1, 2, 3]> : tensor<3xi64>
+  } : (tensor<4xf32>, tensor<2xi64>, tensor<2xi64>, tensor<2xi64>) -> (tensor<*xf32>, tuple<tensor<*xf32>, tensor<*xf32>>)
+  func.return %3#0, %3#1 : tensor<*xf32>, tuple<tensor<*xf32>, tensor<*xf32>>
 }
 
 // -----
@@ -679,8 +680,8 @@ func.func @refine_while(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 // CHECK-LABEL: func @update_function_type
 // CHECK-SAME: (%arg0: tensor<4xf32>) -> tensor<4xf32>
 func.func @update_function_type(%arg0: tensor<4xf32>) -> tensor<*xf32> {
-  // CHECK-NOT: tensor.cast
-  %0 = tensor.cast %arg0 : tensor<4xf32> to tensor<*xf32>
+  // CHECK-NOT: builtin.unrealized_conversion_cast
+  %0 = builtin.unrealized_conversion_cast %arg0 : tensor<4xf32> to tensor<*xf32>
   return %0 : tensor<*xf32>
 }
 
@@ -689,8 +690,8 @@ func.func @update_function_type(%arg0: tensor<4xf32>) -> tensor<*xf32> {
 // CHECK-LABEL: func @update_function_type_multiple_outputs
 // CHECK-SAME: (%arg0: tensor<4xf32>) -> (tensor<4xf32>, tensor<4xf32>)
 func.func @update_function_type_multiple_outputs(%arg0: tensor<4xf32>) -> (tensor<*xf32>, tensor<*xf32>) {
-  // CHECK-NOT: tensor.cast
-  %0 = tensor.cast %arg0 : tensor<4xf32> to tensor<*xf32>
+  // CHECK-NOT: builtin.unrealized_conversion_cast
+  %0 = builtin.unrealized_conversion_cast %arg0 : tensor<4xf32> to tensor<*xf32>
   return %0, %0 : tensor<*xf32>, tensor<*xf32>
 }
 

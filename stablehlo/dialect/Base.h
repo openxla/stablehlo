@@ -162,7 +162,8 @@ ArrayRef<int64_t> encodingToBounds(Attribute encoding);
 // the underlying dialect that knows how to create these attributes.
 Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 
-// Get refinements for return types from an indices_of_shape_operands attribute.
+// Get refinements for return types from an indices_of_shape_operands attribute,
+// with tuples types flattened (see `flattenTupleTypes` below).
 // If the attribute doesn't exist, returns failure.
 // If the attribute exists but is not invalid with respect to the operation,
 // reports an optional error and returns failure.
@@ -171,6 +172,21 @@ Attribute boundsToEncoding(Attribute prototype, ArrayRef<int64_t> bounds);
 LogicalResult getShapeRefinements(
     std::optional<Location> location, Operation *operation,
     SmallVector<ShapedTypeComponents> &refinements);
+
+// For each type in `types`, recursively flatten tuple types into `result`.
+// Result is populated via in-order traversal of tuple types in `types`, i.e.:
+//   * Flattenings of individual types from `types` follow one another in the
+//     same order as `types`.
+//   * Same for flattenings of element types of tuple types.
+void flattenTupleTypes(TypeRange types, SmallVector<Type> &result);
+
+// Does the inverse of `flattenTupleTypes` - takes `types` and recursively
+// unflattens it, creating tuple types as needed to exactly match the structure
+// of `prototype`.
+// Fails if the number of elements in flattened prototype is different from
+// the number of elements in types.
+LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
+                                  SmallVector<Type> &result);
 
 // This interface is implemented by both StableHLO and MHLO dialects
 // and is used as the foundation for sharing verification, type inference and

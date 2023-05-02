@@ -27,7 +27,6 @@ limitations under the License.
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -405,17 +404,17 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
   for (auto it : llvm::zip(values.getTypes(), types)) {
     // Cannot use structured bindings to simplify this because capturing
     // structured bindings in a lambda is a C++ 20 extension.
-    auto currentReturnType = std::get<0>(it);
+    auto currentType = std::get<0>(it);
     auto refinement = std::get<1>(it);
     auto refinedType = hlo::inferMostSpecificType(
-        /*location=*/{}, {currentReturnType, refinement});
+        /*location=*/{}, {currentType, refinement});
     if (failed(refinedType))
       return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
-        diag << "inferMostSpecificType failed for " << currentReturnType
-             << " and " << refinement;
+        diag << "inferMostSpecificType failed for " << currentType << " and "
+             << refinement;
       });
     refinedTypes.push_back(*refinedType);
-    needsRefinement |= (currentReturnType != *refinedType);
+    needsRefinement |= (currentType != *refinedType);
   }
   if (!needsRefinement)
     return rewriter.notifyMatchFailure(op, "doesn't need refinement");
@@ -459,17 +458,16 @@ LogicalResult refineValues(PatternRewriter& rewriter, Operation* op,
     auto unrefinedType = value.getType();
     value.setType(refinedType);
 
-    // Special case: for `func.return`, guard the refinement with a
-    // `tensor.cast` and leave propagation of the refined return type to a
-    // dedicated pattern.
+    // Special case: for `func.return`, guard the refinement with a cast
+    // and leave propagation of the refined return type to a dedicated pattern.
     auto isFuncReturn = [](OpOperand& use) -> bool {
       return isa<func::ReturnOp>(use.getOwner());
     };
     if (llvm::none_of(value.getUses(), isFuncReturn)) continue;
     rewriter.setInsertionPointAfter(op);
-    auto castToUnrefinedType =
-        rewriter.create<tensor::CastOp>(op->getLoc(), unrefinedType, value);
-    value.replaceUsesWithIf(castToUnrefinedType, isFuncReturn);
+    auto castToUnrefinedType = rewriter.create<UnrealizedConversionCastOp>(
+        op->getLoc(), unrefinedType, value);
+    value.replaceUsesWithIf(castToUnrefinedType.getOutputs()[0], isFuncReturn);
   }
 
   return success();
@@ -494,20 +492,32 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
 }
 
 // Refines the return types of the given operation using the given types.
+// Tricky implementation details:
+//   1) `types` can include non-shaped types. If there are tuple types,
+//      then they are first flattened into non-tuple types using in-order
+//      traversal, and only then we apply the refinements. If there are other
+//      types, then the corresponding refinements must be completely empty.
+//   2) Encodings are not supported. In principle, TypeExtensions should be
+//      supportable, but this needs careful thinking through. Given that noone
+//      asked for support for bounded dynamism in this pass yet, this is left
+//      for future work.
 // This function also signals PatternRewriter that it needs to visit all the
 // users of this op if any updates to its results have happened during execution
 // of the function.
 LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
                                 ArrayRef<ShapedTypeComponents> refinements) {
-  if (op->getNumResults() != refinements.size())
+  SmallVector<Type> flattenedTypes;
+  hlo::flattenTupleTypes(op->getResultTypes(), flattenedTypes);
+  auto flattenedSize = flattenedTypes.size();
+  if (flattenedSize != refinements.size())
     return rewriter.notifyMatchFailure(op, [&](Diagnostic& diag) {
-      diag << "refineReturnTypes failed: expected " << op->getNumResults()
+      diag << "refineReturnTypes failed: expected " << flattenedSize
            << " refinements, got " << refinements.size();
     });
 
-  SmallVector<Type> refinedTypes;
+  SmallVector<Type> flattenedRefinedTypes;
   for (auto [currentType, refinement] :
-       llvm::zip(op->getResultTypes(), refinements)) {
+       llvm::zip(flattenedTypes, refinements)) {
     auto refinedElementType = refinement.getElementType();
     if (!refinedElementType) {
       auto currentShapedType = currentType.dyn_cast<ShapedType>();
@@ -519,13 +529,18 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
     if (refinement.hasRank()) {
       auto refinedShape = refinement.getDims();
       auto refinedEncoding = refinement.getAttribute();
-      refinedTypes.push_back(RankedTensorType::get(
+      flattenedRefinedTypes.push_back(RankedTensorType::get(
           refinedShape, refinedElementType, refinedEncoding));
     } else {
-      refinedTypes.push_back(UnrankedTensorType::get(refinedElementType));
+      flattenedRefinedTypes.push_back(
+          UnrankedTensorType::get(refinedElementType));
     }
   }
 
+  SmallVector<Type> refinedTypes;
+  if (failed(hlo::unflattenTupleTypes(op->getResultTypes(),
+                                      flattenedRefinedTypes, refinedTypes)))
+    return failure();
   return refineReturnTypes(rewriter, op, refinedTypes);
 }
 
@@ -933,22 +948,25 @@ struct UpdateFunctionTypePattern : public OpRewritePattern<func::ReturnOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(func::ReturnOp op,
                                 PatternRewriter& rewriter) const override {
-    // Check whether any of the values returned by `func.return` are
-    // `tensor.cast` ops which cast more specific type to less specific type.
+    // Check whether any of the values returned by `func.return` are casts
+    // which convert more specific type to less specific type.
     // Such ops are produced by the algorithm behind this pass to avoid
     // bringing the enclosing `func.func` op into an inconsistent state when
     // refining individual ops. This pattern cleans this up.
     bool needsUpdate = false;
     SmallVector<Type> updatedResultTypes(op.getOperandTypes());
-    llvm::SmallSet<tensor::CastOp, 4> castsToReplace;
+    llvm::SmallSet<UnrealizedConversionCastOp, 4> castsToReplace;
     for (auto [i, operand] : llvm::enumerate(op.getOperands())) {
-      auto cast = dyn_cast_or_null<tensor::CastOp>(operand.getDefiningOp());
-      if (!cast) continue;
+      auto cast =
+          dyn_cast_or_null<UnrealizedConversionCastOp>(operand.getDefiningOp());
+      if (!cast || cast.getInputs().size() != 1 ||
+          cast.getOutputs().size() != 1)
+        continue;
 
       // Only proceed if the type that we're casting from is more specific
       // than the type that we're casting to.
-      auto sourceType = cast.getSource().getType();
-      auto destType = cast.getType();
+      auto sourceType = cast.getInputs()[0].getType();
+      auto destType = cast.getOutputs()[0].getType();
       auto mostSpecificType = hlo::inferMostSpecificType(
           /*location=*/{}, {sourceType, destType});
       if (failed(mostSpecificType) || destType == *mostSpecificType) continue;

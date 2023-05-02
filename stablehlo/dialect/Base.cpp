@@ -358,8 +358,8 @@ FailureOr<ShapedType> inferTypeWithCustomFn(
           anyInputHaveBounds ? inferredBounds : ArrayRef<int64_t>({})))};
 }
 
-FailureOr<Type> inferLeastSpecificType(std::optional<Location> location,
-                                       TypeRange inputTypes) {
+FailureOr<Type> inferLeastSpecificShapedType(std::optional<Location> location,
+                                             TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -370,8 +370,8 @@ FailureOr<Type> inferLeastSpecificType(std::optional<Location> location,
                                inferLeastSpecificDimAndBound);
 }
 
-FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
-                                      TypeRange inputTypes) {
+FailureOr<Type> inferMostSpecificShapedType(std::optional<Location> location,
+                                            TypeRange inputTypes) {
   SmallVector<RankedTensorType> rankedTypes;
   for (auto inputType : inputTypes)
     if (auto rankedType = inputType.dyn_cast<RankedTensorType>())
@@ -379,6 +379,59 @@ FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
   if (rankedTypes.empty()) return inputTypes[0];
   return inferTypeWithCustomFn(location, rankedTypes,
                                inferMostSpecificDimAndBound);
+}
+
+// Applies `fn` to `inputTypes`, using `location` for errors.
+// If `inputTypes` are tuples, then applies `fn` to them elementwise and
+// wraps the results into a tuple, for example:
+//   mapOverTupleElements({tuple<T11, T12>, tuple<T21, T22>}, fn) =
+//     tuple<fn(T11, T21), fn(T12, T22)>
+// Only supports `inputTypes` where either all types are tuples or no types
+// are tuples.
+FailureOr<Type> mapOverTupleElements(
+    std::optional<Location> location, TypeRange inputTypes,
+    function_ref<FailureOr<Type>(std::optional<Location>, TypeRange types)>
+        fn) {
+  SmallVector<TupleType> tupleTypes;
+  for (auto inputType : inputTypes) {
+    if (auto tupleType = inputType.dyn_cast<TupleType>())
+      tupleTypes.push_back(tupleType);
+  }
+  if (!tupleTypes.empty()) {
+    if (tupleTypes.size() != inputTypes.size())
+      return emitOptionalError(location,
+                               "Mismatched type kinds: either all types ",
+                               "must be tuples, or no types must be tuples");
+    SmallVector<Type> results(tupleTypes[0].size());
+    for (auto tupleType : tupleTypes) {
+      if (tupleType.size() != results.size())
+        return emitOptionalError(location,
+                                 "Mismatched tuple sizes: all tuple sizes ",
+                                 "must be the same");
+    }
+    for (size_t i = 0; i < results.size(); ++i) {
+      SmallVector<Type> ithElements;
+      for (auto tupleType : tupleTypes)
+        ithElements.push_back(tupleType.getType(i));
+      auto result = fn(location, ithElements);
+      if (failed(result)) return failure();
+      results[i] = *result;
+    }
+    return TupleType::get(tupleTypes[0].getContext(), results);
+  }
+  return fn(location, inputTypes);
+}
+
+FailureOr<Type> inferLeastSpecificType(std::optional<Location> location,
+                                       TypeRange inputTypes) {
+  return mapOverTupleElements(location, inputTypes,
+                              inferLeastSpecificShapedType);
+}
+
+FailureOr<Type> inferMostSpecificType(std::optional<Location> location,
+                                      TypeRange inputTypes) {
+  return mapOverTupleElements(location, inputTypes,
+                              inferMostSpecificShapedType);
 }
 
 LogicalResult inferMostSpecificTypeComponents(
@@ -408,11 +461,19 @@ LogicalResult getShapeRefinements(
                          .dyn_cast_or_null<DenseIntElementsAttr>();
   if (!indicesAttr) return failure();
 
-  if (indicesAttr.getNumElements() != op->getNumResults())
+  SmallVector<Type> flattenedResultTypes;
+  flattenTupleTypes(op->getResultTypes(), flattenedResultTypes);
+  int64_t flattenedNumResults = flattenedResultTypes.size();
+  StringRef flattenedErrorMessageSuffix =
+      op->getNumResults() != flattenedNumResults ? ", with tuples flattened"
+                                                 : "";
+
+  if (indicesAttr.getNumElements() != flattenedNumResults)
     return emitOptionalError(location, "indices_of_shape_operands: number of ",
                              "elements (", indicesAttr.getNumElements(), ") ",
                              "must be equal to the number of operation results",
-                             " (", op->getNumResults(), ")");
+                             " (", flattenedNumResults, ")",
+                             flattenedErrorMessageSuffix);
   if (indicesAttr.getType().getRank() != 1)
     return emitOptionalError(location, "indices_of_shape_operands: must have ",
                              "rank = 1");
@@ -422,7 +483,7 @@ LogicalResult getShapeRefinements(
 
   auto resultIndex = 0;
   for (auto [operandIndex, resultType] :
-       llvm::zip(indicesAttr.getValues<int64_t>(), op->getResultTypes())) {
+       llvm::zip(indicesAttr.getValues<int64_t>(), flattenedResultTypes)) {
     if (operandIndex < 0 || operandIndex >= op->getNumOperands())
       return emitOptionalError(location, "indices_of_shape_operands: index #",
                                resultIndex, " (", operandIndex, ") ",
@@ -435,12 +496,59 @@ LogicalResult getShapeRefinements(
     if (!isCompatibleForHloTypeInference(operand, resultType))
       return emitOptionalError(
           location, "indices_of_shape_operands: refinement #", resultIndex,
-          " ([", refinement, "]) must be compatible with operation result (",
-          resultType, ")");
+          " ([", refinement, "]) must be compatible with operation result #",
+          resultIndex, " (", resultType, ")", flattenedErrorMessageSuffix);
     refinements.emplace_back(refinement);
     ++resultIndex;
   }
   return success();
+}
+
+void flattenTupleTypes(TypeRange types, SmallVector<Type>& result) {
+  for (auto type : types) {
+    if (auto tupleType = type.dyn_cast<TupleType>()) {
+      flattenTupleTypes(tupleType.getTypes(), result);
+      continue;
+    }
+    result.push_back(type);
+  }
+}
+
+LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
+                                  SmallVector<Type>& result) {
+  // Recursively unflattens types into result according to the prototype
+  // and returns the number of consumed types or a failure if the prototype
+  // and the types are incompatible.
+  // This specific kind of return value is what enables a recursive formulation
+  // of this algorithm which avoids mutable state except for the result.
+  std::function<FailureOr<int64_t>(TypeRange, TypeRange, SmallVector<Type>&)>
+      loop;
+  loop = [&](TypeRange prototype, TypeRange types,
+             SmallVector<Type>& result) -> FailureOr<int64_t> {
+    if (prototype.empty() || types.empty()) {
+      if (prototype.empty() ^ types.empty()) return {};
+      return 0;
+    }
+
+    if (auto prototypeFront = prototype.front().dyn_cast<TupleType>()) {
+      SmallVector<Type> tupleResult;
+      auto consumedFront = loop(prototypeFront.getTypes(), types, tupleResult);
+      if (failed(consumedFront)) return {};
+      auto consumedRest = loop(prototype.drop_front(),
+                               types.drop_front(*consumedFront), result);
+      if (failed(consumedRest)) return {};
+      result.push_back(
+          TupleType::get(prototypeFront.getContext(), tupleResult));
+      return *consumedFront + *consumedRest;
+    }
+
+    result.push_back(types.front());
+    auto consumed = loop(prototype.drop_front(), types.drop_front(), result);
+    if (failed(consumed)) return {};
+    return *consumed + 1;
+  };
+  auto consumed = loop(prototype, types, result);
+  return success(/*succeeded=*/consumed != -1);
 }
 
 }  // namespace hlo
