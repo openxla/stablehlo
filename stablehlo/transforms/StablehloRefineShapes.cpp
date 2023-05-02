@@ -58,10 +58,7 @@ namespace {
 // DenseElementsAttr can be constructed from ArrayRef<APInt> but not from
 // ArrayRef<APSInt>. This helper bridges the gap.
 DenseIntElementsAttr getTensorAttr(ShapedType type, ArrayRef<APSInt> values) {
-  SmallVector<APInt> supportedValues;
-  for (auto value : values) {
-    supportedValues.push_back(value);
-  }
+  SmallVector<APInt> supportedValues(values.begin(), values.end());
   return DenseIntElementsAttr::get(type, supportedValues);
 }
 
@@ -71,7 +68,7 @@ APSInt getAPSInt(Type type, uint64_t value) {
   if (auto integerType = type.dyn_cast<IntegerType>()) {
     numBits = integerType.getWidth();
     // Signless types are treated as signed, per StableHLO convention.
-    isUnsigned = integerType.getSignedness() == IntegerType::Unsigned;
+    isUnsigned = integerType.isUnsignedInteger();
   } else if (auto indexType = type.dyn_cast<IndexType>()) {
     numBits = IndexType::kInternalStorageBitWidth;
     isUnsigned = false;
