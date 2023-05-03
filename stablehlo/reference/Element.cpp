@@ -659,6 +659,14 @@ Element log(const Element &el) {
       [](std::complex<double> e) { return std::log(e); });
 }
 
+Element logPlusOne(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::log1p(e); },
+      [](std::complex<double> e) {
+        return std::log(e + std::complex<double>(1.0));
+      });
+}
+
 Element logistic(const Element &el) {
   auto one = Element(el.getType(), 1.0);
   return one / (one + exponential(-el));

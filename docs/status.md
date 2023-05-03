@@ -100,7 +100,7 @@ one of the following tracking labels.
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | yes         |
 | log                      | yes           | yes          | yes            | yes             | yes         |
-| log_plus_one             | yes           | yes          | yes            | yes             | no          |
+| log_plus_one             | yes           | yes          | yes            | yes             | yes         |
 | logistic                 | yes           | yes          | yes            | yes             | yes         |
 | map                      | yes           | revisit      | yes            | no              | yes         |
 | maximum                  | yes           | yes          | yes            | yes             | yes         |
