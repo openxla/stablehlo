@@ -458,9 +458,9 @@ Tensor evalCeilOp(const Tensor &operand, ShapedType resultType) {
 Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
   Tensor result(resultType);
   auto aShape = a.getShape();
-  auto cholesky = [&lower](Tensor A) {
+  auto cholesky = [&lower](const Tensor &A) {
     Tensor L(A.getType());
-    auto conjugate = [&](Element el) {
+    auto conjugate = [&](const Element &el) {
       return Element(el.getType(),
                      std::complex<APFloat>(el.getComplexValue().real(),
                                            -el.getComplexValue().imag()));
@@ -503,7 +503,7 @@ Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
         {value}));
   };
 
-  SmallVector<int64_t> aSliceShape(aShape.end() - 2, aShape.end());
+  SmallVector<int64_t> aNonBatchShape(aShape.end() - 2, aShape.end());
   auto batchingSizes =
       Sizes(SmallVector<int64_t>(aShape.begin(), aShape.end() - 2));
   for (auto batchIt =
@@ -513,18 +513,18 @@ Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
     for (auto index : *batchIt) startIndices.push_back(getScalarTensor(index));
     startIndices.append({getScalarTensor(0L), getScalarTensor(0L)});
 
-    auto aReshaped = Sizes(a.getRank() - 2, 1);
-    aReshaped.append(aSliceShape);
+    auto sliceSizes = Sizes(a.getRank() - 2, 1);
+    sliceSizes.append(aNonBatchShape);
 
     auto aSliced = evalDynamicSliceOp(
-        a, startIndices, aReshaped,
-        RankedTensorType::get(aReshaped, a.getElementType()));
+        a, startIndices, sliceSizes,
+        RankedTensorType::get(sliceSizes, a.getElementType()));
 
     auto L = cholesky(evalReshapeOp(
-        aSliced, RankedTensorType::get(aSliceShape, a.getElementType())));
+        aSliced, RankedTensorType::get(aNonBatchShape, a.getElementType())));
 
     auto reshapedL =
-        evalReshapeOp(L, RankedTensorType::get(aReshaped, a.getElementType()));
+        evalReshapeOp(L, RankedTensorType::get(sliceSizes, a.getElementType()));
 
     result =
         evalDynamicUpdateSliceOp(result, reshapedL, startIndices, resultType);
