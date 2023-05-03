@@ -110,6 +110,7 @@ SmallVector<Tensor> eval(
       auto comparisonDirection = compareOp.getComparisonDirection();
       auto result =
           evalCompareOp(lhs, rhs, comparisonDirection, compareOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto complexOp = dyn_cast<ComplexOp>(op)) {
       auto lhs = scope.find(complexOp.getLhs());
       auto rhs = scope.find(complexOp.getRhs());
