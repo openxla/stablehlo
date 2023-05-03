@@ -38,6 +38,24 @@ func.func @custom_call_success_mixed_positions(%arg0: tensor<4xf32>) -> (tensor<
 
 // -----
 
+// CHECK-LABEL: func @custom_call_success_mixed_positions_layouts
+func.func @custom_call_success_mixed_positions_layouts(%arg0: tensor<4x3xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>) {
+  //      CHECK: stablehlo.custom_call @foo(%arg0) {
+  // CHECK-SAME:   operand_layouts = [dense<[1, 0]> : tensor<2xindex>],
+  // CHECK-SAME:   result_layouts = [dense<[1, 0]> : tensor<2xindex>, dense<[1, 0]> : tensor<2xindex>]
+  // CHECK-SAME: } : (tensor<4x3xf32>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
+  %0 = stablehlo.constant dense<[1, 2]> : tensor<2xi64>
+  %1 = stablehlo.constant dense<[3, 4]> : tensor<2xi64>
+  %2:2 = stablehlo.custom_call @foo(%0, %arg0, %1) {
+    indices_of_shape_operands = dense<[0, 2]> : tensor<2xi64>,
+    operand_layouts = [dense<[0]> : tensor<1xindex>, dense<[1, 0]> : tensor<2xindex>, dense<[0]> : tensor<1xindex>],
+    result_layouts = [dense<[1, 0]> : tensor<2xindex>, dense<[1, 0]> : tensor<2xindex>]
+  } : (tensor<2xi64>, tensor<4x3xf32>, tensor<2xi64>) -> (tensor<1x2xf32>, tensor<3x4xf32>)
+  return %2#0, %2#1 : tensor<1x2xf32>, tensor<3x4xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @custom_call_success_repeating_operands
 func.func @custom_call_success_repeating_operands(%arg0: tensor<4xf32>) -> (tensor<1x2xf32>, tensor<1x2xf32>) {
   // CHECK: stablehlo.custom_call @foo(%arg0) : (tensor<4xf32>) -> (tensor<1x2xf32>, tensor<1x2xf32>)
