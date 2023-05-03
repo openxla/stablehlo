@@ -56,6 +56,17 @@ struct CanonicalizeCustomCallOpPattern : public OpRewritePattern<CustomCallOp> {
     SmallVector<NamedAttribute> newAttrs;
     for (auto attr : op->getAttrs()) {
       if (attr.getName() == "indices_of_shape_operands") continue;
+      if (attr.getName() == "operand_layouts") {
+        // Drop the operand_layouts that correspond to indices_of_shape_operands
+        ArrayAttr operandLayouts = op.getOperandLayoutsAttr();
+        SmallVector<Attribute> newOperandLayouts;
+        for (unsigned i = 0; i < operandLayouts.size(); ++i) {
+          if (indices.contains(i)) continue;
+          newOperandLayouts.push_back(operandLayouts[i]);
+        }
+        attr = NamedAttribute(attr.getName(),
+                              rewriter.getArrayAttr(newOperandLayouts));
+      }
       newAttrs.push_back(attr);
     }
 
