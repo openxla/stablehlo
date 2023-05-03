@@ -615,6 +615,15 @@ Element ceil(const Element &el) {
   return Element(el.getType(), val);
 }
 
+Element complex(const Element &e1, const Element &e2) {
+  auto complexType = ComplexType::get(e1.getType());
+  if (isSupportedComplexType(complexType))
+    return Element(complexType, std::complex<APFloat>(e1.getFloatValue(),
+                                                      e2.getFloatValue()));
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(complexType).c_str()));
+}
+
 Element exponential(const Element &el) {
   return mapWithUpcastToDouble(
       el, [](double e) { return std::exp(e); },

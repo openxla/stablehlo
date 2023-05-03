@@ -111,6 +111,11 @@ SmallVector<Tensor> eval(
       auto result =
           evalCompareOp(lhs, rhs, comparisonDirection, compareOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto complexOp = dyn_cast<ComplexOp>(op)) {
+      auto lhs = scope.find(complexOp.getLhs());
+      auto rhs = scope.find(complexOp.getRhs());
+      auto result = evalComplexOp(lhs, rhs, complexOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
       auto operands = scope.find(concatenateOp.getOperands());
       auto result = evalConcatenateOp(operands, concatenateOp.getDimension(),
@@ -472,6 +477,14 @@ Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
         break;
     }
   }
+  return result;
+}
+
+Tensor evalComplexOp(const Tensor &lhs, const Tensor &rhs,
+                     ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, complex(lhs.get(*it), rhs.get(*it)));
   return result;
 }
 

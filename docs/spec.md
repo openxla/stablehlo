@@ -1788,9 +1788,11 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 ```mlir
 // %lhs: [1.0, 3.0]
 // %rhs: [2.0, 4.0]
-%result = "stablehlo.complex"(%lhs, %rhs) : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xcomplex<f32>>
+%result = "stablehlo.complex"(%lhs, %rhs) : (tensor<2xf64>, tensor<2xf64>) -> tensor<2xcomplex<f64>>
 // %result: [(1.0, 2.0), (3.0, 4.0)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_complex.mlir)
 
 ### concatenate
 

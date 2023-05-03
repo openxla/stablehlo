@@ -43,6 +43,8 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
                      ShapedType resultType);
+Tensor evalComplexOp(const Tensor &lhs, const Tensor &rhs,
+                     ShapedType resultType);
 Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
                          ShapedType resultType);
 Tensor evalConstantOp(ElementsAttr value);
