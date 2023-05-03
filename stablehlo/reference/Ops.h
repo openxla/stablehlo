@@ -55,6 +55,7 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices,
                                 ShapedType resultType);
+Tensor evalExpm1Op(const Tensor &operand, ShapedType resultType);
 Tensor evalExponentialOp(const Tensor &operand, ShapedType resultType);
 Tensor evalFloorOp(const Tensor &operand, ShapedType resultType);
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,

@@ -621,6 +621,14 @@ Element exponential(const Element &el) {
       [](std::complex<double> e) { return std::exp(e); });
 }
 
+Element exponentialMinusOne(const Element &el) {
+  return mapWithUpcastToDouble(
+      el, [](double e) { return std::expm1(e); },
+      [](std::complex<double> e) {
+        return std::exp(e) - std::complex<double>(1.0, 0.0);
+      });
+}
+
 Element floor(const Element &el) {
   APFloat val = el.getFloatValue();
   val.roundToIntegral(APFloat::rmTowardNegative);

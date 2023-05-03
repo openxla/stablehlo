@@ -2596,9 +2596,11 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 ```mlir
 // %operand: [0.0, 1.0]
-%result = "stablehlo.exponential_minus_one"(%operand) : (tensor<2xf32>) -> tensor<2xf32>
+%result = "stablehlo.exponential_minus_one"(%operand) : (tensor<2xf64>) -> tensor<2xf64>
 // %result: [0.0, 1.71828187]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_exponential_minus_one.mlir)
 
 ### fft
 
