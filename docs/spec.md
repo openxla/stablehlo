@@ -1328,13 +1328,12 @@ implementation-defined as well.
 #### Examples
 
 ```mlir
-// %operand: [0.0, 1.0]
-%result = "stablehlo.bitcast_convert"(%operand) : (tensor<2xf32>) -> tensor<2x4xi8>
-// %result: [
-//           [0, 0, 0, 0],
-//           [0, 0, -128, 63] // little-endian representation of 1.0
-//          ]
+// %operand: 0x0123456789ABCDEF
+%result = "stablehlo.bitcast_convert"(%operand) : (tensor<f64>) -> tensor<4xf16>
+// %result: [0xCDEF, 0x89AB, 0x4567, 0x0123] // little-endian representation
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_bitcast_convert.mlir)
 
 ### broadcast_in_dim
 

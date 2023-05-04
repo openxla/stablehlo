@@ -33,6 +33,7 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
+Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType);
 Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType);
