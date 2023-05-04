@@ -493,6 +493,21 @@ PYBIND11_MODULE(_stablehlo, m) {
 
   m.def(
       "serialize_portable_artifact",
+      [](std::string module_str, std::string target) -> py::bytes {
+        std::string buffer;
+        llvm::raw_string_ostream os(buffer);
+        if (failed(mlir::stablehlo::serializePortableArtifact(module_str,
+                                                              target, os))) {
+          PyErr_SetString(PyExc_ValueError, "failed to serialize module");
+          return "";
+        }
+
+        return py::bytes(buffer);
+      },
+      py::arg("module_str"), py::arg("target"));
+
+  m.def(
+      "serialize_portable_artifact",
       [](MlirModule module, std::string target) -> py::bytes {
         std::string buffer;
         llvm::raw_string_ostream os(buffer);
@@ -505,6 +520,20 @@ PYBIND11_MODULE(_stablehlo, m) {
         return py::bytes(buffer);
       },
       py::arg("module"), py::arg("target"));
+
+  m.def(
+      "deserialize_portable_artifact",
+      [](std::string artifact) -> py::bytes {
+        auto moduleStr = mlir::stablehlo::deserializePortableArtifact(artifact);
+
+        if (failed(moduleStr)) {
+          PyErr_SetString(PyExc_ValueError, "failed to deserialize module");
+          return {};
+        }
+
+        return {moduleStr.value()};
+      },
+      py::arg("module_str"));
 
   m.def(
       "deserialize_portable_artifact",

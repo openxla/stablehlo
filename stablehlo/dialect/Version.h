@@ -80,7 +80,7 @@ namespace stablehlo {
 
 /// Return the current version for StableHLO APIs.
 /// Increments on all C++/C/Python API changes
-inline int64_t getApiVersion() { return 1; }
+inline int64_t getApiVersion() { return 2; }
 
 }  // namespace stablehlo
 }  // namespace mlir
