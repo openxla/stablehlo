@@ -15,6 +15,10 @@ as described in the Guarantees section. In H2 2023, we are planning to release
 StableHLO 1.0.0, which will provide full compatibility guarantees - see the
 [Future work](#future-work) section for more details.
 
+The minor version is bumped every time changes to the StableHLO opset are made,
+and the patch version is bumped every time we integrate StableHLO downstream,
+i.e. into the openxla/xla repository.
+
 ## Guarantees
 
 **6 months of backward compatibility:** Portable artifacts serialized by an old
