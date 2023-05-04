@@ -15,20 +15,27 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
-#include <sstream>
-
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
+namespace {
+void loadSerializationDialects(MLIRContext* context) {
+  context->loadDialect<mlir::func::FuncDialect>();
+  context->loadDialect<mlir::stablehlo::StablehloDialect>();
+  context->loadDialect<mlir::vhlo::VhloDialect>();
+}
+}  // namespace
 
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
@@ -61,6 +68,17 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   return success();
 }
 
+LogicalResult serializePortableArtifact(StringRef moduleStr,
+                                        StringRef targetVersion,
+                                        raw_ostream& os) {
+  MLIRContext context;
+  loadSerializationDialects(&context);
+  auto module = mlir::parseSourceString<mlir::ModuleOp>(moduleStr, &context);
+  if (!module || failed(module->verifyInvariants())) return failure();
+
+  return serializePortableArtifact(*module, targetVersion, os);
+}
+
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context) {
   context->loadDialect<vhlo::VhloDialect>();
@@ -78,6 +96,17 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   }
 
   return module;
+}
+
+FailureOr<std::string> deserializePortableArtifact(StringRef sourceStr) {
+  MLIRContext context;
+  loadSerializationDialects(&context);
+  auto module = deserializePortableArtifact(sourceStr, &context);
+  if (!module) return failure();
+  std::string buffer;
+  llvm::raw_string_ostream os(buffer);
+  (void)writeBytecodeToFile(*module, os);
+  return buffer;
 }
 
 std::string getCurrentVersion() {

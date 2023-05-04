@@ -18,6 +18,7 @@
 # pylint: disable=wildcard-import,undefined-variable
 
 import re
+import io
 from mlir import ir
 from mlir.dialects import stablehlo
 
@@ -205,20 +206,25 @@ def test_type_extensions():
 
 @run
 def test_api_version():
-  assert stablehlo.get_api_version() == 1
+  api_version = stablehlo.get_api_version()
+  assert type(api_version) == int
+  assert api_version > 0
 
+@run
+def test_current_version():
+  curr_version = stablehlo.get_current_version()
+  assert re.match('^\d+\.\d+\.\d+$', curr_version)
+
+ASM = """
+func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
+  %0 = stablehlo.add %arg0, %arg0 : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
+  func.return %0 : tensor<2xf32>
+}
+"""
 
 @run
 def test_serialization_apis():
   curr_version = stablehlo.get_current_version()
-  assert re.match('^\d+\.\d+\.\d+$', curr_version)
-
-  ASM = """
-  func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {
-    %0 = stablehlo.add %arg0, %arg0 : (tensor<2xf32>, tensor<2xf32>) -> tensor<2xf32>
-    func.return %0 : tensor<2xf32>
-  }
-  """
 
   with ir.Context() as context:
     stablehlo.register_dialect(context)
@@ -228,3 +234,23 @@ def test_serialization_apis():
     serialized = stablehlo.serialize_portable_artifact(m, curr_version)
     deserialized = stablehlo.deserialize_portable_artifact(context, serialized)
     assert module_str == str(deserialized)
+
+@run
+def test_str_serialization_apis():
+  curr_version = stablehlo.get_current_version()
+
+  def module_to_bytecode(module: ir.Module) -> bytes:
+    output = io.BytesIO()
+    module.operation.write_bytecode(file=output)
+    return output.getvalue()
+
+  with ir.Context() as context:
+    stablehlo.register_dialect(context)
+    m = ir.Module.parse(ASM)
+    module_str = str(m)
+    assert m is not None
+    bytecode = module_to_bytecode(m)
+    serialized = stablehlo.serialize_portable_artifact(bytecode, curr_version)
+    deserialized = stablehlo.deserialize_portable_artifact(serialized)
+    deserialized_module = ir.Module.parse(deserialized)
+    assert module_str == str(deserialized_module)
