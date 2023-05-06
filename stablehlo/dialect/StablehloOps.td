@@ -3093,7 +3093,8 @@ def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequan
 }
 
 def StableHLO_ReducePrecisionOp :
-    StableHLO_Op<"reduce_precision", [HLO_CompatibleOperandsAndResultType, Pure]> {
+    StableHLO_Op<"reduce_precision", [Pure,
+    HLO_CompatibleOperandsAndResultType /*reduce_precision_c1*/]> {
   let summary = "ReducePrecision operation";
   let description = [{
     Performs element-wise conversion of `operand` to another floating-point type
@@ -3105,13 +3106,13 @@ def StableHLO_ReducePrecisionOp :
 
     Example:
     ```mlir
-    %output = stablehlo.reduce_precision %operand, format = e5m2 : tensor<6xf32>
+    %output = stablehlo.reduce_precision %operand, format = e5m10 : tensor<6xf64>
     ```
   }];
   let arguments = (ins
-    HLO_FpTensor:$operand,
-    I32Attr:$exponent_bits,
-    I32Attr:$mantissa_bits
+    HLO_FpTensor:$operand, /*reduce_precision_i1*/
+    I32Attr:$exponent_bits, /*reduce_precision_i2*/
+    I32Attr:$mantissa_bits /*reduce_precision_i3*/
   );
   let hasVerifier = 1;
   let results = (outs HLO_FpTensor:$output);

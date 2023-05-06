@@ -873,6 +873,19 @@ func.func @reduce_c7(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
 
 // -----
 
+// CHECK-LABEL: func @reduce_precision_c1
+func.func @reduce_precision_c1(%arg: tensor<2x4xf32>) -> tensor<2x4xindex> {
+  %0 = "stablehlo.reduce_precision"(%arg) {
+    exponent_bits = 2 : i32,
+    mantissa_bits = 3 : i32
+  } : (tensor<2x4xf32>) -> tensor<2x4xf32>
+  // CHECK: types0 = tensor<2x4xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x4xf32>) -> tensor<2x4xindex>
+  func.return %1: tensor<2x4xindex>
+}
+
+// -----
+
 // CHECK-LABEL: func @reduce_window
 func.func @reduce_window(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                          %init0: tensor<f32>, %init1: tensor<i32>) ->

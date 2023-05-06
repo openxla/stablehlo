@@ -419,6 +419,13 @@ SmallVector<InterpreterValue> eval(
           evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
                        reduceOp.getBody(), scope, resultTypes);
       scope.add(op.getResults(), results);
+    } else if (auto reducePrecisionOp = dyn_cast<ReducePrecisionOp>(op)) {
+      auto operand = scope.find(reducePrecisionOp.getOperand());
+      auto exponentBits = reducePrecisionOp.getExponentBits();
+      auto mantissaBits = reducePrecisionOp.getMantissaBits();
+      auto result = evalReducePrecisionOp(operand, exponentBits, mantissaBits,
+                                          reducePrecisionOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto reduceWindowOp = dyn_cast<ReduceWindowOp>(op)) {
       auto inputs = scope.findTensors(reduceWindowOp.getInputs());
       auto initValues = scope.findTensors(reduceWindowOp.getInitValues());
@@ -1178,6 +1185,15 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       result.set(resultIndex, value.getTensor().get({}));
   }
   return results;
+}
+
+Tensor evalReducePrecisionOp(const Tensor &operand, uint32_t exponentBits,
+                             uint32_t mantissaBits, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it,
+               reducePrecision(operand.get(*it), exponentBits, mantissaBits));
+  return result;
 }
 
 SmallVector<Tensor> evalReduceWindowOp(
