@@ -133,7 +133,7 @@ QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
 QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
 QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::=  IntegerConstant
+QuantizationZeroPoint ::= IntegerConstant
 ```
 
 **Quantized element types** represent integer values of a **storage type** in
@@ -2389,7 +2389,7 @@ planning to address this in
 * If the operation uses quantized tensors:
   * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
     is_quantized_tensor(result)`.
-  * (C16) `storage_type(lhs) =  storage_type(rhs)`.
+  * (C16) `storage_type(lhs) = storage_type(rhs)`.
   * (C17) `is_signed(storage_type(lhs)) = true`.
   * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
   * (C19) `zero_points(rhs) = [0, 0, ..., 0]`.
