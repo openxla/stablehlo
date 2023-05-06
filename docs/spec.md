@@ -2341,8 +2341,8 @@ planning to address this in
 
 | Label | Name                         | Type                                                         | Constraints                           |
 |-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C17), (C19)   |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C15), (C17-C18), (C20) |
+| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C18), (C20)   |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C16), (C18-C19), (C21) |
 | (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)         |
 | (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                |
 | (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)               |
@@ -2351,9 +2351,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C15), (C17), (C20) |
+| Name     | Type                       | Constraints             |
+|----------|----------------------------|-------------------------|
+| `result` | tensor or quantized tensor | (C12-C13), (C18), (C21) |
 
 #### Constraints
 
@@ -2383,15 +2383,18 @@ planning to address this in
 * (C12) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
   dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
 * If the operation uses non-quantized tensors:
-  * (C13) element_type(`lhs`) $=$ element_type(`rhs`).
+  * (C13) `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs) and
+    is_non_quantized_tensor(result)`.
+  * (C14) element_type(`lhs`) $=$ element_type(`rhs`).
 * If the operation uses quantized tensors:
-  * (C14) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs)`.
-  * (C15) `storage_type(lhs) =  storage_type(rhs) = storage_type(result)`.
-  * (C16) `is_signed(storage_type(lhs)) = true`.
-  * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C18) `zero_points(rhs) = [0, 0, ..., 0]`.
-  * (C19) `quantization_dimension(lhs)` is empty.
-  * (C20) `quantization_dimension(rhs)` is not empty or `quantization_dimension(result)` is empty.
+  * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C16) `storage_type(lhs) =  storage_type(rhs)`.
+  * (C17) `is_signed(storage_type(lhs)) = true`.
+  * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C19) `zero_points(rhs) = [0, 0, ..., 0]`.
+  * (C20) `quantization_dimension(lhs)` is empty.
+  * (C21) `quantization_dimension(rhs)` is not empty or `quantization_dimension(result)` is empty.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
