@@ -39,6 +39,7 @@ endif()
 #-------------------------------------------------------------------------------
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
+option(STABLEHLO_ENABLE_TO_TOSA "Enables StableHLO to TOSA conversion" ON)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -119,3 +120,4 @@ set(STABLEHLO_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 add_custom_target(check-stablehlo)
 
 add_subdirectory(stablehlo)
+

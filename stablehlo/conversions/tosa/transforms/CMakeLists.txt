@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2022 OpenXLA Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,14 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(testdata)
-add_subdirectory(tools)
-add_subdirectory(transforms)
+set(LLVM_TARGET_DEFINITIONS passes.td)
+mlir_tablegen(passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
+add_public_tablegen_target(StablehloTOSATransformsPassIncGen)
 
-# Optional conversion from StableHLO to other community dialects.
-add_subdirectory(conversions)
+add_mlir_library(StablehloTOSATransforms
+  legalize_stablehlo.cc
+  prepare_stablehlo.cc
+
+  DEPENDS
+  StablehloTOSATransformsPassIncGen
+  StablehloTOSAPDLLPatternsIncGen
+
+  LINK_COMPONENTS
+  Core
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRPass
+  MLIRTransforms
+)
