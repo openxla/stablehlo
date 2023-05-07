@@ -33,6 +33,8 @@ class Axes : public SmallVector<int64_t> {
   Axes &operator=(const Axes &other) = default;
 
   Axes(std::initializer_list<int64_t> list) : SmallVector(list) {}
+  explicit Axes(size_t size, int64_t element = 0)
+      : SmallVector(size, element) {}
   explicit Axes(ArrayRef<int64_t> array) : SmallVector(array) {}
   explicit Axes(DenseIntElementsAttr attr)
       : SmallVector(attr.getValues<int64_t>()) {}
