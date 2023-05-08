@@ -74,8 +74,8 @@ func.func @convert_op_test_si64_to_ui64() {
 
 func.func @convert_op_test_si64_to_f64() {
   %operand = stablehlo.constant dense<[-1, 0, 1]> : tensor<3xi64>
-  %result = stablehlo.convert %operand : (tensor<3xi64>) -> tensor<3xf16>
-  check.expect_almost_eq_const %result, dense<[-1.0, 0.0, 1.0]> : tensor<3xf16>
+  %result = stablehlo.convert %operand : (tensor<3xi64>) -> tensor<3xf64>
+  check.expect_almost_eq_const %result, dense<[-1.0, 0.0, 1.0]> : tensor<3xf64>
   func.return
 }
 
@@ -119,8 +119,8 @@ func.func @convert_op_test_ui64_to_ui64() {
 
 func.func @convert_op_test_ui64_to_f64() {
   %operand = stablehlo.constant dense<[0, 1]> : tensor<2xui64>
-  %result = stablehlo.convert %operand : (tensor<2xui64>) -> tensor<2xf16>
-  check.expect_almost_eq_const %result, dense<[0.0, 1.0]> : tensor<2xf16>
+  %result = stablehlo.convert %operand : (tensor<2xui64>) -> tensor<2xf64>
+  check.expect_almost_eq_const %result, dense<[0.0, 1.0]> : tensor<2xf64>
   func.return
 }
 

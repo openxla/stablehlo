@@ -34,22 +34,21 @@ class Element {
  public:
   /// \name Constructors
   /// @{
-  /// Initializes Element object with type 'type' and value 'value'. 'type' must
-  /// be an integer type and the bitwidth of 'type' and 'value' must match.
+  /// Initializes Element object with type `type` and value `value`. `type` must
+  /// be an integer type.
   Element(Type type, APInt value);
 
-  /// Initializes Element object with type 'type' and value 'value'. 'type' must
-  /// be a boolean type and the bitwidth of 'type' and 'value' must match.
+  /// Initializes Element object with type `type` and value `value`. `type` must
+  /// be a boolean type.
   Element(Type type, bool value);
 
-  /// Initializes Element object with type 'type' and value 'value'. 'type' must
-  /// be a floating-point type and the bitwidth of 'type' and 'value' must
-  /// match.
+  /// Initializes Element object with type `type` and value `value`. `type` must
+  /// be a floating-point type of the same semantics as `value`.
   Element(Type type, APFloat value);
 
-  /// Initializes Element object with type 'type' and value 'value'. 'type' must
-  /// be a complex type and the bitwidth, w.r.t. the real and imaginary part, of
-  /// 'type' and 'value' must match.
+  /// Initializes Element object with type `type` and value `value`. `type` must
+  /// be a complex type and the bitwidths of both the real and the imaginary
+  /// parts of `type` and `value` must match.
   Element(Type type, std::complex<APFloat> value);
 
   Element(const Element &other) = default;
@@ -160,46 +159,44 @@ Element ceil(const Element &e);
 /// Returns a complex type Element object.
 Element complex(const Element &e1, const Element &e2);
 
-/// Returns converted Element object of type 'type' from source boolean 'value'.
-/// If the value cannot be exactly represented in the destination type, then the
-/// behavior is TBD (#180).
+/// Returns converted Element object of type `type` from source boolean `value`.
 Element convert(Type type, bool value);
 
-/// Returns converted Element object of type 'type' from source signed integer
-/// 'value'. If the value cannot be exactly represented in the destination type,
+/// Returns converted Element object of type `type` from source signed integer
+/// `value`. If the value cannot be exactly represented in the destination type,
 /// then the behavior is TBD (#180).
 Element convert(Type type, int64_t value);
 
-/// Returns converted Element object of type 'type' from source unsigned integer
-/// 'value'. If the value cannot be exactly represented in the destination type,
+/// Returns converted Element object of type `type` from source unsigned integer
+/// `value`. If the value cannot be exactly represented in the destination type,
 /// then the behavior is TBD (#180).
 Element convert(Type type, uint64_t value);
 
-/// Returns converted Element object of type 'type' from source APFloat 'value'.
+/// Returns converted Element object of type `type` from source APFloat `value`.
 /// If the value cannot be exactly represented in the destination type, then the
 /// behavior is TBD (#180).
 Element convert(Type type, APFloat value);
 
-/// Returns converted Element object of type 'type' from source double 'value'.
+/// Returns converted Element object of type `type` from source double `value`.
 /// If the value cannot be exactly represented in the destination type, then the
 /// behavior is TBD (#180).
 Element convert(Type type, double value);
 
-/// Returns converted Element object of type 'type' from source complex<APFloat>
-/// 'value'. Only the real part of 'value' is used to convert to non-complex
+/// Returns converted Element object of type `type` from source complex<APFloat>
+/// `value`. Only the real part of `value` is used to convert to non-complex
 /// destination types. If the value (or the real part of `value`) cannot be
 /// exactly represented in the complex destination type (or non-complex
 /// destination type), then then the behavior is TBD (#180). If the real part of
-/// 'value' cannot be exactly represented in the non-complex destination type,
+/// `value` cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<APFloat> value);
 
-/// Returns converted Element object of type 'type' from source complex<double>
-/// 'value'. Only the real part of 'value' is used to convert to non-complex
+/// Returns converted Element object of type `type` from source complex<double>
+/// `value`. Only the real part of `value` is used to convert to non-complex
 /// destination types. If the value (or the real part of `value`) cannot be
 /// exactly represented in the complex destination type (or non-complex
 /// destination type), then then the behavior is TBD (#180). If the real part of
-/// 'value' cannot be exactly represented in the non-complex destination type,
+/// `value` cannot be exactly represented in the non-complex destination type,
 /// then the behavior is also TBD (#180).
 Element convert(Type type, std::complex<double> value);
 

@@ -648,22 +648,17 @@ Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
   Tensor result(resultType);
-  Type elementType = result.getElementType();
+  auto elementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedIntegerType(elementType)) {
+    if (isSupportedIntegerType(elementType))
       result.set(*it, convert(elementType, (*it)[iotaDimension]));
-    } else if (isSupportedFloatType(elementType)) {
-      result.set(
-          *it, convert(elementType, static_cast<double>((*it)[iotaDimension])));
-    } else if (isSupportedComplexType(elementType)) {
-      result.set(*it,
-                 convert(elementType,
-                         std::complex<double>(
-                             static_cast<double>((*it)[iotaDimension]), 0.0)));
-    } else {
+    else if (isSupportedFloatType(elementType))
+      result.set(*it, convert(elementType, (*it)[iotaDimension]));
+    else if (isSupportedComplexType(elementType))
+      result.set(*it, convert(elementType, (*it)[iotaDimension]));
+    else
       report_fatal_error(invalidArgument("Unsupported element type: %s",
                                          debugString(elementType).c_str()));
-    }
   }
   return result;
 }
