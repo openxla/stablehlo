@@ -43,15 +43,15 @@ namespace chlo {
 
 // TODO(b/231358795): Review the use of InferTypeOpInterface for ops that
 // support quantization or sparsity.
-#define INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Op)                        \
-  LogicalResult Op::inferReturnTypeComponents(                                \
-      MLIRContext* context, std::optional<Location> location,                 \
-      ValueShapeRange operands, DictionaryAttr attributes,                    \
-      RegionRange regions,                                                    \
-      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {          \
-    return inferReturnTypeComponentsFromOperands(context, location, operands, \
-                                                 attributes, regions,         \
-                                                 inferredReturnShapes);       \
+#define INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(Op)                \
+  LogicalResult Op::inferReturnTypeComponents(                        \
+      MLIRContext* context, std::optional<Location> location,         \
+      ValueShapeRange operands, DictionaryAttr attributes,            \
+      OpaqueProperties properties, RegionRange regions,               \
+      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {  \
+    return inferReturnTypeComponentsFromOperands(                     \
+        context, location, operands, attributes, properties, regions, \
+        inferredReturnShapes);                                        \
   }
 
 INFER_RETURN_TYPE_COMPONENTS_FROM_OPERANDS(AcosOp)
@@ -132,7 +132,7 @@ ShapedTypeComponents getBroadcastType(
 
 LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
-    DictionaryAttr attributes, Type elementType,
+    DictionaryAttr attributes, OpaqueProperties properties, Type elementType,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   // Find broadcast_dimensions.
   DenseIntElementsAttr broadcastDimensions =
@@ -188,13 +188,13 @@ LogicalResult ReifyBroadcastBinaryOpReturnTypeShapes(
 LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
-    RegionRange /*regions*/,
+    OpaqueProperties properties, RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   ShapedType lhsType = operands[0].getType().cast<ShapedType>();
   Type elementType = ComplexType::get(lhsType.getElementType());
-  return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
-                                                    attributes, elementType,
-                                                    inferedReturnShapes);
+  return InferBroadcastBinaryOpReturnTypeComponents(
+      context, location, operands, attributes, properties, elementType,
+      inferedReturnShapes);
 }
 LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
@@ -221,12 +221,12 @@ void BroadcastCompareOp::build(OpBuilder& builder, OperationState& result,
 LogicalResult BroadcastCompareOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
-    RegionRange /*regions*/,
+    OpaqueProperties properties, RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
   Type elementType = IntegerType::get(context, 1);
-  return InferBroadcastBinaryOpReturnTypeComponents(context, location, operands,
-                                                    attributes, elementType,
-                                                    inferedReturnShapes);
+  return InferBroadcastBinaryOpReturnTypeComponents(
+      context, location, operands, attributes, properties, elementType,
+      inferedReturnShapes);
 }
 
 LogicalResult BroadcastCompareOp::reifyReturnTypeShapes(
@@ -248,7 +248,8 @@ static Type getIsInfLikeReturnType(Value operand) {
 
 LogicalResult IsInfOp::inferReturnTypes(
     MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+    DictionaryAttr, OpaqueProperties, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
 }
@@ -259,7 +260,8 @@ LogicalResult IsInfOp::inferReturnTypes(
 
 LogicalResult IsNegInfOp::inferReturnTypes(
     MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+    DictionaryAttr, OpaqueProperties, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
 }
@@ -270,7 +272,8 @@ LogicalResult IsNegInfOp::inferReturnTypes(
 
 LogicalResult IsPosInfOp::inferReturnTypes(
     MLIRContext* /*ctx*/, std::optional<Location>, ValueRange operands,
-    DictionaryAttr, RegionRange, SmallVectorImpl<Type>& inferredReturnTypes) {
+    DictionaryAttr, OpaqueProperties, RegionRange,
+    SmallVectorImpl<Type>& inferredReturnTypes) {
   inferredReturnTypes.push_back(getIsInfLikeReturnType(operands.front()));
   return success();
 }
@@ -279,21 +282,21 @@ LogicalResult IsPosInfOp::inferReturnTypes(
 // Macros for method definitions that are common to most broadcasting ops.
 //===----------------------------------------------------------------------===//
 
-#define BROADCAST_BINARY_OP_DEFS(Op)                                       \
-  LogicalResult Op::inferReturnTypeComponents(                             \
-      MLIRContext* context, std::optional<Location> location,              \
-      ValueShapeRange operands, DictionaryAttr attributes,                 \
-      RegionRange regions,                                                 \
-      SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {        \
-    return InferBroadcastBinaryOpReturnTypeComponents(                     \
-        context, location, operands, attributes, /*element_type=*/nullptr, \
-        inferedReturnShapes);                                              \
-  }                                                                        \
-  LogicalResult Op::reifyReturnTypeShapes(                                 \
-      OpBuilder& builder, ValueRange operands,                             \
-      SmallVectorImpl<Value>& reifiedReturnShapes) {                       \
-    return ReifyBroadcastBinaryOpReturnTypeShapes(                         \
-        builder, getOperation(), operands, reifiedReturnShapes);           \
+#define BROADCAST_BINARY_OP_DEFS(Op)                                \
+  LogicalResult Op::inferReturnTypeComponents(                      \
+      MLIRContext* context, std::optional<Location> location,       \
+      ValueShapeRange operands, DictionaryAttr attributes,          \
+      OpaqueProperties properties, RegionRange regions,             \
+      SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) { \
+    return InferBroadcastBinaryOpReturnTypeComponents(              \
+        context, location, operands, attributes, properties,        \
+        /*element_type=*/nullptr, inferedReturnShapes);             \
+  }                                                                 \
+  LogicalResult Op::reifyReturnTypeShapes(                          \
+      OpBuilder& builder, ValueRange operands,                      \
+      SmallVectorImpl<Value>& reifiedReturnShapes) {                \
+    return ReifyBroadcastBinaryOpReturnTypeShapes(                  \
+        builder, getOperation(), operands, reifiedReturnShapes);    \
   }
 
 BROADCAST_BINARY_OP_DEFS(BroadcastAddOp)
@@ -343,9 +346,9 @@ LogicalResult MinimumBroadcastShapesOp::verify() {
 LogicalResult ConstantLikeOp::inferReturnTypeComponents(
     MLIRContext* /*context*/, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
-    RegionRange /*regions*/,
+    OpaqueProperties properties, RegionRange /*regions*/,
     SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
-  ConstantLikeOp::Adaptor op(operands, attributes);
+  ConstantLikeOp::Adaptor op(operands, attributes, properties);
   if (failed(op.verify(location.value()))) return failure();
   Type elementType = op.getValue().getType();
   Type operandType = op.getOperand().getType();
@@ -376,7 +379,7 @@ OpFoldResult ConstantLikeOp::fold(FoldAdaptor /*adaptor*/) {
 
 LogicalResult BroadcastSelectOp::inferReturnTypeComponents(
     MLIRContext*, std::optional<Location> location, ValueShapeRange operands,
-    DictionaryAttr, RegionRange,
+    DictionaryAttr, OpaqueProperties, RegionRange,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   BroadcastSelectOp::Adaptor op(operands.getValues());
   auto predType = op.getPred().getType().cast<ShapedType>();
@@ -447,10 +450,11 @@ LogicalResult RankSpecializationClusterOp::verify() {
 
 LogicalResult TopKOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
-    ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
+    ValueShapeRange operands, DictionaryAttr attributes,
+    OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Builder builder(context);
-  TopKOp::Adaptor adaptor(operands, attributes, regions);
+  TopKOp::Adaptor adaptor(operands, attributes, properties, regions);
   Value operand = adaptor.getOperand();
   uint64_t k = adaptor.getK();
 
@@ -483,7 +487,7 @@ OpFoldResult ConstantOp::fold(FoldAdaptor /*adaptor*/) { return getValue(); }
 
 LogicalResult ConstantOp::inferReturnTypes(
     MLIRContext*, std::optional<Location>, ValueRange,
-    DictionaryAttr attributes, RegionRange,
+    DictionaryAttr attributes, OpaqueProperties, RegionRange,
     SmallVectorImpl<Type>& inferredReturnTypes) {
   Type type = attributes.get("value").cast<TypedAttr>().getType();
   inferredReturnTypes.push_back(type);

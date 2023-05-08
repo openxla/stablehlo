@@ -46,6 +46,7 @@ func.func @broadcast_complex_reify(%arg0: tensor<?xf32>, %arg1: tensor<?x?xf32>)
 
 // -----
 func.func @broadcast_complex_mismatch(%arg0: tensor<2xf64>, %arg1: tensor<2xf32>) -> tensor<2xcomplex<f32>> {
+  // expected-error @+2 {{failed to infer returned types}}
   // expected-error @+1 {{mismatched operand types}}
   %0 = "chlo.broadcast_complex"(%arg0, %arg1) : (tensor<2xf64>, tensor<2xf32>) -> tensor<2xcomplex<f32>>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2xcomplex<f32>>) -> tensor<2xcomplex<f32>>
@@ -109,6 +110,7 @@ func.func @broadcast_add_ranked_components_with_zero_r1x2(%arg0: tensor<0xf32>, 
 
 // -----
 func.func @broadcast_select_branch_mismatch(%arg0: tensor<2xi1>, %arg1: tensor<2xi32>, %arg2: tensor<2xf32>) -> tensor<2xi32> {
+  // expected-error @+2 {{failed to infer returned types}}
   // expected-error @+1 {{mismatched operand types}}
   %0 = "chlo.broadcast_select"(%arg0, %arg1, %arg2) : (tensor<2xi1>, tensor<2xi32>, tensor<2xf32>) -> tensor<2xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2xi32>) -> tensor<2xi32>

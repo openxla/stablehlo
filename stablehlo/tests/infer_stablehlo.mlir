@@ -59,6 +59,7 @@ func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xindex> {
 // -----
 
 func.func @broadcast(%a : tensor<3xi32>) -> tensor<1x2x3xi32> {
+  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Broadcast with negative dimension size -2}}
   %0 = "stablehlo.broadcast"(%a) {broadcast_sizes = dense<[1, -2]> : tensor<2xi64>}
       : (tensor<3xi32>) -> tensor<1x2x3xi32>
@@ -938,6 +939,7 @@ func.func @slice_with_bounds(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>
 // -----
 
 func.func @slice_with_index_larger_than_bound_dim(%arg0: tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xindex> {
+  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{limit index 5 is larger than dimension bound 4 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0, 0]> : tensor<3xi64>, limit_indices = dense<[2, 5, 4]> : tensor<3xi64>, strides = dense<[1, 2, 2]> : tensor<3xi64>} : (tensor<3x?x?xi32, #stablehlo.bounds<?, 4, ?>>) -> tensor<*xi32>
   %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<*xi32>) -> tensor<*xindex>
@@ -961,6 +963,7 @@ func.func @pad_with_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>,
 // -----
 
 func.func @pad_with_negative_inferred_bounds(%arg0: tensor<3x?x?xf16, #stablehlo.bounds<?, 3, ?>>, %arg1: tensor<f16>) -> tensor<*xindex> {
+  // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Padding result in negative bound for dimension 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
     edge_padding_low = dense<[2, -10, 0]> : tensor<3xi64>,
