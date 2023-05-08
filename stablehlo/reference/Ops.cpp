@@ -789,13 +789,13 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
     results.push_back(result);
   }
 
-  Axes sortedDimensions(dimensions);
-  llvm::sort(sortedDimensions);
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
-    Index resultIndex = *inputIt;
-    for (auto dim : llvm::reverse(sortedDimensions))
-      resultIndex.erase(resultIndex.begin() + dim);
+    Index resultIndex;
+    for (auto [inputAxis, inputIndexElement] : llvm::enumerate(*inputIt)) {
+      if (llvm::is_contained(dimensions, inputAxis)) continue;
+      resultIndex.push_back(inputIndexElement);
+    }
 
     SmallVector<Tensor> bodyArgs;
     for (auto [runtimeResult, initValue] : llvm::zip(results, initValues)) {
