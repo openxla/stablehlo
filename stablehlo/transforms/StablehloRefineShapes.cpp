@@ -852,7 +852,8 @@ struct RefineInferTypeOpInterfacePattern
     SmallVector<Type> inferredReturnTypes;
     if (failed(op.inferReturnTypes(getContext(), /*location=*/{},
                                    op->getOperands(), op->getAttrDictionary(),
-                                   op->getRegions(), inferredReturnTypes)))
+                                   op->getPropertiesStorage(), op->getRegions(),
+                                   inferredReturnTypes)))
       return rewriter.notifyMatchFailure(op, "inferReturnTypes failed");
     return refineReturnTypes(rewriter, op, inferredReturnTypes);
   }
