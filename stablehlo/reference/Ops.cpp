@@ -789,26 +789,28 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
     results.push_back(result);
   }
 
+  Axes sortedDimensions(dimensions);
+  llvm::sort(sortedDimensions);
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
     Index resultIndex = *inputIt;
-    for (auto dim : llvm::reverse(dimensions))
+    for (auto dim : llvm::reverse(sortedDimensions))
       resultIndex.erase(resultIndex.begin() + dim);
 
-    SmallVector<Tensor> args;
+    SmallVector<Tensor> bodyArgs;
     for (auto [runtimeResult, initValue] : llvm::zip(results, initValues)) {
-      auto arg = Tensor(initValue.getType());
-      arg.set({}, runtimeResult.get(resultIndex));
-      args.push_back(arg);
+      Tensor bodyArg(initValue.getType());
+      bodyArg.set({}, runtimeResult.get(resultIndex));
+      bodyArgs.push_back(bodyArg);
     }
     for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
-      auto arg = Tensor(initValue.getType());
-      arg.set({}, input.get(*inputIt));
-      args.push_back(arg);
+      Tensor bodyArg(initValue.getType());
+      bodyArg.set({}, input.get(*inputIt));
+      bodyArgs.push_back(bodyArg);
     }
 
-    auto reducedValues = eval(body, args, &scope);
-    for (auto [result, value] : llvm::zip(results, reducedValues))
+    auto bodyResult = eval(body, bodyArgs, &scope);
+    for (auto [result, value] : llvm::zip(results, bodyResult))
       result.set(resultIndex, value.get({}));
   }
   return results;

@@ -457,6 +457,10 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     std::optional<Location> location, SmallVector<ShapedType> inputArgTypes,
     SmallVector<ShapedType> initValueTypes, DenseIntElementsAttr dimensions,
     SmallVector<int64_t>& newDimensions, Attribute& encoding) {
+  // reduce_i3
+  if (dimensions.getType().getRank() != 1)
+    return emitOptionalError(location, "dimensions must be rank 1");
+
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputArgTypes.size();
   int64_t rankedInputIdx = -1;
@@ -519,20 +523,18 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  int64_t numInputs,
                                  ArrayRef<int64_t> allowedDimensions,
                                  bool allInputsUnranked) {
-  // Check that the number of reduction-region arguments matches with that of
-  // reduce-op's arguments.
+  // reduce_c6
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // Check if the reduction-region produces non-zero outputs.
+  // reduce_c6
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // Check that the reduction-region returns list- of tensors.
-  // The number of result-tensors must match the `numInputs`.
+  // reduce_c6
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -540,6 +542,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
+  // reduce_c6
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
@@ -553,38 +556,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
     accumulatorSubShapes.push_back(shapedTy);
   }
 
-  // Consider typical reduce-* op syntax:
-  //
-  //      op(I(i), V(j)):
-  //       block(BI(i), BV(j)):
-  //         ... some computation ...
-  //         return(R(i))
-  //
-  // where
-  //  I(i)  : i-th input of op
-  //  V(j)  : j-th init-value of op
-  //  BI(i) : i-th input of reducer-function
-  //  BV(j) : j-th init-value of reducer-function
-  //  R(i)  : i-th return-type
-  //
-  //  Note that: |I(i)| == |V(j)| == |BI(i)| == |BV(j)| == |R(i)|
-  //
-  //  Here are the type-constraints among V(j), BI(i), BV(j), and R(i).
-  //    C1 : Check that BI(i) and R(i) have same shape and element-type.
-  //    C2 : Check that BV(j) and R(i) have same shape and element-type.
-  //    C3 : Check that V(j) and R(i) have same shape and element-type.
-  //
-  //  From C1, C2, and C3, we can infer that V(j), BI(i), BV(j), and R(i) all
-  //  have compatible shapes and element-types.
-  //  The next check, C4, adds constraints on how the type of I(i) is related
-  //  to any_of(V(j), BI(i), BV(j), and R(i)), say BV(j);
-  //
-  //  C4.1 : Check that I(i) and BV(j) have same element-type.
-  //  C4.2 : Check that shape of BV(j) is a 'sub-sequence' of
-  //         'allowedDimensions'. 'allowedDimensions' is a list of dimensions
-  //         which any of BI(i), BV(j), and R(i) is allowed to have.
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // Check C1.
+    // reduce_c2
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -593,7 +566,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // Check C2.
+    // reduce_c2
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -605,7 +578,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // Check C3.
+    // reduce_c6
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -614,7 +587,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           " differs from the op's corresponding init-value type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // Check C4.1.
+    // reduce_c6
     if (!tensorsHaveSameElType(
             inputArgTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
@@ -624,13 +597,13 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           inputArgTypes[inputIdx].getElementType(), ", but got ",
           block.getArgument(numInputs + inputIdx).getType(), " as its type.");
 
-    // Check C4.2.
     Type blockArgType = block.getArgument(numInputs + inputIdx).getType();
     auto blockArgTensorTy = blockArgType.cast<ShapedType>();
 
     if (allInputsUnranked || !blockArgTensorTy.hasRank()) return success();
 
     auto argShape = blockArgTensorTy.getShape();
+    // reduce_c6
     if (argShape.size() > allowedDimensions.size())
       return emitOptionalError(
           loc, "The rank of reduction-region's argument at index ",
@@ -647,6 +620,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                argShape[argShapeIdx]))
         argShapeIdx++;
 
+    // reduce_c6
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
       return emitOptionalError(
           loc, "The shape of reduction-region's argument at index ",
@@ -2560,6 +2534,7 @@ LogicalResult inferReduceOp(
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
+  // reduce_c1, reduce_c4, reduce_c5, reduce_i3
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTensorTypes,
                                                initValueTensorTypes, dimensions,
                                                newDimensions, encoding)))
@@ -3624,12 +3599,9 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
   SmallVector<ShapedType> initValueTypes{llvm::map_range(
       initValues.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
 
-  if (dimensions.getType().getRank() != 1)
-    return emitOptionalError(location, "dimensions must be rank 1");
-
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
-  // reduce_c1, reduce_c4, reduce_c5
+  // reduce_c1, reduce_c4, reduce_c5, reduce_i3
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
                                                initValueTypes, dimensions,
                                                newDimensions, encoding)))
