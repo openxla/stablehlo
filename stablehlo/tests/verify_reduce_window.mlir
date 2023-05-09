@@ -586,6 +586,27 @@ func.func @reduce_window_i3(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
 
 // -----
 
+func.func @reduce_window_i3(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
+                    %init0: tensor<f32>, %init1: tensor<i32>) ->
+                      (tensor<2x2xf32>, tensor<2x2xi32>) {
+  // expected-error@+1 {{expects window_dimensions attribute to have static values but got dynamic size {5, -9223372036854775808}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, -9223372036854775808]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<2x2xf32>, tensor<2x2xi32>)
+  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
+}
+
+// -----
+
 func.func @reduce_window_i4(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
                     %init0: tensor<f32>, %init1: tensor<i32>) ->
                       (tensor<2x2xf32>, tensor<2x2xi32>) {
@@ -600,6 +621,27 @@ func.func @reduce_window_i4(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
          { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
            window_dimensions = dense<[5, 1]> : tensor<2xi64>,
            window_strides = dense<[[3, 1]]> : tensor<1x2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<2x2xf32>, tensor<2x2xi32>)
+  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
+}
+
+// -----
+
+func.func @reduce_window_i4(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
+                    %init0: tensor<f32>, %init1: tensor<i32>) ->
+                      (tensor<2x2xf32>, tensor<2x2xi32>) {
+  // expected-error@+1 {{expects window_strides attribute to have static values but got dynamic size {3, -9223372036854775808}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, -9223372036854775808]> : tensor<2xi64> }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<2x2xf32>, tensor<2x2xi32>)
   func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
@@ -623,6 +665,52 @@ func.func @reduce_window_i5(%arg0: tensor<*xf32>,
            window_strides = dense<[3, 1]> : tensor<2xi64>,
            base_dilations = dense<[[1, 1]]> : tensor<1x2xi64>,
            window_dilations = dense<[1, 1]> : tensor<2xi64> }
+         : (tensor<*xf32>, tensor<4x?xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<?x?xf32>, tensor<*xi32>)
+  func.return %0#0, %0#1 : tensor<?x?xf32>, tensor<*xi32>
+}
+
+// -----
+
+func.func @reduce_window_i5(%arg0: tensor<*xf32>,
+    %arg1: tensor<4x?xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
+        (tensor<?x?xf32>, tensor<*xi32>) {
+  // expected-error@+1 {{expects base_dilations attribute to have static values but got dynamic size {1, -9223372036854775808}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>,
+           base_dilations = dense<[1, -9223372036854775808]> : tensor<2xi64>,
+           window_dilations = dense<[1, 1]> : tensor<2xi64> }
+         : (tensor<*xf32>, tensor<4x?xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<?x?xf32>, tensor<*xi32>)
+  func.return %0#0, %0#1 : tensor<?x?xf32>, tensor<*xi32>
+}
+
+// -----
+
+func.func @reduce_window_i6(%arg0: tensor<*xf32>,
+    %arg1: tensor<4x?xi32>, %init0: tensor<f32>, %init1: tensor<i32>) ->
+        (tensor<?x?xf32>, tensor<*xi32>) {
+  // expected-error@+1 {{expects window_dilations attribute to have static values but got dynamic size {1, -9223372036854775808}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64>,
+           base_dilations = dense<[1, 1]> : tensor<2xi64>,
+           window_dilations = dense<[1, -9223372036854775808]> : tensor<2xi64> }
          : (tensor<*xf32>, tensor<4x?xi32>, tensor<f32>, tensor<i32>) ->
               (tensor<?x?xf32>, tensor<*xi32>)
   func.return %0#0, %0#1 : tensor<?x?xf32>, tensor<*xi32>
@@ -665,6 +753,48 @@ func.func @reduce_window_i7_c12(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
               "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
             })
          { padding = dense<[[[2, 2], [0, 0]]]> : tensor<1x2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<2x2xf32>, tensor<2x2xi32>)
+  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
+}
+
+// -----
+
+func.func @reduce_window_i7_c12(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
+                    %init0: tensor<f32>, %init1: tensor<i32>) ->
+                      (tensor<2x2xf32>, tensor<2x2xi32>) {
+  // expected-error@+1 {{expects the values of padding-attribute to be static, but found {-9223372036854775808, 0}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [-9223372036854775808, 0]]> : tensor<2x2xi64>,
+           window_dimensions = dense<[5, 1]> : tensor<2xi64>,
+           window_strides = dense<[3, 1]> : tensor<2xi64> }
+         : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->
+              (tensor<2x2xf32>, tensor<2x2xi32>)
+  func.return %0#0, %0#1 : tensor<2x2xf32>, tensor<2x2xi32>
+}
+
+// -----
+
+func.func @reduce_window_i7_c12(%arg0: tensor<4x2xf32>, %arg1: tensor<4x2xi32>,
+                    %init0: tensor<f32>, %init1: tensor<i32>) ->
+                      (tensor<2x2xf32>, tensor<2x2xi32>) {
+  // expected-error@+1 {{expects the values of padding-attribute to be static, but found {0, -9223372036854775808}.}}
+  %0:2 = "stablehlo.reduce_window"(%arg0, %arg1, %init0, %init1) ({
+         ^bb0(%a0: tensor<f32>, %a1: tensor<i32>,
+                %b0: tensor<f32>, %b1: tensor<i32>):
+              %2 = stablehlo.add %a0, %b0 : tensor<f32>
+              %3 = stablehlo.add %a1, %b1 : tensor<i32>
+              "stablehlo.return"(%2, %3) : (tensor<f32>, tensor<i32>) -> ()
+            })
+         { padding = dense<[[2, 2], [0, -9223372036854775808]]> : tensor<2x2xi64>,
            window_dimensions = dense<[5, 1]> : tensor<2xi64>,
            window_strides = dense<[3, 1]> : tensor<2xi64> }
          : (tensor<4x2xf32>, tensor<4x2xi32>, tensor<f32>, tensor<i32>) ->

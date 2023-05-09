@@ -124,6 +124,12 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
                              " attribute to be 1-D, but got {",
                              attrType.getShape(), "}.");
   auto values = attr.getValues<int64_t>();
+  for (auto value : values)
+    if (isDynamicDimSize(value))
+      return emitOptionalError(
+          loc, "expects ", attrName,
+          " attribute to have static values but got dynamic size {", values,
+          "}.");
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
 
@@ -147,6 +153,11 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     ++it;
     int64_t second = *it;
     ++it;
+    if (first == ShapedType::kDynamic || second == ShapedType::kDynamic)
+      return emitOptionalError(
+          loc,
+          "expects the values of padding-attribute to be static, but found {",
+          first, ", ", second, "}.");
     item = {first, second};
   }
   return out;
