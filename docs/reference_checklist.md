@@ -58,7 +58,8 @@ After implementing the op:
        constraints in the specification.
         1. It is OK to have a comment with multiple constraint labels or to have
            multiple comments with the same constraint label. It all depends on
-           how the constraints are implemented.
+           how the constraints are implemented. If there are consecutive constraints,
+           condense them as `xyz_cn...xyz_cm, xyz_in...xyz_jn`.
         1. In case there is a mismatch between the constraints in the
            implementation VS and those in the specification, make sure there is
            an open issue reflecting that discrepancy.
@@ -73,11 +74,11 @@ After implementing the op:
     1. For precision mismatches, tag the test with `RUN-DISABLED(#1278)` (if
        it's not already done).
 1. In [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir):
-    1. Make sure that there is at least one test for each constraint in the
-       verifier and type inference methods; constraints covered in ODS will not
-       be tested. These tests will mostly be negative tests exercising the fact
-       that the constraints are not met. Make sure to add at least one positive
-       test in case there are none.
+    1. Make sure that there is at least one test (positive or negative) for each
+       constraint in the verifier and type inference methods; constraints
+       covered in ODS will not be tested. These tests will mostly be negative,
+       testing that the constraints are not met or positive, testing that the
+       inferred shape is correct.
     1. Make sure that all the tests related to the op under test are placed
        together.
     1. Make sure that all the tests related to the op under test are
