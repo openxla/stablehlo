@@ -34,10 +34,10 @@ namespace mlir {
 namespace stablehlo {
 namespace {
 
-Index evalIndices(ArrayRef<Tensor> runtimeIndices) {
-  Index index(runtimeIndices.size());
-  for (size_t i = 0; i < runtimeIndices.size(); ++i)
-    index[i] = runtimeIndices[i].get({}).getIntegerValue().getSExtValue();
+Index evalIndices(ArrayRef<Tensor> indices) {
+  Index index(indices.size());
+  for (size_t i = 0; i < indices.size(); ++i)
+    index[i] = indices[i].get({}).getIntegerValue().getSExtValue();
   return index;
 }
 
@@ -881,13 +881,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  Scope &scope,
                                  ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
-  for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues)) {
-    Tensor result(resultType);
-    for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-         ++resultIt)
-      result.set(*resultIt, initValue.get({}));
-    results.push_back(result);
-  }
+  for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
+    results.push_back(Tensor(resultType, initValue.get({})));
 
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
@@ -898,9 +893,9 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
     }
 
     SmallVector<Tensor> bodyArgs;
-    for (auto [runtimeResult, initValue] : llvm::zip(results, initValues)) {
+    for (auto [result, initValue] : llvm::zip(results, initValues)) {
       Tensor bodyArg(initValue.getType());
-      bodyArg.set({}, runtimeResult.get(resultIndex));
+      bodyArg.set({}, result.get(resultIndex));
       bodyArgs.push_back(bodyArg);
     }
     for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
@@ -923,25 +918,22 @@ SmallVector<Tensor> evalReduceWindowOp(
     const Sizes &paddingLow, const Sizes &paddingHigh, Region &body,
     Scope &scope, ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
-  for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues)) {
+  for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
     results.push_back(Tensor(resultType, initValue.get({})));
-  }
 
   SmallVector<Tensor> paddedInputs;
-  for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
+  for (auto [input, initValue] : llvm::zip(inputs, initValues))
     paddedInputs.push_back(evalPadOp(input, initValue, paddingLow, paddingHigh,
                                      baseDilations - 1));
-  }
 
   for (auto resultIt = results[0].index_begin();
        resultIt != results[0].index_end(); ++resultIt) {
     SmallVector<Tensor> windows;
     auto windowStart = (*resultIt) * windowStrides;
-    for (auto paddedInput : paddedInputs) {
+    for (auto paddedInput : paddedInputs)
       windows.push_back(evalSliceOp(paddedInput, windowStart,
                                     windowStart + windowDimensions,
                                     windowDilations));
-    }
 
     Axes dimensions(inputs[0].getRank());
     std::iota(dimensions.begin(), dimensions.end(), 0);
