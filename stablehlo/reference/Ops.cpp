@@ -521,31 +521,30 @@ Tensor evalConstantOp(ElementsAttr value) {
 
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  Type operandElementType = operand.getElementType();
-  Type resultElementType = result.getElementType();
+  auto operandElementType = operand.getElementType();
+  auto resultElementType = result.getElementType();
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedBooleanType(operandElementType)) {
+    if (isSupportedBooleanType(operandElementType))
       result.set(
           *it, convert(resultElementType, operand.get(*it).getBooleanValue()));
-    } else if (isSupportedSignedIntegerType(operandElementType)) {
+    else if (isSupportedSignedIntegerType(operandElementType))
       result.set(*it,
                  convert(resultElementType,
                          operand.get(*it).getIntegerValue().getSExtValue()));
-    } else if (isSupportedUnsignedIntegerType(operandElementType)) {
+    else if (isSupportedUnsignedIntegerType(operandElementType))
       result.set(*it,
                  convert(resultElementType,
                          operand.get(*it).getIntegerValue().getZExtValue()));
-    } else if (isSupportedFloatType(operandElementType)) {
+    else if (isSupportedFloatType(operandElementType))
       result.set(*it,
                  convert(resultElementType, operand.get(*it).getFloatValue()));
-    } else if (isSupportedComplexType(operandElementType)) {
+    else if (isSupportedComplexType(operandElementType))
       result.set(
           *it, convert(resultElementType, operand.get(*it).getComplexValue()));
-    } else {
+    else
       report_fatal_error(
           invalidArgument("Unsupported element type: %s",
                           debugString(operandElementType).c_str()));
-    }
   }
   return result;
 }
@@ -649,17 +648,8 @@ Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
   Tensor result(resultType);
   auto elementType = result.getElementType();
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedIntegerType(elementType))
-      result.set(*it, convert(elementType, (*it)[iotaDimension]));
-    else if (isSupportedFloatType(elementType))
-      result.set(*it, convert(elementType, (*it)[iotaDimension]));
-    else if (isSupportedComplexType(elementType))
-      result.set(*it, convert(elementType, (*it)[iotaDimension]));
-    else
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(elementType).c_str()));
-  }
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, convert(elementType, (*it)[iotaDimension]));
   return result;
 }
 

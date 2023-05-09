@@ -200,11 +200,12 @@ Element::Element(Type type, APFloat value) {
   if (!isSupportedFloatType(type))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
-  if (type.getIntOrFloatBitWidth() != value.bitcastToAPInt().getBitWidth())
+  auto typeSemantics =
+      APFloat::SemanticsToEnum(type.cast<FloatType>().getFloatSemantics());
+  auto valueSemantics = APFloat::SemanticsToEnum(value.getSemantics());
+  if (typeSemantics != valueSemantics)
     report_fatal_error(invalidArgument(
-        "Bitwidth mismatch. Type: %s, Value: %s",
-        debugString(type.getIntOrFloatBitWidth()).c_str(),
-        debugString(value.bitcastToAPInt().getBitWidth()).c_str()));
+        "Semantics mismatch between provided type and float value"));
   type_ = type;
   value_ = value;
 }
@@ -213,12 +214,19 @@ Element::Element(Type type, std::complex<APFloat> value) {
   if (!isSupportedComplexType(type))
     report_fatal_error(invalidArgument("Unsupported element type: %s",
                                        debugString(type).c_str()));
-  if (type.cast<ComplexType>().getElementType().cast<FloatType>().getWidth() !=
-      value.real().bitcastToAPInt().getBitWidth())
+  auto typeSemantics = APFloat::SemanticsToEnum(type.cast<ComplexType>()
+                                                    .getElementType()
+                                                    .cast<FloatType>()
+                                                    .getFloatSemantics());
+  auto realValueSemantics =
+      APFloat::SemanticsToEnum(value.real().getSemantics());
+  auto imagValueSemantics =
+      APFloat::SemanticsToEnum(value.imag().getSemantics());
+  if (typeSemantics != realValueSemantics ||
+      typeSemantics != imagValueSemantics)
     report_fatal_error(invalidArgument(
-        "Bitwidth mismatch. Type: %s, Value: %s",
-        debugString(type.getIntOrFloatBitWidth()).c_str(),
-        debugString(value.real().bitcastToAPInt().getBitWidth()).c_str()));
+        "Semantics mismatch between provided type and complex value"));
+
   type_ = type;
   value_ = std::make_pair(value.real(), value.imag());
 }

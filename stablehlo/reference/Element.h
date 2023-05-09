@@ -47,8 +47,7 @@ class Element {
   Element(Type type, APFloat value);
 
   /// Initializes Element object with type `type` and value `value`. `type` must
-  /// be a complex type and the bitwidths of both the real and the imaginary
-  /// parts of `type` and `value` must match.
+  /// be a complex type of the same semantics as `value`.
   Element(Type type, std::complex<APFloat> value);
 
   Element(const Element &other) = default;
