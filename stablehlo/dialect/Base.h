@@ -187,6 +187,9 @@ void flattenTupleTypes(TypeRange types, SmallVector<Type> &result);
 LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
                                   SmallVector<Type> &result);
 
+LogicalResult createShapedType(ShapedTypeComponents components,
+                               ShapedType &type);
+
 // This interface is implemented by both StableHLO and MHLO dialects
 // and is used as the foundation for sharing verification, type inference and
 // prettyprinting logic between them.

@@ -678,16 +678,6 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   auto windowDimsOrErr =
       convert1DAttribute(windowDimensions, location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
-  // reduce_window_c4
-  for (const auto inputType : inputArgTypes) {
-    if (!inputType.hasRank()) continue;
-    if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
-      return emitOptionalError(
-          location, "expects window-dimensions size == input rank, but got ",
-          "window-dimensions size: ", (*windowDimsOrErr).size(),
-          " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
-  }
-
   // reduce_window_i4
   auto windowStridesOrErr =
       convert1DAttribute(windowStrides, location, "window_strides");
@@ -703,6 +693,16 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   // reduce_window_c12, reduce_window_i7
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
+
+  // reduce_window_c4
+  for (const auto inputType : inputArgTypes) {
+    if (!inputType.hasRank()) continue;
+    if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
+      return emitOptionalError(
+          location, "expects window-dimensions size == input rank, but got ",
+          "window-dimensions size: ", (*windowDimsOrErr).size(),
+          " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
+  }
 
   // reduce_window_c5, reduce_window_c6, reduce_window_c7, reduce_window_c8,
   // reduce_window_c9, reduce_window_c10, reduce_window_c11, reduce_window_c12
@@ -2578,9 +2578,8 @@ LogicalResult inferReduceWindowOp(
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
-  // reduce_window_c1, reduce_window_c2, reduce_window_c4, reduce_window_c5,
-  // reduce_window_c7, reduce_window_c9, reduce_window_c11, reduce_window_c12,
-  // reduce_window_i4, reduce_window_i5, reduce_window_i6, reduce_window_i7
+  // reduce_window_c1, reduce_window_c2, reduce_window_c4...reduce_window_c12,
+  // reduce_window_i4...reduce_window_i7
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
           windowStrides, baseDilations, windowDilations, padding, windowDims,
@@ -3732,9 +3731,8 @@ LogicalResult verifyReduceWindowOp(
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
-  // reduce_window_c1, reduce_window_c2, reduce_window_c4, reduce_window_c5,
-  // reduce_window_c7, reduce_window_c9, reduce_window_c11, reduce_window_c12,
-  // reduce_window_i4, reduce_window_i5, reduce_window_i6, reduce_window_i7
+  // reduce_window_c1, reduce_window_c2, reduce_window_c4...reduce_window_c12,
+  // reduce_window_i4...reduce_window_i7
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
           windowStrides, baseDilations, windowDilations, padding, windowDims,

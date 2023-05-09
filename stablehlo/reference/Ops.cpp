@@ -78,9 +78,12 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
         invalidArgument("Could not infer ReduceOp's return type"));
 
   SmallVector<ShapedType> resultTypes;
-  for (auto inferredType : inferredReduceTypes)
-    resultTypes.push_back(RankedTensorType::get(inferredType.getDims(),
-                                                inferredType.getElementType()));
+  for (auto inferredType : inferredReduceTypes) {
+    ShapedType shapedType;
+    if (failed(hlo::createShapedType(inferredType, shapedType)))
+      llvm::report_fatal_error("Could not retrieve type.");
+    resultTypes.push_back(shapedType);
+  }
   return evalReduceOp(inputs, initValues, dimensions, body, scope, resultTypes);
 }
 
