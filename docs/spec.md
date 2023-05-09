@@ -133,9 +133,12 @@ QuantizationExpressedType ::= FloatType
 QuantizationDimension ::= IntegerConstant
 QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
-QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
+QuantizationParameter ::= ( QuantizationScale | QuantizationMultiplierShift ) ':' QuantizationZeroPoint
 QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::= IntegerConstant
+QuantizationMultiplierShift ::= '<' QuantizationMultiplier , QuantizationShift '>'
+QuantizationMultiplier ::= IntegerConstant
+QuantizationShift ::= IntegerConstant
+QuantizationZeroPoint ::=  IntegerConstant
 ```
 
 | Name                     | Type                                        | Constraints                  |
@@ -171,10 +174,56 @@ following constraints:
 * (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
 * (C12) `0 <= quantization_dimension`.
 
-At the moment, `QuantizationScale` is a floating-point constant, but there is
-strong interest in integer-based scales, represented with multipliers and
-shifts. We are planning to explore this in the near future
-([#1404](https://github.com/openxla/stablehlo/issues/1404)).
+In order to allow operation using only integer arithmetic, the floating-point
+`scale`, `S`, is realized using integer `multipler`, `M` and `shift` value,
+`n >= 0`, such that `round_nearest_integer(S) = (M + round)* 2^-n`, where
+`round` is added to recover the precision loss while deriving the values of
+`M` and `n` from `S`.
+
+The following demonstrates, using C++ code, a possible implementation of
+deriving the integer parameters `M` and `n` of type `i32` from a
+floating-point scale `S` of type `f64`:
+
+```c++
+    int32_t shift;
+    double mantissa = std::frexp(S, &shift);
+    auto shiftedMantissa = static_cast<int64_t>(std::round(mantissa * (int64_t(1) << 31)));
+
+    // Ensure that shiftedMantissa is within limits of 32-bit integer type.
+    if (shiftedMantissa == (int64_t(1) << 31)) {
+        shiftedMantissa /= 2;
+        shift++;
+    }
+
+    int64_t adjustedMantissa = shiftedMantissa;
+
+    // For small `S` value, flush `adjustedMantissa` to zero.
+    if (shift < -31) {
+        shift = 0;
+        adjustedMantissa = 0;
+    }
+
+    // Saturate `adjustedMantissa`, if shift > 30,
+    if (shift > 30) {
+        shift = 30;
+        adjustedMantissa = (1LL << 31) - 1;
+    }
+
+    n = (-shift) + 31;
+    M = static_cast<int32_t>(adjustedMantissa);
+```
+
+Using the above implementation, the following C++ code demonstrates the
+relationship between the floating-point scale `S` and the integer parameters `M`
+and `n`.
+
+```c++
+    int64_t round = static_cast<int64_t>(1) << (n - 1);
+    static_cast<int32_t>(std::floor(S + 0.5)) = clamp(
+                                    (static_cast<int64_t>(M) + round) >> n,
+                                    static_cast<int64_t>(std::numeric_limits<int32_t>::min()),
+                                    static_cast<int64_t>(std::numeric_limits<int32_t>::max()));
+```
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
 including the type, the values and whether there can be just one or
