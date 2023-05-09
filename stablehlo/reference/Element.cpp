@@ -615,95 +615,46 @@ Element complex(const Element &e1, const Element &e2) {
 
 Element convert(Type type, bool value) {
   if (isSupportedBooleanType(type)) return Element(type, value);
+  return convert(type, value ? 1UL : 0UL);
+}
+
+Element convert(Type type, APSInt value) {
+  if (isSupportedBooleanType(type)) return Element(type, !value.isZero());
   if (isSupportedIntegerType(type))
-    return Element(type,
-                   APInt(type.getIntOrFloatBitWidth(), value ? 1UL : 0UL));
+    return Element(type, value.extOrTrunc(type.getIntOrFloatBitWidth()));
   if (isSupportedFloatType(type)) {
-    bool roundingErr;
-    auto floatVal = APFloat(value ? 1.0 : 0.0);
-    floatVal.convert(type.cast<FloatType>().getFloatSemantics(),
-                     APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, floatVal);
+    APFloat floatValue(type.cast<FloatType>().getFloatSemantics());
+    floatValue.convertFromAPInt(value, value.isSigned(),
+                                APFloat::rmNearestTiesToEven);
+    return Element(type, floatValue);
   }
   if (isSupportedComplexType(type)) {
-    bool roundingErr;
-    auto realVal = APFloat(value ? 1.0 : 0.0);
-    realVal.convert(realVal.getSemantics(), APFloat::rmNearestTiesToEven,
-                    &roundingErr);
-    auto imagVal = APFloat(0.0);
-    imagVal.convert(imagVal.getSemantics(), APFloat::rmNearestTiesToEven,
-                    &roundingErr);
-    return Element(type, std::complex<APFloat>(realVal, imagVal));
+    auto floatResult =
+        convert(type.cast<ComplexType>().getElementType(), value);
+    return convert(type, floatResult.getFloatValue());
   }
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
 
 Element convert(Type type, int64_t value) {
-  if (isSupportedBooleanType(type)) return Element(type, value != 0);
-  if (isSupportedIntegerType(type))
-    return Element(type, APInt(type.getIntOrFloatBitWidth(), value,
-                               /*isSigned=*/true));
-  if (isSupportedFloatType(type)) {
-    APFloat floatVal(type.cast<FloatType>().getFloatSemantics());
-    floatVal.convertFromAPInt(
-        APInt(type.getIntOrFloatBitWidth(), value, /*isSigned=*/true),
-        /*IsSigned=*/true, APFloat::rmNearestTiesToEven);
-    return Element(type, floatVal);
-  }
-  if (isSupportedComplexType(type)) {
-    auto baseType = type.cast<ComplexType>().getElementType().cast<FloatType>();
-
-    APFloat realVal(baseType.getFloatSemantics());
-    realVal.convertFromAPInt(
-        APInt(baseType.getIntOrFloatBitWidth(), value, /*isSigned=*/true),
-        /*IsSigned=*/true, APFloat::rmNearestTiesToEven);
-
-    APFloat imagVal(baseType.getFloatSemantics());
-    imagVal.convertFromAPInt(
-        APInt(baseType.getIntOrFloatBitWidth(), 0L, /*isSigned=*/true),
-        /*IsSigned=*/true, APFloat::rmNearestTiesToEven);
-    return Element(type, std::complex<APFloat>(realVal, imagVal));
-  }
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
+  APInt apValue(/*numBits=*/64, value, /*isSigned=*/true);
+  return convert(type, APSInt(apValue, /*isUnsigned=*/false));
 }
 
 Element convert(Type type, uint64_t value) {
-  if (isSupportedBooleanType(type)) return Element(type, value != 0);
-  if (isSupportedIntegerType(type))
-    return Element(type, APInt(type.getIntOrFloatBitWidth(), value,
-                               /*isSigned=*/false));
-  if (isSupportedFloatType(type)) {
-    APFloat floatVal(type.cast<FloatType>().getFloatSemantics());
-    floatVal.convertFromAPInt(APInt(type.getIntOrFloatBitWidth(), value),
-                              /*IsSigned=*/false, APFloat::rmNearestTiesToEven);
-    return Element(type, floatVal);
-  }
-  if (isSupportedComplexType(type)) {
-    auto baseType = type.cast<ComplexType>().getElementType().cast<FloatType>();
-
-    APFloat realVal(baseType.getFloatSemantics());
-    realVal.convertFromAPInt(APInt(baseType.getIntOrFloatBitWidth(), value),
-                             /*IsSigned=*/false, APFloat::rmNearestTiesToEven);
-
-    APFloat imagVal(baseType.getFloatSemantics());
-    imagVal.convertFromAPInt(APInt(baseType.getIntOrFloatBitWidth(), 0UL),
-                             /*IsSigned=*/false, APFloat::rmNearestTiesToEven);
-    return Element(type, std::complex<APFloat>(realVal, imagVal));
-  }
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
+  APInt apValue(/*numBits=*/64, value, /*isSigned=*/false);
+  return convert(type, APSInt(apValue, /*isUnsigned=*/true));
 }
 
 Element convert(Type type, APFloat value) {
-  if (isSupportedBooleanType(type)) return Element(type, value.isNonZero());
+  if (isSupportedBooleanType(type)) return Element(type, !value.isZero());
   if (isSupportedIntegerType(type)) {
-    APSInt intVal(type.getIntOrFloatBitWidth(),
-                  /*isUnsigned=*/isSupportedUnsignedIntegerType(type));
+    APSInt intValue(type.getIntOrFloatBitWidth(),
+                    /*isUnsigned=*/isSupportedUnsignedIntegerType(type));
     bool roundingErr;
-    value.convertToInteger(intVal, APFloat::rmTowardZero, &roundingErr);
-    return Element(type, intVal);
+    value.convertToInteger(intValue, APFloat::rmTowardZero, &roundingErr);
+    return Element(type, intValue);
   }
   if (isSupportedFloatType(type)) {
     bool roundingErr;
@@ -711,17 +662,8 @@ Element convert(Type type, APFloat value) {
                   APFloat::rmNearestTiesToEven, &roundingErr);
     return Element(type, value);
   }
-  if (isSupportedComplexType(type)) {
-    const llvm::fltSemantics &fltSemantics = type.cast<ComplexType>()
-                                                 .getElementType()
-                                                 .cast<FloatType>()
-                                                 .getFloatSemantics();
-    bool roundingErr;
-    value.convert(fltSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    auto imagVal = APFloat(0.0);
-    imagVal.convert(fltSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, std::complex<APFloat>(value, imagVal));
-  }
+  if (isSupportedComplexType(type))
+    return convert(type, std::complex<APFloat>(value, APFloat(0.0)));
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
 }
@@ -731,36 +673,14 @@ Element convert(Type type, double value) {
 }
 
 Element convert(Type type, std::complex<APFloat> value) {
-  if (isSupportedBooleanType(type))
-    return Element(type, value.real().isNonZero());
-  if (isSupportedIntegerType(type)) {
-    APSInt realVal(type.getIntOrFloatBitWidth(),
-                   /*isUnsigned=*/isSupportedUnsignedIntegerType(type));
-    bool roundingErr;
-    value.real().convertToInteger(realVal, APFloat::rmTowardZero, &roundingErr);
-    return Element(type, realVal);
-  }
-  if (isSupportedFloatType(type)) {
-    bool roundingErr;
-    auto realVal = value.real();
-    realVal.convert(type.cast<FloatType>().getFloatSemantics(),
-                    APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, realVal);
-  }
   if (isSupportedComplexType(type)) {
-    const llvm::fltSemantics &fltSemantics = type.cast<ComplexType>()
-                                                 .getElementType()
-                                                 .cast<FloatType>()
-                                                 .getFloatSemantics();
-    bool roundingErr;
-    auto realVal = value.real();
-    realVal.convert(fltSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    auto imagVal = value.imag();
-    imagVal.convert(fltSemantics, APFloat::rmNearestTiesToEven, &roundingErr);
-    return Element(type, std::complex<APFloat>(realVal, imagVal));
+    auto elementType = type.cast<ComplexType>().getElementType();
+    auto realElement = convert(elementType, value.real());
+    auto imagElement = convert(elementType, value.imag());
+    return Element(type, std::complex<APFloat>(realElement.getFloatValue(),
+                                               imagElement.getFloatValue()));
   }
-  report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                     debugString(type).c_str()));
+  return convert(type, value.real());
 }
 
 Element convert(Type type, std::complex<double> value) {
