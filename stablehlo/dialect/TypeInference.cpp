@@ -224,8 +224,7 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         location,
         "expects multi-dimensional operands to have compatible shapes.");
 
-  // batch_norm_inference_c3, batch_norm_inference_c4, batch_norm_inference_c5,
-  // batch_norm_inference_c6
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (failed(verifyPairwiseCompatibleShapes(singleDimOperands.getTypes())))
     return emitOptionalError(
         location,
@@ -249,8 +248,7 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
   const int64_t singleDimSize =
       singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
-  // batch_norm_inference_c3, batch_norm_inference_c4, batch_norm_inference_c5,
-  // batch_norm_inference_c6
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
