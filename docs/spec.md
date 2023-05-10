@@ -2394,7 +2394,7 @@ planning to address this in
   * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
   * (C19) `zero_points(rhs) = [0, 0, ..., 0]`.
   * (C20) `quantization_dimension(lhs)` is empty.
-  * (C21) `quantization_dimension(rhs)` is not empty or `quantization_dimension(result)` is empty.
+  * (C21) If `quantization_dimension(rhs)` is empty, then `quantization_dimension(result)` is empty.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
