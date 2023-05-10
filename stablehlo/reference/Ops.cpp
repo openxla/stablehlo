@@ -503,9 +503,8 @@ Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
         {value}));
   };
 
-  SmallVector<int64_t> aNonBatchShape(aShape.end() - 2, aShape.end());
-  auto batchingSizes =
-      Sizes(SmallVector<int64_t>(aShape.begin(), aShape.end() - 2));
+  Sizes nonBatchingSizes(aShape.end() - 2, aShape.end());
+  Sizes batchingSizes(aShape.begin(), aShape.end() - 2);
   for (auto batchIt =
            IndexSpaceIterator(batchingSizes, Sizes(a.getRank() - 2, 0));
        batchIt != IndexSpaceIterator(batchingSizes, std::nullopt); ++batchIt) {
@@ -513,15 +512,15 @@ Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
     for (auto index : *batchIt) startIndices.push_back(getScalarTensor(index));
     startIndices.append({getScalarTensor(0L), getScalarTensor(0L)});
 
-    auto sliceSizes = Sizes(a.getRank() - 2, 1);
-    sliceSizes.append(aNonBatchShape);
+    Sizes sliceSizes(a.getRank() - 2, 1);
+    sliceSizes.append(nonBatchingSizes);
 
     auto aSliced = evalDynamicSliceOp(
         a, startIndices, sliceSizes,
         RankedTensorType::get(sliceSizes, a.getElementType()));
 
     auto L = cholesky(evalReshapeOp(
-        aSliced, RankedTensorType::get(aNonBatchShape, a.getElementType())));
+        aSliced, RankedTensorType::get(nonBatchingSizes, a.getElementType())));
 
     auto reshapedL =
         evalReshapeOp(L, RankedTensorType::get(sliceSizes, a.getElementType()));
