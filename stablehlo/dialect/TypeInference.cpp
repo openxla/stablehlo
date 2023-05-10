@@ -124,12 +124,6 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
                              " attribute to be 1-D, but got {",
                              attrType.getShape(), "}.");
   auto values = attr.getValues<int64_t>();
-  for (auto value : values)
-    if (isDynamicDimSize(value))
-      return emitOptionalError(
-          loc, "expects ", attrName,
-          " attribute to have static values but got dynamic size {", values,
-          "}.");
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
 
@@ -153,11 +147,6 @@ FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     ++it;
     int64_t second = *it;
     ++it;
-    if (first == ShapedType::kDynamic || second == ShapedType::kDynamic)
-      return emitOptionalError(
-          loc,
-          "expects the values of padding-attribute to be static, but found {",
-          first, ", ", second, "}.");
     item = {first, second};
   }
   return out;
@@ -715,8 +704,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
           " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
   }
 
-  // reduce_window_c5, reduce_window_c6, reduce_window_c7, reduce_window_c8,
-  // reduce_window_c9, reduce_window_c10, reduce_window_c11, reduce_window_c12
+  // reduce_window_c5...reduce_window_c12
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/*baseDilationsOrErr,
@@ -2597,7 +2585,7 @@ LogicalResult inferReduceWindowOp(
           inferredWindow)))
     return failure();
 
-  // reduce_window_c1, reduce_window_c14, reduce_window_c15, reduce_window_c16
+  // reduce_window_c1, reduce_window_c14...reduce_window_c16
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
     auto inputRankedType = inputs[i].getType().dyn_cast<RankedTensorType>();
     if (!inputRankedType) {

@@ -577,17 +577,13 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
   return success(/*succeeded=*/consumed != -1);
 }
 
-LogicalResult createShapedType(ShapedTypeComponents components,
-                               ShapedType& type) {
-  if (!components.getElementType()) return failure();
-  if (components.hasRank()) {
-    type =
-        RankedTensorType::get(components.getDims(), components.getElementType(),
-                              components.getAttribute());
-    return success();
-  }
-  type = UnrankedTensorType::get(components.getElementType());
-  return success();
+ShapedType createShapedType(ShapedTypeComponents components) {
+  if (!components.getElementType()) return ShapedType();
+  if (components.hasRank())
+    return RankedTensorType::get(components.getDims(),
+                                 components.getElementType(),
+                                 components.getAttribute());
+  return UnrankedTensorType::get(components.getElementType());
 }
 
 }  // namespace hlo

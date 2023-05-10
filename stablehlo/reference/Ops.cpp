@@ -79,9 +79,9 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
 
   SmallVector<ShapedType> resultTypes;
   for (auto inferredType : inferredReduceTypes) {
-    ShapedType shapedType;
-    if (failed(hlo::createShapedType(inferredType, shapedType)))
-      llvm::report_fatal_error("Could not retrieve type.");
+    auto shapedType = hlo::createShapedType(inferredType);
+    if (!shapedType)
+      llvm::report_fatal_error("Could not infer ReduceOp's return type");
     resultTypes.push_back(shapedType);
   }
   return evalReduceOp(inputs, initValues, dimensions, body, scope, resultTypes);
