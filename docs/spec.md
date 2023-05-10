@@ -2339,21 +2339,21 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                           |
-|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C18), (C20)   |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C16), (C18-C19), (C21) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)         |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)                |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)               |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                                 |
+| Label | Name                         | Type                                                         | Constraints                         |
+|-------|------------------------------|--------------------------------------------------------------|-------------------------------------|
+| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C17), (C19) |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C18), (C20)          |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)       |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)              |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)             |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)             |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                               |
 
 #### Outputs
 
-| Name     | Type                       | Constraints             |
-|----------|----------------------------|-------------------------|
-| `result` | tensor or quantized tensor | (C12-C13), (C18), (C21) |
+| Name     | Type                       | Constraints                    |
+|----------|----------------------------|--------------------------------|
+| `result` | tensor or quantized tensor | (C12-C13), (C15), (C17), (C20) |
 
 #### Constraints
 
@@ -2390,11 +2390,10 @@ planning to address this in
   * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
     is_quantized_tensor(result)`.
   * (C16) `storage_type(lhs) = storage_type(rhs)`.
-  * (C17) `is_signed(storage_type(lhs)) = true`.
-  * (C18) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C19) `zero_points(rhs) = [0, 0, ..., 0]`.
-  * (C20) `quantization_dimension(lhs)` is empty.
-  * (C21) If `quantization_dimension(rhs)` is empty, then `quantization_dimension(result)` is empty.
+  * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C18) `zero_points(rhs) = [0, 0, ..., 0]`.
+  * (C19) `quantization_dimension(lhs)` is empty.
+  * (C20) If `quantization_dimension(rhs)` is empty, then `quantization_dimension(result)` is empty.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
