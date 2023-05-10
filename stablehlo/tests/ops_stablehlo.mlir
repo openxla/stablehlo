@@ -3322,7 +3322,7 @@ func.func @bitcast_convert_c1(%arg: tensor<2xf64>) -> tensor<3xi64> {
 // -----
 
 func.func @bitcast_convert_c1(%arg: tensor<f64>) -> tensor<f32> {
-  // expected-error@+1 {{rank of smaller element type (0) should be 1 more than rank of larger element type (0), but 0 != 0+1.}}
+  // expected-error@+1 {{rank of smaller element type (0) should be 1 more than rank of larger element type (0), but 0 != 0 + 1.}}
   %0 = "stablehlo.bitcast_convert"(%arg) : (tensor<f64>) -> tensor<f32>
   return %0 : tensor<f32>
 }

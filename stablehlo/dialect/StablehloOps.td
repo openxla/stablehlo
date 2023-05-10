@@ -1811,7 +1811,7 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
 
     Example:
     ```mlir
-    %result = stablehlo.bitcast_convert %operand : (tensor<2xf32>) -> tensor<2x4xi8>
+    %result = stablehlo.bitcast_convert %operand : (tensor<f64>) -> tensor<4xf16>
     ```
   }];
 

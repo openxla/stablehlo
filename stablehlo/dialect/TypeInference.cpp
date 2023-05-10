@@ -3160,7 +3160,7 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
           location, "rank of smaller element type (", smallerEltShape.size(),
           ") should be 1 more than rank of larger element type (",
           biggerEltShape.size(), "), but ", smallerEltShape.size(),
-          " != ", biggerEltShape.size(), "+1.");
+          " != ", biggerEltShape.size(), " + 1.");
     }
     if (smallerEltShape.empty()) {
       return emitOptionalError(location,
