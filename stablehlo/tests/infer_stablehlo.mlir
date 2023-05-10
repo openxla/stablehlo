@@ -282,6 +282,22 @@ func.func @batch_norm_training(%input: tensor<2x?x2x2xf32>, %scale: tensor<2xf32
 
 // -----
 
+
+func.func @batch_norm_training_c5_c6_c7(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<*xindex> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 1 : i64
+  } : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  // CHECK: types0 = tensor<2x2x2x2xf32>
+  // CHECK-SAME: types1 = tensor<2xf32>
+  // CHECK-SAME: types2 = tensor<2xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<2x2x2x2xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @batch_norm_inference_c7
 func.func @batch_norm_inference_c7(%input: tensor<4x256xf32>, %scale: tensor<256xf32>, %offset: tensor<256xf32>, %mean: tensor<256xf32>, %variance: tensor<256xf32>) -> (tensor<*xindex>) {
   %0 = "stablehlo.batch_norm_inference" (%input, %scale, %offset, %mean, %variance) {epsilon = 1.001000e-05 : f32, feature_index = 1 : i64} :

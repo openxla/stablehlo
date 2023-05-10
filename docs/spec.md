@@ -1220,10 +1220,11 @@ follows:
 def compute_mean(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[0.0],
+      init_values=[constant(0.0, element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
-  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor = constant(num_elements(operand) / dim(operand, feature_index),
+                     element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
   return divide(sum, divisor_bcast)
 
@@ -1236,8 +1237,9 @@ def compute_variance(operand, feature_index):
 def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   mean = compute_mean(operand, feature_index)
   variance = compute_variance(operand, feature_index)
-  return batch_norm_inference(operand, scale, offset, mean,
-                              variance, epsilon, feature_index)
+  return batch_norm_inference(operand, scale, offset, mean, variance, epsilon,
+                              feature_index),
+         mean, variance
 ```
 
 #### Inputs

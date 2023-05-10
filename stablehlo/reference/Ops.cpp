@@ -143,9 +143,7 @@ static Tensor computeSum(const Tensor &operand, const Tensor &initValue,
 }
 
 Tensor computeMean(const Tensor &operand, const Axis featureIndex) {
-  auto i64Type =
-      IntegerType::get(operand.getType().getContext(), 64, IntegerType::Signed);
-  auto f64Type = FloatType::getF64(operand.getType().getContext());
+  auto context = operand.getType().getContext();
 
   SmallVector<int64_t> dimensions(operand.getRank());
   std::iota(dimensions.begin(), dimensions.end(), 0);
@@ -153,8 +151,11 @@ Tensor computeMean(const Tensor &operand, const Axis featureIndex) {
 
   SmallVector<ShapedTypeComponents> inferredReduceType;
   auto reduceStatus = hlo::inferReduceOp(
-      {}, {operand.getType()}, {RankedTensorType::get({}, f64Type)},
-      getDenseIntElementsAttr(i64Type, dimensions, {}), inferredReduceType);
+      {}, {operand.getType()},
+      {RankedTensorType::get({}, operand.getElementType())},
+      getDenseIntElementsAttr(
+          IntegerType::get(context, 64, IntegerType::Signed), dimensions, {}),
+      inferredReduceType);
 
   if (failed(reduceStatus))
     report_fatal_error(
@@ -162,27 +163,26 @@ Tensor computeMean(const Tensor &operand, const Axis featureIndex) {
 
   auto reducedSum =
       computeSum(operand,
-                 Tensor(RankedTensorType::get({}, f64Type),
-                        Element(f64Type, APFloat(0.0))),
+                 Tensor(RankedTensorType::get({}, operand.getElementType()),
+                        convert(operand.getElementType(), 0.0)),
                  Axes(dimensions),
                  RankedTensorType::get(inferredReduceType[0].getDims(),
                                        operand.getElementType()));
 
-  auto divisor = Tensor(
-      RankedTensorType::get({}, f64Type),
-      Element(f64Type,
-              APFloat(static_cast<double>(operand.getNumElements() /
-                                          operand.getShape()[featureIndex]))));
+  auto divisor = Tensor(RankedTensorType::get({}, operand.getElementType()),
+                        convert(operand.getElementType(),
+                                static_cast<double>(operand.getNumElements()) /
+                                    operand.getShape()[featureIndex]));
   auto divisorBroadcast =
       evalBroadcastInDimOp(divisor, {}, reducedSum.getType());
 
   return evalDivideOp(reducedSum, divisorBroadcast, reducedSum.getType());
 }
 
-Tensor computeVariance(const Tensor &operand, const Axis featureIndex) {
+Tensor computeVariance(const Tensor &operand, Axis featureIndex) {
   auto mean = computeMean(operand, featureIndex);
-  auto meanBroadcast = evalBroadcastInDimOp(
-      mean, {static_cast<int64_t>(featureIndex)}, operand.getType());
+  auto meanBroadcast =
+      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
   auto centeredOperand =
       evalSubtractOp(operand, meanBroadcast, operand.getType());
   return computeMean(evalMultiplyOp(centeredOperand, centeredOperand,
@@ -240,7 +240,7 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(batchNormTrainingOp.getOperand());
       auto scale = scope.find(batchNormTrainingOp.getScale());
       auto offset = scope.find(batchNormTrainingOp.getOffset());
-      auto results = evalBatchNormTraining(
+      auto results = evalBatchNormTrainingOp(
           operand, scale, offset, batchNormTrainingOp.getEpsilon(),
           batchNormTrainingOp.getFeatureIndex(),
           {batchNormTrainingOp.getOutput().getType(),
@@ -669,8 +669,7 @@ SmallVector<Tensor> evalBatchNormTrainingOp(const Tensor &operand,
   auto mean = computeMean(operand, featureIndex);
   auto variance = computeVariance(operand, featureIndex);
   return {evalBatchNormInferenceOp(operand, scale, offset, mean, variance,
-                                   epsilon, featureIndex,
-                                   resultTypes[0].dyn_cast<ShapedType>()),
+                                   epsilon, featureIndex, resultTypes[0]),
           mean, variance};
 }
 
