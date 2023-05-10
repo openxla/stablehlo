@@ -133,7 +133,7 @@ QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
 QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
 QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::=  IntegerConstant
+QuantizationZeroPoint ::= IntegerConstant
 ```
 
 **Quantized element types** represent integer values of a **storage type** in
@@ -2313,16 +2313,26 @@ More formally, `result[result_index] = dot_product`, where:
   `size(result_lhs_index) = size(lhs_result_dimensions)` and
   `size(result_rhs_index) = size(rhs_result_dimensions)`.
 * `transposed_lhs = transpose(lhs, lhs_batching_dimensions + lhs_result_dimensions + lhs_contracting_dimensions)`.
-* `transposed_lhs_slice = slice(result_batching_index + result_lhs_index + [:, ..., :])`.
+* `transposed_lhs_slice = slice(transposed_lhs, result_batching_index + result_lhs_index + [:, ..., :])`.
 * `reshaped_lhs_slice = reshape(transposed_lhs_slice, dims(lhs, lhs_contracting_dimensions))`.
 * `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
-* `transposed_rhs_slice = slice(result_batching_index + result_rhs_index + [:, ..., :])`.
+* `transposed_rhs_slice = slice(transposed_rhs, result_batching_index + result_rhs_index + [:, ..., :])`.
 * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
-* `dot_product = reduce(
-  inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-  init_values=[0],
-  dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
-  body=lambda x, y: add(x, y))`.
+* For `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs)`:
+  * `dot_product = reduce(
+      inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+* For `is_quantized_tensor(lhs) and is_quantized_tensor(rhs)`:
+  * `integer_dot_product = reduce(
+      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
+                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+  * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
+  * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 <!-- markdownlint-enable line-length -->
 
 `precision_config` controls the tradeoff between speed and accuracy for
@@ -2340,49 +2350,62 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                           |
-|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C5), (C9), (C11)               |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+| Label | Name                         | Type                                                         | Constraints                         |
+|-------|------------------------------|--------------------------------------------------------------|-------------------------------------|
+| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C17), (C19) |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C18), (C20)          |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)       |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)              |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)             |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)             |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                               |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C13)       |
+| Name     | Type                       | Constraints                    |
+|----------|----------------------------|--------------------------------|
+| `result` | tensor or quantized tensor | (C12-C13), (C15), (C17), (C20) |
 
 #### Constraints
 
-* (C1) `lhs` and `rhs` have the same element type.
-* (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
-* (C3) size(`lhs_contracting_dimensions`) $=$
+<!-- markdownlint-disable line-length -->
+* (C1) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
+* (C2) size(`lhs_contracting_dimensions`) $=$
   size(`rhs_contracting_dimensions`).
-* (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
+* (C3) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
   unique.
-* (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
+* (C4) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
   unique.
-* (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C5) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_batching_dimensions`)).
-* (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C6) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_contracting_dimensions`)).
-* (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C7) 0 $\le$ `rhs_batching_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_batching_dimensions`)).
-* (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C8) 0 $\le$ `rhs_contracting_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_contracting_dimensions`)).
-* (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
+* (C9) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
   dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_batching_dimensions`)).
-* (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
+* (C10) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
   dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_contracting_dimensions`)).
-* (C12) size(`precision_config`) $=$ 2.
-* (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
+* (C11) size(`precision_config`) $=$ 2.
+* (C12) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
   dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
+* If the operation uses non-quantized tensors:
+  * (C13) `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs) and
+    is_non_quantized_tensor(result)`.
+  * (C14) element_type(`lhs`) $=$ element_type(`rhs`).
+* If the operation uses quantized tensors:
+  * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C16) `storage_type(lhs) = storage_type(rhs)`.
+  * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C18) `zero_points(rhs) = [0, 0, ..., 0]`.
+  * (C19) `quantization_dimension(lhs)` is empty.
+  * (C20) If `quantization_dimension(rhs)` is empty, then `quantization_dimension(result)` is empty.
+<!-- markdownlint-enable line-length -->
 
 #### Examples
 
@@ -4305,15 +4328,15 @@ spaces of `result` and `operand`.
 
 #### Inputs
 
-| Label | Name      | Type   | Constraints |
-|-------|-----------|--------|-------------|
-| (I1)  | `operand` | tensor | (C1), (C2)  |
+| Label | Name      | Type                       | Constraints |
+|-------|-----------|----------------------------|-------------|
+| (I1)  | `operand` | tensor or quantized tensor | (C1-C2)     |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C2)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C2)     |
 
 #### Constraints
 
@@ -5156,16 +5179,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Label | Name            | Type                                         | Constraints      |
 |-------|-----------------|----------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                       | (C1-C3), (C5)    |
+| (I1)  | `operand`       | tensor or quantized tensor                   | (C1-C3), (C5)    |
 | (I2)  | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I3)  | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I4)  | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C5)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -5411,14 +5434,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
-| (I1)  | `operand`     | tensor                                       | (C1-C3)     |
+| (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C3)     |
 | (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C3)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
