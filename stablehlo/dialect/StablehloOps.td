@@ -2805,10 +2805,9 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       RecursiveMemoryEffects,
-      SameVariadicOperandSize,
+      SameVariadicOperandSize /*reduce_window_c1*/,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      InferTensorType,
-    ]> {
+      InferTensorType /*reduce_window_c1, reduce_window_c14, reduce_window_c15, reduce_window_c16*/]> {
   let summary = "ReduceWindow operation";
   let description = [{
     Applies a reduction function `body` to windows of `inputs` and `init_values`
@@ -2820,35 +2819,35 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     Example:
     ```mlir
     %result = "stablehlo.reduce_window"(%input, %init_value) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = stablehlo.add %arg0, %arg1 : tensor<i32>
-        stablehlo.return %0 : tensor<i32>
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       window_dimensions = dense<[2, 1]> : tensor<2xi64>,
       window_strides = dense<[4, 1]> : tensor<2xi64>,
       base_dilations = dense<[2, 1]> : tensor<2xi64>,
       window_dilations = dense<[3, 1]> : tensor<2xi64>,
       padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
-    } : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
+    } : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
     ```
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    Variadic<HLO_Tensor>:$init_values,
-    I64ElementsAttr:$window_dimensions,
+    Variadic<HLO_Tensor>:$inputs /*reduce_window_i1*/,
+    Variadic<HLO_Tensor>:$init_values /*reduce_window_i2*/,
+    I64ElementsAttr:$window_dimensions /*reduce_window_i3*/,
     // If strides or dilations attributes are missing then the default value is
     // one for each of the operand dimensions. Similarly, padding values are zero
     // for both low and high in each of the dimensions, if not specified.
-    OptionalAttr<I64ElementsAttr>:$window_strides,
-    OptionalAttr<I64ElementsAttr>:$base_dilations,
-    OptionalAttr<I64ElementsAttr>:$window_dilations,
-    OptionalAttr<I64ElementsAttr>:$padding
+    OptionalAttr<I64ElementsAttr>:$window_strides /*reduce_window_i4*/,
+    OptionalAttr<I64ElementsAttr>:$base_dilations /*reduce_window_i5*/,
+    OptionalAttr<I64ElementsAttr>:$window_dilations /*reduce_window_i6*/,
+    OptionalAttr<I64ElementsAttr>:$padding /*reduce_window_i7*/
   );
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region SizedRegion<1>:$body /*reduce_window_i8*/);
 
   let hasVerifier = 1;
 

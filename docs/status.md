@@ -121,7 +121,7 @@ one of the following tracking labels.
 | reduce                   | yes           | revisit      | yes            | revisit         | yes         |
 | reduce_precision         | yes           | yes          | yes            | yes             | no          |
 | reduce_scatter           | yes           | revisit      | no             | no              | no          |
-| reduce_window            | yes           | revisit      | yes            | no              | no          |
+| reduce_window            | yes           | revisit      | yes            | no              | yes         |
 | remainder                | yes           | yes          | yes            | yes             | yes         |
 | replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |

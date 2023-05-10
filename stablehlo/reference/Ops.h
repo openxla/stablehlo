@@ -54,7 +54,7 @@ Tensor evalCosineOp(const Tensor &operand, ShapedType resultType);
 Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
                     ShapedType resultType);
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
-                          Sizes sliceSizes, ShapedType resultType);
+                          const Sizes &sliceSizes, ShapedType resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
                                 ArrayRef<Tensor> startIndices,
                                 ShapedType resultType);
@@ -81,7 +81,7 @@ Tensor evalNegOp(const Tensor &operand, ShapedType resultType);
 Tensor evalNotOp(const Tensor &operand, ShapedType resultType);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
-                 Sizes edgePaddingLow, Sizes interiorPadding,
+                 const Sizes &edgePaddingLow, const Sizes &interiorPadding,
                  ShapedType resultType);
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType);
 Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
@@ -91,6 +91,12 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  const Axes &dimensions, Region &body,
                                  Scope &scope,
                                  ArrayRef<ShapedType> resultTypes);
+SmallVector<Tensor> evalReduceWindowOp(
+    ArrayRef<Tensor> inputs, ArrayRef<Tensor> initValues,
+    const Sizes &windowDimensions, const Sizes &windowStrides,
+    const Sizes &baseDilations, const Sizes &windowDilations,
+    const Sizes &paddingLow, const Sizes &paddingHigh, Region &body,
+    Scope &scope, ArrayRef<ShapedType> resultTypes);
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType);
 Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
@@ -108,8 +114,8 @@ Tensor evalShiftRightLogicalOp(const Tensor &lhs, const Tensor &rhs,
                                ShapedType resultType);
 Tensor evalSignOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSineOp(const Tensor &operand, ShapedType resultType);
-Tensor evalSliceOp(const Tensor &operand, Index startIndices, Sizes strides,
-                   ShapedType resultType);
+Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
+                   const Sizes &strides, ShapedType resultType);
 SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator, Scope &scope);
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType);

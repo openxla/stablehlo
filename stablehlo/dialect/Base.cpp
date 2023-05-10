@@ -577,5 +577,14 @@ LogicalResult unflattenTupleTypes(TypeRange prototype, TypeRange types,
   return success(/*succeeded=*/consumed != -1);
 }
 
+ShapedType createShapedType(ShapedTypeComponents components) {
+  if (!components.getElementType()) return ShapedType();
+  if (components.hasRank())
+    return RankedTensorType::get(components.getDims(),
+                                 components.getElementType(),
+                                 components.getAttribute());
+  return UnrankedTensorType::get(components.getElementType());
+}
+
 }  // namespace hlo
 }  // namespace mlir
