@@ -619,7 +619,7 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
   * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
 * If the operation uses quantized tensors:
   * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for scales and zero points which may differ.
+    except for quantization parameters which may differ.
   * (C4) `quantization_dimension(lhs)` is empty.
 
 #### Examples
