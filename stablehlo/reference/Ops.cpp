@@ -622,14 +622,33 @@ Tensor evalConstantOp(ElementsAttr value) {
   return makeTensor(value.cast<DenseElementsAttr>());
 }
 
-// This is an simplified implementation of convert op semantics dealing only
-// with integer to bool conversion. To be updated as part of #969.
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  Type elementType = result.getElementType();
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, Element(elementType,
-                            operand.get(*it).getIntegerValue().getBoolValue()));
+  auto operandElementType = operand.getElementType();
+  auto resultElementType = result.getElementType();
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    if (isSupportedBooleanType(operandElementType))
+      result.set(
+          *it, convert(resultElementType, operand.get(*it).getBooleanValue()));
+    else if (isSupportedSignedIntegerType(operandElementType))
+      result.set(*it,
+                 convert(resultElementType,
+                         operand.get(*it).getIntegerValue().getSExtValue()));
+    else if (isSupportedUnsignedIntegerType(operandElementType))
+      result.set(*it,
+                 convert(resultElementType,
+                         operand.get(*it).getIntegerValue().getZExtValue()));
+    else if (isSupportedFloatType(operandElementType))
+      result.set(*it,
+                 convert(resultElementType, operand.get(*it).getFloatValue()));
+    else if (isSupportedComplexType(operandElementType))
+      result.set(
+          *it, convert(resultElementType, operand.get(*it).getComplexValue()));
+    else
+      report_fatal_error(
+          invalidArgument("Unsupported element type: %s",
+                          debugString(operandElementType).c_str()));
+  }
   return result;
 }
 
@@ -644,8 +663,8 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     auto element =
-        Element(resultType.getElementType(),
-                static_cast<int64_t>(
+        convert(resultType.getElementType(),
+                static_cast<uint64_t>(
                     operand.get(*it).getIntegerValue().countLeadingZeros()));
     result.set(*it, element);
   }
@@ -712,7 +731,7 @@ Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType) {
   Tensor result(resultType);
   result.set(
-      {}, Element(resultType.getElementType(), operand.getShape()[dimension]));
+      {}, convert(resultType.getElementType(), operand.getShape()[dimension]));
   return result;
 }
 
@@ -731,23 +750,9 @@ Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {
   Tensor result(resultType);
-  Type elementType = result.getElementType();
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedIntegerType(elementType)) {
-      result.set(*it, Element(elementType, (*it)[iotaDimension]));
-    } else if (isSupportedFloatType(elementType)) {
-      result.set(
-          *it, Element(elementType, static_cast<double>((*it)[iotaDimension])));
-    } else if (isSupportedComplexType(elementType)) {
-      result.set(*it,
-                 Element(elementType,
-                         std::complex<double>(
-                             static_cast<double>((*it)[iotaDimension]), 0.0)));
-    } else {
-      report_fatal_error(invalidArgument("Unsupported element type: %s",
-                                         debugString(elementType).c_str()));
-    }
-  }
+  auto elementType = result.getElementType();
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, convert(elementType, (*it)[iotaDimension]));
   return result;
 }
 
