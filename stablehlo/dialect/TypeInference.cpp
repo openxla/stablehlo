@@ -231,7 +231,7 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "expects single-dimensional operands to have compatible shapes.");
 
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
-  // batch_norm_inference_c1
+  // batch_norm_inference_c1, batch_norm_training_c1
   if (featureIndex >= multiDimType.getRank())
     return emitOptionalError(
         location,
@@ -239,7 +239,7 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "multi-dimensional operands; got featureIndex ",
         featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
-  // batch_norm_inference_c1
+  // batch_norm_inference_c1, batch_norm_training_c1
   if (featureIndex < 0)
     return emitOptionalError(location, "expects featureIndex to be a ",
                              "non-negative number, got ", featureIndex, ".");
@@ -271,7 +271,7 @@ LogicalResult inferBatchNormOp(
 
   // Batch norm ops require operands to be ranked.
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
-  // batch_norm_inference_c7
+  // batch_norm_inference_c7, batch_norm_training_c7
   inferredReturnShapes.emplace_back(multiDimType.getShape(),
                                     multiDimType.getElementType(),
                                     multiDimType.getEncoding());
@@ -291,8 +291,9 @@ LogicalResult inferBatchNormOp(
       singleDimBounds.empty()
           ? nullptr
           : boundsToEncoding(multiDimType.getEncoding(), singleDimBounds));
-
+  // batch_norm_training_c5
   inferredReturnShapes.emplace_back(singleDimReturnShape);
+  // batch_norm_training_c6
   inferredReturnShapes.emplace_back(singleDimReturnShape);
   return success();
 }

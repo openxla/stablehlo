@@ -1281,7 +1281,8 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 %output, %batch_mean, %batch_var = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
-} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+} : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>) ->
+    (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>)
 // %output: [
 //           [[0.0, 0.0], [2.0, 2.0]],
 //           [[2.0, 2.0], [0.0, 0.0]]
@@ -1289,6 +1290,8 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 // %batch_mean: [2.0, 3.0]
 // %batch_var: [1.0, 1.0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_training.mlir)
 
 ### bitcast_convert
 

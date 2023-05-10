@@ -35,6 +35,11 @@ Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
                                 const Tensor &offset, const Tensor &mean,
                                 const Tensor &variance, APFloat epsilon,
                                 Axis featureIndex, ShapedType resultType);
+SmallVector<Tensor> evalBatchNormTrainingOp(const Tensor &operand,
+                                            const Tensor &scale,
+                                            const Tensor &offset,
+                                            APFloat epsilon, Axis featureIndex,
+                                            ArrayRef<ShapedType> resultTypes);
 Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType);

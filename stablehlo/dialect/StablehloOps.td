@@ -1761,8 +1761,9 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
 }
 
 def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
-    [Pure, AllElementTypesMatch<["operand", "output", "batch_mean", "batch_var"]>,
-    InferTensorType]> {
+    [Pure, AllElementTypesMatch<["operand", "scale", "offset", "output",
+     "batch_mean", "batch_var"]> /*batch_norm_training_c2*/,
+     InferTensorType /*batch_norm_training_c5, batch_norm_training_c6, batch_norm_training_c7*/]> {
   let summary = "BatchNormTraining operation";
   let description = [{
     Computes mean and variance across batch and spatial dimensions and
@@ -1777,16 +1778,17 @@ def StableHLO_BatchNormTrainingOp : StableHLO_Op<"batch_norm_training",
     %output, %batch_mean, %batch_var = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
       epsilon = 0.0 : f32,
       feature_index = 2 : i64
-    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+    } : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>) ->
+        (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>)
     ```
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand,
-    1DTensorOf<[HLO_Float]>:$scale,
-    1DTensorOf<[HLO_Float]>:$offset,
-    F32Attr:$epsilon,
-    I64Attr:$feature_index
+    RankedTensorOf<[HLO_Float]>:$operand /*batch_norm_training_i1*/,
+    1DTensorOf<[HLO_Float]>:$scale /*batch_norm_training_i2*/,
+    1DTensorOf<[HLO_Float]>:$offset /*batch_norm_training_i3*/,
+    F32Attr:$epsilon /*batch_norm_training_i4*/,
+    I64Attr:$feature_index /*batch_norm_training_i5*/
   );
 
   let results = (outs
