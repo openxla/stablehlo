@@ -224,12 +224,14 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         location,
         "expects multi-dimensional operands to have compatible shapes.");
 
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (failed(verifyPairwiseCompatibleShapes(singleDimOperands.getTypes())))
     return emitOptionalError(
         location,
         "expects single-dimensional operands to have compatible shapes.");
 
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  // batch_norm_inference_c1
   if (featureIndex >= multiDimType.getRank())
     return emitOptionalError(
         location,
@@ -237,16 +239,16 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "multi-dimensional operands; got featureIndex ",
         featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
+  // batch_norm_inference_c1
   if (featureIndex < 0)
     return emitOptionalError(location, "expects featureIndex to be a ",
                              "non-negative number, got ", featureIndex, ".");
-  // Note: the above checks '0 <= feature-index < multiDimType.getRank()'
-  // imply 'multiDimType.getRank() >= 1'.
 
   const int64_t featureCount = multiDimType.getDimSize(featureIndex);
   const int64_t singleDimSize =
       singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
@@ -269,6 +271,7 @@ LogicalResult inferBatchNormOp(
 
   // Batch norm ops require operands to be ranked.
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  // batch_norm_inference_c7
   inferredReturnShapes.emplace_back(multiDimType.getShape(),
                                     multiDimType.getElementType(),
                                     multiDimType.getEncoding());

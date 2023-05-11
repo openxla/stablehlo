@@ -136,6 +136,18 @@ SmallVector<Tensor> eval(
       auto rhs = scope.find(atan2Op.getRhs());
       auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto batchNormInferenceOp = dyn_cast<BatchNormInferenceOp>(op)) {
+      auto operand = scope.find(batchNormInferenceOp.getOperand());
+      auto scale = scope.find(batchNormInferenceOp.getScale());
+      auto offset = scope.find(batchNormInferenceOp.getOffset());
+      auto mean = scope.find(batchNormInferenceOp.getMean());
+      auto variance = scope.find(batchNormInferenceOp.getVariance());
+      auto result =
+          evalBatchNormInferenceOp(operand, scale, offset, mean, variance,
+                                   batchNormInferenceOp.getEpsilon(),
+                                   batchNormInferenceOp.getFeatureIndex(),
+                                   batchNormInferenceOp.getType());
+      scope.add(op.getResults(), {result});
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       auto operand = scope.find(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -513,6 +525,36 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
   return result;
+}
+
+Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
+                                const Tensor &offset, const Tensor &mean,
+                                const Tensor &variance, APFloat epsilon,
+                                Axis featureIndex, ShapedType resultType) {
+  auto scaleBroadcast =
+      evalBroadcastInDimOp(scale, {featureIndex}, operand.getType());
+  auto offsetBroadcast =
+      evalBroadcastInDimOp(offset, {featureIndex}, operand.getType());
+  auto meanBroadcast =
+      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
+  auto varianceBroadcast =
+      evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
+  auto epsilonBroadcast = evalBroadcastInDimOp(
+      makeTensor(DenseElementsAttr::get(
+          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
+      {}, operand.getType());
+
+  auto centeredOperand =
+      evalSubtractOp(operand, meanBroadcast, operand.getType());
+  auto standardDeviation = evalSqrtOp(
+      evalAddOp(varianceBroadcast, epsilonBroadcast, operand.getType()),
+      operand.getType());
+  auto normalizedOperand =
+      evalDivideOp(centeredOperand, standardDeviation, operand.getType());
+
+  return evalAddOp(
+      evalMultiplyOp(scaleBroadcast, normalizedOperand, operand.getType()),
+      offsetBroadcast, operand.getType());
 }
 
 Tensor evalBroadcastInDimOp(const Tensor &operand,
