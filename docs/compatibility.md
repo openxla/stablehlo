@@ -121,10 +121,10 @@ for example usage of these APIs.
 StableHLO also provides Python bindings to the C++ Serializaiton APIs:
 
 ```python
-version = stablehlo.get_current_version()
-version = stablehlo.get_minimum_version()
-artifact = stablehlo.serialize_portable_artifact(module, version)
-module = stablehlo.deserialize_portable_artifact(mlir_context, artifact)
+def get_current_version() -> str: ...
+def get_minimum_version() -> str: ...
+def serialize_portable_artifact(ir.Module: module, target_version:str) -> bytes: ...
+def deserialize_portable_artifact(artifact: bytes) -> ir.Module: ...
 ```
 
 See [`StablehloModule.cpp`](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/StablehloModule.cpp)
