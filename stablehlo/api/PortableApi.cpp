@@ -40,7 +40,7 @@ std::string getCurrentVersion() {
   return mlir::vhlo::Version::getCurrentVersion().toString();
 }
 
-std::string getMinimumSupportedVersion() {
+std::string getMinimumVersion() {
   return mlir::vhlo::Version::getMinimumVersion().toString();
 }
 
