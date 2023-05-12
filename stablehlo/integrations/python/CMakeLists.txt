@@ -86,7 +86,6 @@ declare_mlir_python_extension(StablehloPythonExtensions.Main
   PRIVATE_LINK_LIBS
     StablehloPortableApi
     StablehloSerialization
-    Version
     LLVMSupport
 )
 

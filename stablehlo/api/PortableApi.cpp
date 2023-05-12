@@ -21,6 +21,7 @@ limitations under the License.
 #include "mlir/Parser/Parser.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
+#include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 
 namespace mlir {

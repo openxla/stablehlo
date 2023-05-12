@@ -21,7 +21,6 @@ limitations under the License.
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/Support/LogicalResult.h"
-#include "stablehlo/dialect/Serialization.h"
 
 namespace mlir {
 namespace stablehlo {

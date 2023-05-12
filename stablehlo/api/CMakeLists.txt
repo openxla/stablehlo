@@ -20,6 +20,7 @@ add_mlir_dialect_library(StablehloPortableApi
   ChloOps
   StablehloOps
   StablehloSerialization
+  Version
   VhloOps
   MLIRBytecodeWriter
   MLIRFuncDialect

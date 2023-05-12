@@ -708,6 +708,7 @@ cc_library(
     deps = [
         ":stablehlo_ops",
         ":stablehlo_serialization",
+        ":version",
         ":vhlo_ops",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BytecodeWriter",
