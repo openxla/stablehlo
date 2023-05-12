@@ -20,8 +20,8 @@ configure_lit_site_cfg(
 )
 
 set(STABLEHLO_TOSA_TEST_DEPENDS
-        FileCheck count not
-        stablehlo-tosa-opt
+        FileCheck
+        stablehlo-opt
 )
 
 add_lit_testsuite(check-stablehlo-tosa-lit "Running the stablehlo-tosa regression tests"

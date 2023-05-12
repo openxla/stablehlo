@@ -1,4 +1,4 @@
-// RUN: stablehlo-tosa-opt %s --tosa-legalize-stablehlo | FileCheck %s
+// RUN: stablehlo-opt %s --tosa-legalize-stablehlo | FileCheck %s
 
 // CHECK-LABEL: @add
 func.func @add(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<10xf32> {

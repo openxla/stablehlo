@@ -28,7 +28,7 @@ config.test_source_root = os.path.dirname(__file__)
 
 # Make LLVM and StableHLO tools available in RUN directives
 tools = [
-  'stablehlo-tosa-opt',
+  'stablehlo-opt',
   'FileCheck',
 ]
 tool_dirs = [

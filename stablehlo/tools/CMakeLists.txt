@@ -29,7 +29,9 @@ set(LIBS
         StablehloRegister
         StablehloTestUtils
         StablehloPasses
+        StablehloTOSATransforms
         )
+add_dependencies(stablehlo-opt StablehloTOSATransformsPassIncGen)
 add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
 llvm_update_compile_flags(stablehlo-opt)
 target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
