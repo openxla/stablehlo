@@ -27,13 +27,21 @@ namespace stablehlo {
 
 /// Return the current version for portable API.
 /// Increments on all meaningful changes to this file.
-inline int64_t getApiVersion() { return 3; }
+inline int64_t getApiVersion() { return 4; }
 
 // Get the current StableHLO version.
 //
 // This value can be used as the `targetVersion` argument to
 // `serializePortableArtifact`.
 std::string getCurrentVersion();
+
+// Get the minimum supported StableHLO version.
+//
+// This value can be used as the `targetVersion` argument to
+// `serializePortableArtifact`.
+//
+// See `stablehlo/dialect/Version.h` for current version number.
+std::string getMinimumVersion();
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
