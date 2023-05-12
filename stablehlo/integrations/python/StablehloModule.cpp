@@ -479,7 +479,7 @@ PYBIND11_MODULE(_stablehlo, m) {
       });
 
   //
-  // Non-MLIR APIs
+  // Portable APIs
   //
   mlir::stablehlo::AddPortableApi(m);
 
