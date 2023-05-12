@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2023 The StableHLO Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(api)
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(testdata)
-add_subdirectory(tools)
-add_subdirectory(transforms)
+add_mlir_dialect_library(StablehloPortableApi
+  PARTIAL_SOURCES_INTENDED
+  PortableApi.cpp
+
+  LINK_LIBS PUBLIC
+  ChloOps
+  StablehloOps
+  StablehloSerialization
+  Version
+  VhloOps
+  MLIRBytecodeWriter
+  MLIRFuncDialect
+  MLIRIR
+)
