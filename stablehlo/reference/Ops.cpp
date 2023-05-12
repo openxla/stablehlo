@@ -149,28 +149,6 @@ Tensor computeVariance(const Tensor &operand, Axis featureIndex,
                      featureIndex, resultType);
 }
 
-SmallVector<ShapedType> inferReduceOpType(TypeRange inputTypes,
-                                          TypeRange initValueTypes,
-                                          SmallVector<int64_t> dimensions) {
-  SmallVector<ShapedTypeComponents> inferredReduceType;
-  auto reduceStatus = hlo::inferReduceOp(
-      {}, inputTypes, initValueTypes,
-      getDenseIntElementsAttr(
-          IntegerType::get(inputTypes[0].getContext(), 64, IntegerType::Signed),
-          dimensions, {}),
-      inferredReduceType);
-
-  if (failed(reduceStatus))
-    report_fatal_error(
-        invalidArgument("Could not infer ReduceOp's return type"));
-
-  SmallVector<ShapedType> returnTypes;
-  for (auto reduceType : inferredReduceType)
-    returnTypes.push_back(RankedTensorType::get(reduceType.getDims(),
-                                                reduceType.getElementType()));
-  return returnTypes;
-}
-
 }  // namespace
 
 SmallVector<Tensor> eval(
@@ -661,26 +639,21 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
       evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
       gradOutput.getType());
 
-  auto initValue = Tensor(RankedTensorType::get({}, operand.getElementType()),
-                          convert(operand.getElementType(), 0.0));
-  SmallVector<int64_t> dimensionsWithoutFeature;
+  Tensor initValue(RankedTensorType::get({}, operand.getElementType()),
+                   convert(operand.getElementType(), 0.0));
+  Axes dimensionsWithoutFeature;
   for (int64_t i = 0; i < operand.getRank(); ++i)
     if (i != (int64_t)featureIndex) dimensionsWithoutFeature.push_back(i);
 
-  auto inferredReduceTypes =
-      inferReduceOpType({gradOutput.getType()},
-                        {RankedTensorType::get({}, operand.getElementType())},
-                        dimensionsWithoutFeature);
-
-  auto i2 = evalBroadcastInDimOp(
-      computeSum(gradOutput, initValue, Axes(dimensionsWithoutFeature),
-                 inferredReduceTypes[0]),
-      {featureIndex}, operand.getType());
+  auto i2 =
+      evalBroadcastInDimOp(computeSum(gradOutput, initValue,
+                                      dimensionsWithoutFeature, resultTypes[1]),
+                           {featureIndex}, operand.getType());
 
   auto i3 = evalBroadcastInDimOp(
       computeSum(
           evalMultiplyOp(gradOutput, centeredOperand, gradOutput.getType()),
-          initValue, Axes(dimensionsWithoutFeature), inferredReduceTypes[0]),
+          initValue, dimensionsWithoutFeature, resultTypes[1]),
       {featureIndex}, operand.getType());
 
   auto i4 = evalMultiplyOp(i3, centeredOperand, i3.getType());
@@ -701,10 +674,9 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
       i6, scaleBroadcast.getType());
   auto gradScale = computeSum(
       evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
-      initValue, Axes(dimensionsWithoutFeature), inferredReduceTypes[0]);
-  auto gradOffset =
-      computeSum(gradOutput, initValue, Axes(dimensionsWithoutFeature),
-                 inferredReduceTypes[0]);
+      initValue, dimensionsWithoutFeature, resultTypes[1]);
+  auto gradOffset = computeSum(gradOutput, initValue, dimensionsWithoutFeature,
+                               resultTypes[2]);
 
   return {gradOperand, gradScale, gradOffset};
 }

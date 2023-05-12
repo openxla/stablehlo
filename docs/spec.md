@@ -1021,7 +1021,7 @@ existing StableHLO operations using Python-like syntax as follows:
 def compute_sum(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[0.0],
+      init_values=[constant(0.0, element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   return sum
@@ -1053,10 +1053,10 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
     grad_output,
     broadcast_in_dim(elements_per_feature, [], shape(operand)))
   i2 = broadcast_in_dim(
-    compute_sum(grad_output),
+    compute_sum(grad_output, feature_index),
     [feature_index], shape(operand))
   i3 = broadcast_in_dim(
-    compute_sum(multiply(grad_output, centered_operand)),
+    compute_sum(multiply(grad_output, centered_operand), feature_index),
     [feature_index], shape(operand))
   i4 = multiply(i3, centered_operand)
   i5 = divide(i4, add(variance_bcast, epsilon_bcast))
