@@ -109,7 +109,7 @@ for example usage of these APIs.
 
 StableHLO also provides Python bindings to the C++ Serializaiton APIs:
 
-```
+```python
 version = stablehlo.get_current_version()
 version = stablehlo.get_minimum_version()
 artifact = stablehlo.serialize_portable_artifact(module, version)
