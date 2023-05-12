@@ -46,6 +46,82 @@ guarantees, but please let us know if this is an important use case for you,
 and we can have a discussion about supporting it
 ([#1247](https://github.com/openxla/stablehlo/issues/1247)).
 
+## Creating portable artifacts
+
+Portable artifacts can be created using either the `stablehlo-translate` tool,
+or directly in C++ or Python APIs. Serialization needs a target version of
+StableHLO to write an artifact written in `#.#.#` format (See [Version.h](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.h#:~:text=getCurrentVersion)
+for current version). Deserialization uses the current version of StableHLO to
+read an artifact.
+
+### Using the `stablehlo-translate` tool
+
+This is the easiest way to create and read a portable artifact.
+
+```bash
+# Write a StableHLO program to a portable artifact
+$ stablehlo-translate --serialize file.mlir --target=0.9.0 > portable_artifact.mlir.bc
+
+# Read StableHLO portable artifact
+$ stablehlo-translate --deserialize portable_artifact.mlir.bc
+```
+
+### Using C++ APIs
+
+For programmatic workflows, StableHLO provides the following APIs to create
+portable artifacts:
+
+```c++
+// From: #include "stablehlo/api/PortableApi.h"
+
+// Get the current StableHLO version.
+//
+// This value can be used as the `targetVersion` argument to
+// `serializePortableArtifact`.
+std::string getCurrentVersion();
+
+// Get the minimum supported StableHLO version.
+//
+// This value can be used as the `targetVersion` argument to
+// `serializePortableArtifact`.
+std::string getMinimumVersion();
+
+// From: #include "stablehlo/dialect/Serialization.h"
+
+// Write a StableHLO program to a portable artifact
+LogicalResult serializePortableArtifact(ModuleOp module,
+                                        StringRef targetVersion,
+                                        raw_ostream& os);
+
+// Read StableHLO portable artifact
+OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
+                                                  MLIRContext* context);
+```
+
+See [`stablehlo/api/PortableApi.h`](https://github.com/openxla/stablehlo/blob/main/stablehlo/api/PortableApi.h)
+and [`stablehlo/dialect/Serialization.h`](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Serialization.h)
+for full APIs.
+
+See [`StablehloTranslateMain.cpp`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tools/StablehloTranslateMain.cpp#:~:text=serializePortableArtifact)
+for example usage of these APIs.
+
+### Using Python APIs
+
+StableHLO also provides Python bindings to the C++ Serializaiton APIs:
+
+```
+version = stablehlo.get_current_version()
+version = stablehlo.get_minimum_version()
+artifact = stablehlo.serialize_portable_artifact(module, version)
+module = stablehlo.deserialize_portable_artifact(mlir_context, artifact)
+```
+
+See [`StablehloModule.cpp`](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/StablehloModule.cpp)
+for full Python APIs.
+
+See [`stablehlo.py > test_serialization_apis`](https://github.com/openxla/stablehlo/blob/main/stablehlo/integrations/python/tests/stablehlo.py#:~:text=test_serialization_apis)
+for roundtrip examples of using the Python Serialization APIs.
+
 ## Tests
 
 We have a compatibility suite in [stablehlo/testdata](../stablehlo/testdata)
