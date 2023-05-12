@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "stablehlo/api/PortableApi.h"
+
 #include <string>
 
 #include "mlir/Bytecode/BytecodeWriter.h"
@@ -36,6 +38,10 @@ void loadSerializationDialects(MLIRContext* context) {
 
 std::string getCurrentVersion() {
   return mlir::vhlo::Version::getCurrentVersion().toString();
+}
+
+std::string getMinimumSupportedVersion() {
+  return mlir::vhlo::Version::getMinimumVersion().toString();
 }
 
 LogicalResult serializePortableArtifact(StringRef moduleStr,

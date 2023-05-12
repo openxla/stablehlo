@@ -35,6 +35,14 @@ inline int64_t getApiVersion() { return 3; }
 // `serializePortableArtifact`.
 std::string getCurrentVersion();
 
+// Get the minimum supported StableHLO version.
+//
+// This value can be used as the `targetVersion` argument to
+// `serializePortableArtifact`.
+//
+// See `stablehlo/dialect/Version.h` for current version number.
+std::string getMinimumSupportedVersion();
+
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
 // module or MLIR bytecode) to a portable artifact.
 // Can fail if `moduleStr` cannot be parsed, or if it cannot be expressed in the
