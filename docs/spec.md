@@ -176,9 +176,7 @@ following constraints:
 
 In order to allow operation using only integer arithmetic, the floating-point
 `scale`, `S`, is realized using integer `multipler`, `M` and `shift` value,
-`n >= 0`, such that `round_nearest_integer(S) = (M + round)* 2^-n`, where
-`round` is added to recover the precision loss while deriving the values of
-`M` and `n` from `S`.
+`n >= 0`, such that `round_nearest_even(S * 2^n) = M`.
 
 The following demonstrates, using C++ code, a possible implementation of
 deriving the integer parameters `M` and `n` of type `i32` from a
@@ -218,11 +216,7 @@ relationship between the floating-point scale `S` and the integer parameters `M`
 and `n`.
 
 ```c++
-    int64_t round = static_cast<int64_t>(1) << (n - 1);
-    static_cast<int32_t>(std::floor(S + 0.5)) = clamp(
-                                    (static_cast<int64_t>(M) + round) >> n,
-                                    static_cast<int64_t>(std::numeric_limits<int32_t>::min()),
-                                    static_cast<int64_t>(std::numeric_limits<int32_t>::max()));
+    static_cast<int32_t>(roundeven(M * std::pow(2, n))) = M;
 ```
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
