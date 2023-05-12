@@ -50,7 +50,7 @@ one of the following tracking labels.
 | all_to_all               | yes           | revisit      | yes            | no              | no          |
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | yes           | yes          | yes            | yes             | yes         |
-| batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
+| batch_norm_grad          | yes           | revisit      | yes            | no              | yes         |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | yes         |
 | batch_norm_training      | yes           | revisit      | yes            | no              | yes         |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |

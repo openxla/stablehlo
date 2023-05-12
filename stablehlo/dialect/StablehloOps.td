@@ -1688,8 +1688,9 @@ def StableHLO_DynamicUpdateSliceOp: StableHLO_Op<"dynamic_update_slice",
 //===----------------------------------------------------------------------===//
 
 def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
-    AllElementTypesMatch<["operand", "grad_operand", "grad_scale", "grad_offset"]>,
-    InferTensorType]> {
+    AllElementTypesMatch<["operand", "scale", "mean", "variance", "grad_output",
+    "grad_operand", "grad_scale", "grad_offset"] /*batch_norm_grad_c2*/>,
+    InferTensorType /*batch_norm_grad_c3, batch_norm_grad_c4*/]> {
   let summary = "BatchNormGrad operation";
   let description = [{
     Computes gradients of several inputs of BatchNormTrainingOp backpropagating
@@ -1705,19 +1706,19 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
     "stablehlo.batch_norm_grad"(%operand, %scale, %mean, %variance, %grad_output) {
       epsilon = 0.0 : f32,
       feature_index = 2 : i64
-    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>,
-        tensor<2x2x2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+    } : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>,
+         tensor<2x2x2xf64>) -> (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>)
     ```
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand,
-    1DTensorOf<[HLO_Float]>:$scale,
-    1DTensorOf<[HLO_Float]>:$mean,
-    1DTensorOf<[HLO_Float]>:$variance,
-    RankedTensorOf<[HLO_Float]>:$grad_output,
-    F32Attr:$epsilon,
-    I64Attr:$feature_index
+    RankedTensorOf<[HLO_Float]>:$operand, /*batch_norm_grad_i1*/
+    1DTensorOf<[HLO_Float]>:$scale, /*batch_norm_grad_i2*/
+    1DTensorOf<[HLO_Float]>:$mean, /*batch_norm_grad_i3*/
+    1DTensorOf<[HLO_Float]>:$variance, /*batch_norm_grad_i4*/
+    RankedTensorOf<[HLO_Float]>:$grad_output, /*batch_norm_grad_i5*/
+    F32Attr:$epsilon, /*batch_norm_grad_i6*/
+    I64Attr:$feature_index /*batch_norm_grad_i7*/
   );
 
   let results = (outs

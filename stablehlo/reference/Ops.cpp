@@ -149,6 +149,28 @@ Tensor computeVariance(const Tensor &operand, Axis featureIndex,
                      featureIndex, resultType);
 }
 
+SmallVector<ShapedType> inferReduceOpType(TypeRange inputTypes,
+                                          TypeRange initValueTypes,
+                                          SmallVector<int64_t> dimensions) {
+  SmallVector<ShapedTypeComponents> inferredReduceType;
+  auto reduceStatus = hlo::inferReduceOp(
+      {}, inputTypes, initValueTypes,
+      getDenseIntElementsAttr(
+          IntegerType::get(inputTypes[0].getContext(), 64, IntegerType::Signed),
+          dimensions, {}),
+      inferredReduceType);
+
+  if (failed(reduceStatus))
+    report_fatal_error(
+        invalidArgument("Could not infer ReduceOp's return type"));
+
+  SmallVector<ShapedType> returnTypes;
+  for (auto reduceType : inferredReduceType)
+    returnTypes.push_back(RankedTensorType::get(reduceType.getDims(),
+                                                reduceType.getElementType()));
+  return returnTypes;
+}
+
 }  // namespace
 
 SmallVector<Tensor> eval(
@@ -183,6 +205,19 @@ SmallVector<Tensor> eval(
       auto rhs = scope.find(atan2Op.getRhs());
       auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto batchNormGradOp = dyn_cast<BatchNormGradOp>(op)) {
+      auto operand = scope.find(batchNormGradOp.getOperand());
+      auto scale = scope.find(batchNormGradOp.getScale());
+      auto mean = scope.find(batchNormGradOp.getMean());
+      auto variance = scope.find(batchNormGradOp.getVariance());
+      auto gradOutput = scope.find(batchNormGradOp.getGradOutput());
+      auto results = evalBatchNormGradOp(
+          operand, scale, mean, variance, gradOutput,
+          batchNormGradOp.getEpsilon(), batchNormGradOp.getFeatureIndex(),
+          {batchNormGradOp.getGradOperand().getType(),
+           batchNormGradOp.getGradScale().getType(),
+           batchNormGradOp.getGradOffset().getType()});
+      scope.add(op.getResults(), {results});
     } else if (auto batchNormInferenceOp = dyn_cast<BatchNormInferenceOp>(op)) {
       auto operand = scope.find(batchNormInferenceOp.getOperand());
       auto scale = scope.find(batchNormInferenceOp.getScale());
@@ -588,6 +623,90 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
   return result;
+}
+
+SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
+                                        const Tensor &scale, const Tensor &mean,
+                                        const Tensor &variance,
+                                        const Tensor &gradOutput,
+                                        APFloat epsilon, Axis featureIndex,
+                                        ArrayRef<ShapedType> resultTypes) {
+  auto scaleBroadcast =
+      evalBroadcastInDimOp(scale, {featureIndex}, operand.getType());
+  auto meanBroadcast =
+      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
+  auto varianceBroadcast =
+      evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
+  auto epsilonBroadcast = evalBroadcastInDimOp(
+      makeTensor(DenseElementsAttr::get(
+          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
+      {}, operand.getType());
+
+  auto centeredOperand =
+      evalSubtractOp(operand, meanBroadcast, operand.getType());
+  auto stddev = evalSqrtOp(evalAddOp(varianceBroadcast, epsilonBroadcast,
+                                     varianceBroadcast.getType()),
+                           varianceBroadcast.getType());
+  auto normalizedOperand =
+      evalDivideOp(centeredOperand, stddev, centeredOperand.getType());
+
+  auto elementsPerFeature =
+      Tensor(RankedTensorType::get({}, gradOutput.getElementType()),
+             convert(gradOutput.getElementType(),
+                     static_cast<double>(operand.getNumElements()) /
+                         operand.getShape()[featureIndex]));
+
+  auto i1 = evalMultiplyOp(
+      gradOutput,
+      evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
+      gradOutput.getType());
+
+  auto initValue = Tensor(RankedTensorType::get({}, operand.getElementType()),
+                          convert(operand.getElementType(), 0.0));
+  SmallVector<int64_t> dimensionsWithoutFeature;
+  for (int64_t i = 0; i < operand.getRank(); ++i)
+    if (i != (int64_t)featureIndex) dimensionsWithoutFeature.push_back(i);
+
+  auto inferredReduceTypes =
+      inferReduceOpType({gradOutput.getType()},
+                        {RankedTensorType::get({}, operand.getElementType())},
+                        dimensionsWithoutFeature);
+
+  auto i2 = evalBroadcastInDimOp(
+      computeSum(gradOutput, initValue, Axes(dimensionsWithoutFeature),
+                 inferredReduceTypes[0]),
+      {featureIndex}, operand.getType());
+
+  auto i3 = evalBroadcastInDimOp(
+      computeSum(
+          evalMultiplyOp(gradOutput, centeredOperand, gradOutput.getType()),
+          initValue, Axes(dimensionsWithoutFeature), inferredReduceTypes[0]),
+      {featureIndex}, operand.getType());
+
+  auto i4 = evalMultiplyOp(i3, centeredOperand, i3.getType());
+
+  auto i5 = evalDivideOp(i4,
+                         evalAddOp(varianceBroadcast, epsilonBroadcast,
+                                   varianceBroadcast.getType()),
+                         i4.getType());
+
+  auto i6 =
+      evalSubtractOp(evalSubtractOp(i1, i2, i1.getType()), i5, i1.getType());
+
+  auto gradOperand = evalMultiplyOp(
+      evalDivideOp(
+          evalDivideOp(scaleBroadcast, stddev, scaleBroadcast.getType()),
+          evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
+          scaleBroadcast.getType()),
+      i6, scaleBroadcast.getType());
+  auto gradScale = computeSum(
+      evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
+      initValue, Axes(dimensionsWithoutFeature), inferredReduceTypes[0]);
+  auto gradOffset =
+      computeSum(gradOutput, initValue, Axes(dimensionsWithoutFeature),
+                 inferredReduceTypes[0]);
+
+  return {gradOperand, gradScale, gradOffset};
 }
 
 Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
