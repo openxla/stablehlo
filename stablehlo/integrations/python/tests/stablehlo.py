@@ -219,8 +219,8 @@ def test_current_version():
   assert is_semver_format(curr_version)
 
 @run
-def test_minimum_supported_version():
-  curr_version = stablehlo.get_minimum_supported_version()
+def test_minimum_version():
+  curr_version = stablehlo.get_minimum_version()
   assert is_semver_format(curr_version)
 
 ASM = """

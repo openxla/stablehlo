@@ -37,7 +37,7 @@ void AddPortableApi(py::module& m) {
 
   m.def("get_current_version", []() { return getCurrentVersion(); });
 
-  m.def("get_minimum_supported_version", []() { return getMinimumVersion(); });
+  m.def("get_minimum_version", []() { return getMinimumVersion(); });
 
   m.def(
       "serialize_portable_artifact",
