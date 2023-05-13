@@ -18,10 +18,10 @@ limitations under the License.
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
+#include "stablehlo/conversions/tosa/transforms/passes.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/tests/TestUtils.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/conversions/tosa/transforms/passes.h"
 
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
