@@ -915,46 +915,50 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
                     const Sizes &sliceSizes, bool indicesAreSorted,
                     ShapedType resultType) {
   Tensor result(resultType);
-
-  SmallVector<int64_t> batchDims;
+  Axes batchDims;
   for (auto i = 0; i < result.getRank(); ++i)
     if (!llvm::is_contained(offsetDims, i)) batchDims.push_back(i);
 
-  SmallVector<int64_t> nonCollapsedSliceDims;
-  for (auto i = 0; i < operand.getRank(); ++i)
-    if (!llvm::is_contained(collapsedSliceDims, i))
-      nonCollapsedSliceDims.push_back(i);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    Index batchIndex;
+    for (auto batchDim : batchDims) batchIndex.push_back((*resultIt)[batchDim]);
 
-  for (auto startIndicesIt = startIndices.index_begin();
-       startIndicesIt != startIndices.index_end(); ++startIndicesIt) {
-    Index operandBaseIdx(operand.getRank());
-    Index startIndicesIndex(*startIndicesIt);
+    Index startIndex;
+    Sizes batchIndexOffset(startIndices.getRank(), 1);
+    if (indexVectorDim < startIndices.getRank()) {
+      batchIndex.insert(batchIndex.begin() + indexVectorDim, 0);
+      batchIndexOffset[indexVectorDim] =
+          startIndices.getShape()[indexVectorDim];
+    }
+    auto startIndexSlice =
+        evalSliceOp(startIndices, batchIndex, batchIndex + batchIndexOffset,
+                    Sizes(startIndices.getRank(), 1));
+    for (auto it = startIndexSlice.index_begin();
+         it != startIndexSlice.index_end(); ++it)
+      startIndex.push_back(
+          startIndexSlice.get(*it).getIntegerValue().getSExtValue());
 
-    for (auto [i, dim] : llvm::enumerate(startIndexMap)) {
-      if (indexVectorDim < startIndices.getRank())
-        startIndicesIndex[indexVectorDim] = i;
-      operandBaseIdx[dim] = std::clamp(
-          startIndices.get(startIndicesIndex).getIntegerValue().getSExtValue(),
-          0L, operand.getShape()[dim] - sliceSizes[dim]);
+    Index fullStartIndex(operand.getRank(), 0);
+    for (auto di = 0; di < operand.getRank(); ++di) {
+      if (llvm::find(startIndexMap, di) != startIndexMap.end()) {
+        auto dj = llvm::find(startIndexMap, di) - startIndexMap.begin();
+        fullStartIndex[di] = std::clamp(
+            startIndex[dj], 0L, operand.getShape()[di] - sliceSizes[di]);
+      }
     }
 
-    for (auto sliceSizesIt = IndexSpaceIterator(sliceSizes);
-         sliceSizesIt != IndexSpaceIterator(sliceSizes, std::nullopt);
-         ++sliceSizesIt) {
-      Index operandIdx = operandBaseIdx + *sliceSizesIt;
-      Index resultIdx(result.getRank());
+    Index offsetIndex;
+    for (auto dim : offsetDims) offsetIndex.push_back((*resultIt)[dim]);
 
-      for (auto [outputDim, sliceDim] :
-           llvm::zip(offsetDims, nonCollapsedSliceDims))
-        resultIdx[outputDim] = (*sliceSizesIt)[sliceDim];
-
-      for (auto [batchIndex, outputDim] : llvm::enumerate(batchDims))
-        resultIdx[outputDim] =
-            (*startIndicesIt)[static_cast<int64_t>(batchIndex) >= indexVectorDim
-                                  ? batchIndex + 1
-                                  : batchIndex];
-      result.set(resultIdx, operand.get(operandIdx));
+    Index fullOffsetIndex(offsetIndex.size() + collapsedSliceDims.size(), 0);
+    for (size_t i = 0, j = 0; i < fullOffsetIndex.size(); ++i) {
+      if (llvm::is_contained(collapsedSliceDims, i)) continue;
+      fullOffsetIndex[i] = offsetIndex[j++];
     }
+
+    Index operandIndex(fullStartIndex + fullOffsetIndex);
+    result.set(*resultIt, operand.get(operandIndex));
   }
   return result;
 }
@@ -1308,12 +1312,11 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
     // only needs to be done once per slice.
     if ((*resultIt)[adjustedDimension] != 0) continue;
 
-    // Instead of literally putting the slices together into a vector of
-    // tuples, we're representing these tuples with integer handles, with each
-    // handle being an index within the slice. Then, instead of sorting a
-    // vector of tuples, we're sorting a vector of handles, and the comparator
-    // knows how to use these handles to fetch the actual input elements being
-    // compared.
+    // Instead of literally putting the slices together into a vector of tuples,
+    // we're representing these tuples with integer handles, with each handle
+    // being an index within the slice. Then, instead of sorting a vector of
+    // tuples, we're sorting a vector of handles, and the comparator knows how
+    // to use these handles to fetch the actual input elements being compared.
     Index inputsTogether(inputs[0].getShape()[adjustedDimension]);
     std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
     auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {
