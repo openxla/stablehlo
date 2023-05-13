@@ -1104,7 +1104,8 @@ struct StablehloRefineShapesPass
       func = module.lookupSymbol<func::FuncOp>("main");
     }
     if (!func) {
-      module.emitOpError() << "must have no more than one function or a `main`"
+      module.emitOpError()
+          << "must have no more than one function or a `main`"
           << " function to clearly identify which function will be refined";
       return signalPassFailure();
     }
@@ -1166,8 +1167,8 @@ struct StablehloRefineShapesPass
     patterns.add<RefineWhileOpPattern>(&getContext());
     patterns.add<UpdateFunctionTypePattern>(&getContext());
     patterns.add<UpdateRegionTypePattern>(&getContext());
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns),
-                                            config))) {
+    if (failed(
+            applyPatternsAndFoldGreedily(func, std::move(patterns), config))) {
       return signalPassFailure();
     }
   }
