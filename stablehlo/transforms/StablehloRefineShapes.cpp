@@ -1089,18 +1089,29 @@ struct StablehloRefineShapesPass
     // Current use cases are served well by inlining multiple functions into
     // a single function, so we leave native support for multiple functions to
     // future work.
+    // To enable modules that contain CustomCallOp::called_computations,
+    // we allow multiple functions, in which case we only refine the main
+    // function called "main", assuming that the called computations will have
+    // static shapes. Lifting this assumption and expanding refinement to
+    // multiple functions is left for future work.
     ModuleOp module = getOperation();
     auto funcs = llvm::to_vector(module.getOps<func::FuncOp>());
     if (funcs.empty()) return;
-    if (funcs.size() != 1) {
-      module.emitOpError() << "must have no more than one function";
+    func::FuncOp func;
+    if (funcs.size() == 1) {
+      func = funcs[0];
+    } else {
+      func = module.lookupSymbol<func::FuncOp>("main");
+    }
+    if (!func) {
+      module.emitOpError() << "must have no more than one function or a `main`"
+          << " function to clearly identify which function will be refined";
       return signalPassFailure();
     }
 
     // Similarly, only one block per function is supported at the moment.
     // At the StableHLO level, functions are expected to only have one block,
     // so supporting more is out of scope for this pass.
-    func::FuncOp func = funcs[0];
     if (!func.getRegion().hasOneBlock()) {
       func.emitOpError() << "must have exactly one block";
       return signalPassFailure();
@@ -1155,7 +1166,7 @@ struct StablehloRefineShapesPass
     patterns.add<RefineWhileOpPattern>(&getContext());
     patterns.add<UpdateFunctionTypePattern>(&getContext());
     patterns.add<UpdateRegionTypePattern>(&getContext());
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns),
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns),
                                             config))) {
       return signalPassFailure();
     }
