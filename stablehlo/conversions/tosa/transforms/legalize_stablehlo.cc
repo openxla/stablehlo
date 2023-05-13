@@ -56,12 +56,12 @@ struct ConvertStablehloCompareOp
     auto resultType = op->getResultTypes().front();
 
     switch (direction) {
-      case mlir::stablehlo::ComparisonDirection::EQ: {
+      case stablehlo::ComparisonDirection::EQ: {
         rewriter.replaceOpWithNewOp<tosa::EqualOp>(op, resultType, op.getLhs(),
                                                    op.getRhs());
         break;
       }
-      case mlir::stablehlo::ComparisonDirection::NE: {
+      case stablehlo::ComparisonDirection::NE: {
         auto equalOp = rewriter.create<tosa::EqualOp>(op->getLoc(), resultType,
                                                       op.getLhs(), op.getRhs());
         rewriter.replaceOpWithNewOp<tosa::LogicalNotOp>(op, resultType,
@@ -97,7 +97,7 @@ struct ConvertStablehloDotOp : public OpRewritePattern<stablehlo::DotOp> {
                                 PatternRewriter& rewriter) const override {
     auto lhsType = op.getLhs().getType().dyn_cast<RankedTensorType>();
     auto rhsType = op.getRhs().getType().dyn_cast<RankedTensorType>();
-    if (!lhsType | !rhsType) {
+    if (!lhsType || !rhsType) {
       return rewriter.notifyMatchFailure(op, "input tensors are not ranked");
     }
 
@@ -203,7 +203,7 @@ struct ConvertStablehloIotaOp : public OpRewritePattern<stablehlo::IotaOp> {
     int64_t iotaArrayLength = resultShape[iotaDimension];
 
     // Create a const op of [0, 1, 2...iotaArrayLength - 1] to be tiled.
-    llvm::SmallVector<mlir::Attribute, 4> constValues;
+    llvm::SmallVector<Attribute, 4> constValues;
     constValues.resize(iotaArrayLength);
     for (int i = 0; i < iotaArrayLength; i++) {
       if (elementType.isa<FloatType>()) {
