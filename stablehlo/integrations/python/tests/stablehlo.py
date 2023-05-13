@@ -210,18 +210,22 @@ def test_api_version():
   assert type(api_version) == int
   assert api_version > 0
 
+
 def is_semver_format(version_str):
-  return re.match('^\d+\.\d+\.\d+$', version_str)
+  return re.match("^\d+\.\d+\.\d+$", version_str)
+
 
 @run
 def test_current_version():
   curr_version = stablehlo.get_current_version()
   assert is_semver_format(curr_version)
 
+
 @run
 def test_minimum_version():
   curr_version = stablehlo.get_minimum_version()
   assert is_semver_format(curr_version)
+
 
 ASM = """
 func.func @test(%arg0: tensor<2xf32>) -> tensor<2xf32> {

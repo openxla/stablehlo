@@ -76,8 +76,8 @@ verifyWindowAttributesAndInferWindowDimensions(
     ArrayRef<int64_t> lhsDilation, ArrayRef<int64_t> rhsDilation,
     ArrayRef<bool> windowReversal, std::optional<Location> loc);
 
-SmallVector<int64_t> inferWindowOutputShape(
-    const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window);
+SmallVector<int64_t> inferWindowOutputShape(ArrayRef<int64_t> baseShape,
+                                            ArrayRef<WindowDimension> window);
 
 LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
@@ -297,8 +297,8 @@ LogicalResult inferReplicaIdOp(MLIRContext* context, std::optional<Location>,
                                SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferReverseOp(
-    std::optional<Location> location, Type operands,
-    SmallVectorImpl<ShapedTypeComponents>& inferredReturnTypes);
+    std::optional<Location> location, Type operandType,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
 LogicalResult inferRngOp(
     std::optional<Location> location, Value a, Value b, Value shape,
