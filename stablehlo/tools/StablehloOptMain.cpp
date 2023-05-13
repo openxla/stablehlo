@@ -21,7 +21,7 @@ limitations under the License.
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/tests/TestUtils.h"
 #include "stablehlo/transforms/Passes.h"
-#include "stablehlo/connversions/tosa/transforms/passes.h"
+#include "stablehlo/conversions/tosa/transforms/passes.h"
 
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
