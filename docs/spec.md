@@ -2807,9 +2807,11 @@ More formally, `result[result_index] = operand[operand_index]` where:
       elements in `batch_index` and `:` is inserted at the `index_vector_dim`
       index, if `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
-* For `do` in `axes(operand)`,
-  * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
-  * `full_start_index[do]` = `0` otherwise.
+* For `di` in `axes(operand)`,
+  * `full_start_index[di]` =
+    `clamp(start_index[dj], 0, dim(operand, di) - slice_sizes[di])` if
+    `do = start_index_map[dj]`.
+  * `full_start_index[di]` = `0` otherwise.
 * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
 * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `offset_index`, and `0` is inserted at indices from
