@@ -376,8 +376,8 @@ verifyWindowAttributesAndInferWindowDimensions(
 //            padding_high,
 //                         dilatedBound(window_shape[d]))
 //      where (padding_low, padding_high) is the padding-pair for d.
-SmallVector<int64_t> inferWindowOutputShape(
-    const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window) {
+SmallVector<int64_t> inferWindowOutputShape(ArrayRef<int64_t> baseShape,
+                                            ArrayRef<WindowDimension> window) {
   assert(baseShape.size() == window.size() &&
          "Size of window dimensions must match the size of base shape.");
 
@@ -652,7 +652,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
     SmallVector<int64_t>& windowDims,
     SmallVector<WindowDimension>& inferredWindow) {
   // reduce_window_c1
-  if (inputArgTypes.size() < 1)
+  if (inputArgTypes.empty())
     return emitOptionalError(location, "requires at least 1 input value");
 
   // Check for unranked tensors in input operands.

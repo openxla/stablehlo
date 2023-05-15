@@ -62,10 +62,10 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  const Axes &dimensions, Region &body,
                                  Scope &scope) {
   SmallVector<Type> inputTypes;
-  for (auto input : inputs) inputTypes.push_back(input.getType());
+  for (const auto &input : inputs) inputTypes.push_back(input.getType());
 
   SmallVector<Type> initValueTypes;
-  for (auto initValue : initValues)
+  for (const auto &initValue : initValues)
     initValueTypes.push_back(initValue.getType());
 
   SmallVector<ShapedTypeComponents> inferredReduceTypes;
@@ -78,7 +78,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
         invalidArgument("Could not infer ReduceOp's return type"));
 
   SmallVector<ShapedType> resultTypes;
-  for (auto inferredType : inferredReduceTypes) {
+  for (const auto &inferredType : inferredReduceTypes) {
     auto shapedType = hlo::createShapedType(inferredType);
     if (!shapedType)
       llvm::report_fatal_error("Could not infer ReduceOp's return type");
@@ -980,7 +980,7 @@ SmallVector<Tensor> evalReduceWindowOp(
        resultIt != results[0].index_end(); ++resultIt) {
     SmallVector<Tensor> windows;
     auto windowStart = (*resultIt) * windowStrides;
-    for (auto paddedInput : paddedInputs)
+    for (const auto &paddedInput : paddedInputs)
       windows.push_back(evalSliceOp(paddedInput, windowStart,
                                     windowStart + windowDimensions,
                                     windowDilations));
@@ -1108,7 +1108,7 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator,
                                Scope &scope) {
   SmallVector<Tensor> results;
-  for (auto input : inputs) results.push_back(Tensor(input.getType()));
+  for (const auto &input : inputs) results.push_back(Tensor(input.getType()));
   auto adjustedDimension =
       dimension >= 0 ? dimension : dimension + inputs[0].getRank();
 
