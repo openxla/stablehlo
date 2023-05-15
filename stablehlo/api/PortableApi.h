@@ -39,8 +39,6 @@ std::string getCurrentVersion();
 //
 // This value can be used as the `targetVersion` argument to
 // `serializePortableArtifact`.
-//
-// See `stablehlo/dialect/Version.h` for current version number.
 std::string getMinimumVersion();
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
