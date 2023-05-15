@@ -175,8 +175,9 @@ following constraints:
 * (C12) `0 <= quantization_dimension`.
 
 In order to allow operation using only integer arithmetic, the floating-point
-`scale`, `S`, is realized using integer `multipler`, `M` and `shift` value,
-`n >= 0`, such that `round_nearest_even(S * 2^n) = M`.
+`scale`, `S`, is realized using integer `multipler`, `M` and `shift` values each
+with bit width `W >= 2`, such that `round_nearest_even(S * 2^n) = M`, where `1
+<= n <= 2*W - 2` and `0 <= M < 2^(W-1)`.
 
 The following demonstrates, using C++ code, a possible implementation of
 deriving the integer parameters `M` and `n` of type `i32` from a
@@ -185,14 +186,16 @@ floating-point scale `S` of type `f64`:
 ```c++
     int32_t shift;
     double mantissa = std::frexp(S, &shift);
-    auto shiftedMantissa = static_cast<int64_t>(std::round(mantissa * (int64_t(1) << 31)));
+    std::fesetround(FE_TONEAREST);
+    auto shiftedMantissa = static_cast<int64_t>(std::rint(mantissa * (int64_t(1) << 31)));
 
-    // Ensure that shiftedMantissa is within limits of 32-bit integer type.
+    // Ensure that `shiftedMantissa` is within limits of 32-bit integer type.
     if (shiftedMantissa == (int64_t(1) << 31)) {
         shiftedMantissa /= 2;
         shift++;
     }
 
+    // At this point, `adjustedMantissa = round_nearest_even(S * 2^(31-shift)) < 2^31`.
     int64_t adjustedMantissa = shiftedMantissa;
 
     // For small `S` value, flush `adjustedMantissa` to zero.
@@ -216,7 +219,8 @@ relationship between the floating-point scale `S` and the integer parameters `M`
 and `n`.
 
 ```c++
-    static_cast<int32_t>(roundeven(M * std::pow(2, n))) = M;
+    std::fesetround(FE_TONEAREST);
+    static_cast<int32_t>(std::rint(S * std::pow(2, n))) = M;
 ```
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
