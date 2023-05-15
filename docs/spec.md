@@ -135,7 +135,7 @@ QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
 QuantizationParameter ::= ( QuantizationScale | QuantizationMultiplierShift ) ':' QuantizationZeroPoint
 QuantizationScale ::= FloatConstant
-QuantizationMultiplierShift ::= '<' QuantizationMultiplier , QuantizationShift '>'
+QuantizationMultiplierShift ::= '<' QuantizationMultiplier ',' QuantizationShift '>'
 QuantizationMultiplier ::= IntegerConstant
 QuantizationShift ::= IntegerConstant
 QuantizationZeroPoint ::=  IntegerConstant
@@ -176,7 +176,7 @@ following constraints:
 
 In order to allow operation using only integer arithmetic, the floating-point
 `scale`, `S`, is realized using integer `multipler`, `M` and `shift` values each
-with bit width `W >= 2`, such that `round_nearest_even(S * 2^n) = M`, where `1
+with bit width `W >= 2`, such that `round_nearest_even(S * 2^n) == M`, where `1
 <= n <= 2*W - 2` and `0 <= M < 2^(W-1)`.
 
 The following demonstrates, using C++ code, a possible implementation of
@@ -204,7 +204,7 @@ floating-point scale `S` of type `f64`:
         adjustedMantissa = 0;
     }
 
-    // Saturate `adjustedMantissa`, if shift > 30,
+    // Saturate `adjustedMantissa`, if shift > 30.
     if (shift > 30) {
         shift = 30;
         adjustedMantissa = (1LL << 31) - 1;
