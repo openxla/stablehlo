@@ -2006,8 +2006,8 @@ If `batch_group_count > 1`:
 
 | Label | Name                              | Type                                                         | Constraints                                     |
 |-------|-----------------------------------|--------------------------------------------------------------|-------------------------------------------------|
-| (I1)  | `lhs`                             | tensor or quantized tensor                                   | (C1), (C10-C11), (C14) (C25), (C27-C31), (C33)  |
-| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C32), (C34), (C36) |
+| (I1)  | `lhs`                             | tensor or quantized tensor                                   | (C1), (C10-C11), (C14) (C25), (C27-C32)         |
+| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C31), (C33), (C35) |
 | (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C25)                               |
 | (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C4), (C25)                                     |
 | (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5), (C6), (C25)                               |
@@ -2017,7 +2017,7 @@ If `batch_group_count > 1`:
 | (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13), (C14)                             |
 | (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13), (C25)                             |
 | (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                                    |
-| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15), (C16), (C18), (C25), (C34)               |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15), (C16), (C18), (C25), (C33)               |
 | (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17), (C18), (C25)                             |
 | (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20), (C25)                                    |
 | (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C25), (C35)                             |
@@ -2028,9 +2028,9 @@ If `batch_group_count > 1`:
 
 #### Outputs
 
-| Name     | Type                       | Constraints                            |
-|----------|----------------------------|----------------------------------------|
-| `result` | tensor or quantized tensor | (C25-C27), (C29), (C31-C33), (C37-C40) |
+| Name     | Type                       | Constraints                 |
+|----------|----------------------------|-----------------------------|
+| `result` | tensor or quantized tensor | (C25-C29), (C31), (C34-C35) |
 
 #### Constraints
 
