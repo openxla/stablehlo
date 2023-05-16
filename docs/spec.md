@@ -4648,10 +4648,10 @@ More formally, for all `update_index` from the index space of `updates[0]`:
       `index_vector_dim` index, if `index_vector_dim` <
       `rank(scatter_indices)`.
   * `[scatter_indices[update_scatter_index]]` otherwise.
-* For `do` in `axes(inputs[0])`,
-  * `full_start_index[do]` = `start_index[ds]` if
-      `do = scatter_dims_to_operand_dims[ds]`.
-  * `full_start_index[do]` = `0` otherwise.
+* For `di` in `axes(inputs[0])`,
+  * `full_start_index[di]` = `start_index[dj]` if
+      `di = scatter_dims_to_operand_dims[dj]`.
+  * `full_start_index[di]` = `0` otherwise.
 * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
 * `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `update_window_index`, and `0` is inserted at indices from
@@ -4721,7 +4721,7 @@ undefined.
    `update_scatter_dims` and `update_window_dim_sizes` at axes corresponding
    to `update_window_dims`.
 * (C5) N $=$ size(`inputs`) = size(`updates`) and N $\ge$ 1.
-* (C6) `element_type(updates[k]) = element_type(inputs[k])` for any k $\in$
+* (C6) `element_type(updates[k]) = element_type(inputs[k])` for all k $\in$
        [0, N).
 * (C7) All dimensions in `update_window_dims` are unique and sorted.
 * (C8) For all i $\in$ [0, size(`update_window_dims`)), $0 \le$
@@ -4737,8 +4737,8 @@ undefined.
       `scatter_dims_to_operand_dims`[i] $\lt$ rank(`inputs`[0]).
 * (C14) $0 \le$ `index_vector_dim` $\le$ rank(`scatter_indices`).
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-        where `Ek = element_type(inputs[k])` for any k $\in$ [0, N).
-* (C16) `inputs[k]` and `result[k]` have the same type for any k $\in$ [0, N).
+        where `Ek = element_type(inputs[k])` for all k $\in$ [0, N).
+* (C16) `inputs[k]` and `result[k]` have the same type for all k $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4755,24 +4755,26 @@ undefined.
 //           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]]
 //          ]
 %result = "stablehlo.scatter"(%input, %scatter_indices, %update) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   scatter_dimension_numbers = #stablehlo.scatter<
-    update_window_dims = [2,3],
+    update_window_dims = [2, 3],
     inserted_window_dims = [0],
     scatter_dims_to_operand_dims = [1, 0],
     index_vector_dim = 2>,
   indices_are_sorted = false,
   unique_indices = false
-} : (tensor<3x4x2xi32>, tensor<2x3x2xi64>, tensor<2x3x2x2xi32>) -> tensor<3x4x2xi32>
+} : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<2x3x2x2xi64>) -> tensor<3x4x2xi64>
 // %result: [
 //           [[1, 2], [5, 6], [8, 9], [8, 9]],
 //           [[10, 11], [12, 13], [14, 15], [16, 17]],
 //           [[18, 19], [20, 21], [21, 22], [23, 24]]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_scatter.mlir)
 
 ### select
 

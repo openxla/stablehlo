@@ -125,6 +125,17 @@ Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
 Tensor evalRoundOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType);
 Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType);
+SmallVector<Tensor> evalScatterOp(
+    ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
+    ArrayRef<Tensor> updates, const Axes &updateWindowDims,
+    const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
+    Axis indexVectorDim, Region &updateComputation, ShapedType resultType);
+SmallVector<Tensor> evalScatterOp(
+    ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
+    ArrayRef<Tensor> updates, const Axes &updateWindowDims,
+    const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
+    Axis indexVectorDim, Region &updateComputation, Scope &scope,
+    ArrayRef<ShapedType> resultTypes);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,

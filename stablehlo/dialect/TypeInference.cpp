@@ -535,18 +535,18 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions) {
   int64_t numInputs = inputTypes.size();
 
-  // reduce_c6, reduce_window_c13
+  // reduce_c6, reduce_window_c13, scatter_c15
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // reduce_c6, reduce_window_c13
+  // reduce_c6, reduce_window_c13, scatter_c15
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // reduce_c6, reduce_window_c13
+  // reduce_c6, reduce_window_c13, scatter_c15
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -554,7 +554,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
-  // reduce_c6, reduce_window_c13
+  // reduce_c6, reduce_window_c13, scatter_c15
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
@@ -568,7 +568,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   }
 
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // reduce_c2, reduce_window_c13
+    // reduce_c2, reduce_window_c13, scatter_c15
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -577,7 +577,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c2, reduce_window_c13
+    // reduce_c2, reduce_window_c13, scatter_c15
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -589,7 +589,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c6, reduce_window_c13, reduce_window_i2
+    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c15
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -598,7 +598,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           " differs from the op's corresponding init-value type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // reduce_c6, reduce_window_c3
+    // reduce_c6, reduce_window_c3, scatter_c15
     if (!tensorsHaveSameElType(
             inputTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
@@ -940,16 +940,6 @@ LogicalResult verifyConvolutionAttributes(
   return success();
 }
 
-/*
- * We intend to verify the following properties:
- * P1. The 'update_window_dims' must be valid indices of 'updates' tensor.
- * P2. The 'inserted_window_dims' must be valid indices of 'operand' tensor.
- * P3. Check if the rank-of('operand') == size-of('update_window_dims') +
- *     size-of('inserted_window_dims')
- * P4. size-of('scatter_dims_to_operand_dims') =
- *         'scatter_indices'['index_vector_dim'] &
- *     'scatter_dims_to_operand_dims' must be valid indices of 'operand' tensor.
- */
 LogicalResult validateScatterDimensionNumbers(
     ShapedType operandType, ArrayRef<int64_t> scatterIndicesShape,
     ShapedType updateType, bool operandTypeRanked,
@@ -957,17 +947,31 @@ LogicalResult validateScatterDimensionNumbers(
     ArrayRef<int64_t> updateWindowDims, ArrayRef<int64_t> insertedWindowDims,
     ArrayRef<int64_t> scatterDimsToOperandDims, int64_t indexVectorDim,
     std::optional<Location> loc) {
-  // P1.
+  // scatter_c2
+  if (operandTypeRanked) {
+    auto windowSize = updateWindowDims.size() + insertedWindowDims.size();
+    if (operandType.getRank() != static_cast<int64_t>(windowSize))
+      return emitOptionalError(loc,
+                               "Expects rank-of operand to match "
+                               "size-of('update_window_dims')  + "
+                               "size-of('inserted_window_dims') i.e. ",
+                               windowSize, " but got ", operandType.getRank(),
+                               ".");
+  }
+
+  // scatter_c7
   if (!llvm::is_sorted(updateWindowDims))
     return emitOptionalError(loc,
                              "Expects update_window_dims to be sorted; got: [",
                              updateWindowDims, "].");
 
+  // scatter_c7
   if (hasDuplicates(updateWindowDims))
     return emitOptionalError(loc,
                              "Expects update_window_dims to not repeat; got: [",
                              updateWindowDims, "].");
 
+  // scatter_c8
   if (updatesTypeRanked) {
     for (int64_t windowDim : updateWindowDims) {
       if (windowDim < 0 || windowDim >= updateType.getRank())
@@ -980,17 +984,19 @@ LogicalResult validateScatterDimensionNumbers(
     }
   }
 
-  // P2.
+  // scatter_c9
   if (!llvm::is_sorted(insertedWindowDims))
     return emitOptionalError(
         loc, "Expects inserted_window_dims to be sorted; got: [",
         insertedWindowDims, "].");
 
+  // scatter_c9
   if (hasDuplicates(insertedWindowDims))
     return emitOptionalError(
         loc, "Expects inserted_window_dims to not repeat; got: [",
         insertedWindowDims, "].)");
 
+  // scatter_c10
   if (operandTypeRanked) {
     for (int64_t insertedDim : insertedWindowDims)
       if (insertedDim < 0 || insertedDim >= operandType.getRank())
@@ -1001,20 +1007,17 @@ LogicalResult validateScatterDimensionNumbers(
             operandType.getRank(), "). got: ", insertedDim, ".");
   }
 
-  // P3.
-  if (operandTypeRanked) {
-    auto windowSize = updateWindowDims.size() + insertedWindowDims.size();
-    if (operandType.getRank() != static_cast<int64_t>(windowSize))
-      return emitOptionalError(loc,
-                               "Expects rank-of operand to match "
-                               "size-of('update_window_dims')  + "
-                               "size-of('inserted_window_dims') i.e. ",
-                               windowSize, " but got ", operandType.getRank(),
-                               ".");
-  }
-
-  // P4.
+  // scatter_c11
   if (scatterIndicesTypeRanked) {
+    if (indexVectorDim == static_cast<int64_t>(scatterIndicesShape.size()) &&
+        scatterDimsToOperandDims.size() != 1)
+      return emitOptionalError(
+          loc, "Scatter op has ", scatterDimsToOperandDims.size(),
+          " elements in scatter_dims_to_operand_dims and "
+          "the bound of dimension index_vector_dim=",
+          indexVectorDim,
+          " of scatter_indices is 1. These two numbers must be equal.");
+
     if (!isDynamicDimSize(scatterIndicesShape[indexVectorDim]) &&
         static_cast<int64_t>(scatterDimsToOperandDims.size()) !=
             scatterIndicesShape[indexVectorDim])
@@ -1027,6 +1030,13 @@ LogicalResult validateScatterDimensionNumbers(
                                ". These two numbers must be equal.");
   }
 
+  // scatter_c12
+  if (hasDuplicates(scatterDimsToOperandDims))
+    return emitOptionalError(
+        loc, "Expects scatter_dims_to_operand_dims to not repeat; got: [",
+        scatterDimsToOperandDims, "].");
+
+  // scatter_c13
   if (operandTypeRanked) {
     for (int64_t i = 0;
          i < static_cast<int64_t>(scatterDimsToOperandDims.size()); ++i) {
@@ -1039,11 +1049,6 @@ LogicalResult validateScatterDimensionNumbers(
             ".");
     }
   }
-
-  if (hasDuplicates(scatterDimsToOperandDims))
-    return emitOptionalError(
-        loc, "Expects scatter_dims_to_operand_dims to not repeat; got: [",
-        scatterDimsToOperandDims, "].");
 
   return success();
 }
@@ -3810,19 +3815,6 @@ LogicalResult verifyRngBitGeneratorOp(std::optional<Location> location,
   return success();
 }
 
-// We intend to verify the following properties:
-//  P0. scatter_indices argument must be an integral tensor. Enforced by ODS.
-//  P1. Scatter index leaf dimension must be within [0, rank(scatter_indices)"
-//      " + 1).
-//  P2. Verify reducer shape.
-//  P3. rank-of('updates[i]') == size-of('update_window_dims') +
-//      rank-of('scatter_indices') - 1, where 'scatter_indices' is expanded by a
-//      trailing 1 dimension if 'index_vector_dim' == rank-of('scatter_indices')
-//      for all values of `i`.
-//  P4. Validate the scatter-dimensions-numbers.
-//  P5. Valide the bounds of each of the 'updates' w.r.t the operands.
-//  P6. Validate the bounds of each of the 'updates' w.r.t the
-//      'scatter_indices'.
 LogicalResult verifyScatterOp(std::optional<Location> location,
                               ValueRange inputs, Value scatterIndices,
                               ValueRange updates,
@@ -3842,7 +3834,19 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
       updates.getTypes(), [](Type type) { return type.cast<ShapedType>(); }));
   bool scatterIndicesTypeRanked = scatterIndicesType.isa<RankedTensorType>();
 
-  // P1.
+  // scatter_c1
+  for (auto operandType : operandTypes)
+    if (!compatibleShapeAndElementType(operandTypes[0], operandType))
+      return emitOptionalError(location,
+                               "Not all inputs have compatible shapes.");
+
+  // scatter_c3
+  for (auto updateType : updatesTypes)
+    if (!compatibleShapeAndElementType(updatesTypes[0], updateType))
+      return emitOptionalError(location,
+                               "Not all updates have compatible shapes.");
+
+  // scatter_c14
   if (scatterIndicesTypeRanked) {
     if (indexVectorDim > scatterIndicesType.getRank() || indexVectorDim < 0)
       return emitOptionalError(
@@ -3852,19 +3856,23 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
           scatterIndicesType.getRank(), " and scatter index leaf dimension is ",
           indexVectorDim, ".");
   }
-  // P2.
+
   SmallVector<ShapedType> inputTypes, initValueTypes;
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     inputTypes.push_back(operandTypes[i]);
     initValueTypes.push_back(
         RankedTensorType::get({}, updatesTypes[i].getElementType()));
   }
+  // scatter_c15
   if (failed(verifyReducerShape(location, updateComputation.front(), inputTypes,
                                 initValueTypes,
                                 /*allowedDimensions=*/{})))
     return failure();
 
-  // P3.
+  // rank-of('updates[i]') == size-of('update_window_dims') +
+  // rank-of('scatter_indices') - 1, where 'scatter_indices' is expanded by a
+  // trailing 1 dimension if 'index_vector_dim' == rank-of('scatter_indices')
+  // for all values of `i`.
   SmallVector<int64_t> expandedScatterIndicesShape;
   if (scatterIndicesTypeRanked) {
     expandedScatterIndicesShape =
@@ -3874,6 +3882,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
       expandedScatterIndicesShape.push_back(1);
   }
 
+  // scatter_c4
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     if (scatterIndicesTypeRanked && updatesTypes[i].isa<RankedTensorType>()) {
       int64_t expectedUpdatesRank =
@@ -3890,7 +3899,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
     }
   }
 
-  // P4.
+  // scatter_c2, scatter_c7...scatter_c13
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     if (failed(validateScatterDimensionNumbers(
             operandTypes[i], expandedScatterIndicesShape, updatesTypes[i],
@@ -3901,7 +3910,6 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
       return failure();
   }
 
-  // P5.
   for (int64_t i = 0; i < static_cast<int64_t>(numOperands); i++) {
     if (updatesTypes[i].isa<RankedTensorType>()) {
       auto updatesShape = updatesTypes[i].getShape();
@@ -3929,6 +3937,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
               isDynamicDimSize(maxUpdateSliceSizes[i]))
             continue;
 
+          // scatter_c4
           if (updatesShape[updateWindowDim] > maxUpdateSliceSizes[i]) {
             return emitOptionalError(
                 location,
@@ -3942,7 +3951,6 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
         }
       }
 
-      // P6.
       if (scatterIndicesTypeRanked) {
         int64_t scatterDimsSeen = 0;
         for (int64_t i = 0; i < static_cast<int64_t>(updatesShape.size());
@@ -3953,6 +3961,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
           if (isUpdateWindowDim) continue;
           if (scatterDimsSeen == indexVectorDim) ++scatterDimsSeen;
 
+          // scatter_c4
           if (!verifyCompatibleDims(
                   updatesShape[i],
                   expandedScatterIndicesShape[scatterDimsSeen]))

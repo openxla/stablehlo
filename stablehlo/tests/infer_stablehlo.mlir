@@ -586,8 +586,8 @@ func.func @select_and_scatter(
 
 // -----
 
-// CHECK-LABEL: func @scatter
-func.func @scatter(%input_tensor: tensor<200x100x300xf32>,
+// CHECK-LABEL: func @scatter_c16
+func.func @scatter_c16(%input_tensor: tensor<200x100x300xf32>,
     %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
       tensor<200x100x300xindex> {
   %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
