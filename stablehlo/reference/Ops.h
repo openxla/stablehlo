@@ -42,6 +42,7 @@ SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
                                Scope &scope);
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
+Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    ShapedType resultType);
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType);

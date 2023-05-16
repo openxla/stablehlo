@@ -1570,7 +1570,7 @@ matrix, then the behavior is undefined.
 //     ]
 %result = "stablehlo.cholesky"(%a) {
   lower = true
-} : (tensor<3x3xf32>) -> tensor<3x3xf32>
+} : (tensor<3x3xf32>) -> tensor<3x3xf64>
 // %result: [
 //           [1.0, 0.0, 0.0],
 //           [2.0, 4.0, 0.0],

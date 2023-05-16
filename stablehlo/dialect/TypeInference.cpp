@@ -1501,33 +1501,32 @@ LogicalResult inferCaseOp(std::optional<Location> location, Value index,
   return inferConditionalOp(location, index, branches, inferredReturnTypes);
 }
 
-// The following properties are already enforced by the ODS:
-//   P0. a.element_type is floating or complex
-// We intend to verify the following properties
-//   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
-//   P2. The two minor dimensions of 'a' must have equal size, got %s.
 LogicalResult inferCholeskyOp(
     std::optional<Location> location, Value a,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type aType = a.getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
   if (!aRankedType) {
+    // cholesky_c1
     inferredReturnShapes.emplace_back(
         aType.cast<ShapedType>().getElementType());
     return success();
   }
 
   ArrayRef<int64_t> aShape = aRankedType.getShape();
+  // cholesky_c2
   if (aShape.size() < 2)
     return emitOptionalError(
         location, "argument 'a' must have rank >= 2, got shape ", aShape, ".");
 
+  // cholesky_c3
   if (!verifyCompatibleDims(aShape[aShape.size() - 2],
                             aShape[aShape.size() - 1]))
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
 
+  // cholesky_c1
   inferredReturnShapes.emplace_back(aRankedType.getShape(),
                                     aRankedType.getElementType(),
                                     aRankedType.getEncoding());
