@@ -606,17 +606,17 @@ Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
   auto cholesky = [&lower](const Tensor &A) {
     Tensor L(A.getType());
     auto conjugate = [&](const Element &el) {
-      return Element(el.getType(),
+      return convert(el.getType(),
                      std::complex<APFloat>(el.getComplexValue().real(),
                                            -el.getComplexValue().imag()));
     };
 
     for (auto it = L.index_begin(); it != L.index_end(); ++it)
-      L.set(*it, Element(A.getElementType(), 0.0));
+      L.set(*it, convert(A.getElementType(), 0.0));
 
     for (auto i = 0; i < A.getShape()[0]; ++i) {
       for (auto j = 0; j <= i; ++j) {
-        Element sum(A.getElementType(), 0.0);
+        auto sum = convert(A.getElementType(), 0.0);
         for (auto k = 0; k < j; ++k) {
           if (isSupportedComplexType(A.getElementType()))
             sum = sum + L.get(Index({i, k})) * conjugate(L.get(Index({j, k})));
