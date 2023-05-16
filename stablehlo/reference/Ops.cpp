@@ -1285,10 +1285,11 @@ SmallVector<Tensor> evalReduceWindowOp(
        resultIt != results[0].index_end(); ++resultIt) {
     SmallVector<Tensor> windows;
     auto windowStart = (*resultIt) * windowStrides;
+    auto windowEnd = clamp(0, windowStart + windowDimensions * windowDilations,
+                           paddedInputs[0].getShape());
     for (const auto &paddedInput : paddedInputs)
-      windows.push_back(evalSliceOp(paddedInput, windowStart,
-                                    windowStart + windowDimensions,
-                                    windowDilations));
+      windows.push_back(
+          evalSliceOp(paddedInput, windowStart, windowEnd, windowDilations));
 
     auto reducedValues =
         evalReduceOp(windows, initValues, inputs[0].getAxes(), body, scope);
