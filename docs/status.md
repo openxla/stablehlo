@@ -134,7 +134,7 @@ one of the following tracking labels.
 | rsqrt                    | yes           | yes          | yes            | yes             | yes         |
 | scatter                  | yes           | revisit      | yes            | no              | yes         |
 | select                   | yes           | yes          | yes            | yes             | yes         |
-| select_and_scatter       | yes           | revisit      | yes            | no              | no          |
+| select_and_scatter       | yes           | revisit      | yes            | no              | yes         |
 | send                     | yes           | revisit      | yes            | no              | no          |
 | set_dimension_size       | no            | yes\*        | yes\*          | yes             | no          |
 | shift_left               | yes           | yes          | yes            | yes             | yes         |

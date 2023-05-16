@@ -2544,7 +2544,8 @@ def StableHLO_SelectOp: StableHLO_Op<"select", [Pure, HLO_BroadcastingElementwis
 }
 
 def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
-      [RecursiveMemoryEffects, DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+      [DeclareOpInterfaceMethods<InferTypeOpInterface> /*select_and_scatter_c11*/,
+       RecursiveMemoryEffects]> {
   let summary = "SelectAndScatter operation";
   let description = [{
     Scatters the values from the `source` tensor using `scatter` based on the
@@ -2557,32 +2558,33 @@ def StableHLO_SelectAndScatterOp: StableHLO_Op<"select_and_scatter",
     Example:
     ```mlir
     %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.compare"(%arg0, %arg1) {
-          comparison_direction = #stablehlo<comparison_direction GE>
-        } : (tensor<i32>, tensor<i32>) -> tensor<i1>
-        "stablehlo.return"(%0) : (tensor<i1>) -> ()
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.compare GE, %arg0, %arg1 : (tensor<i64>, tensor<i64>) -> tensor<i1>
+        stablehlo.return %0 : tensor<i1>
     }, {
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       window_dimensions = dense<[3, 1]> : tensor<2xi64>,
       window_strides = dense<[2, 1]> : tensor<2xi64>,
       padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-    } : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
+    } : (tensor<4x2xi64>, tensor<2x2xi64>, tensor<i64>) -> tensor<4x2xi64>
     ```
   }];
   let arguments = (ins
-    HLO_Tensor:$operand,
-    HLO_Tensor:$source,
-    HLO_Tensor:$init_value,
-    OptionalAttr<I64ElementsAttr>:$window_dimensions,
-    OptionalAttr<I64ElementsAttr>:$window_strides,
-    OptionalAttr<I64ElementsAttr>:$padding
+    HLO_Tensor:$operand, /*select_and_scatter_i1*/
+    HLO_Tensor:$source, /*select_and_scatter_i2*/
+    HLO_Tensor:$init_value, /*select_and_scatter_i3*/
+    OptionalAttr<I64ElementsAttr>:$window_dimensions, /*select_and_scatter_i4*/
+    OptionalAttr<I64ElementsAttr>:$window_strides, /*select_and_scatter_i5*/
+    OptionalAttr<I64ElementsAttr>:$padding /*select_and_scatter_i6*/
   );
 
-  let regions = (region SizedRegion<1>:$select, SizedRegion<1>:$scatter);
+  let regions = (region
+    SizedRegion<1>:$select, /*select_and_scatter_i7*/
+    SizedRegion<1>:$scatter /*select_and_scatter_i8*/
+  );
 
   let results = (outs HLO_Tensor);
 

@@ -136,6 +136,37 @@ void failOnDecomposableOp(Operation &op) {
       op.getName().getStringRef().str().c_str()));
 }
 
+void iterateThroughWindow(const Sizes &windowDimensions,
+                          const Sizes &windowStrides,
+                          const Sizes &windowDilations,
+                          const Sizes &operandShape, const Sizes &baseDilations,
+                          const Sizes &paddingLow, const Index &sourceIndex,
+                          std::function<void(const Index &)> body) {
+  auto rank = operandShape.size();
+  for (auto windowIndexIt =
+           IndexSpaceIterator(windowDimensions, Sizes(rank, 0));
+       windowIndexIt != IndexSpaceIterator(windowDimensions, std::nullopt);
+       ++windowIndexIt) {
+    Index operandIndex(rank);
+    bool outOfBound = false;
+    for (size_t i = 0; i < rank; ++i) {
+      operandIndex[i] = sourceIndex[i] * windowStrides[i] +
+                        (*windowIndexIt)[i] * windowDilations[i] -
+                        paddingLow[i];
+      if (operandIndex[i] % baseDilations[i] != 0) {
+        outOfBound = true;
+        break;
+      }
+      operandIndex[i] /= baseDilations[i];
+      if (operandIndex[i] < 0 || operandIndex[i] >= operandShape[i]) {
+        outOfBound = true;
+        break;
+      }
+    }
+    if (!outOfBound) body(operandIndex);
+  }
+}
+
 }  // namespace
 
 SmallVector<Tensor> eval(
@@ -487,6 +518,40 @@ SmallVector<Tensor> eval(
       auto onTrue = scope.find(selectOp.getOnTrue());
       auto onFalse = scope.find(selectOp.getOnFalse());
       auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
+      scope.add(op.getResults(), {result});
+    } else if (auto selectAndScatterOp = dyn_cast<SelectAndScatterOp>(op)) {
+      auto operand = scope.find(selectAndScatterOp.getOperand());
+      auto source = scope.find(selectAndScatterOp.getSource());
+      auto initValue = scope.find(selectAndScatterOp.getInitValue());
+      auto rank = operand.getRank();
+
+      Sizes windowDimensions(rank, 1);
+      if (auto windowDimensionsAttr =
+              selectAndScatterOp.getWindowDimensionsAttr())
+        windowDimensions.assign(
+            windowDimensionsAttr.getValues<int64_t>().begin(),
+            windowDimensionsAttr.getValues<int64_t>().end());
+
+      Sizes windowStrides(rank, 1);
+      if (auto windowStridesAttr = selectAndScatterOp.getWindowStridesAttr())
+        windowStrides.assign(windowStridesAttr.getValues<int64_t>().begin(),
+                             windowStridesAttr.getValues<int64_t>().end());
+
+      Sizes paddingLow(rank, 0), paddingHigh(rank, 0);
+      if (auto padding = selectAndScatterOp.getPadding()) {
+        auto paddingOrErr = hlo::convertPaddingAttribute(padding, {});
+        if (failed(paddingOrErr))
+          report_fatal_error(invalidArgument("Invalid padding format found."));
+        for (auto i = 0; i < static_cast<int64_t>(paddingOrErr->size()); ++i) {
+          paddingLow[i] = (*paddingOrErr)[i].first;
+          paddingHigh[i] = (*paddingOrErr)[i].second;
+        }
+      }
+
+      auto result = evalSelectAndScatter(
+          operand, source, initValue, windowDimensions, windowStrides,
+          paddingLow, paddingHigh, selectAndScatterOp.getSelect(),
+          selectAndScatterOp.getScatter(), scope, selectAndScatterOp.getType());
       scope.add(op.getResults(), {result});
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
       auto lhs = scope.find(shiftLeftOp.getLhs());
@@ -1192,6 +1257,64 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
     Element predValue = pred.getRank() != 0 ? pred.get(*it) : pred.get({});
     result.set(
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
+  }
+  return result;
+}
+
+Tensor evalSelectAndScatter(const Tensor &operand, const Tensor &source,
+                            const Tensor &initValue,
+                            const Sizes &windowDimensions,
+                            const Sizes &windowStrides, const Sizes &paddingLow,
+                            const Sizes &paddingHigh, Region &select,
+                            Region &scatter, Scope &scope,
+                            ShapedType resultType) {
+  Tensor result(resultType, initValue.get({}));
+  Sizes baseDilations(operand.getRank(), 1);
+  Sizes windowDilations(operand.getRank(), 1);
+  auto rank = operand.getRank();
+
+  for (auto sourceIt = IndexSpaceIterator(source.getShape(), Sizes(rank, 0));
+       sourceIt != IndexSpaceIterator(source.getShape(), std::nullopt);
+       ++sourceIt) {
+    std::optional<Element> selectedVal;
+    std::optional<Index> selectedIndex;
+    iterateThroughWindow(
+        windowDimensions, windowStrides, windowDilations, operand.getShape(),
+        baseDilations, paddingLow, *sourceIt, [&](const Index &operandIndex) {
+          auto currVal = operand.get(operandIndex);
+          if (!selectedVal.has_value()) {
+            selectedVal = currVal;
+            selectedIndex = operandIndex;
+          }
+
+          Tensor selectedValTensor(
+              RankedTensorType::get({}, selectedVal.value().getType()),
+              selectedVal.value());
+          Tensor currValTensor(RankedTensorType::get({}, currVal.getType()),
+                               currVal);
+          auto selectedResult =
+              eval(select, {selectedValTensor, currValTensor}, &scope);
+
+          bool selected = !selectedResult[0].get({}).getBooleanValue();
+          if (selected) {
+            selectedVal = currVal;
+            selectedIndex = operandIndex;
+          }
+        });
+    iterateThroughWindow(
+        windowDimensions, windowStrides, windowDilations, operand.getShape(),
+        baseDilations, paddingLow, *sourceIt, [&](const Index &operandIndex) {
+          if (operandIndex == selectedIndex) {
+            Tensor sourceValues(
+                RankedTensorType::get({2}, initValue.getElementType()));
+            sourceValues.set({0}, source.get(*sourceIt));
+            sourceValues.set({1}, result.get(operandIndex));
+
+            auto reducedResult =
+                evalReduceOp({sourceValues}, {initValue}, {0}, scatter, scope);
+            result.set(operandIndex, reducedResult[0].get({}));
+          }
+        });
   }
   return result;
 }
