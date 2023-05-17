@@ -38,15 +38,7 @@ defined by [the StableHLO spec](spec.md). In the future, we will provide a
 reference implementation which will provide an executable version of the
 specification.
 
-## Out of scope
-
-**Source compatibility** for C, C++ and Python APIs within libStablehlo is
-an aspirational goal. At the moment, we don't offer source compatibility
-guarantees, but please let us know if this is an important use case for you,
-and we can have a discussion about supporting it
-([#1247](https://github.com/openxla/stablehlo/issues/1247)).
-
-## Creating portable artifacts
+## APIs
 
 Portable artifacts can be created using either the `stablehlo-translate` tool,
 or directly in C++ or Python APIs. Serialization needs a target version of
@@ -54,7 +46,7 @@ StableHLO to write an artifact written in `#.#.#` format (See [Version.h](https:
 for current version). Deserialization uses the current version of StableHLO to
 read an artifact.
 
-### Using the `stablehlo-translate` tool
+### `stablehlo-translate`
 
 This is the easiest way to create and read a portable artifact.
 
@@ -66,10 +58,9 @@ $ stablehlo-translate --serialize file.mlir --target=0.9.0 > portable_artifact.m
 $ stablehlo-translate --deserialize portable_artifact.mlir.bc
 ```
 
-### Using C++ APIs
+### C++
 
-For programmatic workflows, StableHLO provides the following APIs to create
-portable artifacts:
+For programmatic workflows, StableHLO provides the following compatibility APIs:
 
 ```c++
 // From: #include "stablehlo/api/PortableApi.h"
@@ -116,9 +107,9 @@ for full APIs.
 See [`StablehloTranslateMain.cpp`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tools/StablehloTranslateMain.cpp#:~:text=serializePortableArtifact)
 for example usage of these APIs.
 
-### Using Python APIs
+### Python
 
-StableHLO also provides Python bindings to the C++ Serializaiton APIs:
+StableHLO also provides Python bindings to the C++ compatibility APIs:
 
 ```python
 def get_current_version() -> str: ...
@@ -164,3 +155,11 @@ identical programs. We are planning to also use a reference implementation in
 these tests, relaxing the overly onerous requirement of syntactical identity
 and comprehensively testing the reference implementation
 ([#1245](https://github.com/openxla/stablehlo/issues/1245)).
+
+## Out of scope
+
+**Source compatibility** for C, C++ and Python APIs within libStablehlo is
+an aspirational goal. At the moment, we don't offer source compatibility
+guarantees, but please let us know if this is an important use case for you,
+and we can have a discussion about supporting it
+([#1247](https://github.com/openxla/stablehlo/issues/1247)).
