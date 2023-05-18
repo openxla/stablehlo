@@ -33,7 +33,6 @@ set(LIBS
         )
 add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
 llvm_update_compile_flags(stablehlo-opt)
-add_dependencies(stablehlo-opt StablehloTOSATransformsPassIncGen)
 target_link_libraries(stablehlo-opt PRIVATE ${LIBS})
 
 mlir_check_all_link_libraries(stablehlo-opt)

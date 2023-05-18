@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef MLIR_HLO_TOSA_TRANSFORMS_PASSES_H
-#define MLIR_HLO_TOSA_TRANSFORMS_PASSES_H
+#ifndef STABLEHLO_CONVERSIONS_TOSA_TRANSFORMS_PASSES_H
+#define STABLEHLO_CONVERSIONS_TOSA_TRANSFORMS_PASSES_H
 
 #include <memory>
 
@@ -34,4 +34,4 @@ std::unique_ptr<OperationPass<func::FuncOp>> createPrepareStablehloPass();
 }  // namespace tosa
 }  // namespace mlir
 
-#endif  // MLIR_HLO_TOSA_TRANSFORMS_PASSES_H
+#endif  // STABLEHLO_CONVERSIONS_TOSA_TRANSFORMS_PASSES_H
