@@ -175,9 +175,11 @@ following constraints:
 * (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
 * (C12) `0 <= quantization_dimension`.
 
-In order to allow operation using only integer arithmetic, the floating-point
-`scale`,  can be realized using integer `multipler`, and `shift` values,
-such that `round_nearest_even(scale * 2^shift) == multipler`.
+In a given StableHLO operation, all the quantized tensor types are either
+represented using floating-point scales, or integer scales, with multipliers and
+shifts. The floating-point scale `scale` value and the integer scale, with
+`multipler`, and `shift` values are related as: `round_nearest_even(scale *
+2^shift) == multipler`.
 
 The following demonstrates, using C++ code, a possible implementation of
 deriving the integer parameters `multipler` and `shift` of type `i32` from a
@@ -222,6 +224,17 @@ above.
     std::fesetround(FE_TONEAREST);
     static_cast<int32_t>(std::rint(scale * std::pow(2, shift))) = multipler;
 ```
+
+The above conversion allows for the transformation of a StableHLO program that
+uses quantized types with floating-point scales to quantized types with integer
+scales. The latter allows for integer-only arithmetic. At a high-level, any
+computations specified in the operational semantics using floating-point scales
+can be realized using integer scales with integer-only arithmetic. Refer to
+[dot_general](#dot_general) op for an example. The exact manner in which a
+computation involving floating-point scales is converted to a computation using
+integer scales for each individual operation is implementation-defined. Also,
+the bit width of the multiplier and shift, chosen for each operation, is
+implementation defined.
 
 For simplicity, we will only use floating-point scale when defining the
 operation specification, unless otherwise specified.
@@ -2363,6 +2376,13 @@ More formally, `result[result_index] = dot_product`, where:
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
+    If the `scale(reshaped_lhs_slice)`, `scale(reshape_rhs_slice)`, and
+    `scale(result)` are respectively represented as integer multiplier and
+    shift pairs, like,
+    `(M_reshaped_lhs_slice, n_reshaped_lhs_slice), (M_reshaped_rhs_slice, n_reshaped_rhs_slice), and (M_result, n_result)`,
+    then the computation can be implemented as
+    `rounded_dot_product = (integer_dot_product * M + (1<<(n-1))) >> n`, where
+    `M = ((M_reshaped_lhs_slice * M_reshaped_rhs_slice) / M_result)) and n = (n_reshaped_lhs_slice + n_reshaped_rhs_slice - n_result)`.
   * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 <!-- markdownlint-enable line-length -->
 
