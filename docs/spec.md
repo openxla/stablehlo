@@ -133,9 +133,10 @@ QuantizationExpressedType ::= FloatType
 QuantizationDimension ::= IntegerConstant
 QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
-QuantizationParameter ::= ( QuantizationScale | QuantizationMultiplierShift ) ':' QuantizationZeroPoint
-QuantizationScale ::= FloatConstant
-QuantizationMultiplierShift ::= '<' QuantizationMultiplier ',' QuantizationShift '>'
+QuantizationParameter ::= QuantizationScale  ':' QuantizationZeroPoint
+QuantizationScale ::= ( QuantizationFloatingPointScale  | QuantizationIntegerScale )
+QuantizationFloatingPointScale ::= FloatConstant
+QuantizationIntegerScale ::= '<' QuantizationMultiplier ',' QuantizationShift '>'
 QuantizationMultiplier ::= IntegerConstant
 QuantizationShift ::= IntegerConstant
 QuantizationZeroPoint ::=  IntegerConstant
@@ -175,53 +176,55 @@ following constraints:
 * (C12) `0 <= quantization_dimension`.
 
 In order to allow operation using only integer arithmetic, the floating-point
-`scale`, `S`, is realized using integer `multipler`, `M` and `shift` values each
-with bit width `W >= 2`, such that `round_nearest_even(S * 2^n) == M`, where `1
-<= n <= 2*W - 2` and `0 <= M < 2^(W-1)`.
+`scale`,  can be realized using integer `multipler`, and `shift` values,
+such that `round_nearest_even(scale * 2^shift) == multipler`.
 
 The following demonstrates, using C++ code, a possible implementation of
-deriving the integer parameters `M` and `n` of type `i32` from a
-floating-point scale `S` of type `f64`:
+deriving the integer parameters `multipler` and `shift` of type `i32` from a
+floating-point scale `scale` of type `f64`:
 
 ```c++
-    int32_t shift;
-    double mantissa = std::frexp(S, &shift);
+    int32_t exponent;
+    double mantissa = std::frexp(scale, &exponent);
     std::fesetround(FE_TONEAREST);
-    auto shiftedMantissa = static_cast<int64_t>(std::rint(mantissa * (int64_t(1) << 31)));
+    auto exponentedMantissa = static_cast<int64_t>(std::rint(mantissa * (int64_t(1) << 31)));
 
-    // Ensure that `shiftedMantissa` is within limits of 32-bit integer type.
-    if (shiftedMantissa == (int64_t(1) << 31)) {
-        shiftedMantissa /= 2;
-        shift++;
+    // Ensure that `exponentedMantissa` is within limits of 32-bit integer type.
+    if (exponentedMantissa == (int64_t(1) << 31)) {
+        exponentedMantissa /= 2;
+        exponent++;
     }
 
-    // At this point, `adjustedMantissa = round_nearest_even(S * 2^(31-shift)) < 2^31`.
-    int64_t adjustedMantissa = shiftedMantissa;
+    // At this point, `adjustedMantissa = round_nearest_even(scale * 2^(31-exponent)) < 2^31`.
+    int64_t adjustedMantissa = exponentedMantissa;
 
-    // For small `S` value, flush `adjustedMantissa` to zero.
-    if (shift < -31) {
-        shift = 0;
+    // For small `scale` value, flush `adjustedMantissa` to zero.
+    if (exponent < -31) {
+        exponent = 0;
         adjustedMantissa = 0;
     }
 
-    // Saturate `adjustedMantissa`, if shift > 30.
-    if (shift > 30) {
-        shift = 30;
+    // Saturate `adjustedMantissa`, if exponent > 30.
+    if (exponent > 30) {
+        exponent = 30;
         adjustedMantissa = (1LL << 31) - 1;
     }
 
-    n = (-shift) + 31;
-    M = static_cast<int32_t>(adjustedMantissa);
+    shift = (-exponent) + 31;
+    multipler = static_cast<int32_t>(adjustedMantissa);
 ```
 
-Using the above implementation, the following C++ code demonstrates the
-relationship between the floating-point scale `S` and the integer parameters `M`
-and `n`.
+The following C++ code demonstrates the relationship between the floating-point
+scale `scale` and the integer parameters `multipler` and `shift`, as implemented
+above.
 
 ```c++
     std::fesetround(FE_TONEAREST);
-    static_cast<int32_t>(std::rint(S * std::pow(2, n))) = M;
+    static_cast<int32_t>(std::rint(scale * std::pow(2, shift))) = multipler;
 ```
+
+For simplicity, we will only use floating-point scale when defining the
+operation specification, unless otherwise specified.
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
 including the type, the values and whether there can be just one or
