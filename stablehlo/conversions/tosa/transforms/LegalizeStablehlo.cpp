@@ -21,16 +21,16 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "stablehlo/conversions/tosa/transforms/passes.h"
+#include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define GEN_PASS_DEF_TOSALEGALIZESTABLEHLOPASS
-#include "stablehlo/conversions/tosa/transforms/passes.h.inc"
+#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
 #define PASS_NAME "tosa-legalize-stablehlo"
 #define DEBUG_TYPE PASS_NAME
 
-#include "stablehlo/conversions/tosa/transforms/legalize_stablehlo.pdll.h.inc"
+#include "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll.h.inc"
 
 namespace mlir {
 namespace tosa {
