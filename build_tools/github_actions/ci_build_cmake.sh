@@ -43,4 +43,4 @@ cmake -GNinja \
 
 # Build and Test StableHLO
 cd "$STABLEHLO_BUILD_DIR"
-ninja check-stablehlo
+ninja check-stablehlo-ci
