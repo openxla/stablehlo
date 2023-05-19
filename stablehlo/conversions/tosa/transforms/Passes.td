@@ -15,18 +15,16 @@ limitations under the License.
 
 include "mlir/Pass/PassBase.td"
 
-def TosaLegalizeStablehloPass : Pass<"tosa-legalize-stablehlo", "mlir::func::FuncOp"> {
-  let summary = "Legalize from Stablehlo to TOSA";
-  let constructor = "createLegalizeStablehloPass()";
+def StablehloLegalizeToTosaPass : Pass<"stablehlo-legalize-to-tosa", "mlir::func::FuncOp"> {
+  let summary = "Legalize StableHLO to TOSA";
   let dependentDialects = ["::mlir::tosa::TosaDialect"];
 }
 
-def TosaPrepareStablehloPass : Pass<"tosa-prepare-stablehlo", "mlir::func::FuncOp"> {
-  let summary = "Prepare Stablehlo for lowering to TOSA";
+def StablehloPrepareForTosaPass : Pass<"stablehlo-prepare-for-tosa", "mlir::func::FuncOp"> {
+  let summary = "Prepare StableHLO for legalization to TOSA";
   let description = [{
-    This pass adds rewriters to make Stablehlo ops more compatible with TOSA ops.
+    This pass adds rewriters to make StableHLO ops more compatible with TOSA ops.
     Currently simplifies stablehlo.dot_general into stablehlo.dot for easier lowering.
   }];
-  let constructor = "createPrepareStablehloPass()";
   let dependentDialects = ["::mlir::tosa::TosaDialect"];
 }

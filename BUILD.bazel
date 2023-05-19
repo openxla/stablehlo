@@ -854,8 +854,8 @@ gentbl_cc_library(
 cc_library(
     name = "tosa_passes",
     srcs = [
-        "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.cpp",
-        "stablehlo/conversions/tosa/transforms/PrepareStablehlo.cpp",
+        "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.cpp",
+        "stablehlo/conversions/tosa/transforms/StablehloPrepareForTosa.cpp",
     ],
     hdrs = [
         "stablehlo/conversions/tosa/transforms/Passes.h",
@@ -880,11 +880,11 @@ gentbl_cc_library(
     tbl_outs = [
         (
             ["-x=cpp"],
-            "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll.h.inc",
+            "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.pdll.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-pdll",
-    td_file = "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll",
+    td_file = "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.pdll",
     deps = [
         ":stablehlo_ops_td_files",
         "@llvm-project//mlir:OpBaseTdFiles",

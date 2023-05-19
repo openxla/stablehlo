@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt %s --tosa-legalize-stablehlo | FileCheck %s
+// RUN: stablehlo-opt %s --stablehlo-legalize-to-tosa | FileCheck %s
 
 // CHECK-LABEL: @concatenate
 func.func @concatenate(%arg0 : tensor<5x2xf32>, %arg1 : tensor<5x5xf32>, %arg2 : tensor<5x7xf32>) -> tensor<5x14xf32> {

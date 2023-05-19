@@ -24,11 +24,9 @@ limitations under the License.
 namespace mlir {
 namespace tosa {
 
-std::unique_ptr<OperationPass<func::FuncOp>> createLegalizeStablehloPass();
-std::unique_ptr<OperationPass<func::FuncOp>> createPrepareStablehloPass();
-
+#define GEN_PASS_DECL_STABLEHLOLEGALIZETOTOSAPASS
+#define GEN_PASS_DECL_STABLEHLOPREPAREFORTOSAPASS
 #define GEN_PASS_REGISTRATION
-#define GEN_PASS_DECL_TOSALEGALIZESTABLEHLOPASS
 #include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
 }  // namespace tosa

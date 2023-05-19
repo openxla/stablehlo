@@ -24,20 +24,20 @@ limitations under the License.
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
-#define GEN_PASS_DEF_TOSALEGALIZESTABLEHLOPASS
-#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
-
-#define PASS_NAME "tosa-legalize-stablehlo"
+#define PASS_NAME "stablehlo-legalize-to-tosa"
 #define DEBUG_TYPE PASS_NAME
-
-#include "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll.h.inc"
 
 namespace mlir {
 namespace tosa {
+
+#define GEN_PASS_DEF_STABLEHLOLEGALIZETOTOSAPASS
+#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
+#include "stablehlo/conversions/tosa/transforms/StablehloLegalizeToTosa.pdll.h.inc"
+
 namespace {
 
-struct LegalizeStablehlo
-    : ::impl::TosaLegalizeStablehloPassBase<LegalizeStablehlo> {
+struct StablehloLegalizeToTosaPass
+    : impl::StablehloLegalizeToTosaPassBase<StablehloLegalizeToTosaPass> {
   void runOnOperation() final;
 
   LogicalResult initialize(MLIRContext* ctx) override;
@@ -468,7 +468,7 @@ struct ConvertStablehloWhileOp : public OpRewritePattern<stablehlo::WhileOp> {
   }
 };
 
-LogicalResult LegalizeStablehlo::initialize(MLIRContext* ctx) {
+LogicalResult StablehloLegalizeToTosaPass::initialize(MLIRContext* ctx) {
   RewritePatternSet patternList(ctx);
   populateGeneratedPDLLPatterns(patternList);
   patternList.addWithLabel<ConvertStablehloCompareOp>({"StablehloCompare"},
@@ -488,15 +488,11 @@ LogicalResult LegalizeStablehlo::initialize(MLIRContext* ctx) {
   return success();
 }
 
-void LegalizeStablehlo::runOnOperation() {
+void StablehloLegalizeToTosaPass::runOnOperation() {
   (void)applyPatternsAndFoldGreedily(getOperation(), patterns);
 }
 
 }  // namespace
-
-std::unique_ptr<OperationPass<func::FuncOp>> createLegalizeStablehloPass() {
-  return std::make_unique<LegalizeStablehlo>();
-}
 
 }  // namespace tosa
 }  // namespace mlir
