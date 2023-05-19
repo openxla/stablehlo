@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt %s --tosa-legalize-stablehlo | FileCheck %s
+// RUN: stablehlo-opt %s --stablehlo-legalize-to-tosa | FileCheck %s
 
 // CHECK-LABEL: @constant
 func.func @constant() -> tensor<10xf32> {

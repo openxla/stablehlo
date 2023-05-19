@@ -22,24 +22,26 @@ limitations under the License.
 #include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
-#define GEN_PASS_DEF_TOSAPREPARESTABLEHLOPASS
-#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
-
-#define PASS_NAME "tosa-prepare-stablehlo"
+#define PASS_NAME "stablehlo-prepare-to-tosa"
 #define DEBUG_TYPE PASS_NAME
 
 namespace mlir {
 namespace tosa {
+
+#define GEN_PASS_DEF_STABLEHLOPREPAREFORTOSAPASS
+#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
+
 namespace {
 
-class PrepareStablehlo
-    : public ::impl::TosaPrepareStablehloPassBase<PrepareStablehlo> {
+class StablehloPrepareForTosaPass
+    : public impl::StablehloPrepareForTosaPassBase<
+          StablehloPrepareForTosaPass> {
  public:
-  explicit PrepareStablehlo() = default;
+  explicit StablehloPrepareForTosaPass() = default;
   void runOnOperation() override;
 };
 
-void PrepareStablehlo::runOnOperation() {
+void StablehloPrepareForTosaPass::runOnOperation() {
   auto* ctx = &getContext();
   RewritePatternSet patterns(ctx);
   // Currently these equivalents are not available here.
@@ -50,10 +52,6 @@ void PrepareStablehlo::runOnOperation() {
 }
 
 }  // namespace
-
-std::unique_ptr<OperationPass<func::FuncOp>> createPrepareStablehloPass() {
-  return std::make_unique<PrepareStablehlo>();
-}
 
 }  // namespace tosa
 }  // namespace mlir

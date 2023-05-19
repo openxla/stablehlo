@@ -18,13 +18,13 @@ mlir_tablegen(Passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
 add_public_tablegen_target(StablehloTOSATransformsPassIncGen)
 
 add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
-  LegalizeStablehlo.pdll
-  LegalizeStablehlo.pdll.h.inc
+  StablehloLegalizeToTosa.pdll
+  StablehloLegalizeToTosa.pdll.h.inc
 )
 
 add_mlir_library(StablehloTOSATransforms
-  LegalizeStablehlo.cpp
-  PrepareStablehlo.cpp
+  StablehloLegalizeToTosa.cpp
+  StablehloPrepareForTosa.cpp
 
   DEPENDS
   StablehloTOSATransformsPassIncGen
