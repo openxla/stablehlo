@@ -2,16 +2,13 @@
 
 ## Background
 
-StableHLO needs to verify both forward and backward compatibility via unit
-tests. Currently we check backward compatibility by versioning
-`stablehlo_legalize_to_vhlo.mlir`. This document makes the following proposals:
+StableHLO needs to verify both forward and backward compatibility. Currently we
+check backward compatibility by versioning and serializing
+`stablehlo_legalize_to_vhlo.mlir`, and need something similar for forward
+compatibility. This document makes the following proposal:
 
-* **Proposal 1:** Maintain bytecode at HEAD to use for forward compatibility
-testing.
-* **Proposal 2:** Add CI which builds at tagged release commits to check
-forward compatibility.
-* **Proposal 3:** Run CI on all supported minor releases of StableHLO
-(`v0.9.0`, `v0.10.0`, etc.).
+**Proposal:** Add tests to compare bytes of bytecode file serialized at HEAD
+with existing [backward compatibility bytecode test files](https://github.com/search?q=repo%3Aopenxla%2Fstablehlo+path%3A**%2Fstablehlo_legalize_to_vhlo.0_*&type=code).
 
 ## Requirements
 
@@ -20,83 +17,66 @@ is both useful and practical:
 
 * **R1.** Tests must detect changes in StableHLO that break forward compatibility.
 * **R2.** Tests must detect LLVM revision bumps that break forward compatibility.
-* **R3.** Test job must scale with releases and execute in a reasonable amount
+* **R3.** Tests must scale with releases and execute in a reasonable amount
 of time.
 
-## Preferred Design: Serialize at HEAD, Deserialize at Target Release
+## Proposed Design: Statically Test Forward Compatibility
 
-_Note: Section only discusses how to test a generic release `0.X.0`. Discussion
-on what values of `X` to test for are discussed in the later section "What
-releases should be tested?"_
+In this design, forward incompatibilities are detected by serializing a file at
+head and comparing it to a known-good file serialized at the previous release.
+This approach operates on the assumption that at HEAD we are able to produce
+a byte-identical serialized artifact, excluding custom header info and debug
+locations.
 
-### Serialize and Commit Test Files at HEAD
-
-Prior to tagging each StableHLO release, which occurs ~2x per week, generate
-versioned forward compatibility tests using the
-`stablehlo_legalize_to_vhlo.0_X_0.mlir` test file as follows:
-
-```bash
-stablehlo-translate --serialize --target=0.X.0
-  stablehlo_legalize_to_vhlo.0_X_0.mlir >
-    stablehlo_legalize_to_vhlo.0_X_0.mlir.bc.HEAD
-```
-
-The output will be a bytecode file that targets `0.X.0` and should be runnable
-at release `0.X.0`. Once these files are generated and checked in, we can add
-the following RUN line to the source `.mlir` file to test serialization,
-deserialization, and FileCheck comparisons:
+Detecting forward incompatiblities can be accomplished by adding the following
+`RUN` line to the versioned [`stablehlo_legalize_to_vhlo.0_X_0.mlir`](https://github.com/search?q=repo%3Aopenxla%2Fstablehlo+path%3A**%2Fstablehlo_legalize_to_vhlo.0_*&type=code)
+test files.
 
 ```bash
-// RUN: stablehlo-translate --deserialize %s.bc.HEAD |
-  stablehlo-translate --serialize --target=0.X.0 |
-    stablehlo-opt --mlir-print-op-generic | FileCheck %s
+diff %s.bc <(stablehlo-opt %s | stablehlo-translate --serialize --target=0.X.0)
 ```
 
-**Proposal 1:** Maintain bytecode at HEAD to use for forward compatibility
-testing.
+Passing through `stablehlo-opt` in this example removes debug info. An option
+to `stablehlo-translate` can be added to strip debug info and header info. This
+test should be run in CI on all PRs to prevent merging incompatible changes in
+StableHLO (_R1_) and LLVM revision bumps (_R2_).
 
-### Add Forward Compatibility CI
-
-A CI job which blocks pull request merges to main can be added to ensure
-forward compatibility of PRs. To test version `0.X.0` the CI job does the
-following:
-
-* Checkout `openxla/stablehlo` at tag `v0.X.0`.
-* Checkout file at HEAD `stablehlo_legalize_to_vhlo.0_X_0.mlir.bc.HEAD`
-* Append FileCheck line to `stablehlo_legalize_to_vhlo.0_X_0.mlir`
-* Perform the existing build-and-test CI workflow.
-
-This will rebuild LLVM at the proper revision, rebuild StableHLO at the tagged
-release, and bring in the forward compatibility test to the CI workspace. Any
-failures in this test file will indicate a forward incompatibility at HEAD. A
-prototype of this CI job can be seen [here](https://github.com/GleasonK/stablehlo/pull/33).
-
-**Proposal 2:** Add CI which builds at tagged release commits to check forward
-compatibility.
-
-## What releases should be tested?
-
-Testing every single release would be sound, but more expensive and time
-consuming than needed, and doesn't scale well with multiple releases a week
-(_R3_). Given that all changes to the StableHLO opset (_R1_), as well as
+The StableHLO process for [Contributing Incompatible Changes](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#add-versioned-serialization-test)
+requires a versioned test be serialized for each compatibility breaking change,
+which means that we can test forward compatibility between HEAD and each minor
+release of StableHLO. Given that all changes to the StableHLO opset, as well as
 changes to serialization machinery like targeting a newer version of the MLIR
-bytecode format (_R2_), require bumping the minor version, there is a low
-chance of causing forward incompatibilities between different patch versions of
-StableHLO (i.e. `0.10.1 → 0.10.2`). Ensuring compatibility between HEAD and all
-minor releases (`0.9.0`, `0.10.0`, etc.) should provide thorough enough
-coverage of the two mentioned sources of forward incompatibilities.
+bytecode format, require bumping the minor version, there is a low chance of
+causing forward incompatibilities between different patch versions of StableHLO
+(i.e. `0.10.1 → 0.10.2`). Ensuring compatibility between HEAD and all minor
+releases (`0.9.0`, `0.10.0`, etc.) should provide thorough enough coverage of the
+two mentioned sources of forward incompatibilities.
 
-Currently, this means that we only serialize a file at HEAD for all supported
-minor releases, and CI will check out each tagged minor release for testing.
+Other benefits of this approach include that it is lightweight (_R3_), can be run
+locally to detect compatibility issues during development, and it fits nicely into
+existing CI build-and-test jobs.
 
-**Proposal 3:** Run CI on all supported minor releases of StableHLO
-(`v0.9.0`, `v0.10.0`, etc.).
+## Alternate Design: Serialize at HEAD, Deserialize at Target Release
 
-## Alternate Design: Statically Test Forward Compatibility
+This design is explored more in a [previous commit of this RFC](https://github.com/openxla/stablehlo/pull/1498/commits/0792eb75e85c54f9d106878569b088d03c568b70),
+and is summarized in this version for brevity. If byte-equality cannot be safely
+relied on, then we may need to use this approach, or a hybrid of the two. This
+design can be summarized as:
 
-Statically test forward compatibility by comparing the bytes produced by a
-writer, excluding the header and comparing the binary segment byte-for-byte.
-This is a good idea, but doesn’t work in practice. The bytecode may change but
-still be readable by a previous version, which is the case currently. Files
-serialized at `StableHLO@HEAD` are different from `StableHLO@v0.9.0`, but both
-produce identical IR when read at `v0.9.0`.
+* Maintain bytecode files serialized at HEAD, which are re-serialized before
+  each StableHLO release (~2x/wk): `stablehlo_legalize_to_vhlo.0_X_0.mlirbc.HEAD`
+* Add CI jobs that build StableHLO/MLIR at every tagged minor release
+  (`v0.9.0`, `v0.10.0`, etc.) and check out the `0_X_0.mlirbc.HEAD` file that
+  corresponds to the tagged release to deserialize and run FileCheck tests on.
+
+This approach is more resilient to compatible changes in the bytecode format.
+The downsides of this approach include that it cannot easily be tested locally,
+requiring CI jobs. As such it doesn't work out of the box in other environments,
+like projects that rely on StableHLO and want to run StableHLO tests. And
+lastly it is more costly and time consuming, as it requires building several
+releases of StableHLO and LLVM/MLIR.
+
+Given the pros/cons of these two designs, this CI should only be used as needed.
+If there are changes that cause bytecode differences that cannot be tested
+statically, this infrastructure can be used. Otherwise, when possible, the
+static verification should be used.
