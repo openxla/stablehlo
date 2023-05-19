@@ -54,7 +54,10 @@ two mentioned sources of forward incompatibilities.
 
 Other benefits of this approach include that it is lightweight (_R3_), can be run
 locally to detect compatibility issues during development, and it fits nicely into
-existing CI build-and-test jobs.
+existing CI build-and-test jobs. If the underlying byte-identical assumption is
+invalidated, we can fall back to the alternate design in a hybrid testing approach,
+since this approach will safely identify all forward incompatibilities, with a
+slight risk of false positives that should be tested using the alternate design.
 
 ## Alternate Design: Serialize at HEAD, Deserialize at Target Release
 
