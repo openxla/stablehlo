@@ -23,15 +23,23 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-// Get current StableHLO version
-std::string getCurrentVersion();
-
 // Write a StableHLO program to a portable artifact
+// Writes a stable payload for `module` to `os`. If compatibility with a
+// previous version of StableHLO is required, provide the required version
+// string `#.#.#` for `targetVersion`.
+//
+// Can fail if `module` cannot be expressed in the `targetVersion` version of
+// StableHLO, e.g. if it's using new or removed features, or if it involves
+// unsupported dialects.
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
                                         raw_ostream& os);
 
 // Read StableHLO portable artifact
+//
+// Can fail if `sourceStr` cannot be expressed in the current version of
+// StableHLO, e.g. if it's using incompatible features. Returns nullptr if
+// `sourceStr` is invalid or fails to deserialize.
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
                                                   MLIRContext* context);
 

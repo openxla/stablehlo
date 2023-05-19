@@ -51,7 +51,7 @@ one of the following tracking labels.
 | and                      | yes           | yes          | yes            | yes             | yes         |
 | atan2                    | yes           | yes          | yes            | yes             | yes         |
 | batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
-| batch_norm_inference     | yes           | revisit      | yes            | no              | no          |
+| batch_norm_inference     | yes           | revisit      | yes            | no              | yes         |
 | batch_norm_training      | yes           | revisit      | yes            | no              | no          |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
@@ -59,7 +59,7 @@ one of the following tracking labels.
 | case                     | yes           | revisit      | yes            | no              | yes         |
 | cbrt                     | yes           | yes          | yes            | yes             | yes         |
 | ceil                     | yes           | yes          | yes            | yes             | yes         |
-| cholesky                 | yes           | yes          | yes            | yes             | no          |
+| cholesky                 | yes           | yes          | yes            | yes             | yes         |
 | clamp                    | yes           | revisit      | yes            | yes             | yes         |
 | collective_permute       | yes           | revisit      | yes            | no              | no          |
 | compare                  | yes           | yes          | yes            | yes             | yes         |
@@ -67,7 +67,7 @@ one of the following tracking labels.
 | compute_reshape_shape    | no            | revisit      | no             | yes             | no          |
 | concatenate              | yes           | yes          | yes            | yes             | yes         |
 | constant                 | yes           | yes          | yes            | yes             | yes         |
-| convert                  | yes           | yes          | infeasible     | yes             | no          |
+| convert                  | yes           | yes          | infeasible     | yes             | yes         |
 | convolution              | yes           | yes          | infeasible     | revisit         | no          |
 | cosine                   | yes           | yes          | yes            | yes             | yes         |
 | count_leading_zeros      | yes           | yes          | yes            | yes             | yes         |
@@ -118,10 +118,10 @@ one of the following tracking labels.
 | real                     | yes           | yes          | yes            | yes             | yes         |
 | real_dynamic_slice       | no            | revisit      | no             | yes             | no          |
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
-| reduce                   | yes           | revisit      | yes            | revisit         | no          |
+| reduce                   | yes           | revisit      | yes            | revisit         | yes         |
 | reduce_precision         | yes           | yes          | yes            | yes             | no          |
 | reduce_scatter           | yes           | revisit      | no             | no              | no          |
-| reduce_window            | yes           | revisit      | yes            | no              | no          |
+| reduce_window            | yes           | revisit      | yes            | no              | yes         |
 | remainder                | yes           | yes          | yes            | yes             | yes         |
 | replica_id               | yes           | yes          | yes            | yes             | no          |
 | reshape                  | yes           | yes          | infeasible     | yes             | yes         |

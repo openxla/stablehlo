@@ -90,4 +90,5 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceSizes
   StablehloReferenceTensor
+  StablehloTypeInference
 )

@@ -38,7 +38,7 @@ class Version {
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
   /// Return a Version representing the current VHLO dialect version.
-  static Version getCurrentVersion() { return Version(0, 11, 1); }
+  static Version getCurrentVersion() { return Version(0, 11, 4); }
 
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
@@ -75,14 +75,6 @@ mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const Version& version);
 
 }  // namespace vhlo
-
-namespace stablehlo {
-
-/// Return the current version for StableHLO APIs.
-/// Increments on all C++/C/Python API changes
-inline int64_t getApiVersion() { return 1; }
-
-}  // namespace stablehlo
 }  // namespace mlir
 
 #endif  // STABLEHLO_DIALECT_VERSION_H

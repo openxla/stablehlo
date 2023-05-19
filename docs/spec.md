@@ -133,7 +133,7 @@ QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
 QuantizationParameter ::= QuantizationScale ':' QuantizationZeroPoint
 QuantizationScale ::= FloatConstant
-QuantizationZeroPoint ::=  IntegerConstant
+QuantizationZeroPoint ::= IntegerConstant
 ```
 
 **Quantized element types** represent integer values of a **storage type** in
@@ -593,23 +593,34 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 * For integers: integer addition.
 * For floats: `addition` from IEEE-754.
 * For complex numbers: complex addition.
+* For quantized types:
+  * `float_result = (lhs - zero_point(lhs)) * scale(lhs) +
+    (rhs - zero_point(rhs)) * scale(rhs)`.
+  * `rounded_result = round_nearest_even(float_result / scale(result))`.
+  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
 
 #### Inputs
 
-| Label | Name  | Type   | Constraints |
-|-------|-------|--------|-------------|
-| (I1)  | `lhs` | tensor | (C1)        |
-| (I2)  | `rhs` | tensor | (C1)        |
+| Label | Name  | Type                       | Constraints |
+|-------|-------|----------------------------|-------------|
+| (I1)  | `lhs` | tensor or quantized tensor | (C1-C4)     |
+| (I2)  | `rhs` | tensor or quantized tensor | (C1-C3)     |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C3)     |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
+* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
+* If the operation uses non-quantized tensors:
+  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+* If the operation uses quantized tensors:
+  * (C3) `element_type(lhs) = element_type(rhs) = element_type(result)`,
+    except for quantization parameters which may differ.
+  * (C4) `quantization_dimension(lhs)` is empty.
 
 #### Examples
 
@@ -1132,7 +1143,8 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   offset_bcast = broadcast_in_dim(offset, [feature_index], shape(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
+                                   shape(operand))
 
   # Perform normalization using the provided `mean` and `variance` instead of
   # computing them like `batch_norm_training` does.
@@ -1185,12 +1197,14 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 %result = "stablehlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
-} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+} : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> tensor<2x2x2xf64>
 // %result: [
 //           [[0.0, 0.0], [2.0, 2.0]],
 //           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_inference.mlir)
 
 ### batch_norm_training
 
@@ -1556,7 +1570,7 @@ matrix, then the behavior is undefined.
 //     ]
 %result = "stablehlo.cholesky"(%a) {
   lower = true
-} : (tensor<3x3xf32>) -> tensor<3x3xf32>
+} : (tensor<3x3xf32>) -> tensor<3x3xf64>
 // %result: [
 //           [1.0, 0.0, 0.0],
 //           [2.0, 4.0, 0.0],
@@ -1884,44 +1898,30 @@ Produces an `output` tensor from a constant `value`.
 Performs an element-wise conversion from one element type to another on
 `operand` tensor and produces a `result` tensor.
 
-For conversions involving **integer-to-integer**, if there is an unsigned/signed
-overflow, the result is implementation-defined and one of the following:
+For **boolean-to-any-supported-type** conversions, the value `false` is
+converted to zero, and the value `true` is converted to one. For
+**any-supported-type-to-boolean** conversions, a zero value is converted to
+`false`, and non-zero values are converted to `true`. See below for how this
+work for complex types.
 
-* mathematical result modulo $2^n$, where n is the bit width of the result,
-  for unsigned overflow. For signed integer overflow, wraps the result around
-  the representable range $[-2^{n-1},\ 2^{n-1} - 1]$.
-* saturation to $2^{n-1} - 1$ (or $-2^{n-1}$) for signed overflow and
-  saturation to $2^n - 1$ (or $0$) for unsigned overflow.
-
-For conversions involving **floating-point-to-floating-point** or
-**integer-to-floating-point**, if the source value can be exactly represented in
-the destination type, the result value is that exact representation. Otherwise,
-the behavior is TBD ([#180](https://github.com/openxla/stablehlo/issues/180)).
-
-Conversion involving **complex-to-complex** follows the same behavior of
-**floating-point-to-floating-point** conversions for converting real and
-imaginary parts.
-
-For conversions involving **floating-point-to-complex** or
-**complex-to-floating-point**, the destination imaginary value is zeroed or the
-source imaginary value is ignored, respectively. The conversion of the real part
-follows the **floating-point-to-floating-point** conversion.
-
-Conversions involving **integer-to-complex** follows the same behavior as
-**integer-to-floating-point** conversion while converting the source integer to
-destination real part. The destination imaginary part is zeroed.
+For conversions involving **integer-to-integer**, **integer-to-floating-point**
+or **floating-point-to-floating-point**, if the source value can be exactly
+represented in the destination type, the result value is that exact
+representation. Otherwise, the behavior is TBD
+([#180](https://github.com/openxla/stablehlo/issues/180)).
 
 For conversions involving **floating-point-to-integer**, the fractional part is
 truncated. If the truncated value cannot be represented in the destination type,
 the behavior is TBD ([#180](https://github.com/openxla/stablehlo/issues/180)).
-Conversions involving **complex-to-integer** follows the same behavior while
-converting the source real part to destination integer. The source imaginary
-part is ignored.
 
-For **boolean-to-any-supported-type** conversions, the value `false` is
-converted to zero, and the value `true` is converted to one. For
-**any-supported-type-to-boolean** conversions, a zero value is converted to
-`false` and any non-zero value is converted to `true`.
+Conversion involving **complex-to-complex** follow the same behavior of
+**floating-point-to-floating-point** conversions for converting real and
+imaginary parts.
+
+For **complex-to-any-other-type** and **any-other-type-to-complex** conversions,
+the source imaginary value is ignored or the destination imaginary value is
+zeroed, respectively. The conversion of the real part follows the
+floating-point conversions.
 
 #### Inputs
 
@@ -1942,10 +1942,12 @@ converted to zero, and the value `true` is converted to one. For
 #### Examples
 
 ```mlir
-// %operand: [1, 2, 3]
-%result = "stablehlo.convert"(%operand) : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
-// %result: [(1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
+// %operand: [-1, 0, 1]
+%result = "stablehlo.convert"(%operand) : (tensor<3xi64>) -> tensor<3xcomplex<f64>>
+// %result: [(-1.0, 0.0), (0.0, 0.0), (1.0, 0.0)]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_convert.mlir)
 
 ### convolution
 
@@ -2302,16 +2304,26 @@ More formally, `result[result_index] = dot_product`, where:
   `size(result_lhs_index) = size(lhs_result_dimensions)` and
   `size(result_rhs_index) = size(rhs_result_dimensions)`.
 * `transposed_lhs = transpose(lhs, lhs_batching_dimensions + lhs_result_dimensions + lhs_contracting_dimensions)`.
-* `transposed_lhs_slice = slice(result_batching_index + result_lhs_index + [:, ..., :])`.
+* `transposed_lhs_slice = slice(transposed_lhs, result_batching_index + result_lhs_index + [:, ..., :])`.
 * `reshaped_lhs_slice = reshape(transposed_lhs_slice, dims(lhs, lhs_contracting_dimensions))`.
 * `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
-* `transposed_rhs_slice = slice(result_batching_index + result_rhs_index + [:, ..., :])`.
+* `transposed_rhs_slice = slice(transposed_rhs, result_batching_index + result_rhs_index + [:, ..., :])`.
 * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
-* `dot_product = reduce(
-  inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-  init_values=[0],
-  dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
-  body=lambda x, y: add(x, y))`.
+* For `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs)`:
+  * `dot_product = reduce(
+      inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+* For `is_quantized_tensor(lhs) and is_quantized_tensor(rhs)`:
+  * `integer_dot_product = reduce(
+      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
+                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
+      init_values=[0],
+      dimensions=[0, ..., size(lhs_contracting_dimensions) - 1],
+      body=lambda x, y: add(x, y))`.
+  * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
+  * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 <!-- markdownlint-enable line-length -->
 
 `precision_config` controls the tradeoff between speed and accuracy for
@@ -2329,49 +2341,62 @@ planning to address this in
 
 #### Inputs
 
-| Label | Name                         | Type                                                         | Constraints                           |
-|-------|------------------------------|--------------------------------------------------------------|---------------------------------------|
-| (I1)  | `lhs`                        | tensor                                                       | (C1), (C6), (C7), (C10), (C11), (C13) |
-| (I2)  | `rhs`                        | tensor                                                       | (C1), (C8), (C9), (C10), (C11), (C13) |
-| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C6), (C10), (C13)        |
-| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C2), (C5), (C8), (C10)               |
-| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C4), (C7), (C11)               |
-| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C3), (C5), (C9), (C11)               |
-| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C12)                                 |
+| Label | Name                         | Type                                                         | Constraints                         |
+|-------|------------------------------|--------------------------------------------------------------|-------------------------------------|
+| (I1)  | `lhs`                        | tensor or quantized tensor                                   | (C5-C6), (C9-C10), (C12-C17), (C19) |
+| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C18), (C20)          |
+| (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12)       |
+| (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)              |
+| (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)             |
+| (I6)  | `rhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C4), (C8), (C10)             |
+| (I7)  | `precision_config`           | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C11)                               |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C13)       |
+| Name     | Type                       | Constraints                    |
+|----------|----------------------------|--------------------------------|
+| `result` | tensor or quantized tensor | (C12-C13), (C15), (C17), (C20) |
 
 #### Constraints
 
-* (C1) `lhs` and `rhs` have the same element type.
-* (C2) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
-* (C3) size(`lhs_contracting_dimensions`) $=$
+<!-- markdownlint-disable line-length -->
+* (C1) size(`lhs_batching_dimensions`) $=$ size(`rhs_batching_dimensions`).
+* (C2) size(`lhs_contracting_dimensions`) $=$
   size(`rhs_contracting_dimensions`).
-* (C4) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
+* (C3) `lhs_batching_dimensions` and `lhs_contracting_dimensions` combined are
   unique.
-* (C5) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
+* (C4) `rhs_batching_dimensions` and `rhs_contracting_dimensions` combined are
   unique.
-* (C6) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C5) 0 $\le$ `lhs_batching_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_batching_dimensions`)).
-* (C7) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
+* (C6) 0 $\le$ `lhs_contracting_dimensions[i]` $\lt$ rank(`lhs`) for all `i`
   $\in$ [0, size(`lhs_contracting_dimensions`)).
-* (C8) 0 $\le$ `rhs_batching_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C7) 0 $\le$ `rhs_batching_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_batching_dimensions`)).
-* (C9) 0 $\le$ `rhs_contracting_dimensions[d]` $\lt$ rank(`rhs`) for all `i`
+* (C8) 0 $\le$ `rhs_contracting_dimensions[i]` $\lt$ rank(`rhs`) for all `i`
   $\in$ [0, size(`rhs_contracting_dimensions`)).
-* (C10) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
+* (C9) dim(`lhs`, `lhs_batching_dimensions[i]`) $=$
   dim(`rhs`, `rhs_batching_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_batching_dimensions`)).
-* (C11) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
+* (C10) dim(`lhs`, `lhs_contracting_dimensions[i]`) $=$
   dim(`rhs`, `rhs_contracting_dimensions[i]`) for all `i` $\in$ [0,
   size(`lhs_contracting_dimensions`)).
-* (C12) size(`precision_config`) $=$ 2.
-* (C13) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
+* (C11) size(`precision_config`) $=$ 2.
+* (C12) shape(`result`) $=$ dim(`lhs`, `lhs_batching_dimensions`) +
   dim(`lhs`, `lhs_result_dimensions`) + dim(`rhs`, `rhs_result_dimensions`).
+* If the operation uses non-quantized tensors:
+  * (C13) `is_non_quantized_tensor(lhs) and is_non_quantized_tensor(rhs) and
+    is_non_quantized_tensor(result)`.
+  * (C14) element_type(`lhs`) $=$ element_type(`rhs`).
+* If the operation uses quantized tensors:
+  * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C16) `storage_type(lhs) = storage_type(rhs)`.
+  * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C18) `zero_points(rhs) = [0, 0, ..., 0]`.
+  * (C19) `quantization_dimension(lhs)` is empty.
+  * (C20) If `quantization_dimension(rhs)` is empty, then `quantization_dimension(result)` is empty.
+<!-- markdownlint-enable line-length -->
 
 #### Examples
 
@@ -3942,17 +3967,16 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 * (C1) All `inputs` have the same shape.
 * (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
-element_type(`results[k]`) for all `k` $\in$ [0, N).
+  element_type(`results[k]`) for all `k` $\in$ [0, N).
 * (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
-N >= 1.
-* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension
-`d`.
+  N >= 1.
+* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension `d`.
 * (C5) All dimensions in `dimensions` are unique.
 * (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
-`tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-`Ek = element_type(inputs[k])`.
+  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+  `Ek = element_type(inputs[k])`.
 * (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
-sizes of `inputs[k]` corresponding to `dimensions` are not included.
+  sizes of `inputs[k]` corresponding to `dimensions` are not included.
 
 #### Examples
 
@@ -3960,14 +3984,16 @@ sizes of `inputs[k]` corresponding to `dimensions` are not included.
 // %input = [[0, 1, 2, 3, 4, 5]]
 // %init_value = 0
 %result = "stablehlo.reduce"(%input, %init_value) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   dimensions = dense<1> : tensor<1xi64>
-} : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+} : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
 // %result = [15]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce.mlir)
 
 ### reduce_precision
 
@@ -4168,10 +4194,10 @@ where:
 
 <!-- markdownlint-disable line-length -->
 * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
-       N $\ge$ 1.
+  N $\ge$ 1.
 * (C2) All `inputs` have the same shape.
-* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for any k
-    $\in$ [0, N).
+* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for all k
+  $\in$ [0, N).
 * (C4) size(`window_dimensions`) $=$ rank(`inputs[0]`).
 * (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
 * (C6) size(`window_strides`) $=$ rank(`inputs[0]`).
@@ -4182,15 +4208,15 @@ where:
 * (C11) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
 * (C12) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
 * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-        where `Ek = element_type(inputs[0])`.
+  where `Ek = element_type(inputs[0])`.
 * (C14) All `results` have the same shape.
 * (C15) `shape(results[0]) = num_windows`
   * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
   * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
   * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
   * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results[k]) = element_type(init_values[k])` for any k
-    $\in$ [0, N).
+* (C16) `element_type(results[k]) = element_type(init_values[k])` for all k
+  $\in$ [0, N).
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4199,18 +4225,20 @@ where:
 // %input = [[1, 2], [3, 4], [5, 6]]
 // %init_value = 0
 %result = "stablehlo.reduce_window"(%input, %init_value) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   window_dimensions = dense<[2, 1]> : tensor<2xi64>,
   window_strides = dense<[4, 1]> : tensor<2xi64>,
   base_dilations = dense<[2, 1]> : tensor<2xi64>,
   window_dilations = dense<[3, 1]> : tensor<2xi64>,
   padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
-} : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
+} : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
 // %result = [[0, 0], [3, 4]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_window.mlir)
 
 ### remainder
 
@@ -4293,15 +4321,15 @@ spaces of `result` and `operand`.
 
 #### Inputs
 
-| Label | Name      | Type   | Constraints |
-|-------|-----------|--------|-------------|
-| (I1)  | `operand` | tensor | (C1), (C2)  |
+| Label | Name      | Type                       | Constraints |
+|-------|-----------|----------------------------|-------------|
+| (I1)  | `operand` | tensor or quantized tensor | (C1-C2)     |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C2)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C2)     |
 
 #### Constraints
 
@@ -5144,16 +5172,16 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
 
 | Label | Name            | Type                                         | Constraints      |
 |-------|-----------------|----------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                       | (C1-C3), (C5)    |
+| (I1)  | `operand`       | tensor or quantized tensor                   | (C1-C3), (C5)    |
 | (I2)  | `start_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I3)  | `limit_indices` | 1-dimensional tensor constant of type `si64` | (C2), (C3), (C5) |
 | (I4)  | `strides`       | 1-dimensional tensor constant of type `si64` | (C2), (C4)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C5)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -5399,14 +5427,14 @@ where `i[d] = j[permutation[d]]`.
 
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
-| (I1)  | `operand`     | tensor                                       | (C1-C3)     |
+| (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C3)     |
 | (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C3)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 

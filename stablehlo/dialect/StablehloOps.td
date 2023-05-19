@@ -252,7 +252,7 @@ def StableHLO_CeilOp: StableHLO_UnaryElementwiseOp<"ceil",
 }
 
 def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
-    [Pure, SameOperandsAndResultShape], HLO_Tensor> {
+    [Pure, SameOperandsAndResultShape /*convert_c1*/], HLO_Tensor> { /*convert_i1*/
   let summary = "Convert operation";
   let description = [{
     Performs an element-wise conversion from one element type to another on
@@ -263,7 +263,7 @@ def StableHLO_ConvertOp : StableHLO_UnaryElementwiseOp<"convert",
 
     Example:
     ```mlir
-    %result = stablehlo.convert %operand : (tensor<3xi32>) -> tensor<3xcomplex<f32>>
+    %result = stablehlo.convert %operand : (tensor<3xi64>) -> tensor<3xcomplex<f64>>
     ```
   }];
   let builders = [
@@ -1454,10 +1454,10 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
 
 def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
       RecursiveMemoryEffects,
-      SameVariadicOperandSize,
-      InferTensorTypeWithReify,
+      SameVariadicOperandSize /*reduce_c3*/,
+      InferTensorTypeWithReify /*reduce_c7*/,
       SingleBlockImplicitTerminator<"ReturnOp">
-    ]> {
+    ]> { /*reduce_c7*/
   let summary = "Reduce operation";
   let description = [{
     Applies a reduction function `body` to `inputs` and `init_values` along the
@@ -1469,19 +1469,22 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
     Example:
     ```mlir
     %result = "stablehlo.reduce"(%input, %init_value) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-        "stablehlo.return"(%0) : (tensor<i32>) -> ()
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       dimensions = dense<1> : tensor<1xi64>
-    } : (tensor<1x6xi32>, tensor<i32>) -> tensor<1xi32>
+    } : (tensor<1x6xi64>, tensor<i64>) -> tensor<1xi64>
     ```
   }];
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    Variadic<HLO_Tensor>:$init_values,
-    I64ElementsAttr:$dimensions
+    Variadic<HLO_Tensor>:$inputs, /*reduce_i1*/
+    Variadic<HLO_Tensor>:$init_values, /*reduce_i2*/
+    I64ElementsAttr:$dimensions /*reduce_i3*/
   );
+  // TODO(hinsu): Verify that the attached body arguments and results are
+  // compatible with reduce op's operands.
+  let regions = (region SizedRegion<1>:$body /*reduce_i4*/);
 
   let results = (outs Variadic<HLO_Tensor>);
 
@@ -1489,9 +1492,6 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 
   let hasVerifier = 1;
 
-  // TODO(hinsu): Verify that the attached body arguments and results are
-  // compatible with reduce op's operands.
-  let regions = (region SizedRegion<1>:$body);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1727,7 +1727,9 @@ def StableHLO_BatchNormGradOp : StableHLO_Op<"batch_norm_grad", [Pure,
 }
 
 def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
-    [Pure, AllElementTypesMatch<["operand", "result"]>, InferTensorType]> {
+    [Pure, AllElementTypesMatch<["operand", "scale", "offset", "mean",
+     "variance", "result"]> /*batch_norm_inference_c2*/,
+     InferTensorType /*batch_norm_inference_c7*/]> {
   let summary = "BatchNormInference operation";
   let description = [{
     Normalizes the `operand` tensor across all dimensions except for the
@@ -1741,18 +1743,18 @@ def StableHLO_BatchNormInferenceOp : StableHLO_Op<"batch_norm_inference",
     %result = "stablehlo.batch_norm_inference"(%operand, %scale, %offset, %mean, %variance) {
       epsilon = 0.0 : f32,
       feature_index = 2 : i64
-    } : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>, tensor<2xf32>) -> tensor<2x2x2xf32>
+    } : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>, tensor<2xf64>) -> tensor<2x2x2xf64>
     ```
   }];
 
   let arguments = (ins
-    RankedTensorOf<[HLO_Float]>:$operand,
-    1DTensorOf<[HLO_Float]>:$scale,
-    1DTensorOf<[HLO_Float]>:$offset,
-    1DTensorOf<[HLO_Float]>:$mean,
-    1DTensorOf<[HLO_Float]>:$variance,
-    F32Attr:$epsilon,
-    I64Attr:$feature_index
+    RankedTensorOf<[HLO_Float]>:$operand /*batch_norm_inference_i1*/,
+    1DTensorOf<[HLO_Float]>:$scale /*batch_norm_inference_i2*/,
+    1DTensorOf<[HLO_Float]>:$offset /*batch_norm_inference_i3*/,
+    1DTensorOf<[HLO_Float]>:$mean /*batch_norm_inference_i4*/,
+    1DTensorOf<[HLO_Float]>:$variance /*batch_norm_inference_i5*/,
+    F32Attr:$epsilon /*batch_norm_inference_i6*/,
+    I64Attr:$feature_index /*batch_norm_inference_i7*/
   );
 
   let results = (outs RankedTensorOf<[HLO_Float]>:$result);
@@ -1925,7 +1927,8 @@ def StableHLO_DynamicBroadcastInDimOp : StableHLO_ShapedInterfaceOp<
 // directly.
 
 def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
-      [Pure, SameOperandsAndResultElementType, InferTensorType]> {
+      [Pure, SameOperandsAndResultElementType /*cholesky_c1*/,
+       InferTensorType /*cholesky_c1*/]> {
   let summary = "Cholesky operation";
   let description = [{
     Computes the Cholesky decomposition of a batch of matrices.
@@ -1935,7 +1938,7 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
 
     Example:
     ```mlir
-    %result = stablehlo.cholesky %a, lower = true : tensor<3x3xf32>
+    %result = stablehlo.cholesky %a, lower = true : tensor<3x3xf64>
     ```
   }];
   let arguments = (ins
@@ -2805,10 +2808,9 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
       RecursiveMemoryEffects,
-      SameVariadicOperandSize,
+      SameVariadicOperandSize /*reduce_window_c1*/,
       SingleBlockImplicitTerminator<"ReturnOp">,
-      InferTensorType,
-    ]> {
+      InferTensorType /*reduce_window_c1, reduce_window_c14, reduce_window_c15, reduce_window_c16*/]> {
   let summary = "ReduceWindow operation";
   let description = [{
     Applies a reduction function `body` to windows of `inputs` and `init_values`
@@ -2820,35 +2822,35 @@ def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
     Example:
     ```mlir
     %result = "stablehlo.reduce_window"(%input, %init_value) ({
-      ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-        %0 = stablehlo.add %arg0, %arg1 : tensor<i32>
-        stablehlo.return %0 : tensor<i32>
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       window_dimensions = dense<[2, 1]> : tensor<2xi64>,
       window_strides = dense<[4, 1]> : tensor<2xi64>,
       base_dilations = dense<[2, 1]> : tensor<2xi64>,
       window_dilations = dense<[3, 1]> : tensor<2xi64>,
       padding = dense<[[2, 1], [0, 0]]> : tensor<2x2xi64>
-    } : (tensor<3x2xi32>, tensor<i32>) -> tensor<2x2xi32>
+    } : (tensor<3x2xi64>, tensor<i64>) -> tensor<2x2xi64>
     ```
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    Variadic<HLO_Tensor>:$init_values,
-    I64ElementsAttr:$window_dimensions,
+    Variadic<HLO_Tensor>:$inputs /*reduce_window_i1*/,
+    Variadic<HLO_Tensor>:$init_values /*reduce_window_i2*/,
+    I64ElementsAttr:$window_dimensions /*reduce_window_i3*/,
     // If strides or dilations attributes are missing then the default value is
     // one for each of the operand dimensions. Similarly, padding values are zero
     // for both low and high in each of the dimensions, if not specified.
-    OptionalAttr<I64ElementsAttr>:$window_strides,
-    OptionalAttr<I64ElementsAttr>:$base_dilations,
-    OptionalAttr<I64ElementsAttr>:$window_dilations,
-    OptionalAttr<I64ElementsAttr>:$padding
+    OptionalAttr<I64ElementsAttr>:$window_strides /*reduce_window_i4*/,
+    OptionalAttr<I64ElementsAttr>:$base_dilations /*reduce_window_i5*/,
+    OptionalAttr<I64ElementsAttr>:$window_dilations /*reduce_window_i6*/,
+    OptionalAttr<I64ElementsAttr>:$padding /*reduce_window_i7*/
   );
 
   let results = (outs Variadic<HLO_Tensor>);
 
-  let regions = (region SizedRegion<1>:$body);
+  let regions = (region SizedRegion<1>:$body /*reduce_window_i8*/);
 
   let hasVerifier = 1;
 

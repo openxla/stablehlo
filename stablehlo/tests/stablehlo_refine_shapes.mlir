@@ -19,7 +19,7 @@ func.func @error_too_many_blocks(%arg0: tensor<f32>) -> tensor<f32> {
 
 // -----
 
-// expected-error@-3{{must have no more than one function}}
+// expected-error@-3{{must have no more than one function or a `main` function to clearly identify which function will be refined}}
 func.func @error_too_many_functions(%arg0: tensor<f32>) -> tensor<f32> {
   %0 = func.call @helper(%arg0) : (tensor<f32>) -> tensor<f32>
   func.return %0 : tensor<f32>
@@ -27,6 +27,24 @@ func.func @error_too_many_functions(%arg0: tensor<f32>) -> tensor<f32> {
 
 func.func private @helper(%arg0: tensor<f32>) -> tensor<f32> {
   return %arg0 : tensor<f32>
+}
+
+// -----
+
+module @has_main {
+  // CHECK: main
+  func.func @main(%arg0: tensor<4xf32>) -> tensor<*xi32> {
+    // CHECK: stablehlo.bitcast_convert{{.*}} -> tensor<4xi32>
+    %0 = stablehlo.bitcast_convert %arg0 : (tensor<4xf32>) -> tensor<*xi32>
+    func.return %0 : tensor<*xi32>
+  }
+
+  // CHECK: helper
+  func.func @helper(%arg0: tensor<4xf32>) -> tensor<*xi32> {
+    // CHECK: stablehlo.bitcast_convert{{.*}} -> tensor<*xi32>
+    %0 = stablehlo.bitcast_convert %arg0 : (tensor<4xf32>) -> tensor<*xi32>
+    func.return %0 : tensor<*xi32>
+  }
 }
 
 // -----

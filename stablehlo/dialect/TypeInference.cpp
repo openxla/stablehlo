@@ -127,7 +127,6 @@ FailureOr<SmallVector<int64_t>> convert1DAttribute(
   return SmallVector<int64_t>{values.begin(), values.end()};
 }
 
-// Convert a Nx2 dense int64 padding attribute to a list of tuples.
 FailureOr<SmallVector<std::pair<int64_t, int64_t>>> convertPaddingAttribute(
     std::optional<DenseIntElementsAttr> optionalAttr,
     std::optional<Location> loc) {
@@ -225,12 +224,14 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         location,
         "expects multi-dimensional operands to have compatible shapes.");
 
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (failed(verifyPairwiseCompatibleShapes(singleDimOperands.getTypes())))
     return emitOptionalError(
         location,
         "expects single-dimensional operands to have compatible shapes.");
 
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  // batch_norm_inference_c1
   if (featureIndex >= multiDimType.getRank())
     return emitOptionalError(
         location,
@@ -238,16 +239,16 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "multi-dimensional operands; got featureIndex ",
         featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
+  // batch_norm_inference_c1
   if (featureIndex < 0)
     return emitOptionalError(location, "expects featureIndex to be a ",
                              "non-negative number, got ", featureIndex, ".");
-  // Note: the above checks '0 <= feature-index < multiDimType.getRank()'
-  // imply 'multiDimType.getRank() >= 1'.
 
   const int64_t featureCount = multiDimType.getDimSize(featureIndex);
   const int64_t singleDimSize =
       singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
+  // batch_norm_inference_c3...batch_norm_inference_c6
   if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
@@ -270,6 +271,7 @@ LogicalResult inferBatchNormOp(
 
   // Batch norm ops require operands to be ranked.
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
+  // batch_norm_inference_c7
   inferredReturnShapes.emplace_back(multiDimType.getShape(),
                                     multiDimType.getElementType(),
                                     multiDimType.getEncoding());
@@ -312,13 +314,16 @@ verifyWindowAttributesAndInferWindowDimensions(
         " to have same dimension-size as size of window dimensions (",
         windowDimensions.size(), "), but got: ", attrSize, ".");
   };
-
+  // reduce_window_c6
   if (failed(verifySize(windowStrides.size(), "window-strides")))
     return failure();
+  // reduce_window_c8
   if (failed(verifySize(lhsDilation.size(), "base-dilation factors")))
     return failure();
+  // reduce_window_c10
   if (failed(verifySize(rhsDilation.size(), "window-dilation factors")))
     return failure();
+  // reduce_window_c12
   if (failed(verifySize(padding.size(), "padding-entries"))) return failure();
   if (failed(verifySize(windowReversal.size(), "window-reversal")))
     return failure();
@@ -328,24 +333,28 @@ verifyWindowAttributesAndInferWindowDimensions(
     WindowDimension& dim = window[i];
 
     dim.size = windowDimensions[i];
+    // reduce_window_c5
     if (!isDynamicDimSize(dim.size) && dim.size <= 0)
       return emitOptionalError(loc,
                                "expects window to have positive value for ", i,
                                "-th window dimension, but got ", dim.size, ".");
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
+    // reduce_window_c7
     if (dim.stride <= 0)
       return emitOptionalError(
           loc, "expects window to have positive stride for ", i,
           "-th window dimension, but got ", dim.stride, ".");
 
     if (!lhsDilation.empty()) dim.baseDilation = lhsDilation[i];
+    // reduce_window_c9
     if (dim.baseDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive base dilation factor for ", i,
           "-th window dimension, but got ", dim.baseDilation, ".");
 
     if (!rhsDilation.empty()) dim.windowDilation = rhsDilation[i];
+    // reduce_window_c11
     if (dim.windowDilation <= 0)
       return emitOptionalError(
           loc, "expects window to have positive window dilation factor for ", i,
@@ -367,8 +376,8 @@ verifyWindowAttributesAndInferWindowDimensions(
 //            padding_high,
 //                         dilatedBound(window_shape[d]))
 //      where (padding_low, padding_high) is the padding-pair for d.
-SmallVector<int64_t> inferWindowOutputShape(
-    const ArrayRef<int64_t> baseShape, const ArrayRef<WindowDimension> window) {
+SmallVector<int64_t> inferWindowOutputShape(ArrayRef<int64_t> baseShape,
+                                            ArrayRef<WindowDimension> window) {
   assert(baseShape.size() == window.size() &&
          "Size of window dimensions must match the size of base shape.");
 
@@ -457,6 +466,10 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     std::optional<Location> location, SmallVector<ShapedType> inputArgTypes,
     SmallVector<ShapedType> initValueTypes, DenseIntElementsAttr dimensions,
     SmallVector<int64_t>& newDimensions, Attribute& encoding) {
+  // reduce_i3
+  if (dimensions.getType().getRank() != 1)
+    return emitOptionalError(location, "dimensions must be rank 1");
+
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputArgTypes.size();
   int64_t rankedInputIdx = -1;
@@ -467,7 +480,7 @@ LogicalResult verifyReduceOpInputsAndInferShape(
     }
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
-
+  // reduce_c1
   if (!allInputsUnranked) {
     for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx)
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
@@ -480,13 +493,14 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 
   DenseSet<int64_t> dimensionsToReduceSet;
   for (int64_t dimension : dimensions.getValues<int64_t>()) {
+    // reduce_c4
     if ((!allInputsUnranked &&
          dimension >= inputArgTypes[rankedInputIdx].getRank()) ||
         dimension < 0)
       return emitOptionalError(
           location, "Out-of-bounds dimension ", dimension,
           " for input-tensor rank: ", inputArgTypes[rankedInputIdx].getRank());
-
+    // reduce_c5
     if (!dimensionsToReduceSet.insert(dimension).second)
       return emitOptionalError(location,
                                "Duplicate reduction dimension: ", dimension);
@@ -494,7 +508,6 @@ LogicalResult verifyReduceOpInputsAndInferShape(
 
   if (!allInputsUnranked) {
     auto rankedInput = inputArgTypes[rankedInputIdx].cast<RankedTensorType>();
-
     ArrayRef<int64_t> inputBounds = encodingToBounds(rankedInput.getEncoding());
     SmallVector<int64_t> newBounds;
     for (int inputIdx = 0; inputIdx < rankedInput.getRank(); ++inputIdx) {
@@ -519,20 +532,18 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  int64_t numInputs,
                                  ArrayRef<int64_t> allowedDimensions,
                                  bool allInputsUnranked) {
-  // Check that the number of reduction-region arguments matches with that of
-  // reduce-op's arguments.
+  // reduce_c6, reduce_window_c13
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // Check if the reduction-region produces non-zero outputs.
+  // reduce_c6, reduce_window_c13
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // Check that the reduction-region returns list- of tensors.
-  // The number of result-tensors must match the `numInputs`.
+  // reduce_c6, reduce_window_c13
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -540,51 +551,21 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
+  // reduce_c6, reduce_window_c13
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
     if (!shapedTy)
       return emitOptionalError(loc,
                                "Reduction-region here must produce "
-                               "tensor-typed result(s), but "
-                               "produces ",
+                               "tensor-typed result(s), but produces ",
                                retOperand.getType(), " instead");
 
     accumulatorSubShapes.push_back(shapedTy);
   }
 
-  // Consider typical reduce-* op syntax:
-  //
-  //      op(I(i), V(j)):
-  //       block(BI(i), BV(j)):
-  //         ... some computation ...
-  //         return(R(i))
-  //
-  // where
-  //  I(i)  : i-th input of op
-  //  V(j)  : j-th init-value of op
-  //  BI(i) : i-th input of reducer-function
-  //  BV(j) : j-th init-value of reducer-function
-  //  R(i)  : i-th return-type
-  //
-  //  Note that: |I(i)| == |V(j)| == |BI(i)| == |BV(j)| == |R(i)|
-  //
-  //  Here are the type-constraints among V(j), BI(i), BV(j), and R(i).
-  //    C1 : Check that BI(i) and R(i) have same shape and element-type.
-  //    C2 : Check that BV(j) and R(i) have same shape and element-type.
-  //    C3 : Check that V(j) and R(i) have same shape and element-type.
-  //
-  //  From C1, C2, and C3, we can infer that V(j), BI(i), BV(j), and R(i) all
-  //  have compatible shapes and element-types.
-  //  The next check, C4, adds constraints on how the type if I(i) is related
-  //  to any_of(V(j), BI(i), BV(j), and R(i)), say BV(j);
-  //
-  //  C4.1 : Check that I(i) and BV(j) have same element-type.
-  //  C4.2 : Check that shape of BV(j) is a 'sub-sequence' of
-  //         'allowedDimensions'. 'allowedDimensions' is a list of dimensions
-  //         which any of BI(i), BV(j), and R(i) is allowed to have.
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // Check C1.
+    // reduce_c2, reduce_window_c13
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -593,7 +574,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // Check C2.
+    // reduce_c2, reduce_window_c13
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -605,7 +586,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // Check C3.
+    // reduce_c6, reduce_window_c13, reduce_window_i2
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -614,7 +595,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           " differs from the op's corresponding init-value type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // Check C4.1.
+    // reduce_c6, reduce_window_c3
     if (!tensorsHaveSameElType(
             inputArgTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
@@ -624,13 +605,13 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           inputArgTypes[inputIdx].getElementType(), ", but got ",
           block.getArgument(numInputs + inputIdx).getType(), " as its type.");
 
-    // Check C4.2.
     Type blockArgType = block.getArgument(numInputs + inputIdx).getType();
     auto blockArgTensorTy = blockArgType.cast<ShapedType>();
 
     if (allInputsUnranked || !blockArgTensorTy.hasRank()) return success();
 
     auto argShape = blockArgTensorTy.getShape();
+    // reduce_c6, reduce_window_c13
     if (argShape.size() > allowedDimensions.size())
       return emitOptionalError(
           loc, "The rank of reduction-region's argument at index ",
@@ -647,6 +628,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                argShape[argShapeIdx]))
         argShapeIdx++;
 
+    // reduce_c6, reduce_window_c13
     if (argShapeIdx != static_cast<int64_t>(argShape.size()))
       return emitOptionalError(
           loc, "The shape of reduction-region's argument at index ",
@@ -667,9 +649,12 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
     std::optional<DenseIntElementsAttr> baseDilations,
     std::optional<DenseIntElementsAttr> windowDilations,
     std::optional<DenseIntElementsAttr> padding,
-    std::optional<DenseElementsAttr> windowReversal,
     SmallVector<int64_t>& windowDims,
     SmallVector<WindowDimension>& inferredWindow) {
+  // reduce_window_c1
+  if (inputArgTypes.empty())
+    return emitOptionalError(location, "requires at least 1 input value");
+
   // Check for unranked tensors in input operands.
   uint64_t numInputs = inputArgTypes.size();
   int64_t rankedInputIdx = -1;
@@ -681,7 +666,7 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
 
-  // P1.
+  // reduce_window_c2
   if (!allInputsUnranked) {
     for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx)
       if (failed(mlir::verifyCompatibleShape(inputArgTypes[rankedInputIdx],
@@ -692,10 +677,27 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
             " is not compatible with shape at input-index ", rankedInputIdx);
   }
 
-  // P2.
+  // reduce_window_i3
   auto windowDimsOrErr =
       convert1DAttribute(windowDimensions, location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
+  // reduce_window_i4
+  auto windowStridesOrErr =
+      convert1DAttribute(windowStrides, location, "window_strides");
+  if (failed(windowStridesOrErr)) return failure();
+  // reduce_window_i5
+  auto baseDilationsOrErr =
+      convert1DAttribute(baseDilations, location, "base_dilations");
+  if (failed(baseDilationsOrErr)) return failure();
+  // reduce_window_i6
+  auto windowDilationsOrErr =
+      convert1DAttribute(windowDilations, location, "window_dilations");
+  if (failed(windowDilationsOrErr)) return failure();
+  // reduce_window_c12, reduce_window_i7
+  auto paddingOrErr = convertPaddingAttribute(padding, location);
+  if (failed(paddingOrErr)) return failure();
+
+  // reduce_window_c4
   for (const auto inputType : inputArgTypes) {
     if (!inputType.hasRank()) continue;
     if (inputType.getRank() != static_cast<int64_t>((*windowDimsOrErr).size()))
@@ -705,27 +707,12 @@ LogicalResult verifyReduceWindowOpInputsAndInferWindow(
           " and input: ", inputType, " with rank = ", inputType.getRank(), ".");
   }
 
-  // P3.
-  auto paddingOrErr = convertPaddingAttribute(padding, location);
-  if (failed(paddingOrErr)) return failure();
-
-  auto windowStridesOrErr =
-      convert1DAttribute(windowStrides, location, "window_strides");
-  if (failed(windowStridesOrErr)) return failure();
-  auto baseDilationsOrErr =
-      convert1DAttribute(baseDilations, location, "base_dilations");
-  if (failed(baseDilationsOrErr)) return failure();
-  auto windowDilationsOrErr =
-      convert1DAttribute(windowDilations, location, "window_dilations");
-  if (failed(windowDilationsOrErr)) return failure();
-  auto windowReversalOrErr = convertWindowReversalAttribute(
-      windowReversal, location, "window_reversal");
-  if (failed(windowReversalOrErr)) return failure();
-
+  // reduce_window_c5...reduce_window_c12
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/*baseDilationsOrErr,
-      /*rhsDilation=*/*windowDilationsOrErr, *windowReversalOrErr, location);
+      /*rhsDilation=*/*windowDilationsOrErr, /*windowReversal=*/std::nullopt,
+      location);
   if (failed(windowOrErr)) return failure();
 
   windowDims.append(*windowDimsOrErr);
@@ -1514,33 +1501,32 @@ LogicalResult inferCaseOp(std::optional<Location> location, Value index,
   return inferConditionalOp(location, index, branches, inferredReturnTypes);
 }
 
-// The following properties are already enforced by the ODS:
-//   P0. a.element_type is floating or complex
-// We intend to verify the following properties
-//   P1. The 'a' argument to Cholesky must have rank >= 2, got shape %s
-//   P2. The two minor dimensions of 'a' must have equal size, got %s.
 LogicalResult inferCholeskyOp(
     std::optional<Location> location, Value a,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type aType = a.getType();
   RankedTensorType aRankedType = aType.dyn_cast<RankedTensorType>();
   if (!aRankedType) {
+    // cholesky_c1
     inferredReturnShapes.emplace_back(
         aType.cast<ShapedType>().getElementType());
     return success();
   }
 
   ArrayRef<int64_t> aShape = aRankedType.getShape();
+  // cholesky_c2
   if (aShape.size() < 2)
     return emitOptionalError(
         location, "argument 'a' must have rank >= 2, got shape ", aShape, ".");
 
+  // cholesky_c3
   if (!verifyCompatibleDims(aShape[aShape.size() - 2],
                             aShape[aShape.size() - 1]))
     return emitOptionalError(
         location, "minor dimensions of 'a' must have equal size, got shape ",
         aShape, ".");
 
+  // cholesky_c1
   inferredReturnShapes.emplace_back(aRankedType.getShape(),
                                     aRankedType.getElementType(),
                                     aRankedType.getEncoding());
@@ -1719,6 +1705,7 @@ LogicalResult inferConvertOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<ShapedType>();
+  // convert_c1
   inferredReturnShapes.emplace_back(
       operandType.hasRank() ? operandType.getShape() : ArrayRef<int64_t>{});
   return success();
@@ -2560,11 +2547,12 @@ LogicalResult inferReduceOp(
 
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
+  // reduce_c1, reduce_c4, reduce_c5, reduce_i3
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTensorTypes,
                                                initValueTensorTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
-
+  // reduce_c2, reduce_c3, reduce_c7
   for (uint64_t inputIdx = 0; inputIdx < inputTypes.size(); ++inputIdx) {
     ShapedType inputType = inputArgTensorTypes[inputIdx];
     Type elementType = inputType.getElementType();
@@ -2592,12 +2580,15 @@ LogicalResult inferReduceWindowOp(
 
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
+  // reduce_window_c1, reduce_window_c2, reduce_window_c4...reduce_window_c12,
+  // reduce_window_i4...reduce_window_i7
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
-          windowStrides, baseDilations, windowDilations, padding,
-          /*windowReversal=*/std::nullopt, windowDims, inferredWindow)))
+          windowStrides, baseDilations, windowDilations, padding, windowDims,
+          inferredWindow)))
     return failure();
 
+  // reduce_window_c1, reduce_window_c14...reduce_window_c16
   for (size_t i = 0; i < inputArgTypes.size(); ++i) {
     auto inputRankedType = inputs[i].getType().dyn_cast<RankedTensorType>();
     if (!inputRankedType) {
@@ -3616,12 +3607,6 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
   return success();
 }
 
-// We intend to verify the following properties
-//  P1. Verify all `inputs` need to have compatible shapes.
-//  P2. Verify that
-//      1. the dimensions of reduce-op are in-bounds for the given shape.
-//      2. the dimension-attribute have no duplicate entries.
-//  P3. Verify the inner block defining the reducer function.
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,
                              DenseIntElementsAttr dimensions, Region& body) {
@@ -3630,15 +3615,14 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
   SmallVector<ShapedType> initValueTypes{llvm::map_range(
       initValues.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
 
-  // P1. & P2.
   SmallVector<int64_t> newDimensions;
   Attribute encoding;
+  // reduce_c1, reduce_c4, reduce_c5, reduce_i3
   if (failed(verifyReduceOpInputsAndInferShape(location, inputArgTypes,
                                                initValueTypes, dimensions,
                                                newDimensions, encoding)))
     return failure();
 
-  // P3.
   uint64_t numInputs = inputs.size();
   int64_t rankedInputIdx = -1;
   for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
@@ -3648,7 +3632,7 @@ LogicalResult verifyReduceOp(std::optional<Location> location,
     }
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
-
+  // reduce_c2, reduce_c6
   Block& block = body.front();
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, newDimensions, allInputsUnranked)))
@@ -3734,12 +3718,6 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
   return success();
 }
 
-// We intend to verify the following properties
-//  P1. All `inputs` need to have compatible shapes.
-//  P2. size-of(window_dimension) == rank-of(input),
-//        where input is an element of 'inputs'.
-//  P3. Verify and collect the window atributes.
-//  P4. Verify the inner block defining the reducer function.
 LogicalResult verifyReduceWindowOp(
     std::optional<Location> location, ValueRange inputs, ValueRange initValues,
     DenseIntElementsAttr windowDimensions,
@@ -3753,16 +3731,16 @@ LogicalResult verifyReduceWindowOp(
       initValues.getTypes(), [](Type t) { return t.cast<ShapedType>(); })};
   uint64_t numInputs = inputs.size();
 
-  // P1. ~ P3.
   SmallVector<int64_t> windowDims;
   SmallVector<WindowDimension> inferredWindow;
+  // reduce_window_c1, reduce_window_c2, reduce_window_c4...reduce_window_c12,
+  // reduce_window_i4...reduce_window_i7
   if (failed(verifyReduceWindowOpInputsAndInferWindow(
           location, inputArgTypes, initValueTypes, windowDimensions,
-          windowStrides, baseDilations, windowDilations, padding,
-          /*windowReversal=*/std::nullopt, windowDims, inferredWindow)))
+          windowStrides, baseDilations, windowDilations, padding, windowDims,
+          inferredWindow)))
     return failure();
 
-  // P4.
   // Check for unranked tensors in input operands.
   int64_t rankedInputIdx = -1;
   for (uint64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
@@ -3773,6 +3751,7 @@ LogicalResult verifyReduceWindowOp(
   }
   bool allInputsUnranked = (rankedInputIdx == -1);
   Block& block = body.front();
+  // reduce_window_c3, reduce_window_c13, reduce_window_i2
   if (failed(verifyReducerShape(location, block, inputArgTypes, initValueTypes,
                                 numInputs, windowDims, allInputsUnranked)))
     return failure();

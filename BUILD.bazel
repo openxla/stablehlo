@@ -22,6 +22,8 @@ package(
 exports_files([
     "LICENSE",
     "stablehlo/integrations/python/ChloModule.cpp",
+    "stablehlo/integrations/python/PortableApi.cpp",
+    "stablehlo/integrations/python/PortableApi.h",
     "stablehlo/integrations/python/StablehloModule.cpp",
     "stablehlo/integrations/python/VhloModule.cpp",
 ])
@@ -369,6 +371,7 @@ cc_library(
         ":reference_tensor",
         ":reference_types",
         ":stablehlo_ops",
+        ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
@@ -692,6 +695,29 @@ cc_library(
         "@llvm-project//mlir:TensorDialect",
         "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
+    ],
+)
+
+cc_library(
+    name = "stablehlo_portable_api",
+    srcs = [
+        "stablehlo/api/PortableApi.cpp",
+    ],
+    hdrs = [
+        "stablehlo/api/PortableApi.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":stablehlo_ops",
+        ":stablehlo_serialization",
+        ":version",
+        ":vhlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:BytecodeWriter",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Support",
     ],
 )
 

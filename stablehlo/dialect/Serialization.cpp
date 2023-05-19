@@ -15,9 +15,6 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
-#include <sstream>
-
-#include "llvm/Support/raw_ostream.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
@@ -78,10 +75,6 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
   }
 
   return module;
-}
-
-std::string getCurrentVersion() {
-  return mlir::vhlo::Version::getCurrentVersion().toString();
 }
 
 }  // namespace stablehlo

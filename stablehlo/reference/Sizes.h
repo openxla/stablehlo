@@ -32,6 +32,7 @@ class Sizes : public SmallVector<int64_t> {
   Sizes &operator=(const Sizes &other) = default;
 
   Sizes(std::initializer_list<int64_t> list) : SmallVector(list) {}
+  Sizes(iterator begin, iterator end) : SmallVector(begin, end) {}
   explicit Sizes(size_t size, int64_t element = 0)
       : SmallVector(size, element) {}
   explicit Sizes(ArrayRef<int64_t> array) : SmallVector(array) {}

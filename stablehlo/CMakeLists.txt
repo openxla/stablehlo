@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_subdirectory(api)
 add_subdirectory(conversions)
 add_subdirectory(dialect)
 add_subdirectory(integrations)

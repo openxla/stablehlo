@@ -55,7 +55,8 @@ struct InferReturnTypesPattern : public RewritePattern {
     SmallVector<Type, 4> types;
     if (failed(definingOpInt.inferReturnTypes(
             op->getContext(), op->getLoc(), definingOp->getOperands(),
-            definingOp->getAttrDictionary(), definingOp->getRegions(), types)))
+            definingOp->getAttrDictionary(), definingOp->getPropertiesStorage(),
+            definingOp->getRegions(), types)))
       return failure();
 
     // Replace the op with another pass-through op with attributes added.

@@ -15,10 +15,10 @@ limitations under the License.
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "stablehlo/dialect/Serialization.h"
-#include "stablehlo/dialect/Version.h"
 #include "stablehlo/integrations/c/StablehloAttributes.h"
 #include "stablehlo/integrations/c/StablehloDialect.h"
 #include "stablehlo/integrations/c/StablehloTypes.h"
+#include "stablehlo/integrations/python/PortableApi.h"
 
 namespace py = pybind11;
 
@@ -479,17 +479,13 @@ PYBIND11_MODULE(_stablehlo, m) {
       });
 
   //
-  // Utility APIs.
+  // Portable APIs
   //
-
-  m.def("get_api_version", []() { return mlir::stablehlo::getApiVersion(); });
+  mlir::stablehlo::AddPortableApi(m);
 
   //
   // Serialization APIs.
   //
-
-  m.def("get_current_version",
-        []() { return mlir::stablehlo::getCurrentVersion(); });
 
   m.def(
       "serialize_portable_artifact",
