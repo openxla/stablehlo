@@ -29,6 +29,7 @@ set(LIBS
         StablehloRegister
         StablehloTestUtils
         StablehloPasses
+        StablehloTOSATransforms
         )
 add_llvm_executable(stablehlo-opt StablehloOptMain.cpp)
 llvm_update_compile_flags(stablehlo-opt)

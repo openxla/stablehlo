@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2022 OpenXLA Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,13 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+configure_lit_site_cfg(
+        ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
+        ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py
+        MAIN_CONFIG
+        ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py
+)
 
-add_subdirectory(api)
-add_subdirectory(conversions)
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(testdata)
-add_subdirectory(tools)
-add_subdirectory(transforms)
+add_lit_testsuite(check-stablehlo-tosa-lit "Running the stablehlo-tosa regression tests"
+        ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS
+        FileCheck
+        stablehlo-opt
+        )
+# add_dependencies(check-stablehlo-tests check-stablehlo-tosa-lit)

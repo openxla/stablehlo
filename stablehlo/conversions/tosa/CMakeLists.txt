@@ -1,4 +1,4 @@
-# Copyright 2022 The StableHLO Authors.
+# Copyright 2022 OpenXLA Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(api)
-add_subdirectory(conversions)
-add_subdirectory(dialect)
-add_subdirectory(integrations)
-add_subdirectory(reference)
-add_subdirectory(tests)
-add_subdirectory(testdata)
-add_subdirectory(tools)
 add_subdirectory(transforms)
+add_subdirectory(tests)
+
+add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
+  transforms/legalize_stablehlo.pdll
+  transforms/legalize_stablehlo.pdll.h.inc
+  )
+

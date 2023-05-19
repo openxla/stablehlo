@@ -119,3 +119,4 @@ set(STABLEHLO_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 add_custom_target(check-stablehlo)
 
 add_subdirectory(stablehlo)
+
