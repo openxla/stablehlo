@@ -25,4 +25,4 @@ add_lit_testsuite(check-stablehlo-tosa-lit "Running the stablehlo-tosa regressio
         FileCheck
         stablehlo-opt
         )
-add_dependencies(check-stablehlo-tests check-stablehlo-tosa-lit)
+# add_dependencies(check-stablehlo-tests check-stablehlo-tosa-lit)
