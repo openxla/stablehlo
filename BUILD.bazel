@@ -826,11 +826,69 @@ cc_binary(
     deps = [
         ":register",
         ":stablehlo_passes",
-        "//stablehlo/conversions/tosa/transforms:StablehloTOSATransforms",
+        ":tosa_passes",
         "//stablehlo/tests:test_utils",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:TosaDialect",
+    ],
+)
+
+gentbl_cc_library(
+    name = "tosa_pass_inc_gen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=StablehloTOSATransforms",
+            ],
+            "stablehlo/conversions/tosa/transforms/passes.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "stablehlo/conversions/tosa/transforms/passes.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
+cc_library(
+    name = "tosa_passes",
+    srcs = [
+        "stablehlo/conversions/tosa/transforms/legalize_stablehlo.cc",
+        "stablehlo/conversions/tosa/transforms/prepare_stablehlo.cc",
+    ],
+    hdrs = [
+        "stablehlo/conversions/tosa/transforms/passes.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":stablehlo_ops",
+        ":tosa_pdll_inc_gen",
+        ":tosa_pass_inc_gen",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:QuantOps",
+        "@llvm-project//mlir:TosaDialect",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
+gentbl_cc_library(
+    name = "tosa_pdll_inc_gen",
+    tbl_outs = [
+        (
+            ["-x=cpp"],
+            "stablehlo/conversions/tosa/transforms/legalize_stablehlo.pdll.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-pdll",
+    td_file = "stablehlo/conversions/tosa/transforms/legalize_stablehlo.pdll",
+    deps = [
+        ":stablehlo_ops_td_files",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:TosaDialectTdFiles",
     ],
 )
 

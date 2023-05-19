@@ -17,6 +17,11 @@ set(LLVM_TARGET_DEFINITIONS passes.td)
 mlir_tablegen(passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
 add_public_tablegen_target(StablehloTOSATransformsPassIncGen)
 
+add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
+  legalize_stablehlo.pdll
+  legalize_stablehlo.pdll.h.inc
+)
+
 add_mlir_library(StablehloTOSATransforms
   legalize_stablehlo.cc
   prepare_stablehlo.cc
