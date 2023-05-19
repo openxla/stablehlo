@@ -8,7 +8,7 @@ check backward compatibility by versioning and serializing
 compatibility. This document makes the following proposal:
 
 **Proposal:** Add tests to compare bytes of bytecode file serialized at HEAD
-with existing [backward compatibility bytecode test files](https://github.com/search?q=repo%3Aopenxla%2Fstablehlo+path%3A**%2Fstablehlo_legalize_to_vhlo.0_*&type=code).
+with existing [backward compatibility bytecode test files](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc).
 
 ## Requirements
 
@@ -56,12 +56,12 @@ Other benefits of this approach include that it is lightweight (_R3_), can be ru
 locally to detect compatibility issues during development, and it fits nicely into
 existing CI build-and-test jobs. If the underlying byte-identical assumption is
 invalidated, we can fall back to the alternate design in a hybrid testing approach,
-since this approach will safely identify all forward incompatibilities, with a
+since byte-comparison will safely identify all forward incompatibilities, with a
 slight risk of false positives that should be tested using the alternate design.
 
 ## Alternate Design: Serialize at HEAD, Deserialize at Target Release
 
-This design is explored more in a [previous commit of this RFC](https://github.com/openxla/stablehlo/pull/1498/commits/0792eb75e85c54f9d106878569b088d03c568b70),
+This design is explored more in a [previous commit of this RFC](https://github.com/openxla/stablehlo/blob/0792eb75e85c54f9d106878569b088d03c568b70/rfcs/20230517-forward-compatibility-testing.md#preferred-design-serialize-at-head-deserialize-at-target-release),
 and is summarized in this version for brevity. If byte-equality cannot be safely
 relied on, then we may need to use this approach, or a hybrid of the two. This
 design can be summarized as:
