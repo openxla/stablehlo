@@ -12,11 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(transforms)
 add_subdirectory(tests)
-
-add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
-  transforms/legalize_stablehlo.pdll
-  transforms/legalize_stablehlo.pdll.h.inc
-  )
-
+add_subdirectory(transforms)
