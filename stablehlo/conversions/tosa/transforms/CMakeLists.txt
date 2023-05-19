@@ -13,18 +13,18 @@
 # limitations under the License.
 #
 
-set(LLVM_TARGET_DEFINITIONS passes.td)
-mlir_tablegen(passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
+set(LLVM_TARGET_DEFINITIONS Passes.td)
+mlir_tablegen(Passes.h.inc -gen-pass-decls -name StablehloTOSATransforms)
 add_public_tablegen_target(StablehloTOSATransformsPassIncGen)
 
 add_mlir_pdll_library(StablehloTOSAPDLLPatternsIncGen
-  legalize_stablehlo.pdll
-  legalize_stablehlo.pdll.h.inc
+  LegalizeStablehlo.pdll
+  LegalizeStablehlo.pdll.h.inc
 )
 
 add_mlir_library(StablehloTOSATransforms
-  legalize_stablehlo.cc
-  prepare_stablehlo.cc
+  LegalizeStablehlo.cpp
+  PrepareStablehlo.cpp
 
   DEPENDS
   StablehloTOSATransformsPassIncGen

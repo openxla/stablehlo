@@ -843,22 +843,22 @@ gentbl_cc_library(
                 "-gen-pass-decls",
                 "-name=StablehloTOSATransforms",
             ],
-            "stablehlo/conversions/tosa/transforms/passes.h.inc",
+            "stablehlo/conversions/tosa/transforms/Passes.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "stablehlo/conversions/tosa/transforms/passes.td",
+    td_file = "stablehlo/conversions/tosa/transforms/Passes.td",
     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
 )
 
 cc_library(
     name = "tosa_passes",
     srcs = [
-        "stablehlo/conversions/tosa/transforms/legalize_stablehlo.cc",
-        "stablehlo/conversions/tosa/transforms/prepare_stablehlo.cc",
+        "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.cpp",
+        "stablehlo/conversions/tosa/transforms/PrepareStablehlo.cpp",
     ],
     hdrs = [
-        "stablehlo/conversions/tosa/transforms/passes.h",
+        "stablehlo/conversions/tosa/transforms/Passes.h",
     ],
     strip_include_prefix = ".",
     deps = [
@@ -880,11 +880,11 @@ gentbl_cc_library(
     tbl_outs = [
         (
             ["-x=cpp"],
-            "stablehlo/conversions/tosa/transforms/legalize_stablehlo.pdll.h.inc",
+            "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-pdll",
-    td_file = "stablehlo/conversions/tosa/transforms/legalize_stablehlo.pdll",
+    td_file = "stablehlo/conversions/tosa/transforms/LegalizeStablehlo.pdll",
     deps = [
         ":stablehlo_ops_td_files",
         "@llvm-project//mlir:OpBaseTdFiles",

@@ -19,11 +19,11 @@ limitations under the License.
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "stablehlo/conversions/tosa/transforms/passes.h"
+#include "stablehlo/conversions/tosa/transforms/Passes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 
 #define GEN_PASS_DEF_TOSAPREPARESTABLEHLOPASS
-#include "stablehlo/conversions/tosa/transforms/passes.h.inc"
+#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
 #define PASS_NAME "tosa-prepare-stablehlo"
 #define DEBUG_TYPE PASS_NAME

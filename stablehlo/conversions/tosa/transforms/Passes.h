@@ -29,7 +29,7 @@ std::unique_ptr<OperationPass<func::FuncOp>> createPrepareStablehloPass();
 
 #define GEN_PASS_REGISTRATION
 #define GEN_PASS_DECL_TOSALEGALIZESTABLEHLOPASS
-#include "stablehlo/conversions/tosa/transforms/passes.h.inc"
+#include "stablehlo/conversions/tosa/transforms/Passes.h.inc"
 
 }  // namespace tosa
 }  // namespace mlir
