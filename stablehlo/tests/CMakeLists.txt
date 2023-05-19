@@ -26,7 +26,7 @@ add_lit_testsuite(check-stablehlo-tests "Running the tests/ suite"
   stablehlo-opt
   stablehlo-translate
 )
-add_dependencies(check-stablehlo check-stablehlo-tests)
+add_dependencies(check-stablehlo-quick check-stablehlo-tests)
 
 set(LLVM_TARGET_DEFINITIONS TestUtils.td)
 mlir_tablegen(TestUtils.h.inc -gen-pass-decls -name HloTest)

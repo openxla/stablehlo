@@ -19,10 +19,10 @@ configure_lit_site_cfg(
         ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py
 )
 
-add_lit_testsuite(check-stablehlo-tosa-lit "Running the stablehlo-tosa regression tests"
+add_lit_testsuite(check-stablehlo-tosa "Running the tosa/ suite"
         ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
         FileCheck
         stablehlo-opt
         )
-# add_dependencies(check-stablehlo-tests check-stablehlo-tosa-lit)
+add_dependencies(check-stablehlo-quick check-stablehlo-tosa)

@@ -25,5 +25,5 @@ add_lit_testsuite(check-stablehlo-testdata "Running the testdata/ suite"
   stablehlo-opt
   stablehlo-translate
 )
-add_dependencies(check-stablehlo check-stablehlo-testdata)
+add_dependencies(check-stablehlo-slow check-stablehlo-testdata)
 

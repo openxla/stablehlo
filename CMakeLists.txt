@@ -116,7 +116,21 @@ set(STABLEHLO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(STABLEHLO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(STABLEHLO_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 
-add_custom_target(check-stablehlo)
+# Target that provides comprehensive testing for the StableHLO repository.
+# It includes both quick and slow tests (see check-stablehlo-quick and
+# check-stablehlo-slow below).
+add_custom_target(check-stablehlo-ci)
+
+# Target that aggregates slow tests. Long-running test targets should go
+# into dependencies of this target, and we shouldn't expect humans to run them
+# regularly during development.
+add_custom_target(check-stablehlo-slow)
+add_dependencies(check-stablehlo-ci check-stablehlo-slow)
+
+# Target that aggregates fast tests. We shouldn't add long-running test targets
+# as a dependency of this target, since we'd want humans to routinely use this
+# target during development.
+add_custom_target(check-stablehlo-quick)
+add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
 add_subdirectory(stablehlo)
-

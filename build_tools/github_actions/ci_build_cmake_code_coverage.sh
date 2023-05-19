@@ -62,7 +62,7 @@ cmake -GNinja \
   -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fprofile-instr-generate -fprofile-arcs -ftest-coverage -fcoverage-mapping"
 
 # Build and Check StableHLO
-(cd "$STABLEHLO_BUILD_DIR" && ninja check-stablehlo)
+(cd "$STABLEHLO_BUILD_DIR" && ninja check-stablehlo-ci)
 
 BUILD_TOOLS_DIR="$(dirname "$(readlink -f "$0")")"
 
