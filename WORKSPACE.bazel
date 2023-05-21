@@ -51,6 +51,19 @@ http_archive(
   ],
 )
 
+# This is needed since https://reviews.llvm.org/D143320
+# Not sure if it's a bug or a feature, but it doesn't hurt to keep an additional
+# dependency here.
+http_archive(
+  name = "llvm_zlib",
+  build_file = "@llvm-raw//utils/bazel/third_party_build:zlib-ng.BUILD",
+  sha256 = "e36bb346c00472a1f9ff2a0a4643e590a254be6379da7cddd9daeb9a7f296731",
+  strip_prefix = "zlib-ng-2.0.7",
+  urls = [
+      "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.0.7.zip",
+  ],
+)
+
 load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
 
 llvm_configure(name = "llvm-project")
