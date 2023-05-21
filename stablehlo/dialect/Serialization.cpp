@@ -52,10 +52,19 @@ LogicalResult serializePortableArtifact(ModuleOp module,
     }
   }
 
-  // TODO(#1282): Consider adding a header to identify StableHLO portable
+  // TODO(#1508): Consider adding a header to identify StableHLO portable
   // artifact versions.
-  (void)writeBytecodeToFile(module, os);
-  return success();
+  BytecodeWriterConfig writerConfig;
+  // bytecodeVersion = 1 is what has been predominantly used in practice to
+  // serialize portable StableHLO artifacts.
+  // Theoretically speaking, StableHLO v0.9.0 which introduced compatibility
+  // guarantees was released on 3/2/2023 and bytecodeVersion = 1 was released
+  // on 3/10/2023, so there was a time period when we guaranteed compatibility
+  // for StableHLO consumers which only supported bytecodeVersion = 0.
+  // However, this time period (1 month of forward compatibility) has expired,
+  // so it's fine to hardcode bytecodeVersion = 1 here.
+  writerConfig.setDesiredBytecodeVersion(1);
+  return writeBytecodeToFile(module, os);
 }
 
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
