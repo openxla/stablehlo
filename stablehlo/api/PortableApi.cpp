@@ -70,7 +70,7 @@ LogicalResult deserializePortableArtifact(StringRef artifactStr,
   // ultimately unneeded, but until we've established that, let's play it safe.
   BytecodeWriterConfig writerConfig;
   writerConfig.setDesiredBytecodeVersion(1);
-  return writeBytecodeToFile(*module, os);
+  return writeBytecodeToFile(*module, os, writerConfig);
 }
 
 }  // namespace stablehlo
