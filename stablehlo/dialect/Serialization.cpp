@@ -64,7 +64,7 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // However, this time period (1 month of forward compatibility) has expired,
   // so it's fine to hardcode bytecodeVersion = 1 here.
   writerConfig.setDesiredBytecodeVersion(1);
-  return writeBytecodeToFile(module, os);
+  return writeBytecodeToFile(module, os, writerConfig);
 }
 
 OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
