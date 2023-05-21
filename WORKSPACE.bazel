@@ -26,9 +26,9 @@ http_archive(
     ],
 )
 
-LLVM_COMMIT = "e96123dfeabc0acfac6bc45f75237a01045f4e3b"
+LLVM_COMMIT = "f7e2678bb706a66c62ac66c312c624d9fd359b1b"
 
-LLVM_SHA256 = "c8318400093e27c54caa2738ba27231c707978cf23720888ea5872b1fd368b5d"
+LLVM_SHA256 = "cffecbcee6205d5fbf7a66cbb1db4dc81cf677d664fec0c9d80de0a3a7e619aa"
 
 http_archive(
     name = "llvm-raw",
@@ -48,6 +48,19 @@ http_archive(
   strip_prefix = "zstd-1.5.2",
   urls = [
       "https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz"
+  ],
+)
+
+# This is needed since https://reviews.llvm.org/D143320
+# Not sure if it's a bug or a feature, but it doesn't hurt to keep an additional
+# dependency here.
+http_archive(
+  name = "llvm_zlib",
+  build_file = "@llvm-raw//utils/bazel/third_party_build:zlib-ng.BUILD",
+  sha256 = "e36bb346c00472a1f9ff2a0a4643e590a254be6379da7cddd9daeb9a7f296731",
+  strip_prefix = "zlib-ng-2.0.7",
+  urls = [
+      "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.0.7.zip",
   ],
 )
 
