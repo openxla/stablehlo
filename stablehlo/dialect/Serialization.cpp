@@ -40,7 +40,9 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   MLIRContext* context = module.getContext();
   auto targetVersion = parseTargetVersion(targetVersionStr);
   if (failed(targetVersion))
-    return module.emitError("Invalid version string " + targetVersionStr);
+    return module.emitError(
+        "Invalid version string " + targetVersionStr +
+        ". Must be of form `#.#.#` or 'current' or 'minimum'");
 
   // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
   {

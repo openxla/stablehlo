@@ -75,10 +75,10 @@ FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
     if (versionRef.empty())
       return emitError(op->getLoc())
              << "No target version specified.\n"
-             << "Target version must be of the form #.#.# or 'current'.";
+             << "Target version must be of the form `#.#.#`.";
     return emitError(op->getLoc())
            << "Invalid target version argument '" << versionRef << "'\n"
-           << "Target version must be of the form #.#.# or 'current'.";
+           << "Target version must be of the form `#.#.#`.";
   }
 
   Version targetVersion = *failOrVersion;
