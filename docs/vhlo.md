@@ -72,6 +72,24 @@ backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
 maintainted in the StableHLO repo.
 
+## MLIR Bytecode Format
+
+StableHLO uses the [MLIR Bytecode Format](https://mlir.llvm.org/docs/BytecodeFormat/)
+for serialization.
+
+The MLIR Bytecode Format is a serialization format used to encode MLIR
+programs. From the [MLIR RFC](https://discourse.llvm.org/t/rfc-a-binary-serialization-format-for-mlir/63518),
+it was built for "the benefits that a binary format brings to the table; namely
+serialization speed and size, mmap capabilities, more easily enabled
+versioning, etc." Performance, serialization size, and memory tests were run
+using large test from various dialects to validate the format.
+
+In order to maintain forward compatibility, StableHLO versions have an
+associated MLIR Bytecode Format version. Additionally, the most recent version
+of StableHLO uses the most up-to-date version of the MLIR Bytecode Format.
+When MLIR bytecode is incremented, the next release of StableHLO will increment
+the minor version and use the latest MLIR Bytecode Format version.
+
 ## Contributing Incompatible Changes
 
 All changes with compatibility implications must go through the RFC process.
