@@ -3,7 +3,7 @@
 
 // RUN: not stablehlo-opt --vhlo-to-version %s 2>&1 | FileCheck %s --check-prefix=EMPTY_TARGET
 // EMPTY_TARGET: No target version specified.
-// EMPTY_TARGET-NEXT: Target version must be of the form `#.#.#`. 
+// EMPTY_TARGET-NEXT: Target version must be of the form `#.#.#`.
 
 //===--------------------------------------------------------------------===//
 // Future Target
