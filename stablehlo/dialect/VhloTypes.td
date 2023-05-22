@@ -43,8 +43,7 @@ class VHLO_TypeDef<string cppName, string name, string minVersion, string maxVer
       return *version;
     }
     mlir::vhlo::Version getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
-      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      auto version = mlir::vhlo::Version::fromAlias("}] #  maxVersion # [{");
       if (failed(version)) llvm::report_fatal_error("invalid version }] # maxVersion # [{ in }] # name # [{");
       return *version;
     }

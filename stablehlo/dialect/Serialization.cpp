@@ -28,12 +28,12 @@ namespace mlir {
 namespace stablehlo {
 
 LogicalResult serializePortableArtifact(ModuleOp module,
-                                        StringRef targetVersion,
+                                        StringRef targetVersionStr,
                                         raw_ostream& os) {
   MLIRContext* context = module.getContext();
-  auto version = vhlo::Version::fromString(targetVersion);
-  if (failed(version))
-    return module.emitError("Invalid version string " + targetVersion);
+  auto targetVersion = vhlo::Version::fromAlias(targetVersionStr);
+  if (failed(targetVersion))
+    return module.emitError("Invalid version string " + targetVersionStr);
 
   // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
   {
@@ -49,15 +49,15 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // target version failures.
   {
     PassManager pm(context);
-    pm.addPass(stablehlo::createVhloToVersionPass({version->toString()}));
+    pm.addPass(stablehlo::createVhloToVersionPass({targetVersion->toString()}));
     if (!succeeded(pm.run(module))) {
       return failure();
     }
   }
 
-  // Write bytecode with header "StableHLO_vX.Y.Z"
-  auto header = "StableHLO_v" + version->toString();
-  BytecodeWriterConfig writerConfig(header);
+  // Write bytecode with producer string "StableHLO_vX.Y.Z"
+  auto producer = "StableHLO_v" + targetVersion->toString();
+  BytecodeWriterConfig writerConfig(producer);
   // bytecodeVersion = 1 is what has been predominantly used in practice to
   // serialize portable StableHLO artifacts.
   // Theoretically speaking, StableHLO v0.9.0 which introduced compatibility

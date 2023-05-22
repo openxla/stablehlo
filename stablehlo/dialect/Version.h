@@ -39,6 +39,12 @@ class Version {
   /// if input string is "minimum".
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
+  /// Convenience method to extract major, minor, patch and create a Version
+  /// from a StringRef of the forms {"#.#.#", "minimum", "maximum"}.
+  /// Returns current version if input string is "current", minimum version
+  /// if input string is "minimum", else dispatches to `fromString`.
+  static FailureOr<Version> fromAlias(llvm::StringRef versionRef);
+
   /// Return a Version representing the current VHLO dialect version.
   static Version getCurrentVersion() { return Version(0, 11, 6); }
 

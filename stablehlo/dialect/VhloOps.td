@@ -45,8 +45,7 @@ class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait>
       return *version;
     }
     mlir::vhlo::Version $cppClass::getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
-      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
+      auto version = mlir::vhlo::Version::fromAlias("}] #  maxVersion # [{");
       if (failed(version)) llvm::report_fatal_error("invalid version }] # maxVersion # [{ in }] # mnemonic # [{");
       return *version;
     }
