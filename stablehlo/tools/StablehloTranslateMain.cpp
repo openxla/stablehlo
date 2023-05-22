@@ -157,7 +157,10 @@ llvm::cl::opt<std::string> targetOption(
 TranslateFromMLIRRegistration serializeRegistration(
     "serialize", "Serialize StableHLO program into a portable artifact",
     [](ModuleOp module, raw_ostream &os) -> LogicalResult {
-      return stablehlo::serializePortableArtifact(module, targetOption, os);
+      std::string targetVersion = targetOption.getValue();
+      if (targetVersion == "current")
+        targetVersion = vhlo::Version::getCurrentVersion().toString();
+      return stablehlo::serializePortableArtifact(module, targetVersion, os);
     },
     [](DialectRegistry &registry) {
       mlir::registerAllDialects(registry);

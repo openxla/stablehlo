@@ -26,23 +26,15 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
-namespace {
-FailureOr<vhlo::Version> parseTargetVersion(StringRef targetVersion) {
-  if (targetVersion == "current") return vhlo::Version::getCurrentVersion();
-  if (targetVersion == "minimum") return vhlo::Version::getMinimumVersion();
-  return vhlo::Version::fromString(targetVersion);
-}
-}  // namespace
 
 LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersionStr,
                                         raw_ostream& os) {
   MLIRContext* context = module.getContext();
-  auto targetVersion = parseTargetVersion(targetVersionStr);
+  auto targetVersion = vhlo::Version::fromString(targetVersionStr);
   if (failed(targetVersion))
-    return module.emitError(
-        "Invalid version string " + targetVersionStr +
-        ". Must be of form `#.#.#` or 'current' or 'minimum'");
+    return module.emitError("Invalid version string " + targetVersionStr +
+                            ". Must be of form `#.#.#`");
 
   // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
   {
