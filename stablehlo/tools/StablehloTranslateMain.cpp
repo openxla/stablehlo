@@ -16,10 +16,12 @@ limitations under the License.
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include "mlir/Transforms/Passes.h"
 #include "stablehlo/dialect/Register.h"
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
@@ -154,12 +156,24 @@ llvm::cl::opt<std::string> targetOption(
     "target", llvm::cl::desc("Target version for serialization"),
     llvm::cl::init(""));
 
+llvm::cl::opt<bool> stripDebuginfoOption(
+    "strip-debuginfo", llvm::cl::desc("Strip debug info from all operations"),
+    llvm::cl::init(false));
+
 TranslateFromMLIRRegistration serializeRegistration(
     "serialize", "Serialize StableHLO program into a portable artifact",
     [](ModuleOp module, raw_ostream &os) -> LogicalResult {
       std::string targetVersion = targetOption.getValue();
       if (targetVersion == "current")
         targetVersion = vhlo::Version::getCurrentVersion().toString();
+
+      if (stripDebuginfoOption) {
+        PassManager pm(module->getContext());
+        pm.addPass(createStripDebugInfoPass());
+        if (failed(pm.run(module)))
+          return module.emitError("failed to strip debuginfo");
+      }
+
       return stablehlo::serializePortableArtifact(module, targetVersion, os);
     },
     [](DialectRegistry &registry) {
