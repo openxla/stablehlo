@@ -16,7 +16,10 @@ limitations under the License.
 
 #include "stablehlo/dialect/Version.h"
 
+#include <cstdint>
+
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
 
@@ -53,6 +56,13 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
   if (failed(failOrVersionArray)) return failure();
   auto versionArr = *failOrVersionArray;
   return Version(versionArr[0], versionArr[1], versionArr[2]);
+}
+
+FailureOr<int64_t> Version::getBytecodeVersion() const {
+  if (*this < Version(0, 9, 0)) return failure();
+  if (*this < Version(0, 10, 0)) return 0;
+  if (*this <= getCurrentVersion()) return 1;
+  return failure();
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {

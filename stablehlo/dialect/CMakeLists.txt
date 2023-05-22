@@ -109,6 +109,7 @@ add_mlir_dialect_library(StablehloSerialization
   LINK_LIBS PUBLIC
   StablehloOps
   StablehloPasses
+  Version
   VhloOps
   MLIRBytecodeWriter
   MLIRIR
