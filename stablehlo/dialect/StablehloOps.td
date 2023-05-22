@@ -2140,13 +2140,10 @@ def StableHLO_CustomCallOp: StableHLO_Op<"custom_call",
 
     Example:
     ```mlir
-    %results = "stablehlo.custom_call"(%input0) {
-      call_target_name = "foo",
-      has_side_effect = false,
+    %results = stablehlo.custom_call @foo(%input0) {
       backend_config = "bar",
-      api_version = 1 : i32,
       called_computations = [@foo]
-    } : (tensor<f32>) -> tensor<f32>
+    } : (tensor<f64>) -> tensor<f64>
     ```
   }];
 
