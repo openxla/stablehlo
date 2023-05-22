@@ -55,6 +55,7 @@ LogicalResult serializePortableArtifact(ModuleOp module,
     }
   }
 
+  // Write bytecode with header "StableHLO_vX.Y.Z"
   auto header = "StableHLO_v" + version->toString();
   BytecodeWriterConfig writerConfig(header);
   // bytecodeVersion = 1 is what has been predominantly used in practice to
@@ -65,7 +66,6 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // for StableHLO consumers which only supported bytecodeVersion = 0.
   // However, this time period (1 month of forward compatibility) has expired,
   // so it's fine to hardcode bytecodeVersion = 1 here.
-
   writerConfig.setDesiredBytecodeVersion(1);
   return writeBytecodeToFile(module, os, writerConfig);
 }

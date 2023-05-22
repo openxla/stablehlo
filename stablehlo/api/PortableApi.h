@@ -51,7 +51,9 @@ LogicalResult serializePortableArtifact(StringRef moduleStr,
                                         raw_ostream& os);
 
 // Read a StableHLO program from a portable artifact, returning the module as
-// MLIR bytecode.
+// MLIR bytecode. Note, this bytecode returned is not a portable artifact,
+// and has the stability of returning textual assembly format. Bytecode is
+// returned here since it is more compact and faster to read and write.
 // Can fail if `artifactStr` cannot be expressed in the current version of
 // StableHLO, e.g. if it's using incompatible features. Returns failure if
 // `artifactStr` is invalid or fails to deserialize.

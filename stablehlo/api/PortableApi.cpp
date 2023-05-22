@@ -62,11 +62,8 @@ LogicalResult deserializePortableArtifact(StringRef artifactStr,
   auto module = deserializePortableArtifact(artifactStr, &context);
   if (!module) return failure();
 
-  // This bytecode does not need to specify verison number or header.
-  // This function, like serializePortableArtifact using module string,
-  // provides the reliability of passing / receiving textual assembly
-  // format. Bytecode is used here since it is more compact and faster
-  // to read / write in APIs that require passing strings.
+  // This bytecode does not need to specify verison number or header,
+  // since it is not required to be any more stable than textual assembly.
   return writeBytecodeToFile(*module, os);
 }
 
