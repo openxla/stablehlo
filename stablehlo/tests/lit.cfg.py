@@ -33,6 +33,7 @@ tools = [
   'FileCheck',
   'stablehlo-opt',
   'stablehlo-translate',
+  'not',
 ]
 tool_dirs = [
   config.llvm_tools_dir,
