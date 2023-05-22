@@ -33,7 +33,7 @@ commits which are less than 1 month apart, unless the program is using new
 features introduced since the old version.
 
 \* StableHLO programs are converted to/from portable artifacts via
-[serialization APIs](bytecode.md), and the semantics of these programs are
+[compatibility APIs](#apis), and the semantics of these programs are
 defined by [the StableHLO spec](spec.md). In the future, we will provide a
 reference implementation which will provide an executable version of the
 specification.
