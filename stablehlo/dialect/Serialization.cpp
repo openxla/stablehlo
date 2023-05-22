@@ -15,12 +15,15 @@ limitations under the License.
 
 #include "stablehlo/dialect/Serialization.h"
 
+#include <cstdint>
+
 #include "mlir/Bytecode/BytecodeWriter.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/transforms/Passes.h"
 
@@ -53,17 +56,13 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   }
 
   // Write bytecode with producer string "StableHLO_vX.Y.Z"
+  // using the bytecode format version associated with the StableHLO release.
   auto producer = "StableHLO_v" + targetVersion.str();
   BytecodeWriterConfig writerConfig(producer);
-  // bytecodeVersion = 1 is what has been predominantly used in practice to
-  // serialize portable StableHLO artifacts.
-  // Theoretically speaking, StableHLO v0.9.0 which introduced compatibility
-  // guarantees was released on 3/2/2023 and bytecodeVersion = 1 was released
-  // on 3/10/2023, so there was a time period when we guaranteed compatibility
-  // for StableHLO consumers which only supported bytecodeVersion = 0.
-  // However, this time period (1 month of forward compatibility) has expired,
-  // so it's fine to hardcode bytecodeVersion = 1 here.
-  writerConfig.setDesiredBytecodeVersion(1);
+  auto bytecodeVersion = vhlo::Version::getBytecodeFormatVersion(
+      vhlo::Version::fromString(targetVersion).value());
+  if (failed(bytecodeVersion)) return failure();
+  writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
   return writeBytecodeToFile(module, os, writerConfig);
 }
 

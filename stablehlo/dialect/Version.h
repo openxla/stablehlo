@@ -43,6 +43,10 @@ class Version {
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
 
+  /// Return the MLIR Bytecode Format associated with the input `verison`.
+  /// Returns failure if version is not supported.
+  static FailureOr<int64_t> getBytecodeFormatVersion(const Version& version);
+
   /// Construct Version from major, minor, patch integers.
   Version(int64_t major, int64_t minor, int64_t patch)
       : majorMinorPatch({major, minor, patch}) {}
