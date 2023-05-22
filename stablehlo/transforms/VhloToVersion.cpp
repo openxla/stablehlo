@@ -67,15 +67,10 @@ class VhloToVersionConverter : public TypeConverter {
   }
 };
 
-FailureOr<Version> parseTargetVersion(llvm::StringRef versionRef) {
-  if (versionRef == "current") return Version::getCurrentVersion();
-  return Version::fromString(versionRef);
-}
-
 // Check user-specified target version. Emit error if invalid.
 FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
                                          Operation* op) {
-  auto failOrVersion = parseTargetVersion(versionRef);
+  auto failOrVersion = Version::fromString(versionRef);
   if (failed(failOrVersion)) {
     if (versionRef.empty())
       return emitError(op->getLoc())

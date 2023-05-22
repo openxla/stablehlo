@@ -35,6 +35,8 @@ class Version {
  public:
   /// Convenience method to extract major, minor, patch and create a Version
   /// from a StringRef of the form `#.#.#`. Returns failure if invalid string.
+  /// Returns current version if input string is "current", and minimum version
+  /// if input string is "minimum".
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
   /// Return a Version representing the current VHLO dialect version.

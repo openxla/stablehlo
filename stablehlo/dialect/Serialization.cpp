@@ -31,6 +31,9 @@ LogicalResult serializePortableArtifact(ModuleOp module,
                                         StringRef targetVersion,
                                         raw_ostream& os) {
   MLIRContext* context = module.getContext();
+  auto version = vhlo::Version::fromString(targetVersion);
+  if (failed(version))
+    return module.emitError("Invalid version string " + targetVersion);
 
   // Convert StableHLO --> VHLO. Will fail if entire program is not StableHLO.
   {
@@ -46,15 +49,14 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // target version failures.
   {
     PassManager pm(context);
-    pm.addPass(stablehlo::createVhloToVersionPass({targetVersion.str()}));
+    pm.addPass(stablehlo::createVhloToVersionPass({version->toString()}));
     if (!succeeded(pm.run(module))) {
       return failure();
     }
   }
 
-  // TODO(#1508): Consider adding a header to identify StableHLO portable
-  // artifact versions.
-  BytecodeWriterConfig writerConfig;
+  auto header = "StableHLO_v" + version->toString();
+  BytecodeWriterConfig writerConfig(header);
   // bytecodeVersion = 1 is what has been predominantly used in practice to
   // serialize portable StableHLO artifacts.
   // Theoretically speaking, StableHLO v0.9.0 which introduced compatibility
@@ -63,6 +65,7 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // for StableHLO consumers which only supported bytecodeVersion = 0.
   // However, this time period (1 month of forward compatibility) has expired,
   // so it's fine to hardcode bytecodeVersion = 1 here.
+
   writerConfig.setDesiredBytecodeVersion(1);
   return writeBytecodeToFile(module, os, writerConfig);
 }
