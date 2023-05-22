@@ -70,7 +70,7 @@ class VhloToVersionConverter : public TypeConverter {
 // Check user-specified target version. Emit error if invalid.
 FailureOr<Version> validateTargetVersion(llvm::StringRef versionRef,
                                          Operation* op) {
-  auto failOrVersion = Version::fromAlias(versionRef);
+  auto failOrVersion = Version::fromString(versionRef);
   if (failed(failOrVersion)) {
     if (versionRef.empty())
       return emitError(op->getLoc())

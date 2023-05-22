@@ -55,12 +55,6 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
   return Version(versionArr[0], versionArr[1], versionArr[2]);
 }
 
-FailureOr<Version> Version::fromAlias(llvm::StringRef versionRef) {
-  if (versionRef == "current") return Version::getCurrentVersion();
-  if (versionRef == "minimum") return Version::getMinimumVersion();
-  return Version::fromString(versionRef);
-}
-
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {
   return diag << version.toString();
 }
