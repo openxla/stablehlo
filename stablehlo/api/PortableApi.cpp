@@ -62,15 +62,9 @@ LogicalResult deserializePortableArtifact(StringRef artifactStr,
   auto module = deserializePortableArtifact(artifactStr, &context);
   if (!module) return failure();
 
-  // TODO(gleasonk): I don't think we have formalized our compatibility policy
-  // for bytecode produced by deserializePortableArtifact, so I'm not sure how
-  // this config should look like.
-  // With that in mind, bytecodeVersion = 1 looks like the best option at the
-  // moment of writing. The forward compatibility provided by it might be
-  // ultimately unneeded, but until we've established that, let's play it safe.
-  BytecodeWriterConfig writerConfig;
-  writerConfig.setDesiredBytecodeVersion(1);
-  return writeBytecodeToFile(*module, os, writerConfig);
+  // This bytecode does not need to specify verison number or producer string,
+  // since it is not required to be any more stable than textual assembly.
+  return writeBytecodeToFile(*module, os);
 }
 
 }  // namespace stablehlo

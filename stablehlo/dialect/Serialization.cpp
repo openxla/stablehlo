@@ -52,9 +52,9 @@ LogicalResult serializePortableArtifact(ModuleOp module,
     }
   }
 
-  // TODO(#1508): Consider adding a header to identify StableHLO portable
-  // artifact versions.
-  BytecodeWriterConfig writerConfig;
+  // Write bytecode with producer string "StableHLO_vX.Y.Z"
+  auto producer = "StableHLO_v" + targetVersion.str();
+  BytecodeWriterConfig writerConfig(producer);
   // bytecodeVersion = 1 is what has been predominantly used in practice to
   // serialize portable StableHLO artifacts.
   // Theoretically speaking, StableHLO v0.9.0 which introduced compatibility
@@ -77,7 +77,8 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
 
   // Convert VHLO --> VHLO(current) --> StableHLO
   PassManager pm(context);
-  pm.addPass(stablehlo::createVhloToVersionPass({"current"}));
+  pm.addPass(stablehlo::createVhloToVersionPass(
+      {vhlo::Version::getCurrentVersion().toString()}));
   pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
   if (!succeeded(pm.run(*module))) {
     return nullptr;
