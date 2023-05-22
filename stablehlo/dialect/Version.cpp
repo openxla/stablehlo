@@ -58,10 +58,10 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
   return Version(versionArr[0], versionArr[1], versionArr[2]);
 }
 
-FailureOr<int64_t> Version::getBytecodeFormatVersion(const Version& version) {
+FailureOr<int64_t> Version::getBytecodeVersion() const {
   // Fail if requested version is not in supported versions.
-  if (vhlo::Version::getCurrentVersion() < version ||
-      version < vhlo::Version::getMinimumVersion()) {
+  if (vhlo::Version::getCurrentVersion() < *this ||
+      *this < vhlo::Version::getMinimumVersion()) {
     return failure();
   }
 
@@ -78,7 +78,7 @@ FailureOr<int64_t> Version::getBytecodeFormatVersion(const Version& version) {
   // version. That is the bytecode format version of the given release.
   auto it =
       std::find_if(formatVersionMap.begin(), formatVersionMap.end(),
-                   [&version](auto& pair) { return pair.first <= version; });
+                   [this](auto& pair) { return pair.first <= *this; });
 
   // Should always have value given validation above.
   if (it == formatVersionMap.end())
