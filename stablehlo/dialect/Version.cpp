@@ -59,32 +59,10 @@ FailureOr<Version> Version::fromString(llvm::StringRef versionRef) {
 }
 
 FailureOr<int64_t> Version::getBytecodeVersion() const {
-  // Fail if requested version is not in supported versions.
-  if (vhlo::Version::getCurrentVersion() < *this ||
-      *this < vhlo::Version::getMinimumVersion()) {
-    return failure();
-  }
-
-  // This map is updated on all bytecode format increments.
-  // Updating to use a newer bytecode format requires a new minor version
-  // which must be added to this map.
-  const static std::vector<std::pair<Version, int64_t>> formatVersionMap{
-      // All versions greater than first entry use version of first entry.
-      {Version(0, 10, 0), 1},
-      {Version(0, 9, 0), 0},
-  };
-
-  // Get first element in the formatVersionMap that is less than requested
-  // version. That is the bytecode format version of the given release.
-  auto it =
-      std::find_if(formatVersionMap.begin(), formatVersionMap.end(),
-                   [this](auto& pair) { return pair.first <= *this; });
-
-  // Should always have value given validation above.
-  if (it == formatVersionMap.end())
-    llvm::report_fatal_error("version value missing from formatVersionMap");
-
-  return it->second;
+  if (*this < Version(0, 9, 0)) return failure();
+  if (*this < Version(0, 10, 0)) return 0;
+  if (*this <= getCurrentVersion()) return 1;
+  return failure();
 }
 
 mlir::Diagnostic& operator<<(mlir::Diagnostic& diag, const Version& version) {

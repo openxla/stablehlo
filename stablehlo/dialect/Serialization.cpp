@@ -59,8 +59,8 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // using the bytecode format version associated with the StableHLO release.
   auto producer = "StableHLO_v" + targetVersion.str();
   BytecodeWriterConfig writerConfig(producer);
-  auto bytecodeVersion = vhlo::Version::getBytecodeVersion(
-      vhlo::Version::fromString(targetVersion).value());
+  auto bytecodeVersion =
+      vhlo::Version::fromString(targetVersion)->getBytecodeVersion();
   if (failed(bytecodeVersion)) return failure();
   writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
   return writeBytecodeToFile(module, os, writerConfig);

@@ -43,7 +43,7 @@ class Version {
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
 
-  /// Return the MLIR Bytecode Format associated with the version.
+  /// Return the MLIR Bytecode Format associated with the version instance.
   /// Returns failure if version is not in compatibility window.
   FailureOr<int64_t> getBytecodeVersion() const;
 
