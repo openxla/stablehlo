@@ -924,16 +924,17 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     Index batchIndex;
     for (auto batchDim : batchDims) batchIndex.push_back((*resultIt)[batchDim]);
 
-    Index startIndex;
-    Sizes batchIndexOffset(startIndices.getRank(), 1);
+    Index sliceStartIndices(batchIndex);
+    Index sliceLimitIndices(Sizes(sliceStartIndices) + 1);
     if (indexVectorDim < startIndices.getRank()) {
-      batchIndex.insert(batchIndex.begin() + indexVectorDim, 0);
-      batchIndexOffset[indexVectorDim] =
-          startIndices.getShape()[indexVectorDim];
+      sliceStartIndices.insert(sliceStartIndices.begin() + indexVectorDim, 0);
+      sliceLimitIndices.insert(sliceLimitIndices.begin() + indexVectorDim,
+                               startIndices.getShape()[indexVectorDim]);
     }
     auto startIndexSlice =
-        evalSliceOp(startIndices, batchIndex, batchIndex + batchIndexOffset,
+        evalSliceOp(startIndices, sliceStartIndices, sliceLimitIndices,
                     Sizes(startIndices.getRank(), 1));
+    Index startIndex;
     for (auto it = startIndexSlice.index_begin();
          it != startIndexSlice.index_end(); ++it)
       startIndex.push_back(

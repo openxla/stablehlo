@@ -37,10 +37,6 @@ class IndexSpaceIterator {
     if (index && !index->inBounds(shape)) index_ = std::nullopt;
   }
 
-  IndexSpaceIterator(Sizes shape) : shape_(shape) {
-    index_ = Index(shape.size());
-  }
-
   /// Get the current index.
   /// At any point in time, the iterator can either reference an actual index
   /// or the past-the-end element in the index space.

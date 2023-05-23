@@ -2328,7 +2328,7 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   }];
 }
 
-def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify,
+def StableHLO_GatherOp: StableHLO_Op<"gather", [InferTensorTypeWithReify /*gather_c13*/,
     AllElementTypesMatch<["operand", "result"]> /*gather_c14*/, Pure]> {
   let summary = "Gather operation";
   let description = [{

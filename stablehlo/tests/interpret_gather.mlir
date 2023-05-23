@@ -23,3 +23,22 @@ func.func @gather_op_test() {
                                          [[17, 18], [19, 20]]]]> : tensor<2x3x2x2xi64>
   func.return
 }
+
+// -----
+
+func.func @gather_op_test() {
+  %operand = stablehlo.constant dense<[[1, 2, 3],
+                                       [4, 5, 6]]> : tensor<2x3xi64>
+  %start_indices = stablehlo.constant dense<[0, 10]> : tensor<2xi64>
+  %result = "stablehlo.gather"(%operand, %start_indices) {
+    dimension_numbers = #stablehlo.gather<
+      offset_dims = [1],
+      collapsed_slice_dims = [0],
+      start_index_map = [0],
+      index_vector_dim = 1>,
+    slice_sizes = dense<[1, 2]> : tensor<2xi64>,
+    indices_are_sorted = false
+  } : (tensor<2x3xi64>, tensor<2xi64>) -> tensor<2x2xi64>
+  check.expect_eq_const %result, dense<[[1, 2], [4, 5]]> : tensor<2x2xi64>
+  func.return
+}
