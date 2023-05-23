@@ -127,16 +127,13 @@ static Tensor computeSum(const Tensor &operand, const Tensor &initValue,
     for (auto dim : llvm::reverse(dimensions))
       resultIndex.erase(resultIndex.begin() + dim);
 
-    SmallVector<Tensor> args;
-    auto currVal = Tensor(initValue.getType());
+    Tensor currVal(initValue.getType());
     currVal.set({}, result.get(resultIndex));
-    args.push_back(currVal);
 
-    auto nextVal = Tensor(initValue.getType());
-    nextVal.set({}, operand.get(*operandIt));
-    args.push_back(nextVal);
+    Tensor nextValToAdd(initValue.getType());
+    nextValToAdd.set({}, operand.get(*operandIt));
 
-    auto addResult = evalAddOp(currVal, nextVal, currVal.getType());
+    auto addResult = evalAddOp(currVal, nextValToAdd, currVal.getType());
     result.set(resultIndex, addResult.get({}));
   }
   return result;
@@ -150,12 +147,14 @@ Tensor computeMean(const Tensor &operand, const Axis featureIndex) {
   dimensions.erase(dimensions.begin() + featureIndex);
 
   SmallVector<ShapedTypeComponents> inferredReduceType;
-  auto reduceStatus = hlo::inferReduceOp(
-      {}, {operand.getType()},
-      {RankedTensorType::get({}, operand.getElementType())},
-      getDenseIntElementsAttr(
-          IntegerType::get(context, 64, IntegerType::Signed), dimensions, {}),
-      inferredReduceType);
+  auto dimensionsAttr = DenseIntElementsAttr::get(
+      RankedTensorType::get({static_cast<int64_t>(dimensions.size())},
+                            IntegerType::get(context, 64, IntegerType::Signed)),
+      dimensions);
+  auto reduceStatus =
+      hlo::inferReduceOp({}, {operand.getType()},
+                         {RankedTensorType::get({}, operand.getElementType())},
+                         dimensionsAttr, inferredReduceType);
 
   if (failed(reduceStatus))
     report_fatal_error(

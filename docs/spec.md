@@ -1263,13 +1263,13 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 #### Constraints
 
 * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-* (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
+* (C2) `operand`, `scale`, `offset`, `output`, `batch_mean` and `batch_var`
        have the same element type.
 * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
 * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
 * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
 * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
-* (C7) `operand` and `output` have the same type.
+* (C7) `operand` and `output` have the same shape.
 
 #### Examples
 
