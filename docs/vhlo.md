@@ -72,6 +72,18 @@ backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
 maintainted in the StableHLO repo.
 
+## MLIR Bytecode Format Versions
+
+In order to maintain forward compatibility, StableHLO versions have an
+associated MLIR Bytecode Format version. Additionally, the latest version of
+StableHLO will use the lateset version of the MLIR Bytecode Format. When the
+MLIR Bytecode Format version is incremented, the next release of StableHLO will
+increment the minor version and update [Version.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.cpp#:~:text=getBytecodeVersion)
+to use the latest MLIR Bytecode Format version.
+
+For details on MLIR Bytecode Format and the rationale for using it in StableHLO,
+see [bytecode.md](https://github.com/openxla/stablehlo/blob/main/docs/bytecode.md).
+
 ## Contributing Incompatible Changes
 
 All changes with compatibility implications must go through the RFC process.
@@ -139,7 +151,7 @@ for forward and backward compatibility testing.
 
 ```bash
 $ cp stablehlo_legalize_to_vhlo.mlir stablehlo_legalize_to_vhlo.0_X_0.mlir
-$ stablehlo-translate --serialize stablehlo_legalize_to_vhlo.0_X_0.mlir --target=current > stablehlo_legalize_to_vhlo.0_X_0.mlir.bc
+$ stablehlo-translate --serialize stablehlo_legalize_to_vhlo.0_X_0.mlir --target=current --strip-debuginfo > stablehlo_legalize_to_vhlo.0_X_0.mlir.bc
 # Edit RUN commands in stablehlo_legalize_to_vhlo.0_X_0.mlir to target 0.X.0
 ```
 
