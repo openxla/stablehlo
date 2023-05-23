@@ -5560,9 +5560,13 @@ Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
 #### Examples
 
 ```mlir
-// %operand: 20
+// %operand: 10
 %result = "stablehlo.uniform_dequantize"(%operand) : (tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>) -> tensor<f32>
-// %result: 20.0
+// %result: 15.0
+
+// %operand: [10, 10]
+%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<3x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<3xf32>
+// %result: [4.0, 15.0]
 ```
 
 ### uniform_quantize
@@ -5592,8 +5596,8 @@ Formally,
 
 #### Outputs
 
-| Name     | Type                     | Constraints      |
-|----------|--------------------------|------------------|
+| Name     | Type             | Constraints      |
+|----------|------------------|------------------|
 | `result` | quantized tensor | (C1), (C2), (C3) |
 
 #### Constraints
@@ -5601,16 +5605,19 @@ Formally,
 * (C1) If `element_type(operand)` is a floating-point type,
   * `element_type(operand) = expressed_type(result)`.
 * (C2) If `element_type(operand)` is a quantized type,
-  * `num_bits(storage_type(operand)) >= num_bits(storage_type(result))`.
   * `expressed_type(operand) = expressed_type(result)`.
 * (C3) `shape(operand) = shape(result)`.
 
 #### Examples
 
 ```mlir
-// %operand: 20.0
+// %operand: 15.0
 %result = "stablehlo.uniform_quantize"(%operand) : (tensor<f32>) -> tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>
-// %result: 20
+// %result: 10
+
+// %operand: [4.0, 15.0]
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<3xf32>) -> tensor<3x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
+// %result: [10, 10]
 ```
 
 ### while
