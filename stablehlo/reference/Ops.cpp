@@ -102,18 +102,6 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
-template <typename T>
-DenseIntElementsAttr getDenseIntElementsAttr(
-    Type elementType, T values,
-    std::optional<SmallVector<int64_t>> valuesShape) {
-  SmallVector<int64_t> shape =
-      valuesShape.has_value()
-          ? *valuesShape
-          : SmallVector<int64_t>({static_cast<int64_t>(values.size())});
-  return DenseIntElementsAttr::get(RankedTensorType::get(shape, elementType),
-                                   values);
-}
-
 static Tensor computeSum(const Tensor &operand, const Tensor &initValue,
                          const Axes &dimensions, ShapedType resultType) {
   Tensor result(resultType);
