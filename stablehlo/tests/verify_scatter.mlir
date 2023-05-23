@@ -230,6 +230,54 @@ func.func @scatter_c4(%input_tensor: tensor<200x100x300xf32>,
 
 // -----
 
+func.func @scatter_c6_c15(%input_tensor: tensor<200x100x300xf32>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xi32>) ->
+      tensor<200x100x300xf32> {
+  // expected-error@+1 {{The type of reduction-region's result type at index 0 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<i32>'}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %add = stablehlo.add %lhs, %rhs :  tensor<f32>
+    "stablehlo.return"(%add) : (tensor<f32>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xi32>) ->
+      tensor<200x100x300xf32>
+  func.return %0 : tensor<200x100x300xf32>
+}
+
+// -----
+
+func.func @scatter_c6_c15_c16(%input_tensor: tensor<200x100x300xi32>,
+    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
+      tensor<200x100x300xf32> {
+  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be 'i32', but got 'tensor<f32>' as its type.}}
+  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %add = stablehlo.add %lhs, %rhs :  tensor<f32>
+    "stablehlo.return"(%add) : (tensor<f32>) -> ()
+  }) {
+    scatter_dimension_numbers = #stablehlo.scatter<
+      update_window_dims = [1],
+      inserted_window_dims = [0, 1],
+      scatter_dims_to_operand_dims = [0, 1],
+      index_vector_dim = 1
+    >,
+    indices_are_sorted = true,
+    unique_indices = true
+  } : (tensor<200x100x300xi32>, tensor<10x2xi32>, tensor<10x300xf32>) ->
+      tensor<200x100x300xf32>
+  func.return %0 : tensor<200x100x300xf32>
+}
+
+// -----
+
 func.func @scatter_c7() ->  tensor<512x1x6400x6400xf32> {
   %base = stablehlo.constant dense<0.000000e+00> : tensor<512x1x6400x6400xf32>
   %index = stablehlo.constant dense<0> : tensor<1xi32>
@@ -743,54 +791,6 @@ func.func @scatter_c15(%input_tensor: tensor<200x100x300xf32>,
     indices_are_sorted = true,
     unique_indices = true
   } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xf32>) ->
-      tensor<200x100x300xf32>
-  func.return %0 : tensor<200x100x300xf32>
-}
-
-// -----
-
-func.func @scatter_c6_c15(%input_tensor: tensor<200x100x300xf32>,
-    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xi32>) ->
-      tensor<200x100x300xf32> {
-  // expected-error@+1 {{The type of reduction-region's result type at index 0 differs from the op's corresponding init-value type: 'tensor<f32>' vs 'tensor<i32>'}}
-  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
-  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
-    %add = stablehlo.add %lhs, %rhs :  tensor<f32>
-    "stablehlo.return"(%add) : (tensor<f32>) -> ()
-  }) {
-    scatter_dimension_numbers = #stablehlo.scatter<
-      update_window_dims = [1],
-      inserted_window_dims = [0, 1],
-      scatter_dims_to_operand_dims = [0, 1],
-      index_vector_dim = 1
-    >,
-    indices_are_sorted = true,
-    unique_indices = true
-  } : (tensor<200x100x300xf32>, tensor<10x2xi32>, tensor<10x300xi32>) ->
-      tensor<200x100x300xf32>
-  func.return %0 : tensor<200x100x300xf32>
-}
-
-// -----
-
-func.func @scatter_c6_c15_c16(%input_tensor: tensor<200x100x300xi32>,
-    %scatter_indices: tensor<10x2xi32>, %updates: tensor<10x300xf32>) ->
-      tensor<200x100x300xf32> {
-  // expected-error@+1 {{The element-type of reduction-region's argument at index 1 is expected to be 'i32', but got 'tensor<f32>' as its type.}}
-  %0 = "stablehlo.scatter" (%input_tensor, %scatter_indices, %updates) ({
-  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
-    %add = stablehlo.add %lhs, %rhs :  tensor<f32>
-    "stablehlo.return"(%add) : (tensor<f32>) -> ()
-  }) {
-    scatter_dimension_numbers = #stablehlo.scatter<
-      update_window_dims = [1],
-      inserted_window_dims = [0, 1],
-      scatter_dims_to_operand_dims = [0, 1],
-      index_vector_dim = 1
-    >,
-    indices_are_sorted = true,
-    unique_indices = true
-  } : (tensor<200x100x300xi32>, tensor<10x2xi32>, tensor<10x300xf32>) ->
       tensor<200x100x300xf32>
   func.return %0 : tensor<200x100x300xf32>
 }

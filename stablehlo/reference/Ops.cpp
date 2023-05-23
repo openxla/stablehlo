@@ -1367,17 +1367,18 @@ SmallVector<Tensor> evalScatterOp(
     for (auto d : updateScatterDims)
       updateScatterIndex.push_back(updateIndex[d]);
 
-    Index startIndex;
-    Sizes updateScatterIndexOffset(scatterIndices.getRank(), 1);
+    Index sliceStartIndices(updateScatterIndex);
+    Sizes sliceLimitIndices(Sizes(sliceStartIndices) + 1);
     if (indexVectorDim < scatterIndices.getRank()) {
-      updateScatterIndex.insert(updateScatterIndex.begin() + indexVectorDim, 0);
-      updateScatterIndexOffset[indexVectorDim] =
-          scatterIndices.getShape()[indexVectorDim];
+      sliceStartIndices.insert(sliceStartIndices.begin() + indexVectorDim, 0);
+      sliceLimitIndices.insert(sliceLimitIndices.begin() + indexVectorDim,
+                               scatterIndices.getShape()[indexVectorDim]);
     }
     auto startIndexSlice =
-        evalSliceOp(scatterIndices, updateScatterIndex,
-                    updateScatterIndex + updateScatterIndexOffset,
+        evalSliceOp(scatterIndices, sliceStartIndices, sliceLimitIndices,
                     Sizes(scatterIndices.getRank(), 1));
+
+    Index startIndex;
     for (auto it = startIndexSlice.index_begin();
          it != startIndexSlice.index_end(); ++it)
       startIndex.push_back(
@@ -1412,6 +1413,7 @@ SmallVector<Tensor> evalScatterOp(
       bodyArg.set({}, result.get(resultIndex));
       bodyArgs.push_back(bodyArg);
     }
+
     for (auto update : updates) {
       Tensor bodyArg(RankedTensorType::get({}, update.getElementType()));
       bodyArg.set({}, update.get(updateIndex));
@@ -1422,6 +1424,7 @@ SmallVector<Tensor> evalScatterOp(
     for (auto [result, value] : llvm::zip(results, updatedValues))
       result.set(resultIndex, value.get({}));
   }
+
   return results;
 }
 

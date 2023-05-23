@@ -589,7 +589,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c15
+    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c6, scatter_c15
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -598,7 +598,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           " differs from the op's corresponding init-value type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // reduce_c6, reduce_window_c3, scatter_c15
+    // reduce_c6, reduce_window_c3, scatter_c6, scatter_c15
     if (!tensorsHaveSameElType(
             inputTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
@@ -3836,13 +3836,15 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
 
   // scatter_c1
   for (auto operandType : operandTypes)
-    if (!compatibleShapeAndElementType(operandTypes[0], operandType))
+    if (failed(verifyCompatibleShape(operandTypes[0].getShape(),
+                                     operandType.getShape())))
       return emitOptionalError(location,
                                "Not all inputs have compatible shapes.");
 
   // scatter_c3
   for (auto updateType : updatesTypes)
-    if (!compatibleShapeAndElementType(updatesTypes[0], updateType))
+    if (failed(verifyCompatibleShape(updatesTypes[0].getShape(),
+                                     updateType.getShape())))
       return emitOptionalError(location,
                                "Not all updates have compatible shapes.");
 
@@ -3863,7 +3865,7 @@ LogicalResult verifyScatterOp(std::optional<Location> location,
     initValueTypes.push_back(
         RankedTensorType::get({}, updatesTypes[i].getElementType()));
   }
-  // scatter_c15
+  // scatter_c6, scatter_c15
   if (failed(verifyReducerShape(location, updateComputation.front(), inputTypes,
                                 initValueTypes,
                                 /*allowedDimensions=*/{})))

@@ -2470,7 +2470,7 @@ def StableHLO_DynamicReshapeOp: StableHLO_ShapedInterfaceOp<"dynamic_reshape", [
 }
 
 def StableHLO_ScatterOp: StableHLO_Op<"scatter", [RecursiveMemoryEffects,
-      SameVariadicOperandSize /*scatter_c1, scatter_c3, scatter_c5*/,
+      SameVariadicOperandSize /*scatter_c5*/,
       DeclareOpInterfaceMethods<InferTypeOpInterface> /*scatter_c16*/]> {
   let summary = "Scatter operation";
   let description = [{
