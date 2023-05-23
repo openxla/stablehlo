@@ -72,23 +72,17 @@ backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
 maintainted in the StableHLO repo.
 
-## MLIR Bytecode Format
-
-StableHLO uses the [MLIR Bytecode Format](https://mlir.llvm.org/docs/BytecodeFormat/)
-for serialization.
-
-The MLIR Bytecode Format is a serialization format used to encode MLIR
-programs. From the [MLIR RFC](https://discourse.llvm.org/t/rfc-a-binary-serialization-format-for-mlir/63518),
-it was built for "the benefits that a binary format brings to the table; namely
-serialization speed and size, mmap capabilities, more easily enabled
-versioning, etc." Performance, serialization size, and memory tests were run
-using large test from various dialects to validate the format.
+## MLIR Bytecode Format Versions
 
 In order to maintain forward compatibility, StableHLO versions have an
-associated MLIR Bytecode Format version. Additionally, the most recent version
-of StableHLO uses the most up-to-date version of the MLIR Bytecode Format.
-When MLIR bytecode is incremented, the next release of StableHLO will increment
-the minor version and use the latest MLIR Bytecode Format version.
+associated MLIR Bytecode Format version. Additionally, the latest version of
+StableHLO will use the lateset version of the MLIR Bytecode Format. When the
+MLIR Bytecode Format version is incremented, the next release of StableHLO will
+increment the minor version and update [Version.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.cpp#:~:text=getBytecodeVersion)
+to use the latest MLIR Bytecode Format version.
+
+For details on MLIR Bytecode Format and the rationale for using it in StableHLO,
+see [bytecode.md](https://github.com/openxla/stablehlo/blob/main/docs/bytecode.md).
 
 ## Contributing Incompatible Changes
 
