@@ -623,7 +623,8 @@ Element complex(const Element &e1, const Element &e2) {
 
 Element convert(Type type, bool value) {
   if (isSupportedBooleanType(type)) return Element(type, value);
-  return convert(type, value ? static_cast<uint64_t>(1) : static_cast<uint64_t>(0));
+  return convert(type,
+                 value ? static_cast<uint64_t>(1) : static_cast<uint64_t>(0));
 }
 
 Element convert(Type type, APSInt value) {
