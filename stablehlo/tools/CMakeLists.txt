@@ -44,7 +44,9 @@ target_link_libraries(stablehlo-translate PRIVATE
   ${dialect_libs}
   MLIRFuncDialect
   MLIRIR
+  MLIRPass
   MLIRSupport
+  MLIRTransforms
   MLIRTranslateLib
   CheckOps
   StablehloOps
