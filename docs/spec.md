@@ -2245,7 +2245,7 @@ the XLA compiler. In the future, we are planning to unify this metadata
   backend_config = "bar",
   api_version = 1 : i32,
   called_computations = [@foo]
-} : (tensor<f32>) -> tensor<f32>
+} : (tensor<f64>) -> tensor<f64>
 ```
 
 ### divide

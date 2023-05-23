@@ -74,7 +74,7 @@ one of the following tracking labels.
 | create_token             | no            | yes\*        | yes\*          | yes             | no          |
 | cross-replica-sum        | no            | revisit      | yes\*          | no              | no          |
 | cstr_reshapable          | no            | revisit      | no             | yes             | no          |
-| custom_call              | yes           | yes          | infeasible     | yes             | no          |
+| custom_call              | yes           | yes          | infeasible     | yes             | yes         |
 | divide                   | yes           | yes          | yes            | yes             | yes         |
 | dot                      | no            | revisit      | infeasible     | yes             | no          |
 | dot_general              | yes           | revisit      | infeasible     | no              | no          |
