@@ -158,6 +158,9 @@ Element ceil(const Element &e);
 /// Returns a complex type Element object.
 Element complex(const Element &e1, const Element &e2);
 
+/// Returns converted Element object.
+Element convert(Type type, const Element &e);
+
 /// Returns converted Element object of type `type` from source boolean `value`.
 Element convert(Type type, bool value);
 

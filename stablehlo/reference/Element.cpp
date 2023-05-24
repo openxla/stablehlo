@@ -621,6 +621,21 @@ Element complex(const Element &e1, const Element &e2) {
                                      debugString(complexType).c_str()));
 }
 
+Element convert(Type type, const Element &e) {
+  if (isSupportedBooleanType(e.getType()))
+    return convert(type, e.getBooleanValue());
+  if (isSupportedSignedIntegerType(e.getType()))
+    return convert(type, e.getIntegerValue().getSExtValue());
+  if (isSupportedUnsignedIntegerType(e.getType()))
+    return convert(type, e.getIntegerValue().getZExtValue());
+  if (isSupportedFloatType(e.getType()))
+    return convert(type, e.getFloatValue());
+  if (isSupportedComplexType(e.getType()))
+    return convert(type, e.getComplexValue());
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(e.getType()).c_str()));
+}
+
 Element convert(Type type, bool value) {
   if (isSupportedBooleanType(type)) return Element(type, value);
   return convert(type,

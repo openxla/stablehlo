@@ -747,31 +747,8 @@ Tensor evalConstantOp(ElementsAttr value) {
 
 Tensor evalConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  auto operandElementType = operand.getElementType();
-  auto resultElementType = result.getElementType();
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    if (isSupportedBooleanType(operandElementType))
-      result.set(
-          *it, convert(resultElementType, operand.get(*it).getBooleanValue()));
-    else if (isSupportedSignedIntegerType(operandElementType))
-      result.set(*it,
-                 convert(resultElementType,
-                         operand.get(*it).getIntegerValue().getSExtValue()));
-    else if (isSupportedUnsignedIntegerType(operandElementType))
-      result.set(*it,
-                 convert(resultElementType,
-                         operand.get(*it).getIntegerValue().getZExtValue()));
-    else if (isSupportedFloatType(operandElementType))
-      result.set(*it,
-                 convert(resultElementType, operand.get(*it).getFloatValue()));
-    else if (isSupportedComplexType(operandElementType))
-      result.set(
-          *it, convert(resultElementType, operand.get(*it).getComplexValue()));
-    else
-      report_fatal_error(
-          invalidArgument("Unsupported element type: %s",
-                          debugString(operandElementType).c_str()));
-  }
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, convert(result.getElementType(), operand.get(*it)));
   return result;
 }
 
