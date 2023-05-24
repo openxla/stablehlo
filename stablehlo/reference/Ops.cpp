@@ -102,9 +102,13 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
-Tensor computeSum(const Tensor &input, const Tensor &initValue,
-                  const Axes &dimensions, ShapedType resultType) {
-  Tensor result(resultType, initValue.get({}));
+Tensor computeSum(const Tensor &input, Axis featureIndex,
+                  ShapedType resultType) {
+  Tensor result(resultType, convert(input.getElementType(), 0.0));
+
+  auto dimensions = input.getAxes();
+  dimensions.erase(dimensions.begin() + featureIndex);
+
   for (auto inputIt = input.index_begin(); inputIt != input.index_end();
        ++inputIt) {
     Index resultIndex;
@@ -119,14 +123,7 @@ Tensor computeSum(const Tensor &input, const Tensor &initValue,
 
 Tensor computeMean(const Tensor &operand, Axis featureIndex,
                    ShapedType resultType) {
-  auto dimensions = operand.getAxes();
-  dimensions.erase(dimensions.begin() + featureIndex);
-
-  auto sum =
-      computeSum(operand,
-                 Tensor(RankedTensorType::get({}, operand.getElementType()),
-                        convert(operand.getElementType(), 0.0)),
-                 dimensions, resultType);
+  auto sum = computeSum(operand, featureIndex, resultType);
 
   auto divisor = Tensor(RankedTensorType::get({}, operand.getElementType()),
                         convert(operand.getElementType(),
@@ -639,21 +636,14 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
       evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
       gradOutput.getType());
 
-  Tensor initValue(RankedTensorType::get({}, operand.getElementType()),
-                   convert(operand.getElementType(), 0.0));
-  Axes dimensionsWithoutFeature;
-  for (int64_t i = 0; i < operand.getRank(); ++i)
-    if (i != (int64_t)featureIndex) dimensionsWithoutFeature.push_back(i);
-
   auto i2 =
-      evalBroadcastInDimOp(computeSum(gradOutput, initValue,
-                                      dimensionsWithoutFeature, resultTypes[1]),
+      evalBroadcastInDimOp(computeSum(gradOutput, featureIndex, resultTypes[1]),
                            {featureIndex}, operand.getType());
 
   auto i3 = evalBroadcastInDimOp(
       computeSum(
           evalMultiplyOp(gradOutput, centeredOperand, gradOutput.getType()),
-          initValue, dimensionsWithoutFeature, resultTypes[1]),
+          featureIndex, resultTypes[1]),
       {featureIndex}, operand.getType());
 
   auto i4 = evalMultiplyOp(i3, centeredOperand, i3.getType());
@@ -674,9 +664,8 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
       i6, scaleBroadcast.getType());
   auto gradScale = computeSum(
       evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
-      initValue, dimensionsWithoutFeature, resultTypes[1]);
-  auto gradOffset = computeSum(gradOutput, initValue, dimensionsWithoutFeature,
-                               resultTypes[2]);
+      featureIndex, resultTypes[1]);
+  auto gradOffset = computeSum(gradOutput, featureIndex, resultTypes[2]);
 
   return {gradOperand, gradScale, gradOffset};
 }
