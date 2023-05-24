@@ -2803,15 +2803,14 @@ More formally, `result[result_index] = operand[operand_index]` where:
 * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
 * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
 * `start_index` =
-  * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
-      elements in `batch_index` and `:` is inserted at the `index_vector_dim`
-      index, if `index_vector_dim` < `rank(start_indices)`.
+  * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual elements in
+    `batch_index` and `:` is inserted at the `index_vector_dim` index, if
+    `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
-* For `di` in `axes(operand)`,
-  * `full_start_index[di]` =
-    `clamp(start_index[dj], 0, dim(operand, di) - slice_sizes[di])` if
-    `di = start_index_map[dj]`.
-  * `full_start_index[di]` = `0` otherwise.
+* For `d_operand` in `axes(operand)`,
+  * `full_start_index[d_operand]` = `start_index[d_start]` if
+    `d_operand = start_index_map[d_start]`.
+  * `full_start_index[d_operand]` = `0` otherwise.
 * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
 * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `offset_index`, and `0` is inserted at indices from
