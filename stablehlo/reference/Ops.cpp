@@ -102,6 +102,53 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
+Tensor computeSum(const Tensor &input, const Tensor &initValue,
+                  const Axes &dimensions, ShapedType resultType) {
+  Tensor result(resultType, initValue.get({}));
+  for (auto inputIt = input.index_begin(); inputIt != input.index_end();
+       ++inputIt) {
+    Index resultIndex;
+    for (auto [inputAxis, inputIndexElement] : llvm::enumerate(*inputIt)) {
+      if (llvm::is_contained(dimensions, inputAxis)) continue;
+      resultIndex.push_back(inputIndexElement);
+    }
+    result.set(resultIndex, result.get(resultIndex) + input.get(*inputIt));
+  }
+  return result;
+}
+
+Tensor computeMean(const Tensor &operand, Axis featureIndex,
+                   ShapedType resultType) {
+  auto dimensions = operand.getAxes();
+  dimensions.erase(dimensions.begin() + featureIndex);
+
+  auto sum =
+      computeSum(operand,
+                 Tensor(RankedTensorType::get({}, operand.getElementType()),
+                        convert(operand.getElementType(), 0.0)),
+                 dimensions, resultType);
+
+  auto divisor = Tensor(RankedTensorType::get({}, operand.getElementType()),
+                        convert(operand.getElementType(),
+                                static_cast<double>(operand.getNumElements()) /
+                                    operand.getShape()[featureIndex]));
+  auto divisorBroadcast = evalBroadcastInDimOp(divisor, {}, sum.getType());
+
+  return evalDivideOp(sum, divisorBroadcast, sum.getType());
+}
+
+Tensor computeVariance(const Tensor &operand, Axis featureIndex,
+                       ShapedType resultType) {
+  auto mean = computeMean(operand, featureIndex, resultType);
+  auto meanBroadcast =
+      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
+  auto centeredOperand =
+      evalSubtractOp(operand, meanBroadcast, operand.getType());
+  return computeMean(evalMultiplyOp(centeredOperand, centeredOperand,
+                                    centeredOperand.getType()),
+                     featureIndex, resultType);
+}
+
 }  // namespace
 
 SmallVector<Tensor> eval(
@@ -148,6 +195,17 @@ SmallVector<Tensor> eval(
                                    batchNormInferenceOp.getFeatureIndex(),
                                    batchNormInferenceOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto batchNormTrainingOp = dyn_cast<BatchNormTrainingOp>(op)) {
+      auto operand = scope.find(batchNormTrainingOp.getOperand());
+      auto scale = scope.find(batchNormTrainingOp.getScale());
+      auto offset = scope.find(batchNormTrainingOp.getOffset());
+      auto results = evalBatchNormTrainingOp(
+          operand, scale, offset, batchNormTrainingOp.getEpsilon(),
+          batchNormTrainingOp.getFeatureIndex(),
+          {batchNormTrainingOp.getOutput().getType(),
+           batchNormTrainingOp.getBatchMean().getType(),
+           batchNormTrainingOp.getBatchVar().getType()});
+      scope.add(op.getResults(), results);
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       auto operand = scope.find(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -159,7 +217,7 @@ SmallVector<Tensor> eval(
       auto index = scope.find(caseOp.getIndex());
       auto branches = caseOp.getBranches();
       auto results = evalCaseOp(index, branches, scope);
-      scope.add(op.getResults(), {results});
+      scope.add(op.getResults(), results);
     } else if (auto cbrtOp = dyn_cast<CbrtOp>(op)) {
       auto operand = scope.find(cbrtOp.getOperand());
       auto result = evalCbrtOp(operand, cbrtOp.getType());
@@ -282,7 +340,7 @@ SmallVector<Tensor> eval(
       auto inputs = scope.find(mapOp.getInputs());
       auto &computation = mapOp.getComputation();
       auto results = evalMapOp(inputs, computation, scope, mapOp.getType());
-      scope.add(op.getResults(), {results});
+      scope.add(op.getResults(), results);
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       auto lhs = scope.find(maxOp.getLhs());
       auto rhs = scope.find(maxOp.getRhs());
@@ -341,7 +399,7 @@ SmallVector<Tensor> eval(
       auto results =
           evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
                        reduceOp.getBody(), scope, resultTypes);
-      scope.add(op.getResults(), {results});
+      scope.add(op.getResults(), results);
     } else if (auto reduceWindowOp = dyn_cast<ReduceWindowOp>(op)) {
       auto inputs = scope.find(reduceWindowOp.getInputs());
       auto initValues = scope.find(reduceWindowOp.getInitValues());
@@ -382,7 +440,7 @@ SmallVector<Tensor> eval(
           inputs, initValues, Sizes(reduceWindowOp.getWindowDimensions()),
           windowStrides, baseDilations, windowDilations, paddingLow,
           paddingHigh, reduceWindowOp.getBody(), scope, resultTypes);
-      scope.add(op.getResults(), {results});
+      scope.add(op.getResults(), results);
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
       auto lhs = scope.find(remOp.getLhs());
       auto rhs = scope.find(remOp.getRhs());
@@ -460,7 +518,7 @@ SmallVector<Tensor> eval(
       auto &comparator = sortOp.getComparator();
       auto results =
           evalSortOp(operands, dimension, isStable, comparator, scope);
-      scope.add(op.getResults(), {results});
+      scope.add(op.getResults(), results);
     } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
       auto operand = scope.find(sqrtOp.getOperand());
       auto result = evalSqrtOp(operand, sqrtOp.getType());
@@ -560,6 +618,18 @@ Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
   return evalAddOp(
       evalMultiplyOp(scaleBroadcast, normalizedOperand, operand.getType()),
       offsetBroadcast, operand.getType());
+}
+
+SmallVector<Tensor> evalBatchNormTrainingOp(const Tensor &operand,
+                                            const Tensor &scale,
+                                            const Tensor &offset,
+                                            APFloat epsilon, Axis featureIndex,
+                                            ArrayRef<ShapedType> resultTypes) {
+  auto mean = computeMean(operand, featureIndex, resultTypes[1]);
+  auto variance = computeVariance(operand, featureIndex, resultTypes[2]);
+  return {evalBatchNormInferenceOp(operand, scale, offset, mean, variance,
+                                   epsilon, featureIndex, resultTypes[0]),
+          mean, variance};
 }
 
 Tensor evalBroadcastInDimOp(const Tensor &operand,

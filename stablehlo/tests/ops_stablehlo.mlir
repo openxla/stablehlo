@@ -4737,48 +4737,64 @@ func.func @error_incompatible_alias_element_types (%arg0: tensor<2xf32> {stableh
 
 // -----
 
-// stablehlo.batch_norm_training
-
-// CHECK-LABEL: @batch_norm_train
-func.func @batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
+// CHECK-LABEL: @batch_norm_training
+func.func @batch_norm_training(%input: tensor<2x2x2x2xf64>, %scale: tensor<2xf64>, %offset: tensor<2xf64>) -> tensor<2x2x2x2xf64> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 1 : i64
+  } : (tensor<2x2x2x2xf64>, tensor<2xf64>, tensor<2xf64>) ->
+      (tensor<2x2x2x2xf64>, tensor<2xf64>, tensor<2xf64>)
+  func.return %0#0 : tensor<2x2x2x2xf64>
 }
 
 // -----
 
-// CHECK-LABEL: @batch_norm_train_dynamic
-func.func @batch_norm_train_dynamic(%input: tensor<?x?x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<?x?x2x2xf32> {
+// CHECK-LABEL: @batch_norm_training_dynamic
+func.func @batch_norm_training_dynamic(%input: tensor<?x?x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<?x?x2x2xf32> {
   %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
-    epsilon = 0.001 : f32, feature_index = 1 : i64
-  } : (tensor<?x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<?x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+    epsilon = 0.001 : f32,
+    feature_index = 1 : i64
+  } : (tensor<?x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<?x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<?x?x2x2xf32>
 }
 
 // -----
 
-func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 4, and rank 4.}}
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 4 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
-  func.return %0#0 : tensor<2x2x2x2xf32>
-}
-
-// -----
-
-func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
+func.func @batch_norm_training_c1(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{expects featureIndex to be a non-negative number, got -1.}}
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = -1 : i64} : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = -1 : i64
+  } : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
 
 // -----
 
-func.func @error_batch_norm_train(%input: tensor<2x2x2x2xf32>, %scale: tensor<3xf32>, %offset: tensor<3xf32>) -> tensor<2x2x2x2xf32> {
+func.func @batch_norm_training_c1(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<2x2x2x2xf32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{expects featureIndex to be smaller than the rank of multi-dimensional operands; got featureIndex 4, and rank 4.}}
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 4 : i64
+  } : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  func.return %0#0 : tensor<2x2x2x2xf32>
+}
+
+// -----
+
+func.func @batch_norm_training_c3_c4(%input: tensor<2x2x2x2xf32>, %scale: tensor<3xf32>, %offset: tensor<3xf32>) -> tensor<2x2x2x2xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{expects the size of single-dimensional operands to be compatible with feature count, but the size of single-dimensional operands is 3 and the feature count is 2.}}
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 3 : i64} : (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>) -> (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>)
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 3 : i64
+  } : (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>) ->
+      (tensor<2x2x2x2xf32>, tensor<3xf32>, tensor<3xf32>)
   func.return %0#0 : tensor<2x2x2x2xf32>
 }
 

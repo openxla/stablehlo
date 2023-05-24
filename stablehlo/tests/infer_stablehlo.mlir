@@ -266,13 +266,60 @@ func.func @batch_norm_grad(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %
 
 // -----
 
-// CHECK-LABEL: func @batch_norm_train
-func.func @batch_norm_train(%input: tensor<2x?x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<*xindex> {
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {epsilon = 0.001 : f32, feature_index = 1 : i64} : (tensor<2x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x?x2x2xf32>, tensor<?xf32>, tensor<?xf32>)
+// CHECK-LABEL: func @batch_norm_training
+func.func @batch_norm_training(%input: tensor<2x?x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<*xindex> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 1 : i64
+  } : (tensor<2x?x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<2x?x2x2xf32>, tensor<?xf32>, tensor<?xf32>)
   // CHECK: types0 = tensor<2x?x2x2xf32>
   // CHECK-SAME: types1 = tensor<?xf32>
   // CHECK-SAME: types2 = tensor<?xf32>
   %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<2x?x2x2xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+
+func.func @batch_norm_training_c5_c6_c7(%input: tensor<2x2x2x2xf32>, %scale: tensor<2xf32>, %offset: tensor<2xf32>) -> tensor<*xindex> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32,
+    feature_index = 1 : i64
+  } : (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) ->
+      (tensor<2x2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+  // CHECK: types0 = tensor<2x2x2x2xf32>
+  // CHECK-SAME: types1 = tensor<2xf32>
+  // CHECK-SAME: types2 = tensor<2xf32>
+  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<2x2x2x2xf32>) -> tensor<*xindex>
+  func.return %1 : tensor<*xindex>
+}
+
+// -----
+
+// CHECK-LABEL: func @batch_norm_training_bounds
+func.func @batch_norm_training_bounds(
+  %input: tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
+  %scale: tensor<?xf32, #stablehlo.bounds<64>>,
+  %offset: tensor<?xf32, #stablehlo.bounds<64>>
+) -> tensor<*xindex> {
+  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
+    epsilon = 0.001 : f32, feature_index = 1 : i64
+  } : (
+    tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
+    tensor<?xf32, #stablehlo.bounds<64>>,
+    tensor<?xf32, #stablehlo.bounds<64>>
+  ) ->
+    (
+    tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
+    tensor<?xf32, #stablehlo.bounds<64>>,
+    tensor<?xf32, #stablehlo.bounds<64>>
+  )
+  // CHECK: types0 = tensor<2x?xf32, #stablehlo.bounds<?, 64>>
+  // CHECK-SAME: types1 = tensor<?xf32, #stablehlo.bounds<64>>
+  // CHECK-SAME: types2 = tensor<?xf32, #stablehlo.bounds<64>>
+  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<2x?xf32, #stablehlo.bounds<?, 64>>) -> tensor<*xindex>
   func.return %1 : tensor<*xindex>
 }
 
@@ -321,33 +368,6 @@ func.func @batch_norm_grad_bounds(
     tensor<?xf32, #stablehlo.bounds<64>>,
     tensor<?xf32, #stablehlo.bounds<64>>,
     tensor<2x?xf32, #stablehlo.bounds<?, 64>>
-  ) ->
-    (
-    tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
-    tensor<?xf32, #stablehlo.bounds<64>>,
-    tensor<?xf32, #stablehlo.bounds<64>>
-  )
-  // CHECK: types0 = tensor<2x?xf32, #stablehlo.bounds<?, 64>>
-  // CHECK-SAME: types1 = tensor<?xf32, #stablehlo.bounds<64>>
-  // CHECK-SAME: types2 = tensor<?xf32, #stablehlo.bounds<64>>
-  %1 = "hlo_test_infer.get_return_types"(%0#0) : (tensor<2x?xf32, #stablehlo.bounds<?, 64>>) -> tensor<*xindex>
-  func.return %1 : tensor<*xindex>
-}
-
-// -----
-
-// CHECK-LABEL: func @batch_norm_train_bounds
-func.func @batch_norm_train_bounds(
-  %input: tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
-  %scale: tensor<?xf32, #stablehlo.bounds<64>>,
-  %offset: tensor<?xf32, #stablehlo.bounds<64>>
-) -> tensor<*xindex> {
-  %0:3 = "stablehlo.batch_norm_training" (%input, %scale, %offset) {
-    epsilon = 0.001 : f32, feature_index = 1 : i64
-  } : (
-    tensor<2x?xf32, #stablehlo.bounds<?, 64>>,
-    tensor<?xf32, #stablehlo.bounds<64>>,
-    tensor<?xf32, #stablehlo.bounds<64>>
   ) ->
     (
     tensor<2x?xf32, #stablehlo.bounds<?, 64>>,

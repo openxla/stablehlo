@@ -1220,10 +1220,11 @@ follows:
 def compute_mean(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[0.0],
+      init_values=[constant(0.0, element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
-  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor = constant(num_elements(operand) / dim(operand, feature_index),
+                     element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
   return divide(sum, divisor_bcast)
 
@@ -1236,8 +1237,9 @@ def compute_variance(operand, feature_index):
 def batch_norm_training(operand, scale, offset, epsilon, feature_index):
   mean = compute_mean(operand, feature_index)
   variance = compute_variance(operand, feature_index)
-  return batch_norm_inference(operand, scale, offset, mean,
-                              variance, epsilon, feature_index)
+  return batch_norm_inference(operand, scale, offset, mean, variance, epsilon,
+                              feature_index),
+         mean, variance
 ```
 
 #### Inputs
@@ -1261,13 +1263,13 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 #### Constraints
 
 * (C1) 0 $\le$ `feature_index` $\lt$ rank(`operand`).
-* (C2) `operand`, `scale`, `offset`, `result`, `batch_mean` and `batch_var`
+* (C2) `operand`, `scale`, `offset`, `output`, `batch_mean` and `batch_var`
        have the same element type.
 * (C3) size(`scale`) $=$ `dim(operand, feature_index)`.
 * (C4) size(`offset`) $=$ `dim(operand, feature_index)`.
 * (C5) size(`batch_mean`) $=$ `dim(operand, feature_index)`.
 * (C6) size(`batch_var`) $=$ `dim(operand, feature_index)`.
-* (C7) `operand` and `output` have the same type.
+* (C7) `operand` and `output` have the same shape.
 
 #### Examples
 
@@ -1281,7 +1283,8 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 %output, %batch_mean, %batch_var = "stablehlo.batch_norm_training"(%operand, %scale, %offset) {
   epsilon = 0.0 : f32,
   feature_index = 2 : i64
-} : (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>) -> (tensor<2x2x2xf32>, tensor<2xf32>, tensor<2xf32>)
+} : (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>) ->
+    (tensor<2x2x2xf64>, tensor<2xf64>, tensor<2xf64>)
 // %output: [
 //           [[0.0, 0.0], [2.0, 2.0]],
 //           [[2.0, 2.0], [0.0, 0.0]]
@@ -1289,6 +1292,8 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 // %batch_mean: [2.0, 3.0]
 // %batch_var: [1.0, 1.0]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_training.mlir)
 
 ### bitcast_convert
 

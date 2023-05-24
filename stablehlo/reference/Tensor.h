@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_TENSOR_H
 #define STABLEHLO_REFERENCE_TENSOR_H
 
+#include <numeric>
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Sizes.h"
@@ -86,6 +88,13 @@ class Tensor {
 
   /// Returns rank of the Tensor object.
   int64_t getRank() const { return impl_->getType().getRank(); }
+
+  /// Returns axes of the Tensor object: [0, 1, ..., getRank() - 1].
+  Axes getAxes() const {
+    Axes result(getRank());
+    std::iota(result.begin(), result.end(), 0);
+    return result;
+  }
 
   /// Returns shape of the Tensor object.
   Sizes getShape() const { return Sizes(impl_->getType().getShape()); }

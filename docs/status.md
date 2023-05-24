@@ -52,7 +52,7 @@ one of the following tracking labels.
 | atan2                    | yes           | yes          | yes            | yes             | yes         |
 | batch_norm_grad          | yes           | revisit      | yes            | no              | no          |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | yes         |
-| batch_norm_training      | yes           | revisit      | yes            | no              | no          |
+| batch_norm_training      | yes           | revisit      | yes            | no              | yes         |
 | bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
 | broadcast                | no            | yes\*        | yes\*          | yes             | no          |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
