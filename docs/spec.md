@@ -3668,17 +3668,17 @@ More formally, `result[result_index]` is defined as:
 
 | Label | Name                | Type                                         | Constraints   |
 |-------|---------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`           | tensor or quantized tensor                   | (C1), (C3-C6) |
-| (I2)  | `padding_value`     | 0-dimensional tensor or quantized tensor     | (C4)          |
-| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C1), (C3)    |
-| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C1), (C3)    |
-| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C1-C3)       |
+| (I1)  | `operand`           | tensor or quantized tensor                   | (C1-C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor or quantized tensor     | (C1)          |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
+| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)       |
 
 #### Outputs
 
-| Name     | Type                       | Constraints   |
-|----------|----------------------------|---------------|
-| `result` | tensor or quantized tensor | (C3-C4), (C6) |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -4330,16 +4330,16 @@ and produces a `result` tensor. More formally,
 
 #### Inputs
 
-| Label | Name         | Type                                         | Constraints      |
-|-------|--------------|----------------------------------------------|------------------|
-| (I1)  | `operand`    | tensor   or quantized tensor                 | (C3-C8)          |
-| (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C1-C2), (C7-C8) |
+| Label | Name         | Type                                         | Constraints |
+|-------|--------------|----------------------------------------------|-------------|
+| (I1)  | `operand`    | tensor   or quantized tensor                 | (C1), (C3)  |
+| (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
 | Name     | Type                       | Constraints |
 |----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C2-C8)     |
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
