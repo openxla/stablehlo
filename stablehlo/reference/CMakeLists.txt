@@ -71,6 +71,7 @@ add_mlir_library(StablehloReferenceTensor
 
   LINK_LIBS PUBLIC
   MLIRIR
+  StablehloReferenceAxes
   StablehloReferenceElement
   StablehloReferenceIndex
   StablehloReferenceSizes

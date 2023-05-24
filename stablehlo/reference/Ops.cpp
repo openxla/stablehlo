@@ -119,7 +119,7 @@ Tensor computeSum(const Tensor &input, const Tensor &initValue,
 
 Tensor computeMean(const Tensor &operand, Axis featureIndex,
                    ShapedType resultType) {
-  Axes dimensions(operand.getAxes());
+  auto dimensions = operand.getAxes();
   dimensions.erase(dimensions.begin() + featureIndex);
 
   auto sum =
