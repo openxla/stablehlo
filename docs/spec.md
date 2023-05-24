@@ -5382,17 +5382,10 @@ where `result_index[d] = operand_index[permutation[d]]`.
 
 #### Inputs
 
-<<<<<<< HEAD
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
 | (I1)  | `operand`     | tensor or per-tensor quantized tensor        | (C1-C3)     |
 | (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
-=======
-| Label | Name          | Type                                         | Constraints      |
-|-------|---------------|----------------------------------------------|------------------|
-| (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C7)          |
-| (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C1), (C2), (C7) |
->>>>>>> bd17bb47 (Augment the slice op spec with per-axis quantization constraints)
 
 #### Outputs
 
