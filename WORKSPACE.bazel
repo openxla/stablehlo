@@ -26,9 +26,9 @@ http_archive(
     ],
 )
 
-LLVM_COMMIT = "27eadeee6b45e24449d656dd7b145cadea73a73b"
+LLVM_COMMIT = "e837f4b7dbc32f085d0fe86b2de91e1da14afaa6"
 
-LLVM_SHA256 = "e01522f4ea0223e21a9e6b20eda940abf044e7600e61a322391802c7d42e3d6d"
+LLVM_SHA256 = "846684c299121cd0e2c37485e9c96f672d2a8e081fd720c19be143f86826f1bc"
 
 http_archive(
     name = "llvm-raw",
@@ -64,8 +64,6 @@ http_archive(
   ],
 )
 
-load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
+load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure")
 
 llvm_configure(name = "llvm-project")
-
-llvm_disable_optional_support_deps()
