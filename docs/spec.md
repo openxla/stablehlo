@@ -178,7 +178,7 @@ following constraints:
 In a given StableHLO operation, all the quantized tensor types are either
 represented using floating-point scales, or integer scales, with multipliers and
 shifts. The floating-point scale `scale` value and the integer scale, with
-`multipler`, and `shift` values are related as: `round_nearest_even(scale *
+`multipler`, and `shift` values, are related as: `round_nearest_even(scale *
 2^shift) == multipler`.
 
 The following demonstrates, using C++ code, a possible implementation of
