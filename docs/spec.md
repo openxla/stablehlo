@@ -3955,33 +3955,41 @@ More formally, `results[:][j0, ..., jR-1] = reduce(input_slices)` where:
 
 #### Inputs
 
-| Label | Name          | Type                                         | Constraints         |
-|-------|---------------|----------------------------------------------|---------------------|
-| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4), (C6), (C7) |
-| (I2)  | `init_values` | variadic number of 0-dimensional tensors     | (C2), (C3)          |
-| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C7)    |
-| (I4)  | `body`        | function                                     | (C6)                |
+| Label | Name          | Type                                                          | Constraints            |
+|-------|---------------|---------------------------------------------------------------|------------------------|
+| (I1)  | `inputs`      | variadic number of tensors or quantized tensor                | (C1-C3), (C5-C10)      |
+| (I2)  | `init_values` | variadic number of 0-dimensional tensors or quantized tensors | (C2), (C6), (C8), (C9) |
+| (I3)  | `dimensions`  | 1-dimensional tensor constant of type `si64`                  | (C3-C5)                |
+| (I4)  | `body`        | function                                                      | (C7), (C10)            |
 
 #### Outputs
 
-| Name      | Type                       | Constraints      |
-|-----------|----------------------------|------------------|
-| `results` | variadic number of tensors | (C2), (C3), (C7) |
+| Name      | Type                                            | Constraints                |
+|-----------|-------------------------------------------------|----------------------------|
+| `results` | variadic number of tensors or quantized tensors | (C2), (C5-C6), (C8), (C10) |
 
 #### Constraints
 
 * (C1) All `inputs` have the same shape.
-* (C2) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
-  element_type(`results[k]`) for all `k` $\in$ [0, N).
-* (C3) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
+* (C2) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N where
   N >= 1.
-* (C4) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension `d`.
-* (C5) All dimensions in `dimensions` are unique.
-* (C6) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
-  `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-  `Ek = element_type(inputs[k])`.
-* (C7) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
+* (C3) 0 $\le$ `dimensions[d]` $\lt$ rank(`inputs[0][d]`) for all dimension `d`.
+* (C4) All dimensions in `dimensions` are unique.
+* (C5) shape(`results[k]`) $=$ shape(`inputs[k]`) except that the dimension
   sizes of `inputs[k]` corresponding to `dimensions` are not included.
+* If the operation uses non-quantized tensors:
+  * (C6) element_type(`inputs[k]`) $=$ element_type(`init_values[k]`) $=$
+    element_type(`results[k]`) for all `k` $\in$ [0, N).
+  * (C7) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+    `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
+    `Ek = element_type(inputs[k])`.
+* If the operation uses quantized tensors:
+  * (C8) `is_quantized_tensor(inputs) and is_quantized_tensor(init_values) and is_quantized_tensor(results)`.
+  * (C9) quantized_element_type(`inputs[k]`) $=$
+    quantized_element_type(`init_values[k]`)  for all `k` $\in$ [0, N).
+  * (C10) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+    `tensor<EN-1>) -> (tensor<E'0>, ..., tensor<E'N-1>)` where
+    `Ek = quantized_element_type(inputs[k]) and E'k = quantized_element_type(results[k])`.
 
 #### Examples
 
@@ -4178,22 +4186,22 @@ where:
 
 #### Inputs
 
-| Label | Name                | Type                                         | Constraints                                     |
-|-------|---------------------|----------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`            | variadic number of tensors                   | (C1-C4), (C6), (C8), (C10), (C12), (C13), (C15) |
-| (I2)  | `init_values`       | variadic number of 0-dimensional tensors     | (C1), (C13), (C16)                              |
-| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C4), (C5), (C15)                               |
-| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C6), (C7), (C15)                               |
-| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64` | (C8), (C9), (C15)                               |
-| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64` | (C10), (C11), (C15)                             |
-| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C12), (C15)                                    |
-| (I8)  | `body`              | function                                     | (C13)                                           |
+| Label | Name                | Type                                                          | Constraints                                 |
+|-------|---------------------|---------------------------------------------------------------|---------------------------------------------|
+| (I1)  | `inputs`            | variadic number of tensors or quantized tensors               | (C1-C3), (C5), (C7), (C9), (C11), (C13-C18) |
+| (I2)  | `init_values`       | variadic number of 0-dimensional tensors or quantized tensors | (C1), (C14), (C16-C17)                      |
+| (I3)  | `window_dimensions` | 1-dimensional tensor constant of type `si64`                  | (C3), (C4), (C13)                           |
+| (I4)  | `window_strides`    | 1-dimensional tensor constant of type `si64`                  | (C5-C6), (C13)                              |
+| (I5)  | `base_dilations`    | 1-dimensional tensor constant of type `si64`                  | (C7-C8), (C13)                              |
+| (I6)  | `window_dilations`  | 1-dimensional tensor constant of type `si64`                  | (C9), (C10), (C13)                          |
+| (I7)  | `padding`           | 2-dimensional tensor constant of type `si64`                  | (C11), (C13)                                |
+| (I8)  | `body`              | function                                                      | (C15), (C18)                                |
 
 #### Outputs
 
-| Name      | Type                       | Constraints     |
-|-----------|----------------------------|-----------------|
-| `results` | variadic number of tensors | (C1), (C14-C16) |
+| Name      | Type                                            | Constraints                   |
+|-----------|-------------------------------------------------|-------------------------------|
+| `results` | variadic number of tensors or quantized tensors | (C1), (C12-C14), (C16), (C18) |
 
 #### Constraints
 
@@ -4201,27 +4209,34 @@ where:
 * (C1) size(`inputs`) $=$ size(`init_values`) $=$ size(`results`) $=$ N and
   N $\ge$ 1.
 * (C2) All `inputs` have the same shape.
-* (C3) `element_type(inputs[k]) = element_type(init_values[k])` for all k
-  $\in$ [0, N).
-* (C4) size(`window_dimensions`) $=$ rank(`inputs[0]`).
-* (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
-* (C6) size(`window_strides`) $=$ rank(`inputs[0]`).
-* (C7) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(`window_strides`)).
-* (C8) size(`base_dilations`) $=$ rank(`inputs[0]`).
-* (C9) `base_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`base_dilations`)).
-* (C10) size(`window_dilations`) $=$ rank(`inputs[0]`).
-* (C11) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
-* (C12) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
-* (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-  where `Ek = element_type(inputs[0])`.
-* (C14) All `results` have the same shape.
-* (C15) `shape(results[0]) = num_windows`
+* (C3) size(`window_dimensions`) $=$ rank(`inputs[0]`).
+* (C4) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(`window_dimensions`)).
+* (C5) size(`window_strides`) $=$ rank(`inputs[0]`).
+* (C6) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(`window_strides`)).
+* (C7) size(`base_dilations`) $=$ rank(`inputs[0]`).
+* (C8) `base_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`base_dilations`)).
+* (C9) size(`window_dilations`) $=$ rank(`inputs[0]`).
+* (C10) `window_dilations[i]` $\gt 0$ for all i $\in$ [0, size(`window_dilations`)).
+* (C11) dim(`padding`, 0) $=$ rank(`inputs[0]`) and dim(`padding`, 1) = 2.
+* (C12) All `results` have the same shape.
+* (C13) `shape(results[0]) = num_windows`
   * `dilated_input_shape = shape(inputs[0]) == 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
   * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
   * `dilated_window_shape = window_dimensions == 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
   * `num_windows = (padded_input_shape == 0 || dilated_window_shape > padded_input_shape) ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results[k]) = element_type(init_values[k])` for all k
-  $\in$ [0, N).
+* If the operation uses non-quantized tensors:
+  * (C14) `element_type(inputs[k]) = element_type(init_values[k]) = element_type(results[k])` for all k
+    $\in$ [0, N).
+  * (C15) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
+    where `Ek = element_type(inputs[0])`.
+* If the operation uses quantized tensors:
+  * (C16) `is_quantized_tensor(inputs) and is_quantized_tensor(init_values) and is_quantized_tensor(results)`.
+  * (C17) quantized_element_type(`inputs[k]`) $=$
+    quantized_element_type(`init_values[k]`)  for all `k` $\in$ [0, N).
+  * (C18) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+    `tensor<EN-1>) -> (tensor<E'0>, ..., tensor<E'N-1>)` where
+    `Ek = quantized_element_type(inputs[k]) and E'k = quantized_element_type(results[k])`.
+
 <!-- markdownlint-enable line-length -->
 
 #### Examples
