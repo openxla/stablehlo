@@ -688,47 +688,48 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
 
 Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
-  auto operandElementType = operand.getElementType();
+
   auto resultElementType = result.getElementType();
-  int64_t operandBitWidth = isSupportedComplexType(operandElementType)
-                                ? operandElementType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandElementType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(resultElementType)
-                               ? resultElementType.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : resultElementType.getIntOrFloatBitWidth();
-  if (operandBitWidth > resultBitWidth) {
+  auto resultBitWidth = isSupportedComplexType(resultElementType)
+                            ? resultElementType.cast<ComplexType>()
+                                  .getElementType()
+                                  .cast<FloatType>()
+                                  .getIntOrFloatBitWidth()
+                            : resultElementType.getIntOrFloatBitWidth();
+
+  auto operandElementType = operand.getElementType();
+  auto operandBitWidth = isSupportedComplexType(operandElementType)
+                             ? operandElementType.cast<ComplexType>()
+                                   .getElementType()
+                                   .cast<FloatType>()
+                                   .getIntOrFloatBitWidth()
+                             : operandElementType.getIntOrFloatBitWidth();
+
+  if (resultBitWidth < operandBitWidth) {
     auto resultIt = result.index_begin();
     for (auto operandIt = operand.index_begin();
          operandIt != operand.index_end(); ++operandIt) {
       auto elements =
-          bitcastConvertOneToMany(resultElementType, operand.get(*operandIt));
+          bitcastConvert(resultElementType, {operand.get(*operandIt)});
       for (auto element : elements) result.set(*resultIt++, element);
     }
     return result;
   }
 
-  if (operandBitWidth < resultBitWidth) {
+  if (resultBitWidth > operandBitWidth) {
     auto operandIt = operand.index_begin();
     for (auto resultIt = result.index_begin(); resultIt != result.index_end();
          ++resultIt) {
       SmallVector<Element> elements;
-      for (int64_t i = 0; i < resultBitWidth / operandBitWidth; ++i)
+      for (uint64_t i = 0; i < resultBitWidth / operandBitWidth; ++i)
         elements.push_back(operand.get(*operandIt++));
-      result.set(*resultIt,
-                 bitcastConvertManyToOne(resultElementType, elements));
+      result.set(*resultIt, bitcastConvert(resultElementType, elements)[0]);
     }
     return result;
   }
 
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it,
-               bitcastConvertOneToOne(resultElementType, operand.get(*it)));
+    result.set(*it, bitcastConvert(resultElementType, {operand.get(*it)})[0]);
   return result;
 }
 

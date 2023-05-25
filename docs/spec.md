@@ -1284,12 +1284,12 @@ type of the `result` tensor.
 More formally, given `E = element_type(operand)`, `E' = element_type(result)`,
 and `R = rank(operand)`:
 
-* If `num_bits(E') = num_bits(E)`,
-  `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
 * If `num_bits(E') < num_bits(E)`,
   `bits(result[i0, ..., iR-1, :]) = bits(operand[i0, ..., iR-1])`.
 * If `num_bits(E') > num_bits(E)`,
   `bits(result[i0, ..., iR-2]) = bits(operand[i0, ..., iR-2, :])`.
+* If `num_bits(E') = num_bits(E)`,
+  `bits(result[i0, ..., iR-1]) = bits(operand[i0, ..., iR-1])`.
 
 `bits` returns in-memory representation of a given value, and its behavior
 is implementation-defined because the exact representation of tensors is

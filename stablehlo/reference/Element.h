@@ -149,16 +149,12 @@ Element atan2(const Element &e1, const Element &e2);
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
-/// Returns bitcast converted array of smaller bitwidth Element objects to one
-/// larger bitwidth Element object.
-Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements);
-
-/// Returns bitcast converted larger bitwidth Element object to array of smaller
-/// bitwidth Element objects.
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el);
-
-/// Returns bitcast converted Element object with the same bitwidth.
-Element bitcastConvertOneToOne(Type type, const Element &el);
+/// Returns bitcast converted Element(s). Let E and E' be the element types of
+/// `elements` and `type` respectively:
+// If num_bits(E') == num_bits(E), returns a single Element.
+// If num_bits(E') < num_bits(E), returns bitwidth(E)/bitwidth(E') Elements.
+// If num_bits(E') > num_bits(E), return a single Element.
+SmallVector<Element> bitcastConvert(Type type, ArrayRef<Element> elements);
 
 /// Returns cube root of Element object.
 Element cbrt(const Element &e);

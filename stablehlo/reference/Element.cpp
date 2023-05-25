@@ -179,6 +179,215 @@ APInt leftShiftAndMask(APInt binary, int64_t shift, APInt mask) {
   return binary;
 }
 
+// Returns bitcast converted array of smaller bitwidth Element objects to one
+// larger bitwidth Element object.
+Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
+  SmallVector<Element> results;
+  auto operandType = elements[0].getType();
+  int64_t operandBitWidth = isSupportedComplexType(operandType)
+                                ? operandType.cast<ComplexType>()
+                                      .getElementType()
+                                      .cast<FloatType>()
+                                      .getIntOrFloatBitWidth()
+                                : operandType.getIntOrFloatBitWidth();
+  int64_t resultBitWidth = isSupportedComplexType(type)
+                               ? type.cast<ComplexType>()
+                                     .getElementType()
+                                     .cast<FloatType>()
+                                     .getIntOrFloatBitWidth()
+                               : type.getIntOrFloatBitWidth();
+  if (isSupportedBooleanType(operandType) ||
+      isSupportedIntegerType(operandType) ||
+      isSupportedFloatType(operandType)) {
+    auto binary = APInt(resultBitWidth, 0);
+    for (auto element : llvm::reverse(elements)) {
+      APInt mask;
+      if (isSupportedBooleanType(operandType))
+        mask = APInt(resultBitWidth, element.getBooleanValue());
+      else if (isSupportedIntegerType(operandType))
+        mask = element.getIntegerValue().zext(resultBitWidth);
+      else if (isSupportedFloatType(operandType))
+        mask = element.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
+      binary = leftShiftAndMask(binary, operandBitWidth, mask);
+    }
+
+    if (isSupportedBooleanType(type)) return elements[0];
+
+    if (isSupportedIntegerType(type)) return Element(type, binary);
+
+    if (isSupportedFloatType(type))
+      return Element(
+          type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
+
+    report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
+                                       debugString(operandType).c_str(),
+                                       debugString(type).c_str()));
+  }
+
+  if (isSupportedComplexType(operandType) && isSupportedComplexType(type)) {
+    // Combines 'resultBitWidth' / 'operandBitWidth' elements into one element,
+    // appending the real and imaginary parts in little endian representation.
+    // TODO(#1460): Explore adding support for big endian architectures
+    auto applyComplexConversion = [&](auto offset) {
+      auto binary = APInt(resultBitWidth, 0);
+      for (auto i = 0; i < resultBitWidth / (2 * operandBitWidth);
+           ++i, ++offset) {
+        binary = leftShiftAndMask(
+            binary, operandBitWidth,
+            elements[offset].getComplexValue().imag().bitcastToAPInt().zext(
+                resultBitWidth));
+        binary = leftShiftAndMask(
+            binary, operandBitWidth,
+            elements[offset].getComplexValue().real().bitcastToAPInt().zext(
+                resultBitWidth));
+      }
+      return binary;
+    };
+    auto baseType = type.cast<ComplexType>().getElementType().cast<FloatType>();
+    auto binaryReal = applyComplexConversion(0);
+    auto binaryImag =
+        applyComplexConversion(resultBitWidth / (2 * operandBitWidth));
+    return Element(type,
+                   std::complex<APFloat>(
+                       APFloat(baseType.getFloatSemantics(), binaryReal),
+                       APFloat(baseType.getFloatSemantics(), binaryImag)));
+  }
+
+  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
+                                     debugString(operandType).c_str(),
+                                     debugString(type).c_str()));
+}
+
+// Returns bitcast converted larger bitwidth Element object to array of smaller
+// bitwidth Element objects.
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
+  SmallVector<Element> results;
+  auto operandType = el.getType();
+  int64_t operandBitWidth = isSupportedComplexType(operandType)
+                                ? operandType.cast<ComplexType>()
+                                      .getElementType()
+                                      .cast<FloatType>()
+                                      .getIntOrFloatBitWidth()
+                                : operandType.getIntOrFloatBitWidth();
+  int64_t resultBitWidth = isSupportedComplexType(type)
+                               ? type.cast<ComplexType>()
+                                     .getElementType()
+                                     .cast<FloatType>()
+                                     .getIntOrFloatBitWidth()
+                               : type.getIntOrFloatBitWidth();
+
+  // Splits element into 'operandBitWidth' / 'resultBitWidth' elements, converts
+  // to Element object of type 'type', and appends them to 'results'.
+  auto applyIntOrFloatConversion = [&](APInt mask) {
+    for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
+      auto binary = leftShiftAndMask(
+          APInt(resultBitWidth, 0), resultBitWidth,
+          mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
+      if (isSupportedBooleanType(type))
+        results.push_back(Element(type, binary.isOne()));
+      else if (isSupportedIntegerType(type))
+        results.push_back(Element(type, binary));
+      else if (isSupportedFloatType(type))
+        results.push_back(Element(
+            type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary)));
+      else
+        report_fatal_error(invalidArgument(
+            "Unsupported conversion from %s to %s",
+            debugString(operandType).c_str(), debugString(type).c_str()));
+    }
+  };
+
+  if (isSupportedIntegerType(operandType)) {
+    applyIntOrFloatConversion(el.getIntegerValue());
+    return results;
+  }
+
+  if (isSupportedFloatType(operandType)) {
+    applyIntOrFloatConversion(el.getFloatValue().bitcastToAPInt());
+    return results;
+  }
+
+  if (isSupportedComplexType(operandType) && isSupportedComplexType(type)) {
+    // splits operand into 'resultBitWidth' / 'operandBitWidth' elements,
+    // applies conversion to type 'type'. It converts two elements at a
+    // time, one for the real part and the other for the imaginary part, and
+    // appends them to 'results'.
+    auto applyComplexConversion = [&](APInt mask) {
+      auto baseType = type.cast<ComplexType>().getElementType();
+      for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
+        auto binaryReal = leftShiftAndMask(
+            APInt(resultBitWidth, 0), resultBitWidth,
+            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
+        i += resultBitWidth;
+        auto binaryImag = leftShiftAndMask(
+            APInt(resultBitWidth, 0), resultBitWidth,
+            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
+        results.push_back(Element(
+            type, std::complex<APFloat>(
+                      APFloat(baseType.cast<FloatType>().getFloatSemantics(),
+                              binaryReal),
+                      APFloat(baseType.cast<FloatType>().getFloatSemantics(),
+                              binaryImag))));
+      }
+    };
+    applyComplexConversion(el.getComplexValue().real().bitcastToAPInt());
+    applyComplexConversion(el.getComplexValue().imag().bitcastToAPInt());
+    return results;
+  }
+
+  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
+                                     debugString(operandType).c_str(),
+                                     debugString(type).c_str()));
+}
+
+// Returns bitcast converted Element object with the same bitwidth.
+Element bitcastConvertOneToOne(Type type, const Element &el) {
+  auto operandType = el.getType();
+  int64_t operandBitWidth = isSupportedComplexType(operandType)
+                                ? operandType.cast<ComplexType>()
+                                      .getElementType()
+                                      .cast<FloatType>()
+                                      .getIntOrFloatBitWidth()
+                                : operandType.getIntOrFloatBitWidth();
+  int64_t resultBitWidth = isSupportedComplexType(type)
+                               ? type.cast<ComplexType>()
+                                     .getElementType()
+                                     .cast<FloatType>()
+                                     .getIntOrFloatBitWidth()
+                               : type.getIntOrFloatBitWidth();
+  if (isSupportedBooleanType(operandType) && isSupportedBooleanType(type))
+    return el;
+
+  if (isSupportedIntegerType(operandType)) {
+    if (isSupportedIntegerType(type)) return el;
+
+    auto binary = APInt(resultBitWidth, 0);
+    APInt mask = el.getIntegerValue().zext(resultBitWidth);
+    binary = leftShiftAndMask(binary, operandBitWidth, mask);
+
+    if (isSupportedFloatType(type))
+      return Element(
+          type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
+  }
+
+  if (isSupportedFloatType(operandType)) {
+    if (isSupportedFloatType(type)) return el;
+
+    APInt mask = el.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
+    auto binary =
+        leftShiftAndMask(APInt(resultBitWidth, 0), operandBitWidth, mask);
+
+    if (isSupportedIntegerType(type)) return Element(type, binary);
+  }
+
+  if (isSupportedComplexType(operandType) && isSupportedComplexType(type))
+    return el;
+
+  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
+                                     debugString(operandType).c_str(),
+                                     debugString(type).c_str()));
+}
+
 }  // namespace
 
 Element::Element(Type type, APInt value) {
@@ -601,208 +810,25 @@ Element atan2(const Element &e1, const Element &e2) {
                                      debugString(type).c_str()));
 }
 
-Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
-  SmallVector<Element> results;
+SmallVector<Element> bitcastConvert(Type type, ArrayRef<Element> elements) {
   auto operandType = elements[0].getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
-  if (isSupportedBooleanType(operandType) ||
-      isSupportedIntegerType(operandType) ||
-      isSupportedFloatType(operandType)) {
-    auto binary = APInt(resultBitWidth, 0);
-    for (auto element : llvm::reverse(elements)) {
-      APInt mask;
-      if (isSupportedBooleanType(operandType))
-        mask = APInt(resultBitWidth, element.getBooleanValue());
-      else if (isSupportedIntegerType(operandType))
-        mask = element.getIntegerValue().zext(resultBitWidth);
-      else if (isSupportedFloatType(operandType))
-        mask = element.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
-      binary = leftShiftAndMask(binary, operandBitWidth, mask);
-    }
-
-    if (isSupportedBooleanType(type)) return elements[0];
-
-    if (isSupportedIntegerType(type)) return Element(type, binary);
-
-    if (isSupportedFloatType(type))
-      return Element(
-          type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
-
-    report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
-                                       debugString(operandType).c_str(),
-                                       debugString(type).c_str()));
-  }
-
-  if (isSupportedComplexType(operandType) && isSupportedComplexType(type)) {
-    // Combines 'resultBitWidth' / 'operandBitWidth' elements into one element,
-    // appending the real and imaginary parts in little endian representation.
-    // TODO(#1460): Explore adding support for big endian architectures
-    auto applyComplexConversion = [&](auto offset) {
-      auto binary = APInt(resultBitWidth, 0);
-      for (auto i = 0; i < resultBitWidth / (2 * operandBitWidth);
-           ++i, ++offset) {
-        binary = leftShiftAndMask(
-            binary, operandBitWidth,
-            elements[offset].getComplexValue().imag().bitcastToAPInt().zext(
-                resultBitWidth));
-        binary = leftShiftAndMask(
-            binary, operandBitWidth,
-            elements[offset].getComplexValue().real().bitcastToAPInt().zext(
-                resultBitWidth));
-      }
-      return binary;
-    };
-    auto baseType = type.cast<ComplexType>().getElementType().cast<FloatType>();
-    auto binaryReal = applyComplexConversion(0);
-    auto binaryImag =
-        applyComplexConversion(resultBitWidth / (2 * operandBitWidth));
-    return Element(type,
-                   std::complex<APFloat>(
-                       APFloat(baseType.getFloatSemantics(), binaryReal),
-                       APFloat(baseType.getFloatSemantics(), binaryImag)));
-  }
-
-  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
-                                     debugString(operandType).c_str(),
-                                     debugString(type).c_str()));
-}
-
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
-  SmallVector<Element> results;
-  auto operandType = el.getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
-
-  // Splits element into 'operandBitWidth' / 'resultBitWidth' elements, converts
-  // to Element object of type 'type', and appends them to 'results'.
-  auto applyIntOrFloatConversion = [&](APInt mask) {
-    for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
-      auto binary = leftShiftAndMask(
-          APInt(resultBitWidth, 0), resultBitWidth,
-          mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
-      if (isSupportedBooleanType(type))
-        results.push_back(Element(type, binary.isOne()));
-      else if (isSupportedIntegerType(type))
-        results.push_back(Element(type, binary));
-      else if (isSupportedFloatType(type))
-        results.push_back(Element(
-            type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary)));
-      else
-        report_fatal_error(invalidArgument(
-            "Unsupported conversion from %s to %s",
-            debugString(operandType).c_str(), debugString(type).c_str()));
-    }
-  };
-
-  if (isSupportedIntegerType(operandType)) {
-    applyIntOrFloatConversion(el.getIntegerValue());
-    return results;
-  }
-
-  if (isSupportedFloatType(operandType)) {
-    applyIntOrFloatConversion(el.getFloatValue().bitcastToAPInt());
-    return results;
-  }
-
-  if (isSupportedComplexType(operandType) && isSupportedComplexType(type)) {
-    // splits operand into 'resultBitWidth' / 'operandBitWidth' elements,
-    // applies conversion to type 'type'. It converts two elements at a
-    // time, one for the real part and the other for the imaginary part, and
-    // appends them to 'results'.
-    auto applyComplexConversion = [&](APInt mask) {
-      auto baseType = type.cast<ComplexType>().getElementType();
-      for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
-        auto binaryReal = leftShiftAndMask(
-            APInt(resultBitWidth, 0), resultBitWidth,
-            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
-        i += resultBitWidth;
-        auto binaryImag = leftShiftAndMask(
-            APInt(resultBitWidth, 0), resultBitWidth,
-            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
-        results.push_back(Element(
-            type, std::complex<APFloat>(
-                      APFloat(baseType.cast<FloatType>().getFloatSemantics(),
-                              binaryReal),
-                      APFloat(baseType.cast<FloatType>().getFloatSemantics(),
-                              binaryImag))));
-      }
-    };
-    applyComplexConversion(el.getComplexValue().real().bitcastToAPInt());
-    applyComplexConversion(el.getComplexValue().imag().bitcastToAPInt());
-    return results;
-  }
-
-  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
-                                     debugString(operandType).c_str(),
-                                     debugString(type).c_str()));
-}
-
-Element bitcastConvertOneToOne(Type type, const Element &el) {
-  auto operandType = el.getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
-  if (isSupportedBooleanType(operandType) && isSupportedBooleanType(type))
-    return el;
-
-  if (isSupportedIntegerType(operandType)) {
-    if (isSupportedIntegerType(type)) return el;
-
-    auto binary = APInt(resultBitWidth, 0);
-    APInt mask = el.getIntegerValue().zext(resultBitWidth);
-    binary = leftShiftAndMask(binary, operandBitWidth, mask);
-
-    if (isSupportedFloatType(type))
-      return Element(
-          type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
-  }
-
-  if (isSupportedFloatType(operandType)) {
-    if (isSupportedFloatType(type)) return el;
-
-    APInt mask = el.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
-    auto binary =
-        leftShiftAndMask(APInt(resultBitWidth, 0), operandBitWidth, mask);
-
-    if (isSupportedIntegerType(type)) return Element(type, binary);
-  }
-
-  if (isSupportedComplexType(operandType) && isSupportedComplexType(type))
-    return el;
-
-  report_fatal_error(invalidArgument("Unsupported conversion from %s to %s",
-                                     debugString(operandType).c_str(),
-                                     debugString(type).c_str()));
+  auto operandBitWidth = isSupportedComplexType(operandType)
+                             ? operandType.cast<ComplexType>()
+                                   .getElementType()
+                                   .cast<FloatType>()
+                                   .getIntOrFloatBitWidth()
+                             : operandType.getIntOrFloatBitWidth();
+  auto resultBitWidth = isSupportedComplexType(type)
+                            ? type.cast<ComplexType>()
+                                  .getElementType()
+                                  .cast<FloatType>()
+                                  .getIntOrFloatBitWidth()
+                            : type.getIntOrFloatBitWidth();
+  if (operandBitWidth > resultBitWidth)
+    return bitcastConvertOneToMany(type, elements[0]);
+  if (operandBitWidth < resultBitWidth)
+    return {bitcastConvertManyToOne(type, elements)};
+  return {bitcastConvertOneToOne(type, elements[0])};
 }
 
 Element cbrt(const Element &el) {
