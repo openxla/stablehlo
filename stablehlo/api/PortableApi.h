@@ -39,6 +39,18 @@ std::string getCurrentVersion();
 //
 // This value can be used as the `targetVersion` argument to
 // `serializePortableArtifact`.
+//
+// Each StableHLO version `producer_version` has a compatibility window,
+// i.e. range of versions [`consumer_version_min`, `consumer_version_max`],
+// where StableHLO portable artifacts serialized by `producer_version`
+// can be deserialized by `consumer_version` within the window.
+// See https://github.com/openxla/stablehlo/blob/main/docs/compatibility.md
+// for the exact extent of these compatibility guarantees.
+//
+// This function returns `consumer_version_min` for the current StableHLO
+// version. It can be used maximize forward compatibility, i.e. to maximize how
+// far into the past we can go and still have the payloads produced by
+// `serializePortableArtifact` compatible with potential consumers from the past
 std::string getMinimumVersion();
 
 // Write a StableHLO program expressed as a string (either prettyprinted MLIR
