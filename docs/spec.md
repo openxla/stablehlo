@@ -1028,7 +1028,8 @@ def compute_sum(operand, feature_index):
 
 def compute_mean(operand, feature_index):
   sum = compute_sum(operand, feature_index)
-  divisor = constant(num_elements(operand) / dim(operand, feature_index))
+  divisor = constant(num_elements(operand) / dim(operand, feature_index),
+                     element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], shape(sum))
   return divide(sum, divisor_bcast)
 
@@ -1037,7 +1038,8 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   scale_bcast = broadcast_in_dim(scale, [feature_index], shape(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], shape(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], shape(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon), [], shape(operand))
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
+                                   shape(operand))
 
   # Perform normalization using the provided `mean` and `variance`
   # Intermediate values will be useful for computing gradients
@@ -1047,27 +1049,26 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 
   # Use the implementation from batchnorm_expander.cc in XLA
   # Temporary variables have exactly the same names as in the C++ code
-  elements_per_feature = constant(
-    divide(num_elements(operand), dim(operand, feature_index)))
-  i1 = multiply(
-    grad_output,
-    broadcast_in_dim(elements_per_feature, [], shape(operand)))
+  elements_per_feature = broadcast_in_dim(
+      constant(divide(num_elements(operand), dim(operand, feature_index)),
+               element_type(grad_output)),
+      [], shape(operand))
+  i1 = multiply(grad_output, elements_per_feature)
   i2 = broadcast_in_dim(
-    compute_sum(grad_output, feature_index),
-    [feature_index], shape(operand))
+      compute_sum(grad_output, feature_index), [feature_index], shape(operand))
   i3 = broadcast_in_dim(
-    compute_sum(multiply(grad_output, centered_operand), feature_index),
-    [feature_index], shape(operand))
+      compute_sum(multiply(grad_output, centered_operand), feature_index),
+      [feature_index], shape(operand))
   i4 = multiply(i3, centered_operand)
   i5 = divide(i4, add(variance_bcast, epsilon_bcast))
   i6 = subtract(subtract(i1, i2), i5)
-  grad_operand = multiply(
-    divide(divide(scale_bcast, stddev), elements_per_feature),
-    i6)
-  grad_scale = compute_sum(
-    multiply(grad_output, normalized_operand),
-    feature_index)
+
+  grad_operand =
+      multiply(divide(divide(scale_bcast, stddev), elements_per_feature), i6)
+  grad_scale =
+      compute_sum(multiply(grad_output, normalized_operand), feature_index)
   grad_offset = compute_sum(grad_output, feature_index)
+
   return grad_operand, grad_scale, grad_offset
 ```
 

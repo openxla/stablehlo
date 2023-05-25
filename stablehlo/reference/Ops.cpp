@@ -625,16 +625,15 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
   auto normalizedOperand =
       evalDivideOp(centeredOperand, stddev, centeredOperand.getType());
 
-  auto elementsPerFeature =
+  auto elementsPerFeature = evalBroadcastInDimOp(
       Tensor(RankedTensorType::get({}, gradOutput.getElementType()),
              convert(gradOutput.getElementType(),
                      static_cast<double>(operand.getNumElements()) /
-                         operand.getShape()[featureIndex]));
+                         operand.getShape()[featureIndex])),
+      {}, operand.getType());
 
-  auto i1 = evalMultiplyOp(
-      gradOutput,
-      evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
-      gradOutput.getType());
+  auto i1 =
+      evalMultiplyOp(gradOutput, elementsPerFeature, gradOutput.getType());
 
   auto i2 =
       evalBroadcastInDimOp(computeSum(gradOutput, featureIndex, resultTypes[1]),
@@ -659,8 +658,7 @@ SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
   auto gradOperand = evalMultiplyOp(
       evalDivideOp(
           evalDivideOp(scaleBroadcast, stddev, scaleBroadcast.getType()),
-          evalBroadcastInDimOp(elementsPerFeature, {}, operand.getType()),
-          scaleBroadcast.getType()),
+          elementsPerFeature, scaleBroadcast.getType()),
       i6, scaleBroadcast.getType());
   auto gradScale = computeSum(
       evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
