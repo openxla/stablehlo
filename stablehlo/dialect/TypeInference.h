@@ -335,6 +335,10 @@ LogicalResult inferSortOp(
     std::optional<Location> location, ValueRange inputs,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
 
+LogicalResult inferTopKOp(
+    std::optional<Location> location, Value operand, int64_t k,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes);
+
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
                                DenseIntElementsAttr permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes);

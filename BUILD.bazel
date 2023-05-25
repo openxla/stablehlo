@@ -278,6 +278,7 @@ cc_library(
         ":chlo_attrs_inc_gen",
         ":chlo_enums_inc_gen",
         ":chlo_ops_inc_gen",
+        ":stablehlo_type_inference",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:BytecodeReader",
         "@llvm-project//mlir:BytecodeWriter",

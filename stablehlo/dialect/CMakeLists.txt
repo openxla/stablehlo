@@ -65,6 +65,7 @@ add_mlir_dialect_library(ChloOps
   LINK_LIBS PUBLIC
   StablehloBase
   StablehloBroadcastUtils
+  StablehloTypeInference
   MLIRArithDialect
   MLIRControlFlowInterfaces
   MLIRInferTypeOpInterface
