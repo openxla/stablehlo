@@ -4870,39 +4870,48 @@ More formally:
 
 | Label | Name                | Type                                         | Constraints             |
 |-------|---------------------|----------------------------------------------|-------------------------|
-| (I1)  | `operand`           | tensor                                       | (C1-C5), (C7), (C9-C12) |
-| (I2)  | `source`            | tensor                                       | (C2), (C3)              |
-| (I3)  | `init_value`        | 0-dimensional tensor                         | (C4)                    |
-| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)  |
-| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)        |
-| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)              |
-| (I7)  | `select`            | function                                     | (C10)                   |
-| (I8)  | `scatter`           | function                                     | (C11)                   |
+| (I1)  | `operand`           | tensor or quantized tensor                   | (C1-C6), (C8), (C9-C17) |
+| (I2)  | `source`            | tensor or quantized tensor                   | (C2), (C9), (C13-C14)   |
+| (I3)  | `init_value`        | 0-dimensional tensor                         | (C3)                    |
+| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1-C2), (C4-C5)        |
+| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C2), (C6), (C7)        |
+| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C2), (C8)              |
+| (I7)  | `select`            | function                                     | (C10), (C15)            |
+| (I8)  | `scatter`           | function                                     | (C11), (C16)            |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C12)       |
+| Name     | Type                       | Constraints          |
+|----------|----------------------------|----------------------|
+| `result` | tensor or quantized tensor | (C12-C13), (C16-C17) |
 
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) rank(`operand`) $=$ size(`window_dimensions`).
-* (C2) `operand` and `source` have the same element type.
-* (C3) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
+* (C2) `shape(source) = (padded_operand_shape == 0 || window_dimensions > padded_operand_shape) ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1:`
   * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
-* (C4) element_type(`init_value`) $=$ element_type(`operand`).
-* (C5) size(`window_dimensions`) $=$ rank(`operand`).
-* (C6) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
-* (C7) size(`window_strides`) $=$ rank(`operand`).
-* (C8) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
-* (C9) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
-* (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
-        `E = element_type(operand)`.
-* (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-        `E = element_type(operand)`.
-* (C12) type(`operand`) $=$ type(`result`).
+* (C3) element_type(`init_value`) $=$ element_type(`operand`).
+* (C4) size(`window_dimensions`) $=$ rank(`operand`).
+* (C5) `window_dimensions[i]` $\gt 0$ for all i $\in$ [0, size(window_dimensions)).
+* (C6) size(`window_strides`) $=$ rank(`operand`).
+* (C7) `window_strides[i]` $\gt 0$ for all i $\in$ [0, size(window_strides)).
+* (C8) dim(`padding`, 0) $=$ rank(`operand`) and dim(`padding`, 1) = 2.
+* If the operation uses non-quantized tensors:
+  * (C9) `operand` and `source` have the same element type.
+  * (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+          `E = element_type(operand)`.
+  * (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
+          `E = element_type(operand)`.
+  * (C12) type(`operand`) $=$ type(`result`).
+* If the operation uses quantized tensors:
+  * (C13) `is_quantized_tensor(operand) and is_quantized_tensor(source) and is_quantized_tensor(result)`.
+  * (C14) `quantized_element_type(operand)` and `quantized_element_type(source)`.
+  * (C15) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+          `E = quantized_element_type(operand)`.
+  * (C16) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E'>` where
+          `E = quantized_element_type(operand) and E' = quantized_element_type(result)`.
+  * (C17) shape(`operand`) $=$ shape(`result`).
 <!-- markdownlint-enable line-length -->
 
 #### Examples
