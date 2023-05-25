@@ -28,6 +28,7 @@ limitations under the License.
 #include "mlir/Transforms/InliningUtils.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloBytecode.h"
+#include "stablehlo/dialect/TypeInference.h"
 
 // Include order matters
 #include "stablehlo/dialect/ChloEnums.cpp.inc"
@@ -453,30 +454,9 @@ LogicalResult TopKOp::inferReturnTypeComponents(
     ValueShapeRange operands, DictionaryAttr attributes,
     OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
-  Builder builder(context);
   TopKOp::Adaptor adaptor(operands, attributes, properties, regions);
-  Value operand = adaptor.getOperand();
-  uint64_t k = adaptor.getK();
-
-  auto operandTy = operand.getType().dyn_cast<RankedTensorType>();
-  if (!operandTy) return emitOptionalError(location, "operand must be ranked");
-  if (operandTy.getRank() < 1)
-    return emitOptionalError(location, "operand's rank must be at least 1");
-  auto operandLastDim = operandTy.getShape()[operandTy.getRank() - 1];
-  if (operandLastDim == ShapedType::kDynamic)
-    return emitOptionalError(location,
-                             "operand's last dimension must be static");
-  if (operandLastDim < static_cast<int64_t>(k))
-    return emitOptionalError(location,
-                             "operand's last dimension must be at least ", k);
-
-  SmallVector<int64_t> resultShape;
-  append_range(resultShape, operandTy.getShape());
-  resultShape[operandTy.getRank() - 1] = k;
-
-  inferredReturnShapes.emplace_back(resultShape, operandTy.getElementType());
-  inferredReturnShapes.emplace_back(resultShape, builder.getI32Type());
-  return success();
+  return hlo::inferTopKOp(location, adaptor.getOperand(), adaptor.getK(),
+                          inferredReturnShapes);
 }
 
 //===----------------------------------------------------------------------===//

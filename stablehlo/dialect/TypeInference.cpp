@@ -2856,6 +2856,42 @@ LogicalResult inferSortOp(
   return success();
 }
 
+LogicalResult inferTopKOp(
+    std::optional<Location> location, Value operand, int64_t k,
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  Builder builder(operand.getContext());
+  auto operandType = operand.getType().dyn_cast<RankedTensorType>();
+  if (!operandType) {
+    inferredReturnShapes.emplace_back(
+        operand.getType().cast<ShapedType>().getElementType());
+    inferredReturnShapes.emplace_back(builder.getI32Type());
+    return success();
+  }
+
+  if (operandType.getRank() < 1)
+    return emitOptionalError(location, "operand's rank must be at least 1");
+  auto operandLastDim = operandType.getRank() - 1;
+  if (!operandType.isDynamicDim(operandLastDim) &&
+      operandType.getDimSize(operandLastDim) < k)
+    return emitOptionalError(location,
+                             "operand's last dimension must be at least ", k);
+
+  SmallVector<int64_t> resultShape(operandType.getShape());
+  resultShape[operandLastDim] = k;
+  SmallVector<int64_t> resultBounds(
+      encodingToBounds(operandType.getEncoding()));
+  if (!resultBounds.empty())
+    resultBounds[operandLastDim] = ShapedType::kDynamic;
+
+  inferredReturnShapes.emplace_back(
+      resultShape, operandType.getElementType(),
+      hlo::boundsToEncoding(operandType.getEncoding(), resultBounds));
+  inferredReturnShapes.emplace_back(
+      resultShape, builder.getI32Type(),
+      hlo::boundsToEncoding(operandType.getEncoding(), resultBounds));
+  return success();
+}
+
 LogicalResult inferTransposeOp(std::optional<Location> loc, Value operand,
                                DenseIntElementsAttr permutation,
                                SmallVectorImpl<Type>& inferredReturnTypes) {

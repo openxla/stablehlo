@@ -90,28 +90,10 @@ func.func @rank_specialization_cluster(%arg0 : tensor<*xf32>, %arg1 : tensor<*xf
 
 // -----
 
-func.func @top_k(%arg0 : tensor<*xf32>) {
-  // expected-error @+2 {{failed to infer returned types}}
-  // @expected-error @+1{{operand must be ranked}}
-  %0:2 = chlo.top_k(%arg0, k=8) : tensor<*xf32> -> (tensor<8xf32>, tensor<8xi32>)
-  return
-}
-
-// -----
-
 func.func @top_k(%arg0 : tensor<f32>) {
   // expected-error @+2 {{failed to infer returned types}}
   // @expected-error @+1{{operand's rank must be at least 1}}
   %0:2 = chlo.top_k(%arg0, k=8) : tensor<f32> -> (tensor<8xf32>, tensor<8xi32>)
-  return
-}
-
-// -----
-
-func.func @top_k(%arg0 : tensor<?xf32>) {
-  // expected-error @+2 {{failed to infer returned types}}
-  // @expected-error @+1{{operand's last dimension must be static}}
-  %0:2 = chlo.top_k(%arg0, k=8) : tensor<?xf32> -> (tensor<8xf32>, tensor<8xi32>)
   return
 }
 
@@ -126,15 +108,36 @@ func.func @top_k(%arg0 : tensor<4xf32>) {
 
 // -----
 
-func.func @top_k(%arg0 : tensor<16xf32>) {
+func.func @top_k_1d(%arg0 : tensor<16xf32>) {
   %0:2 = chlo.top_k(%arg0, k=8) : tensor<16xf32> -> (tensor<8xf32>, tensor<8xi32>)
   return
 }
 
 // -----
 
-func.func @top_k(%arg0 : tensor<16x16xf32>) {
+func.func @top_k_nd(%arg0 : tensor<16x16xf32>) {
   %0:2 = chlo.top_k(%arg0, k=8) : tensor<16x16xf32> -> (tensor<16x8xf32>, tensor<16x8xi32>)
+  return
+}
+
+// -----
+
+func.func @top_k_unbounded(%arg0 : tensor<?x16x?xf32>) {
+  %0:2 = chlo.top_k(%arg0, k=8) : tensor<?x16x?xf32> -> (tensor<?x16x8xf32>, tensor<?x16x8xi32>)
+  return
+}
+
+// -----
+
+func.func @top_k_bounded(%arg0 : tensor<?x?x?xf32, #stablehlo.bounds<?, 16, 16>>) {
+  %0:2 = chlo.top_k(%arg0, k=8) : tensor<?x?x?xf32, #stablehlo.bounds<?, 16, 16>> -> (tensor<16x?x8xf32, #stablehlo.bounds<?, 16, ?>>, tensor<16x?x8xi32, #stablehlo.bounds<?, 16, ?>>)
+  return
+}
+
+// -----
+
+func.func @top_k_unranked(%arg0 : tensor<*xf32>) {
+  %0:2 = chlo.top_k(%arg0, k=8) : tensor<*xf32> -> (tensor<*xf32>, tensor<*xi32>)
   return
 }
 
