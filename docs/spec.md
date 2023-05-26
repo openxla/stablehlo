@@ -4653,7 +4653,7 @@ More formally, for all `update_index` from the index space of `updates[0]`:
       `d_operand = scatter_dims_to_operand_dims[d_start]`.
   * `full_start_index[d_operand]` = `0` otherwise.
 * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
-* `full_window_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
+* `full_window_index` = `[wi0, ..., 0, ..., wiN]` where `wi` are individual
   elements in `update_window_index`, and `0` is inserted at indices from
   `inserted_window_dims`.
 * `result_index` = `add(full_start_index, full_window_index)`.

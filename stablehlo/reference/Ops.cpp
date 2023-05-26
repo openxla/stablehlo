@@ -1049,7 +1049,6 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     if (indexVectorDim < startIndices.getRank())
       startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
                                kColon);
-
     auto startIndex = evalIndex(evalSliceOp(startIndices, startIndicesIndex));
 
     Index fullStartIndex(operand.getRank(), 0);
@@ -1374,17 +1373,16 @@ SmallVector<Tensor> evalScatterOp(
     if (indexVectorDim < scatterIndices.getRank())
       startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
                                kColon);
-
     auto startIndex = evalIndex(evalSliceOp(scatterIndices, startIndicesIndex));
 
     Index fullStartIndex(inputs[0].getRank(), 0);
     for (auto dOperand : inputs[0].getAxes()) {
-      if (llvm::find(scatterDimsToOperandDims, dOperand) !=
-          scatterDimsToOperandDims.end()) {
-        auto dStart = llvm::find(scatterDimsToOperandDims, dOperand) -
-                      scatterDimsToOperandDims.begin();
-        fullStartIndex[dOperand] = startIndex[dStart];
-      }
+      if (llvm::find(scatterDimsToOperandDims, dOperand) ==
+          scatterDimsToOperandDims.end())
+        continue;
+      auto dStart = llvm::find(scatterDimsToOperandDims, dOperand) -
+                    scatterDimsToOperandDims.begin();
+      fullStartIndex[dOperand] = startIndex[dStart];
     }
 
     Index updateWindowIndex;
@@ -1392,28 +1390,30 @@ SmallVector<Tensor> evalScatterOp(
 
     Index fullWindowIndex(updateWindowIndex.size() + insertedWindowDims.size(),
                           0);
-    for (size_t i = 0, oi = 0; i < fullWindowIndex.size(); ++i) {
+    for (size_t i = 0, wi = 0; i < fullWindowIndex.size(); ++i) {
       if (llvm::is_contained(insertedWindowDims, i)) continue;
-      fullWindowIndex[i] = updateWindowIndex[oi++];
+      fullWindowIndex[i] = updateWindowIndex[wi++];
     }
 
     auto resultIndex = fullStartIndex + fullWindowIndex;
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
-    SmallVector<Tensor> bodyArgs;
+    SmallVector<Tensor> updateComputationArgs;
     for (auto result : results) {
-      Tensor bodyArg(RankedTensorType::get({}, result.getElementType()),
-                     result.get(resultIndex));
-      bodyArgs.push_back(bodyArg);
+      Tensor updateComputationArg(
+          RankedTensorType::get({}, result.getElementType()),
+          result.get(resultIndex));
+      updateComputationArgs.push_back(updateComputationArg);
     }
 
     for (auto update : updates) {
-      Tensor bodyArg(RankedTensorType::get({}, update.getElementType()),
-                     update.get(updateIndex));
-      bodyArgs.push_back(bodyArg);
+      Tensor updateComputationArg(
+          RankedTensorType::get({}, update.getElementType()),
+          update.get(updateIndex));
+      updateComputationArgs.push_back(updateComputationArg);
     }
 
-    auto updatedValues = eval(updateComputation, bodyArgs, &scope);
+    auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
     for (auto [result, value] : llvm::zip(results, updatedValues))
       result.set(resultIndex, value.get({}));
   }
