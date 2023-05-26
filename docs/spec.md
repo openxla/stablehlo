@@ -2791,8 +2791,6 @@ More formally, `result[result_index] = operand[operand_index]` where:
   elements in `offset_index`, and `0` is inserted at indices from
   `collapsed_slice_dims`.
 * `operand_index = full_start_index + full_offset_index`.
-  If `operand_index` is out of bounds for `operand`, then the behavior is
-  implementation-defined.
 <!-- markdownlint-enable line-length -->
 
 If `indices_are_sorted` is `true` then the implementation can assume that
