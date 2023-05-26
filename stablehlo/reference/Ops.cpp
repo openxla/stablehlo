@@ -1053,8 +1053,9 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 
     Index fullStartIndex(operand.getRank(), 0);
     for (auto dOperand : operand.getAxes()) {
-      if (llvm::find(startIndexMap, dOperand) == startIndexMap.end()) continue;
-      auto dStart = llvm::find(startIndexMap, dOperand) - startIndexMap.begin();
+      auto dStartIt = llvm::find(startIndexMap, dOperand);
+      if (dStartIt == startIndexMap.end()) continue;
+      auto dStart = dStartIt - startIndexMap.begin();
       fullStartIndex[dOperand] = startIndex[dStart];
     }
 
@@ -1248,16 +1249,10 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
     }
 
     SmallVector<Tensor> bodyArgs;
-    for (auto [result, initValue] : llvm::zip(results, initValues)) {
-      Tensor bodyArg(initValue.getType());
-      bodyArg.set({}, result.get(resultIndex));
-      bodyArgs.push_back(bodyArg);
-    }
-    for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
-      Tensor bodyArg(initValue.getType());
-      bodyArg.set({}, input.get(*inputIt));
-      bodyArgs.push_back(bodyArg);
-    }
+    for (auto [result, initValue] : llvm::zip(results, initValues))
+      bodyArgs.push_back(Tensor(initValue.getType(), result.get(resultIndex)));
+    for (auto [input, initValue] : llvm::zip(inputs, initValues))
+      bodyArgs.push_back(Tensor(initValue.getType(), input.get(*inputIt)));
 
     auto bodyResult = eval(body, bodyArgs, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
@@ -1377,11 +1372,9 @@ SmallVector<Tensor> evalScatterOp(
 
     Index fullStartIndex(inputs[0].getRank(), 0);
     for (auto dInput : inputs[0].getAxes()) {
-      if (llvm::find(scatterDimsToOperandDims, dInput) ==
-          scatterDimsToOperandDims.end())
-        continue;
-      auto dStart = llvm::find(scatterDimsToOperandDims, dInput) -
-                    scatterDimsToOperandDims.begin();
+      auto dStartIt = llvm::find(scatterDimsToOperandDims, dInput);
+      if (dStartIt == scatterDimsToOperandDims.end()) continue;
+      auto dStart = dStartIt - scatterDimsToOperandDims.begin();
       fullStartIndex[dInput] = startIndex[dStart];
     }
 
@@ -1399,19 +1392,14 @@ SmallVector<Tensor> evalScatterOp(
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
     SmallVector<Tensor> updateComputationArgs;
-    for (auto result : results) {
-      Tensor updateComputationArg(
-          RankedTensorType::get({}, result.getElementType()),
-          result.get(resultIndex));
-      updateComputationArgs.push_back(updateComputationArg);
-    }
-
-    for (auto update : updates) {
-      Tensor updateComputationArg(
-          RankedTensorType::get({}, update.getElementType()),
-          update.get(updateIndex));
-      updateComputationArgs.push_back(updateComputationArg);
-    }
+    for (auto result : results)
+      updateComputationArgs.push_back(
+          Tensor(RankedTensorType::get({}, result.getElementType()),
+                 result.get(resultIndex)));
+    for (auto update : updates)
+      updateComputationArgs.push_back(
+          Tensor(RankedTensorType::get({}, update.getElementType()),
+                 update.get(updateIndex)));
 
     auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
     for (auto [result, value] : llvm::zip(results, updatedValues))
