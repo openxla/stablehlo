@@ -2774,6 +2774,7 @@ indices and explains in detail which `operand` indices they correspond to.
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
+<!-- markdownlint-disable line-length -->
 * `batch_dims = [d for d in axes(result) and d not in offset_dims]`.
 * `batch_index = result_index[batch_dims...]`.
 * `start_index` is defined as:
@@ -2782,8 +2783,8 @@ More formally, `result[result_index] = operand[operand_index]` where:
     `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
 * For `d_operand` in `axes(operand)`,
-  * `full_start_index[d_operand] = start_index[d_start]` if
-    `d_operand = start_index_map[d_start]`.
+  * `full_start_index[d_operand] = clamp(start_index[d_start], 0, dim(operand, d_operand) - slice_sizes[d_operand])`
+    if `d_operand = start_index_map[d_start]`.
   * `full_start_index[d_operand] = 0` otherwise.
 * `offset_index = result_index[offset_dims...]`.
 * `full_offset_index = [oi0, ..., 0, ..., oiN]` where `oi` are individual
@@ -2792,6 +2793,7 @@ More formally, `result[result_index] = operand[operand_index]` where:
 * `operand_index = full_start_index + full_offset_index`.
   If `operand_index` is out of bounds for `operand`, then the behavior is
   implementation-defined.
+<!-- markdownlint-enable line-length -->
 
 If `indices_are_sorted` is `true` then the implementation can assume that
 `start_indices` are sorted with respect to `start_index_map`, otherwise the

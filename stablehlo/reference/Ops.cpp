@@ -973,7 +973,9 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
       auto dStartIt = llvm::find(startIndexMap, dOperand);
       if (dStartIt == startIndexMap.end()) continue;
       auto dStart = dStartIt - startIndexMap.begin();
-      fullStartIndex[dOperand] = startIndex[dStart];
+      fullStartIndex[dOperand] =
+          std::clamp(startIndex[dStart], 0L,
+                     operand.getShape()[dOperand] - sliceSizes[dOperand]);
     }
 
     Index offsetIndex;
@@ -986,8 +988,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     }
 
     auto operandIndex = fullStartIndex + fullOffsetIndex;
-    if (operandIndex.inBounds(operand.getShape()))
-      result.set(resultIndex, operand.get(operandIndex));
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
