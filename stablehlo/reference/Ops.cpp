@@ -971,7 +971,8 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     }
 
     Index operandIndex = fullStartIndex + fullOffsetIndex;
-    result.set(*resultIt, operand.get(operandIndex));
+    if (operandIndex.inBounds(operand.getShape()))
+      result.set(*resultIt, operand.get(operandIndex));
   }
   return result;
 }
@@ -1325,9 +1326,10 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
 
     // Instead of literally putting the slices together into a vector of tuples,
     // we're representing these tuples with integer handles, with each handle
-    // being an index within the slice. Then, instead of sorting a vector of
-    // tuples, we're sorting a vector of handles, and the comparator knows how
-    // to use these handles to fetch the actual input elements being compared.
+    // being an index within the slice.
+    // Then, instead of sorting a vector of tuples, we're sorting a vector of
+    // handles, and the comparator knows how to use these handles to fetch
+    // the actual input elements being compared.
     Index inputsTogether(inputs[0].getShape()[adjustedDimension]);
     std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
     auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {

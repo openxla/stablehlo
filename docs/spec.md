@@ -2828,7 +2828,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 | Label | Name                   | Type                                         | Constraints                   |
 |-------|------------------------|----------------------------------------------|-------------------------------|
-| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C15)        |
+| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C14)        |
 | (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
 | (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
 | (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
