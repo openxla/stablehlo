@@ -31,6 +31,12 @@ Tensor evalAbsOp(const Tensor &operand, ShapedType resultType);
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
+SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
+                                        const Tensor &scale, const Tensor &mean,
+                                        const Tensor &variance,
+                                        const Tensor &gradOutput,
+                                        APFloat epsilon, Axis featureIndex,
+                                        ArrayRef<ShapedType> resultTypes);
 Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
                                 const Tensor &offset, const Tensor &mean,
                                 const Tensor &variance, APFloat epsilon,

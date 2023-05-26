@@ -102,9 +102,13 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
-Tensor computeSum(const Tensor &input, const Tensor &initValue,
-                  const Axes &dimensions, ShapedType resultType) {
-  Tensor result(resultType, initValue.get({}));
+Tensor computeSum(const Tensor &input, Axis featureIndex,
+                  ShapedType resultType) {
+  Tensor result(resultType, convert(input.getElementType(), 0.0));
+
+  auto dimensions = input.getAxes();
+  dimensions.erase(dimensions.begin() + featureIndex);
+
   for (auto inputIt = input.index_begin(); inputIt != input.index_end();
        ++inputIt) {
     Index resultIndex;
@@ -119,14 +123,7 @@ Tensor computeSum(const Tensor &input, const Tensor &initValue,
 
 Tensor computeMean(const Tensor &operand, Axis featureIndex,
                    ShapedType resultType) {
-  auto dimensions = operand.getAxes();
-  dimensions.erase(dimensions.begin() + featureIndex);
-
-  auto sum =
-      computeSum(operand,
-                 Tensor(RankedTensorType::get({}, operand.getElementType()),
-                        convert(operand.getElementType(), 0.0)),
-                 dimensions, resultType);
+  auto sum = computeSum(operand, featureIndex, resultType);
 
   auto divisor = Tensor(RankedTensorType::get({}, operand.getElementType()),
                         convert(operand.getElementType(),
@@ -183,6 +180,19 @@ SmallVector<Tensor> eval(
       auto rhs = scope.find(atan2Op.getRhs());
       auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto batchNormGradOp = dyn_cast<BatchNormGradOp>(op)) {
+      auto operand = scope.find(batchNormGradOp.getOperand());
+      auto scale = scope.find(batchNormGradOp.getScale());
+      auto mean = scope.find(batchNormGradOp.getMean());
+      auto variance = scope.find(batchNormGradOp.getVariance());
+      auto gradOutput = scope.find(batchNormGradOp.getGradOutput());
+      auto results = evalBatchNormGradOp(
+          operand, scale, mean, variance, gradOutput,
+          batchNormGradOp.getEpsilon(), batchNormGradOp.getFeatureIndex(),
+          {batchNormGradOp.getGradOperand().getType(),
+           batchNormGradOp.getGradScale().getType(),
+           batchNormGradOp.getGradOffset().getType()});
+      scope.add(op.getResults(), {results});
     } else if (auto batchNormInferenceOp = dyn_cast<BatchNormInferenceOp>(op)) {
       auto operand = scope.find(batchNormInferenceOp.getOperand());
       auto scale = scope.find(batchNormInferenceOp.getScale());
@@ -588,6 +598,74 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
   return result;
+}
+
+SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
+                                        const Tensor &scale, const Tensor &mean,
+                                        const Tensor &variance,
+                                        const Tensor &gradOutput,
+                                        APFloat epsilon, Axis featureIndex,
+                                        ArrayRef<ShapedType> resultTypes) {
+  auto scaleBroadcast =
+      evalBroadcastInDimOp(scale, {featureIndex}, operand.getType());
+  auto meanBroadcast =
+      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
+  auto varianceBroadcast =
+      evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
+  auto epsilonBroadcast = evalBroadcastInDimOp(
+      makeTensor(DenseElementsAttr::get(
+          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
+      {}, operand.getType());
+
+  auto centeredOperand =
+      evalSubtractOp(operand, meanBroadcast, operand.getType());
+  auto stddev = evalSqrtOp(evalAddOp(varianceBroadcast, epsilonBroadcast,
+                                     varianceBroadcast.getType()),
+                           varianceBroadcast.getType());
+  auto normalizedOperand =
+      evalDivideOp(centeredOperand, stddev, centeredOperand.getType());
+
+  auto elementsPerFeature = evalBroadcastInDimOp(
+      Tensor(RankedTensorType::get({}, gradOutput.getElementType()),
+             convert(gradOutput.getElementType(),
+                     static_cast<double>(operand.getNumElements()) /
+                         operand.getShape()[featureIndex])),
+      {}, operand.getType());
+
+  auto i1 =
+      evalMultiplyOp(gradOutput, elementsPerFeature, gradOutput.getType());
+
+  auto i2 =
+      evalBroadcastInDimOp(computeSum(gradOutput, featureIndex, resultTypes[1]),
+                           {featureIndex}, operand.getType());
+
+  auto i3 = evalBroadcastInDimOp(
+      computeSum(
+          evalMultiplyOp(gradOutput, centeredOperand, gradOutput.getType()),
+          featureIndex, resultTypes[1]),
+      {featureIndex}, operand.getType());
+
+  auto i4 = evalMultiplyOp(i3, centeredOperand, i3.getType());
+
+  auto i5 = evalDivideOp(i4,
+                         evalAddOp(varianceBroadcast, epsilonBroadcast,
+                                   varianceBroadcast.getType()),
+                         i4.getType());
+
+  auto i6 =
+      evalSubtractOp(evalSubtractOp(i1, i2, i1.getType()), i5, i1.getType());
+
+  auto gradOperand = evalMultiplyOp(
+      evalDivideOp(
+          evalDivideOp(scaleBroadcast, stddev, scaleBroadcast.getType()),
+          elementsPerFeature, scaleBroadcast.getType()),
+      i6, scaleBroadcast.getType());
+  auto gradScale = computeSum(
+      evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
+      featureIndex, resultTypes[1]);
+  auto gradOffset = computeSum(gradOutput, featureIndex, resultTypes[2]);
+
+  return {gradOperand, gradScale, gradOffset};
 }
 
 Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,

@@ -219,19 +219,21 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
                               ValueRange multiDimOperands,
                               ValueRange singleDimOperands,
                               int64_t featureIndex) {
+  // batch_norm_grad_c3
   if (failed(verifyPairwiseCompatibleShapes(multiDimOperands.getTypes())))
     return emitOptionalError(
         location,
         "expects multi-dimensional operands to have compatible shapes.");
 
-  // batch_norm_inference_c3...batch_norm_inference_c6
+  // batch_norm_grad_c4, batch_norm_inference_c3...batch_norm_inference_c6,
+  // batch_norm_training_c3, batch_norm_training_c4
   if (failed(verifyPairwiseCompatibleShapes(singleDimOperands.getTypes())))
     return emitOptionalError(
         location,
         "expects single-dimensional operands to have compatible shapes.");
 
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
-  // batch_norm_inference_c1, batch_norm_training_c1
+  // batch_norm_grad_c1, batch_norm_inference_c1, batch_norm_training_c1
   if (featureIndex >= multiDimType.getRank())
     return emitOptionalError(
         location,
@@ -239,7 +241,7 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
         "multi-dimensional operands; got featureIndex ",
         featureIndex, ", and rank ", multiDimType.getRank(), ".");
 
-  // batch_norm_inference_c1, batch_norm_training_c1
+  // batch_norm_grad_c1, batch_norm_inference_c1, batch_norm_training_c1
   if (featureIndex < 0)
     return emitOptionalError(location, "expects featureIndex to be a ",
                              "non-negative number, got ", featureIndex, ".");
@@ -248,8 +250,8 @@ LogicalResult verifyBatchNorm(std::optional<Location> location,
   const int64_t singleDimSize =
       singleDimOperands[0].getType().cast<RankedTensorType>().getDimSize(0);
 
-  // batch_norm_inference_c3...batch_norm_inference_c6, batch_norm_training_c3,
-  // batch_norm_training_c4
+  // batch_norm_grad_c5, batch_norm_inference_c3...batch_norm_inference_c6,
+  // batch_norm_training_c3, batch_norm_training_c4
   if (!verifyCompatibleDims(singleDimSize, featureCount))
     return emitOptionalError(
         location,
@@ -272,7 +274,7 @@ LogicalResult inferBatchNormOp(
 
   // Batch norm ops require operands to be ranked.
   auto multiDimType = multiDimOperands[0].getType().cast<RankedTensorType>();
-  // batch_norm_inference_c7, batch_norm_training_c7
+  // batch_norm_grad_c3, batch_norm_inference_c7, batch_norm_training_c7
   inferredReturnShapes.emplace_back(multiDimType.getShape(),
                                     multiDimType.getElementType(),
                                     multiDimType.getEncoding());
@@ -292,9 +294,9 @@ LogicalResult inferBatchNormOp(
       singleDimBounds.empty()
           ? nullptr
           : boundsToEncoding(multiDimType.getEncoding(), singleDimBounds));
-  // batch_norm_training_c5
+  // batch_norm_grad_c4, batch_norm_training_c5
   inferredReturnShapes.emplace_back(singleDimReturnShape);
-  // batch_norm_training_c6
+  // batch_norm_grad_c4, batch_norm_training_c6
   inferredReturnShapes.emplace_back(singleDimReturnShape);
   return success();
 }
