@@ -152,8 +152,8 @@ func.func @concat(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xindex
 
 // -----
 
-// CHECK-LABEL: @gather
-func.func @gather(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xindex> {
+// CHECK-LABEL: @gather_c13
+func.func @gather_c13(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xindex> {
   %res = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       collapsed_slice_dims = [0, 1],

@@ -2808,13 +2808,14 @@ More formally, `result[result_index] = operand[operand_index]` where:
 * `batch_dims` = [`d` for `d` in `axes(result)` and `d` not in `offset_dims`].
 * `batch_index` = [`result_index[d]` for `d` in `batch_dims`].
 * `start_index` =
-  * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual
-      elements in `batch_index` and `:` is inserted at the `index_vector_dim`
-      index, if `index_vector_dim` < `rank(start_indices)`.
+  * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual elements in
+    `batch_index` and `:` is inserted at the `index_vector_dim` index, if
+    `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
-* For `do` in `axes(operand)`,
-  * `full_start_index[do]` = `start_index[ds]` if `do = start_index_map[ds]`.
-  * `full_start_index[do]` = `0` otherwise.
+* For `d_operand` in `axes(operand)`,
+  * `full_start_index[d_operand]` = `start_index[d_start]` if
+    `d_operand = start_index_map[d_start]`.
+  * `full_start_index[d_operand]` = `0` otherwise.
 * `offset_index` = [`result_index[d]` for `d` in `offset_dims`].
 * `full_offset_index` = `[oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `offset_index`, and `0` is inserted at indices from
@@ -2832,7 +2833,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 
 | Label | Name                   | Type                                         | Constraints                   |
 |-------|------------------------|----------------------------------------------|-------------------------------|
-| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C15)        |
+| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C14)        |
 | (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
 | (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
 | (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
@@ -2878,7 +2879,7 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
     in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C15) `operand` and `result` have the same element type.
+* (C14) `operand` and `result` have the same element type.
 
 #### Examples
 
@@ -2914,6 +2915,8 @@ behavior is undefined. More formally, for all `id < jd` from `indices(result)`,
 //            ]
 //          ]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_gather.mlir)
 
 ### get_dimension_size
 
