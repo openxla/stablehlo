@@ -518,6 +518,23 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(rsqrtOp.getOperand());
       auto result = evalRsqrtOp(operand, rsqrtOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (auto scatterOp = dyn_cast<ScatterOp>(op)) {
+      auto inputs = scope.find(scatterOp.getInputs());
+      auto scatterIndices = scope.find(scatterOp.getScatterIndices());
+      auto updates = scope.find(scatterOp.getUpdates());
+      auto scatterDimensionNumbers = scatterOp.getScatterDimensionNumbersAttr();
+      Axes updateWindowDims(scatterDimensionNumbers.getUpdateWindowDims());
+      Axes insertedWindowDims(scatterDimensionNumbers.getInsertedWindowDims());
+      Axes scatterDimsToOperandDims(
+          scatterDimensionNumbers.getScatterDimsToOperandDims());
+      Axis indexVectorDim(scatterDimensionNumbers.getIndexVectorDim());
+      auto &updateComputation = scatterOp.getUpdateComputation();
+      SmallVector<ShapedType> resultTypes(scatterOp->getResultTypes());
+      auto results =
+          evalScatterOp(inputs, scatterIndices, updates, updateWindowDims,
+                        insertedWindowDims, scatterDimsToOperandDims,
+                        indexVectorDim, updateComputation, scope, resultTypes);
+      scope.add(op.getResults(), {results});
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
       auto pred = scope.find(selectOp.getPred());
       auto onTrue = scope.find(selectOp.getOnTrue());
@@ -1023,14 +1040,16 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index batchIndex;
-    for (auto d : batchDims) batchIndex.push_back((*resultIt)[d]);
+    auto resultIndex = *resultIt;
 
-    Index startIndicesIndex = batchIndex;
+    Index batchIndex;
+    for (auto d : batchDims) batchIndex.push_back(resultIndex[d]);
+
+    auto startIndicesIndex = batchIndex;
     if (indexVectorDim < startIndices.getRank())
       startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
                                kColon);
-    Index startIndex = evalIndex(evalSliceOp(startIndices, startIndicesIndex));
+    auto startIndex = evalIndex(evalSliceOp(startIndices, startIndicesIndex));
 
     Index fullStartIndex(operand.getRank(), 0);
     for (auto dOperand : operand.getAxes()) {
@@ -1040,7 +1059,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     }
 
     Index offsetIndex;
-    for (auto d : offsetDims) offsetIndex.push_back((*resultIt)[d]);
+    for (auto d : offsetDims) offsetIndex.push_back(resultIndex[d]);
 
     Index fullOffsetIndex(offsetIndex.size() + collapsedSliceDims.size(), 0);
     for (size_t i = 0, oi = 0; i < fullOffsetIndex.size(); ++i) {
@@ -1048,7 +1067,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
       fullOffsetIndex[i] = offsetIndex[oi++];
     }
 
-    Index operandIndex = fullStartIndex + fullOffsetIndex;
+    auto operandIndex = fullStartIndex + fullOffsetIndex;
     if (operandIndex.inBounds(operand.getShape()))
       result.set(*resultIt, operand.get(operandIndex));
   }
@@ -1327,6 +1346,79 @@ Tensor evalRsqrtOp(const Tensor &operand, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, rsqrt(operand.get(*it)));
   return result;
+}
+
+SmallVector<Tensor> evalScatterOp(
+    ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
+    ArrayRef<Tensor> updates, const Axes &updateWindowDims,
+    const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
+    Axis indexVectorDim, Region &updateComputation, Scope &scope,
+    ArrayRef<ShapedType> resultTypes) {
+  SmallVector<Tensor> results;
+  for (auto input : inputs) results.push_back(input);
+
+  Axes updateScatterDims;
+  for (auto d : updates[0].getAxes())
+    if (!llvm::is_contained(updateWindowDims, d))
+      updateScatterDims.push_back(d);
+
+  for (auto updateIndexIt = updates[0].index_begin();
+       updateIndexIt != updates[0].index_end(); ++updateIndexIt) {
+    auto updateIndex = *updateIndexIt;
+    Index updateScatterIndex;
+    for (auto d : updateScatterDims)
+      updateScatterIndex.push_back(updateIndex[d]);
+
+    auto startIndicesIndex = updateScatterIndex;
+    if (indexVectorDim < scatterIndices.getRank())
+      startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
+                               kColon);
+    auto startIndex = evalIndex(evalSliceOp(scatterIndices, startIndicesIndex));
+
+    Index fullStartIndex(inputs[0].getRank(), 0);
+    for (auto dInput : inputs[0].getAxes()) {
+      if (llvm::find(scatterDimsToOperandDims, dInput) ==
+          scatterDimsToOperandDims.end())
+        continue;
+      auto dStart = llvm::find(scatterDimsToOperandDims, dInput) -
+                    scatterDimsToOperandDims.begin();
+      fullStartIndex[dInput] = startIndex[dStart];
+    }
+
+    Index updateWindowIndex;
+    for (auto d : updateWindowDims) updateWindowIndex.push_back(updateIndex[d]);
+
+    Index fullWindowIndex(updateWindowIndex.size() + insertedWindowDims.size(),
+                          0);
+    for (size_t i = 0, wi = 0; i < fullWindowIndex.size(); ++i) {
+      if (llvm::is_contained(insertedWindowDims, i)) continue;
+      fullWindowIndex[i] = updateWindowIndex[wi++];
+    }
+
+    auto resultIndex = fullStartIndex + fullWindowIndex;
+    if (!resultIndex.inBounds(results[0].getShape())) continue;
+
+    SmallVector<Tensor> updateComputationArgs;
+    for (auto result : results) {
+      Tensor updateComputationArg(
+          RankedTensorType::get({}, result.getElementType()),
+          result.get(resultIndex));
+      updateComputationArgs.push_back(updateComputationArg);
+    }
+
+    for (auto update : updates) {
+      Tensor updateComputationArg(
+          RankedTensorType::get({}, update.getElementType()),
+          update.get(updateIndex));
+      updateComputationArgs.push_back(updateComputationArg);
+    }
+
+    auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
+    for (auto [result, value] : llvm::zip(results, updatedValues))
+      result.set(resultIndex, value.get({}));
+  }
+
+  return results;
 }
 
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,

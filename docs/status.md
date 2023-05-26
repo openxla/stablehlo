@@ -132,7 +132,7 @@ one of the following tracking labels.
 | round_nearest_afz        | yes           | yes          | yes            | yes             | yes         |
 | round_nearest_even       | yes           | yes          | yes            | yes             | yes         |
 | rsqrt                    | yes           | yes          | yes            | yes             | yes         |
-| scatter                  | yes           | revisit      | yes            | no              | no          |
+| scatter                  | yes           | revisit      | yes            | no              | yes         |
 | select                   | yes           | yes          | yes            | yes             | yes         |
 | select_and_scatter       | yes           | revisit      | yes            | no              | no          |
 | send                     | yes           | revisit      | yes            | no              | no          |
