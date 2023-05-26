@@ -1040,14 +1040,17 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index batchIndex;
-    for (auto d : batchDims) batchIndex.push_back((*resultIt)[d]);
+    auto resultIndex = *resultIt;
 
-    Index startIndicesIndex = batchIndex;
+    Index batchIndex;
+    for (auto d : batchDims) batchIndex.push_back(resultIndex[d]);
+
+    auto startIndicesIndex = batchIndex;
     if (indexVectorDim < startIndices.getRank())
       startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
                                kColon);
-    Index startIndex = evalIndex(evalSliceOp(startIndices, startIndicesIndex));
+
+    auto startIndex = evalIndex(evalSliceOp(startIndices, startIndicesIndex));
 
     Index fullStartIndex(operand.getRank(), 0);
     for (auto dOperand : operand.getAxes()) {
@@ -1057,7 +1060,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
     }
 
     Index offsetIndex;
-    for (auto d : offsetDims) offsetIndex.push_back((*resultIt)[d]);
+    for (auto d : offsetDims) offsetIndex.push_back(resultIndex[d]);
 
     Index fullOffsetIndex(offsetIndex.size() + collapsedSliceDims.size(), 0);
     for (size_t i = 0, oi = 0; i < fullOffsetIndex.size(); ++i) {
@@ -1065,7 +1068,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
       fullOffsetIndex[i] = offsetIndex[oi++];
     }
 
-    Index operandIndex = fullStartIndex + fullOffsetIndex;
+    auto operandIndex = fullStartIndex + fullOffsetIndex;
     if (operandIndex.inBounds(operand.getShape()))
       result.set(*resultIt, operand.get(operandIndex));
   }
@@ -1356,41 +1359,31 @@ SmallVector<Tensor> evalScatterOp(
   for (auto input : inputs) results.push_back(input);
 
   Axes updateScatterDims;
-  for (auto i = 0; i < updates[0].getRank(); ++i)
-    if (!llvm::is_contained(updateWindowDims, i))
-      updateScatterDims.push_back(i);
+  for (auto d : updates[0].getAxes())
+    if (!llvm::is_contained(updateWindowDims, d))
+      updateScatterDims.push_back(d);
 
   for (auto updateIndexIt = updates[0].index_begin();
        updateIndexIt != updates[0].index_end(); ++updateIndexIt) {
     auto updateIndex = *updateIndexIt;
-    Sizes updateScatterIndex;
+    Index updateScatterIndex;
     for (auto d : updateScatterDims)
       updateScatterIndex.push_back(updateIndex[d]);
 
-    Index sliceStartIndices(updateScatterIndex);
-    Sizes sliceLimitIndices(Sizes(sliceStartIndices) + 1);
-    if (indexVectorDim < scatterIndices.getRank()) {
-      sliceStartIndices.insert(sliceStartIndices.begin() + indexVectorDim, 0);
-      sliceLimitIndices.insert(sliceLimitIndices.begin() + indexVectorDim,
-                               scatterIndices.getShape()[indexVectorDim]);
-    }
-    auto startIndexSlice =
-        evalSliceOp(scatterIndices, sliceStartIndices, sliceLimitIndices,
-                    Sizes(scatterIndices.getRank(), 1));
+    auto startIndicesIndex = updateScatterIndex;
+    if (indexVectorDim < scatterIndices.getRank())
+      startIndicesIndex.insert(startIndicesIndex.begin() + indexVectorDim,
+                               kColon);
 
-    Index startIndex;
-    for (auto it = startIndexSlice.index_begin();
-         it != startIndexSlice.index_end(); ++it)
-      startIndex.push_back(
-          startIndexSlice.get(*it).getIntegerValue().getSExtValue());
+    auto startIndex = evalIndex(evalSliceOp(scatterIndices, startIndicesIndex));
 
     Index fullStartIndex(inputs[0].getRank(), 0);
-    for (auto di = 0; di < inputs[0].getRank(); ++di) {
-      if (llvm::find(scatterDimsToOperandDims, di) !=
+    for (auto dOperand : inputs[0].getAxes()) {
+      if (llvm::find(scatterDimsToOperandDims, dOperand) !=
           scatterDimsToOperandDims.end()) {
-        auto dj = llvm::find(scatterDimsToOperandDims, di) -
-                  scatterDimsToOperandDims.begin();
-        fullStartIndex[di] = startIndex[dj];
+        auto dStart = llvm::find(scatterDimsToOperandDims, dOperand) -
+                      scatterDimsToOperandDims.begin();
+        fullStartIndex[dOperand] = startIndex[dStart];
       }
     }
 
@@ -1399,24 +1392,24 @@ SmallVector<Tensor> evalScatterOp(
 
     Index fullWindowIndex(updateWindowIndex.size() + insertedWindowDims.size(),
                           0);
-    for (size_t i = 0, j = 0; i < fullWindowIndex.size(); ++i) {
+    for (size_t i = 0, oi = 0; i < fullWindowIndex.size(); ++i) {
       if (llvm::is_contained(insertedWindowDims, i)) continue;
-      fullWindowIndex[i] = updateWindowIndex[j++];
+      fullWindowIndex[i] = updateWindowIndex[oi++];
     }
 
-    Index resultIndex(fullStartIndex + fullWindowIndex);
+    auto resultIndex = fullStartIndex + fullWindowIndex;
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
     SmallVector<Tensor> bodyArgs;
     for (auto result : results) {
-      Tensor bodyArg(RankedTensorType::get({}, result.getElementType()));
-      bodyArg.set({}, result.get(resultIndex));
+      Tensor bodyArg(RankedTensorType::get({}, result.getElementType()),
+                     result.get(resultIndex));
       bodyArgs.push_back(bodyArg);
     }
 
     for (auto update : updates) {
-      Tensor bodyArg(RankedTensorType::get({}, update.getElementType()));
-      bodyArg.set({}, update.get(updateIndex));
+      Tensor bodyArg(RankedTensorType::get({}, update.getElementType()),
+                     update.get(updateIndex));
       bodyArgs.push_back(bodyArg);
     }
 
