@@ -4648,10 +4648,10 @@ More formally, for all `update_index` from the index space of `updates[0]`:
       `index_vector_dim` index, if `index_vector_dim` <
       `rank(scatter_indices)`.
   * `[scatter_indices[update_scatter_index]]` otherwise.
-* For `d_operand` in `axes(inputs[0])`,
-  * `full_start_index[d_operand]` = `start_index[d_start]` if
-      `d_operand = scatter_dims_to_operand_dims[d_start]`.
-  * `full_start_index[d_operand]` = `0` otherwise.
+* For `d_input` in `axes(inputs[0])`,
+  * `full_start_index[d_input]` = `start_index[d_start]` if
+      `d_input = scatter_dims_to_operand_dims[d_start]`.
+  * `full_start_index[d_input]` = `0` otherwise.
 * `update_window_index` = [`update_index[d]` for `d` in `update_window_dims`].
 * `full_window_index` = `[wi0, ..., 0, ..., wiN]` where `wi` are individual
   elements in `update_window_index`, and `0` is inserted at indices from

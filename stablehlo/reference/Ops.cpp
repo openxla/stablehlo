@@ -1376,13 +1376,13 @@ SmallVector<Tensor> evalScatterOp(
     auto startIndex = evalIndex(evalSliceOp(scatterIndices, startIndicesIndex));
 
     Index fullStartIndex(inputs[0].getRank(), 0);
-    for (auto dOperand : inputs[0].getAxes()) {
-      if (llvm::find(scatterDimsToOperandDims, dOperand) ==
+    for (auto dInput : inputs[0].getAxes()) {
+      if (llvm::find(scatterDimsToOperandDims, dInput) ==
           scatterDimsToOperandDims.end())
         continue;
-      auto dStart = llvm::find(scatterDimsToOperandDims, dOperand) -
+      auto dStart = llvm::find(scatterDimsToOperandDims, dInput) -
                     scatterDimsToOperandDims.begin();
-      fullStartIndex[dOperand] = startIndex[dStart];
+      fullStartIndex[dInput] = startIndex[dStart];
     }
 
     Index updateWindowIndex;
