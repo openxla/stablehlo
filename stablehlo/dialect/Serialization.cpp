@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdint>
 
 #include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/Bytecode/Encoding.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
@@ -59,10 +60,21 @@ LogicalResult serializePortableArtifact(ModuleOp module,
   // using the bytecode format version associated with the StableHLO release.
   auto producer = "StableHLO_v" + targetVersion.str();
   BytecodeWriterConfig writerConfig(producer);
+
+  // Establish the MLIR bytecode version that corresponds to targetVersion.
+  // We also need to ensure that this bytecode version falls within the range
+  // of supported bytecode versions of the MLIR version that we're using.
+  // Surprisingly, this isn't done by MLIR (e.g. the current behavior for
+  // setDesiredBytecodeVersion is to clamp the provided bytecode version
+  // to the range of supported versions, which may result in payloads
+  // whose StableHLO version doesn't match the expected bytecode version).
   auto bytecodeVersion =
       vhlo::Version::fromString(targetVersion)->getBytecodeVersion();
   if (failed(bytecodeVersion)) return failure();
+  if (!(bytecode::kMinSupportedVersion <= bytecodeVersion &&
+        bytecodeVersion <= bytecode::kVersion)) return failure();
   writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
+
   return writeBytecodeToFile(module, os, writerConfig);
 }
 
