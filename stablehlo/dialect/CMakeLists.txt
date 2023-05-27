@@ -232,10 +232,12 @@ add_mlir_dialect_library(VhloTypes
   MLIRTransformUtils
 )
 
-add_stablehlo_unittest(VersionTest
-  VersionTest.cpp
-)
-target_link_libraries(VersionTest
-  PRIVATE
-  Version
-)
+if(STABLEHLO_INCLUDE_TESTS)
+  add_stablehlo_unittest(VersionTest
+    VersionTest.cpp
+  )
+  target_link_libraries(VersionTest
+    PRIVATE
+    Version
+  )
+endif()

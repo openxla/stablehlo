@@ -39,6 +39,7 @@ endif()
 #-------------------------------------------------------------------------------
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
+option(STABLEHLO_INCLUDE_TESTS "Generate build targets for the StableHLO unit tests." ${LLVM_INCLUDE_TESTS})
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
@@ -129,32 +130,43 @@ add_dependencies(check-stablehlo-ci check-stablehlo-slow)
 add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
-# Target that aggregates unit tests. It is not added to check-stablehlo targets
-# directly (see stablehlo/unittests for how StableHLO unit tests are run).
-add_custom_target(StablehloUnitTests)
-function(add_stablehlo_unittest test_name)
-  if(NOT test_name MATCHES "Test$")
-    # Target name must end with 'Test' to make sure that this target will
-    # be successfully discovered by check-stablehlo-unit.
-    # See the definition of check-stablehlo-unit for how this works.
-    message(SEND_ERROR "Cannot add unit test ${test_name}: target name must end with 'Test'")
-  endif()
-  add_unittest(StablehloUnitTests ${test_name} ${ARGN})
-  # Needed to suppress warnings in googletest codebase and in code generated
-  # by googletest macros.
-  target_compile_options(${test_name} PRIVATE "-Wno-suggest-override")
-  target_include_directories(${test_name}
-    PRIVATE
-    ${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest/googletest/include
-  )
-  set_output_directory(${test_name} BINARY_DIR ${STABLEHLO_UNITTESTS_DIR})
-endfunction()
+# StableHLO unit tests depend on googletest bundled with LLVM, and the way how
+# to enable these targets may differ depending on whether StableHLO is built
+# standalone, as an LLVM external project or as part of another project.
+# Therefore, we hide unit tests under a flag which is OFF by default (this flag
+# is ON in CI, and the Bazel CI is always building and running unit tests, so
+# we're not worried about accidentally forgetting to enable unit tests).
+# An alternative to this arrangement would be to vendor googletests inside
+# this repository, but that comes with extra maintenance costs.
+if(STABLEHLO_INCLUDE_TESTS)
+  # Target that aggregates unit tests. It is not added to check-stablehlo targets
+  # directly (see stablehlo/unittests for how StableHLO unit tests are run).
+  add_custom_target(StablehloUnitTests)
+  function(add_stablehlo_unittest test_name)
+    if(NOT test_name MATCHES "Test$")
+      # Target name must end with 'Test' to make sure that this target will
+      # be successfully discovered by check-stablehlo-unit.
+      # See the definition of check-stablehlo-unit for how this works.
+      message(SEND_ERROR "Cannot add unit test ${test_name}: target name must end with 'Test'")
+    endif()
+    add_unittest(StablehloUnitTests ${test_name} ${ARGN})
+    # Needed to suppress warnings in googletest codebase and in code generated
+    # by googletest macros.
+    target_compile_options(${test_name} PRIVATE "-Wno-suggest-override")
+    target_include_directories(${test_name}
+      PRIVATE
+      ${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest/googletest/include
+    )
+    set_output_directory(${test_name} BINARY_DIR ${STABLEHLO_UNITTESTS_DIR})
+  endfunction()
 
-# Normally, LLVM's googletest is only available with -DLLVM_INCLUDE_TESTS=ON.
-# This makes it available directly, without any other side effects on the
-# LLVM build (e.g. additional compilation slowdowns).
-if(STABLEHLO_STANDALONE_BUILD)
-  add_subdirectory(${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest)
+  # If StableHLO is built standalone, we explicitly load the build of googletest
+  # from the provided LLVM directory. Otherwise, we leave this up to the
+  # encompassing project, because they may have already done that, e.g. if
+  # StableHLO is built as an LLVM external project with -DLLVM_INCLUDE_TESTS=ON.
+  if(STABLEHLO_STANDALONE_BUILD)
+    add_subdirectory(${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest)
+  endif()
 endif()
 
 #-------------------------------------------------------------------------------

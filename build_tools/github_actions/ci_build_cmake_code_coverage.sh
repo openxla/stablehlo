@@ -59,7 +59,8 @@ cmake -GNinja \
   -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fprofile-arcs -ftest-coverage -fcoverage-mapping" \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-  -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fprofile-instr-generate -fprofile-arcs -ftest-coverage -fcoverage-mapping"
+  -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -fprofile-instr-generate -fprofile-arcs -ftest-coverage -fcoverage-mapping" \
+  -DSTABLEHLO_INCLUDE_TESTS=On
 
 # Build and Check StableHLO
 (cd "$STABLEHLO_BUILD_DIR" && ninja check-stablehlo-ci)
