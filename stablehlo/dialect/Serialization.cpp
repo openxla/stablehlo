@@ -72,7 +72,8 @@ LogicalResult serializePortableArtifact(ModuleOp module,
       vhlo::Version::fromString(targetVersion)->getBytecodeVersion();
   if (failed(bytecodeVersion)) return failure();
   if (!(bytecode::kMinSupportedVersion <= bytecodeVersion &&
-        bytecodeVersion <= bytecode::kVersion)) return failure();
+        bytecodeVersion <= bytecode::kVersion))
+    return failure();
   writerConfig.setDesiredBytecodeVersion(bytecodeVersion.value());
 
   return writeBytecodeToFile(module, os, writerConfig);
