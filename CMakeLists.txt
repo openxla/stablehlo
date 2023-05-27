@@ -150,18 +150,16 @@ function(add_stablehlo_unittest test_name)
   set_output_directory(${test_name} BINARY_DIR ${STABLEHLO_UNITTESTS_DIR})
 endfunction()
 
-#-------------------------------------------------------------------------------
-# Directory setup
-#-------------------------------------------------------------------------------
-
 # Normally, LLVM's googletest is only available with -DLLVM_INCLUDE_TESTS=ON.
 # This makes it available directly, without any other side effects on the
 # LLVM build (e.g. additional compilation slowdowns).
 if(STABLEHLO_STANDALONE_BUILD)
   add_subdirectory(${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest)
-else()
-  add_subdirectory(${LLVM_MAIN_SRC_DIR}/../third-party/unittest)
 endif()
+
+#-------------------------------------------------------------------------------
+# Directory setup
+#-------------------------------------------------------------------------------
 
 set(STABLEHLO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(STABLEHLO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
