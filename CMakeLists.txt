@@ -37,14 +37,12 @@ endif()
 #-------------------------------------------------------------------------------
 # Options and settings
 #-------------------------------------------------------------------------------
-
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
 #-------------------------------------------------------------------------------
-
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(STABLEHLO_STANDALONE_BUILD ON)
   project(stablehlo LANGUAGES CXX C)
@@ -55,7 +53,6 @@ endif()
 #-------------------------------------------------------------------------------
 # MLIR/LLVM Configuration
 #-------------------------------------------------------------------------------
-
 if (STABLEHLO_ENABLE_STRICT_BUILD)
   set(LLVM_ENABLE_WARNINGS ON)
   set(LLVM_ENABLE_WERROR ON)
@@ -136,6 +133,12 @@ add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 # directly (see stablehlo/unittests for how StableHLO unit tests are run).
 add_custom_target(StablehloUnitTests)
 function(add_stablehlo_unittest test_name)
+  if(NOT test_name MATCHES "Test$")
+    # Target name must end with 'Test' to make sure that this target will
+    # be successfully discovered by check-stablehlo-unit.
+    # See the definition of check-stablehlo-unit for how this works.
+    message(SEND_ERROR "Cannot add unit test ${test_name}: target name must end with 'Test'")
+  endif()
   add_unittest(StablehloUnitTests ${test_name} ${ARGN})
   # Needed to suppress warnings in googletest codebase and in code generated
   # by googletest macros.
