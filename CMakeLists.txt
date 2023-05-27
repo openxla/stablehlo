@@ -149,6 +149,7 @@ function(add_stablehlo_unittest test_name)
   )
   set_output_directory(${test_name} BINARY_DIR ${STABLEHLO_UNITTESTS_DIR})
 endfunction()
+add_subdirectory(${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest)
 
 #-------------------------------------------------------------------------------
 # Directory setup
