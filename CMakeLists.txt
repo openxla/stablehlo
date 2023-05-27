@@ -37,12 +37,14 @@ endif()
 #-------------------------------------------------------------------------------
 # Options and settings
 #-------------------------------------------------------------------------------
+
 option(STABLEHLO_ENABLE_BINDINGS_PYTHON "Enables StableHLO Python bindings" OFF)
 option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and warnings as errors" OFF)
 
 #-------------------------------------------------------------------------------
 # Project setup and globals
 #-------------------------------------------------------------------------------
+
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(STABLEHLO_STANDALONE_BUILD ON)
   project(stablehlo LANGUAGES CXX C)
@@ -53,6 +55,7 @@ endif()
 #-------------------------------------------------------------------------------
 # MLIR/LLVM Configuration
 #-------------------------------------------------------------------------------
+
 if (STABLEHLO_ENABLE_STRICT_BUILD)
   set(LLVM_ENABLE_WARNINGS ON)
   set(LLVM_ENABLE_WERROR ON)
@@ -109,12 +112,8 @@ if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
 endif()
 
 #-------------------------------------------------------------------------------
-# Directory setup
+# Test configuration
 #-------------------------------------------------------------------------------
-
-set(STABLEHLO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(STABLEHLO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
-set(STABLEHLO_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 
 # Target that provides comprehensive testing for the StableHLO repository.
 # It includes both quick and slow tests (see check-stablehlo-quick and
@@ -133,4 +132,27 @@ add_dependencies(check-stablehlo-ci check-stablehlo-slow)
 add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
+# Target that aggregates unit tests. It is not added to check-stablehlo targets
+# directly (see stablehlo/unittests for how StableHLO unit tests are run).
+add_custom_target(StablehloUnitTests)
+function(add_stablehlo_unittest test_name)
+  add_unittest(StablehloUnitTests ${test_name} ${ARGN})
+  # Needed to suppress warnings in googletest codebase and in code generated
+  # by googletest macros.
+  target_compile_options(${test_name} PRIVATE "-Wno-suggest-override")
+  target_include_directories(${test_name}
+    PRIVATE
+    ${LLVM_BUILD_MAIN_SRC_DIR}/../third-party/unittest/googletest/include
+  )
+  set_output_directory(${test_name} BINARY_DIR ${STABLEHLO_UNITTESTS_DIR})
+endfunction()
+
+#-------------------------------------------------------------------------------
+# Directory setup
+#-------------------------------------------------------------------------------
+
+set(STABLEHLO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(STABLEHLO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(STABLEHLO_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
+set(STABLEHLO_UNITTESTS_DIR ${STABLEHLO_BINARY_DIR}/stablehlo/unittests)
 add_subdirectory(stablehlo)
