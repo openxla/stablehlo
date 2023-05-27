@@ -131,12 +131,13 @@ add_custom_target(check-stablehlo-quick)
 add_dependencies(check-stablehlo-ci check-stablehlo-quick)
 
 # StableHLO unit tests depend on googletest bundled with LLVM, and the way how
-# to enable these targets may differ depending on whether StableHLO is built
-# standalone, as an LLVM external project or as part of another project.
+# to make googletest available to StableHLO may differ depending on whether
+# StableHLO is built standalone, as an LLVM external project or as part of
+# another project.
 # Therefore, we hide unit tests under a flag which is OFF by default (this flag
 # is ON in CI, and the Bazel CI is always building and running unit tests, so
 # we're not worried about accidentally forgetting to enable unit tests).
-# An alternative to this arrangement would be to vendor googletests inside
+# An alternative to this arrangement would be to vendor googletest inside
 # this repository, but that comes with extra maintenance costs.
 if(STABLEHLO_INCLUDE_TESTS)
   # Target that aggregates unit tests. It is not added to check-stablehlo targets
