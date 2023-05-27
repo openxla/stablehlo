@@ -4675,8 +4675,8 @@ Given that, `results = exec(schedule, inputs)`, where:
     update_computation(results...[result_index], updates...[update_index])`.
   * `updated_results` is a copy of `results` with `results...[result_index]`
     set to `updated_values...`.
-  * If `result_index` is out of bounds for `shape(results[0])`, the behavior
-    is implementation-defined.
+  * If `result_index` is out of bounds for `shape(results[0])`, the update is
+    discarded.
 * `exec([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
