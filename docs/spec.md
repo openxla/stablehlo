@@ -1365,10 +1365,11 @@ representation of element types is implementation-defined as well.
 #### Semantics
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
-in the `operand` tensor and produces a `result` tensor. Formally,
-`result[i0, i1, ..., iR-1]` $=$ `operand[j0, j1, ..., jR'-1]` such that
-`jk` $=$ `dim(operand, k) == 1 ? 0 : i[broadcast_dimensions[k]]` for all
-dimensions `k` in `operand`.
+in the `operand` tensor and produces a `result` tensor. More formally,
+`result[result_index] = operand[operand_index]` where:
+
+* `operand_index[d] = 0` if `dim(operand, d) == 1`.
+* `operand_index[d] = result_index[broadcast_dimensions[d]]` otherwise.
 
 #### Inputs
 
@@ -1390,9 +1391,9 @@ dimensions `k` in `operand`.
 * (C3) $0 \le$ `broadcast_dimensions[i]` $\lt$ rank(`result`) for all
        dimensions i in `operand`.
 * (C4) All dimensions in `broadcast_dimensions` are unique.
-* (C5) For all dimensions `j` in `operand`:
-  * `dim(operand, j) = 1` or
-  * `dim(operand, j) = dim(result, i)` where `i = broadcast_dimensions[j]`.
+* (C5) For `d` in `axes(operand)`:
+  * `dim(operand, d) = 1` or
+  * `dim(operand, d) = dim(result, broadcast_dimensions[d])`.
 
 #### Examples
 
@@ -2449,13 +2450,12 @@ planning to address this in
 Extracts a slice from the `operand` using dynamically-computed starting indices
 and produces a `result` tensor. `start_indices` contain the starting indices of
 the slice for each dimension subject to potential adjustment, and `slice_sizes`
-contain the sizes of the slice for each dimension.
+contain the sizes of the slice for each dimension. More formally,
+`result[result_index] = operand[operand_index]` where:
 
-More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
-
-* `jd = adjusted_start_indices[d][] + id`.
-* `adjusted_start_indices = clamp(0, start_indices, shape(operand) -`
-  `slice_sizes)`.
+* `adjusted_start_indices = clamp(0, start_indices, shape(operand) -
+  slice_sizes)`.
+* `operand_index = adjusted_start_indices + result_index`.
 
 #### Inputs
 
@@ -2508,13 +2508,13 @@ More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where:
 
 Produces a `result` tensor which is equal to the `operand` tensor except that
 the slice starting at `start_indices` is updated with the values in `update`.
+More formally, `result[result_index]` is defined as:
 
-More formally, `result[i0, ..., iR-1]` is defined as:
-
-* `update[j0, ..., jR-1]` if `id = adjusted_start_indices[d][] + jd` where
-  `adjusted_start_indices =
-  clamp(0, start_indices, shape(operand) - shape(update))`.
-* `operand[i0, ..., iR-1]` otherwise.
+* `update[update_index]` if `update_index` in bounds of `shape(update)` where:
+  * `adjusted_start_indices = clamp(0, start_indices, shape(operand) -
+    shape(update))`.
+  * `update_index = result_index - adjusted_start_indices`.
+* `operand[result_index]` otherwise.
 
 #### Inputs
 
@@ -3115,8 +3115,8 @@ to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 #### Semantics
 
 Fills an `output` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. More formally,
-`output[i0, ..., id, ..., iR-1] = id`, where `d` is equal to `iota_dimension`.
+along the `iota_dimension` dimension. More formally, `output[result_index] =
+constant(result_index[iota_dimension], element_type(output))`.
 
 #### Inputs
 
@@ -3695,10 +3695,10 @@ elements in each dimension which may not be negative. Interior padding occurs
 before edge padding such that negative edge padding will remove elements from
 the interior-padded operand.
 
-More formally, `result[i0, ..., iR-1]` is equal to:
+More formally, `result[result_index]` is defined as:
 
-* `operand[j0, ..., jR-1]` if
-  `id = edge_padding_low[d] + jd * (interior_padding[d] + 1)`.
+* `operand[operand_index]` if
+  `result_index = edge_padding_low + operand_index * (interior_padding + 1)`.
 * `padding_value[]` otherwise.
 
 #### Inputs
@@ -4328,9 +4328,9 @@ Performs reshape of `operand` tensor to a `result` tensor. Conceptually, it
 amounts to keeping the same canonical representation but potentially changing
 the shape, e.g. from `tensor<2x3xf32>` to `tensor<3x2xf32>` or `tensor<6xf32>`.
 
-More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR'-1]` where
-`i` and `j` have the same position in the lexicographic ordering of the index
-spaces of `result` and `operand`.
+More formally, `result[result_index] = operand[operand_index]` where
+`result_index` and `operand_index` have the same position in the lexicographic
+ordering of the index spaces of `result` and `operand`.
 
 #### Inputs
 
@@ -4365,8 +4365,11 @@ spaces of `result` and `operand`.
 
 Reverses the order of elements in the `operand` along the specified `dimensions`
 and produces a `result` tensor. More formally,
-`result[i0, ..., ik,..., iR-1] = operand[i0, ..., ik',..., iR-1]` where
-`ik + ik' = dk - 1` for all dimensions `k` in `dimensions`.
+`result[result_index] = operand[operand_index]` where:
+
+* `operand_index[d] = result_index[d] - operand_index[d] - 1`
+  if `d` in `dimensions`.
+* `operand_index[d] = result_index[d]` otherwise.
 
 #### Inputs
 
@@ -5180,8 +5183,8 @@ the slice for each dimension, `limit_indices` contain the ending indices
 (exclusive) for the slice for each dimension, and `strides` contain the strides
 for each dimension.
 
-More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]` where
-`jd = start_indices[d] + id * strides[d]`.
+More formally, `result[result_index] = operand[operand_index]` where
+`operand_index = start_indices + result_index * strides`.
 
 #### Inputs
 
@@ -5435,8 +5438,8 @@ produces a `result` tensor. Depending on the element type, does the following:
 #### Semantics
 
 Permutes the dimensions of `operand` tensor using `permutation` and produces a
-`result` tensor. More formally, `result[i0, ..., iR-1] = operand[j0, ..., jR-1]`
-where `i[d] = j[permutation[d]]`.
+`result` tensor. More formally, `result[result_index] = operand[operand_index]`
+where `result_index[d] = operand_index[permutation[d]]`.
 
 #### Inputs
 
@@ -5456,8 +5459,7 @@ where `i[d] = j[permutation[d]]`.
 * (C1) `operand` and `result` have the same element type.
 * (C2) `permutation` is a permutation of `[0, 1, ..., R-1]` where `R` is the
 rank of `operand`.
-* (C3) For all dimensions `i` in `operand`, `dim(operand, i) = dim(result, j)`
-where `i = permutation[j]`.
+* (C3) For `d` in `axis(result)`, `dim(result, d) = dim(operand, permutation[d])`.
 
 #### Examples
 
