@@ -39,10 +39,6 @@ class Sizes : public SmallVector<int64_t> {
   explicit Sizes(DenseIntElementsAttr attr)
       : SmallVector(attr.getValues<int64_t>()) {}
 
-  // Returns `s` with the effect of applying `permutation`
-  // to `this` object, that is, `s[i] = (*this)[permutation[i]]`.
-  Sizes permute(ArrayRef<int64_t> permutation) const;
-
   /// Checks if an element `e` at kth axis of `this` object follows
   /// `0 <= e <= bounds[k]`.
   bool inBounds(const Sizes &bounds) const;

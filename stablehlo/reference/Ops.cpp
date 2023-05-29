@@ -1563,7 +1563,9 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
     Index operandIndex = *operandIt;
-    Index resultIndex = operandIndex.permute(permutation);
+    Index resultIndex(result.getRank());
+    for (auto d = 0; d < result.getRank(); d++)
+      resultIndex[d] = operandIndex[permutation[d]];
     result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
