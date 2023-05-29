@@ -1568,14 +1568,9 @@ SmallVector<Tensor> evalWhileOp(ArrayRef<Tensor> operand, Region &cond,
   SmallVector<Tensor> results(operand);
 
   auto condResults = eval(cond, operand, &scope);
-  if (condResults.size() != 1)
-    llvm::report_fatal_error("Failed to evaluate cond");
-
   while (condResults[0].get({}).getBooleanValue()) {
     results = eval(body, results, &scope);
     condResults = eval(cond, results, &scope);
-    if (condResults.size() != 1)
-      llvm::report_fatal_error("Failed to evaluate cond");
   }
 
   return results;
