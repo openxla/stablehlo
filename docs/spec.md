@@ -29,7 +29,7 @@ Below is an example program with a function `@main` which has 3 inputs
 has 6 ops.
 
 ```mlir
-stablehlo.func @main(
+func.func @main(
   %image: tensor<28x28xf32>,
   %weights: tensor<784x10xf32>,
   %bias: tensor<1x10xf32>
@@ -39,14 +39,14 @@ stablehlo.func @main(
   %2 = "stablehlo.add"(%1, %bias) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
   %3 = "stablehlo.constant"() { value = dense<0.0> : tensor<1x10xf32> } : () -> tensor<1x10xf32>
   %4 = "stablehlo.maximum"(%2, %3) : (tensor<1x10xf32>, tensor<1x10xf32>) -> tensor<1x10xf32>
-  "stablehlo.return"(%4): (tensor<1x10xf32>) -> ()
+  "func.return"(%4): (tensor<1x10xf32>) -> ()
 }
 ```
 
 ### Functions
 
 ```ebnf
-Func        ::= 'stablehlo' '.' 'func' FuncId FuncInputs FuncOutputs '{' FuncBody '}'
+Func        ::= 'func' '.' 'func' FuncId FuncInputs FuncOutputs '{' FuncBody '}'
 FuncInputs  ::= '(' [FuncInput {',' FuncInput}] `)`
 FuncInput   ::= '%' ValueId ':' ValueType
 FuncOutputs ::= ['->' FuncOutput, {',' FuncOutput}]
