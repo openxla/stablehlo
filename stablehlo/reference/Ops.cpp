@@ -934,9 +934,10 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
   for (const auto &input : inputs) {
     for (auto inputIt = input.index_begin(); inputIt != input.index_end();
          ++inputIt) {
-      Index resultIndex(*inputIt);
+      Index inputIndex = *inputIt;
+      Index resultIndex(inputIndex);
       resultIndex[dimension] += dimensionOffset;
-      result.set(resultIndex, input.get(*inputIt));
+      result.set(resultIndex, input.get(inputIndex));
     }
     dimensionOffset += input.getShape()[dimension];
   }
@@ -1201,8 +1202,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   Tensor result(resultType, paddingValue.get({}));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    auto operandIndex = *operandIt;
-    auto resultIndex = edgePaddingLow + operandIndex * (interiorPadding + 1);
+    Index operandIndex = *operandIt;
+    Index resultIndex = edgePaddingLow + operandIndex * (interiorPadding + 1);
     // Bound check is needed here because of negative padding which could
     // swallow some operand indices.
     if (resultIndex.inBounds(result.getShape()))
