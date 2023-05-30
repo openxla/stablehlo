@@ -152,7 +152,12 @@ for forward and backward compatibility testing.
 ```bash
 $ cp stablehlo_legalize_to_vhlo.mlir stablehlo_legalize_to_vhlo.0_X_0.mlir
 $ stablehlo-translate --serialize stablehlo_legalize_to_vhlo.0_X_0.mlir --target=current --strip-debuginfo > stablehlo_legalize_to_vhlo.0_X_0.mlir.bc
-# Edit RUN commands in stablehlo_legalize_to_vhlo.0_X_0.mlir to target 0.X.0
+
+# Replace RUN commands in stablehlo_legalize_to_vhlo.0_X_0.mlir with the following for 0.X.0:
+// RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
+// RUN: stablehlo-translate --deserialize %s.bc | stablehlo-translate --serialize --target=0.X.0 | stablehlo-opt --mlir-print-op-generic | FileCheck %s
+// RUN: diff <(stablehlo-translate --deserialize %s.bc | stablehlo-opt) <(stablehlo-opt --strip-debuginfo %s)
+// RUN: diff %s.bc <(stablehlo-translate --serialize --target=0.X.0 --strip-debuginfo %s)
 ```
 
 _Example of versioned test in [#1430](https://github.com/openxla/stablehlo/pull/1430)._
