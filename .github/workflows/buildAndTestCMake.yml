@@ -20,8 +20,8 @@ on:
   push:
     branches: [ main ]
   schedule:
-    # Run once a day
-    - cron:  '0 12 * * *'
+    # Run once every 6hr building against llvm-project@HEAD
+    - cron:  '0 */6 * * *'
   workflow_dispatch:
 
 # Ensure that only a single job or workflow using the same
@@ -43,6 +43,8 @@ jobs:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
 
+    name: "cmake-build (${{ github.event_name == 'schedule' && 'llvm-project@HEAD' || 'llvm_version.txt' }})"
+
     steps:
     - name: Checkout StableHLO
       uses: actions/checkout@v2
@@ -51,7 +53,12 @@ jobs:
       id: llvm-version
       shell: bash
       run: |
-        echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+        USE_LLVM_HEAD=${{ github.event_name == 'schedule' }}
+        if [[ $USE_LLVM_HEAD = true ]]; then 
+          echo "version=main" >> $GITHUB_OUTPUT
+        else
+          echo "version=$(cat ${{ github.workspace }}/build_tools/llvm_version.txt)" >> $GITHUB_OUTPUT
+        fi;
 
     - name: Setup workspace
       uses: ./.github/actions/setup-build
