@@ -532,11 +532,11 @@ represents a tensor value with the following mapping from indices to elements:
 `{1, 2} => 6`. The order in which these elements are then stored in memory is
 implementation-defined. Tensor constants have the following constraints:
 
-* (C1) `has_syntax(tensor_literal, element_type(tensor_type))`, where:
-  * `has_syntax(element_literal: Syntax, element_type: Type) =
+* (C1) `has_syntax(tensor_literal, tensor_element_type(tensor_type))`, where:
+  * `has_syntax(element_literal: Syntax, tensor_element_type: Type) =
     is_wellformed(element_literal, type)`.
-  * `has_syntax(tensor_literal: List, element_type: Type) =
-    has_syntax(tensor_literal..., element_type)`.
+  * `has_syntax(tensor_literal: List, tensor_element_type: Type) =
+    has_syntax(tensor_literal..., tensor_element_type)`.
 * (C2) `has_shape(tensor_literal, shape(tensor_type))`, where:
   * `has_shape(element_literal: Syntax, []) = true`.
   * `has_shape(tensor_literal: List, shape: List) =
@@ -557,55 +557,6 @@ bytes is implementation-defined. String literals have type `string`.
 
 ## Ops
 
-The following helper functions are defined to simplify the specification of the
-semantics of StableHLO operations with quantized types.
-
-```python
-##  operand: tensor with quantized type.
-##  unary_computaion: unary function of type: (floating-point) ->
-##      floating-point.
-##  out_storage_min, out_storage_max, out_scale, and out_zero_point: integer
-##      constants
-def unary_computation_with_quantized_types(operand, unary_computaion,
-    out_storage_min, out_storage_max, out_scale, out_zero_point):
-  float_result = unary_computaion((operand - zero_point(operand)) *
-          scale(operand))
-  rounded_result = round_nearest_even(float_result / out_scale)
-  result = clamp(out_storage_min, rounded_result + out_zero_point,
-          out_storage_max)
-  return result
-
-##  lhs and rhs: tensors with quantized types.
-##  binary_computaion: binary function of type: (floating-point,
-##      floating-point) -> floating-point.
-##  out_storage_min, out_storage_max, out_scale, and out_zero_point: integer
-##      constants
-def binary_computation_with_quantized_types(lhs, rhs, binary_computaion,
-    out_storage_min, out_storage_max, out_scale, out_zero_point):
-  float_result = binary_computaion((lhs - zero_point(lhs)) * scale(lhs),
-          (rhs - zero_point(rhs)) * scale(rhs))
-  rounded_result = round_nearest_even(float_result / out_scale)
-  result = clamp(out_storage_min, rounded_result + out_zero_point,
-          out_storage_max)
-  return result
-
-##  operand1, operand2 and operand3: tensors with quantized types.
-##  ternary_computaion: ternary function of type: (floating-point,
-##      floating-point, floating-point) -> floating-point.
-##  out_storage_min, out_storage_max, out_scale, and out_zero_point: integer constants
-def ternary_computation_with_quantized_types(operand1, operand2, operand3,
-        ternary_computaion, out_storage_min, out_storage_max, out_scale,
-        out_zero_point):
-  float_result = ternary_computaion(
-          (operand1 - zero_point(operand1)) * scale(operand1),
-          (operand2 - zero_point(operand2)) * scale(operand2),
-          (operand3 - zero_point(operand3)) * scale(operand3))
-  rounded_result = round_nearest_even(float_result / out_scale)
-  result = clamp(out_storage_min, rounded_result + out_zero_point,
-                 out_storage_max)
-  return result
-```
-
 ### abs
 
 #### Semantics
@@ -616,35 +567,25 @@ tensor. Depending on the element type, does the following:
 * For signed integers: integer modulus.
 * For floats: `abs` from IEEE-754.
 * For complex numbers: complex modulus.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: abs(x), storage_min(result), storage_max(result), scale(result),
-        zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                                 | Constraints |
-|-------|-----------|----------------------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of signed integer, floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                                      | Constraints |
+|-------|-----------|-----------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of signed integer, floating-point, or complex type | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type                                                        | Constraints |
-|----------|-------------------------------------------------------------|-------------|
-| `result` | tensor of signed integer, floating-point, or quantized type | (C1-C4)     |
+| Name     | Type                                            | Constraints |
+|----------|-------------------------------------------------|-------------|
+| `result` | tensor of signed integer or floating-point type | (C1), (C2)  |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2)  `operand` and `result` have the same element type, except when the
-    element type of the `operand` is complex type, in which case the element
-    type of the `result` is the element type of the complex type (e.g. the
-    element type of the `result` is `f64` for operand type `complex<f64>`).
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `shape(result) = shape(operand)`.
+* (C2) `tensor_element_type(result)` is defined as:
+  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
+  * `tensor_element_type(operand)` otherwise.
 
 #### Examples
 
@@ -686,32 +627,6 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
 
 * (C1) `baseline_type(lhs) = baseline_type(rhs) = baseline_type(result)`.
 
-#### Inputs
-
-| Label | Name  | Type                       | Constraints |
-|-------|-------|----------------------------|-------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1-C5)     |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1-C4)     |
-
-#### Outputs
-
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C4)     |
-
-#### Constraints
-
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`.
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
->>>>>>> 7e022712 (Specification for quantized elementwise operations)
-
 #### Examples
 
 ```mlir
@@ -746,12 +661,8 @@ it only exists to establish data dependencies from `result` to `inputs`.
 #### Examples
 
 ```mlir
-// %input0: !stablehlo.token
-// %input1: !stablehlo.token
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_after_all.mlir)
 
 ### all_gather
 
@@ -879,7 +790,7 @@ Afterwards, within each `process_group`:
 * (C3) `0 <= replica_groups < size(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
+       `E = tensor_element_type(operand)`.
 * (C6) `type(result) = type(operand)`.
 
 #### Examples
@@ -1004,26 +915,24 @@ Performs element-wise AND of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
 
 * For booleans: logical AND.
-* For integers or quantized types: bitwise AND.
+* For integers: bitwise AND.
 
 #### Inputs
 
-| Label | Name  | Type                                         | Constraints |
-|-------|-------|----------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of boolean, integer or quantized type | (C1-C2)     |
-| (I2)  | `rhs` | tensor of boolean, integer or quantized type | (C1)        |
+| Label | Name  | Type                              | Constraints |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of boolean or integer type | (C1)        |
+| (I2)  | `rhs` | tensor of boolean or integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                         | Constraints |
-|----------|----------------------------------------------|-------------|
-| `result` | tensor of boolean, integer or quantized type | (C1)        |
+| Name     | Type                              | Constraints |
+|----------|-----------------------------------|-------------|
+| `result` | tensor of boolean or integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -1043,34 +952,23 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 
 * For floats: `atan2` from IEEE-754.
 * For complex numbers: complex atan2.
-* For quantized types: `binary_computation_with_quantized_types(lhs, rhs, lambda
-        x, y: atan2(x, y), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                                                | Constraints |
-|-------|-------|-----------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of floating-point, complex or quantized type | (C1-C5)     |
-| (I2)  | `rhs` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Label | Name  | Type                                     | Constraints |
+|-------|-------|------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                | Constraints |
-|----------|-----------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`.
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -1096,7 +994,7 @@ existing StableHLO operations using Python syntax as follows:
 def compute_sum(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[constant(0, element_type(operand))],
+      init_values=[constant(0, tensor_element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   return sum
@@ -1104,7 +1002,7 @@ def compute_sum(operand, feature_index):
 def compute_mean(operand, feature_index):
   sum = compute_sum(operand, feature_index)
   divisor = constant(size(operand) / dim(operand, feature_index),
-                     element_type(operand))
+                     tensor_element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], type(sum))
   return divide(sum, divisor_bcast)
 
@@ -1113,7 +1011,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   scale_bcast = broadcast_in_dim(scale, [feature_index], type(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], type(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], type(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, tensor_element_type(operand)), [],
                                    type(operand))
 
   # Perform normalization using the provided `mean` and `variance`
@@ -1126,7 +1024,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   # Temporary variables have exactly the same names as in the C++ code
   elements_per_feature = broadcast_in_dim(
       constant(divide(size(operand), dim(operand, feature_index)),
-               element_type(grad_output)),
+               tensor_element_type(grad_output)),
       [], type(operand))
   i1 = multiply(grad_output, elements_per_feature)
   i2 = broadcast_in_dim(
@@ -1221,7 +1119,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   offset_bcast = broadcast_in_dim(offset, [feature_index], type(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], type(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], type(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, tensor_element_type(operand)), [],
                                    type(operand))
 
   # Perform normalization using the provided `mean` and `variance` instead of
@@ -1296,11 +1194,11 @@ follows:
 def compute_mean(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[constant(0, element_type(operand))],
+      init_values=[constant(0, tensor_element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   divisor = constant(size(operand) / dim(operand, feature_index),
-                     element_type(operand))
+                     tensor_element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], type(sum))
   return divide(sum, divisor_bcast)
 
@@ -1377,7 +1275,7 @@ Performs a bitcast operation on `operand` tensor and produces a `result` tensor
 where the bits of the entire `operand` tensor are reinterpreted using the
 type of the `result` tensor.
 
-More formally, given `E = element_type(operand)`, `E' = element_type(result)`,
+More formally, given `E = tensor_element_type(operand)`, `E' = tensor_element_type(result)`,
 and `R = rank(operand)`:
 
 * If `num_bits(E') = num_bits(E)`,
@@ -1394,30 +1292,29 @@ implementation-defined as well.
 
 #### Inputs
 
-| Label | Name      | Type                       | Constraints |
-|-------|-----------|----------------------------|-------------|
-| (I1)  | `operand` | tensor or quantized tensor | (C1-C5)     |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `operand` | tensor | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C4)     |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C2)  |
 
 #### Constraints
 
-* (C1) Given `E = is_quantized_tensor(operand) ? storage_type(operand) :
-  element_type(operand), E' = is_quantized_tensor(result) ?
-  storage_type(result) : element_type(result)`, and `R = rank(operand)`:
+* (C1) Given `E = tensor_element_type(operand)`, `E' = tensor_element_type(result)`, and
+  `R = rank(operand)`:
   * If `num_bits(E') = num_bits(E)`, `shape(result) = shape(operand)`.
   * If `num_bits(E') < num_bits(E)`:
     * `rank(result) = R + 1`.
     * `dim(result, i) = dim(operand, i)` for all `0 <= i < R`.
-    * `dim(result, R) * num_bits(E') = num_bits(E)`.
+    * `dim(result, R) = num_bits(E) / num_bits(E')`.
   * If `num_bits(E') > num_bits(E)`:
     * `rank(result) = R - 1`.
     * `dim(result, i) = dim(operand, i)` for all `0 <= i < R`.
-    * `dim(operand, R - 1) * num_bits(E) = num_bits(E')`.
+    * `dim(operand, R - 1) = num_bits(E') / num_bits(E)`.
 * (C2) If `is_complex(operand) or is_complex(result)`, then
   `is_complex(operand) and is_complex(result)`.
 
@@ -1458,7 +1355,7 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(result)`.
+* (C1) `tensor_element_type(operand) = tensor_element_type(result)`.
 * (C2) `size(broadcast_dimensions) = rank(operand)`.
 * (C3) `0 <= broadcast_dimensions < rank(result)`.
 * (C4) `is_unique(broadcast_dimensions)`.
@@ -1548,32 +1445,22 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 
 * For floats: `rootn(x, 3)` from IEEE-754.
 * For complex numbers: complex cubic root.
-* For quantized types: `binary_computation_with_quantized_types(lhs, rhs,
-        lambda x: rootn(x, 3), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                | Constraints |
-|-------|-----------|-----------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                | Constraints |
-|----------|-----------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -1591,33 +1478,23 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
 
 Performs element-wise ceil of `operand` tensor and produces a `result` tensor.
 Implements the `roundToIntegralTowardPositive` operation from the IEEE-754
-specification. For quantized types, performs
-`unary_computation_with_quantized_types(operand,
-        lambda x: roundToIntegralTowardPositive(x), storage_min(result),
-        storage_max(result), scale(result), zero_point(result))`.
+specification.
 
 #### Inputs
 
-| Label | Name      | Type                                       | Constraints |
-|-------|-----------|--------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized type | (C1-C5)     |
+| Label | Name      | Type                          | Constraints |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `result` | tensor of floating-point or quantized type | (C1-C4)     |
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -1687,13 +1564,10 @@ matrix, then the behavior is undefined.
 #### Semantics
 
 Clamps every element of the `operand` tensor between a minimum and maximum
-value and produces a `result` tensor. More formally, `result[i0, ..., iR-1]` =
-`minimum(maximum(operand[i0, ..., iR-1], min_val), max_val)`,
-where `min_val = rank(min) == 0 ? min : min[i0, ..., iR-1]`,
-`max_val = rank(max) == 0 ? max : max[i0, ..., iR-1]`. For quantized types,
-performs `ternary_computation_with_quantized_types(min_val, operand, max_val,
-        lambda x, y, z: minimum(maximum(y, x) z), storage_min(result),
-        storage_min(result), scale(result), zero_point(result))`.
+value and produces a `result` tensor. More formally, `result[result_index] =
+minimum(maximum(operand[result_index], min_element), max_element)`,
+where `min_element = rank(min) = 0 ? min : min[result_index]`,
+`max_element = rank(max) = 0 ? max : max[result_index]`.
 
 Imposing an ordering on complex numbers involves surprising semantics,
 so in the future we are planning to remove support for complex numbers
@@ -1701,32 +1575,24 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 #### Inputs
 
-| Label | Name      | Type                       | Constraints         |
-|-------|-----------|----------------------------|---------------------|
-| (I1)  | `min`     | tensor or quantized tensor | (C1), (C3), (C5-C6) |
-| (I2)  | `operand` | tensor or quantized tensor | (C1-C7)             |
-| (I3)  | `max`     | tensor or quantized tensor | (C2), (C3), (C5-C6) |
+| Label | Name      | Type   | Constraints |
+|-------|-----------|--------|-------------|
+| (I1)  | `min`     | tensor | (C1), (C3)  |
+| (I2)  | `operand` | tensor | (C1-C4)     |
+| (I3)  | `max`     | tensor | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C4-C7)     |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C4)        |
 
 #### Constraints
 
-* (C1) Either `rank(min)` $=$ `0` or `shape(min)` $=$ `shape(operand)`.
-* (C2) Either `rank(max)` $=$ `0` or `shape(max)` $=$ `shape(operand)`.
-* If the operation uses non-quantized tensors:
-  * (C3) `min`, `operand`, and `max` have the same element type.
-  * (C4) `operand` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C5) `is_quantized_tensor(min) and is_quantized_tensor(operand) and
-    is_quantized_tensor(max) and is_quantized_tensor(result)`.
-  * (C6) `quantized_element_type(min) = quantized_element_type(operand) =
-    quantized_element_type(max) = quantized_element_type(result)`, except for
-    quantization parameters which may differ.
-  * (C7) `shape(operand) = shape(result)`.
+* (C1) `rank(min) = 0 or shape(min) = shape(operand)`.
+* (C2) `rank(max) = 0 or shape(max) = shape(operand)`.
+* (C3) `tensor_element_type(min) = tensor_element_type(operand) = tensor_element_type(max)`.
+* (C4) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -1758,7 +1624,7 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+* `broadcast_in_dim(constant(0, tensor_element_type(result)), [], type(result))`
    otherwise.
 
 #### Inputs
@@ -1812,7 +1678,7 @@ Performs element-wise comparison of `lhs` and `rhs` tensors according to
 The values of `comparison_direction` and `compare_type` have the following
 semantics:
 
-For boolean, integer or quantized element types:
+For boolean and integer element types:
 
 * `EQ`: `lhs = rhs`.
 * `NE`: `lhs != rhs`.
@@ -1845,12 +1711,12 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 
 #### Inputs
 
-| Label | Name                   | Type                                                    | Constraints      |
-|-------|------------------------|---------------------------------------------------------|------------------|
-| (I1)  | `lhs`                  | tensor or quantized tensor                              | (C1-C6)          |
-| (I2)  | `rhs`                  | tensor or  quantized tensor                             | (C1-C2), (C4-C5) |
-| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |                  |
-| (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3), (C6)       |
+| Label | Name                   | Type                                                    | Constraints |
+|-------|------------------------|---------------------------------------------------------|-------------|
+| (I1)  | `lhs`                  | tensor                                                  | (C1-C3)     |
+| (I2)  | `rhs`                  | tensor                                                  | (C1), (C2)  |
+| (I3)  | `comparison_direction` | enum of `EQ`, `NE`, `GE`, `GT`, `LE`, and `LT`          |             |
+| (I4)  | `compare_type`         | enum of `FLOAT`, `TOTALORDER`, `SIGNED`, and `UNSIGNED` | (C3)        |
 
 #### Outputs
 
@@ -1860,22 +1726,14 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 
 #### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same shape.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs)`.
-  * (C3) Given `E` is the `lhs` element type, the following are legal values of
-         `compare_type`:
-    * If `E` is signed integer type, `compare_type` = `SIGNED`.
-    * If `E` is unsigned integer or boolean type, `compare_type` = `UNSIGNED`.
-    * If `E` is floating-point type,
-      `compare_type` $\in$ {`FLOAT`, `TOTALORDER`}.
-    * If `E` is complex type, `compare_type` = `FLOAT`.
-* If the operation uses quantized tensors:
-  * (C4) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs)`.
-  * (C5) `quantized_element_type(lhs) = quantized_element_type(rhs)`.
-  * (C6) `compare_type` is defined as:
-    * `SIGNED` if `is_signed_integer(storage_type(lhs))`.
-    * `UNSIGNED` if `is_unsigned_integer(storage_type(lhs))`.
+* (C1) `tensor_element_type(lhs) = tensor_element_type(rhs)`.
+* (C2) `shape(lhs) = shape(rhs) = shape(result)`.
+* (C3) `compare_type` is defined as:
+  * `SIGNED` if `is_signed_integer(tensor_element_type(lhs))`.
+  * `UNSIGNED` if `is_unsigned_integer(tensor_element_type(lhs)) or
+    is_boolean(tensor_element_type(lhs))`.
+  * `FLOAT` or `TOTALORDER` if `is_float(tensor_element_type(lhs))`.
+  * `FLOAT` if `is_complex(tensor_element_type(lhs))`.
 
 #### Examples
 
@@ -1915,8 +1773,8 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 * (C1) `type(lhs) = type(rhs)`.
 * (C2) `shape(result) = shape(lhs)`.
-* (C3) `element_type(result)` has type `complex<E>` where
-  `E = element_type(lhs)`.
+* (C3) `tensor_element_type(result)` has type `complex<E>` where
+  `E = tensor_element_type(lhs)`.
 
 #### Examples
 
@@ -1956,11 +1814,11 @@ arguments and produces a `result` tensor. More formally,
 
 #### Constraints
 
-* (C1) `same(element_type(inputs...))`.
+* (C1) `same(tensor_element_type(inputs...))`.
 * (C2) `same(shape(inputs...))` except for `dim(inputs..., dimension)`.
 * (C3) `0 < size(inputs)`.
 * (C4) `0 <= dimension < rank(inputs[0])`.
-* (C5) `element_type(result) = element_type(inputs[0])`.
+* (C5) `tensor_element_type(result) = tensor_element_type(inputs[0])`.
 * (C6) `shape(result) = shape(inputs[0])` except for:
   * `dim(result, dimension) = dim(inputs[0], dimension) + ...`.
 
@@ -2206,7 +2064,7 @@ If `batch_group_count > 1`:
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+  * (C27) `tensor_element_type(lhs) = tensor_element_type(rhs) = tensor_element_type(result)`.
 * If the operation uses quantized tensors:
   * (C28) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
     is_quantized_tensor(result)`.
@@ -2274,32 +2132,22 @@ Performs element-wise cosine operation on `operand` tensor and produces a
 
 * For floats: `cos` from IEEE-754.
 * For complex numbers: complex cosine.
-* For quantized types: `unary_computation_with_quantized_types(lhs, rhs, lambda
-        x: cos(x), storage_min(result), storage_max(result), scale(result),
-        zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                | Constraints |
-|-------|-----------|-----------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                | Constraints |
-|----------|-----------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -2323,21 +2171,19 @@ tensor and produces a `result` tensor.
 
 #### Inputs
 
-| Label | Name      | Type                                | Constraints |
-|-------|-----------|-------------------------------------|-------------|
-| (I1)  | `operand` | tensor of integer or quantized type | (C1-C2)     |
+| Label | Name      | Type                   | Constraints |
+|-------|-----------|------------------------|-------------|
+| (I1)  | `operand` | tensor of integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                | Constraints |
-|----------|-------------------------------------|-------------|
-| `result` | tensor of integer or quantized type | (C1)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | tensor of integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -2402,35 +2248,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For integers: integer division.
 * For floats: `division` from IEEE-754.
 * For complex numbers: complex division.
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x, y:
-          division(x, y), storage_min(result), storage_max(result),
-          scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                                                         | Constraints |
-|-------|-------|--------------------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer, floating-point, complex or quantized type | (C1-C5)     |
-| (I2)  | `rhs` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Label | Name  | Type                                              | Constraints |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                         | Constraints |
-|----------|--------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                              | Constraints |
+|----------|---------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -2468,14 +2302,14 @@ More formally, `result[result_index] = dot_product`, where:
 * For non-quantized types:
   * `dot_product = reduce(
       inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-      init_values=[constant(0, element_type(result))],
+      init_values=[constant(0, tensor_element_type(result))],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
 * For quantized types:
   * `integer_dot_product = reduce(
       inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
                        (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
-      init_values=[constant(0, element_type(result)],
+      init_values=[constant(0, tensor_element_type(result)],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
@@ -2537,7 +2371,7 @@ planning to address this in
 * (C12) `shape(result) = dim(lhs, lhs_batching_dimensions) +
   dim(lhs, lhs_result_dimensions) + dim(rhs, rhs_result_dimensions)`.
 * If the operation uses non-quantized tensors:
-  * (C13) `element_type(lhs) = element_type(rhs)`.
+  * (C13) `tensor_element_type(lhs) = tensor_element_type(rhs)`.
 * If the operation uses quantized tensors:
   * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
   * (C15) `storage_type(lhs) = storage_type(rhs)`.
@@ -2610,7 +2444,7 @@ contain the sizes of the slice for each dimension. More formally,
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(result)`.
+* (C1) `tensor_element_type(operand) = tensor_element_type(result)`.
 * (C2) `size(start_indices) = size(slice_sizes) = rank(operand)`.
 * (C3) `same(type(start_indices...))`.
 * (C4) `0 <= slice_sizes <= shape(operand)`.
@@ -2669,7 +2503,7 @@ More formally, `result[result_index]` is defined as:
 #### Constraints
 
 * (C1) `type(operand) = type(result)`.
-* (C2) `element_type(update) = element_type(operand)`.
+* (C2) `tensor_element_type(update) = tensor_element_type(operand)`.
 * (C3) `rank(update) = rank(operand)`.
 * (C4) `size(start_indices) = rank(operand)`.
 * (C5) `same(type(start_indices...))`.
@@ -2711,32 +2545,22 @@ Performs element-wise exponential operation on `operand` tensor and produces a
 
 * For floats: `exp` from IEEE-754.
 * For complex numbers: complex exponential.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: exp(x), storage_min(result), storage_max(result), scale(result),
-        zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -2757,33 +2581,22 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 * For floats: `expm1` from IEEE-754.
 * For complex numbers: complex exponential minus one.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: expm1(x),
-          storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -2878,15 +2691,15 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 
 * (C1) `size(fft_length) <= rank(operand)`.
 * (C2) The relationship between `operand` and `result` element types varies:
-  * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
+  * If `fft_type = FFT`, `tensor_element_type(operand)` and `tensor_element_type(result)`
     have the same complex type.
-  * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
+  * If `fft_type = IFFT`, `tensor_element_type(operand)` and `tensor_element_type(result)`
     have the same complex type.
-  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
-    `element_type(result)` is a complex type of the same floating-point
+  * If `fft_type = RFFT`, `tensor_element_type(operand)` is a floating-point type and
+    `tensor_element_type(result)` is a complex type of the same floating-point
     semantics.
-  * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
-    `element_type(result)` is a floating-point type of the same floating-point
+  * If `fft_type = IRFFT`, `tensor_element_type(operand)` is a complex type and
+    `tensor_element_type(result)` is a floating-point type of the same floating-point
     semantics.
 * (C3) `1 <= size(fft_length) <= 3`.
 * (C4) If among `operand` and `result`, there is a tensor `real` of a
@@ -2914,33 +2727,23 @@ floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
 
 Performs element-wise floor of `operand` tensor and produces a `result` tensor.
 Implements the `roundToIntegralTowardNegative` operation from the IEEE-754
-specification. For quantized types, performs
-`unary_computation_with_quantized_types(operand, lambda x:
-        roundToIntegralTowardNegative(x), storage_min(result),
-        storage_max(result), scale(result), zero_point(result))`.
+specification.
 
 #### Inputs
 
-| Label | Name      | Type                                       | Constraints |
-|-------|-----------|--------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized type | (C1-C5)     |
+| Label | Name      | Type                          | Constraints |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `result` | tensor of floating-point or quantized type | (C1-C4)     |
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -2967,7 +2770,6 @@ indices and explains in detail which `operand` indices they correspond to.
 
 More formally, `result[result_index] = operand[operand_index]` where:
 
-<!-- markdownlint-disable line-length -->
 * `batch_dims = [d for d in axes(result) and d not in offset_dims]`.
 * `batch_index = result_index[batch_dims...]`.
 * `start_index` is defined as:
@@ -2976,15 +2778,16 @@ More formally, `result[result_index] = operand[operand_index]` where:
     `index_vector_dim` < `rank(start_indices)`.
   * `[start_indices[batch_index]]` otherwise.
 * For `d_operand` in `axes(operand)`,
-  * `full_start_index[d_operand] = clamp(start_index[d_start], 0, dim(operand, d_operand) - slice_sizes[d_operand])`
-    if `d_operand = start_index_map[d_start]`.
+  * `full_start_index[d_operand] = start_index[d_start]` if
+    `d_operand = start_index_map[d_start]`.
   * `full_start_index[d_operand] = 0` otherwise.
 * `offset_index = result_index[offset_dims...]`.
 * `full_offset_index = [oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `offset_index`, and `0` is inserted at indices from
   `collapsed_slice_dims`.
 * `operand_index = full_start_index + full_offset_index`.
-<!-- markdownlint-enable line-length -->
+  If `operand_index` is out of bounds for `operand`, then the behavior is
+  implementation-defined.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
 `start_indices` are sorted with respect to `start_index_map`, otherwise the
@@ -3033,7 +2836,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
     in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C14) `element_type(operand) = element_type(result)`.
+* (C14) `tensor_element_type(operand) = tensor_element_type(result)`.
 
 #### Examples
 
@@ -3194,7 +2997,7 @@ pred ? true_branch() : false_branch()`.
 Extracts the imaginary part, element-wise, from the `operand` and produces a
 `result` tensor. More formally, for each element `x`:
 `imag(x) = is_complex(x) ? imaginary_part(x) :
-constant(0, element_type(result))`.
+constant(0, tensor_element_type(result))`.
 
 #### Inputs
 
@@ -3211,9 +3014,9 @@ constant(0, element_type(result))`.
 #### Constraints
 
 * (C1) `shape(result) = shape(operand)`.
-* (C2) `element_type(result)` is defined as:
-  * `complex_element_type(element_type(operand))` if `is_complex(operand)`.
-  * `element_type(operand)` otherwise.
+* (C2) `tensor_element_type(result)` is defined as:
+  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
+  * `tensor_element_type(operand)` otherwise.
 
 #### Examples
 
@@ -3271,7 +3074,7 @@ to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally, `output[result_index] =
-constant(result_index[iota_dimension], element_type(output))`.
+constant(result_index[iota_dimension], tensor_element_type(output))`.
 
 #### Inputs
 
@@ -3321,32 +3124,23 @@ constant(result_index[iota_dimension], element_type(output))`.
 
 Performs element-wise check whether the value in `x` is finite (i.e. is neither
 +Inf, -Inf, nor NaN) and produces a `y` tensor. Implements the `isFinite`
-operation from the IEEE-754 specification. For quantized types, performs
-`unary_computation_with_quantized_types(x, lambda x: isFinite(x),
-storage_min(result), storage_max(result), scale(result), zero_point(result))`.
+operation from the IEEE-754 specification.
 
 #### Inputs
 
-| Label | Name | Type                                       | Constraints |
-|-------|------|--------------------------------------------|-------------|
-| (I1)  | `x`  | tensor of floating-point or quantized type | (C1-C5)     |
+| Label | Name | Type                          | Constraints |
+|-------|------|-------------------------------|-------------|
+| (I1)  | `x`  | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
-| Name | Type                                | Constraints |
-|------|-------------------------------------|-------------|
-| `y`  | tensor of boolean or quantized type | (C1-C4)     |
+| Name | Type                   | Constraints |
+|------|------------------------|-------------|
+| `y`  | tensor of boolean type | (C1)        |
 
 #### Constraints
 
 * (C1) `shape(x) = shape(y)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(x) = element_type(y)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(x) and is_quantized_tensor(y)`.
-  * (C4) `quantized_element_type(y) = quantized_element_type(y)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(x)` is empty.
 
 #### Examples
 
@@ -3368,32 +3162,22 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
 
 * For floats: `log` from IEEE-754.
 * For complex numbers: complex logarithm.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: log(x), storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -3414,32 +3198,22 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 * For floats: `logp1` from IEEE-754.
 * For complex numbers: complex logarithm plus one.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: logp1(x), storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -3460,32 +3234,22 @@ Performs element-wise logistic operation on `operand` tensor and produces a
 
 * For floats: `division(1, addition(1, exp(-x)))` from IEEE-754.
 * For complex numbers: complex logistic.
-* For quantized types: `unary_computation_with_quantized_types(operand,
-        lambda x: division(1, addition(1, exp(-x))), storage_min(result),
-        storage_max(result), scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -3510,31 +3274,25 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 
 #### Inputs
 
-| Label | Name          | Type                                            | Constraints |
-|-------|---------------|-------------------------------------------------|-------------|
-| (I1)  | `inputs`      | variadic number of tensors or quantized tensors | (C1-C6)     |
-| (I2)  | `dimensions`  | 1-dimensional tensor constant of type `si64`    | (C3)        |
-| (I3)  | `computation` | function                                        | (C4), (C6)  |
+| Label | Name          | Type                                         | Constraints |
+|-------|---------------|----------------------------------------------|-------------|
+| (I1)  | `inputs`      | variadic number of tensors                   | (C1-C4)     |
+| (I2)  | `dimensions`  | 1-dimensional tensor constant of type `si64` | (C3)        |
+| (I3)  | `computation` | function                                     | (C4)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints      |
-|----------|----------------------------|------------------|
-| `result` | tensor or quantized tensor | (C1), (C4), (C6) |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1), (C4)  |
 
 #### Constraints
 
-* (C1) All `inputs` and `result` have the same shape.
-* (C2) size(`inputs`) $=$ N $\ge$ 1.
-* (C3) `dimensions = [0, ..., R-1]`, where `R` $=$ rank(`inputs[0]`).
-* If the operation uses non-quantized tensors:
-  * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
-     where `Ek` $=$ element_type(`inputs[k]`) and `E'` $=$ element_type(`result`).
-* If the operation uses quantized tensors:
-  * (C5) is_quantized_tensor(inputs[i]) for all `i in range(size(inputs))`.
-  * (C6) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
-     where `Ek` $=$ quantized_element_type(`inputs[k]`) and `E'` $=$
-     quantized_element_type(`result`).
+* (C1) `shape(inputs...) = shape(result)`.
+* (C2) `0 < size(inputs) = N`.
+* (C3) `dimensions = range(rank(inputs[0]))`.
+* (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
+  where `Ei = tensor_element_type(inputs[i])` and `E' = tensor_element_type(result)`.
 
 #### Examples
 
@@ -3567,35 +3325,23 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
   Imposing an ordering on complex numbers involves surprising semantics,
   so in the future we are planning to remove support for complex numbers
   for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x, y:
-          maximum(x, y), storage_min(result), storage_max(result),
-          scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                       | Constraints |
-|-------|-------|----------------------------|-------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1-C5)     |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1-C4)     |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C4)     |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -3622,35 +3368,23 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
   Imposing an ordering on complex numbers involves surprising semantics,
   so in the future we are planning to remove support for complex numbers
   for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x, y:
-          minimum(x, y), storage_min(result), storage_max(result),
-          scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                       | Constraints |
-|-------|-------|----------------------------|-------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1-C5)     |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1-C4)     |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C4)     |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -3674,35 +3408,23 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
 * For integers: integer multiplication.
 * For floats: `multiplication` from IEEE-754.
 * For complex numbers: complex multiplication.
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x, y:
-          multiplication(x, y), storage_min(result), storage_max(result),
-          scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                       | Constraints |
-|-------|-------|----------------------------|-------------|
-| (I1)  | `lhs` | tensor or quantized tensor | (C1-C5)     |
-| (I2)  | `rhs` | tensor or quantized tensor | (C1-C4)     |
+| Label | Name  | Type   | Constraints |
+|-------|-------|--------|-------------|
+| (I1)  | `lhs` | tensor | (C1)        |
+| (I2)  | `rhs` | tensor | (C1)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1-C4)     |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -3727,32 +3449,22 @@ tensor. Depending on the element type, does the following:
   back to unsigned integer.
 * For floats: `negate` from IEEE-754.
 * For complex numbers: complex negation.
-* For quantized types: `unary_computation_with_quantized_types(operand,
-        lambda x: negate(x), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                          | Constraints |
-|-------|-----------|---------------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of integer, floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                               | Constraints |
+|-------|-----------|----------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                          | Constraints |
-|----------|---------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                               | Constraints |
+|----------|----------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -3778,25 +3490,23 @@ Performs element-wise NOT of tensor `operand` and produces a `result` tensor.
 Depending on the element type, does the following:
 
 * For booleans: logical NOT.
-* For integers or quantized types: bitwise NOT.
+* For integers: bitwise NOT.
 
 #### Arguments
 
-| Name      | Type                                         | Constraints |
-|-----------|----------------------------------------------|-------------|
-| `operand` | tensor of boolean, integer or quantized type | (C1-C2)     |
+| Name      | Type                              | Constraints |
+|-----------|-----------------------------------|-------------|
+| `operand` | tensor of boolean or integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                         | Constraints |
-|----------|----------------------------------------------|-------------|
-| `result` | tensor of boolean, integer or quantized type | (C1)        |
+| Name     | Type                              | Constraints |
+|----------|-----------------------------------|-------------|
+| `result` | tensor of boolean or integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -3847,8 +3557,6 @@ an identity, i.e. `result = operand`.
 // %result1: 1.0
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_optimization_barrier.mlir)
-
 ### or
 
 #### Semantics
@@ -3857,26 +3565,24 @@ Performs element-wise OR of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
 
 * For booleans: logical OR.
-* For integers or quantized types: bitwise AND.
+* For integers: bitwise OR.
 
 #### Inputs
 
-| Label | Name  | Type                                         | Constraints |
-|-------|-------|----------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of boolean, integer or quantized type | (C1-C2)     |
-| (I2)  | `rhs` | tensor of boolean, integer or quantized type | (C1)        |
+| Label | Name  | Type                              | Constraints |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer or boolean type | (C1)        |
+| (I2)  | `rhs` | tensor of integer or boolean type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                         | Constraints |
-|----------|----------------------------------------------|-------------|
-| `result` | tensor of boolean, integer or quantized type | (C1)        |
+| Name     | Type                              | Constraints |
+|----------|-----------------------------------|-------------|
+| `result` | tensor of integer or boolean type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -4028,21 +3734,19 @@ and produces a `result` tensor.
 
 #### Inputs
 
-| Label | Name      | Type                                | Constraints |
-|-------|-----------|-------------------------------------|-------------|
-| (I1)  | `operand` | tensor of integer or quantized type | (C1-C2      |
+| Label | Name      | Type                   | Constraints |
+|-------|-----------|------------------------|-------------|
+| (I1)  | `operand` | tensor of integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                | Constraints |
-|----------|-------------------------------------|-------------|
-| `result` | tensor of integer or quantized type | (C1)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | tensor of integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -4064,34 +3768,23 @@ produces a `result` tensor. Depending on the element type, does the following:
 * For integers: integer exponentiation.
 * For floats: `pow` from IEEE-754.
 * For complex numbers: complex exponentiation.
-* For quantized types: `binary_computation_with_quantized_types(lhs, rhs, lambda
-        x, y: pow(x, y), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                                                           | Constraints |
-|-------|-------|----------------------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer, floating-point, complex, or quantized type  | (C1-C5)     |
-| (I2)  | `rhs` | tensor of integer, floating-point, complex, or quantized  type | (C1-C4)     |
+| Label | Name  | Type                                               | Constraints |
+|-------|-------|----------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                          | Constraints |
-|----------|---------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                               | Constraints |
+|----------|----------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -4127,9 +3820,9 @@ tensor. More formally, for each element `x`:
 #### Constraints
 
 * (C1) `shape(result) = shape(operand)`.
-* (C2) `element_type(result)` is defined as:
-  * `complex_element_type(element_type(operand))` if `is_complex(operand)`.
-  * `element_type(operand)` otherwise.
+* (C2) `tensor_element_type(result)` is defined as:
+  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
+  * `tensor_element_type(operand)` otherwise.
 
 #### Examples
 
@@ -4240,14 +3933,14 @@ More formally, `results...[j0, ..., jR-1] = reduce(input_slices)` where:
 #### Constraints
 
 * (C1) `same(shape(inputs...))`.
-* (C2) `element_type(inputs...) = element_type(init_values...) =
-  element_type(results...)`.
+* (C2) `tensor_element_type(inputs...) = tensor_element_type(init_values...) =
+  tensor_element_type(results...)`.
 * (C3) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C4) `0 <= dimensions < rank(inputs[0])`.
 * (C5) `is_unique(dimensions)`.
 * (C6) `body` has type `tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
   `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-  `Ei = element_type(inputs[i])`.
+  `Ei = tensor_element_type(inputs[i])`.
 * (C7) `shape(results...) = shape(inputs...)` except that the dimension
   sizes of `inputs...` corresponding to `dimensions` are not included.
 
@@ -4287,51 +3980,39 @@ More formally:
   range provided by `exponent_bits`, the intermediate result overflows to
   infinity using the original sign or underflows to zero using the
   original sign.
-* For quantized types, the above three steps are performed using the original
-  floating-point value as `operand - zero_point(operand)) * scale(operand)` to
-  produce an intermediate result `float_result`. The final `result` is obtained
-  as:
-  * `rounded_result = round_nearest_even(float_result / scale(result))`
-  * `result = clamp(storage_min(result), rounded_result + zero_point(result),
-            storage_max(result)`
 
 #### Inputs
 
-| Label | Name            | Type                                       | Constraints   |
-|-------|-----------------|--------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point or quantized type | (C1), (C4-C5) |
-| (I2)  | `exponent_bits` | constant of type `si32`                    | (C2)          |
-| (I3)  | `mantissa_bits` | constant of type `si32`                    | (C3)          |
+| Label | Name            | Type                          | Constraints |
+|-------|-----------------|-------------------------------|-------------|
+| (I1)  | `operand`       | tensor of floating-point type | (C1)        |
+| (I2)  | `exponent_bits` | constant of type `si32`       | (C2)        |
+| (I3)  | `mantissa_bits` | constant of type `si32`       | (C3)        |
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `output` | tensor of floating-point or quantized type | (C1), (C4)  |
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `output` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `operand` and `output` have the same type.
-* (C2) `exponent_bits` $\ge$ 1.
-* (C3) `mantissa_bits` $\ge$ 0.
-* If the operation uses quantized tensors:
-  * (C4) `is_quantized_tensor(operand) and is_quantized_tensor(output)`.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(output)`.
+* (C2) `1 <= exponent_bits`.
+* (C3) `0 <= mantissa_bits`.
 
 #### Examples
 
 ```mlir
-// Logical values: +Inf, NaN, +Denormal, 0.0, 65519.0, 65520.0
-// %operand: [0x7FF0000000000000, 0x7FFFFFFFFFFFFFFF, 0x0000000000000001, 0.0, 65519.0, 65520.0]
+// Logical values: -Inf, +Inf, NaN, ...
+// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
 %output = "stablehlo.reduce_precision"(%operand) {
   exponent_bits = 5 : i32,
-  mantissa_bits = 10 : i32
-} : (tensor<6xf64>) -> tensor<6xf64>
-// Logical values: +Inf, NaN, 0.0, 0.0, 65504.0, +Inf
-// %output: [0x7FF0000000000000, 0x7FFFFFFFFFFFFFFF, 0.0, 0.0, 65504.0, 0x7FF0000000000000]
+  mantissa_bits = 2 : i32
+} : (tensor<6xf32>) -> tensor<6xf32>
+// Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
+// %output: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
 ```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_precision.mlir)
 
 ### reduce_scatter
 
@@ -4392,7 +4073,7 @@ Afterwards, within each `process_group`:
 * (C5) `0 <= replica_groups < size(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
+       `E = tensor_element_type(operand)`.
 * (C8) `type(result) = type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
@@ -4479,7 +4160,7 @@ where:
 <!-- markdownlint-disable line-length -->
 * (C1) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C2) `same(shape(inputs...))`.
-* (C3) `element_type(inputs...) = element_type(init_values...)`.
+* (C3) `tensor_element_type(inputs...) = tensor_element_type(init_values...)`.
 * (C4) `size(window_dimensions) = rank(inputs[0])`.
 * (C5) `0 < window_dimensions`.
 * (C6) `size(window_strides) = rank(inputs[0])`.
@@ -4490,7 +4171,7 @@ where:
 * (C11) `0 < window_dilations`.
 * (C12) `shape(padding) = [rank(inputs[0]), 2]`.
 * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-  where `Ei = element_type(inputs[i])`.
+  where `Ei = tensor_element_type(inputs[i])`.
 * (C14) `same(shape(results...))`.
 * (C15) `shape(results[0]) = num_windows` where:
   * `dilated_input_shape = shape(inputs[0]) = 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
@@ -4498,7 +4179,7 @@ where:
   * `dilated_window_shape = window_dimensions = 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
   * `is_empty_window = padded_input_shape = 0 || dilated_window_shape > padded_input_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `element_type(results...) = element_type(init_values...)`.
+* (C16) `tensor_element_type(results...) = tensor_element_type(init_values...)`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4538,10 +4219,6 @@ The remainder is calculated as `lhs - d * rhs`, where `d` is given by:
   `roundTowardZero`.
 * For complex numbers: TBD
   ([#997](https://github.com/openxla/stablehlo/issues/997)).
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x, y: x - d * y,
-          storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 For floating-point element types, this operation is in contrast with the
 `remainder` operation from IEEE-754 specification where `d` is an integral value
@@ -4549,28 +4226,20 @@ nearest to the exact value of `lhs/rhs` with ties to even.
 
 #### Inputs
 
-| Label | Name  | Type                                                         | Constraints |
-|-------|-------|--------------------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer, floating-point, complex or quantized type | (C1-C5)     |
-| (I2)  | `rhs` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Label | Name  | Type                                              | Constraints |
+|-------|-------|---------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                         | Constraints |
-|----------|--------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                              | Constraints |
+|----------|---------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`,
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -4723,7 +4392,7 @@ deprecated, so in the future we are planning to explore removing it
 
 #### Constraints
 
-* (C1) `element_type(a) = element_type(b) = element_type(result)`.
+* (C1) `tensor_element_type(a) = tensor_element_type(b) = tensor_element_type(result)`.
 * (C2) If `rng_distribution = NORMAL`, then `is_float(a)`.
 * (C3) `shape(result) = shape`.
 
@@ -4804,34 +4473,23 @@ deterministic between implementations.
 
 Performs element-wise rounding towards the nearest integer, breaking ties away
 from zero, on the `operand` tensor and produces a `result` tensor. Implements
-the `roundToIntegralTiesToAway` operation from the IEEE-754 specification. For
-quantized types, performs
-`unary_computation_with_quantized_types(operand, lambda x:
-        roundToIntegralTiesToAway(x), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
+the `roundToIntegralTiesToAway` operation from the IEEE-754 specification.
 
 #### Inputs
 
-| Label | Name      | Type                                       | Constraints |
-|-------|-----------|--------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized type | (C1-C5)     |
+| Label | Name      | Type                          | Constraints |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `result` | tensor of floating-point or quantized type | (C1-C4)     |
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -4850,33 +4508,23 @@ quantized types, performs
 Performs element-wise rounding towards the nearest integer, breaking ties
 towards the even integer, on the `operand` tensor and produces a `result`
 tensor. Implements the `roundToIntegralTiesToEven` operation from the IEEE-754
-specification. For quantized types, performs
-`unary_computation_with_quantized_types(operand, lambda x:
-        roundToIntegralTiesToEven(x), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
+specification.
 
 #### Inputs
 
-| Label | Name      | Type                                       | Constraints |
-|-------|-----------|--------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized type | (C1-C5)     |
+| Label | Name      | Type                          | Constraints |
+|-------|-----------|-------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                       | Constraints |
-|----------|--------------------------------------------|-------------|
-| `result` | tensor of floating-point or quantized type | (C1-C4)     |
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -4897,32 +4545,22 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 * For floats: `rSqrt` from IEEE-754.
 * For complex numbers: complex reciprocal square root.
-* For quantized types: `unary_computation_with_quantized_types(operand, lambda
-        x: rSqrt(x), storage_min(result), storage_max(result), scale(result),
-        zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -5032,7 +4670,7 @@ undefined.
    `update_scatter_dims` and `update_window_dim_sizes` at axes corresponding
    to `update_window_dims`.
 * (C5) `0 < size(inputs) = size(updates) = N`.
-* (C6) `element_type(updates...) = element_type(inputs...)`.
+* (C6) `tensor_element_type(updates...) = tensor_element_type(inputs...)`.
 * (C7) `is_unique(update_window_dims) and is_sorted(update_window_dims)`.
 * (C8) `0 <= update_window_dims < rank(updates[0])`.
 * (C9) `is_unique(inserted_window_dims) and is_sorted(update_window_dims)`.
@@ -5045,7 +4683,7 @@ undefined.
 * (C14) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
-  where `Ei = element_type(inputs[i])`.
+  where `Ei = tensor_element_type(inputs[i])`.
 * (C16) `type(inputs...) = type(result...)`.
 
 #### Examples
@@ -5095,25 +4733,22 @@ pred[result_index]`.
 
 #### Inputs
 
-| Label | Name       | Type                       | Constraints |
-|-------|------------|----------------------------|-------------|
-| (I1)  | `pred`     | tensor of type `i1`        | (C1)        |
-| (I2)  | `on_true`  | tensor or quantized tensor | (C1-C4)     |
-| (I3)  | `on_false` | tensor or quantized tensor | (C2-C3)     |
+| Label | Name       | Type                | Constraints |
+|-------|------------|---------------------|-------------|
+| (I1)  | `pred`     | tensor of type `i1` | (C1)        |
+| (I2)  | `on_true`  | tensor              | (C1), (C2)  |
+| (I3)  | `on_false` | tensor              | (C2)        |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C2)        |
+| Name     | Type   | Constraints |
+|----------|--------|-------------|
+| `result` | tensor | (C2)        |
 
 #### Constraints
 
-* (C1) Either `rank(pred)` $=$ `0` or `shape(pred)` $=$ `shape(on_true)`.
-* (C2) `on_true`, `on_false` and `result` have same type.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(on_true) and is_quantized_tensor(on_false)`.
-  * (C4) `quantization_dimension(on_true)` is empty.
+* (C1) `rank(pred) = 0 or shape(pred) = shape(on_true)`.
+* (C2) `type(on_true) = type(on_false) = type(result)`.
 
 #### Examples
 
@@ -5153,7 +4788,7 @@ More formally:
      return select(arg0, arg1) ? arg0 : arg1;
    ```
 
-   where `E = element_type(operand)`, and `reduce_window_without_init` works
+   where `E = tensor_element_type(operand)`, and `reduce_window_without_init` works
    exactly like `reduce_window`, except that the `schedule` of the underlying
    `reduce` doesn't include init values. It is currently unspecified what
    happens if the corresponding window doesn't have values
@@ -5190,21 +4825,21 @@ More formally:
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) `element_type(operand) = element_type(source)`.
+* (C1) `tensor_element_type(operand) = tensor_element_type(source)`.
 * (C2) `shape(source) = num_windows` where:
   * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
   * `is_empty_window = padded_operand_shape = 0 || window_dimensions > padded_operand_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1`.
-* (C3) `element_type(init_value) = element_type(operand)`.
+* (C3) `tensor_element_type(init_value) = tensor_element_type(operand)`.
 * (C4) `size(window_dimensions) = rank(operand)`.
 * (C5) `0 < window_dimensions`.
 * (C6) `size(window_strides) = rank(operand)`.
 * (C7) `0 < window_strides`.
 * (C8) `shape(padding) = [rank(operand), 2]`.
 * (C9) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
-       `E = element_type(operand)`.
+       `E = tensor_element_type(operand)`.
 * (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-        `E = element_type(operand)`.
+        `E = tensor_element_type(operand)`.
 * (C11) `type(operand) = type(result)`.
 <!-- markdownlint-enable line-length -->
 
@@ -5291,22 +4926,20 @@ of bits and produces a `result` tensor.
 
 #### Inputs
 
-| Label | Name  | Type                                 | Constraints |
-|-------|-------|--------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer or quantized type  | (C1-C2)     |
-| (I2)  | `rhs` | tensor of integer or quantized  type | (C1)        |
+| Label | Name  | Type                   | Constraints |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                 | Constraints |
-|----------|--------------------------------------|-------------|
-| `result` | tensor of integer or quantized  type | (C1)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | tensor of integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -5328,22 +4961,20 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 
 #### Inputs
 
-| Label | Name  | Type                                | Constraints |
-|-------|-------|-------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer or quantized type | (C1)-C2     |
-| (I2)  | `rhs` | tensor of integer or quantized type | (C1)        |
+| Label | Name  | Type                   | Constraints |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                | Constraints |
-|----------|-------------------------------------|-------------|
-| `result` | tensor of integer or quantized type | (C1)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | tensor of integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -5365,22 +4996,20 @@ number of bits and produces a `result` tensor.
 
 #### Inputs
 
-| Label | Name  | Type                                | Constraints |
-|-------|-------|-------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer or quantized type | (C1-C2)     |
-| (I2)  | `rhs` | tensor of integer or quantized type | (C1)        |
+| Label | Name  | Type                   | Constraints |
+|-------|-------|------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer type | (C1)        |
+| (I2)  | `rhs` | tensor of integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                | Constraints |
-|----------|-------------------------------------|-------------|
-| `result` | tensor of integer or quantized type | (C1)        |
+| Name     | Type                   | Constraints |
+|----------|------------------------|-------------|
+| `result` | tensor of integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs`, and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -5408,45 +5037,32 @@ def sign(x):
     if compare(x, 0, EQ, SIGNED): return 0
     return 1
   elif is_float(x):
-    def sign_computaion_float_type(x):
-        if x is NaN: return NaN
-        if compare(x, -0.0, EQ, FLOAT): return -0.0
-        if compare(x, +0.0, EQ, FLOAT): return +0.0
-        if compare(x, 0.0, LT, FLOAT): return -1.0
-        return 1.0
-    sign_computaion_float_type(x)
+    if is_nan(x): return NaN
+    if compare(x, -0.0, EQ, FLOAT): return -0.0
+    if compare(x, +0.0, EQ, FLOAT): return +0.0
+    if compare(x, 0.0, LT, FLOAT): return -1.0
+    return 1.0
   elif is_complex(x):
     if is_nan(real(x)) or is_nan(imag(x)): return (NaN, NaN)
     if compare(x, (0.0, 0.0), EQ, FLOAT): return (0.0, 0.0)
     return divide(x, convert(abs(x), type(x)))
-  elif is_quantized_type(x):
-    return unary_computation_with_quantized_types(x, sign_computaion_float_type,
-          storage_min(result), storage_max(result), scale(result),
-          zero_point(result)).
 ```
 
 #### Inputs
 
-| Label | Name      | Type                                                                 | Constraints |
-|-------|-----------|----------------------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of signed integer, floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                                      | Constraints |
+|-------|-----------|-----------------------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of signed integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                                 | Constraints |
-|----------|----------------------------------------------------------------------|-------------|
-| `result` | tensor of signed integer, floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                                      | Constraints |
+|----------|-----------------------------------------------------------|-------------|
+| `result` | tensor of signed integer, floating-point, or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -5469,32 +5085,22 @@ tensor. Depending on the element type, does the following:
 
 * For floats: `sin` from IEEE-754.
 * For complex numbers: complex sine.
-* For quantized types: `unary_computation_with_quantized_types(lhs, rhs, lambda
-        x: sin(x), storage_min(result), storage_max(result), scale(result),
-        zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                | Constraints |
-|-------|-----------|-----------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                | Constraints |
-|----------|-----------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -5631,8 +5237,8 @@ More formally, for all `result_index` in `index_space(results[0])`:
 * (C3) `same(shape(inputs...) + shape(results...))`.
 * (C4) `-R <= dimension < R`, where `R = rank(inputs[0])`.
 * (C5) `comparator` has type
-  `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`.
-  where `Ei` is element type of `inputs[i]`.
+  `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
+  where `Ei = tensor_element_type(inputs[i])`.
 
 #### Examples
 
@@ -5664,32 +5270,22 @@ Performs element-wise square root operation on `operand` tensor and produces a
 
 * For floats: `squareRoot` from IEEE-754.
 * For complex numbers: complex square root.
-* For quantized types: `unary_computation_with_quantized_types(operand,
-        lambda x: squareRoot(x), storage_min(result), storage_max(result),
-        scale(result), zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                 | Constraints |
-|-------|-----------|------------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex, or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                 | Constraints |
-|----------|------------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex, or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -5711,35 +5307,23 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
 * For integers: integer subtraction.
 * For floats: `subtraction` from IEEE-754.
 * For complex numbers: complex subtraction.
-* For quantized types:
-  * `binary_computation_with_quantized_types(lhs, rhs, lambda x: subtraction(x),
-          storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 #### Inputs
 
-| Label | Name  | Type                                                         | Constraints |
-|-------|-------|--------------------------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of integer, floating-point, complex or quantized type | (C1-C5)     |
-| (I2)  | `rhs` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Label | Name  | Type                                               | Constraints |
+|-------|-------|----------------------------------------------------|-------------|
+| (I1)  | `lhs` | tensor of integer, floating-point, or complex type | (C1)        |
+| (I2)  | `rhs` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                         | Constraints |
-|----------|--------------------------------------------------------------|-------------|
-| `result` | tensor of integer, floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                               | Constraints |
+|----------|----------------------------------------------------|-------------|
+| `result` | tensor of integer, floating-point, or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(lhs) = shape(rhs) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
-    is_quantized_tensor(result)`.
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -5761,33 +5345,22 @@ produces a `result` tensor. Depending on the element type, does the following:
 
 * For floats: `tanh` from IEEE-754.
 * For complex numbers: complex hyperbolic tangent.
-* For quantized types:
-  * `unary_computation_with_quantized_types(lhs, rhs, lambda x: tanh(x),
-          storage_min(result), storage_max(result), scale(result),
-          zero_point(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                                | Constraints |
-|-------|-----------|-----------------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point, complex or quantized type | (C1-C5)     |
+| Label | Name      | Type                                     | Constraints |
+|-------|-----------|------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or complex type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                                | Constraints |
-|----------|-----------------------------------------------------|-------------|
-| `result` | tensor of floating-point, complex or quantized type | (C1-C4)     |
+| Name     | Type                                     | Constraints |
+|----------|------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type | (C1)        |
 
 #### Constraints
 
-* (C1) `shape(operand) = shape(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
-    except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+* (C1) `type(operand) = type(result)`.
 
 #### Examples
 
@@ -5887,7 +5460,7 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 
 #### Constraints
 
-* (C1) `element_type(a) = element_type(b)`.
+* (C1) `tensor_element_type(a) = tensor_element_type(b)`.
 * (C2) `2 <= rank(a) = rank(b) = R`.
 * (C3) The relationship between `shape(a)` and `shape(b)` is defined as follows:
   * `shape(a)[:-3] = shape(b)[:-3]`.
@@ -5976,7 +5549,7 @@ More formally, `result = dequantize(operand)`.
 #### Constraints
 
 * (C1) `shape(operand) = shape(result)`.
-* (C2) `element_type(result) = expressed_type(operand)`.
+* (C2) `tensor_element_type(result) = expressed_type(operand)`.
 
 #### Examples
 
@@ -6017,7 +5590,7 @@ More formally,
 #### Constraints
 
 * (C1) `shape(operand) = shape(result)`.
-* (C2) `expressed_type(result) = is_float(operand) ? element_type(operand) :
+* (C2) `expressed_type(result) = is_float(operand) ? tensor_element_type(operand) :
   expressed_type(operand)`.
 
 #### Examples
@@ -6105,26 +5678,24 @@ Performs element-wise XOR of two tensors `lhs` and `rhs` and produces a `result`
 tensor. Depending on the element type, does the following:
 
 * For booleans: logical XOR.
-* For integers or quantized types: bitwise XOR.
+* For integers: bitwise XOR.
 
 #### Inputs
 
-| Label | Name  | Type                                         | Constraints |
-|-------|-------|----------------------------------------------|-------------|
-| (I1)  | `lhs` | tensor of boolean, integer or quantized type | (C1-C2)     |
-| (I2)  | `rhs` | tensor of boolean, integer or quantized type | (C1)        |
+| Label | Name  | Type                              | Constraints |
+|-------|-------|-----------------------------------|-------------|
+| (I1)  | `lhs` | tensor of boolean or integer type | (C1)        |
+| (I2)  | `rhs` | tensor of boolean or integer type | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                         | Constraints |
-|----------|----------------------------------------------|-------------|
-| `result` | tensor of boolean, integer or quantized type | (C1)        |
+| Name     | Type                              | Constraints |
+|----------|-----------------------------------|-------------|
+| `result` | tensor of boolean or integer type | (C1)        |
 
 #### Constraints
 
-* (C1) `lhs`, `rhs` and `result` have the same type.
-* If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+* (C1) `type(lhs) = type(rhs) = type(result)`.
 
 #### Examples
 
@@ -6511,20 +6082,6 @@ use type syntax because it's typically more concise. E.g.
 
 #### Functions on types
 
-* `element_type` is defined on tensor types and quantized tensor types and
-returns, respectively, the `TensorElementType` or `QuantizedTensorElementType`
-part of the corresponding `TensorType` or `QuantizedTensorType`.
-
-```python
-def element_type(x: Value | Placeholder | Type):
- if type(x) == TensorType:
-    return tensor_element_type(x)
-  if type(x) == QuantizedTensorType:
-    return quantized_element_type(x)
-  if type(x) is not Type:
-    return element_type(type(x))
-```
-
 * `is_per_axis_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut
 for `is_quantized(x) and quantized_dimension(x) is not None`.
 
@@ -6620,6 +6177,20 @@ on types" section via `member_name`.
 `reduce(lambda x, y: x * y, shape(x))`.
 
 #### Quantization computations
+
+* `element_type` is defined on tensor types and quantized tensor types and
+returns, repectively, the `TensorElementType` or `QuantizedTensorElementType`
+part of the corresponding `TensorType` or `QuantizedTensorType`.
+
+```python
+def element_type(x: Value | Placeholder | Type):
+ if type(x) == TensorType:
+    return tensor_element_type(x)
+  if type(x) == QuantizedTensorType:
+    return quantized_element_type(x)
+  if type(x) is not Type:
+    return element_type(type(x))
+```
 
 * `def baseline_element_type(x: Value | Placeholder | Type) -> Type` is a
 shortcut for `element_type(baseline_type(x))`.
