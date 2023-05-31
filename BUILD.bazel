@@ -912,6 +912,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "version_test",
+    size = "small",
+    srcs = ["stablehlo/dialect/VersionTest.cpp"],
+    deps = [
+        ":version",
+        "@llvm-project//mlir:BytecodeReader",
+        "@llvm-project//mlir:BytecodeWriter",
+        "@llvm-project//third-party/unittest:gtest",
+        "@llvm-project//third-party/unittest:gtest_main",
+    ],
+)
+
 VHLO_CAPI_SOURCES = [
     "stablehlo/integrations/c/VhloDialect.cpp",
 ]
