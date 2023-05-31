@@ -42,7 +42,6 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
-
     name: "cmake-build (${{ github.event_name == 'schedule' && 'llvm-project@HEAD' || 'llvm_version.txt' }})"
 
     steps:
