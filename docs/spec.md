@@ -4658,24 +4658,24 @@ undefined.
 
 #### Inputs
 
-| Label | Name                           | Type                                         | Constraints                                     |
-|-------|--------------------------------|----------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
-| (I2)  | `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                              |
-| (I3)  | `updates`                      | variadic number of tensors                   | (C3-C6), (C8)                                   |
-| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                          |
-| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                         |
-| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11-C13)                                       |
-| (I7)  | `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                              |
-| (I8)  | `indices_are_sorted`           | constant of type `i1`                        |                                                 |
-| (I9)  | `unique_indices`               | constant of type `i1`                        |                                                 |
-| (I10) | `update_computation`           | function                                     | (C15)                                           |
+| Label | Name                           | Type                                            | Constraints                                 |
+|-------|--------------------------------|-------------------------------------------------|---------------------------------------------|
+| (I1)  | `inputs`                       | variadic number of tensors or quantized tensors | (C1), (C2), (C4-C5), (C9), (C12), (C14-C19) |
+| (I2)  | `scatter_indices`              | tensor of integer type                          | (C4), (C10), (C13)                          |
+| (I3)  | `updates`                      | variadic number of tensors or quantized tensors | (C3-C5), (C7), (C16-C18)                    |
+| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64`    | (C2), (C4), (C6), (C7)                      |
+| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`    | (C2), (C4), (C8), (C9)                      |
+| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`    | (C10-C12)                                   |
+| (I7)  | `index_vector_dim`             | constant of type `si64`                         | (C4), (C10), (C13)                          |
+| (I8)  | `indices_are_sorted`           | constant of type `i1`                           |                                             |
+| (I9)  | `unique_indices`               | constant of type `i1`                           |                                             |
+| (I10) | `update_computation`           | function                                        | (C14)                                       |
 
 #### Outputs
 
-| Name      | Type                       |
-|-----------|----------------------------|
-| `results` | variadic number of tensors |
+| Name      | Type                                            | Constraints  |
+|-----------|-------------------------------------------------|--------------|
+| `results` | variadic number of tensors or quantized tensors | (C15), (C17) |
 
 #### Constraints
 
@@ -4710,6 +4710,16 @@ undefined.
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
   where `Ei = element_type(inputs[i])`.
 * (C16) `type(inputs...) = type(result...)`.
+* If the operation uses non-quantized tensors:
+  * (C16) `element_type(updates[k]) = element_type(inputs[k])` for all k $\in$
+    [0, N).
+* If the operation uses quantized tensors:
+  * (C17) `is_quantized_tensor(inputs...) and is_quantized_tensor(updates...)
+    and is_quantized_tensor(results...)`.
+  * (C18) `quantized_element_type(inputs...) =
+    quantized_element_type(updates...)`.
+  * (C19) `is_empty(quantization_dimension(inputs...)`.
+<!-- markdownlint-enable line-length -->
 
 #### Examples
 
