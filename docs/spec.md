@@ -1342,16 +1342,16 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Inputs
 
-| Label | Name                   | Type                                         | Constraints   |
-|-------|------------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`              | tensor                                       | (C1-C3), (C5) |
-| (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
+| Label | Name                   | Type                                         | Constraints      |
+|-------|------------------------|----------------------------------------------|------------------|
+| (I1)  | `operand`              | tensor or quantized tensor                   | (C1-C2), (C4-C8) |
+| (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C1-C4)          |
 
 #### Outputs
 
-| Name     | Type   | Constraints      |
-|----------|--------|------------------|
-| `result` | tensor | (C1), (C3), (C5) |
+| Name     | Type                       | Constraints   |
+|----------|----------------------------|---------------|
+| `result` | tensor or quantized tensor | (C2), (C4-C7) |
 
 #### Constraints
 
@@ -1362,6 +1362,12 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 * (C5) For all `d` in `axes(operand)`:
   * `dim(operand, d) = 1` or
   * `dim(operand, d) = dim(result, broadcast_dimensions[d])`.
+* If the operation uses non-quantized tensors:
+  * (C5) `operand` and `result` have the same element type.
+* If the operation uses quantized tensors:
+  * (C6) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
+  * (C7) `quantized_element_type(operand) = quantized_element_type(result)`.
+  * (C8) `is_empty(quantization_dimension(operand)`.
 
 #### Examples
 
