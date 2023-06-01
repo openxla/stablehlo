@@ -5217,18 +5217,18 @@ More formally, for all `result_index` in `index_space(results[0])`:
 
 #### Inputs
 
-| Label | Name         | Type                       | Constraints |
-|-------|--------------|----------------------------|-------------|
-| (I1)  | `inputs`     | variadic number of tensors | (C1)        |
-| (I2)  | `dimension`  | constant of type `si64`    | (C4)        |
-| (I3)  | `is_stable`  | constant of type `i1`      |             |
-| (I4)  | `comparator` | function                   | (C5)        |
+| Label | Name         | Type                                            | Constraints |
+|-------|--------------|-------------------------------------------------|-------------|
+| (I1)  | `inputs`     | variadic number of tensors or quantized tensors | (C1-C7)     |
+| (I2)  | `dimension`  | constant of type `si64`                         | (C4)        |
+| (I3)  | `is_stable`  | constant of type `i1`                           |             |
+| (I4)  | `comparator` | function                                        | (C5)        |
 
 #### Outputs
 
-| Name      | Type                       | Constraints |
-|-----------|----------------------------|-------------|
-| `results` | variadic number of tensors | (C2), (C3)  |
+| Name      | Type                                            | Constraints |
+|-----------|-------------------------------------------------|-------------|
+| `results` | variadic number of tensors or quantized tensors | (C2), (C3)  |
 
 #### Constraints
 
@@ -5239,6 +5239,9 @@ More formally, for all `result_index` in `index_space(results[0])`:
 * (C5) `comparator` has type
   `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
   where `Ei = element_type(inputs[i])`.
+* If the operation uses quantized tensors:
+  * (C6) `is_quantized_tensor(inputs...) and is_quantized_tensor(result)`.
+  * (C7) `is_empty(quantization_dimension(inputs[0]))`.
 
 #### Examples
 
