@@ -4792,7 +4792,7 @@ More formally:
    source_indices]`.
   * `selected_index(source_index) = operand_index` if
    `selected_values[source_index]` has the `operand` element
-   from `operand_index` from the same window.
+   from `operand_index`.
   * `source_indices = [source_index for source_index in
    indices(source) if selected_index(source_index) = result_index]`.
 
