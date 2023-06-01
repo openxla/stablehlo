@@ -2804,7 +2804,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 
 | Label | Name                   | Type                                         | Constraints                   |
 |-------|------------------------|----------------------------------------------|-------------------------------|
-| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C14)        |
+| (I1)  | `operand`              | tensor or quantized tensor                   | (C1), (C10-C12), (C14-C17)    |
 | (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
 | (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
 | (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
@@ -2815,9 +2815,9 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 
 #### Outputs
 
-| Name     | Type   | Constraints        |
-|----------|--------|--------------------|
-| `result` | tensor | (C5), (C13), (C15) |
+| Name     | Type                       | Constraints     |
+|----------|----------------------------|-----------------|
+| `result` | tensor or quantized tensor | (C5), (C13-C16) |
 
 #### Constraints
 
@@ -2842,7 +2842,12 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
     in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C14) `element_type(operand) = element_type(result)`.
+* If the operation uses non-quantized tensors:
+  * (C14) `operand` and `result` have the same element type.
+* If the operation uses quantized tensors:
+  * (C15) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
+  * (C16) `quantized_element_type(operand) = quantized_element_type(result)`.
+  * (C17) `is_empty(quantization_dimension(operand)`.
 
 #### Examples
 
