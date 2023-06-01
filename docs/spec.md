@@ -2436,17 +2436,17 @@ contain the sizes of the slice for each dimension. More formally,
 
 #### Inputs
 
-| Label | Name            | Type                                                     | Constraints      |
-|-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                                   | (C1), (C2), (C4) |
-| (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
-| (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
+| Label | Name            | Type                                                     | Constraints         |
+|-------|-----------------|----------------------------------------------------------|---------------------|
+| (I1)  | `operand`       | tensor or quantized tensor                               | (C1), (C3), (C5-C8) |
+| (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C1), (C2)          |
+| (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C1), (C3), (C4)    |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C5)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C4)-C7)    |
 
 #### Constraints
 
@@ -2455,6 +2455,13 @@ contain the sizes of the slice for each dimension. More formally,
 * (C3) `same(type(start_indices...))`.
 * (C4) `0 <= slice_sizes <= shape(operand)`.
 * (C5) `shape(result) = slice_sizes`.
+* If the operation uses non-quantized tensors:
+  * (C5) `operand` and `result` have the same element type.
+* If the operation uses quantized tensors:
+  * (C6) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
+  * (C7) `quantized_element_type(operand) = quantized_element_type(result)`.
+  * (C8) `is_empty(quantization_dimension(operand)`.
+>>>>>>> 5dad166a (Specification for quantized dynamic_slice and dynamic_update_slice op)
 
 #### Examples
 
@@ -2496,15 +2503,15 @@ More formally, `result[result_index]` is defined as:
 
 | Label | Name            | Type                                                     | Constraints      |
 |-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                                   | (C1-C4), (C6)    |
-| (I2)  | `update`        | tensor                                                   | (C3), (C3), (C6) |
-| (I3)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C4), (C5)       |
+| (I1)  | `operand`       | tensor or quantized tensor                               | (C1-C3), (C5-C9) |
+| (I2)  | `update`        | tensor or quantized tensor                               | (C2), (C5-C8)    |
+| (I3)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C3), (C4)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C7)  |
 
 #### Constraints
 
@@ -2514,6 +2521,13 @@ More formally, `result[result_index]` is defined as:
 * (C4) `size(start_indices) = rank(operand)`.
 * (C5) `same(type(start_indices...))`.
 * (C6) `0 <= shape(update) <= shape(operand)`.
+* If the operation uses non-quantized tensors:
+  * (C6) `element_type(update) = element_type(operand)`.
+* If the operation uses quantized tensors:
+  * (C7) `is_quantized_tensor(operand) and is_quantized_tensor(update) and
+    is_quantized_tensor(result)`.
+  * (C8) `quantized_element_type(update) = quantized_element_type(operand)`.
+  * (C9) `is_empty(quantization_dimension(operand)`.
 
 #### Examples
 
