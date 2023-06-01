@@ -1801,16 +1801,16 @@ arguments and produces a `result` tensor. More formally,
 
 #### Inputs
 
-| Label | Name        | Type                       | Constraints      |
-|-------|-------------|----------------------------|------------------|
-| (I1)  | `inputs`    | variadic number of tensors | (C1-C6)          |
-| (I2)  | `dimension` | constant of type `si64`    | (C2), (C4), (C6) |
+| Label | Name        | Type                                            | Constraints      |
+|-------|-------------|-------------------------------------------------|------------------|
+| (I1)  | `inputs`    | variadic number of tensors or quantized tensors | (C1-C9)          |
+| (I2)  | `dimension` | constant of type `si64`                         | (C1), (C3), (C5) |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C5), (C6)  |
+| Name     | Type                       | Constraints         |
+|----------|----------------------------|---------------------|
+| `result` | tensor or quantized tensor | (C4), (C5), (C7-C8) |
 
 #### Constraints
 
