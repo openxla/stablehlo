@@ -767,14 +767,15 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType) {
   Tensor result(resultType);
-  auto operandShape = operand.getShape();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index operandIndex(operandShape.size());
-    for (auto [operandDim, resultDim] : llvm::enumerate(broadcastDimensions))
-      operandIndex[operandDim] =
-          operandShape[operandDim] == 1 ? 0 : (*resultIt)[resultDim];
-    result.set(*resultIt, operand.get(operandIndex));
+    auto resultIndex = *resultIt;
+    Index operandIndex(operand.getRank(), 0);
+    for (auto d = 0; d < operand.getRank(); ++d) {
+      if (operand.getShape()[d] == 1) continue;
+      operandIndex[d] = resultIndex[broadcastDimensions[d]];
+    }
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -933,9 +934,10 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
   for (const auto &input : inputs) {
     for (auto inputIt = input.index_begin(); inputIt != input.index_end();
          ++inputIt) {
-      Index resultIndex(*inputIt);
+      auto inputIndex = *inputIt;
+      Index resultIndex(inputIndex);
       resultIndex[dimension] += dimensionOffset;
-      result.set(resultIndex, input.get(*inputIt));
+      result.set(resultIndex, input.get(inputIndex));
     }
     dimensionOffset += input.getShape()[dimension];
   }
@@ -987,7 +989,9 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
       clamp(0, evalIndex(startIndices), operand.getShape() - sliceSizes);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    result.set(*resultIt, operand.get(adjustedStartIndices + *resultIt));
+    auto resultIndex = *resultIt;
+    auto operandIndex = adjustedStartIndices + *resultIt;
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -999,11 +1003,14 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
   auto adjustedStartIndices =
       clamp(0, evalIndex(startIndices), operand.getShape() - update.getShape());
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, operand.get(*resultIt));
-  for (auto updateIt = update.index_begin(); updateIt != update.index_end();
-       ++updateIt)
-    result.set(*updateIt + adjustedStartIndices, update.get(*updateIt));
+       ++resultIt) {
+    auto resultIndex = *resultIt;
+    auto updateIndex = resultIndex - adjustedStartIndices;
+    if (updateIndex.inBounds(update.getShape()))
+      result.set(resultIndex, update.get(updateIndex));
+    else
+      result.set(resultIndex, operand.get(resultIndex));
+  }
   return result;
 }
 
@@ -1070,7 +1077,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 
     auto operandIndex = fullStartIndex + fullOffsetIndex;
     if (operandIndex.inBounds(operand.getShape()))
-      result.set(*resultIt, operand.get(operandIndex));
+      result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1194,17 +1201,15 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &interiorPadding,
                  ShapedType resultType) {
-  Tensor result(resultType);
-  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
-       ++resultIt)
-    result.set(*resultIt, paddingValue.get({}));
+  Tensor result(resultType, paddingValue.get({}));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    auto resultIndex = edgePaddingLow + *operandIt * (interiorPadding + 1);
+    auto operandIndex = *operandIt;
+    auto resultIndex = edgePaddingLow + operandIndex * (interiorPadding + 1);
     // Bound check is needed here because of negative padding which could
     // swallow some operand indices.
     if (resultIndex.inBounds(result.getShape()))
-      result.set(resultIndex, operand.get(*operandIt));
+      result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1303,21 +1308,24 @@ Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
-       resultIt != result.index_end(); ++resultIt, ++operandIt)
-    result.set(*resultIt, operand.get(*operandIt));
+       resultIt != result.index_end(); ++resultIt, ++operandIt) {
+    auto resultIndex = *resultIt;
+    auto operandIndex = *operandIt;
+    result.set(resultIndex, operand.get(operandIndex));
+  }
   return result;
 }
 
 Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
                      ShapedType resultType) {
   Tensor result(resultType);
-  auto resultShape = result.getShape();
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index operandIndex(*resultIt);
-    for (auto dim : dimensions)
-      operandIndex[dim] = (resultShape[dim] - 1) - operandIndex[dim];
-    result.set(*resultIt, operand.get(operandIndex));
+    auto resultIndex = *resultIt;
+    Index operandIndex(resultIndex);
+    for (auto d : dimensions)
+      operandIndex[d] = result.getShape()[d] - operandIndex[d] - 1;
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1402,8 +1410,8 @@ SmallVector<Tensor> evalScatterOp(
                  update.get(updateIndex)));
 
     auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
-    for (auto [result, value] : llvm::zip(results, updatedValues))
-      result.set(resultIndex, value.get({}));
+    for (auto [result, updatedValue] : llvm::zip(results, updatedValues))
+      result.set(resultIndex, updatedValue.get({}));
   }
 
   return results;
@@ -1463,7 +1471,9 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    result.set(*resultIt, operand.get(startIndices + *resultIt * strides));
+    auto resultIndex = *resultIt;
+    auto operandIndex = startIndices + resultIndex * strides;
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1482,13 +1492,16 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
     // only needs to be done once per slice.
     if ((*resultIt)[adjustedDimension] != 0) continue;
 
-    // Instead of literally putting the slices together into a vector of tuples,
-    // we're representing these tuples with integer handles, with each handle
-    // being an index within the slice.
-    // Then, instead of sorting a vector of tuples, we're sorting a vector of
-    // handles, and the comparator knows how to use these handles to fetch
+    // SortOp sorts 1-dimensional slices of inputs together and produces
+    // 1-dimensional slices of results.
+    // In this implementation, we aren't going to materialize these slices as
+    // a tensor of tuples, but are going to represent these tuples with integer
+    // handles, with each handle being an index within the slice.
+    // Then, instead of sorting a tensor of tuples, we'll be sorting a tensor of
+    // handles, with the comparator knowing how to use these handles to fetch
     // the actual input elements being compared.
-    Index inputsTogether(inputs[0].getShape()[adjustedDimension]);
+    SmallVector<int64_t> inputsTogether(
+        inputs[0].getShape()[adjustedDimension]);
     std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
     auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {
       SmallVector<Tensor> args;
@@ -1498,15 +1511,11 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
         auto argType = RankedTensorType::get({}, input.getElementType());
-        auto lhsEl = Tensor(argType);
-        auto rhsEl = Tensor(argType);
-        lhsEl.set({}, input.get(lhsIndex));
-        rhsEl.set({}, input.get(rhsIndex));
-        args.push_back(lhsEl);
-        args.push_back(rhsEl);
+        args.push_back(Tensor(argType, input.get(lhsIndex)));
+        args.push_back(Tensor(argType, input.get(rhsIndex)));
       }
-      auto cmpResult = eval(comparator, args, &scope);
-      return cmpResult[0].get({}).getBooleanValue();
+      auto comparatorResult = eval(comparator, args, &scope);
+      return comparatorResult[0].get({}).getBooleanValue();
     };
     if (isStable)
       std::stable_sort(inputsTogether.begin(), inputsTogether.end(),
@@ -1515,9 +1524,10 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       std::sort(inputsTogether.begin(), inputsTogether.end(),
                 comparatorTogether);
 
-    // After the vector of handles has been sorted, we apply the results of
+    // After the tensor of handles has been sorted, we apply the results of
     // this sort by reshuffling input elements into result elements.
-    for (auto [inputHandle, resultHandle] : llvm::enumerate(inputsTogether)) {
+    auto &resultsTogether = inputsTogether;
+    for (auto [inputHandle, resultHandle] : llvm::enumerate(resultsTogether)) {
       for (auto [input, result] : llvm::zip(inputs, results)) {
         auto inputIndex = *resultIt;
         auto resultIndex = *resultIt;
@@ -1557,8 +1567,11 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
   Tensor result(resultType);
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    auto resultIndex = operandIt->permute(permutation);
-    result.set(resultIndex, operand.get(*operandIt));
+    auto operandIndex = *operandIt;
+    Index resultIndex(result.getRank());
+    for (auto d = 0; d < result.getRank(); d++)
+      resultIndex[d] = operandIndex[permutation[d]];
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }

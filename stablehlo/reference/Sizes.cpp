@@ -27,13 +27,6 @@ raw_ostream &operator<<(raw_ostream &os, const Sizes &x) {
   return os;
 }
 
-Sizes Sizes::permute(ArrayRef<int64_t> permutation) const {
-  Sizes result(size());
-  for (size_t i = 0; i < permutation.size(); i++)
-    result[i] = (*this)[permutation[i]];
-  return result;
-}
-
 bool Sizes::inBounds(const Sizes &bounds) const {
   if (size() != bounds.size()) return false;
   for (auto [size, bound] : llvm::zip(*this, bounds))
