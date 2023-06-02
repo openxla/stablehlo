@@ -5,7 +5,7 @@ func.func @gather_op_test() {
                                        [[9, 10], [11, 12], [13, 14], [15, 16]],
                                        [[17, 18], [19, 20], [21, 22], [23, 24]]]> : tensor<3x4x2xi64>
   %start_indices = stablehlo.constant dense<[[[0, 0], [1, 0], [2, 1]],
-                                             [[0, 1], [1, 1], [0, 2]]]> : tensor<2x3x2xi64>
+                                             [[0, 1], [1, 1], [0, 9]]]> : tensor<2x3x2xi64>
   %result = "stablehlo.gather"(%operand, %start_indices) {
     dimension_numbers = #stablehlo.gather<
       offset_dims = [2, 3],
