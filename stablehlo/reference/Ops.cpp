@@ -769,7 +769,7 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index resultIndex = *resultIt;
+    auto resultIndex = *resultIt;
     Index operandIndex(operand.getRank(), 0);
     for (auto d = 0; d < operand.getRank(); ++d) {
       if (operand.getShape()[d] == 1) continue;
@@ -934,7 +934,7 @@ Tensor evalConcatenateOp(ArrayRef<Tensor> inputs, Axis dimension,
   for (const auto &input : inputs) {
     for (auto inputIt = input.index_begin(); inputIt != input.index_end();
          ++inputIt) {
-      Index inputIndex = *inputIt;
+      auto inputIndex = *inputIt;
       Index resultIndex(inputIndex);
       resultIndex[dimension] += dimensionOffset;
       result.set(resultIndex, input.get(inputIndex));
@@ -989,7 +989,9 @@ Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
       clamp(0, evalIndex(startIndices), operand.getShape() - sliceSizes);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    result.set(*resultIt, operand.get(adjustedStartIndices + *resultIt));
+    auto resultIndex = *resultIt;
+    auto operandIndex = adjustedStartIndices + *resultIt;
+    result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1002,8 +1004,8 @@ Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,
       clamp(0, evalIndex(startIndices), operand.getShape() - update.getShape());
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index resultIndex = *resultIt;
-    Index updateIndex = resultIndex - adjustedStartIndices;
+    auto resultIndex = *resultIt;
+    auto updateIndex = resultIndex - adjustedStartIndices;
     if (updateIndex.inBounds(update.getShape()))
       result.set(resultIndex, update.get(updateIndex));
     else
@@ -1075,7 +1077,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 
     auto operandIndex = fullStartIndex + fullOffsetIndex;
     if (operandIndex.inBounds(operand.getShape()))
-      result.set(*resultIt, operand.get(operandIndex));
+      result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
 }
@@ -1202,8 +1204,8 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
   Tensor result(resultType, paddingValue.get({}));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    Index operandIndex = *operandIt;
-    Index resultIndex = edgePaddingLow + operandIndex * (interiorPadding + 1);
+    auto operandIndex = *operandIt;
+    auto resultIndex = edgePaddingLow + operandIndex * (interiorPadding + 1);
     // Bound check is needed here because of negative padding which could
     // swallow some operand indices.
     if (resultIndex.inBounds(result.getShape()))
@@ -1306,8 +1308,11 @@ Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(), operandIt = operand.index_begin();
-       resultIt != result.index_end(); ++resultIt, ++operandIt)
-    result.set(*resultIt, operand.get(*operandIt));
+       resultIt != result.index_end(); ++resultIt, ++operandIt) {
+    auto resultIndex = *resultIt;
+    auto operandIndex = *operandIt;
+    result.set(resultIndex, operand.get(operandIndex));
+  }
   return result;
 }
 
@@ -1316,7 +1321,7 @@ Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index resultIndex = *resultIt;
+    auto resultIndex = *resultIt;
     Index operandIndex(resultIndex);
     for (auto d : dimensions)
       operandIndex[d] = result.getShape()[d] - operandIndex[d] - 1;
@@ -1466,8 +1471,8 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index resultIndex = *resultIt;
-    Index operandIndex = startIndices + resultIndex * strides;
+    auto resultIndex = *resultIt;
+    auto operandIndex = startIndices + resultIndex * strides;
     result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
@@ -1562,7 +1567,7 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
   Tensor result(resultType);
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
-    Index operandIndex = *operandIt;
+    auto operandIndex = *operandIt;
     Index resultIndex(result.getRank());
     for (auto d = 0; d < result.getRank(); d++)
       resultIndex[d] = operandIndex[permutation[d]];
