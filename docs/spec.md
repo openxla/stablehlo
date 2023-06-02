@@ -4671,12 +4671,13 @@ Given that, `results = exec(schedule, inputs)`, where:
 * `schedule` is an implementation-defined permutation of
   `index_space(updates[0])`.
 * `exec([update_index, ...], results) = exec([...], updated_results)` where:
-  * `updated_values =
-    update_computation(results...[result_index], updates...[update_index])`.
-  * `updated_results` is a copy of `results` with `results...[result_index]`
-    set to `updated_values...`.
-  * If `result_index` is out of bounds for `shape(results[0])`, the update is
-    discarded.
+  * If `result_index` is in bounds for `shape(results...)`
+    * `updated_values =
+      update_computation(results...[result_index], updates...[update_index])`.
+    * `updated_results` is a copy of `results` with `results...[result_index]`
+      set to `updated_values...`.
+  * Otherwise
+    * `updated_results = results`.
 * `exec([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
