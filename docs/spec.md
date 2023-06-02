@@ -562,13 +562,13 @@ semantics of StableHLO operations with quantized types.
 
 ```python
 ##  operand: tensor with quantized type.
-##  unary_computaion: unary function of type: (floating-point) ->
+##  unary_computation: unary function of type: (floating-point) ->
 ##      floating-point.
 ##  out_storage_min, out_storage_max, out_scale, and out_zero_point: integer
 ##      constants
-def unary_computation_with_quantized_types(operand, unary_computaion,
+def unary_computation_with_quantized_types(operand, unary_computation,
     out_storage_min, out_storage_max, out_scale, out_zero_point):
-  float_result = unary_computaion((operand - zero_point(operand)) *
+  float_result = unary_computation((operand - zero_point(operand)) *
           scale(operand))
   rounded_result = round_nearest_even(float_result / out_scale)
   result = clamp(out_storage_min, rounded_result + out_zero_point,
@@ -644,7 +644,7 @@ tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -710,7 +710,7 @@ Performs element-wise addition of two tensors `lhs` and `rhs` and produces a
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
   * (C5) `quantization_dimension(lhs)` is empty.
->>>>>>> 7e022712 (Specification for quantized elementwise operations)
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -1023,7 +1023,7 @@ tensor. Depending on the element type, does the following:
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -1068,9 +1068,10 @@ Performs element-wise atan2 operation on `lhs` and `rhs` tensor and produces a
 * If the operation uses quantized tensors:
   * (C3) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
     is_quantized_tensor(result)`.
-  * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
+  * (C4) `quantized_element_type(lhs) = quantized_element_type(rhs) =
+    quantized_element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -1573,7 +1574,7 @@ Performs element-wise cubic root operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -1617,7 +1618,7 @@ specification. For quantized types, performs
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -2299,7 +2300,7 @@ Performs element-wise cosine operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -2337,7 +2338,7 @@ tensor and produces a `result` tensor.
 
 * (C1) `operand` and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(operand)` is empty.
+  * (C2) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -2430,7 +2431,7 @@ produces a `result` tensor. Depending on the element type, does the following:
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -2539,12 +2540,14 @@ planning to address this in
 * If the operation uses non-quantized tensors:
   * (C13) `element_type(lhs) = element_type(rhs)`.
 * If the operation uses quantized tensors:
-  * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
-  * (C15) `storage_type(lhs) = storage_type(rhs)`.
-  * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
-  * (C17) `zero_points(rhs) = 0`.
-  * (C18) If `is_per_tensor_quantized(rhs)`,
-    then `is_per_tensor_quantized(result)`.
+  * (C15) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C16) `storage_type(lhs) = storage_type(rhs)`.
+  * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C18) `zero_points(rhs) = [0, 0, ..., 0]`.
+  * (C19) `is_empty(quantization_dimension(lhs))`.
+  * (C20) If `is_empty(quantization_dimension(rhs))`, then `is_empty(quantization_dimension(result))`.
+<!-- markdownlint-enable line-length -->
 
 #### Examples
 
@@ -2736,7 +2739,7 @@ Performs element-wise exponential operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -2783,7 +2786,7 @@ produces a `result` tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -2940,7 +2943,7 @@ specification. For quantized types, performs
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3321,9 +3324,8 @@ constant(result_index[iota_dimension], element_type(output))`.
 
 Performs element-wise check whether the value in `x` is finite (i.e. is neither
 +Inf, -Inf, nor NaN) and produces a `y` tensor. Implements the `isFinite`
-operation from the IEEE-754 specification. For quantized types, performs
-`unary_computation_with_quantized_types(x, lambda x: isFinite(x),
-storage_min(result), storage_max(result), scale(result), zero_point(result))`.
+operation from the IEEE-754 specification. For quantized types, the result is
+always `true`.
 
 #### Inputs
 
@@ -3346,7 +3348,7 @@ storage_min(result), storage_max(result), scale(result), zero_point(result))`.
   * (C3) `is_quantized_tensor(x) and is_quantized_tensor(y)`.
   * (C4) `quantized_element_type(y) = quantized_element_type(y)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(x)` is empty.
+  * (C5) `is_empty(quantization_dimension(x))`.
 
 #### Examples
 
@@ -3393,7 +3395,7 @@ Performs element-wise logarithm operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3439,7 +3441,7 @@ produces a `result` tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3485,7 +3487,7 @@ Performs element-wise logistic operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3595,7 +3597,7 @@ Performs element-wise max operation on tensors `lhs` and `rhs` and produces a
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -3650,7 +3652,7 @@ Performs element-wise min operation on tensors `lhs` and `rhs` and produces a
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -3702,7 +3704,7 @@ Performs element-wise product of two tensors `lhs` and `rhs` and produces a
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -3752,7 +3754,7 @@ tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3796,7 +3798,7 @@ Depending on the element type, does the following:
 
 * (C1) `operand` and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -3876,7 +3878,7 @@ tensor. Depending on the element type, does the following:
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -4042,7 +4044,7 @@ and produces a `result` tensor.
 
 * (C1) `operand` and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(operand)` is empty.
+  * (C2) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -4091,7 +4093,7 @@ produces a `result` tensor. Depending on the element type, does the following:
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -4316,7 +4318,7 @@ More formally:
 * (C3) `mantissa_bits` $\ge$ 0.
 * If the operation uses quantized tensors:
   * (C4) `is_quantized_tensor(operand) and is_quantized_tensor(output)`.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -4570,7 +4572,7 @@ nearest to the exact value of `lhs/rhs` with ties to even.
     is_quantized_tensor(result)`,
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -4831,7 +4833,7 @@ quantized types, performs
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -4876,7 +4878,7 @@ specification. For quantized types, performs
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -4922,7 +4924,7 @@ produces a `result` tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`,
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -5113,7 +5115,7 @@ pred[result_index]`.
 * (C2) `on_true`, `on_false` and `result` have same type.
 * If the operation uses quantized tensors:
   * (C3) `is_quantized_tensor(on_true) and is_quantized_tensor(on_false)`.
-  * (C4) `quantization_dimension(on_true)` is empty.
+  * (C4) `is_empty(quantization_dimension(on_true))`.
 
 #### Examples
 
@@ -5306,7 +5308,7 @@ of bits and produces a `result` tensor.
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -5343,7 +5345,7 @@ Performs element-wise arithmetic right-shift operation on the `lhs` tensor by
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -5380,7 +5382,7 @@ number of bits and produces a `result` tensor.
 
 * (C1) `lhs`, `rhs`, and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -5446,7 +5448,7 @@ def sign(x):
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -5494,7 +5496,7 @@ tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -5689,7 +5691,7 @@ Performs element-wise square root operation on `operand` tensor and produces a
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -5739,7 +5741,7 @@ Performs element-wise subtraction of two tensors `lhs` and `rhs` and produces a
     is_quantized_tensor(result)`.
   * (C4) `element_type(lhs) = element_type(rhs) = element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(lhs)` is empty.
+  * (C5) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
@@ -5787,7 +5789,7 @@ produces a `result` tensor. Depending on the element type, does the following:
   * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
   * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
     except for quantization parameters which may differ.
-  * (C5) `quantization_dimension(operand)` is empty.
+  * (C5) `is_empty(quantization_dimension(operand))`.
 
 #### Examples
 
@@ -6124,7 +6126,7 @@ tensor. Depending on the element type, does the following:
 
 * (C1) `lhs`, `rhs` and `result` have the same type.
 * If the operation uses quantized tensors:
-  * (C2) `quantization_dimension(lhs)` is empty.
+  * (C2) `is_empty(quantization_dimension(lhs))`.
 
 #### Examples
 
