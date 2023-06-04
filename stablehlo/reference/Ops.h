@@ -31,21 +31,6 @@ Tensor evalAbsOp(const Tensor &operand, ShapedType resultType);
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
-SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
-                                        const Tensor &scale, const Tensor &mean,
-                                        const Tensor &variance,
-                                        const Tensor &gradOutput,
-                                        APFloat epsilon, Axis featureIndex,
-                                        ArrayRef<ShapedType> resultTypes);
-Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
-                                const Tensor &offset, const Tensor &mean,
-                                const Tensor &variance, APFloat epsilon,
-                                Axis featureIndex, ShapedType resultType);
-SmallVector<Tensor> evalBatchNormTrainingOp(const Tensor &operand,
-                                            const Tensor &scale,
-                                            const Tensor &offset,
-                                            APFloat epsilon, Axis featureIndex,
-                                            ArrayRef<ShapedType> resultTypes);
 Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType);
@@ -53,7 +38,6 @@ SmallVector<Tensor> evalCaseOp(const Tensor &index, RegionRange branches,
                                Scope &scope);
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
-Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
                    ShapedType resultType);
 Tensor evalClzOp(const Tensor &operand, ShapedType resultType);
