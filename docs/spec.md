@@ -5560,12 +5560,8 @@ Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
 #### Examples
 
 ```mlir
-// %operand: 10
-%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>) -> tensor<f32>
-// %result: 15.0
-
 // %operand: [10, 10]
-%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<3x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<3xf32>
+%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<2xf32>
 // %result: [4.0, 15.0]
 ```
 
@@ -5611,12 +5607,12 @@ Formally,
 #### Examples
 
 ```mlir
-// %operand: 15.0
-%result = "stablehlo.uniform_quantize"(%operand) : (tensor<f32>) -> tensor<!quant.uniform<i8<-128:127>:f32, 0.5:-20>>
-// %result: 10
-
 // %operand: [4.0, 15.0]
-%result = "stablehlo.uniform_quantize"(%operand) : (tensor<3xf32>) -> tensor<3x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
+// %result: [10, 10]
+
+// %operand: [10, 10]
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
 // %result: [10, 10]
 ```
 
