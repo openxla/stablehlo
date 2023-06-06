@@ -8,7 +8,7 @@ check backward compatibility by versioning and serializing
 compatibility. This document makes the following proposal:
 
 **Proposal:** Add tests to compare `stablehlo_legalize_to_vhlo.0_X_0.mlir`
-serialized at HEAD with existing [`stablehlo_legalize_to_vhlo.0_X_0.mlir.bc`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc)
+serialized at HEAD using `--target 0.X.0` with existing [`stablehlo_legalize_to_vhlo.0_X_0.mlir.bc`](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir.bc)
 test files.
 
 ## Requirements
@@ -24,10 +24,10 @@ of time.
 ## Proposed Design: Statically Test Forward Compatibility
 
 In this design, forward incompatibilities are detected by serializing
-`stablehlo_legalize_to_vhlo.mlir` at head and comparing it to a known-good file
-serialized serialized at previous releases. This approach operates on the
-assumption that at HEAD we are able to produce a byte-identical serialized
-artifact, excluding custom header info and debug locations.
+`stablehlo_legalize_to_vhlo.0_X_0.mlir` at HEAD and comparing it to a
+known-good file serialized at previous releases. This approach
+operates on the assumption that at HEAD we are able to produce a byte-identical
+serialized artifact, excluding custom header info and debug locations.
 
 Detecting forward incompatiblities can be accomplished by adding the following
 `RUN` line to the versioned [`stablehlo_legalize_to_vhlo.0_X_0.mlir`](https://github.com/search?q=repo%3Aopenxla%2Fstablehlo+path%3A**%2Fstablehlo_legalize_to_vhlo.0_*&type=code)
@@ -42,8 +42,11 @@ in StableHLO (_R1_) and LLVM revision bumps (_R2_).
 
 This will not work as is because `bytecode::producer`, `op::location` and
 `block_argument::location` fields may change between when the original bytecode
-file has been produced and when the test runs at HEAD. To account for that,
-we can strip this information before comparing the payloads.
+file has been produced and when the test runs at HEAD. We can set a consistent
+producer string to take care of the first item. For debug locations, one option
+would be to explicitly specify debug locations, however this is very cumbersome
+in a 2.2k line test file. Another option is to strip this debug information
+when generating the bytecode files.
 
 The StableHLO process for [Contributing Incompatible Changes](https://github.com/openxla/stablehlo/blob/main/docs/vhlo.md#add-versioned-serialization-test)
 requires `stablehlo_legalize_to_vhlo.mlir` to be serialized for each
@@ -51,11 +54,12 @@ compatibility breaking change, which means that we can test forward
 compatibility between HEAD and each minor release of StableHLO. Given that
 all changes to the StableHLO opset, as well as changes to serialization
 machinery like targeting a newer version of the MLIR bytecode format, require
-bumping the minor version, there is a low chance of causing forward
-incompatibilities between different patch versions of StableHLO (i.e.
-`0.10.1 → 0.10.2`). Ensuring compatibility between HEAD and all minor releases
-(`0.9.0`, `0.10.0`, etc.) should provide thorough enough coverage of the two
-mentioned sources of forward incompatibilities.
+bumping the minor version, patch versions _must_ produce identical bytecode to
+their minor versions. As such we should prevent the ability to target bytecode
+generation for patch versions other than `0`. With that restriction, ensuring
+compatibility between HEAD and all minor releases (`0.9.0`, `0.10.0`, etc.)
+provides full coverage of the two mentioned sources of forward
+incompatibilities.
 
 Other benefits of this approach include that it is lightweight (_R3_), can be run
 locally to detect compatibility issues during development, and it fits nicely into
