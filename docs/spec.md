@@ -4794,7 +4794,7 @@ Produces a `result` tensor where each element is selected from `on_true` or
 More formally, `result[result_index] = pred_element ? on_true[result_index] :
 on_false[result_index]`, where `pred_element = rank(pred) = 0 ? pred :
 pred[result_index]`. For quantized types, performs
-`dequantize_op_quantize(select, on_true, on_false. type(result), pred)`.
+`dequantize_op_quantize_select(select, pred, on_true, on_false. type(result))`.
 
 #### Inputs
 
@@ -6343,6 +6343,14 @@ def dequantize_op_quantize(op, *inputs_and_output_type):
   float_inputs = map(dequantize, inputs)
   float_result = op(*float_inputs)
   return quantize(float_result, output_type)
+
+def dequantize_op_quantize_select(op, pred, *inputs_and_output_type):
+  inputs = inputs_and_output_type[:-1]
+  output_type = inputs_and_output_type[-1]
+  float_inputs = [(x - zero_point(x)) * scale(x) for x in inputs]
+  float_result = op(pred, *float_inputs)
+  rounded_result = round_nearest_even(float_result / scale(output_type))
+  return clamp(storage_min(output_type), rounded_result, storage_max(output_type))
 ```
 
 #### Grid computations
