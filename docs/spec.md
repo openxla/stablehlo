@@ -1964,7 +1964,7 @@ This reframing uses the following helper functions:
 * `permute([j0, j1, ..., jR-1], permutation) = [i0, i1, ..., iR-1]` where `j[d] = i[permutation[d]]`.
 
 If `feature_group_count = 1` and `batch_group_count = 1`, then for all
-`output_spatial_index` in `index_space(dim(result, output_spatial_dimensions))`,
+`output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
 * `padded_lhs = pad(lhs, 0, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
@@ -2770,7 +2770,7 @@ indices and explains in detail which `operand` indices they correspond to.
 More formally, `result[result_index] = operand[operand_index]` where:
 
 * `batch_dims = [d for d in axes(result) and d not in offset_dims]`.
-* `batch_index = [result_index[d] for d in batch_dims]`.
+* `batch_index = result_index[batch_dims...]`.
 * `start_index` is defined as:
   * `start_indices[bi0, ..., :, ..., biN]` where `bi` are individual elements in
     `batch_index` and `:` is inserted at the `index_vector_dim` index, if
@@ -2780,7 +2780,7 @@ More formally, `result[result_index] = operand[operand_index]` where:
   * `full_start_index[d_operand] = start_index[d_start]` if
     `d_operand = start_index_map[d_start]`.
   * `full_start_index[d_operand] = 0` otherwise.
-* `offset_index = [result_index[d] for d in offset_dims]`.
+* `offset_index = result_index[offset_dims...]`.
 * `full_offset_index = [oi0, ..., 0, ..., oiN]` where `oi` are individual
   elements in `offset_index`, and `0` is inserted at indices from
   `collapsed_slice_dims`.
@@ -2823,7 +2823,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 * (C5) `0 <= offset_dims < rank(result)`.
 * (C6) `is_unique(collapsed_slice_dims) and is_sorted(collapsed_slice_dims)`.
 * (C7) `0 <= collapsed_slice_dims < rank(operand)`.
-* (C8) `slice_sizes[d] <= 1` for all `d` in `collapsed_slice_dims`.
+* (C8) `slice_sizes[collapsed_slice_dims...] <= 1`.
 * (C9) `is_unique(start_index_map)`.
 * (C10) `0 <= start_index_map < rank(operand)`.
 * (C11) `size(slice_sizes) = rank(operand)`.
@@ -4590,7 +4590,7 @@ More formally, for all `update_index` in `index_space(updates[0])`:
 
 * `update_scatter_dims = [d for d in axes(updates[0]) and d not in
   update_window_dims]`.
-* `update_scatter_index = [update_index[d] for d in update_scatter_dims]`.
+* `update_scatter_index = update_index[update_scatter_dims...]`.
 * `start_index` is defined as:
   * `scatter_indices[si0, ..., :, ..., siN]` where `si` are individual
       elements in `update_scatter_index` and `:` is inserted at the
@@ -4601,7 +4601,7 @@ More formally, for all `update_index` in `index_space(updates[0])`:
   * `full_start_index[d_input] = start_index[d_start]` if
     `d_input = scatter_dims_to_operand_dims[d_start]`.
   * `full_start_index[d_input] = 0` otherwise.
-* `update_window_index = [update_index[d] for d in update_window_dims]`.
+* `update_window_index = update_index[update_window_dims...]`.
 * `full_window_index = [wi0, ..., 0, ..., wiN]` where `wi` are individual
   elements in `update_window_index`, and `0` is inserted at indices from
   `inserted_window_dims`.
