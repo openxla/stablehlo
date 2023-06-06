@@ -6130,7 +6130,6 @@ the results back into their storage types. At the moment, this function only
 works for per-tensor quantization. Per-axis quantization is work in progress
 ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
 
-
 ```python
 def dequantize_op_quantize(op, *inputs_and_output_type):
   inputs = inputs_and_output_type[:-1]
@@ -6140,7 +6139,6 @@ def dequantize_op_quantize(op, *inputs_and_output_type):
   rounded_result = round_nearest_even(float_result / scale(output_type))
   return clamp(storage_min(output_type), rounded_result, storage_max(output_type))
 ```
-
 
 #### Grid computations
 
