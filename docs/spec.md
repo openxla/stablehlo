@@ -5968,13 +5968,13 @@ In contrast, the "Constraints" section for ops (and equivalents) defines
 so only constant inputs are available as `Value` and other inputs are
 available only as `Placeholder`.
 
-| Names                | In "Semantics"            | In "Constraints"          |
-|----------------------|---------------------------|---------------------------|
-| Global functions     | `Function`                | `Function`                |
-| Constant inputs      | `Value`                   | `Value`                   |
-| Non-constant inputs  | `Value`                   | `Placeholder`             |
-| Outputs              | `Value`                   | `Placeholder`             |
-| Local definitions    | Depends on the definition | Depends on the definition |
+| Names               | In "Semantics"            | In "Constraints"          |
+|---------------------|---------------------------|---------------------------|
+| Global functions    | `Function`                | `Function`                |
+| Constant inputs     | `Value`                   | `Value`                   |
+| Non-constant inputs | `Value`                   | `Placeholder`             |
+| Outputs             | `Value`                   | `Placeholder`             |
+| Local definitions   | Depends on the definition | Depends on the definition |
 
 Let's consider an example `transpose` operation:
 
