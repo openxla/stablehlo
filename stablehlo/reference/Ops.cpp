@@ -774,62 +774,68 @@ Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
                         const Axes &rhsContractingDimensions,
                         ShapedType resultType) {
   Tensor result(resultType);
-  Axes lhsNonBatchingNonContractingDims;
+  Axes lhsResultDims;
   for (auto i = 0; i < lhs.getType().getRank(); ++i)
     if (!llvm::is_contained(lhsBatchingDimensions, i) &&
         !llvm::is_contained(lhsContractingDimensions, i))
-      lhsNonBatchingNonContractingDims.push_back(i);
+      lhsResultDims.push_back(i);
 
-  Axes rhsNonBatchingNonContractingDims;
+  Axes rhsResultDims;
   for (auto i = 0; i < rhs.getType().getRank(); ++i)
     if (!llvm::is_contained(rhsBatchingDimensions, i) &&
         !llvm::is_contained(rhsContractingDimensions, i))
-      rhsNonBatchingNonContractingDims.push_back(i);
-
-  Sizes contractingDimSizes;
-  int64_t totalContractingSize = 1;
-  for (uint64_t i = 0; i < lhsContractingDimensions.size(); ++i) {
-    contractingDimSizes.push_back(
-        lhs.getType().getShape()[lhsContractingDimensions[i]]);
-    totalContractingSize *=
-        lhs.getType().getShape()[lhsContractingDimensions[i]];
-  }
+      rhsResultDims.push_back(i);
 
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    Index lhsIdx(lhs.getType().getRank());
-    Index rhsIdx(rhs.getType().getRank());
+    // Each result element is computed as dot product of slices of lhs and rhs.
+    // In this implementation, we aren't going to materialize these slices as
+    // standalone tensors, but are going to iterate through lhs and rhs
+    // via lhsIndex and rhsIndex.
+    auto resultIndex = *resultIt;
+    Index lhsIndex(lhs.getType().getRank(), 0);
+    Index rhsIndex(rhs.getType().getRank(), 0);
+
+    // Some pieces of lhsIndex and rhsIndex stay the same during iteration.
+    // These are the indices that correspond to non-contracting dimensions,
+    // and they are initialized here.
     int64_t resultDim = 0;
-
-    // Indices do not change for batching dimensions.
-    for (uint64_t i = 0; i < lhsBatchingDimensions.size(); ++i, ++resultDim) {
-      lhsIdx[lhsBatchingDimensions[i]] = (*resultIt)[resultDim];
-      rhsIdx[rhsBatchingDimensions[i]] = (*resultIt)[resultDim];
+    for (size_t i = 0; i < lhsBatchingDimensions.size(); ++i, ++resultDim) {
+      lhsIndex[lhsBatchingDimensions[i]] = resultIndex[resultDim];
+      rhsIndex[rhsBatchingDimensions[i]] = resultIndex[resultDim];
     }
+    for (size_t i = 0; i < lhsResultDims.size(); ++i, ++resultDim)
+      lhsIndex[lhsResultDims[i]] = resultIndex[resultDim];
+    for (size_t i = 0; i < rhsResultDims.size(); ++i, ++resultDim)
+      rhsIndex[rhsResultDims[i]] = resultIndex[resultDim];
 
-    // The non-batching, non-contracting dimensions of the operands are copied
-    // over to the result dimensions following the batching dimensions.
-    for (uint64_t i = 0; i < lhsNonBatchingNonContractingDims.size(); i++)
-      lhsIdx[lhsNonBatchingNonContractingDims[i]] = (*resultIt)[resultDim++];
-
-    for (uint64_t i = 0; i < rhsNonBatchingNonContractingDims.size(); i++)
-      rhsIdx[rhsNonBatchingNonContractingDims[i]] = (*resultIt)[resultDim++];
-
-    auto sum = convert(resultType.getElementType(), 0.0);
-    // All pair-wise combination of contracting dimensions needs to be summed.
-    for (int64_t i = 0; i < totalContractingSize; ++i) {
-      sum = sum + lhs.get(lhsIdx) * rhs.get(rhsIdx);
-      if (contractingDimSizes.empty()) continue;
-      for (int64_t j = contractingDimSizes.size() - 1; j >= 0; --j) {
-        lhsIdx[lhsContractingDimensions[j]]++;
-        rhsIdx[rhsContractingDimensions[j]]++;
-        if (lhsIdx[lhsContractingDimensions[j]] != contractingDimSizes[j])
-          break;
-        lhsIdx[lhsContractingDimensions[j]] = 0;
-        rhsIdx[rhsContractingDimensions[j]] = 0;
+    // Iteration space is defined by contracting dimensions.
+    // The corresponding parts of lhsIndex and rhsIndex start at 0, 0, ..., 0.
+    // Then, we increment them lexicographically until we're out of bounds.
+    auto incrementIndices = [&]() -> LogicalResult {
+      // Implementation is heavily inspired by IndexSpaceIterator::operator++.
+      if (lhsContractingDimensions.empty()) return failure();
+      for (int64_t i = lhsContractingDimensions.size() - 1; i >= 0; --i) {
+        lhsIndex[lhsContractingDimensions[i]]++;
+        rhsIndex[rhsContractingDimensions[i]]++;
+        if (lhsIndex[lhsContractingDimensions[i]] <
+            lhs.getShape()[lhsContractingDimensions[i]])
+          return success();
+        if (i == 0) return failure();
+        lhsIndex[lhsContractingDimensions[i]] = 0;
+        rhsIndex[rhsContractingDimensions[i]] = 0;
       }
+      return success();
+    };
+
+    // Now that the lhsIndex/rhsIndex and the iteration space are set up,
+    // we can compute the dot product of the (virtual) slices of lhs and rhs.
+    auto resultElement = convert(resultType.getElementType(), 0.0);
+    while (true) {
+      resultElement = resultElement + lhs.get(lhsIndex) * rhs.get(rhsIndex);
+      if (failed(incrementIndices())) break;
     }
-    result.set(*resultIt, sum);
+    result.set(resultIndex, resultElement);
   }
   return result;
 }

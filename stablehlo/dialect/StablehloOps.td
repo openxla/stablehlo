@@ -2220,8 +2220,10 @@ def StableHLO_DotGeneralOp: StableHLO_ShapedInterfaceOp<"dot_general", [Pure]> {
     Example:
     ```mlir
     %result = stablehlo.dot_general %lhs, %rhs,
-      batching_dims = [0] x [0], contracting_dims = [2] x [1], precision = [DEFAULT, DEFAULT]
-      : (tensor<2x2x2xi32>, tensor<2x2x2xi32>) -> tensor<2x2x2xi32>
+      batching_dims = [0] x [0],
+      contracting_dims = [2] x [1],
+      precision = [DEFAULT, DEFAULT]
+      : (tensor<2x2x2xi64>, tensor<2x2x2xi64>) -> tensor<2x2x2xi64>
     ```
   }];
   let arguments = (ins
