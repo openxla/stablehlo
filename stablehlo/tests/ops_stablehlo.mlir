@@ -3338,7 +3338,7 @@ func.func @bitcast_convert_c1(%arg: tensor<2xf64>) -> tensor<4x2xf32> {
 // -----
 
 func.func @bitcast_convert_c1(%arg: tensor<2xf64>) -> tensor<2x4xf32> {
-  // expected-error@+1 {{equires compatible bitwidths. Got: 'tensor<2xf64>' and 'tensor<2x4xf32>', but 32 * 4 != 64.}}
+  // expected-error@+1 {{requires compatible bitwidths. Got: 'tensor<2xf64>' and 'tensor<2x4xf32>', but 32 * 4 != 64.}}
   %0 = "stablehlo.bitcast_convert"(%arg) : (tensor<2xf64>) -> tensor<2x4xf32>
   return %0 : tensor<2x4xf32>
 }

@@ -179,23 +179,13 @@ APInt leftShiftAndMask(APInt binary, int64_t shift, APInt mask) {
   return binary;
 }
 
-// Returns bitcast converted array of smaller bitwidth Element objects to one
-// larger bitwidth Element object.
-Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
+// Returns bitcast converted array of smaller bitwidth Element objects
+// `elements` to one larger bitwidth Element object.
+Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements,
+                                int64_t operandBitWidth,
+                                int64_t resultBitWidth) {
   SmallVector<Element> results;
   auto operandType = elements[0].getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
   if (isSupportedBooleanType(operandType) ||
       isSupportedIntegerType(operandType) ||
       isSupportedFloatType(operandType)) {
@@ -210,11 +200,9 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
         mask = element.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
       binary = leftShiftAndMask(binary, operandBitWidth, mask);
     }
-
-    if (isSupportedBooleanType(type)) return elements[0];
-
-    if (isSupportedIntegerType(type)) return Element(type, binary);
-
+    if (isSupportedIntegerType(type))
+      return Element(type,
+                     APSInt(binary, /*isUnsigned=*/type.isUnsignedInteger()));
     if (isSupportedFloatType(type))
       return Element(
           type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
@@ -258,35 +246,24 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
                                      debugString(type).c_str()));
 }
 
-// Returns bitcast converted larger bitwidth Element object to array of smaller
-// bitwidth Element objects.
-SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
+// Returns bitcast converted larger bitwidth Element object `el` to array of
+// smaller bitwidth Element objects.
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el,
+                                             int64_t operandBitWidth,
+                                             int64_t resultBitWidth) {
   SmallVector<Element> results;
   auto operandType = el.getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
 
   // Splits element into 'operandBitWidth' / 'resultBitWidth' elements, converts
   // to Element object of type 'type', and appends them to 'results'.
   auto applyIntOrFloatConversion = [&](APInt mask) {
     for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
-      auto binary = leftShiftAndMask(
-          APInt(resultBitWidth, 0), resultBitWidth,
-          mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
+      auto binary = mask.extractBits(resultBitWidth, i);
       if (isSupportedBooleanType(type))
         results.push_back(Element(type, binary.isOne()));
       else if (isSupportedIntegerType(type))
-        results.push_back(Element(type, binary));
+        results.push_back(Element(
+            type, APSInt(binary, /*isUnsigned=*/type.isUnsignedInteger())));
       else if (isSupportedFloatType(type))
         results.push_back(Element(
             type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary)));
@@ -301,12 +278,10 @@ SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
     applyIntOrFloatConversion(el.getIntegerValue());
     return results;
   }
-
   if (isSupportedFloatType(operandType)) {
     applyIntOrFloatConversion(el.getFloatValue().bitcastToAPInt());
     return results;
   }
-
   if (isSupportedComplexType(operandType) && isSupportedComplexType(type)) {
     // splits operand into 'resultBitWidth' / 'operandBitWidth' elements,
     // applies conversion to type 'type'. It converts two elements at a
@@ -314,14 +289,9 @@ SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
     // appends them to 'results'.
     auto applyComplexConversion = [&](APInt mask) {
       auto baseType = type.cast<ComplexType>().getElementType();
-      for (auto i = 0; i < operandBitWidth; i += resultBitWidth) {
-        auto binaryReal = leftShiftAndMask(
-            APInt(resultBitWidth, 0), resultBitWidth,
-            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
-        i += resultBitWidth;
-        auto binaryImag = leftShiftAndMask(
-            APInt(resultBitWidth, 0), resultBitWidth,
-            mask.extractBits(resultBitWidth, i).zext(resultBitWidth));
+      for (auto i = 0; i < operandBitWidth; i += 2 * resultBitWidth) {
+        auto binaryReal = mask.extractBits(resultBitWidth, i);
+        auto binaryImag = mask.extractBits(resultBitWidth, i + resultBitWidth);
         results.push_back(Element(
             type, std::complex<APFloat>(
                       APFloat(baseType.cast<FloatType>().getFloatSemantics(),
@@ -341,45 +311,28 @@ SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
 }
 
 // Returns bitcast converted Element object with the same bitwidth.
-Element bitcastConvertOneToOne(Type type, const Element &el) {
+Element bitcastConvertOneToOne(Type type, const Element &el,
+                               int64_t operandBitWidth,
+                               int64_t resultBitWidth) {
   auto operandType = el.getType();
-  int64_t operandBitWidth = isSupportedComplexType(operandType)
-                                ? operandType.cast<ComplexType>()
-                                      .getElementType()
-                                      .cast<FloatType>()
-                                      .getIntOrFloatBitWidth()
-                                : operandType.getIntOrFloatBitWidth();
-  int64_t resultBitWidth = isSupportedComplexType(type)
-                               ? type.cast<ComplexType>()
-                                     .getElementType()
-                                     .cast<FloatType>()
-                                     .getIntOrFloatBitWidth()
-                               : type.getIntOrFloatBitWidth();
   if (isSupportedBooleanType(operandType) && isSupportedBooleanType(type))
     return el;
-
   if (isSupportedIntegerType(operandType)) {
-    if (isSupportedIntegerType(type)) return el;
-
-    auto binary = APInt(resultBitWidth, 0);
-    APInt mask = el.getIntegerValue().zext(resultBitWidth);
-    binary = leftShiftAndMask(binary, operandBitWidth, mask);
-
+    if (isSupportedIntegerType(type))
+      return Element(type, APSInt(el.getIntegerValue(),
+                                  /*isUnsigned=*/type.isUnsignedInteger()));
     if (isSupportedFloatType(type))
-      return Element(
-          type, APFloat(type.cast<FloatType>().getFloatSemantics(), binary));
+      return Element(type, APFloat(type.cast<FloatType>().getFloatSemantics(),
+                                   el.getIntegerValue()));
   }
-
   if (isSupportedFloatType(operandType)) {
-    if (isSupportedFloatType(type)) return el;
-
-    APInt mask = el.getFloatValue().bitcastToAPInt().zext(resultBitWidth);
-    auto binary =
-        leftShiftAndMask(APInt(resultBitWidth, 0), operandBitWidth, mask);
-
-    if (isSupportedIntegerType(type)) return Element(type, binary);
+    if (isSupportedFloatType(type))
+      return Element(type, APFloat(type.cast<FloatType>().getFloatSemantics(),
+                                   el.getFloatValue().bitcastToAPInt()));
+    if (isSupportedIntegerType(type))
+      return Element(type, APSInt(el.getFloatValue().bitcastToAPInt(),
+                                  /*isUnsigned=*/type.isUnsignedInteger()));
   }
-
   if (isSupportedComplexType(operandType) && isSupportedComplexType(type))
     return el;
 
@@ -825,10 +778,13 @@ SmallVector<Element> bitcastConvert(Type type, ArrayRef<Element> elements) {
                                   .getIntOrFloatBitWidth()
                             : type.getIntOrFloatBitWidth();
   if (operandBitWidth > resultBitWidth)
-    return bitcastConvertOneToMany(type, elements[0]);
+    return bitcastConvertOneToMany(type, elements[0], operandBitWidth,
+                                   resultBitWidth);
   if (operandBitWidth < resultBitWidth)
-    return {bitcastConvertManyToOne(type, elements)};
-  return {bitcastConvertOneToOne(type, elements[0])};
+    return {bitcastConvertManyToOne(type, elements, operandBitWidth,
+                                    resultBitWidth)};
+  return {bitcastConvertOneToOne(type, elements[0], operandBitWidth,
+                                 resultBitWidth)};
 }
 
 Element cbrt(const Element &el) {

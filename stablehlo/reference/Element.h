@@ -150,10 +150,16 @@ Element atan2(const Element &e1, const Element &e2);
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
 /// Returns bitcast converted Element(s). Let E and E' be the element types of
-/// `elements` and `type` respectively:
-// If num_bits(E') == num_bits(E), returns a single Element.
-// If num_bits(E') < num_bits(E), returns bitwidth(E)/bitwidth(E') Elements.
-// If num_bits(E') > num_bits(E), return a single Element.
+/// `elements[0].getType()` and `type` respectively and member of `elements` has
+/// the same type:
+// * size(elements) = 1 and num_bits(E') < num_bits(E):
+//   returns n Elements such that n = bitwidth(E)/bitwidth(E') and n *
+//   num_bits(E') == num_bits(E).
+// * size(elements) > 1 and num_bits(E') > num_bits(E):
+//   returns a single Element such that size(elements) * num_bits(E) ==
+//   num_bits(E').
+// * size(elements) = 1 and num_bits(E') == num_bits(E):
+//   returns a single Element of type `type`.
 SmallVector<Element> bitcastConvert(Type type, ArrayRef<Element> elements);
 
 /// Returns cube root of Element object.

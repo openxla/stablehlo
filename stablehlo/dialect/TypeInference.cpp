@@ -3137,17 +3137,12 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
   auto targetShape = targetType.getShape();
   auto operandShape = operandType.getShape();
   ArrayRef<int64_t> smallerEltShape, biggerEltShape;
-  Type smallerElt, biggerElt;
   if (operandEltBitwidth < targetEltBitwidth) {
     smallerEltShape = operandShape;
-    smallerElt = operandElt;
     biggerEltShape = targetShape;
-    biggerElt = targetElt;
   } else {
     smallerEltShape = targetShape;
-    smallerElt = targetElt;
     biggerEltShape = operandShape;
-    biggerElt = operandElt;
   }
 
   ArrayRef<int64_t> smallerEltPrefix;
@@ -3161,12 +3156,6 @@ LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
           ") should be 1 more than rank of larger element type (",
           biggerEltShape.size(), "), but ", smallerEltShape.size(),
           " != ", biggerEltShape.size(), " + 1.");
-    }
-    if (smallerEltShape.empty()) {
-      return emitOptionalError(location,
-                               "does not allow the smaller element type to be "
-                               "part of a 0d tensor, but got: ",
-                               operandType, " and ", targetType, ".");
     }
     smallerEltPrefix = smallerEltShape.drop_back();
     if (!isDynamicDimSize(smallerEltShape.back()) &&

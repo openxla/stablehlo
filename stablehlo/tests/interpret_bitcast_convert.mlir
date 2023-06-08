@@ -102,6 +102,24 @@ func.func @bitcast_convert_op_test_i64_to_i64() {
 
 // -----
 
+func.func @bitcast_convert_op_test_i64_to_ui64() {
+  %operand = stablehlo.constant dense<0xFEDCBA9876543210> : tensor<i64>
+  %result = stablehlo.bitcast_convert %operand : (tensor<i64>) -> tensor<ui64>
+  check.expect_eq_const %result, dense<0xFEDCBA9876543210> : tensor<ui64>
+  func.return
+}
+
+// -----
+
+func.func @bitcast_convert_op_test_i64_to_f64() {
+  %operand = stablehlo.constant dense<0x0123456789ABCDEF> : tensor<i64>
+  %result = stablehlo.bitcast_convert %operand : (tensor<i64>) -> tensor<f64>
+  check.expect_almost_eq_const %result, dense<0x0123456789ABCDEF> : tensor<f64>
+  func.return
+}
+
+// -----
+
 func.func @bitcast_convert_op_test_i4_to_i64() {
   %operand = stablehlo.constant dense<[0xF, 0xE, 0xD, 0xC,
                                        0xB, 0xA, 0x9, 0x8,
@@ -180,6 +198,24 @@ func.func @bitcast_convert_op_test_f16_to_i64() {
 
 // -----
 
+func.func @bitcast_convert_op_test_f16_to_bf16() {
+  %operand = stablehlo.constant dense<[0xCDEF, 0x89AB, 0x4567, 0x0123]> : tensor<4xf16>
+  %result = stablehlo.bitcast_convert %operand : (tensor<4xf16>) -> tensor<4xbf16>
+  check.expect_almost_eq_const %result, dense<[0xCDEF, 0x89AB, 0x4567, 0x0123]> : tensor<4xbf16>
+  func.return
+}
+
+// -----
+
+func.func @bitcast_convert_op_test_bf16_to_f16() {
+  %operand = stablehlo.constant dense<[0xCDEF, 0x89AB, 0x4567, 0x0123]> : tensor<4xbf16>
+  %result = stablehlo.bitcast_convert %operand : (tensor<4xbf16>) -> tensor<4xf16>
+  check.expect_almost_eq_const %result, dense<[0xCDEF, 0x89AB, 0x4567, 0x0123]> : tensor<4xf16>
+  func.return
+}
+
+// -----
+
 func.func @bitcast_convert_op_test_f64_to_f16() {
   %operand = stablehlo.constant dense<0x0123456789ABCDEF> : tensor<f64>
   %result = stablehlo.bitcast_convert %operand : (tensor<f64>) -> tensor<4xf16>
@@ -193,6 +229,24 @@ func.func @bitcast_convert_op_test_f64_to_f64() {
   %operand = stablehlo.constant dense<0x0123456789ABCDEF> : tensor<f64>
   %result = stablehlo.bitcast_convert %operand : (tensor<f64>) -> tensor<f64>
   check.expect_almost_eq_const %result, dense<0x0123456789ABCDEF> : tensor<f64>
+  func.return
+}
+
+// -----
+
+func.func @bitcast_convert_op_test_f64_to_i64() {
+  %operand = stablehlo.constant dense<0x0123456789ABCDEF> : tensor<f64>
+  %result = stablehlo.bitcast_convert %operand : (tensor<f64>) -> tensor<i64>
+  check.expect_eq_const %result, dense<0x0123456789ABCDEF> : tensor<i64>
+  func.return
+}
+
+// -----
+
+func.func @bitcast_convert_op_test_f64_to_ui64() {
+  %operand = stablehlo.constant dense<0xFEDCBA9876543210> : tensor<f64>
+  %result = stablehlo.bitcast_convert %operand : (tensor<f64>) -> tensor<ui64>
+  check.expect_eq_const %result, dense<0xFEDCBA9876543210> : tensor<ui64>
   func.return
 }
 
