@@ -84,7 +84,7 @@ completely numeric to simplify generation of StableHLO programs.
 ```ebnf
 Type         ::= ValueType | NonValueType
 ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType
-NonValueType ::= ElementType | FunctionType | StringType
+NonValueType ::= ElementType | QuantizedElementType | FunctionType | StringType
 ```
 
 **StableHLO types** are categorized into **value types** (which are also called
