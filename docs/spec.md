@@ -4131,8 +4131,7 @@ where:
 * `padded_inputs = pad(inputs..., init_values..., padding[:, 0], padding[:, 1],
   base_dilations - 1)`.
 * `window_start = result_index * window_strides`.
-* `window_end = clamp(window_start, window_start + window_dimensions +
-  window_dilations - 1, shape(padded_inputs[0]))`.
+* `window_end = window_start + window_dimensions + window_dilations - 1`.
 * `windows = slice(padded_inputs..., window_start, window_end,
   window_dilations)`.
 

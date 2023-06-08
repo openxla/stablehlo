@@ -1280,14 +1280,11 @@ SmallVector<Tensor> evalReduceWindowOp(
   for (auto [input, initValue] : llvm::zip(inputs, initValues))
     paddedInputs.push_back(evalPadOp(input, initValue, paddingLow, paddingHigh,
                                      baseDilations - 1));
-
   for (auto resultIt = results[0].index_begin();
        resultIt != results[0].index_end(); ++resultIt) {
     SmallVector<Tensor> windows;
     auto windowStart = (*resultIt) * windowStrides;
-    auto windowEnd =
-        clamp(windowStart, windowStart + windowDimensions + windowDilations - 1,
-              paddedInputs[0].getShape());
+    auto windowEnd = windowStart + windowDimensions + windowDilations - 1;
     for (const auto &paddedInput : paddedInputs)
       windows.push_back(
           evalSliceOp(paddedInput, windowStart, windowEnd, windowDilations));
