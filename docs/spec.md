@@ -1130,8 +1130,6 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 // %grad_offset: [0.4, 0.4]
 ```
 
-&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_grad.mlir)
-
 ### batch_norm_inference
 
 #### Semantics
@@ -1208,8 +1206,6 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 //           [[2.0, 2.0], [0.0, 0.0]]
 //          ]
 ```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_inference.mlir)
 
 ### batch_norm_training
 
@@ -1297,8 +1293,6 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 // %batch_mean: [2.0, 3.0]
 // %batch_var: [1.0, 1.0]
 ```
-
-&nbsp;[More Examples](../stablehlo/tests/interpret_batch_norm_training.mlir)
 
 ### bitcast_convert
 
