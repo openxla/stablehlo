@@ -14,15 +14,7 @@
 
 add_mlir_library(StablehloReferenceAxes
   PARTIAL_SOURCES_INTENDED
-  Sizes.cpp
-
-  LINK_LIBS PUBLIC
-  MLIRIR
-)
-
-add_mlir_library(StablehloReferenceSizes
-  PARTIAL_SOURCES_INTENDED
-  Sizes.cpp
+  Axes.cpp
 
   LINK_LIBS PUBLIC
   MLIRIR
@@ -53,7 +45,6 @@ add_mlir_library(StablehloReferenceIndex
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
-  StablehloReferenceSizes
 )
 
 add_mlir_library(StablehloReferenceScope
@@ -74,7 +65,6 @@ add_mlir_library(StablehloReferenceTensor
   StablehloReferenceAxes
   StablehloReferenceElement
   StablehloReferenceIndex
-  StablehloReferenceSizes
   StablehloReferenceTypes
 )
 
@@ -89,7 +79,6 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceElement
   StablehloReferenceIndex
   StablehloReferenceScope
-  StablehloReferenceSizes
   StablehloReferenceTensor
   StablehloTypeInference
 )

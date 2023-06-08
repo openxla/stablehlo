@@ -59,30 +59,6 @@ func.func @select_and_scatter_with_unranked_dims(
 
 func.func @select_and_scatter_c1(
     %arg0: tensor<10x24x24x64xf32>,
-    %arg1: tensor<10x12x12x64xf32>) -> tensor<10x24x24x64xf32> {
-    %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
-    // expected-error @+1 {{expects window-dimensions size == operand rank, but got window-dimensions size: 0 and operand-type: 'tensor<10x24x24x64xf32>' with rank = 4.}}
-    %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %0) ({
-    ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
-      %2 = "stablehlo.compare"(%arg3, %arg4) {
-        comparison_direction = #stablehlo<comparison_direction GE>
-        } : (tensor<f32>, tensor<f32>) -> tensor<i1>
-      "stablehlo.return"(%2) : (tensor<i1>) -> ()
-    },  {
-    ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
-      %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
-      "stablehlo.return"(%2) : (tensor<f32>) -> ()
-    }) {
-      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
-    } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
-          tensor<10x24x24x64xf32>
-    func.return %1 : tensor<10x24x24x64xf32>
-}
-
-// -----
-
-func.func @select_and_scatter_c2(
-    %arg0: tensor<10x24x24x64xf32>,
     %arg1: tensor<10x12x12x64xi32>) -> () {
     %0 = stablehlo.constant dense<0> : tensor<i32>
     // expected-error @+1 {{expects source-type to be 'tensor<10x12x12x64xf32>', but got'tensor<10x12x12x64xi32>'}}
@@ -107,7 +83,7 @@ func.func @select_and_scatter_c2(
 
 // -----
 
-func.func @select_and_scatter_c3(
+func.func @select_and_scatter_c2(
     %arg0: tensor<10x24x24x64xf32>,
     %arg1: tensor<10x12x12x32xf32>) -> () {
     %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
@@ -133,7 +109,7 @@ func.func @select_and_scatter_c3(
 
 // -----
 
-func.func @select_and_scatter_c4_c11(
+func.func @select_and_scatter_c3_c11(
     %arg0: tensor<10x24x24x64xf32>,
     %arg1: tensor<10x12x12x64xf32>) -> () {
     %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
@@ -155,6 +131,30 @@ func.func @select_and_scatter_c4_c11(
     } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
           tensor<10x24x24x64xf32>
     func.return
+}
+
+// -----
+
+func.func @select_and_scatter_c4(
+    %arg0: tensor<10x24x24x64xf32>,
+    %arg1: tensor<10x12x12x64xf32>) -> tensor<10x24x24x64xf32> {
+    %0 = stablehlo.constant dense<0.000000e+00> : tensor<f32>
+    // expected-error @+1 {{expects window-dimensions size == operand rank, but got window-dimensions size: 0 and operand-type: 'tensor<10x24x24x64xf32>' with rank = 4.}}
+    %1 = "stablehlo.select_and_scatter"(%arg0, %arg1, %0) ({
+    ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
+      %2 = "stablehlo.compare"(%arg3, %arg4) {
+        comparison_direction = #stablehlo<comparison_direction GE>
+        } : (tensor<f32>, tensor<f32>) -> tensor<i1>
+      "stablehlo.return"(%2) : (tensor<i1>) -> ()
+    },  {
+    ^bb0(%arg3: tensor<f32>, %arg4: tensor<f32>):
+      %2 = stablehlo.add %arg3, %arg4 : tensor<f32>
+      "stablehlo.return"(%2) : (tensor<f32>) -> ()
+    }) {
+      window_strides = dense<[1, 2, 2, 1]> : tensor<4xi64>
+    } : (tensor<10x24x24x64xf32>, tensor<10x12x12x64xf32>, tensor<f32>) ->
+          tensor<10x24x24x64xf32>
+    func.return %1 : tensor<10x24x24x64xf32>
 }
 
 // -----

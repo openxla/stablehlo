@@ -29,7 +29,6 @@ limitations under the License.
 #include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Index.h"
-#include "stablehlo/reference/Sizes.h"
 
 namespace mlir {
 namespace stablehlo {

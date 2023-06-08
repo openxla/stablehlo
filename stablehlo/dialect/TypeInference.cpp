@@ -577,7 +577,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c4,
+    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c3,
     // select_and_scatter_c10
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
@@ -4056,7 +4056,7 @@ LogicalResult verifySelectAndScatterOp(
       convert1DAttribute(windowDimensions, location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   if (operandType.hasRank()) {
-    // select_and_scatter_c1
+    // select_and_scatter_c4
     if (operandType.getRank() !=
         static_cast<int64_t>((*windowDimsOrErr).size()))
       return emitOptionalError(
@@ -4088,7 +4088,7 @@ LogicalResult verifySelectAndScatterOp(
         inferWindowOutputShape(operandType.getShape(), *windowOrErr),
         operandType.getElementType());
 
-  // select_and_scatter_c2, select_and_scatter_c3
+  // select_and_scatter_c1, select_and_scatter_c2
   if (!compatibleShapeAndElementType(windowResultType, sourceType,
                                      /*ignoreFpPrecision=*/true))
     return emitOptionalError(location, "expects source-type to be ",

@@ -19,8 +19,8 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
+#include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/Scope.h"
-#include "stablehlo/reference/Sizes.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -117,13 +117,13 @@ SmallVector<Tensor> evalScatterOp(
     ArrayRef<ShapedType> resultTypes);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
-Tensor evalSelectAndScatter(const Tensor &operand, const Tensor &source,
-                            const Tensor &initValue,
-                            const Sizes &windowDimensions,
-                            const Sizes &windowStrides, const Sizes &paddingLow,
-                            const Sizes &paddingHigh, Region &select,
-                            Region &scatter, Scope &scope,
-                            ShapedType resultType);
+Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
+                              const Tensor &initValue,
+                              const Sizes &windowDimensions,
+                              const Sizes &windowStrides,
+                              const Sizes &paddingLow, Region &select,
+                              Region &scatter, Scope &scope,
+                              ShapedType resultType);
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
                        ShapedType resultType);
 Tensor evalShiftRightArithmeticOp(const Tensor &lhs, const Tensor &rhs,
