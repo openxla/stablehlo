@@ -3318,9 +3318,9 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 
 #### Outputs
 
-| Name     | Type                                  | Constraints      |
-|----------|---------------------------------------|------------------|
-| `result` | tensor or per-tensor quantized tensor | (C1), (C4), (C6) |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1), (C4)  |
 
 #### Constraints
 
