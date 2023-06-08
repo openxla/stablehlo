@@ -5535,7 +5535,7 @@ Produces a `result` tuple from values `val`.
 #### Semantics
 
 Performs element-wise conversion of uniform quantized tensor `operand` to a
-floating point tensor `result` according to the quantization parameters defined
+floating-point tensor `result` according to the quantization parameters defined
 by the `operand` type.
 
 Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
@@ -5554,14 +5554,14 @@ Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
 
 #### Constraints
 
-* (C1) `expressed_type(operand) = element_type(result)`.
-* (C2) `shape(operand) = shape(result)`.
+* (C1) `shape(operand) = shape(result)`.
+* (C2) `expressed_type(result) = element_type(operand)`.
 
 #### Examples
 
 ```mlir
 // %operand: [10, 10]
-%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<2xf32>
+%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>) -> tensor<2xf32>
 // %result: [4.0, 15.0]
 ```
 
@@ -5575,45 +5575,40 @@ quantization parameters defined by the `result` type.
 
 Formally,
 
-* For `element_type(operand)` a floating-point type,
+* If `is_float(operand)`:
   * `rounded_result = round_nearest_even(operand / scale(result))`.
   * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
-
-* For `element_type(operand)` a quantized type,
-  * `float_result = (operand - zero_point(operand)) * scale(operand)`.
-  * `rounded_result = round_nearest_even(float_result / scale(result))`.
-  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
+* If `is_quantized(operand)`: performs `dequantize_op_quantize(lambda operand:
+        operand, operand, type(result))`
 
 #### Inputs
 
-| Label | Name      | Type                                        | Constraints      |
-|-------|-----------|---------------------------------------------|------------------|
-| (I1)  | `operand` | tensor of floating-point or quantized  type | (C1), (C2), (C3) |
+| Label | Name      | Type                                        | Constraints |
+|-------|-----------|---------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or quantized  type | (C1), (C2)  |
 
 #### Outputs
 
-| Name     | Type             | Constraints      |
-|----------|------------------|------------------|
-| `result` | quantized tensor | (C1), (C2), (C3) |
+| Name     | Type             | Constraints |
+|----------|------------------|-------------|
+| `result` | quantized tensor | (C1), (C2)  |
 
 #### Constraints
 
-* (C1) If `element_type(operand)` is a floating-point type,
-  * `element_type(operand) = expressed_type(result)`.
-* (C2) If `element_type(operand)` is a quantized type,
-  * `expressed_type(operand) = expressed_type(result)`.
-* (C3) `shape(operand) = shape(result)`.
+* (C1) `shape(operand) = shape(result)`.
+* (C2) `expressed_type(result) = is_float(operand) ? element_type(operand) :
+  expressed_type(operand)`.
 
 #### Examples
 
 ```mlir
 // %operand: [4.0, 15.0]
-%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>
 // %result: [10, 10]
 
 // %operand: [10, 10]
-%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>) -> tensor<2x!quant.uniform<i8<-128:127>:f32:0, {0.1:-30, 0.5:-20}>>
-// %result: [10, 10]
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-20,0.2:-30}>>
+// %result: [20, 45]
 ```
 
 ### while
