@@ -7,7 +7,7 @@ Last updated: 3/24/2022
 ## Summary
 
 This RFC is cloned from an informal pull request:
-https://github.com/openxla/stablehlo/pull/1306.
+[https://github.com/openxla/stablehlo/pull/1306](https://github.com/openxla/stablehlo/pull/1306).
 
 We have recently had the first official release of StableHLO, which fully
 implemented the compatibility guarantees established by the compatibility RFC
