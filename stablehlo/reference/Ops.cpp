@@ -108,50 +108,6 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                      inferredTypes[0].cast<ShapedType>());
 }
 
-Tensor computeSum(const Tensor &input, Axis featureIndex,
-                  ShapedType resultType) {
-  Tensor result(resultType, convert(input.getElementType(), 0.0));
-
-  auto dimensions = input.getAxes();
-  dimensions.erase(dimensions.begin() + featureIndex);
-
-  for (auto inputIt = input.index_begin(); inputIt != input.index_end();
-       ++inputIt) {
-    Index resultIndex;
-    for (auto [inputAxis, inputIndexElement] : llvm::enumerate(*inputIt)) {
-      if (llvm::is_contained(dimensions, inputAxis)) continue;
-      resultIndex.push_back(inputIndexElement);
-    }
-    result.set(resultIndex, result.get(resultIndex) + input.get(*inputIt));
-  }
-  return result;
-}
-
-Tensor computeMean(const Tensor &operand, Axis featureIndex,
-                   ShapedType resultType) {
-  auto sum = computeSum(operand, featureIndex, resultType);
-
-  auto divisor = Tensor(RankedTensorType::get({}, operand.getElementType()),
-                        convert(operand.getElementType(),
-                                static_cast<double>(operand.getNumElements()) /
-                                    operand.getShape()[featureIndex]));
-  auto divisorBroadcast = evalBroadcastInDimOp(divisor, {}, sum.getType());
-
-  return evalDivideOp(sum, divisorBroadcast, sum.getType());
-}
-
-Tensor computeVariance(const Tensor &operand, Axis featureIndex,
-                       ShapedType resultType) {
-  auto mean = computeMean(operand, featureIndex, resultType);
-  auto meanBroadcast =
-      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
-  auto centeredOperand =
-      evalSubtractOp(operand, meanBroadcast, operand.getType());
-  return computeMean(evalMultiplyOp(centeredOperand, centeredOperand,
-                                    centeredOperand.getType()),
-                     featureIndex, resultType);
-}
-
 // Experimental notation for slices, roughly following the spec notation.
 // TODO(#1401): Might evolve in the future together with the spec.
 constexpr int64_t kColon = -1;
@@ -168,6 +124,16 @@ Tensor evalSliceOp(const Tensor &operand, const Index &index) {
   }
   Sizes strides(operand.getRank(), 1);
   return evalSliceOp(operand, start, limit, strides);
+}
+
+void failOnDecomposableOp(Operation &op) {
+  report_fatal_error(invalidArgument(
+      "Operation %s is unsupported at the moment. "
+      "However, this operation can be decomposed into supported operations, "
+      "so it is possible to transform it into supported form as a workaround. "
+      "Visit https://github.com/openxla/stablehlo/issues/1571 to learn more "
+      "about the workaround and the roadmap for supporting this operation.",
+      op.getName().getStringRef().str().c_str()));
 }
 
 }  // namespace
@@ -204,42 +170,12 @@ SmallVector<Tensor> eval(
       auto rhs = scope.find(atan2Op.getRhs());
       auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
       scope.add(op.getResults(), {result});
-    } else if (auto batchNormGradOp = dyn_cast<BatchNormGradOp>(op)) {
-      auto operand = scope.find(batchNormGradOp.getOperand());
-      auto scale = scope.find(batchNormGradOp.getScale());
-      auto mean = scope.find(batchNormGradOp.getMean());
-      auto variance = scope.find(batchNormGradOp.getVariance());
-      auto gradOutput = scope.find(batchNormGradOp.getGradOutput());
-      auto results = evalBatchNormGradOp(
-          operand, scale, mean, variance, gradOutput,
-          batchNormGradOp.getEpsilon(), batchNormGradOp.getFeatureIndex(),
-          {batchNormGradOp.getGradOperand().getType(),
-           batchNormGradOp.getGradScale().getType(),
-           batchNormGradOp.getGradOffset().getType()});
-      scope.add(op.getResults(), {results});
+    } else if (isa<BatchNormGradOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto batchNormInferenceOp = dyn_cast<BatchNormInferenceOp>(op)) {
-      auto operand = scope.find(batchNormInferenceOp.getOperand());
-      auto scale = scope.find(batchNormInferenceOp.getScale());
-      auto offset = scope.find(batchNormInferenceOp.getOffset());
-      auto mean = scope.find(batchNormInferenceOp.getMean());
-      auto variance = scope.find(batchNormInferenceOp.getVariance());
-      auto result =
-          evalBatchNormInferenceOp(operand, scale, offset, mean, variance,
-                                   batchNormInferenceOp.getEpsilon(),
-                                   batchNormInferenceOp.getFeatureIndex(),
-                                   batchNormInferenceOp.getType());
-      scope.add(op.getResults(), {result});
+      failOnDecomposableOp(op);
     } else if (auto batchNormTrainingOp = dyn_cast<BatchNormTrainingOp>(op)) {
-      auto operand = scope.find(batchNormTrainingOp.getOperand());
-      auto scale = scope.find(batchNormTrainingOp.getScale());
-      auto offset = scope.find(batchNormTrainingOp.getOffset());
-      auto results = evalBatchNormTrainingOp(
-          operand, scale, offset, batchNormTrainingOp.getEpsilon(),
-          batchNormTrainingOp.getFeatureIndex(),
-          {batchNormTrainingOp.getOutput().getType(),
-           batchNormTrainingOp.getBatchMean().getType(),
-           batchNormTrainingOp.getBatchVar().getType()});
-      scope.add(op.getResults(), results);
+      failOnDecomposableOp(op);
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       auto operand = scope.find(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -247,6 +183,8 @@ SmallVector<Tensor> eval(
       auto result = evalBroadcastInDimOp(operand, broadcastDimensions,
                                          broadcastInDimOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<BroadcastOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
       auto index = scope.find(caseOp.getIndex());
       auto branches = caseOp.getBranches();
@@ -261,10 +199,7 @@ SmallVector<Tensor> eval(
       auto result = evalCeilOp(operand, ceilOp.getType());
       scope.add(op.getResults(), {result});
     } else if (auto choleskyOp = dyn_cast<CholeskyOp>(op)) {
-      auto a = scope.find(choleskyOp.getA());
-      auto result =
-          evalCholeskyOp(a, choleskyOp.getLower(), choleskyOp.getType());
-      scope.add(op.getResults(), {result});
+      failOnDecomposableOp(op);
     } else if (auto clampOp = dyn_cast<ClampOp>(op)) {
       auto min = scope.find(clampOp.getMin());
       auto operand = scope.find(clampOp.getOperand());
@@ -303,11 +238,17 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(cosineOp.getOperand());
       auto result = evalCosineOp(operand, cosineOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<CreateTokenOp>(op)) {
+      failOnDecomposableOp(op);
+    } else if (isa<CrossReplicaSumOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto divideOp = dyn_cast<DivOp>(op)) {
       auto lhs = scope.find(divideOp.getLhs());
       auto rhs = scope.find(divideOp.getRhs());
       auto result = evalDivideOp(lhs, rhs, divideOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<DotOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
       auto operand = scope.find(dynamicSliceOp.getOperand());
       auto startIndices = scope.find(dynamicSliceOp.getStartIndices());
@@ -322,6 +263,8 @@ SmallVector<Tensor> eval(
       auto result = evalDynamicUpdateSliceOp(operand, update, startIndices,
                                              dynamicUpdateSliceOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<EinsumOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto expOp = dyn_cast<ExpOp>(op)) {
       auto operand = scope.find(expOp.getOperand());
       auto result = evalExponentialOp(operand, expOp.getType());
@@ -505,6 +448,10 @@ SmallVector<Tensor> eval(
       auto dimensions = Axes(reverseOp.getDimensions());
       auto result = evalReverseOp(operand, dimensions, reverseOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<RngBitGeneratorOp>(op)) {
+      failOnDecomposableOp(op);
+    } else if (isa<RngOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
       auto operand = scope.find(roundOp.getOperand());
       auto result = evalRoundOp(operand, roundOp.getType());
@@ -595,12 +542,20 @@ SmallVector<Tensor> eval(
       auto operand = scope.find(tanhOp.getOperand());
       auto result = evalTanhOp(operand, tanhOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<TorchIndexSelectOp>(op)) {
+      failOnDecomposableOp(op);
+    } else if (isa<TraceOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
       auto operand = scope.find(transposeOp.getOperand());
       auto permutation = Axes(transposeOp.getPermutation());
       auto result =
           evalTransposeOp(operand, permutation, transposeOp.getType());
       scope.add(op.getResults(), {result});
+    } else if (isa<TriangularSolveOp>(op)) {
+      failOnDecomposableOp(op);
+    } else if (isa<UnaryEinsumOp>(op)) {
+      failOnDecomposableOp(op);
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
@@ -653,116 +608,6 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   return result;
 }
 
-SmallVector<Tensor> evalBatchNormGradOp(const Tensor &operand,
-                                        const Tensor &scale, const Tensor &mean,
-                                        const Tensor &variance,
-                                        const Tensor &gradOutput,
-                                        APFloat epsilon, Axis featureIndex,
-                                        ArrayRef<ShapedType> resultTypes) {
-  auto scaleBroadcast =
-      evalBroadcastInDimOp(scale, {featureIndex}, operand.getType());
-  auto meanBroadcast =
-      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
-  auto varianceBroadcast =
-      evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
-  auto epsilonBroadcast = evalBroadcastInDimOp(
-      makeTensor(DenseElementsAttr::get(
-          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
-      {}, operand.getType());
-
-  auto centeredOperand =
-      evalSubtractOp(operand, meanBroadcast, operand.getType());
-  auto stddev = evalSqrtOp(evalAddOp(varianceBroadcast, epsilonBroadcast,
-                                     varianceBroadcast.getType()),
-                           varianceBroadcast.getType());
-  auto normalizedOperand =
-      evalDivideOp(centeredOperand, stddev, centeredOperand.getType());
-
-  auto elementsPerFeature = evalBroadcastInDimOp(
-      Tensor(RankedTensorType::get({}, gradOutput.getElementType()),
-             convert(gradOutput.getElementType(),
-                     static_cast<double>(operand.getNumElements()) /
-                         operand.getShape()[featureIndex])),
-      {}, operand.getType());
-
-  auto i1 =
-      evalMultiplyOp(gradOutput, elementsPerFeature, gradOutput.getType());
-
-  auto i2 =
-      evalBroadcastInDimOp(computeSum(gradOutput, featureIndex, resultTypes[1]),
-                           {featureIndex}, operand.getType());
-
-  auto i3 = evalBroadcastInDimOp(
-      computeSum(
-          evalMultiplyOp(gradOutput, centeredOperand, gradOutput.getType()),
-          featureIndex, resultTypes[1]),
-      {featureIndex}, operand.getType());
-
-  auto i4 = evalMultiplyOp(i3, centeredOperand, i3.getType());
-
-  auto i5 = evalDivideOp(i4,
-                         evalAddOp(varianceBroadcast, epsilonBroadcast,
-                                   varianceBroadcast.getType()),
-                         i4.getType());
-
-  auto i6 =
-      evalSubtractOp(evalSubtractOp(i1, i2, i1.getType()), i5, i1.getType());
-
-  auto gradOperand = evalMultiplyOp(
-      evalDivideOp(
-          evalDivideOp(scaleBroadcast, stddev, scaleBroadcast.getType()),
-          elementsPerFeature, scaleBroadcast.getType()),
-      i6, scaleBroadcast.getType());
-  auto gradScale = computeSum(
-      evalMultiplyOp(gradOutput, normalizedOperand, gradOutput.getType()),
-      featureIndex, resultTypes[1]);
-  auto gradOffset = computeSum(gradOutput, featureIndex, resultTypes[2]);
-
-  return {gradOperand, gradScale, gradOffset};
-}
-
-Tensor evalBatchNormInferenceOp(const Tensor &operand, const Tensor &scale,
-                                const Tensor &offset, const Tensor &mean,
-                                const Tensor &variance, APFloat epsilon,
-                                Axis featureIndex, ShapedType resultType) {
-  auto scaleBroadcast =
-      evalBroadcastInDimOp(scale, {featureIndex}, operand.getType());
-  auto offsetBroadcast =
-      evalBroadcastInDimOp(offset, {featureIndex}, operand.getType());
-  auto meanBroadcast =
-      evalBroadcastInDimOp(mean, {featureIndex}, operand.getType());
-  auto varianceBroadcast =
-      evalBroadcastInDimOp(variance, {featureIndex}, operand.getType());
-  auto epsilonBroadcast = evalBroadcastInDimOp(
-      makeTensor(DenseElementsAttr::get(
-          RankedTensorType::get({}, operand.getElementType()), {epsilon})),
-      {}, operand.getType());
-
-  auto centeredOperand =
-      evalSubtractOp(operand, meanBroadcast, operand.getType());
-  auto standardDeviation = evalSqrtOp(
-      evalAddOp(varianceBroadcast, epsilonBroadcast, operand.getType()),
-      operand.getType());
-  auto normalizedOperand =
-      evalDivideOp(centeredOperand, standardDeviation, operand.getType());
-
-  return evalAddOp(
-      evalMultiplyOp(scaleBroadcast, normalizedOperand, operand.getType()),
-      offsetBroadcast, operand.getType());
-}
-
-SmallVector<Tensor> evalBatchNormTrainingOp(const Tensor &operand,
-                                            const Tensor &scale,
-                                            const Tensor &offset,
-                                            APFloat epsilon, Axis featureIndex,
-                                            ArrayRef<ShapedType> resultTypes) {
-  auto mean = computeMean(operand, featureIndex, resultTypes[1]);
-  auto variance = computeVariance(operand, featureIndex, resultTypes[2]);
-  return {evalBatchNormInferenceOp(operand, scale, offset, mean, variance,
-                                   epsilon, featureIndex, resultTypes[0]),
-          mean, variance};
-}
-
 Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType) {
@@ -799,82 +644,6 @@ Tensor evalCeilOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ceil(operand.get(*it)));
-  return result;
-}
-
-Tensor evalCholeskyOp(const Tensor &a, bool lower, ShapedType resultType) {
-  Tensor result(resultType);
-  auto aShape = a.getShape();
-  auto cholesky = [&lower](const Tensor &A) {
-    Tensor L(A.getType());
-    auto conjugate = [&](const Element &el) {
-      return convert(el.getType(),
-                     std::complex<APFloat>(el.getComplexValue().real(),
-                                           -el.getComplexValue().imag()));
-    };
-
-    for (auto it = L.index_begin(); it != L.index_end(); ++it)
-      L.set(*it, convert(A.getElementType(), 0.0));
-
-    for (auto i = 0; i < A.getShape()[0]; ++i) {
-      for (auto j = 0; j <= i; ++j) {
-        auto sum = convert(A.getElementType(), 0.0);
-        for (auto k = 0; k < j; ++k) {
-          if (isSupportedComplexType(A.getElementType()))
-            sum = sum + L.get(Index({i, k})) * conjugate(L.get(Index({j, k})));
-          else
-            sum = sum + L.get(Index({i, k})) * L.get(Index({j, k}));
-        }
-        if (i == j)
-          L.set(Index({i, j}), sqrt(A.get(Index({i, i})) - sum));
-        else
-          L.set(Index({i, j}),
-                ((A.get(Index({i, j})) - sum) / L.get(Index({j, j}))));
-      }
-    }
-
-    if (lower) return L;
-
-    if (isSupportedComplexType(A.getElementType()))
-      for (auto it = L.index_begin(); it != L.index_end(); ++it)
-        L.set(*it, conjugate(L.get(*it)));
-    return evalTransposeOp(L, {1, 0}, L.getType());
-  };
-
-  if (a.getRank() == 2) return cholesky(a);
-
-  auto getScalarTensor = [&](auto value) {
-    return makeTensor(DenseElementsAttr::get(
-        RankedTensorType::get({},
-                              IntegerType::get(a.getType().getContext(), 64)),
-        {value}));
-  };
-
-  Sizes nonBatchingSizes(aShape.end() - 2, aShape.end());
-  Sizes batchingSizes(aShape.begin(), aShape.end() - 2);
-  for (auto batchIt =
-           IndexSpaceIterator(batchingSizes, Sizes(a.getRank() - 2, 0));
-       batchIt != IndexSpaceIterator(batchingSizes, std::nullopt); ++batchIt) {
-    SmallVector<Tensor> startIndices;
-    for (auto index : *batchIt) startIndices.push_back(getScalarTensor(index));
-    startIndices.append({getScalarTensor(0L), getScalarTensor(0L)});
-
-    Sizes sliceSizes(a.getRank() - 2, 1);
-    sliceSizes.append(nonBatchingSizes);
-
-    auto aSliced = evalDynamicSliceOp(
-        a, startIndices, sliceSizes,
-        RankedTensorType::get(sliceSizes, a.getElementType()));
-
-    auto L = cholesky(evalReshapeOp(
-        aSliced, RankedTensorType::get(nonBatchingSizes, a.getElementType())));
-
-    auto reshapedL =
-        evalReshapeOp(L, RankedTensorType::get(sliceSizes, a.getElementType()));
-
-    result =
-        evalDynamicUpdateSliceOp(result, reshapedL, startIndices, resultType);
-  }
   return result;
 }
 
