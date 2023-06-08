@@ -1891,6 +1891,7 @@ LogicalResult inferDotGeneralOp(
     return emitOptionalError(location,
                              "lhs and rhs should have the same "
                              "number of batching dimensions");
+
   // dot_general_c2
   if (lhsContractingDimensions.size() != rhsContractingDimensions.size())
     return emitOptionalError(location,
@@ -1911,6 +1912,7 @@ LogicalResult inferDotGeneralOp(
     }
     return success();
   };
+
   // dot_general_c3
   if (failed(checkDimsDistinct(lhsBatchingDimensions, lhsContractingDimensions,
                                dimSet, "lhs_batching_dimensions",
@@ -1934,11 +1936,11 @@ LogicalResult inferDotGeneralOp(
                                " is out of range: ", "[0, ", rank, ")");
     return success();
   };
+
   auto lhsRankedType = lhsType.dyn_cast<RankedTensorType>();
-  auto rhsRankedType = rhsType.dyn_cast<RankedTensorType>();
-  // dot_general_c5
-  // dot_general_c6
   if (lhsRankedType) {
+    // dot_general_c5
+    // dot_general_c6
     if (failed(checkDimsInRange(lhsRankedType.getRank(), lhsBatchingDimensions,
                                 "lhs_batching_dimensions")) ||
         failed(checkDimsInRange(lhsRankedType.getRank(),
@@ -1946,9 +1948,11 @@ LogicalResult inferDotGeneralOp(
                                 "lhs_contracting_dimensions")))
       return failure();
   }
-  // dot_general_c7
-  // dot_general_c8
+
+  auto rhsRankedType = rhsType.dyn_cast<RankedTensorType>();
   if (rhsRankedType) {
+    // dot_general_c7
+    // dot_general_c8
     if (failed(checkDimsInRange(rhsRankedType.getRank(), rhsBatchingDimensions,
                                 "rhs_batching_dimensions")) ||
         failed(checkDimsInRange(rhsRankedType.getRank(),
@@ -1999,6 +2003,7 @@ LogicalResult inferDotGeneralOp(
     if (!llvm::is_contained(rhsBatchingDimensions, i) &&
         !llvm::is_contained(rhsContractingDimensions, i))
       dimensions.push_back(rhsShape[i]);
+
   // dot_general_c12
   inferredReturnShapes.emplace_back(dimensions);
   return success();
