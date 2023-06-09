@@ -53,6 +53,12 @@ Tensor evalConvertOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCosineOp(const Tensor &operand, ShapedType resultType);
 Tensor evalDivideOp(const Tensor &lhs, const Tensor &rhs,
                     ShapedType resultType);
+Tensor evalDotGeneralOp(const Tensor &lhs, const Tensor &rhs,
+                        const Axes &lhsBatchingDimensions,
+                        const Axes &rhsBatchingDimensions,
+                        const Axes &lhsContractingDimensions,
+                        const Axes &rhsContractingDimensions,
+                        ShapedType resultType);
 Tensor evalDynamicSliceOp(const Tensor &operand, ArrayRef<Tensor> startIndices,
                           const Sizes &sliceSizes, ShapedType resultType);
 Tensor evalDynamicUpdateSliceOp(const Tensor &operand, const Tensor &update,

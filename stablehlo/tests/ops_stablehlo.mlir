@@ -2916,7 +2916,8 @@ func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> te
 
 // -----
 
-func.func @dot_general(%arg0: tensor<1x?x1x?xf32>, %arg1: tensor<?x1x?x1x?xf32>) {
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<1x?x1x?xf32>, %arg1: tensor<?x1x?x1x?xf32>) -> tensor<?x?x?xf32> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0, 1],
@@ -2925,12 +2926,13 @@ func.func @dot_general(%arg0: tensor<1x?x1x?xf32>, %arg1: tensor<?x1x?x1x?xf32>)
       rhs_contracting_dimensions = [2, 3]
     >
   } : (tensor<1x?x1x?xf32>, tensor<?x1x?x1x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -2939,12 +2941,13 @@ func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
+  func.return %0 : tensor<*xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) {
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) -> tensor<?x?x?xf32> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -2953,13 +2956,13 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<*xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
-
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) {
+// CHECK-LABEL: func @dot_general
+func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) -> tensor<?x?x?xf32> {
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
       lhs_batching_dimensions = [0],
@@ -2968,12 +2971,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<*xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<*xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c1(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs and rhs should have the same number of batching dimensions}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -2983,27 +2986,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{lhs and rhs should have the same number of batching dimensions}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c2(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32>{
   // expected-error @+1 {{lhs and rhs should have the same number of contracting dimensions}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3013,87 +3001,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{lhs and rhs should have the same number of contracting dimensions}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
-  // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 0}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0, 0],
-      rhs_batching_dimensions = [0, 0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 0}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0, 0],
-      rhs_batching_dimensions = [0, 0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
-  // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 1}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1, 1],
-      rhs_contracting_dimensions = [1, 1]
-    >
-  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 1}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1, 1],
-      rhs_contracting_dimensions = [1, 1]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c3(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 0}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3103,27 +3016,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{has duplicated dimension from lhs_batching_dimensions and lhs_contracting_dimensions: 0}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [0],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c4(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{has duplicated dimension from rhs_batching_dimensions and rhs_contracting_dimensions: 0}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3133,27 +3031,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [0]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) {
-  // expected-error @+1 {{has duplicated dimension from rhs_batching_dimensions and rhs_contracting_dimensions: 0}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [0]
-    >
-  } : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c5(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs_batching_dimensions value: -1 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3163,12 +3046,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c5(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs_batching_dimensions value: 3 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3178,42 +3061,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
-  // expected-error @+1 {{rhs_batching_dimensions value: -1 is out of range: [0, 3)}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [-1],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
-  // expected-error @+1 {{rhs_batching_dimensions value: 3 is out of range: [0, 3)}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [3],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
-}
-
-// -----
-
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c6(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs_contracting_dimensions value: -1 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3223,12 +3076,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c6(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{lhs_contracting_dimensions value: 3 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3238,12 +3091,42 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c7(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
+  // expected-error @+1 {{rhs_batching_dimensions value: -1 is out of range: [0, 3)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [-1],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
+  func.return %0 : tensor<?x?x?xf32>
+}
+
+// -----
+
+func.func @dot_general_c7(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
+  // expected-error @+1 {{rhs_batching_dimensions value: 3 is out of range: [0, 3)}}
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [3],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >
+  } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
+  func.return %0 : tensor<?x?x?xf32>
+}
+
+// -----
+
+func.func @dot_general_c8(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{rhs_contracting_dimensions value: -1 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3253,12 +3136,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [-1]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
+func.func @dot_general_c8(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{rhs_contracting_dimensions value: 3 is out of range: [0, 3)}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3268,12 +3151,12 @@ func.func @dot_general(%arg0: tensor<?x?x?xf32>, %arg1: tensor<?x?x?xf32>) {
       rhs_contracting_dimensions = [3]
     >
   } : (tensor<?x?x?xf32>, tensor<?x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<2x?x?xf32>, %arg1: tensor<3x?x?xf32>) {
+func.func @dot_general_c9(%arg0: tensor<2x?x?xf32>, %arg1: tensor<3x?x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{batching dimension sizes must match for lhs/rhs}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3283,12 +3166,12 @@ func.func @dot_general(%arg0: tensor<2x?x?xf32>, %arg1: tensor<3x?x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<2x?x?xf32>, tensor<3x?x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-func.func @dot_general(%arg0: tensor<?x2x?xf32>, %arg1: tensor<?x3x?xf32>) {
+func.func @dot_general_c10(%arg0: tensor<?x2x?xf32>, %arg1: tensor<?x3x?xf32>) -> tensor<?x?x?xf32> {
   // expected-error @+1 {{contracting dimension sizes must match for lhs/rhs}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3298,43 +3181,12 @@ func.func @dot_general(%arg0: tensor<?x2x?xf32>, %arg1: tensor<?x3x?xf32>) {
       rhs_contracting_dimensions = [1]
     >
   } : (tensor<?x2x?xf32>, tensor<?x3x?xf32>) -> tensor<?x?x?xf32>
-  func.return
+  func.return %0 : tensor<?x?x?xf32>
 }
 
 // -----
 
-// CHECK-LABEL: func @dot_general
-func.func @dot_general(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x6xf32> {
-  // expected-error@+1 {{inferred shape '[2, 4, 5]' is incompatible with return type of operation 'tensor<2x4x6xf32>'}}
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >
-  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x6xf32>
-  func.return %0 : tensor<2x4x6xf32>
-}
-
-// -----
-
-func.func @dot_general_one_element_precision_config(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xf32> {
-  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
-    dot_dimension_numbers = #stablehlo.dot<
-      lhs_batching_dimensions = [0],
-      rhs_batching_dimensions = [0],
-      lhs_contracting_dimensions = [1],
-      rhs_contracting_dimensions = [1]
-    >,
-    precision_config = [#stablehlo<precision DEFAULT>]
-  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
-  func.return %0 : tensor<2x4x5xf32>
-}
-
-// -----
-
-func.func @dot_general_three_element_precision_config(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xf32> {
+func.func @dot_general_c11(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xf32> {
   // expected-error@+1 {{expects precision config to be empty or have <= 2 elements}}
   %0 = "stablehlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #stablehlo.dot<
@@ -3344,6 +3196,22 @@ func.func @dot_general_three_element_precision_config(%arg0: tensor<2x3x4xf32>, 
       rhs_contracting_dimensions = [1]
     >,
     precision_config = [#stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>, #stablehlo<precision DEFAULT>]
+  } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
+  func.return %0 : tensor<2x4x5xf32>
+}
+
+// -----
+
+// CHECK-LABEL: func @dot_general_one_element_precision_config
+func.func @dot_general_one_element_precision_config(%arg0: tensor<2x3x4xf32>, %arg1: tensor<2x3x5xf32>) -> tensor<2x4x5xf32> {
+  %0 = "stablehlo.dot_general"(%arg0, %arg1) {
+    dot_dimension_numbers = #stablehlo.dot<
+      lhs_batching_dimensions = [0],
+      rhs_batching_dimensions = [0],
+      lhs_contracting_dimensions = [1],
+      rhs_contracting_dimensions = [1]
+    >,
+    precision_config = [#stablehlo<precision DEFAULT>]
   } : (tensor<2x3x4xf32>, tensor<2x3x5xf32>) -> tensor<2x4x5xf32>
   func.return %0 : tensor<2x4x5xf32>
 }
