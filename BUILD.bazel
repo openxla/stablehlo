@@ -366,6 +366,7 @@ cc_library(
         ":reference_axes",
         ":reference_element",
         ":reference_errors",
+        ":reference_index",
         ":reference_scope",
         ":reference_tensor",
         ":reference_types",
