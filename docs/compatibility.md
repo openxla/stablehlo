@@ -137,13 +137,6 @@ StableHLO programs that were serialized by the latest release of libStablehlo.
 
 ## Future work
 
-**5 years of compatibility guarantees.** In H2 2023, we are planning to release
-StableHLO v1.0 which will implement high-priority improvements, including
-cleaning up the frontend contract and providing a reference implementation.
-Having obtained these improvements and resolved key specification compliance
-issues, StableHLO will be ready for full compatibility guarantees - 5 years of
-forward and backward compatibility. See [roadmap.md](roadmap.md) for details.
-
 **Organize compatibility suite.** At the moment, the compatibility suite
 is one directory with many unstructured files. We are planning to triage and
 organize it, making sure that it's organized, comprehensive and deduplicated

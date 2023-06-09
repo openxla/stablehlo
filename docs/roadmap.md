@@ -27,11 +27,8 @@ planning to release StableHLO v0.9 in Q1 2023.
 **StableHLO v1.0** will implement high-priority improvements, including
 cleaning up the frontend contract (with the goal that StableHLO programs only
 include ops from the StableHLO dialect, rather than today's mixture of dialects
-and unregistered attributes) and providing a reference implementation. Having
-obtained these improvements and resolved key specification compliance issues,
-StableHLO will be ready for full compatibility guarantees - 5 years of forward
-and backward compatibility. We are planning to release StableHLO v1.0 in
-H2 2023.
+and unregistered attributes) and providing a reference implementation. We are
+planning to release StableHLO v1.0 in H2 2023.
 
 ## Workstreams
 
