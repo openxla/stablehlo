@@ -2,7 +2,7 @@
 
 Status: Approved<br/>
 Initial version: 9/12/2022<br/>
-Last updated: 3/9/2022
+Last updated: 12/13/2022
 
 ## Version log
 
@@ -10,7 +10,6 @@ Last updated: 3/9/2022
 * 11/9/2022: Major updates based on a prototype implementation and conversations
              with OpenXLA and MLIR communities.
 * 12/13/2022: Approved.
-* 3/9/2023: Extend backward compatibility guarantees from 1 month to 6 months.
 
 ## Introduction
 
@@ -116,9 +115,8 @@ and we can have a discussion about supporting it.
 
 **(G4) Version 0.x.x:** There will be some stability guarantees while in major
 version 0. There is not stability guaranteed within the major version, but we
-will provide 6 months of backward and 1 month of forward compatibility
-guarantees between minor versions.
-This approach is chosen to allow dialect evolution and cleanup in
+will provide 1 month of forward and backward compatibility between minor
+versions. This approach is chosen to allow dialect evolution and cleanup in
 the early days, as well as refine compatibility procedures while meeting the
 requirements of early adopters. Stability within major version will begin
 with version `1.x.x` and will happen in 2023.
