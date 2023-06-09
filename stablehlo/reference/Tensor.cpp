@@ -365,18 +365,10 @@ void Tensor::set(const Index &index, const Element &element) {
 }
 
 IndexSpaceIterator Tensor::index_begin() const {
-  auto shape = getShape();
-
-  if (any_of(shape, [](int64_t dimSize) { return dimSize == 0; }))
-    return IndexSpaceIterator(shape, std::nullopt);
-
-  Index initialIndex(shape.size());
-  return IndexSpaceIterator(shape, initialIndex);
+  return getShape().index_begin();
 }
 
-IndexSpaceIterator Tensor::index_end() const {
-  return IndexSpaceIterator(getShape(), std::nullopt);
-}
+IndexSpaceIterator Tensor::index_end() const { return getShape().index_end(); }
 
 void Tensor::print(raw_ostream &os) const {
   getType().print(os);

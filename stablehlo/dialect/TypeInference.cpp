@@ -318,7 +318,7 @@ verifyWindowAttributesAndInferWindowDimensions(
         " to have same dimension-size as size of window dimensions (",
         windowDimensions.size(), "), but got: ", attrSize, ".");
   };
-  // reduce_window_c6
+  // reduce_window_c6, select_and_scatter_c6
   if (failed(verifySize(windowStrides.size(), "window-strides")))
     return failure();
   // reduce_window_c8
@@ -337,14 +337,14 @@ verifyWindowAttributesAndInferWindowDimensions(
     WindowDimension& dim = window[i];
 
     dim.size = windowDimensions[i];
-    // reduce_window_c5
+    // reduce_window_c5, select_and_scatter_c5
     if (!isDynamicDimSize(dim.size) && dim.size <= 0)
       return emitOptionalError(loc,
                                "expects window to have positive value for ", i,
                                "-th window dimension, but got ", dim.size, ".");
 
     if (!windowStrides.empty()) dim.stride = windowStrides[i];
-    // reduce_window_c7
+    // reduce_window_c7, select_and_scatter_c7
     if (dim.stride <= 0)
       return emitOptionalError(
           loc, "expects window to have positive stride for ", i,
@@ -535,18 +535,18 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions) {
   int64_t numInputs = inputTypes.size();
 
-  // reduce_c6, reduce_window_c13, scatter_c15
+  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // reduce_c6, reduce_window_c13, scatter_c15
+  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // reduce_c6, reduce_window_c13, scatter_c15
+  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -554,7 +554,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
-  // reduce_c6, reduce_window_c13, scatter_c15
+  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
@@ -568,7 +568,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   }
 
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // reduce_c2, reduce_window_c13, scatter_c15
+    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -577,7 +577,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c2, reduce_window_c13, scatter_c15
+    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c3,
+    // select_and_scatter_c10
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -589,7 +590,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c6, scatter_c15
+    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c6, scatter_c15,
+    // select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -598,7 +600,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           " differs from the op's corresponding init-value type: ",
           accumulatorSubShapes[inputIdx], " vs ", initValueTypes[inputIdx]);
 
-    // reduce_c6, reduce_window_c3, scatter_c6, scatter_c15
+    // reduce_c6, reduce_window_c3, scatter_c6, scatter_c15,
+    // select_and_scatter_c10
     if (!tensorsHaveSameElType(
             inputTypes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(), true))
@@ -616,7 +619,7 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
     if (allInputsUnranked || !blockArgTensorTy.hasRank()) return success();
 
     auto argShape = blockArgTensorTy.getShape();
-    // reduce_c6, reduce_window_c13
+    // reduce_c6, reduce_window_c13, select_and_scatter_c10
     if (argShape.size() > allowedDimensions.size())
       return emitOptionalError(
           loc, "The rank of reduction-region's argument at index ",
@@ -2698,6 +2701,7 @@ LogicalResult inferSelectOp(
 
 LogicalResult inferSelectAndScatterOp(
     Value operand, SmallVectorImpl<Type>& inferredReturnTypes) {
+  // select_and_scatter_c11
   inferredReturnTypes.push_back(operand.getType());
   return success();
 }
@@ -4016,9 +4020,8 @@ LogicalResult verifySelectAndScatterOp(
   auto initValueType = initValue.getType().cast<ShapedType>();
   auto sourceType = source.getType().cast<ShapedType>();
 
-  // P1.
   Block& selectBlock = select.front();
-
+  // select_and_scatter_c9
   if (selectBlock.getArguments().size() != 2)
     return emitOptionalError(
         location, "expects the select-region to take 2 parameters, but takes ",
@@ -4027,6 +4030,7 @@ LogicalResult verifySelectAndScatterOp(
   Type expectedSelectArgType =
       RankedTensorType::get({}, operandType.getElementType());
   for (const auto& selectArgIt : llvm::enumerate(selectBlock.getArguments()))
+    // select_and_scatter_c9
     if (!compatibleShapeAndElementType(expectedSelectArgType,
                                        selectArgIt.value().getType(),
                                        /*ignoreFpPrecision=*/true))
@@ -4036,12 +4040,14 @@ LogicalResult verifySelectAndScatterOp(
           selectArgIt.value().getType());
 
   auto selectResult = selectBlock.getTerminator()->getOperands();
+  // select_and_scatter_c9
   if (selectResult.size() != 1)
     return emitOptionalError(
         location, "expects select-region to return single value, but got: ",
         selectResult.size());
 
   auto selectResultType = selectResult[0].getType().dyn_cast<ShapedType>();
+  // select_and_scatter_c9
   if (!selectResultType || !selectResultType.getElementType().isInteger(1) ||
       (selectResultType.hasRank() &&
        selectResultType.cast<RankedTensorType>().getRank() != 0))
@@ -4050,7 +4056,7 @@ LogicalResult verifySelectAndScatterOp(
         "expects the return-type of select-region to be tensor<i1>, but got: ",
         selectResult[0].getType());
 
-  // P2.
+  // select_and_scatter_c10
   if (failed(verifyReducerShape(
           location, scatter.front(),
           {RankedTensorType::get({}, sourceType.getElementType())},
@@ -4058,12 +4064,12 @@ LogicalResult verifySelectAndScatterOp(
           /*allowedDimensions=*/{})))
     return failure();
 
-  // P3.
   // TODO: add missing tests of convert1DAttribute( for SelectAndScatterOp.
   auto windowDimsOrErr =
       convert1DAttribute(windowDimensions, location, "window_dimensions");
   if (failed(windowDimsOrErr)) return failure();
   if (operandType.hasRank()) {
+    // select_and_scatter_c4
     if (operandType.getRank() !=
         static_cast<int64_t>((*windowDimsOrErr).size()))
       return emitOptionalError(
@@ -4073,7 +4079,7 @@ LogicalResult verifySelectAndScatterOp(
           (*windowDimsOrErr).size(), " and operand-type: ", operandType,
           " with rank = ", operandType.getRank(), ".");
   }
-  // P4.
+  // select_and_scatter_c8, select_and_scatter_i6
   auto paddingOrErr = convertPaddingAttribute(padding, location);
   if (failed(paddingOrErr)) return failure();
 
@@ -4081,12 +4087,12 @@ LogicalResult verifySelectAndScatterOp(
   auto windowStridesOrErr =
       convert1DAttribute(windowStrides, location, "window_strides");
   if (failed(windowStridesOrErr)) return failure();
+  // select_and_scatter_c5, select_and_scatter_c7
   auto windowOrErr = verifyWindowAttributesAndInferWindowDimensions(
       *windowDimsOrErr, *windowStridesOrErr, *paddingOrErr,
       /*lhsDilation=*/{}, /*rhsDilation=*/{}, /*windowReversal*/ {}, location);
   if (failed(windowOrErr)) return failure();
 
-  // P5.
   ShapedType windowResultType;
   if (!operandType.hasRank())
     windowResultType = UnrankedTensorType::get(operandType.getElementType());
@@ -4095,6 +4101,7 @@ LogicalResult verifySelectAndScatterOp(
         inferWindowOutputShape(operandType.getShape(), *windowOrErr),
         operandType.getElementType());
 
+  // select_and_scatter_c1, select_and_scatter_c2
   if (!compatibleShapeAndElementType(windowResultType, sourceType,
                                      /*ignoreFpPrecision=*/true))
     return emitOptionalError(location, "expects source-type to be ",

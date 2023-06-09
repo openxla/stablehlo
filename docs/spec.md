@@ -4800,41 +4800,40 @@ More formally:
 
 | Label | Name                | Type                                         | Constraints             |
 |-------|---------------------|----------------------------------------------|-------------------------|
-| (I1)  | `operand`           | tensor                                       | (C1-C5), (C7), (C9-C12) |
-| (I2)  | `source`            | tensor                                       | (C2), (C3)              |
-| (I3)  | `init_value`        | 0-dimensional tensor                         | (C4)                    |
-| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C5), (C6)  |
-| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C3), (C7), (C8)        |
-| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C3), (C9)              |
-| (I7)  | `select`            | function                                     | (C10)                   |
-| (I8)  | `scatter`           | function                                     | (C11)                   |
+| (I1)  | `operand`           | tensor                                       | (C1-C4), (C6), (C8-C11) |
+| (I2)  | `source`            | tensor                                       | (C1), (C2)              |
+| (I3)  | `init_value`        | 0-dimensional tensor                         | (C3)                    |
+| (I4)  | `window_dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C5)        |
+| (I5)  | `window_strides`    | 1-dimensional tensor constant of type `si64` | (C2), (C6), (C7)        |
+| (I6)  | `padding`           | 2-dimensional tensor constant of type `si64` | (C2), (C8)              |
+| (I7)  | `select`            | function                                     | (C9)                    |
+| (I8)  | `scatter`           | function                                     | (C10)                   |
 
 #### Outputs
 
 | Name     | Type   | Constraints |
 |----------|--------|-------------|
-| `result` | tensor | (C12)       |
+| `result` | tensor | (C11)       |
 
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) `rank(operand) = size(window_dimensions)`.
-* (C2) `element_type(operand) = element_type(source)`.
-* (C3) `shape(source) = num_windows` where:
+* (C1) `element_type(operand) = element_type(source)`.
+* (C2) `shape(source) = num_windows` where:
   * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
   * `is_empty_window = padded_operand_shape = 0 || window_dimensions > padded_operand_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1`.
-* (C4) `element_type(init_value) = element_type(operand)`.
-* (C5) `size(window_dimensions) = rank(operand)`.
-* (C6) `0 < window_dimensions`.
-* (C7) `size(window_strides) = rank(operand)`.
-* (C8) `0 < window_strides`.
-* (C9) `shape(padding) = [rank(operand), 2]`.
-* (C10) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+* (C3) `element_type(init_value) = element_type(operand)`.
+* (C4) `size(window_dimensions) = rank(operand)`.
+* (C5) `0 < window_dimensions`.
+* (C6) `size(window_strides) = rank(operand)`.
+* (C7) `0 < window_strides`.
+* (C8) `shape(padding) = [rank(operand), 2]`.
+* (C9) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
+       `E = element_type(operand)`.
+* (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
         `E = element_type(operand)`.
-* (C11) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-        `E = element_type(operand)`.
-* (C12) `type(operand) = type(result)`.
+* (C11) `type(operand) = type(result)`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4844,22 +4843,24 @@ More formally:
 // %source: [[5, 6], [7, 8]]
 // %init_value: 0
 %result = "stablehlo.select_and_scatter"(%operand, %source, %init_value) ({
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
     %0 = "stablehlo.compare"(%arg0, %arg1) {
       comparison_direction = #stablehlo<comparison_direction GE>
-    } : (tensor<i32>, tensor<i32>) -> tensor<i1>
+    } : (tensor<i64>, tensor<i64>) -> tensor<i1>
     "stablehlo.return"(%0) : (tensor<i1>) -> ()
 }, {
-  ^bb0(%arg0: tensor<i32>, %arg1: tensor<i32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i32>, tensor<i32>) -> tensor<i32>
-    "stablehlo.return"(%0) : (tensor<i32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   window_dimensions = dense<[3, 1]> : tensor<2xi64>,
   window_strides = dense<[2, 1]> : tensor<2xi64>,
   padding = dense<[[0, 1], [0, 0]]> : tensor<2x2xi64>
-} : (tensor<4x2xi32>, tensor<2x2xi32>, tensor<i32>) -> tensor<4x2xi32>
+} : (tensor<4x2xi64>, tensor<2x2xi64>, tensor<i64>) -> tensor<4x2xi64>
 // %result: [[0, 0], [0, 0], [5, 14], [7, 0]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/select_and_scatter.mlir)
 
 ### send
 
