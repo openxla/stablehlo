@@ -149,11 +149,17 @@ def HLO_PredOrIntTensor : TensorOf<[HLO_Pred, HLO_Int]>;
 // Any floating-point or complex tensor types
 def HLO_FpOrComplexTensor : TensorOf<[HLO_Float, HLO_Complex]>;
 
-// Any int, floating-point or complex tensor types
-def HLO_IntFpOrComplexTensor : TensorOf<[HLO_Int, HLO_Float, HLO_Complex]>;
+// Any floating-point, complex or quantized tensor types
+def HLO_FpComplexOrQuantizedIntTensor : TensorOf<[HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
+
+// Any int, floating-point, complex or quantized tensor types
+def HLO_IntFpOrComplexOrQuantizedIntTensor : TensorOf<[HLO_Int, HLO_Float, HLO_Complex, HLO_QuantizedInt]>;
 
 // Any pred, int or floating-point tensor types
 def HLO_PredIntOrFpTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float]>;
+
+// Any pred, int, floating-point or quantized tensor types
+def HLO_PredIntFpOrQuantizedTensor : TensorOf<[HLO_Pred, HLO_Int, HLO_Float, HLO_QuantizedInt]>;
 
 //===----------------------------------------------------------------------===//
 // HLO static shape type definitions.
