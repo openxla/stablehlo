@@ -142,15 +142,17 @@ QuantizationShift ::= IntegerConstant
 QuantizationZeroPoint ::=  IntegerConstant
 ```
 
-| Name                     | Type                                        | Constraints                  |
-|--------------------------|---------------------------------------------|------------------------------|
-| `storage_type`           | integer type                                | (C1-C4), (C9)                |
-| `storage_min`            | integer constant                            | (C2), (C4), (C8)             |
-| `storage_max`            | integer constant                            | (C3), (C4), (C8)             |
-| `expressed_type`         | floating-point type                         | (C1), (C5)                   |
-| `quantization_dimension` | optional integer constant                   | (C11-C13)                    |
-| `scales`                 | variadic number of floating-point constants | (C5-C7), (C10), (C11), (C13) |
-| `zero_points`            | variadic number of integer constants        | (C8-C10)                     |
+| Name                     | Type                                        | Constraints        |
+|--------------------------|---------------------------------------------|--------------------|
+| `storage_type`           | integer type                                | (C1-C4), (C9)      |
+| `storage_min`            | integer constant                            | (C2), (C4), (C8)   |
+| `storage_max`            | integer constant                            | (C3), (C4), (C8)   |
+| `expressed_type`         | floating-point type                         | (C1), (C5)         |
+| `quantization_dimension` | optional integer constant                   | (C11-C12)          |
+| `scales`                 | variadic number of floating-point constants | (C5-C7), (C10-C11) |
+| `zero_points`            | variadic number of integer constants        | (C8-C10)           |
+| `multipliers`            | variadic number of integer constants        | (C13)              |
+| `shifts`                 | variadic number of integer constants        | (C14)              |
 
 **Quantized element types** represent integer values of a **storage type** in
 the range from `storage_min` to `storage_max` (inclusive) that correspond to
@@ -174,6 +176,8 @@ following constraints:
 * (C10) `size(scales) = size(zero_points)`.
 * (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
 * (C12) `0 <= quantization_dimension`.
+* (C13) `0 <= multipliers < 2^(bitwidth(multiplers...) - 1)`.
+* (C14) `0 <= shifts < 2^(bitwidth(shifts...) - 1)`.
 
 In a given StableHLO operation, all the quantized tensor types are either
 represented using floating-point scales, or integer scales, with multipliers and
@@ -232,12 +236,8 @@ computations specified in the operational semantics using floating-point scales
 can be realized using integer scales with integer-only arithmetic. Refer to
 [dot_general](#dot_general) op for an example. The exact manner in which a
 computation involving floating-point scales is converted to a computation using
-integer scales for each individual operation is implementation-defined. Also,
-the bit width of the multiplier and shift, chosen for each operation, is
-implementation defined.
-
-For simplicity, we will only use floating-point scale when defining the
-operation specification, unless otherwise specified.
+integer scales for each individual operation is TBD. Also, the bit width of the
+multiplier and shift, chosen for each operation, is TBD.
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
 including the type, the values and whether there can be just one or
