@@ -3055,13 +3055,13 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
 // TODO(b/230662142): Implement unknown scales/zero_point cases.
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
-      [Pure], TensorOf<[F32, BF16, HLO_QuantizedInt]>,
+      [Pure], TensorOf<[HLO_Float, HLO_QuantizedInt]>,
       HLO_QuantizedIntTensor> {
   let summary = "UniformQuantize operation";
   let description = [{
-    Performs element-wise conversion of floating-point tensor or uniform
-    quantized tensor `operand` to a uniform quantized tensor `result`
-    according to the quantization parameters defined by the `result` type.
+    Performs element-wise conversion of floating-point tensor or quantized
+    tensor `operand` to a quantized tensor `result` according to the
+    quantization parameters defined by the `result` type.
 
     See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#uniform_quantize
@@ -3074,10 +3074,10 @@ def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize
 }
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
-      [InferTensorType, Pure], HLO_QuantizedIntTensor, TensorOf<[F32, BF16]>> {
+      [InferTensorType, Pure], HLO_QuantizedIntTensor, HLO_FpTensor> {
   let summary = "UniformDequantize operation";
   let description = [{
-    Performs element-wise conversion of uniform quantized tensor `operand` to a
+    Performs element-wise conversion of quantized tensor `operand` to a
     floating-point tensor `result` according to the quantization parameters
     defined by the `operand` type.
 

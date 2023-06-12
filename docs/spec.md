@@ -5534,11 +5534,11 @@ Produces a `result` tuple from values `val`.
 
 #### Semantics
 
-Performs element-wise conversion of uniform quantized tensor `operand` to a
+Performs element-wise conversion of quantized tensor `operand` to a
 floating-point tensor `result` according to the quantization parameters defined
 by the `operand` type.
 
-Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
+Formally, `result = dequantize(operand)`.
 
 #### Inputs
 
@@ -5569,23 +5569,23 @@ Formally, `result = (operand - zero_point(operand)) * scale(operand)`.
 
 #### Semantics
 
-Performs element-wise conversion of floating-point tensor or uniform quantized
-tensor `operand` to a uniform quantized tensor `result` according to the
-quantization parameters defined by the `result` type.
+Performs element-wise conversion of floating-point tensor or quantized tensor
+`operand` to a quantized tensor `result` according to the quantization
+parameters defined by the `result` type.
 
 Formally,
 
 * If `is_float(operand)`:
-  * `rounded_result = round_nearest_even(operand / scale(result))`.
-  * `result = clamp(storage_min(result), rounded_result + zero_point(result), storage_max(result))`.
-* If `is_quantized(operand)`: performs `dequantize_op_quantize(lambda operand:
-        operand, operand, type(result))`
+  * `result = quantize(operand, type(result))`.
+* If `is_quantized(operand)`:
+  * `float_result = dequantize(operand)`.
+  * `result = quantize(float_result, type(result))`.
 
 #### Inputs
 
-| Label | Name      | Type                                        | Constraints |
-|-------|-----------|---------------------------------------------|-------------|
-| (I1)  | `operand` | tensor of floating-point or quantized  type | (C1), (C2)  |
+| Label | Name      | Type                                       | Constraints |
+|-------|-----------|--------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or quantized type | (C1), (C2)  |
 
 #### Outputs
 
@@ -6220,13 +6220,21 @@ works for per-tensor quantization. Per-axis quantization is work in progress
 ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
 
 ```python
+
+def dequantize(x):
+  return (x - zero_point(x)) * scale(x)
+
+def quantize(x, type):
+  rounded_result = round_nearest_even(x / scale(type))
+  return clamp(storage_min(type), rounded_result + zero_point(type), storage_max(type))
+
 def dequantize_op_quantize(op, *inputs_and_output_type):
   inputs = inputs_and_output_type[:-1]
   output_type = inputs_and_output_type[-1]
-  float_inputs = [(x - zero_point(x)) * scale(x) for x in inputs]
+
+  float_inputs = [dequantize(x) for x in inputs]
   float_result = op(*float_inputs)
-  rounded_result = round_nearest_even(float_result / scale(output_type))
-  return clamp(storage_min(output_type), rounded_result, storage_max(output_type))
+  return quantize(float_result, output_type)
 ```
 
 #### Grid computations
