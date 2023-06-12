@@ -133,10 +133,8 @@ QuantizationExpressedType ::= FloatType
 QuantizationDimension ::= IntegerConstant
 QuantizationParameters ::= QuantizationParameter
                          | '{' QuantizationParameter {',' QuantizationParameter} '}'
-QuantizationParameter ::= QuantizationScale  ':' QuantizationZeroPoint
-QuantizationScale ::= ( QuantizationFloatingPointScale  | QuantizationIntegerScale )
-QuantizationFloatingPointScale ::= FloatConstant
-QuantizationIntegerScale ::= '<' QuantizationMultiplier ',' QuantizationShift '>'
+QuantizationParameter ::= (QuantizationScale | '<' QuantizationMultiplier ',' QuantizationShift '>') ':' QuantizationZeroPoint
+QuantizationScale ::= FloatConstant
 QuantizationMultiplier ::= IntegerConstant
 QuantizationShift ::= IntegerConstant
 QuantizationZeroPoint ::=  IntegerConstant
@@ -176,33 +174,32 @@ following constraints:
 * (C10) `size(scales) = size(zero_points)`.
 * (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
 * (C12) `0 <= quantization_dimension`.
-* (C13) `0 <= multipliers < 2^(bitwidth(multiplers...) - 1)`.
-* (C14) `0 <= shifts < 2^(bitwidth(shifts...) - 1)`.
+* (C13) `0 <= multipliers`.
+* (C14) `0 < shifts`.
 
-In a given StableHLO operation, all the quantized tensor types are either
-represented using floating-point scales, or integer scales, with multipliers and
-shifts. The floating-point scale `scale` value and the integer scale, with
-`multipler`, and `shift` values, are related as: `round_nearest_even(scale *
-2^shift) == multipler`.
+All quantized tensor types, in a given StableHLO operation, either
+use scales or multipliers and shifts. The `scales`, `multiplers` and `shifts`,
+are related as:
+`round_nearest_even(scales... * 2^shifts...) = multiplers`.
 
 The following demonstrates, using C++ code, a possible implementation of
-deriving the integer parameters `multipler` and `shift` of type `i32` from a
-floating-point scale `scale` of type `f64`:
+deriving the integer quantization parameters `multipler` and `shift` of type
+`i32` from a floating-point scale `scale` of type `f64`:
 
 ```c++
     int32_t exponent;
     double mantissa = std::frexp(scale, &exponent);
     std::fesetround(FE_TONEAREST);
-    auto exponentedMantissa = static_cast<int64_t>(std::rint(mantissa * (int64_t(1) << 31)));
+    auto shiftedMantissa = static_cast<int64_t>(std::rint(mantissa * (int64_t(1) << 31)));
 
-    // Ensure that `exponentedMantissa` is within limits of 32-bit integer type.
-    if (exponentedMantissa == (int64_t(1) << 31)) {
-        exponentedMantissa /= 2;
+    // Ensure that `shiftedMantissa` is within limits of 32-bit integer type.
+    if (shiftedMantissa == (int64_t(1) << 31)) {
+        shiftedMantissa /= 2;
         exponent++;
     }
 
     // At this point, `adjustedMantissa = round_nearest_even(scale * 2^(31-exponent)) < 2^31`.
-    int64_t adjustedMantissa = exponentedMantissa;
+    int64_t adjustedMantissa = shiftedMantissa;
 
     // For small `scale` value, flush `adjustedMantissa` to zero.
     if (exponent < -31) {
@@ -231,13 +228,10 @@ above.
 
 The above conversion allows for the transformation of a StableHLO program that
 uses quantized types with floating-point scales to quantized types with integer
-scales. The latter allows for integer-only arithmetic. At a high-level, any
-computations specified in the operational semantics using floating-point scales
-can be realized using integer scales with integer-only arithmetic. Refer to
-[dot_general](#dot_general) op for an example. The exact manner in which a
-computation involving floating-point scales is converted to a computation using
-integer scales for each individual operation is TBD. Also, the bit width of the
-multiplier and shift, chosen for each operation, is TBD.
+multipliers and shifts. The latter allows for integer-only arithmetic. The
+exact manner in which a computation, as specified in the semantics section of an
+operation, involving floating-point scales gets converted to a computation
+using integer multipliers an shifts is TBD.
 
 There is an ongoing discussion on the semantics of `QuantizationZeroPoint`,
 including the type, the values and whether there can be just one or
@@ -2376,13 +2370,6 @@ More formally, `result[result_index] = dot_product`, where:
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
-    If the `scale(reshaped_lhs_slice)`, `scale(reshape_rhs_slice)`, and
-    `scale(result)` are respectively represented as integer multiplier and
-    shift pairs, like,
-    `(M_reshaped_lhs_slice, n_reshaped_lhs_slice), (M_reshaped_rhs_slice, n_reshaped_rhs_slice), and (M_result, n_result)`,
-    then the computation can be implemented as
-    `rounded_dot_product = (integer_dot_product * M + (1<<(n-1))) >> n`, where
-    `M = ((M_reshaped_lhs_slice * M_reshaped_rhs_slice) / M_result)) and n = (n_reshaped_lhs_slice + n_reshaped_rhs_slice - n_result)`.
   * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
 <!-- markdownlint-enable line-length -->
 
