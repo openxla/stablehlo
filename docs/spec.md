@@ -210,19 +210,6 @@ quantization parameters. Quantized tensor types have the following constraints:
   * (C12) `quantization_dimension < rank(self)`.
   * (C13) `dim(self, quantization_dimension) = size(scales)`.
 
-For simplicity, we only define individual operation semantics for per-tensor
-quantized type. Semantics of per-axis type, if supported by the op, can be
-derived as follows:
-
-Given an operation specification with per-tensor quantized type, let the
-semantics of the operation includes some application of the quantization
-parameters `zero_point` and `scale` to a tensor element`e` at index = `[i0, ...,
-id, ..., iR-1]`. The specification for the semantics of the same operation on
-tensor element `e`, with per-axis quantized type with quantization dimension `d`
-, would exactly be the same as the one with per-tensor type except that the
-`zero_point` and `scale` will be replaced with their per-axis counterparts,
-`zero_points[id]` and `scales[id]` resp.
-
 ```ebnf
 TokenType ::= 'token'
 ```
@@ -1974,8 +1961,8 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padded_lhs_value = is_quantized(lhs)? zero_point(lhs) : 0`.
-* `padded_lhs = pad(lhs, padded_lhs_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
+* `padding_value = is_quantized_tensor(lhs) ? constant(zero_point(lhs), quantized_element_type(lhs)) : constant(0, element_type(lhs))`.
+* `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
 * `reversed_lhs_window = reverse(lhs_window, [input_spatial_dimensions[dim] for dim in range(size(window_reversal)) if window_reversal[dim] = true])`.
@@ -2004,72 +1991,71 @@ If `batch_group_count > 1`:
 
 #### Inputs
 
-| Label | Name                              | Type                                                         | Constraints                                     |
-|-------|-----------------------------------|--------------------------------------------------------------|-------------------------------------------------|
-| (I1)  | `lhs`                             | tensor or quantized tensor                                   | (C1), (C10-C11), (C14) (C25), (C27-C32)         |
-| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C31), (C33), (C35) |
-| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C25)                               |
-| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C4), (C25)                                     |
-| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5), (C6), (C25)                               |
-| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7), (C8), (C25)                               |
-| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C9)                                            |
-| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C10), (C13), (C25)                             |
-| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13), (C14)                             |
-| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13), (C25)                             |
-| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                                    |
-| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15), (C16), (C18), (C25), (C33)               |
-| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17), (C18), (C25)                             |
-| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20), (C25)                                    |
-| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C25), (C35)                             |
-| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C19), (C20), (C25)                             |
-| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C11), (C14), (C16), (C21), (C23)               |
-| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C10), (C15), (C22), (C23), (C25)               |
-| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C24)                                           |
+| Label | Name                              | Type                                                         | Constraints                             |
+|-------|-----------------------------------|--------------------------------------------------------------|-----------------------------------------|
+| (I1)  | `lhs`                             | tensor or per-tensor quantized tensor                        | (C1), (C10-C11), (C14) (C25), (C27-C30) |
+| (I2)  | `rhs`                             | tensor or quantized tensor                                   | (C1), (C14-C16), (C25), (C27-C32)       |
+| (I3)  | `window_strides`                  | 1-dimensional tensor constant of type `si64`                 | (C2-C3), (C25)                          |
+| (I4)  | `padding`                         | 2-dimensional tensor constant of type `si64`                 | (C4), (C25)                             |
+| (I5)  | `lhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C5-C6), (C25)                          |
+| (I6)  | `rhs_dilation`                    | 1-dimensional tensor constant of type `si64`                 | (C7-C8), (C25)                          |
+| (I7)  | `window_reversal`                 | 1-dimensional tensor constant of type `i1`                   | (C9)                                    |
+| (I8)  | `input_batch_dimension`           | constant of type `si64`                                      | (C10), (C13), (C25)                     |
+| (I9)  | `input_feature_dimension`         | constant of type `si64`                                      | (C11), (C13-C14)                        |
+| (I10) | `input_spatial_dimensions`        | 1-dimensional tensor constant of type `si64`                 | (C12), (C13), (C25)                     |
+| (I11) | `kernel_input_feature_dimension`  | constant of type `si64`                                      | (C14), (C18)                            |
+| (I12) | `kernel_output_feature_dimension` | constant of type `si64`                                      | (C15-C16), (C18), (C25), (C32)          |
+| (I13) | `kernel_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C17-C18), (C25)                        |
+| (I14) | `output_batch_dimension`          | constant of type `si64`                                      | (C20), (C25)                            |
+| (I15) | `output_feature_dimension`        | constant of type `si64`                                      | (C20), (C25), (C33)                     |
+| (I16) | `output_spatial_dimensions`       | 1-dimensional tensor constant of type `si64`                 | (C19-C20), (C25)                        |
+| (I17) | `feature_group_count`             | constant of type `si64`                                      | (C11), (C14), (C16), (C21), (C23)       |
+| (I18) | `batch_group_count`               | constant of type `si64`                                      | (C10), (C15), (C22), (C23), (C25)       |
+| (I19) | `precision_config`                | variadic number of enums of `DEFAULT`, `HIGH`, and `HIGHEST` | (C24)                                   |
 
 #### Outputs
 
 | Name     | Type                       | Constraints                 |
 |----------|----------------------------|-----------------------------|
-| `result` | tensor or quantized tensor | (C25-C29), (C31), (C34-C35) |
+| `result` | tensor or quantized tensor | (C25-C28), (C30-C31), (C33) |
 
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
 * (C1) `N = rank(lhs) = rank(rhs)`.
-* (C2) `element_type(lhs) = element_type(rhs)`.
-* (C3) `size(window_strides) = N - 2`.
-* (C4) `0 < window_strides`.
-* (C5) `shape(padding) = [N - 2, 2]`.
-* (C6) `size(lhs_dilation) = N - 2`.
-* (C7) `0 < lhs_dilation`.
-* (C8) `size(rhs_dilation) = N - 2`.
-* (C9) `0 < rhs_dilation`.
-* (C10) `size(window_reversal) = N - 2`.
-* (C11) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
-* (C12) `dim(lhs, input_feature_dimension) % feature_group_count = 0`.
-* (C13) `size(input_spatial_dimensions) = N - 2`.
-* (C14) Given `input_dimensions = [input_batch_dimension] +
+* (C2) `size(window_strides) = N - 2`.
+* (C3) `0 < window_strides`.
+* (C4) `shape(padding) = [N - 2, 2]`.
+* (C5) `size(lhs_dilation) = N - 2`.
+* (C6) `0 < lhs_dilation`.
+* (C7) `size(rhs_dilation) = N - 2`.
+* (C8) `0 < rhs_dilation`.
+* (C9) `size(window_reversal) = N - 2`.
+* (C10) `dim(lhs, input_batch_dimension) % batch_group_count = 0`.
+* (C11) `dim(lhs, input_feature_dimension) % feature_group_count = 0`.
+* (C12) `size(input_spatial_dimensions) = N - 2`.
+* (C13) Given `input_dimensions = [input_batch_dimension] +
        input_spatial_dimensions + [input_feature_dimension]`:
   * `is_unique(input_dimensions)`.
   * `0 <= input_dimensions < N`.
-* (C15) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
-* (C16) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
-* (C17) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
-* (C18) `size(kernel_spatial_dimensions) = N - 2`.
-* (C19) Given `kernel_dimensions = kernel_spatial_dimensions +
+* (C14) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
+* (C15) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
+* (C16) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
+* (C17) `size(kernel_spatial_dimensions) = N - 2`.
+* (C18) Given `kernel_dimensions = kernel_spatial_dimensions +
         [kernel_input_feature_dimension] + [kernel_output_feature_dimension]`:
   * `is_unique(kernel_dimensions)`.
   * `0 <= kernel_dimensions < N`.
-* (C20) `size(output_spatial_dimensions) = N - 2`.
-* (C21) Given `output_dimensions = [output_batch_dimension] +
+* (C19) `size(output_spatial_dimensions) = N - 2`.
+* (C20) Given `output_dimensions = [output_batch_dimension] +
         output_spatial_dimensions + [output_feature_dimension]`:
   * `is_unique(output_dimensions)`.
   * `0 <= output_dimensions < N`.
-* (C22) `0 < feature_group_count`.
-* (C23) `0 < batch_group_count`.
-* (C24) `feature_group_count = 1 or batch_group_count = 1`.
-* (C25) `size(precision_config) = 2`.
-* (C26) `dim(result, result_dim)` is defined as:
+* (C21) `0 < feature_group_count`.
+* (C22) `0 < batch_group_count`.
+* (C23) `feature_group_count = 1 or batch_group_count = 1`.
+* (C24) `size(precision_config) = 2`.
+* (C25) `dim(result, result_dim)` is defined as:
   * `dim(lhs, input_batch_dimension) / batch_group_count` if `result_dim = output_batch_dimension`.
   * `dim(rhs, kernel_output_feature_dimension)` if `result_dim = output_feature_dimension`.
   * `num_windows` otherwise, where:
@@ -2081,8 +2067,20 @@ If `batch_group_count > 1`:
     * `dilated_window_shape[lhs_dim] = dim(rhs, rhs_dim) = 0 ? 0 : (dim(rhs, rhs_dim) - 1) * rhs_dilation[spatial_dim] + 1`.
     * `is_empty_window[lhs_dim] = padded_input_shape[lhs_dim] = 0 || dilated_window_shape[lhs_dim] > padded_input_shape[lhs_dim]`.
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
-* (C27) `element_type(result) = element_type(lhs)`.
-* (C28) `rank(result) = N`.
+* (C26) `rank(result) = N`.
+* If the operation uses non-quantized tensors:
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
+* If the operation uses quantized tensors:
+  * (C28) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C29) `storage_type(lhs) =  storage_type(rhs)`.
+  * (C30) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C31) If `is_per_tensor_quantized(rhs)`, then
+    `is_per_tensor_quantized(result)`.
+  * (C32) If `is_per_axis_quantized(rhs)`, then
+    `quantization_dimension(rhs) = kernel_output_feature_dimension`.
+  * (C33) If `is_per_axis_quantized(result)`, then
+    `quantization_dimension(result) = output_feature_dimension`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -3666,29 +3664,35 @@ More formally, `result[result_index]` is defined as:
 
 #### Inputs
 
-| Label | Name                | Type                                         | Constraints   |
-|-------|---------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`           | tensor or quantized tensor                   | (C1-C2), (C4) |
-| (I2)  | `padding_value`     | 0-dimensional tensor or quantized tensor     | (C1)          |
-| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
-| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64` | (C2), (C4)    |
-| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64` | (C2-C4)       |
+| Label | Name                | Type                                                | Constraints |
+|-------|---------------------|-----------------------------------------------------|-------------|
+| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C3)  |
+| (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C4-C6)     |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64`        | (C1), (C3)  |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64`        | (C1), (C3)  |
+| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64`        | (C1-C3)     |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C3-C6)     |
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(padding_value) =
-  element_type(result)`.
-* (C2) `size(edge_padding_low) = size(edge_padding_high) =
+* (C1) `size(edge_padding_low) = size(edge_padding_high) =
   size(interior_padding) = rank(operand)`.
-* (C3) `0 <= interior_padding`.
-* (C4) `shape(result) = shape(operand) + edge_padding_low +
+* (C2) `0 <= interior_padding`.
+* (C3) `shape(result) = shape(operand) + edge_padding_low +
   max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
+* (C4) If the operation uses non-quantized tensors:
+  * `element_type(operand) = element_type(padding_value) =
+  element_type(result)`.
+* If the operation uses quantized tensors:
+  * (C5) `is_quantized_tensor(operand) and is_quantized_tensor(padding_value)
+    and is_quantized_tensor(result)`.
+  * (C6) `quantized_element_type(operand) =
+    quantized_element_type(padding_value) = quantized_element_type(result)`.
 
 #### Examples
 
@@ -4332,14 +4336,14 @@ and produces a `result` tensor. More formally,
 
 | Label | Name         | Type                                         | Constraints |
 |-------|--------------|----------------------------------------------|-------------|
-| (I1)  | `operand`    | tensor   or quantized tensor                 | (C1), (C3)  |
+| (I1)  | `operand`    | tensor or per-tensor quantized tensor        | (C1), (C3)  |
 | (I2)  | `dimensions` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
 
 #### Outputs
 
-| Name     | Type                       | Constraints |
-|----------|----------------------------|-------------|
-| `result` | tensor or quantized tensor | (C1), (C3)  |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
