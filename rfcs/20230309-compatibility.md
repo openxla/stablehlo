@@ -1,8 +1,9 @@
 # Increase backward compatibility guarantees to 6 months
 
 Status: Approved<br/>
-Initial version: 3/9/2022<br/>
-Last updated: 3/24/2022
+Initial version: 3/9/2023<br/>
+Last updated: 3/24/2023<br/>
+Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/1306)
 
 ## Summary
 
