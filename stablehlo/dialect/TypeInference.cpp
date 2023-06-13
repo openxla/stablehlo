@@ -502,8 +502,12 @@ LogicalResult verifyReduceOpInputsAndInferShape(
          dimension >= inputTypes[rankedInputIdx].getRank()) ||
         dimension < 0)
       return emitOptionalError(
-          location, "Out-of-bounds dimension ", dimension,
-          " for input-tensor rank: ", inputTypes[rankedInputIdx].getRank());
+          location, "Out-of-bounds dimension ", dimension, ", expected to be ",
+          allInputsUnranked
+              ? "> 0"
+              : "less than the input-tensor rank " +
+                    std::to_string(inputTypes[rankedInputIdx].getRank()));
+
     // reduce_c5
     if (!dimensionsToReduceSet.insert(dimension).second)
       return emitOptionalError(location,
