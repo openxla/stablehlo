@@ -171,7 +171,7 @@ func.func @reduce_c2(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xi32>,
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension -1 for input-tensor rank: 2}}
+  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be less than the input-tensor rank 2}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
@@ -187,7 +187,7 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
 func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
     -> (tensor<?xf32>) {
 
-  // expected-error@+1 {{Out-of-bounds dimension 2 for input-tensor rank: 2}}
+  // expected-error@+1 {{Out-of-bounds dimension 2, expected to be less than the input-tensor rank 2}}
   %0 = "stablehlo.reduce"(%arg0, %arg1) ({
 
   ^bb0(%arg2: tensor<f32>, %arg3: tensor<f32> ):
@@ -196,6 +196,20 @@ func.func @reduce_c4(%arg0: tensor<?x?xf32>, %arg1 : tensor<f32>)
   }) {dimensions = dense<[2]> : tensor<1xi64>} : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
 
   func.return %0: tensor<?xf32>
+}
+
+// -----
+
+func.func @reduce_c4(%arg0: tensor<*xf32>, %arg1 : tensor<*xf32>)
+    -> (tensor<*xf32>) {
+
+  // expected-error@+1 {{Out-of-bounds dimension -1, expected to be > 0}}
+  %0 = "stablehlo.reduce"(%arg0, %arg1) ({
+  ^bb0(%arg2: tensor<*xf32>, %arg3: tensor<*xf32> ):
+    %1 = "stablehlo.add"(%arg2, %arg3) : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+    "stablehlo.return"(%1) : (tensor<*xf32>) -> ()
+  }) {dimensions = dense<[-1]> : tensor<1xi64>} : (tensor<*xf32>, tensor<*xf32>) -> tensor<*xf32>
+  func.return %0: tensor<*xf32>
 }
 
 // -----
