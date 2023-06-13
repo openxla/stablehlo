@@ -2,7 +2,8 @@
 
 Status: Approved<br/>
 Initial version: 9/12/2022<br/>
-Last updated: 12/13/2022
+Last updated: 12/13/2022<br/>
+Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/115)
 
 ## Version log
 
