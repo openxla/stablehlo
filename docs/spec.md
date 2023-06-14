@@ -4343,8 +4343,6 @@ and produces a `result` tensor. More formally,
 * (C1) `type(operand) = type(result)`.
 * (C2) `is_unique(dimensions)`.
 * (C3) `0 <= dimensions < rank(result)`.
-* If the operation uses quantized tensors:
-  * (C4) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
 
 #### Examples
 
