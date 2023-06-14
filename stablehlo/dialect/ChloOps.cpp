@@ -26,6 +26,7 @@ limitations under the License.
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/InliningUtils.h"
+#include "stablehlo/dialect/Base.h"
 #include "stablehlo/dialect/BroadcastUtils.h"
 #include "stablehlo/dialect/ChloBytecode.h"
 #include "stablehlo/dialect/TypeInference.h"
@@ -143,7 +144,8 @@ LogicalResult InferBroadcastBinaryOpReturnTypeComponents(
   ShapedType lhsType = operands[0].getType().cast<ShapedType>();
   ShapedType rhsType = operands[1].getType().cast<ShapedType>();
   if (!lhsType || !rhsType ||
-      lhsType.getElementType() != rhsType.getElementType())
+      !hlo::isCompatibleElementTypeForHloTypeInference(
+          lhsType.getElementType(), rhsType.getElementType()))
     return emitOptionalError(location, "mismatched operand types");
   if (!elementType) elementType = lhsType.getElementType();
   inferredReturnShapes.push_back(

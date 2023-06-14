@@ -1,5 +1,22 @@
 // RUN: stablehlo-opt %s -verify-diagnostics -split-input-file | FileCheck %s
 
+
+// CHECK-LABEL: func @broadcast_add_quantized
+func.func @broadcast_add_quantized(%arg0: tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<2x2x!quant.uniform<i8:f32, 3.0:15>>) -> tensor<2x2x!quant.uniform<i8:f32, 2.0:15>> {
+  %0 = "chlo.broadcast_add"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x2x!quant.uniform<i8:f32, 3.0:15>>) -> tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>
+  func.return %0: tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>
+}
+
+// -----
+
+func.func @broadcast_add_quantized(%arg0: tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>, %arg1: tensor<2x2x!quant.uniform<i8:f32, 3.0:15>>) -> tensor<2x2x!quant.uniform<i16:f32, 2.0:15>> {
+  // expected-error @+1{{'chlo.broadcast_add' op requires compatible element types for all operands and results}}
+  %0 = "chlo.broadcast_add"(%arg0, %arg1) : (tensor<2x2x!quant.uniform<i8:f32, 2.0:15>>, tensor<2x2x!quant.uniform<i8:f32, 3.0:15>>) -> tensor<2x2x!quant.uniform<i16:f32, 2.0:15>>
+  func.return %0: tensor<2x2x!quant.uniform<i16:f32, 2.0:15>>
+}
+
+// -----
+
 func.func @constant_like(%arg0: tensor<1x2xi64>) -> (tensor<1x2xi32>) {
   // expected-error @+1 {{'chlo.constant_like' op value's type doesn't match element return type}}
   %0 = "chlo.constant_like"(%arg0) { value = 3.2 : f32 } : (tensor<1x2xi64>) -> tensor<1x2xi32>

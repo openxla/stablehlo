@@ -117,7 +117,7 @@ class CHLO_BroadcastBinaryElementwiseOp<
 }
 
 def CHLO_BroadcastAddOp : CHLO_BroadcastBinaryElementwiseOp<"broadcast_add",
-    [Commutative, Pure, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, HLO_CompatibleOperandsAndResultElementType]> {
   string summary = "Addition operator (with optional broadcasting)";
 
   string description = [{
