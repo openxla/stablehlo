@@ -44,18 +44,39 @@ option(STABLEHLO_ENABLE_STRICT_BUILD "Build StableHLO with strict warnings and w
 #-------------------------------------------------------------------------------
 # Project setup and globals
 #-------------------------------------------------------------------------------
-set(STABLEHLO_STANDALONE_BUILD OFF)
+set(STABLEHLO_EXTERNAL_PROJECT_BUILD OFF)
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  set(STABLEHLO_STANDALONE_BUILD ON)
+if(NOT (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR) AND NOT MLIR_BINARY_DIR)
+  # Building as part of LLVM via the external project mechanism.
+  set(STABLEHLO_EXTERNAL_PROJECT_BUILD ON)
+else()
+  # Building standalone.
   project(stablehlo LANGUAGES CXX C)
   set(CMAKE_C_STANDARD 11)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-if(NOT STABLEHLO_STANDALONE_BUILD AND NOT MLIR_BINARY_DIR)
-  # Building as part of LLVM via the external project mechanism.
-  set(STABLEHLO_EXTERNAL_PROJECT_BUILD ON)
+# Build with ccache if the package is present
+set(LLVM_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
+if(LLVM_CCACHE_BUILD)
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+      set(LLVM_CCACHE_MAXSIZE "" CACHE STRING "Size of ccache")
+      set(LLVM_CCACHE_DIR "" CACHE STRING "Directory to keep ccached data")
+      set(LLVM_CCACHE_PARAMS "CCACHE_CPP2=yes CCACHE_HASHDIR=yes"
+          CACHE STRING "Parameters to pass through to ccache")
+
+      set(CCACHE_PROGRAM "${LLVM_CCACHE_PARAMS} ${CCACHE_PROGRAM}")
+      if (LLVM_CCACHE_MAXSIZE)
+        set(CCACHE_PROGRAM "CCACHE_MAXSIZE=${LLVM_CCACHE_MAXSIZE} ${CCACHE_PROGRAM}")
+      endif()
+      if (LLVM_CCACHE_DIR)
+        set(CCACHE_PROGRAM "CCACHE_DIR=${LLVM_CCACHE_DIR} ${CCACHE_PROGRAM}")
+      endif()
+      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
+  else()
+    message(FATAL_ERROR "Unable to find the program ccache. Set LLVM_CCACHE_BUILD to OFF")
+  endif()
 endif()
 
 #-------------------------------------------------------------------------------
@@ -94,6 +115,10 @@ else()
   message(STATUS "Building StableHLO embedded in another project")
 endif()
 
+if(LLVM_ENABLE_ZLIB)
+  find_package(ZLIB)
+endif()
+
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
@@ -110,8 +135,8 @@ add_definitions(${LLVM_DEFINITIONS})
 #-------------------------------------------------------------------------------
 
 if(STABLEHLO_ENABLE_BINDINGS_PYTHON)
-  if(STABLEHLO_STANDALONE_BUILD)
-    message(WARNING "StableHLO Python bindings are not supported in standalone mode. See build_tools/README.md for instructions.")
+  if(NOT STABLEHLO_EXTERNAL_PROJECT_BUILD)
+    message(WARNING "StableHLO Python bindings are not supported in standalone mode")
   endif()
 
   include(MLIRDetectPythonEnv)
