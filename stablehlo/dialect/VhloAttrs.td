@@ -39,15 +39,14 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   let cppNamespace = "::mlir::vhlo";
   let extraClassDeclaration = [{
     mlir::vhlo::Version getMinVersion() {
-      auto version = mlir::vhlo::Version::fromString("}] #  minVersion # [{");
-      if (failed(version)) llvm::report_fatal_error("invalid version }] # minVersion # [{ in }] # name # [{");
-      return *version;
+      return mlir::vhlo::Version(}] # !subst(".", ", ", minVersion) # [{);
     }
     mlir::vhlo::Version getMaxVersion() {
-      if (!strcmp("}] # maxVersion # [{", "current")) return Version::getCurrentVersion();
-      auto version = mlir::vhlo::Version::fromString("}] #  maxVersion # [{");
-      if (failed(version)) llvm::report_fatal_error("invalid version }] # maxVersion # [{ in }] # name # [{");
-      return *version;
+      }] # !if(
+        !eq(maxVersion, "current"),
+        [{ return mlir::vhlo::Version::getCurrentVersion(); }],
+        [{ return mlir::vhlo::Version("}] # !subst(".", ", ", maxVersion) # [{"); }]
+      ) # [{
     }
   }];
 }
