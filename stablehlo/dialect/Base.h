@@ -60,6 +60,11 @@ inline static bool isStaticDimSize(int64_t val) {
 //  different element types.
 LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2);
 
+// Returns true if the given element types are compatible for the purposes of
+// HLO type inference, accounting for special properties of quantization and
+// sparsity.
+bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2);
+
 // Returns true if the given types are compatible for the purposes of HLO type
 // inference, accounting for special properties of dynamism, quantization and
 // sparsity.
@@ -266,6 +271,31 @@ class PairwiseSameOperandAndResultType
       }
     }
     return success();
+  }
+};
+
+template <typename ConcreteType>
+class CompatibleOperandsAndResultElementType
+    : public mlir::OpTrait::TraitBase<ConcreteType,
+                                      CompatibleOperandsAndResultElementType> {
+ public:
+  static LogicalResult verifyTrait(Operation *op) {
+    Type expected;
+    if (op->getNumResults() != 0) expected = op->getResult(0).getType();
+    if (op->getNumOperands() != 0) expected = op->getOperand(0).getType();
+    if (!expected) return failure();
+
+    auto typeMatch = [&](Type actual) {
+      return isCompatibleElementTypeForHloTypeInference(actual, expected);
+    };
+    auto allMatch = llvm::all_of(op->getOperandTypes(), typeMatch) &&
+                    llvm::all_of(op->getResultTypes(), typeMatch);
+    if (!allMatch) {
+      return op->emitOpError(
+          "requires compatible element types for all operands and results");
+    }
+
+    return success(allMatch);
   }
 };
 

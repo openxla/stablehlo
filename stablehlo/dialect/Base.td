@@ -202,6 +202,9 @@ def HLO_CompatibleOperandsAndResultType : TraitList<
     HLO_NativeOpTrait<"CompatibleOperandsAndResultType">
   ]>;
 
+def HLO_CompatibleOperandsAndResultElementType :
+  HLO_NativeOpTrait<"CompatibleOperandsAndResultElementType">;
+
 def HLO_BoundedAttrInterface : AttrInterface<"BoundedAttrInterface"> {
   let cppNamespace = "::mlir::hlo";
 

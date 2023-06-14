@@ -67,22 +67,10 @@ LogicalResult verifyCompatibleShapeWithBounds(Type type1, Type type2) {
   return success();
 }
 
-bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
-  // Dynamism: We don't require shapes to be the same, we only require them
-  // to be compatible, which means that:
-  //   1) At least one of the shapes is unranked.
-  //   2) Or both shapes have the same rank and their dimensions are compatible,
-  //     i.e. for each pair of corresponding dimensions:
-  //       2.1) At least one of the dimensions is dynamic,
-  //       2.2) Or both dimensions are equal.
-  // These relaxed rules simplify the implementation of type inference, allowing
-  // ops with partially inferred types to pass verification.
-  auto stp1 = tp1.dyn_cast<ShapedType>();
-  auto stp2 = tp2.dyn_cast<ShapedType>();
-  if (stp1 && stp2)
-    return succeeded(verifyCompatibleShapeWithBounds(stp1, stp2)) &&
-           isCompatibleForHloTypeInference(stp1.getElementType(),
-                                           stp2.getElementType());
+bool isCompatibleElementTypeForHloTypeInference(Type tp1, Type tp2) {
+  // Get element type if shaped
+  tp1 = getElementTypeOrSelf(tp1);
+  tp2 = getElementTypeOrSelf(tp2);
 
   // Quantization: In the most general case, we allow any combination of
   // quantized/non-quantized across any combination of operands/results,
@@ -109,6 +97,26 @@ bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
   // Default case: Unless dynamism, quantization and/or sparsity are involved,
   // the types are required to be exactly equal.
   return etp1 == etp2;
+}
+
+bool isCompatibleForHloTypeInference(Type tp1, Type tp2) {
+  // Dynamism: We don't require shapes to be the same, we only require them
+  // to be compatible, which means that:
+  //   1) At least one of the shapes is unranked.
+  //   2) Or both shapes have the same rank and their dimensions are compatible,
+  //     i.e. for each pair of corresponding dimensions:
+  //       2.1) At least one of the dimensions is dynamic,
+  //       2.2) Or both dimensions are equal.
+  // These relaxed rules simplify the implementation of type inference, allowing
+  // ops with partially inferred types to pass verification.
+  auto stp1 = tp1.dyn_cast<ShapedType>();
+  auto stp2 = tp2.dyn_cast<ShapedType>();
+  if (stp1 && stp2)
+    return succeeded(verifyCompatibleShapeWithBounds(stp1, stp2)) &&
+           isCompatibleElementTypeForHloTypeInference(stp1.getElementType(),
+                                                      stp2.getElementType());
+
+  return isCompatibleElementTypeForHloTypeInference(tp1, tp2);
 }
 
 bool isCompatibleForHloTypeInference(TypeRange tp1, TypeRange tp2) {
