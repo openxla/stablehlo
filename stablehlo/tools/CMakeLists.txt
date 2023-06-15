@@ -14,6 +14,7 @@
 # limitations under the License.
 
 set(LLVM_OPTIONAL_SOURCES
+  StablehloLspServerMain.cpp
   StablehloOptMain.cpp
   StablehloTranslateMain.cpp
   Interpreter.cpp
@@ -59,3 +60,20 @@ target_link_libraries(stablehlo-translate PRIVATE
 )
 
 mlir_check_all_link_libraries(stablehlo-translate)
+
+
+# stablehlo-lsp-server
+set(LIBS
+        ${dialect_libs}
+        ${conversion_libs}
+        MLIRBytecodeWriter
+        MLIRIR
+        MLIRLspServerLib
+        MLIRParser
+        StablehloRegister
+        StablehloTestUtils
+        StablehloTOSATransforms
+        )
+add_llvm_executable(stablehlo-lsp-server StablehloLspServerMain.cpp)
+llvm_update_compile_flags(stablehlo-lsp-server)
+target_link_libraries(stablehlo-lsp-server PRIVATE ${LIBS})
