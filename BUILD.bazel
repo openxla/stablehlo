@@ -816,6 +816,7 @@ cc_binary(
         ":stablehlo_passes",
         ":tosa_passes",
         "//stablehlo/tests:test_utils",
+        "@llvm-project//mlir:AllExtensions",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:TosaDialect",
