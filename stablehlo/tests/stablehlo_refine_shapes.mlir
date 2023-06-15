@@ -139,6 +139,20 @@ func.func @eval_broadcast_in_dim() -> tensor<1xi64> {
 
 // -----
 
+// CHECK-LABEL: func @eval_clamp
+func.func @eval_clamp() -> tensor<3xi64> {
+  // CHECK-NOT: stablehlo.clamp
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[1, 3, 4]> : tensor<3xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[1, 1, 1]> : tensor<3xi64>
+  %1 = stablehlo.constant dense<[0, 3, 6]> : tensor<3xi64>
+  %2 = stablehlo.constant dense<[4, 4, 4]> : tensor<3xi64>
+  %3 = stablehlo.clamp %0, %1, %2 : tensor<3xi64>
+  func.return %3 : tensor<3xi64>
+}
+
+// -----
+
 // CHECK-LABEL: func @eval_compare_eq
 func.func @eval_compare_eq() -> tensor<i1> {
   // CHECK-NOT: stablehlo.compare
@@ -287,6 +301,19 @@ func.func @eval_maximum() -> tensor<i64> {
   %0 = stablehlo.constant dense<1> : tensor<i64>
   %1 = stablehlo.constant dense<4> : tensor<i64>
   %2 = stablehlo.maximum %0, %1 : tensor<i64>
+  func.return %2 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_minimum
+func.func @eval_minimum() -> tensor<i64> {
+  // CHECK-NOT: stablehlo.minimum
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<1> : tensor<i64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<1> : tensor<i64>
+  %1 = stablehlo.constant dense<4> : tensor<i64>
+  %2 = stablehlo.minimum %0, %1 : tensor<i64>
   func.return %2 : tensor<i64>
 }
 

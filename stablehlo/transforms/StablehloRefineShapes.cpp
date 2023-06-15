@@ -82,45 +82,43 @@ APSInt getAPSInt(Type type, uint64_t value) {
 // depends on the value of their shape operands.
 
 template <typename OpType, typename FuncType>
-LogicalResult evalUnary(PatternRewriter& rewriter, OpType op, FuncType fn) {
-  if (op->getNumOperands() != 1)
-    llvm::report_fatal_error("expected one operand");
-
+LogicalResult evalElementwise(PatternRewriter& rewriter, OpType op,
+                              FuncType fn) {
   auto resultType = op.getType();
   if (!resultType.hasRank() ||
       !resultType.getElementType().template isa<IntegerType>())
     return rewriter.notifyMatchFailure(op,
                                        "expected integer result tensor type");
 
-  SmallVector<APSInt> operand, result;
-  if (failed(hlo::matchInts(op.getOperand(), operand)))
-    return rewriter.notifyMatchFailure(op, "expected constant operand");
-  for (const auto& operandEl : operand) {
-    result.push_back(fn(operandEl));
-  }
-
-  rewriter.replaceOpWithNewOp<ConstantOp>(op,
-                                          getTensorAttr(resultType, result));
-  return success();
-}
-
-template <typename OpType, typename FuncType>
-LogicalResult evalBinary(PatternRewriter& rewriter, OpType op, FuncType fn) {
-  if (op->getNumOperands() != 2)
-    llvm::report_fatal_error("expected two operands");
-
-  auto resultType = op.getType();
-  if (!resultType.hasRank() ||
-      !resultType.getElementType().template isa<IntegerType>())
-    return rewriter.notifyMatchFailure(op,
-                                       "expected integer result tensor type");
-
-  SmallVector<APSInt> lhs, rhs, result;
-  if (failed(hlo::matchInts(op.getLhs(), lhs)) ||
-      failed(hlo::matchInts(op.getRhs(), rhs)))
-    return rewriter.notifyMatchFailure(op, "expected constant operands");
-  for (auto [lhsEl, rhsEl] : llvm::zip(lhs, rhs)) {
-    result.push_back(fn(lhsEl, rhsEl));
+  SmallVector<APSInt> result;
+  if constexpr (OpType::template hasTrait<OpTrait::OneOperand>()) {
+    SmallVector<APSInt> operand;
+    if (failed(hlo::matchInts(op.getOperand(), operand)))
+      return rewriter.notifyMatchFailure(op, "expected constant operand");
+    for (const auto& operandEl : operand) {
+      result.push_back(fn(operandEl));
+    }
+  } else if constexpr (OpType::template hasTrait<
+                           OpTrait::NOperands<2>::Impl>()) {
+    SmallVector<APSInt> lhs, rhs;
+    if (failed(hlo::matchInts(op.getLhs(), lhs)) ||
+        failed(hlo::matchInts(op.getRhs(), rhs)))
+      return rewriter.notifyMatchFailure(op, "expected constant operands");
+    for (auto [lhsEl, rhsEl] : llvm::zip(lhs, rhs)) {
+      result.push_back(fn(lhsEl, rhsEl));
+    }
+  } else if constexpr (OpType::template hasTrait<
+                           OpTrait::NOperands<3>::Impl>()) {
+    SmallVector<APSInt> x, y, z;
+    if (failed(hlo::matchInts(op->getOperand(0), x)) ||
+        failed(hlo::matchInts(op->getOperand(1), y)) ||
+        failed(hlo::matchInts(op->getOperand(2), z)))
+      return rewriter.notifyMatchFailure(op, "expected constant operands");
+    for (auto [xEl, yEl, zEl] : llvm::zip(x, y, z)) {
+      result.push_back(fn(xEl, yEl, zEl));
+    }
+  } else {
+    llvm::report_fatal_error("unsupported number of operands");
   }
 
   rewriter.replaceOpWithNewOp<ConstantOp>(op,
@@ -132,8 +130,8 @@ struct EvalAddOpPattern : public OpRewritePattern<AddOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(AddOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op,
-                      [&](APSInt lhs, APSInt rhs) { return lhs + rhs; });
+    return evalElementwise(rewriter, op,
+                           [&](APSInt lhs, APSInt rhs) { return lhs + rhs; });
   }
 };
 
@@ -145,7 +143,7 @@ struct EvalAndOpPattern : public OpRewritePattern<AndOp> {
     if (!resultType.getElementType().isInteger(1))
       return rewriter.notifyMatchFailure(op, "expected boolean element type");
 
-    return evalBinary(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
+    return evalElementwise(rewriter, op, [&](APSInt lhsInt, APSInt rhsInt) {
       return getAPSInt(resultType.getElementType(), lhsInt != 0 && rhsInt != 0);
     });
   }
@@ -170,12 +168,25 @@ struct EvalBroadcastInDimOpPattern : public OpRewritePattern<BroadcastInDimOp> {
   }
 };
 
+struct EvalClampOpPattern : public OpRewritePattern<ClampOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(ClampOp op,
+                                PatternRewriter& rewriter) const override {
+    return evalElementwise(rewriter, op,
+                           [&](APSInt min, APSInt operand, APSInt max) {
+                             if (operand < min) return min;
+                             if (max < operand) return max;
+                             return operand;
+                           });
+  }
+};
+
 struct EvalCompareOpPattern : public OpRewritePattern<CompareOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(CompareOp op,
                                 PatternRewriter& rewriter) const override {
     auto resultType = op.getType();
-    return evalBinary(rewriter, op, [&](APSInt lhs, APSInt rhs) {
+    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       bool result;
       switch (op.getComparisonDirection()) {
         case ComparisonDirection::EQ:
@@ -231,7 +242,7 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
     auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
-    return evalUnary(rewriter, op, [&](APSInt operand) {
+    return evalElementwise(rewriter, op, [&](APSInt operand) {
       return operand.extOrTrunc(resultBitwidth);
     });
   }
@@ -241,8 +252,8 @@ struct EvalDivOpPattern : public OpRewritePattern<DivOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(DivOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op,
-                      [&](APSInt lhs, APSInt rhs) { return lhs / rhs; });
+    return evalElementwise(rewriter, op,
+                           [&](APSInt lhs, APSInt rhs) { return lhs / rhs; });
   }
 };
 
@@ -268,8 +279,18 @@ struct EvalMaxOpPattern : public OpRewritePattern<MaxOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MaxOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op, [&](APSInt lhs, APSInt rhs) {
+    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
       return lhs >= rhs ? lhs : rhs;
+    });
+  }
+};
+
+struct EvalMinOpPattern : public OpRewritePattern<MinOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(MinOp op,
+                                PatternRewriter& rewriter) const override {
+    return evalElementwise(rewriter, op, [&](APSInt lhs, APSInt rhs) {
+      return lhs <= rhs ? lhs : rhs;
     });
   }
 };
@@ -278,8 +299,8 @@ struct EvalMulOpPattern : public OpRewritePattern<MulOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(MulOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op,
-                      [&](APSInt lhs, APSInt rhs) { return lhs * rhs; });
+    return evalElementwise(rewriter, op,
+                           [&](APSInt lhs, APSInt rhs) { return lhs * rhs; });
   }
 };
 
@@ -287,8 +308,8 @@ struct EvalRemOpPattern : public OpRewritePattern<RemOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(RemOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op,
-                      [&](APSInt lhs, APSInt rhs) { return lhs % rhs; });
+    return evalElementwise(rewriter, op,
+                           [&](APSInt lhs, APSInt rhs) { return lhs % rhs; });
   }
 };
 
@@ -334,7 +355,7 @@ struct EvalSignOpPattern : public OpRewritePattern<SignOp> {
     if (!resultType.getElementType().isa<IntegerType>())
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
-    return evalUnary(rewriter, op, [&](APSInt operand) {
+    return evalElementwise(rewriter, op, [&](APSInt operand) {
       int64_t result;
       if (operand.isNegative())
         result = -1;
@@ -377,8 +398,8 @@ struct EvalSubtractOpPattern : public OpRewritePattern<SubtractOp> {
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(SubtractOp op,
                                 PatternRewriter& rewriter) const override {
-    return evalBinary(rewriter, op,
-                      [&](APSInt lhs, APSInt rhs) { return lhs - rhs; });
+    return evalElementwise(rewriter, op,
+                           [&](APSInt lhs, APSInt rhs) { return lhs - rhs; });
   }
 };
 
@@ -1135,12 +1156,14 @@ struct StablehloRefineShapesPass
     patterns.add<EvalAddOpPattern>(&getContext());
     patterns.add<EvalAndOpPattern>(&getContext());
     patterns.add<EvalBroadcastInDimOpPattern>(&getContext());
+    patterns.add<EvalClampOpPattern>(&getContext());
     patterns.add<EvalCompareOpPattern>(&getContext());
     patterns.add<EvalConcatenateOpPattern>(&getContext());
     patterns.add<EvalConvertOpPattern>(&getContext());
     patterns.add<EvalDivOpPattern>(&getContext());
     patterns.add<EvalGetDimensionSizeOpPattern>(&getContext());
     patterns.add<EvalMaxOpPattern>(&getContext());
+    patterns.add<EvalMinOpPattern>(&getContext());
     patterns.add<EvalMulOpPattern>(&getContext());
     patterns.add<EvalRemOpPattern>(&getContext());
     patterns.add<EvalReshapeOpPattern>(&getContext());
