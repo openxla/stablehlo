@@ -31,7 +31,7 @@ def VHLO_Dialect : Dialect {
       0.10.0: Introduce `f8E4M3FNUZ` and `f8E5M2FNUZ` types.
       0.11.0: Introduce `f8E4M3B11FNUZ` type.
       0.12.0: MLIR bytecode version 1 => 3.
-      0.13.0: MLIR bytecode version 3 => 5.
+      0.14.0: MLIR bytecode version 3 => 5.
   }];
 
   let useDefaultAttributePrinterParser = 0;
