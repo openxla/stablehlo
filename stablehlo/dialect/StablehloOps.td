@@ -1945,11 +1945,11 @@ def StableHLO_CholeskyOp : StableHLO_Op<"cholesky",
     ```
   }];
   let arguments = (ins
-    HLO_FpComplexOrQuantizedIntTensor:$a,
+    HLO_FpOrComplexTensor:$a,
     DefaultValuedOptionalAttr<BoolAttr, "false">:$lower
   );
 
-  let results = (outs HLO_FpComplexOrQuantizedIntTensor:$result);
+  let results = (outs HLO_FpOrComplexTensor:$result);
 
   let assemblyFormat = [{
     $a (`,` `lower` `=` $lower^)? attr-dict `:` custom<SameOperandsAndResultType>(type($a), type($result))
@@ -2800,14 +2800,14 @@ def StableHLO_TriangularSolveOp: StableHLO_Op<"triangular_solve",
     ```
   }];
   let arguments = (ins
-    HLO_FpComplexOrQuantizedIntTensor:$a,
-    HLO_FpComplexOrQuantizedIntTensor:$b,
+    HLO_FpOrComplexTensor:$a,
+    HLO_FpOrComplexTensor:$b,
     BoolAttr:$left_side,
     BoolAttr:$lower,
     BoolAttr:$unit_diagonal,
     StableHLO_TransposeAttr:$transpose_a
   );
-  let results = (outs HLO_FpComplexOrQuantizedIntTensor);
+  let results = (outs HLO_FpOrComplexTensor);
 }
 
 def StableHLO_ReduceWindowOp: StableHLO_Op<"reduce_window", [
