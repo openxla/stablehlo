@@ -5555,7 +5555,7 @@ Formally, `result = dequantize(operand)`.
 #### Constraints
 
 * (C1) `shape(operand) = shape(result)`.
-* (C2) `expressed_type(result) = element_type(operand)`.
+* (C2) `element_type(result) = expressed_type(operand)`.
 
 #### Examples
 
@@ -6212,6 +6212,41 @@ def baseline_type(x: Value | Placeholder | Type) -> Type:
     return baseline_element_type(type(x))
 ```
 
+* `dequantize` is defined on quantized tensor types and turns them into
+floating-point tensor types. This happens via converting quantized elements
+which represent integer values of the storage type into corresponding
+floating-point values of the expressed type using the zero point and scale
+associated with the quantized element type. At the moment, this function only
+works for per-tensor quantization. Per-axis quantization is work in progress
+([#1574](https://github.com/openxla/stablehlo/issues/1574)).
+
+```python
+def dequantize(x: Value) -> Value:
+  assert is_quantized(x)
+  x_storage = bitcast_convert(x, storage_type(x))
+  x_storage_sub = x_storage - zero_point(x_storage)
+  x_expressed_sub = convert(x_storage_sub, expressed_type(x))
+  return x_expressed_sub * scale(x)
+```
+
+* `quantize` is defined on floating-point tensor types and turns them into
+quantized tensor types. This happens via converting floating-point values
+of the expressed type into corresponding integer values of the storage type
+using the zero point and scale associated with the quantized element type.
+At the moment, this function only works for per-tensor quantization. Per-axis
+quantization is work in progress
+([#1574](https://github.com/openxla/stablehlo/issues/1574)).
+
+```python
+def quantize(x: Value, type: Type) -> Value:
+  assert is_float(x) and is_quantized(type)
+  x_expressed_rounded = round_nearest_even(x / scale(type))
+  x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
+  x_storage_add = x_storage_rounded + zero_point(type)
+  x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
+  return bitcast_convert(x_storage, type)
+```
+
 * `dequantize_op_quantize` is used to specify element-wise computations on
 quantized tensors. It dequantizes, i.e. turns quantized elements into their
 expressed types, then performs an operation, and then quantizes, i.e. turns
@@ -6220,19 +6255,11 @@ works for per-tensor quantization. Per-axis quantization is work in progress
 ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
 
 ```python
-
-def dequantize(x):
-  return (x - zero_point(x)) * scale(x)
-
-def quantize(x, type):
-  rounded_result = round_nearest_even(x / scale(type))
-  return clamp(storage_min(type), rounded_result + zero_point(type), storage_max(type))
-
 def dequantize_op_quantize(op, *inputs_and_output_type):
   inputs = inputs_and_output_type[:-1]
   output_type = inputs_and_output_type[-1]
 
-  float_inputs = [dequantize(x) for x in inputs]
+  float_inputs = map(dequantize, inputs)
   float_result = op(*float_inputs)
   return quantize(float_result, output_type)
 ```

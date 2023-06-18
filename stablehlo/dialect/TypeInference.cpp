@@ -3009,6 +3009,7 @@ LogicalResult inferUniformDequantizeOp(
   // Trait HLO_QuantizedIntTensor in ODS guarantees QuantizedType;
   auto quantType = operandType.getElementType().cast<quant::QuantizedType>();
   auto shape = operandType.cast<ShapedType>().getShape();
+  // uniform_dequantize_c1, uniform_dequantize_c2
   inferredReturnShapes.emplace_back(shape, quantType.getExpressedType());
   return success();
 }
@@ -3017,6 +3018,7 @@ LogicalResult inferUniformQuantizeOp(
     std::optional<Location> location, Value operand,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   auto operandType = operand.getType().cast<ShapedType>();
+  // uniform_quantize_c1
   inferredReturnShapes.emplace_back(
       operandType.hasRank() ? operandType.getShape() : ArrayRef<int64_t>{});
   return success();
