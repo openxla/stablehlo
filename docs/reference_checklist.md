@@ -5,7 +5,7 @@ op for the interpreter. We have intentionally included a few auxiliary action
 items related to verifier and type inference, with the idea of making progress
 on those fronts alongside the interpreter implementation.
 
-While implementing the op:
+## While implementing the op
 
 1. Provide an explicitly written testing strategy (in a PR description)
    similar to
@@ -21,7 +21,7 @@ While implementing the op:
 1. File tickets for the corresponding software components if you find any bugs
    or missing functionality.
 
-After implementing the op:
+## After implementing the op
 
 1. In [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td):
     1. Make sure that the `summary` in the op's ODS follows the standard format.
