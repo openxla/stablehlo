@@ -46,12 +46,12 @@ reviews:
          be obtaining by running `stablehlo-opt`.
   1. Check that the files related to implementing verification and type
      inference constraints follow the guidelines as mentioned below:
-      1. Follow [guideline#1](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
+      1. Follow guideline [#1](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
          for [StablehloOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.td).
-      1. Follow [guideline#2](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
+      1. Follow guideline [#2](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
          for [TypeInference.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/TypeInference.cpp)
          and [StablehloOps.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/StablehloOps.cpp).
-      1. Follow [guideline#5](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
+      1. Follow guideline [#5](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
          for [ops_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/ops_stablehlo.mlir).
-      1. Follow [guideline#6](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
+      1. Follow guideline [#6](https://github.com/openxla/stablehlo/blob/main/docs/reference_checklist.md#after-implementing-the-op)
          for [infer_stablehlo.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/infer_stablehlo.mlir).
