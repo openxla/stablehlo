@@ -5538,7 +5538,7 @@ Performs element-wise conversion of quantized tensor `operand` to a
 floating-point tensor `result` according to the quantization parameters defined
 by the `operand` type.
 
-Formally, `result = dequantize(operand)`.
+More formally, `result = dequantize(operand)`.
 
 #### Inputs
 
@@ -5573,7 +5573,7 @@ Performs element-wise conversion of floating-point tensor or quantized tensor
 `operand` to a quantized tensor `result` according to the quantization
 parameters defined by the `result` type.
 
-Formally,
+More formally,
 
 * If `is_float(operand)`:
   * `result = quantize(operand, type(result))`.

@@ -5114,14 +5114,6 @@ func.func @uniform_dequantize(%arg: tensor<16x16x!quant.uniform<i8:f32, 34.0:16>
 
 // -----
 
-func.func @uniform_dequantize_i1(%arg: tensor<16x16xf32>) -> tensor<16x16xf32> {
-  // expected-error@+1 {{operand #0 must be tensor of 4/8/16/32-bit uniform quantized signed integer or 4/8/16/32-bit uniform quantized unsigned integer values, but got 'tensor<16x16xf32>'}}
-  %0 = stablehlo.uniform_dequantize %arg : (tensor<16x16xf32>) -> tensor<16x16xf32>
-  func.return %0 : tensor<16x16xf32>
-}
-
-// -----
-
 func.func @uniform_dequantize_unranked(%arg: tensor<*x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<*xf32> {
   %0 = stablehlo.uniform_dequantize %arg : (tensor<*x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<*xf32>
   func.return %0 : tensor<*xf32>

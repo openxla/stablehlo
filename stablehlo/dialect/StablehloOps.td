@@ -3075,7 +3075,7 @@ def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
       [InferTensorType, Pure], HLO_QuantizedIntTensor /*uniform_dequantize_i1*/,
-      HLO_FpTensor> { /*uniform_dequantize_c1*/
+      HLO_FpTensor> { /*uniform_dequantize_c1, uniform_dequantize_c2*/
   let summary = "UniformDequantize operation";
   let description = [{
     Performs element-wise conversion of quantized tensor `operand` to a
