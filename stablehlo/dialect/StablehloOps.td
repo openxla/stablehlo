@@ -3055,38 +3055,39 @@ def StableHLO_RngBitGeneratorOp : StableHLO_Op<"rng_bit_generator", [Pure]> {
 
 // TODO(b/230662142): Implement unknown scales/zero_point cases.
 def StableHLO_UniformQuantizeOp : StableHLO_UnaryElementwiseOp<"uniform_quantize",
-      [Pure], TensorOf<[F32, BF16, HLO_QuantizedInt]>,
-      HLO_QuantizedIntTensor> {
+      [Pure], TensorOf<[HLO_Float, HLO_QuantizedInt]> /*uniform_quantize_i1*/,
+      HLO_QuantizedIntTensor> { /*uniform_quantize_c1*/
   let summary = "UniformQuantize operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/588.
+    Performs element-wise conversion of floating-point tensor or quantized
+    tensor `operand` to a quantized tensor `result` according to the
+    quantization parameters defined by the `result` type.
 
-    Informally, this operation converts floating point tensors or uniform
-    quantized tensors to uniform quantized tensors according to the quantization
-    parameters defined by the result type.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#uniform_quantize
 
     Example:
     ```mlir
-    %result = stablehlo.uniform_quantize %operand : (tensor<16x16xf32>) -> tensor<16x16x!quant.uniform<ui8:f32, 34.0:16>>
+    %result = stablehlo.uniform_quantize %operand : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>
     ```
   }];
 }
 
 def StableHLO_UniformDequantizeOp : StableHLO_UnaryElementwiseOp<"uniform_dequantize",
-      [InferTensorType, Pure], HLO_QuantizedIntTensor, TensorOf<[F32, BF16]>> {
+      [InferTensorType, Pure], HLO_QuantizedIntTensor /*uniform_dequantize_i1*/,
+      HLO_FpTensor> { /*uniform_dequantize_c1, uniform_dequantize_c2*/
   let summary = "UniformDequantize operation";
   let description = [{
-    This operation is a work in progress, so it is not yet included in
-    the StableHLO specification: https://github.com/openxla/stablehlo/issues/588.
+    Performs element-wise conversion of quantized tensor `operand` to a
+    floating-point tensor `result` according to the quantization parameters
+    defined by the `operand` type.
 
-    Informally, this operation converts uniform quantized tensors to floating
-    point tensors according to the quantization parameters defined by the
-    operand type.
+    See:
+    https://github.com/openxla/stablehlo/blob/main/docs/spec.md#uniform_dequantize
 
     Example:
     ```mlir
-    %result = stablehlo.uniform_dequantize %operand : (tensor<16x16x!quant.uniform<i8:f32, 34.0:16>>) -> tensor<16x16xf32>
+    %result = stablehlo.uniform_dequantize %operand : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>) -> tensor<2xf32>
     ```
   }];
 }

@@ -335,11 +335,6 @@ in StableHLO programs. In the meanwhile, here is the list of these operations:
   `dynamic_gather`, `dynamic_iota`, `dynamic_pad`, `dynamic_reshape`,
   `real_dynamic_slice`, `set_dimension_size`
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
-* "Quantization" category of StableHLO operations - they were bootstrapped from
-  MHLO, but we haven't specced them yet: `uniform_quantize`
-  ([#531](https://github.com/openxla/stablehlo/issues/531)) and
-  `uniform_dequantize`
-  ([#530](https://github.com/openxla/stablehlo/issues/530)).
 * Shape computations, including `arith`, `shape` and `tensor` operations
   ([#8](https://github.com/openxla/stablehlo/issues/8)).
 
@@ -5535,6 +5530,87 @@ Produces a `result` tuple from values `val`.
 // %result: ([1.0, 2.0], (3))
 ```
 
+### uniform_dequantize
+
+#### Semantics
+
+Performs element-wise conversion of quantized tensor `operand` to a
+floating-point tensor `result` according to the quantization parameters defined
+by the `operand` type.
+
+More formally, `result = dequantize(operand)`.
+
+#### Inputs
+
+| Label | Name      | Type             | Constraints |
+|-------|-----------|------------------|-------------|
+| (I1)  | `operand` | quantized tensor | (C1), (C2)  |
+
+#### Outputs
+
+| Name     | Type                          | Constraints |
+|----------|-------------------------------|-------------|
+| `result` | tensor of floating-point type | (C1), (C2)  |
+
+#### Constraints
+
+* (C1) `shape(operand) = shape(result)`.
+* (C2) `element_type(result) = expressed_type(operand)`.
+
+#### Examples
+
+```mlir
+// %operand: [10, 10]
+%result = "stablehlo.uniform_dequantize"(%operand) : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>) -> tensor<2xf32>
+// %result: [4.0, 15.0]
+```
+
+### uniform_quantize
+
+#### Semantics
+
+Performs element-wise conversion of floating-point tensor or quantized tensor
+`operand` to a quantized tensor `result` according to the quantization
+parameters defined by the `result` type.
+
+More formally,
+
+* If `is_float(operand)`:
+  * `result = quantize(operand, type(result))`.
+* If `is_quantized(operand)`:
+  * `float_result = dequantize(operand)`.
+  * `result = quantize(float_result, type(result))`.
+
+#### Inputs
+
+| Label | Name      | Type                                       | Constraints |
+|-------|-----------|--------------------------------------------|-------------|
+| (I1)  | `operand` | tensor of floating-point or quantized type | (C1), (C2)  |
+
+#### Outputs
+
+| Name     | Type             | Constraints |
+|----------|------------------|-------------|
+| `result` | quantized tensor | (C1), (C2)  |
+
+#### Constraints
+
+* (C1) `shape(operand) = shape(result)`.
+* (C2) `expressed_type(result) = is_float(operand) ? element_type(operand) :
+  expressed_type(operand)`.
+
+#### Examples
+
+```mlir
+// %operand: [4.0, 15.0]
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2xf32>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>
+// %result: [10, 10]
+
+// %operand: [10, 10]
+%result = "stablehlo.uniform_quantize"(%operand) : (tensor<2x!quant.uniform<i8:f32:0, {0.1:-30,0.5:-20}>>) -> tensor<2x!quant.uniform<i8:f32:0, {0.1:-20,0.2:-30}>>
+// %result: [20, 45]
+```
+
 ### while
 
 #### Semantics
@@ -6136,6 +6212,41 @@ def baseline_type(x: Value | Placeholder | Type) -> Type:
     return baseline_element_type(type(x))
 ```
 
+* `dequantize` is defined on quantized tensor types and turns them into
+floating-point tensor types. This happens via converting quantized elements
+which represent integer values of the storage type into corresponding
+floating-point values of the expressed type using the zero point and scale
+associated with the quantized element type. At the moment, this function only
+works for per-tensor quantization. Per-axis quantization is work in progress
+([#1574](https://github.com/openxla/stablehlo/issues/1574)).
+
+```python
+def dequantize(x: Value) -> Value:
+  assert is_quantized(x)
+  x_storage = bitcast_convert(x, storage_type(x))
+  x_storage_sub = x_storage - zero_point(x_storage)
+  x_expressed_sub = convert(x_storage_sub, expressed_type(x))
+  return x_expressed_sub * scale(x)
+```
+
+* `quantize` is defined on floating-point tensor types and turns them into
+quantized tensor types. This happens via converting floating-point values
+of the expressed type into corresponding integer values of the storage type
+using the zero point and scale associated with the quantized element type.
+At the moment, this function only works for per-tensor quantization. Per-axis
+quantization is work in progress
+([#1574](https://github.com/openxla/stablehlo/issues/1574)).
+
+```python
+def quantize(x: Value, type: Type) -> Value:
+  assert is_float(x) and is_quantized(type)
+  x_expressed_rounded = round_nearest_even(x / scale(type))
+  x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
+  x_storage_add = x_storage_rounded + zero_point(type)
+  x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
+  return bitcast_convert(x_storage, type)
+```
+
 * `dequantize_op_quantize` is used to specify element-wise computations on
 quantized tensors. It dequantizes, i.e. turns quantized elements into their
 expressed types, then performs an operation, and then quantizes, i.e. turns
@@ -6147,10 +6258,10 @@ works for per-tensor quantization. Per-axis quantization is work in progress
 def dequantize_op_quantize(op, *inputs_and_output_type):
   inputs = inputs_and_output_type[:-1]
   output_type = inputs_and_output_type[-1]
-  float_inputs = [(x - zero_point(x)) * scale(x) for x in inputs]
+
+  float_inputs = map(dequantize, inputs)
   float_result = op(*float_inputs)
-  rounded_result = round_nearest_even(float_result / scale(output_type))
-  return clamp(storage_min(output_type), rounded_result, storage_max(output_type))
+  return quantize(float_result, output_type)
 ```
 
 #### Grid computations
