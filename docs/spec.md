@@ -6342,15 +6342,14 @@ def dequantize_op_quantize(op, *inputs_and_output_type):
   return quantize(float_result, output_type)
 
 def dequantize_select_quantize(pred, on_true, on_false, output_type):
-  float_on_true = (on_true - zero_point(on_true)) * scale(on_true)
-  float_on_false = (on_false - zero_point(on_false)) * scale(on_false)
+  float_on_true = dequantize(on_true)
+  float_on_false = dequantize(on_false)
   float_result = select(pred, float_on_true, float_on_false)
-  rounded_result = round_nearest_even(float_result / scale(output_type))
-  return clamp(storage_min(output_type), rounded_result, storage_max(output_type))
+  return quantize(float_result, output_type)
 
 def dequantize_compare(lhs, rhs, comparison_direction):
-  float_lhs = (lhs - zero_point(lhs)) * scale(lhs)
-  float_rhs = (rhs - zero_point(rhs)) * scale(rhs)
+  float_lhs = dequantize(lhs)
+  float_rhs = dequantize(rhs)
   return compare(float_lhs, float_rhs, comparison_direction, FLOAT)
 ```
 
