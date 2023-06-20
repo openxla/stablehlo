@@ -84,7 +84,7 @@ completely numeric to simplify generation of StableHLO programs.
 ```ebnf
 Type         ::= ValueType | NonValueType
 ValueType    ::= TensorType | QuantizedTensorType | TokenType | TupleType
-NonValueType ::= ElementType | QuantizedElementType | FunctionType | StringType
+NonValueType ::= TensorElementType | QuantizedTensorElementType | FunctionType | StringType
 ```
 
 **StableHLO types** are categorized into **value types** (which are also called
@@ -95,7 +95,7 @@ domain-specific nature which results in some unusual outcomes (e.g. scalar types
 are not value types).
 
 ```ebnf
-TensorType ::= 'tensor' '<' Shape ElementType '>'
+TensorType ::= 'tensor' '<' Shape TensorElementType '>'
 Shape ::= {DimensionSize 'x'}
 DimensionSize ::= digit {digit}
 ```
@@ -119,8 +119,8 @@ types, for example, to include layouts
 ([#1078](https://github.com/openxla/stablehlo/issues/1078)).
 
 ```ebnf
-QuantizedTensorType ::= 'tensor' '<' Shape QuantizedElementType '>'
-QuantizedElementType ::= '!quant.uniform' '<'
+QuantizedTensorType ::= 'tensor' '<' Shape QuantizedTensorElementType '>'
+QuantizedTensorElementType ::= '!quant.uniform' '<'
                   QuantizationStorageType
                   ['<' QuantizationStorageMin ':' QuantizationStorageMax '>']
                   ':' QuantizationExpressedType
@@ -234,7 +234,7 @@ which may allow us to remove tuple types from StableHLO
 ([#598](https://github.com/openxla/stablehlo/issues/598)).
 
 ```ebnf
-ElementType ::= BooleanType | IntegerType | FloatType | ComplexType
+TensorElementType ::= BooleanType | IntegerType | FloatType | ComplexType
 BooleanType ::= 'i1'
 IntegerType ::= SignedIntegerType | UnsignedIntegerType
 SignedIntegerType ::= 'si4' | 'si8' | 'si16' | 'si32' | 'si64'
@@ -1956,7 +1956,7 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padding_value = is_quantized_tensor(lhs) ? constant(zero_point(lhs), quantized_element_type(lhs)) : constant(0, element_type(lhs))`.
+* `padding_value = constant(is_quantized_tensor(lhs) ? zero_point(lhs) : 0, element_type(lhs))`.
 * `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
@@ -3659,13 +3659,13 @@ More formally, `result[result_index]` is defined as:
 
 #### Inputs
 
-| Label | Name                | Type                                                | Constraints |
-|-------|---------------------|-----------------------------------------------------|-------------|
-| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C3)  |
-| (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C4-C6)     |
-| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64`        | (C1), (C3)  |
-| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64`        | (C1), (C3)  |
-| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64`        | (C1-C3)     |
+| Label | Name                | Type                                                | Constraints      |
+|-------|---------------------|-----------------------------------------------------|------------------|
+| (I1)  | `operand`           | tensor or per-tensor quantized tensor               | (C1), (C2), (C4) |
+| (I2)  | `padding_value`     | 0-dimensional tensor or per-tensor quantized tensor | (C1)             |
+| (I3)  | `edge_padding_low`  | 1-dimensional tensor constant of type `si64`        | (C1), (C4)       |
+| (I4)  | `edge_padding_high` | 1-dimensional tensor constant of type `si64`        | (C1), (C4)       |
+| (I5)  | `interior_padding`  | 1-dimensional tensor constant of type `si64`        | (C2-C4)          |
 
 #### Outputs
 
@@ -3675,19 +3675,13 @@ More formally, `result[result_index]` is defined as:
 
 #### Constraints
 
-* (C1) `size(edge_padding_low) = size(edge_padding_high) =
-  size(interior_padding) = rank(operand)`.
-* (C2) `0 <= interior_padding`.
-* (C3) `shape(result) = shape(operand) + edge_padding_low +
-  max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
-* (C4) If the operation uses non-quantized tensors:
-  * `element_type(operand) = element_type(padding_value) =
+* (C1) `element_type(operand) = element_type(padding_value) =
   element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C5) `is_quantized_tensor(operand) and is_quantized_tensor(padding_value)
-    and is_quantized_tensor(result)`.
-  * (C6) `quantized_element_type(operand) =
-    quantized_element_type(padding_value) = quantized_element_type(result)`.
+* (C2) `size(edge_padding_low) = size(edge_padding_high) =
+  size(interior_padding) = rank(operand)`.
+* (C3) `0 <= interior_padding`.
+* (C4) `shape(result) = shape(operand) + edge_padding_low +
+  max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
 
 #### Examples
 
@@ -6088,6 +6082,20 @@ use type syntax because it's typically more concise. E.g.
 
 #### Functions on types
 
+* `element_type` is defined on tensor types and quantized tensor types and
+returns, respectively, the `TensorElementType` or `QuantizedTensorElementType`
+part of the corresponding `TensorType` or `QuantizedTensorType`.
+
+```python
+def element_type(x: Value | Placeholder | Type):
+ if type(x) == TensorType:
+    return tensor_element_type(x)
+  if type(x) == QuantizedTensorType:
+    return quantized_element_type(x)
+  if type(x) is not Type:
+    return element_type(type(x))
+```
+
 * `is_per_axis_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut
 for `is_quantized(x) and quantized_dimension(x) is not None`.
 
@@ -6095,25 +6103,25 @@ for `is_quantized(x) and quantized_dimension(x) is not None`.
 shortcut for `is_quantized(x) and quantized_dimension(x) is None`.
 
 * `is_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut for
-`is_quantized_element_type(x)`.
+`is_quantized_tensor_element_type(x)`.
 
 * `is_type_name(x: Value | Placeholder | Type) -> Value`. Available for all
 types. For example, `is_float(x)` returns `true` if `x` is a `FloatType`.
 If `x` is a value or placeholder, this function is a shortcut for
 `is_type_name(type(x))`.
 
-* `max_value(x: Type) -> Value` returns the maximum value of an `ElementType`.
-If `x` is not an `ElementType`, returns `None`.
+* `max_value(x: Type) -> Value` returns the maximum value of an
+`TensorElementType`.  If `x` is not an `TensorElementType`, returns `None`.
 
 * `min_value(x: Type) -> Value` returns the minimum possible value of an
-`ElementType`. If `x` is not an `ElementType`, returns `None`.
+`TensorElementType`. If `x` is not an `TensorElementType`, returns `None`.
 
 * `member_name(x: Value | Placeholder | Type) -> Any`. Available for all member
-definitions `member_name` of all types. For example, `element_type(x)` returns
-the `ElementType` part of a corresponding `TensorType`. If `x` is a value or
-placeholder, this function is a shortcut for `member_name(type(x))`.
-If `x` is not a type that has an appropriate member, or a value or
-a placeholder of such a type, returns `None`.
+definitions `member_name` of all types. For example, `tensor_element_type(x)`
+returns the `TensorElementType` part of a corresponding `TensorType`.
+If `x` is a value or placeholder, this function is a shortcut for
+`member_name(type(x))`.  If `x` is not a type that has an appropriate member, or
+a value or a placeholder of such a type, returns `None`.
 
 #### Construction of values
 
@@ -6198,8 +6206,8 @@ def baseline_type(x: Value | Placeholder | Type) -> Type:
   if type(x) == TensorType:
     return x
   if type(x) == QuantizedTensorType:
-    element_type = quantized_element_type(x)
-    baseline_element_type = QuantizedElementType(
+    element_type = quantized_tensor_element_type(x)
+    baseline_element_type = QuantizedTensorElementType(
       storage_type = storage_type(element_type),
       storage_min = storage_min(element_type),
       storage_max = storage_max(element_type),
