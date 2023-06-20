@@ -1300,13 +1300,13 @@ implementation-defined as well.
 
 | Label | Name      | Type                        | Constraints |
 |-------|-----------|-----------------------------|-------------|
-| (I1)  | `operand` | tensor or  quantized tensor | (C1-C2)     |
+| (I1)  | `operand` | tensor or quantized tensor | (C1-C2)     |
 
 #### Outputs
 
 | Name     | Type                        | Constraints |
 |----------|-----------------------------|-------------|
-| `result` | tensor or  quantized tensor | (C1-C2)     |
+| `result` | tensor or quantized tensor | (C1-C2)     |
 
 #### Constraints
 
@@ -3328,9 +3328,7 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 * (C2) `0 < size(inputs) = N`.
 * (C3) `dimensions = range(rank(inputs[0]))`.
 * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
-  where `Ei = is_quantized(inputs[i]) ? quantized_element_type(inputs[i]) :
-  element_type(inputs[i])` and `E' = is_quantized(result) ?
-  quantized_element_type(result) : element_type(result)`.
+  where `Ei = element_type(inputs[i])` and `E' = element_type(result)`.
 
 #### Examples
 
@@ -6161,7 +6159,7 @@ def element_type(x: Value | Placeholder | Type):
  if type(x) == TensorType:
     return tensor_element_type(x)
   if type(x) == QuantizedTensorType:
-    return quantized_element_type(x)
+    return quantized_tensor_element_type(x)
   if type(x) is not Type:
     return element_type(type(x))
 ```
