@@ -532,11 +532,11 @@ represents a tensor value with the following mapping from indices to elements:
 `{1, 2} => 6`. The order in which these elements are then stored in memory is
 implementation-defined. Tensor constants have the following constraints:
 
-* (C1) `has_syntax(tensor_literal, tensor_element_type(tensor_type))`, where:
-  * `has_syntax(element_literal: Syntax, tensor_element_type: Type) =
+* (C1) `has_syntax(tensor_literal, element_type(tensor_type))`, where:
+  * `has_syntax(element_literal: Syntax, element_type: Type) =
     is_wellformed(element_literal, type)`.
-  * `has_syntax(tensor_literal: List, tensor_element_type: Type) =
-    has_syntax(tensor_literal..., tensor_element_type)`.
+  * `has_syntax(tensor_literal: List, element_type: Type) =
+    has_syntax(tensor_literal..., element_type)`.
 * (C2) `has_shape(tensor_literal, shape(tensor_type))`, where:
   * `has_shape(element_literal: Syntax, []) = true`.
   * `has_shape(tensor_literal: List, shape: List) =
@@ -583,9 +583,9 @@ tensor. Depending on the element type, does the following:
 #### Constraints
 
 * (C1) `shape(result) = shape(operand)`.
-* (C2) `tensor_element_type(result)` is defined as:
-  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
-  * `tensor_element_type(operand)` otherwise.
+* (C2) `element_type(result)` is defined as:
+  * `complex_element_type(element_type(operand))` if `is_complex(operand)`.
+  * `element_type(operand)` otherwise.
 
 #### Examples
 
@@ -790,7 +790,7 @@ Afterwards, within each `process_group`:
 * (C3) `0 <= replica_groups < size(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = tensor_element_type(operand)`.
+       `E = element_type(operand)`.
 * (C6) `type(result) = type(operand)`.
 
 #### Examples
@@ -994,7 +994,7 @@ existing StableHLO operations using Python syntax as follows:
 def compute_sum(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[constant(0, tensor_element_type(operand))],
+      init_values=[constant(0, element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   return sum
@@ -1002,7 +1002,7 @@ def compute_sum(operand, feature_index):
 def compute_mean(operand, feature_index):
   sum = compute_sum(operand, feature_index)
   divisor = constant(size(operand) / dim(operand, feature_index),
-                     tensor_element_type(operand))
+                     element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], type(sum))
   return divide(sum, divisor_bcast)
 
@@ -1011,7 +1011,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   scale_bcast = broadcast_in_dim(scale, [feature_index], type(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], type(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], type(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon, tensor_element_type(operand)), [],
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
                                    type(operand))
 
   # Perform normalization using the provided `mean` and `variance`
@@ -1024,7 +1024,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   # Temporary variables have exactly the same names as in the C++ code
   elements_per_feature = broadcast_in_dim(
       constant(divide(size(operand), dim(operand, feature_index)),
-               tensor_element_type(grad_output)),
+               element_type(grad_output)),
       [], type(operand))
   i1 = multiply(grad_output, elements_per_feature)
   i2 = broadcast_in_dim(
@@ -1069,7 +1069,7 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
 
 * (C1) `0 <= feature_index < rank(operand)`.
 * (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
-       `grad_scale` and `grad_offset` have the same tensor element type.
+       `grad_scale` and `grad_offset` have the same element type.
 * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
 * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
        same shape.
@@ -1119,7 +1119,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   offset_bcast = broadcast_in_dim(offset, [feature_index], type(operand))
   mean_bcast = broadcast_in_dim(mean, [feature_index], type(operand))
   variance_bcast = broadcast_in_dim(variance, [feature_index], type(operand))
-  epsilon_bcast = broadcast_in_dim(constant(epsilon, tensor_element_type(operand)), [],
+  epsilon_bcast = broadcast_in_dim(constant(epsilon, element_type(operand)), [],
                                    type(operand))
 
   # Perform normalization using the provided `mean` and `variance` instead of
@@ -1152,7 +1152,7 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 
 * (C1) `0 <= feature_index < rank(operand)`.
 * (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
-  same tensor element type.
+  same element type.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(mean) = dim(operand, feature_index)`.
@@ -1194,11 +1194,11 @@ follows:
 def compute_mean(operand, feature_index):
   (sum,) = reduce(
       inputs=[operand],
-      init_values=[constant(0, tensor_element_type(operand))],
+      init_values=[constant(0, element_type(operand))],
       dimensions=[i for i in range(rank(operand)) if i != feature_index],
       body=lambda x, y: add(x, y))
   divisor = constant(size(operand) / dim(operand, feature_index),
-                     tensor_element_type(operand))
+                     element_type(operand))
   divisor_bcast = broadcast_in_dim(divisor, [], type(sum))
   return divide(sum, divisor_bcast)
 
@@ -1238,7 +1238,7 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
 
 * (C1) `0 <= feature_index < rank(operand)`.
 * (C2) `operand`, `scale`, `offset`, `output`, `batch_mean` and `batch_var`
-       have the same tensor element type.
+       have the same element type.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(batch_mean) = dim(operand, feature_index)`.
@@ -1275,7 +1275,7 @@ Performs a bitcast operation on `operand` tensor and produces a `result` tensor
 where the bits of the entire `operand` tensor are reinterpreted using the
 type of the `result` tensor.
 
-More formally, given `E = tensor_element_type(operand)`, `E' = tensor_element_type(result)`,
+More formally, given `E = element_type(operand)`, `E' = element_type(result)`,
 and `R = rank(operand)`:
 
 * If `num_bits(E') = num_bits(E)`,
@@ -1304,8 +1304,8 @@ implementation-defined as well.
 
 #### Constraints
 
-* (C1) Given `E = tensor_element_type(operand)`,
-  `E' = tensor_element_type(result)`, and `R = rank(operand)`:
+* (C1) Given `E = element_type(operand)`, `E' = element_type(result)`, and
+  `R = rank(operand)`:
   * If `num_bits(E') = num_bits(E)`, `shape(result) = shape(operand)`.
   * If `num_bits(E') < num_bits(E)`:
     * `rank(result) = R + 1`.
@@ -1355,7 +1355,7 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Constraints
 
-* (C1) `tensor_element_type(operand) = tensor_element_type(result)`.
+* (C1) `element_type(operand) = element_type(result)`.
 * (C2) `size(broadcast_dimensions) = rank(operand)`.
 * (C3) `0 <= broadcast_dimensions < rank(result)`.
 * (C4) `is_unique(broadcast_dimensions)`.
@@ -1591,7 +1591,7 @@ for this operation ([#560](https://github.com/openxla/stablehlo/issues/560)).
 
 * (C1) `rank(min) = 0 or shape(min) = shape(operand)`.
 * (C2) `rank(max) = 0 or shape(max) = shape(operand)`.
-* (C3) `tensor_element_type(min) = tensor_element_type(operand) = tensor_element_type(max)`.
+* (C3) `element_type(min) = element_type(operand) = element_type(max)`.
 * (C4) `type(operand) = type(result)`.
 
 #### Examples
@@ -1624,7 +1624,7 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(constant(0, tensor_element_type(result)), [], type(result))`
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
    otherwise.
 
 #### Inputs
@@ -1726,14 +1726,14 @@ when `comparison_direction` is `GE`, `GT`, `LE` or `LT`
 
 #### Constraints
 
-* (C1) `tensor_element_type(lhs) = tensor_element_type(rhs)`.
+* (C1) `element_type(lhs) = element_type(rhs)`.
 * (C2) `shape(lhs) = shape(rhs) = shape(result)`.
 * (C3) `compare_type` is defined as:
-  * `SIGNED` if `is_signed_integer(tensor_element_type(lhs))`.
-  * `UNSIGNED` if `is_unsigned_integer(tensor_element_type(lhs)) or
-    is_boolean(tensor_element_type(lhs))`.
-  * `FLOAT` or `TOTALORDER` if `is_float(tensor_element_type(lhs))`.
-  * `FLOAT` if `is_complex(tensor_element_type(lhs))`.
+  * `SIGNED` if `is_signed_integer(element_type(lhs))`.
+  * `UNSIGNED` if `is_unsigned_integer(element_type(lhs)) or
+    is_boolean(element_type(lhs))`.
+  * `FLOAT` or `TOTALORDER` if `is_float(element_type(lhs))`.
+  * `FLOAT` if `is_complex(element_type(lhs))`.
 
 #### Examples
 
@@ -1773,8 +1773,8 @@ imaginary values, `lhs` and `rhs`, and produces a `result` tensor.
 
 * (C1) `type(lhs) = type(rhs)`.
 * (C2) `shape(result) = shape(lhs)`.
-* (C3) `tensor_element_type(result)` has type `complex<E>` where
-  `E = tensor_element_type(lhs)`.
+* (C3) `element_type(result)` has type `complex<E>` where
+  `E = element_type(lhs)`.
 
 #### Examples
 
@@ -1814,11 +1814,11 @@ arguments and produces a `result` tensor. More formally,
 
 #### Constraints
 
-* (C1) `same(tensor_element_type(inputs...))`.
+* (C1) `same(element_type(inputs...))`.
 * (C2) `same(shape(inputs...))` except for `dim(inputs..., dimension)`.
 * (C3) `0 < size(inputs)`.
 * (C4) `0 <= dimension < rank(inputs[0])`.
-* (C5) `tensor_element_type(result) = tensor_element_type(inputs[0])`.
+* (C5) `element_type(result) = element_type(inputs[0])`.
 * (C6) `shape(result) = shape(inputs[0])` except for:
   * `dim(result, dimension) = dim(inputs[0], dimension) + ...`.
 
@@ -2064,7 +2064,7 @@ If `batch_group_count > 1`:
     * `num_windows = is_empty_window[lhs_dim] ? 0 : floor((padded_input_shape[lhs_dim] - dilated_window_shape[lhs_dim]) / window_strides[spatial_dim]) + 1`.
 * (C26) `rank(result) = N`.
 * If the operation uses non-quantized tensors:
-  * (C27) `tensor_element_type(lhs) = tensor_element_type(rhs) = tensor_element_type(result)`.
+  * (C27) `element_type(lhs) = element_type(rhs) = element_type(result)`.
 * If the operation uses quantized tensors:
   * (C28) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
     is_quantized_tensor(result)`.
@@ -2302,14 +2302,14 @@ More formally, `result[result_index] = dot_product`, where:
 * For non-quantized types:
   * `dot_product = reduce(
       inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-      init_values=[constant(0, tensor_element_type(result))],
+      init_values=[constant(0, element_type(result))],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
 * For quantized types:
   * `integer_dot_product = reduce(
       inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
                        (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
-      init_values=[constant(0, tensor_element_type(result)],
+      init_values=[constant(0, element_type(result)],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
@@ -2371,7 +2371,7 @@ planning to address this in
 * (C12) `shape(result) = dim(lhs, lhs_batching_dimensions) +
   dim(lhs, lhs_result_dimensions) + dim(rhs, rhs_result_dimensions)`.
 * If the operation uses non-quantized tensors:
-  * (C13) `tensor_element_type(lhs) = tensor_element_type(rhs)`.
+  * (C13) `element_type(lhs) = element_type(rhs)`.
 * If the operation uses quantized tensors:
   * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
   * (C15) `storage_type(lhs) = storage_type(rhs)`.
@@ -2444,7 +2444,7 @@ contain the sizes of the slice for each dimension. More formally,
 
 #### Constraints
 
-* (C1) `tensor_element_type(operand) = tensor_element_type(result)`.
+* (C1) `element_type(operand) = element_type(result)`.
 * (C2) `size(start_indices) = size(slice_sizes) = rank(operand)`.
 * (C3) `same(type(start_indices...))`.
 * (C4) `0 <= slice_sizes <= shape(operand)`.
@@ -2503,7 +2503,7 @@ More formally, `result[result_index]` is defined as:
 #### Constraints
 
 * (C1) `type(operand) = type(result)`.
-* (C2) `tensor_element_type(update) = tensor_element_type(operand)`.
+* (C2) `element_type(update) = element_type(operand)`.
 * (C3) `rank(update) = rank(operand)`.
 * (C4) `size(start_indices) = rank(operand)`.
 * (C5) `same(type(start_indices...))`.
@@ -2691,16 +2691,16 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 
 * (C1) `size(fft_length) <= rank(operand)`.
 * (C2) The relationship between `operand` and `result` element types varies:
-  * If `fft_type = FFT`, `tensor_element_type(operand)` and
-    `tensor_element_type(result)` have the same complex type.
-  * If `fft_type = IFFT`, `tensor_element_type(operand)` and
-    `tensor_element_type(result)` have the same complex type.
-  * If `fft_type = RFFT`, `tensor_element_type(operand)` is a floating-point
-    type and `tensor_element_type(result)` is a complex type of the same
-    floating-point semantics.
-  * If `fft_type = IRFFT`, `tensor_element_type(operand)` is a complex type and
-    `tensor_element_type(result)` is a floating-point type of the same
-    floating-point semantics.
+  * If `fft_type = FFT`, `element_type(operand)` and `element_type(result)`
+    have the same complex type.
+  * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
+    have the same complex type.
+  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
+    `element_type(result)` is a complex type of the same floating-point
+    semantics.
+  * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
+    `element_type(result)` is a floating-point type of the same floating-point
+    semantics.
 * (C3) `1 <= size(fft_length) <= 3`.
 * (C4) If among `operand` and `result`, there is a tensor `real` of a
 floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
@@ -2836,7 +2836,7 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
     in `slice_sizes` corresponding to `collapsed_slice_dims` are not included.
   * `combine` puts `batch_dim_sizes` at axes corresponding to `batch_dims` and
    `offset_dim_sizes` at axes corresponding to `offset_dims`.
-* (C14) `tensor_element_type(operand) = tensor_element_type(result)`.
+* (C14) `element_type(operand) = element_type(result)`.
 
 #### Examples
 
@@ -2997,7 +2997,7 @@ pred ? true_branch() : false_branch()`.
 Extracts the imaginary part, element-wise, from the `operand` and produces a
 `result` tensor. More formally, for each element `x`:
 `imag(x) = is_complex(x) ? imaginary_part(x) :
-constant(0, tensor_element_type(result))`.
+constant(0, element_type(result))`.
 
 #### Inputs
 
@@ -3014,9 +3014,9 @@ constant(0, tensor_element_type(result))`.
 #### Constraints
 
 * (C1) `shape(result) = shape(operand)`.
-* (C2) `tensor_element_type(result)` is defined as:
-  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
-  * `tensor_element_type(operand)` otherwise.
+* (C2) `element_type(result)` is defined as:
+  * `complex_element_type(element_type(operand))` if `is_complex(operand)`.
+  * `element_type(operand)` otherwise.
 
 #### Examples
 
@@ -3074,7 +3074,7 @@ to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally, `output[result_index] =
-constant(result_index[iota_dimension], tensor_element_type(output))`.
+constant(result_index[iota_dimension], element_type(output))`.
 
 #### Inputs
 
@@ -3292,7 +3292,7 @@ the future ([#487](https://github.com/openxla/stablehlo/issues/487)).
 * (C2) `0 < size(inputs) = N`.
 * (C3) `dimensions = range(rank(inputs[0]))`.
 * (C4) `computation` has type `(tensor<E0>, ..., tensor<EN-1>) -> tensor<E'>`
-  where `Ei = tensor_element_type(inputs[i])` and `E' = tensor_element_type(result)`.
+  where `Ei = element_type(inputs[i])` and `E' = element_type(result)`.
 
 #### Examples
 
@@ -3820,9 +3820,9 @@ tensor. More formally, for each element `x`:
 #### Constraints
 
 * (C1) `shape(result) = shape(operand)`.
-* (C2) `tensor_element_type(result)` is defined as:
-  * `complex_element_type(tensor_element_type(operand))` if `is_complex(operand)`.
-  * `tensor_element_type(operand)` otherwise.
+* (C2) `element_type(result)` is defined as:
+  * `complex_element_type(element_type(operand))` if `is_complex(operand)`.
+  * `element_type(operand)` otherwise.
 
 #### Examples
 
@@ -3933,14 +3933,14 @@ More formally, `results...[j0, ..., jR-1] = reduce(input_slices)` where:
 #### Constraints
 
 * (C1) `same(shape(inputs...))`.
-* (C2) `tensor_element_type(inputs...) = tensor_element_type(init_values...) =
-  tensor_element_type(results...)`.
+* (C2) `element_type(inputs...) = element_type(init_values...) =
+  element_type(results...)`.
 * (C3) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C4) `0 <= dimensions < rank(inputs[0])`.
 * (C5) `is_unique(dimensions)`.
 * (C6) `body` has type `tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
   `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
-  `Ei = tensor_element_type(inputs[i])`.
+  `Ei = element_type(inputs[i])`.
 * (C7) `shape(results...) = shape(inputs...)` except that the dimension
   sizes of `inputs...` corresponding to `dimensions` are not included.
 
@@ -4073,7 +4073,7 @@ Afterwards, within each `process_group`:
 * (C5) `0 <= replica_groups < size(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = tensor_element_type(operand)`.
+       `E = element_type(operand)`.
 * (C8) `type(result) = type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
@@ -4160,7 +4160,7 @@ where:
 <!-- markdownlint-disable line-length -->
 * (C1) `0 < size(inputs) = size(init_values) = size(results) = N`.
 * (C2) `same(shape(inputs...))`.
-* (C3) `tensor_element_type(inputs...) = tensor_element_type(init_values...)`.
+* (C3) `element_type(inputs...) = element_type(init_values...)`.
 * (C4) `size(window_dimensions) = rank(inputs[0])`.
 * (C5) `0 < window_dimensions`.
 * (C6) `size(window_strides) = rank(inputs[0])`.
@@ -4171,7 +4171,7 @@ where:
 * (C11) `0 < window_dilations`.
 * (C12) `shape(padding) = [rank(inputs[0]), 2]`.
 * (C13) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`
-  where `Ei = tensor_element_type(inputs[i])`.
+  where `Ei = element_type(inputs[i])`.
 * (C14) `same(shape(results...))`.
 * (C15) `shape(results[0]) = num_windows` where:
   * `dilated_input_shape = shape(inputs[0]) = 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
@@ -4179,7 +4179,7 @@ where:
   * `dilated_window_shape = window_dimensions = 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
   * `is_empty_window = padded_input_shape = 0 || dilated_window_shape > padded_input_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
-* (C16) `tensor_element_type(results...) = tensor_element_type(init_values...)`.
+* (C16) `element_type(results...) = element_type(init_values...)`.
 <!-- markdownlint-enable line-length -->
 
 #### Examples
@@ -4392,7 +4392,7 @@ deprecated, so in the future we are planning to explore removing it
 
 #### Constraints
 
-* (C1) `tensor_element_type(a) = tensor_element_type(b) = tensor_element_type(result)`.
+* (C1) `element_type(a) = element_type(b) = element_type(result)`.
 * (C2) If `rng_distribution = NORMAL`, then `is_float(a)`.
 * (C3) `shape(result) = shape`.
 
@@ -4670,7 +4670,7 @@ undefined.
    `update_scatter_dims` and `update_window_dim_sizes` at axes corresponding
    to `update_window_dims`.
 * (C5) `0 < size(inputs) = size(updates) = N`.
-* (C6) `tensor_element_type(updates...) = tensor_element_type(inputs...)`.
+* (C6) `element_type(updates...) = element_type(inputs...)`.
 * (C7) `is_unique(update_window_dims) and is_sorted(update_window_dims)`.
 * (C8) `0 <= update_window_dims < rank(updates[0])`.
 * (C9) `is_unique(inserted_window_dims) and is_sorted(update_window_dims)`.
@@ -4683,7 +4683,7 @@ undefined.
 * (C14) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
-  where `Ei = tensor_element_type(inputs[i])`.
+  where `Ei = element_type(inputs[i])`.
 * (C16) `type(inputs...) = type(result...)`.
 
 #### Examples
@@ -4788,7 +4788,7 @@ More formally:
      return select(arg0, arg1) ? arg0 : arg1;
    ```
 
-   where `E = tensor_element_type(operand)`, and `reduce_window_without_init` works
+   where `E = element_type(operand)`, and `reduce_window_without_init` works
    exactly like `reduce_window`, except that the `schedule` of the underlying
    `reduce` doesn't include init values. It is currently unspecified what
    happens if the corresponding window doesn't have values
@@ -4825,21 +4825,21 @@ More formally:
 #### Constraints
 
 <!-- markdownlint-disable line-length -->
-* (C1) `tensor_element_type(operand) = tensor_element_type(source)`.
+* (C1) `element_type(operand) = element_type(source)`.
 * (C2) `shape(source) = num_windows` where:
   * `padded_operand_shape = padding[:, 0] + shape(operand) + padding[:, 1]`.
   * `is_empty_window = padded_operand_shape = 0 || window_dimensions > padded_operand_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_operand_shape - window_dimensions) / window_strides) + 1`.
-* (C3) `tensor_element_type(init_value) = tensor_element_type(operand)`.
+* (C3) `element_type(init_value) = element_type(operand)`.
 * (C4) `size(window_dimensions) = rank(operand)`.
 * (C5) `0 < window_dimensions`.
 * (C6) `size(window_strides) = rank(operand)`.
 * (C7) `0 < window_strides`.
 * (C8) `shape(padding) = [rank(operand), 2]`.
 * (C9) `select` has type `(tensor<E>, tensor<E>) -> tensor<i1>` where
-       `E = tensor_element_type(operand)`.
+       `E = element_type(operand)`.
 * (C10) `scatter` has type `(tensor<E>, tensor<E>) -> tensor<E>` where
-        `E = tensor_element_type(operand)`.
+        `E = element_type(operand)`.
 * (C11) `type(operand) = type(result)`.
 <!-- markdownlint-enable line-length -->
 
@@ -5238,7 +5238,7 @@ More formally, for all `result_index` in `index_space(results[0])`:
 * (C4) `-R <= dimension < R`, where `R = rank(inputs[0])`.
 * (C5) `comparator` has type
   `(tensor<E1>, tensor<E1>, ..., tensor<EN-1>, tensor<EN-1>) -> tensor<i1>`,
-  where `Ei = tensor_element_type(inputs[i])`.
+  where `Ei = element_type(inputs[i])`.
 
 #### Examples
 
@@ -5460,7 +5460,7 @@ elements of `a` are equal to 1, otherwise the behavior is undefined.
 
 #### Constraints
 
-* (C1) `tensor_element_type(a) = tensor_element_type(b)`.
+* (C1) `element_type(a) = element_type(b)`.
 * (C2) `2 <= rank(a) = rank(b) = R`.
 * (C3) The relationship between `shape(a)` and `shape(b)` is defined as follows:
   * `shape(a)[:-3] = shape(b)[:-3]`.
@@ -5549,7 +5549,7 @@ More formally, `result = dequantize(operand)`.
 #### Constraints
 
 * (C1) `shape(operand) = shape(result)`.
-* (C2) `tensor_element_type(result) = expressed_type(operand)`.
+* (C2) `element_type(result) = expressed_type(operand)`.
 
 #### Examples
 
@@ -5590,8 +5590,8 @@ More formally,
 #### Constraints
 
 * (C1) `shape(operand) = shape(result)`.
-* (C2) `expressed_type(result) = is_float(operand) ?
-  tensor_element_type(operand) : expressed_type(operand)`.
+* (C2) `expressed_type(result) = is_float(operand) ? element_type(operand) :
+  expressed_type(operand)`.
 
 #### Examples
 
@@ -6082,6 +6082,20 @@ use type syntax because it's typically more concise. E.g.
 
 #### Functions on types
 
+* `element_type` is defined on tensor types and quantized tensor types and
+returns, respectively, the `TensorElementType` or `QuantizedTensorElementType`
+part of the corresponding `TensorType` or `QuantizedTensorType`.
+
+```python
+def element_type(x: Value | Placeholder | Type):
+ if type(x) == TensorType:
+    return tensor_element_type(x)
+  if type(x) == QuantizedTensorType:
+    return quantized_element_type(x)
+  if type(x) is not Type:
+    return element_type(type(x))
+```
+
 * `is_per_axis_quantized(x: Value | Placeholder | Type) -> Value` is a shortcut
 for `is_quantized(x) and quantized_dimension(x) is not None`.
 
@@ -6177,20 +6191,6 @@ on types" section via `member_name`.
 `reduce(lambda x, y: x * y, shape(x))`.
 
 #### Quantization computations
-
-* `element_type` is defined on tensor types and quantized tensor types and
-returns, respectively, the `TensorElementType` or `QuantizedTensorElementType`
-part of the corresponding `TensorType` or `QuantizedTensorType`.
-
-```python
-def element_type(x: Value | Placeholder | Type):
- if type(x) == TensorType:
-    return tensor_element_type(x)
-  if type(x) == QuantizedTensorType:
-    return quantized_element_type(x)
-  if type(x) is not Type:
-    return element_type(type(x))
-```
 
 * `def baseline_element_type(x: Value | Placeholder | Type) -> Type` is a
 shortcut for `element_type(baseline_type(x))`.
