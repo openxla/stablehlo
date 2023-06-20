@@ -3679,8 +3679,8 @@ More formally, `result[result_index]` is defined as:
   element_type(result)`.
 * (C2) `size(edge_padding_low) = size(edge_padding_high) =
   size(interior_padding) = rank(operand)`.
-* (C2) `0 <= interior_padding`.
-* (C3) `shape(result) = shape(operand) + edge_padding_low +
+* (C3) `0 <= interior_padding`.
+* (C4) `shape(result) = shape(operand) + edge_padding_low +
   max(shape(operand) - 1, 0) * interior_padding + edge_padding_high`.
 
 #### Examples
@@ -4286,22 +4286,18 @@ ordering of `index_space(result)` and `index_space(operand)`.
 
 | Label | Name      | Type                                  | Constraints |
 |-------|-----------|---------------------------------------|-------------|
-| (I1)  | `operand` | tensor or per-tensor quantized tensor | (C1-C4)     |
+| (I1)  | `operand` | tensor or per-tensor quantized tensor | (C1-C2)     |
 
 #### Outputs
 
 | Name     | Type                                  | Constraints |
 |----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C1-C4)     |
+| `result` | tensor or per-tensor quantized tensor | (C1-C2)     |
 
 #### Constraints
 
-* (C1) `size(operand) = size(result)`.
-* If the operation uses non-quantized tensors:
-  * (C2) `element_type(operand) = element_type(result)`.
-* If the operation uses quantized tensors:
-  * (C3) `is_quantized_tensor(operand) and is_quantized_tensor(result)`.
-  * (C4) `quantized_element_type(operand) = quantized_element_type(result)`.
+* (C1) `element_type(operand) = element_type(result)`.
+* (C2) `size(operand) = size(result)`.
 
 #### Examples
 
@@ -5395,7 +5391,7 @@ where `result_index[d] = operand_index[permutation[d]]`.
 
 | Name     | Type                                  | Constraints |
 |----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C2-C5)     |
+| `result` | tensor or per-tensor quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
