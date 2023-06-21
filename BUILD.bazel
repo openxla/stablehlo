@@ -368,7 +368,9 @@ cc_library(
         ":reference_errors",
         ":reference_index",
         ":reference_scope",
+        ":reference_stablehlovalue",
         ":reference_tensor",
+        ":reference_token",
         ":reference_types",
         ":stablehlo_ops",
         ":stablehlo_type_inference",
@@ -389,9 +391,27 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
+        ":reference_stablehlovalue",
         ":reference_tensor",
+        ":reference_token",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
+    name = "reference_stablehlovalue",
+    srcs = [
+        "stablehlo/reference/StablehloValue.cpp",
+    ],
+    hdrs = [
+        "stablehlo/reference/StablehloValue.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":reference_tensor",
+        ":reference_token",
+        "@llvm-project//mlir:IR",
     ],
 )
 
@@ -413,6 +433,22 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
+    ],
+)
+
+cc_library(
+    name = "reference_token",
+    srcs = [
+        "stablehlo/reference/Token.cpp",
+    ],
+    hdrs = [
+        "stablehlo/reference/Token.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":stablehlo_ops",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
     ],
 )
 

@@ -1163,7 +1163,7 @@ def StableHLO_AfterAllOp : StableHLO_Op<"after_all", [Pure,
     ```
   }];
 
-  let arguments = (ins Variadic<HLO_Token>:$inputs);
+  let arguments = (ins Variadic<HLO_Token>:$inputs /*after_all_i1*/);
   let results = (outs HLO_Token:$result);
 
   let assemblyFormat = [{
