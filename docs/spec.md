@@ -3561,6 +3561,8 @@ an identity, i.e. `result = operand`.
 // %result1: 1.0
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_optimization_barrier.mlir)
+
 ### or
 
 #### Semantics

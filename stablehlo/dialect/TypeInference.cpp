@@ -2442,6 +2442,7 @@ LogicalResult inferMapOp(
 LogicalResult inferOptimizationBarrierOp(
     std::optional<Location> location, ValueRange operand,
     SmallVectorImpl<Type>& inferredReturnTypes) {
+  // optimization_barrier_c1
   for (auto inputArgType : operand.getTypes())
     inferredReturnTypes.emplace_back(inputArgType);
   return success();

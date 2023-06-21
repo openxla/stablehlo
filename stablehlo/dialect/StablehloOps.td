@@ -2950,7 +2950,7 @@ def StableHLO_TorchIndexSelectOp : StableHLO_Op<"torch_index_select", [Pure]> {
 
 def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
       [Pure, HLO_PairwiseSameOperandAndResultType,
-      DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+      DeclareOpInterfaceMethods<InferTypeOpInterface> /*optimization_barrier_c1*/]> {
   let summary = "OptimizationBarrier operation";
   let description = [{
     Ensures that the operations that produce the `operand` are executed before any
@@ -2958,7 +2958,7 @@ def StableHLO_OptimizationBarrierOp : StableHLO_Op<"optimization_barrier",
     from moving operations across the barrier. Other than that, the operation is
     an identity, i.e. `result` = `operand`.
 
-    See
+    See:
     https://github.com/openxla/stablehlo/blob/main/docs/spec.md#optimization_barrier
 
     Example:

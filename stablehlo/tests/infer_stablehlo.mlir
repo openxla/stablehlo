@@ -496,6 +496,20 @@ func.func @sort(%input0: tensor<16x16xf32>, %input1: tensor<16x16xi32>) -> tenso
 
 // -----
 
+// CHECK-LABEL: func @optimization_barrier_c1
+// CHECK-SAME: (%[[ARG0:.*]]: tensor<f32>,
+// CHECK-SAME: %[[ARG1:.*]]: tensor<f32>)
+func.func @optimization_barrier_c1(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<index>, tensor<index>) {
+  // CHECK: %[[RESULT:.*]]:2 = stablehlo.optimization_barrier %[[ARG0]], %[[ARG1]] : tensor<f32>, tensor<f32>
+  // CHECK: %[[INFER:.*]]:2 = "hlo_test_infer.get_return_types"(%[[RESULT]]#0, %[[RESULT]]#1) : (tensor<f32>, tensor<f32>) -> (tensor<index>, tensor<index>)
+  // CHECK: return %[[INFER]]#0, %[[INFER]]#1 : tensor<index>, tensor<index>
+  %0:2 = "stablehlo.optimization_barrier"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
+  %1:2 = "hlo_test_infer.get_return_types"(%0#0, %0#1) : (tensor<f32>, tensor<f32>) -> (tensor<index>, tensor<index>)
+  func.return %1#0, %1#1 : tensor<index>, tensor<index>
+}
+
+// -----
+
 // CHECK-LABEL: func @outfeed
 func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.outfeed"(%arg0, %arg1) {

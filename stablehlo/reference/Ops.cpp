@@ -378,6 +378,11 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(notOp.getOperand());
       auto result = evalNotOp(operand, notOp.getType());
       scope.add(op.getResult(0), result);
+    } else if (auto optimizationBarrierOp =
+                   dyn_cast<OptimizationBarrierOp>(op)) {
+      auto operand = scope.find(optimizationBarrierOp.getOperand());
+      auto results = evalOptimizationBarrierOp(operand);
+      scope.add(op.getResults(), results);
     } else if (auto orOp = dyn_cast<OrOp>(op)) {
       auto lhs = scope.findTensor(orOp.getLhs());
       auto rhs = scope.findTensor(orOp.getRhs());
@@ -1093,6 +1098,11 @@ Tensor evalNotOp(const Tensor &operand, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, ~operand.get(*it));
   return result;
+}
+
+SmallVector<InterpreterValue> evalOptimizationBarrierOp(
+    ArrayRef<InterpreterValue> operand) {
+  return SmallVector<InterpreterValue>(operand);
 }
 
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {

@@ -92,6 +92,8 @@ Tensor evalMultiplyOp(const Tensor &lhs, const Tensor &rhs,
                       ShapedType resultType);
 Tensor evalNegOp(const Tensor &operand, ShapedType resultType);
 Tensor evalNotOp(const Tensor &operand, ShapedType resultType);
+SmallVector<InterpreterValue> evalOptimizationBarrierOp(
+    ArrayRef<InterpreterValue> operand);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &interiorPadding,
