@@ -65,13 +65,8 @@ namespace stablehlo_encoding {
 enum AttributeCode {
   // TO ADD ATTRIBUTE: Add an enum value with doc string for new attr.
 
-  ///   ArgResultAliasAttr {
-  ///     argTupleIndices: svarint[]
-  ///     resultIndex: svarint
-  ///     resultIndex: svarint[]
-  ///     isMustAlias: varint
-  ///   }
-  kArgResultAliasAttr = 0,
+  ///   ArgResultAliasAttr (obsolete)
+  // kArgResultAliasAttr = 0,
 
   ///   ChannelHandleAttr {
   ///     handle: svarint
@@ -207,8 +202,6 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in StableHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-  ArgResultAliasAttr readArgResultAliasAttr(
-      DialectBytecodeReader &reader) const;
   ChannelHandleAttr readChannelHandleAttr(DialectBytecodeReader &reader) const;
   ComparisonDirectionAttr readComparisonDirectionAttr(
       DialectBytecodeReader &reader) const;
@@ -235,7 +228,6 @@ class StablehloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in StableHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ArgResultAliasAttr attr, DialectBytecodeWriter &writer) const;
   void write(ChannelHandleAttr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonDirectionAttr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonTypeAttr attr, DialectBytecodeWriter &writer) const;
@@ -282,8 +274,6 @@ Attribute StablehloBytecodeInterface::readAttribute(
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Attribute();
   switch (code) {
-    case stablehlo_encoding::kArgResultAliasAttr:
-      return readArgResultAliasAttr(reader);
     case stablehlo_encoding::kChannelHandleAttr:
       return readChannelHandleAttr(reader);
     case stablehlo_encoding::kComparisonDirectionAttr:
@@ -324,12 +314,11 @@ Attribute StablehloBytecodeInterface::readAttribute(
 LogicalResult StablehloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ArgResultAliasAttr, ChannelHandleAttr, ComparisonDirectionAttr,
-            ComparisonTypeAttr, ConvDimensionNumbersAttr,
-            DotDimensionNumbersAttr, FftTypeAttr, GatherDimensionNumbersAttr,
-            OutputOperandAliasAttr, PrecisionAttr, RngAlgorithmAttr,
-            RngDistributionAttr, ScatterDimensionNumbersAttr, TransposeAttr,
-            TypeExtensionsAttr>([&](auto attr) {
+      .Case<ChannelHandleAttr, ComparisonDirectionAttr, ComparisonTypeAttr,
+            ConvDimensionNumbersAttr, DotDimensionNumbersAttr, FftTypeAttr,
+            GatherDimensionNumbersAttr, OutputOperandAliasAttr, PrecisionAttr,
+            RngAlgorithmAttr, RngDistributionAttr, ScatterDimensionNumbersAttr,
+            TransposeAttr, TypeExtensionsAttr>([&](auto attr) {
         LOG_WRITE_CALL;
         write(attr, writer);
         return success();
@@ -338,38 +327,6 @@ LogicalResult StablehloBytecodeInterface::writeAttribute(
         LOG_NOT_IMPLEMENTED;
         return failure();
       });
-}
-
-//===----------------------------------------------------------------------===//
-// ArgResultAliasAttr
-
-ArgResultAliasAttr StablehloBytecodeInterface::readArgResultAliasAttr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-
-  llvm::SmallVector<int64_t> argTupleIndices;
-  int64_t resultIndex;
-  llvm::SmallVector<int64_t> resultTupleIndices;
-  uint64_t isMustAliasUint;
-
-  if (failed(reader.readSignedVarInts(argTupleIndices)) ||
-      failed(reader.readSignedVarInt(resultIndex)) ||
-      failed(reader.readSignedVarInts(resultTupleIndices)) ||
-      failed(reader.readVarInt(isMustAliasUint)))
-    return ArgResultAliasAttr();
-
-  return ArgResultAliasAttr::get(getContext(), argTupleIndices, resultIndex,
-                                 resultTupleIndices,
-                                 static_cast<bool>(isMustAliasUint));
-}
-
-void StablehloBytecodeInterface::write(ArgResultAliasAttr attr,
-                                       DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(stablehlo_encoding::kArgResultAliasAttr);
-  writer.writeSignedVarInts(attr.getArgTupleIndices());
-  writer.writeSignedVarInt(attr.getResultIndex());
-  writer.writeSignedVarInts(attr.getResultTupleIndices());
-  writer.writeVarInt(attr.getIsMustAlias());
 }
 
 //===----------------------------------------------------------------------===//

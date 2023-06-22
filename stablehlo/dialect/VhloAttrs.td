@@ -51,20 +51,6 @@ class VHLO_AttrDef<string name, string minVersion, string maxVersion>
   }];
 }
 
-// TODO(#740): ArgResultAlias is not yet part of the StableHLO spec.
-// At the moment, it is used to represent buffer donation, and we're planning
-// to look into it as part of the work on speccing buffer donation in StableHLO.
-def VHLO_ArgResultAliasAttrV1 : VHLO_AttrDef<"ArgResultAliasV1", "0.9.0", "current"> {
-  let mnemonic = "result_alias_v1";
-  let parameters = (ins
-    VHLO_Dims:$argTupleIndices,
-    "int64_t":$resultIndex,
-    VHLO_Dims:$resultTupleIndices,
-    "bool":$isMustAlias
-  );
-  let assemblyFormat = "`<` struct(params) `>`";
-}
-
 // Represents attributes from the StableHLO spec which say "variadic number of",
 // although not called out explicitly in the "Constants" section.
 def VHLO_ArrayAttrV1 : VHLO_AttrDef<"ArrayV1", "0.9.0", "current"> {

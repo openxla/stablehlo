@@ -108,39 +108,6 @@ def StableHLO_OutputOperandAlias : AttrDef<StableHLO_Dialect, "OutputOperandAlia
   }];
 }
 
-def StableHLO_ArgResultAlias : AttrDef<StableHLO_Dialect, "ArgResultAlias"> {
-  let cppNamespace = "::mlir::stablehlo";
-  let mnemonic = "result_alias";
-  let summary =
-    "Attribute that models the alias relationship of entry function argument";
-  let description = [{
-    This attribute captures the alias relationship of a main function
-    argument to one of the results, denoted by `resultIndex`. The
-    `argTupleIndices` and `resultTupleIndices` are used to index into nested
-    tuples in operand and result respectively. If `isMustAlias` is true then the
-    operand-result pair must alias.
-
-    This is meant to be used as an attribute on a function argument.
-    For example, in the following code it expresses that `%arg1` may alias 0-th
-    result.
-
-    ```mlir
-    func @main(%arg0: tensor<2xf32>, %arg1: tensor<3xf32>
-      {stablehlo.result_alias = stablehlo.result_alias<result_index = [2], ...>}
-      ) -> tensor<2xf32>, tensor<3xf32> {
-      // function body ...
-    }
-    ```
-  }];
-  let parameters = (ins
-    StableHLO_Dims:$argTupleIndices,
-    "int64_t":$resultIndex,
-    StableHLO_Dims:$resultTupleIndices,
-    "bool":$isMustAlias
-  );
-  let hasCustomAssemblyFormat = 1;
-}
-
 // Represents a unique identifier for each Send/Recv instruction pair or
 // optionally for collective instructions (AllReduce, CollectivePermute,
 // AllToAll). Non-positive channel_id handle is equivalent to no channel id.

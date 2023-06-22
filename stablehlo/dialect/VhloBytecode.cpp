@@ -78,13 +78,8 @@ namespace vhlo_encoding {
 enum AttributeCode {
   // TO ADD ATTRIBUTE: Add an enum value with doc string for new attr.
 
-  ///   ArgResultAliasV1Attr {
-  ///     argTupleIndices: svarint[]
-  ///     resultIndex: svarint
-  ///     resultTupleIndices: svarint[]
-  ///     isMustAlias: varint
-  ///   }
-  kArgResultAliasV1Attr = 0,
+  /// ArgResultAliasV1Attr(deprecated)
+  // kArgResultAliasV1Attr = 0,
 
   ///   ArrayV1Attr {
   ///     elements: Attribute[]
@@ -357,8 +352,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a read method for each attribute in VHLO
   // Ex: SomeAttr readSomeAttr(DialectBytecodeReader &reader) const;
-  ArgResultAliasV1Attr readArgResultAliasV1Attr(
-      DialectBytecodeReader &reader) const;
   ArrayV1Attr readArrayV1Attr(DialectBytecodeReader &reader) const;
   BooleanV1Attr readBooleanV1Attr(DialectBytecodeReader &reader) const;
   ComparisonDirectionV1Attr readComparisonDirectionV1Attr(
@@ -387,7 +380,6 @@ class VhloBytecodeInterface : public BytecodeDialectInterface {
 
   // TO ADD ATTRIBUTE: Include a write method for each attribute in VHLO
   // Ex: void write(SomeAttr attr, DialectBytecodeWriter &writer) const;
-  void write(ArgResultAliasV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ArrayV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(BooleanV1Attr attr, DialectBytecodeWriter &writer) const;
   void write(ComparisonDirectionV1Attr attr,
@@ -453,8 +445,6 @@ Attribute VhloBytecodeInterface::readAttribute(
   uint64_t code;
   if (failed(reader.readVarInt(code))) return Attribute();
   switch (code) {
-    case vhlo_encoding::kArgResultAliasV1Attr:
-      return readArgResultAliasV1Attr(reader);
     case vhlo_encoding::kArrayV1Attr:
       return readArrayV1Attr(reader);
     case vhlo_encoding::kBooleanV1Attr:
@@ -503,10 +493,9 @@ Attribute VhloBytecodeInterface::readAttribute(
 LogicalResult VhloBytecodeInterface::writeAttribute(
     Attribute attr, DialectBytecodeWriter &writer) const {
   return TypeSwitch<Attribute, LogicalResult>(attr)
-      .Case<ArgResultAliasV1Attr, ArrayV1Attr, BooleanV1Attr,
-            ComparisonDirectionV1Attr, ComparisonTypeV1Attr,
-            CustomCallApiVersionV1Attr, DictionaryV1Attr, FftTypeV1Attr,
-            FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
+      .Case<ArrayV1Attr, BooleanV1Attr, ComparisonDirectionV1Attr,
+            ComparisonTypeV1Attr, CustomCallApiVersionV1Attr, DictionaryV1Attr,
+            FftTypeV1Attr, FloatV1Attr, IntegerV1Attr, OutputOperandAliasV1Attr,
             PrecisionV1Attr, RngAlgorithmV1Attr, RngDistributionV1Attr,
             StringV1Attr, TensorV1Attr, TransposeV1Attr, TypeV1Attr,
             TypeExtensionsV1Attr>([&](auto attr) {
@@ -518,38 +507,6 @@ LogicalResult VhloBytecodeInterface::writeAttribute(
         LOG_NOT_IMPLEMENTED;
         return failure();
       });
-}
-
-//===----------------------------------------------------------------------===//
-// ArgResultAliasV1Attr
-//===----------------------------------------------------------------------===//
-
-ArgResultAliasV1Attr VhloBytecodeInterface::readArgResultAliasV1Attr(
-    DialectBytecodeReader &reader) const {
-  LOG_READ_CALL;
-
-  llvm::SmallVector<int64_t> argTupleIndices;
-  int64_t resultIndex;
-  llvm::SmallVector<int64_t> resultTupleIndices;
-  uint64_t isMustAliasUint;
-
-  if (failed(reader.readSignedVarInts(argTupleIndices)) ||
-      failed(reader.readSignedVarInt(resultIndex)) ||
-      failed(reader.readSignedVarInts(resultTupleIndices)) ||
-      failed(reader.readVarInt(isMustAliasUint)))
-    return ArgResultAliasV1Attr();
-  return ArgResultAliasV1Attr::get(getContext(), argTupleIndices, resultIndex,
-                                   resultTupleIndices,
-                                   static_cast<bool>(isMustAliasUint));
-}
-
-void VhloBytecodeInterface::write(ArgResultAliasV1Attr attr,
-                                  DialectBytecodeWriter &writer) const {
-  writer.writeVarInt(vhlo_encoding::kArgResultAliasV1Attr);
-  writer.writeSignedVarInts(attr.getArgTupleIndices());
-  writer.writeSignedVarInt(attr.getResultIndex());
-  writer.writeSignedVarInts(attr.getResultTupleIndices());
-  writer.writeVarInt(attr.getIsMustAlias());
 }
 
 //===----------------------------------------------------------------------===//

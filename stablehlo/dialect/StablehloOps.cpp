@@ -2555,17 +2555,6 @@ static ParseResult parseDims(AsmParser& parser,
   return success();
 }
 
-static ParseResult parseDimsWithMinimumElements(AsmParser& parser,
-                                                SmallVector<int64_t>& dimSizes,
-                                                int minElements) {
-  if (failed(parseDims(parser, dimSizes))) return failure();
-  if (static_cast<int64_t>(dimSizes.size()) < minElements)
-    return parser.emitError(parser.getCurrentLocation())
-           << "expected at least " << minElements << " element(s), found "
-           << dimSizes.size();
-  return success();
-}
-
 /// Parse a custom attribute that resembles a struct of the form
 /// <
 ///   foo = something_parsed_by_custom_parser,
@@ -3072,136 +3061,6 @@ Attribute ConvDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   return dnums;
 }
 
-// Custom printer and parser for ArgResultAliasAttr.
-constexpr char kMustAlias[] = "must_alias";
-constexpr char kResult[] = "result_index";
-constexpr char kArgTupleIndices[] = "tuple_indices";
-
-void ArgResultAliasAttr::print(AsmPrinter& printer) const {
-  printer << "<";
-
-  // The attribute can have empty tuple indices. Only print argument tuple
-  // indices if they are non-empty.
-  if (!getArgTupleIndices().empty())
-    printer << kArgTupleIndices << " = [" << getArgTupleIndices() << "], ";
-
-  // Print the result index followed by any result tuple indices if present.
-  printer << kResult << " = [";
-  printer << getResultIndex();
-  if (!getResultTupleIndices().empty())
-    printer << ", " << getResultTupleIndices();
-  printer << "]";
-
-  // Print the "must_alias" keyword if this is a must alias, otherwise skip.
-  if (getIsMustAlias()) printer << ", " << kMustAlias;
-
-  printer << ">";
-}
-
-Attribute ArgResultAliasAttr::parse(AsmParser& parser, Type type) {
-  if (failed(parser.parseLess())) return {};
-  llvm::SmallVector<int64_t> argTupleIndices;
-  // The first element of result indices holds the aliased result index and the
-  // remaining elements are the result tuple indices.
-  llvm::SmallVector<int64_t> resultIndices;
-  bool isMustAlias = false;
-
-  // This conveys to parseStruct that keyword "must_alias" (3rd field) is not
-  // followed by a "=", but other fields are.
-  llvm::SmallVector<bool, 3> parseEqual = {true, true, false};
-
-  if (failed(parseStruct(parser, {kArgTupleIndices, kResult, kMustAlias},
-                         {[&]() { return parseDims(parser, argTupleIndices); },
-                          [&]() {
-                            // Since the first element is the index of result,
-                            // at least one element is expected.
-                            return parseDimsWithMinimumElements(
-                                parser, resultIndices, /*minElements=*/1);
-                          },
-                          [&]() {
-                            // always succeeds if the keyword "must_alias" was
-                            // parsed
-                            isMustAlias = true;
-                            return success();
-                          }},
-                         parseEqual))) {
-    parser.emitError(parser.getCurrentLocation())
-        << "failed parsing argument-result alias attribute";
-    return {};
-  }
-
-  int64_t resultIndex = resultIndices[0];
-  auto resultTupleIndices =
-      ArrayRef<int64_t>{resultIndices.begin() + 1, resultIndices.end()};
-
-  return ArgResultAliasAttr::get(parser.getContext(), argTupleIndices,
-                                 resultIndex, resultTupleIndices, isMustAlias);
-}
-
-// Returns the element type pointed to by `indices` in type `t`. If the indices
-// are invalid, returns nullptr.
-static Type getTypeFromTupleIndices(Type type, ArrayRef<int64_t> indices) {
-  Type current = type;
-  for (auto index : indices) {
-    TupleType tupleType = current.dyn_cast<TupleType>();
-    if (!tupleType || index >= static_cast<int64_t>(tupleType.size()))
-      return {};
-    current = tupleType.getType(index);
-  }
-  return current;
-}
-
-static LogicalResult verifyArgResultAliasAttr(StringAttr attrName,
-                                              ArgResultAliasAttr aliasAttr,
-                                              unsigned argIndex,
-                                              Operation* op) {
-  // The attribute can only be applied to function-like operations.
-  if (!isa<mlir::FunctionOpInterface>(op))
-    return op->emitOpError() << "attribute " << attrName
-                             << " can only be used on function-like operations";
-
-  // Verify there are no negative indices.
-  auto tupleIndices = llvm::concat<const int64_t>(
-      aliasAttr.getArgTupleIndices(), aliasAttr.getResultTupleIndices());
-  if (llvm::any_of(tupleIndices, [](const int64_t val) { return val < 0; }) ||
-      aliasAttr.getResultIndex() < 0)
-    return op->emitOpError()
-           << "attribute " << attrName
-           << " expects all argument and result indices to be >= 0";
-
-  // Verify that the result index is not out of range. Since the attribute is a
-  // function argument attribute, the argument index is always correct when this
-  // verifier is called.
-  FunctionOpInterface funcOp = cast<FunctionOpInterface>(op);
-  ArrayRef<Type> argTypes = funcOp.getArgumentTypes();
-  ArrayRef<Type> resultTypes = funcOp.getResultTypes();
-  if (aliasAttr.getResultIndex() >= static_cast<int64_t>(resultTypes.size()))
-    return op->emitOpError()
-           << "attribute " << attrName
-           << " result index is out of range, must be <" << resultTypes.size();
-
-  // Verify that argument and result types pointed to by the indices are valid
-  // and compatible.
-  Type argType = getTypeFromTupleIndices(argTypes[argIndex],
-                                         aliasAttr.getArgTupleIndices());
-  if (!argType)
-    return op->emitOpError()
-           << "attribute " << attrName << " argument tuple indices are invalid";
-  Type resultType =
-      getTypeFromTupleIndices(resultTypes[aliasAttr.getResultIndex()],
-                              aliasAttr.getResultTupleIndices());
-  if (!resultType)
-    return op->emitOpError()
-           << "attribute " << attrName << " result tuple indices are invalid";
-
-  if (failed(mlir::verifyCompatibleShape(argType, resultType)) ||
-      getElementTypeOrSelf(argType) != getElementTypeOrSelf(resultType))
-    return op->emitOpError() << "attribute " << attrName
-                             << " aliases do not have compatible types, "
-                             << argType << " vs. " << resultType;
-  return success();
-}
-
 namespace {
 // Custom formatting for convolution window attributes.
 void printWindowAttribute(OpAsmPrinter& p, DenseElementsAttr attribute) {
@@ -3419,26 +3278,6 @@ Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
   if (type != elementsAttr.getType()) return nullptr;
 
   return builder.create<ConstantOp>(loc, type, elementsAttr);
-}
-
-LogicalResult StablehloDialect::verifyRegionArgAttribute(
-    Operation* op, unsigned /*regionIndex*/, unsigned argIndex,
-    NamedAttribute attr) {
-  if (auto aliasAttr = attr.getValue().dyn_cast<ArgResultAliasAttr>())
-    if (failed(
-            verifyArgResultAliasAttr(attr.getName(), aliasAttr, argIndex, op)))
-      return failure();
-  return success();
-}
-
-LogicalResult StablehloDialect::verifyOperationAttribute(Operation* op,
-                                                         NamedAttribute attr) {
-  if (auto aliasAttr = attr.getValue().dyn_cast<ArgResultAliasAttr>())
-    if (!isa<mlir::FunctionOpInterface>(op))
-      return op->emitOpError()
-             << "attribute " << attr.getName()
-             << " can only be used on function-like operations";
-  return success();
 }
 
 }  // namespace stablehlo
