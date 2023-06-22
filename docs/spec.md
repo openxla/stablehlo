@@ -1310,11 +1310,11 @@ implementation-defined as well.
   * If `num_bits(E') < num_bits(E)`:
     * `rank(result) = R + 1`.
     * `dim(result, i) = dim(operand, i)` for all `0 <= i < R`.
-    * `dim(result, R) = num_bits(E) / num_bits(E')`.
+    * `dim(result, R) * num_bits(E') = num_bits(E)`.
   * If `num_bits(E') > num_bits(E)`:
     * `rank(result) = R - 1`.
     * `dim(result, i) = dim(operand, i)` for all `0 <= i < R`.
-    * `dim(operand, R - 1) = num_bits(E') / num_bits(E)`.
+    * `dim(operand, R - 1) * num_bits(E) = num_bits(E')`.
 * (C2) If `is_complex(operand) or is_complex(result)`, then
   `is_complex(operand) and is_complex(result)`.
 
