@@ -3280,16 +3280,5 @@ Operation* StablehloDialect::materializeConstant(OpBuilder& builder,
   return builder.create<ConstantOp>(loc, type, elementsAttr);
 }
 
-LogicalResult StablehloDialect::verifyRegionArgAttribute(
-    Operation* op, unsigned /*regionIndex*/, unsigned argIndex,
-    NamedAttribute attr) {
-  return success();
-}
-
-LogicalResult StablehloDialect::verifyOperationAttribute(Operation* op,
-                                                         NamedAttribute attr) {
-  return success();
-}
-
 }  // namespace stablehlo
 }  // namespace mlir

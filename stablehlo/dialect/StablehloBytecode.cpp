@@ -65,7 +65,7 @@ namespace stablehlo_encoding {
 enum AttributeCode {
   // TO ADD ATTRIBUTE: Add an enum value with doc string for new attr.
 
-  ///   ArgResultAliasAttr(deprecated)
+  ///   ArgResultAliasAttr (obsolete)
   // kArgResultAliasAttr = 0,
 
   ///   ChannelHandleAttr {
