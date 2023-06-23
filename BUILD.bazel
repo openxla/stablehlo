@@ -354,6 +354,22 @@ cc_library(
 )
 
 cc_library(
+    name = "reference_interpretervalue",
+    srcs = [
+        "stablehlo/reference/InterpreterValue.cpp",
+    ],
+    hdrs = [
+        "stablehlo/reference/InterpreterValue.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":reference_tensor",
+        ":reference_token",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+cc_library(
     name = "reference_ops",
     srcs = [
         "stablehlo/reference/Ops.cpp",
@@ -396,22 +412,6 @@ cc_library(
         ":reference_token",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
-    ],
-)
-
-cc_library(
-    name = "reference_interpretervalue",
-    srcs = [
-        "stablehlo/reference/InterpreterValue.cpp",
-    ],
-    hdrs = [
-        "stablehlo/reference/InterpreterValue.h",
-    ],
-    strip_include_prefix = ".",
-    deps = [
-        ":reference_tensor",
-        ":reference_token",
-        "@llvm-project//mlir:IR",
     ],
 )
 

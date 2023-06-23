@@ -44,8 +44,7 @@ Type InterpreterValue::getType() const {
   if (isTensor()) return getTensor().getType();
   if (isToken()) return getToken().getType();
 
-  report_fatal_error(
-      invalidArgument("Cannot get unsupported interpreter value type."));
+  report_fatal_error(invalidArgument("Unsupported interpreter value."));
 }
 
 bool InterpreterValue::isTensor() const {
@@ -62,8 +61,7 @@ void InterpreterValue::print(raw_ostream &os) const {
   else if (isToken())
     getToken().print(os);
   else
-    report_fatal_error(
-        invalidArgument("Cannot print unsupported interpreter value type."));
+    report_fatal_error(invalidArgument("Unsupported interpreter value."));
 }
 
 void InterpreterValue::dump() const { print(llvm::errs()); }

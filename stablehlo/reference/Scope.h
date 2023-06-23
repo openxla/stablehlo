@@ -41,9 +41,25 @@ class Scope {
   /// evaluated runtime value (`runtimeValue`).
   void add(Value ssaValue, InterpreterValue runtimeValue);
 
+  /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
+  /// evaluated runtime value (`runtimeValue`).
+  void add(Value ssaValue, Tensor runtimeValue);
+
+  /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
+  /// evaluated runtime value (`runtimeValue`).
+  void add(Value ssaValue, Token runtimeValue);
+
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
   /// evaluated runtime values (`runtimeValues`).
   void add(ValueRange ssaValues, ArrayRef<InterpreterValue> runtimeValues);
+
+  /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
+  /// evaluated runtime values (`runtimeValues`).
+  void add(ValueRange ssaValues, ArrayRef<Tensor> runtimeValues);
+
+  /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
+  /// evaluated runtime values (`runtimeValues`).
+  void add(ValueRange ssaValues, ArrayRef<Token> runtimeValues);
 
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
   /// with the current scope and then recursively continues over to the scope

@@ -19,9 +19,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Tensor.h"
-#include "stablehlo/reference/Token.h"
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
 namespace mlir {
@@ -75,15 +73,6 @@ llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
           debugString(rhs.get(*rhsIt)).c_str(), debugString((*lhsIt)).c_str());
 
   return llvm::Error::success();
-}
-
-llvm::Error evalExpectEqOp(const InterpreterValue &lhs,
-                           const InterpreterValue &rhs) {
-  if (lhs.isTensor() && rhs.isTensor())
-    return evalExpectEqOp(lhs.getTensor(), rhs.getTensor());
-  return invalidArgument(
-      "lhs and rhs must have the same type but got lhs: %s and rhs: %s",
-      debugString(lhs.getType()).c_str(), debugString(rhs.getType()).c_str());
 }
 
 }  // namespace check

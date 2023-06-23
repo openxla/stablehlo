@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/reference/InterpreterValue.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -35,10 +36,29 @@ void Scope::add(Value ssaValue, InterpreterValue runtimeValue) {
   stack_frame_[ssaValue] = runtimeValue;
 }
 
+void Scope::add(Value ssaValue, Tensor runtimeValue) {
+  add(ssaValue, InterpreterValue(runtimeValue));
+}
+
+void Scope::add(Value ssaValue, Token runtimeValue) {
+  add(ssaValue, InterpreterValue(runtimeValue));
+}
+
 void Scope::add(ValueRange ssaValues,
                 ArrayRef<InterpreterValue> runtimeValues) {
   assert(ssaValues.size() == runtimeValues.size());
-  if (runtimeValues.empty()) return;
+  for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
+    add(ssaValue, runtimeValue);
+}
+
+void Scope::add(ValueRange ssaValues, ArrayRef<Tensor> runtimeValues) {
+  assert(ssaValues.size() == runtimeValues.size());
+  for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
+    add(ssaValue, runtimeValue);
+}
+
+void Scope::add(ValueRange ssaValues, ArrayRef<Token> runtimeValues) {
+  assert(ssaValues.size() == runtimeValues.size());
   for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
     add(ssaValue, runtimeValue);
 }
@@ -61,15 +81,7 @@ SmallVector<InterpreterValue> Scope::find(ValueRange ssaValues) const {
 }
 
 Tensor Scope::findTensor(Value ssaValue) const {
-  auto it = stack_frame_.find(ssaValue);
-
-  if (it != stack_frame_.end()) return it->second.getTensor();
-
-  if (!parent_)
-    llvm::report_fatal_error(llvm::formatv("value {0} not found in scope",
-                                           debugString(ssaValue).c_str()));
-
-  return parent_->find(ssaValue).getTensor();
+  return find(ssaValue).getTensor();
 }
 
 SmallVector<Tensor> Scope::findTensors(ValueRange ssaValues) const {
@@ -78,15 +90,7 @@ SmallVector<Tensor> Scope::findTensors(ValueRange ssaValues) const {
 }
 
 Token Scope::findToken(Value ssaValue) const {
-  auto it = stack_frame_.find(ssaValue);
-
-  if (it != stack_frame_.end()) return it->second.getToken();
-
-  if (!parent_)
-    llvm::report_fatal_error(llvm::formatv("value {0} not found in scope",
-                                           debugString(ssaValue).c_str()));
-
-  return parent_->find(ssaValue).getToken();
+  return find(ssaValue).getToken();
 }
 
 SmallVector<Token> Scope::findTokens(ValueRange ssaValues) const {
