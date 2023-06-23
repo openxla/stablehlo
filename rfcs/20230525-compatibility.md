@@ -3,7 +3,7 @@
 Status: Approved<br/>
 Initial version: 5/25/2023<br/>
 Last updated: 6/8/2023<br/>
-Discussion thread: [openxla-discuss]((https://groups.google.com/a/openxla.org/g/openxla-discuss/c/yYjTDAsoygQ))
+Discussion thread: [openxla-discuss](https://groups.google.com/a/openxla.org/g/openxla-discuss/c/yYjTDAsoygQ)
 
 ## Summary
 
