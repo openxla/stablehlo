@@ -1797,6 +1797,14 @@ func.func @map_unranked(%arg0: tensor<*xf32>, %arg1: tensor<*xf32>) -> tensor<*x
 
 // -----
 
+// CHECK-LABEL: func @optimization_barrier
+func.func @optimization_barrier(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tensor<f32>, tensor<f32>) {
+  %0, %1 = "stablehlo.optimization_barrier"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> (tensor<f32>, tensor<f32>)
+  func.return %0, %1 : tensor<f32>, tensor<f32>
+}
+
+// -----
+
 // CHECK-LABEL: func @outfeed
 func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.outfeed"(%arg0, %arg1) {

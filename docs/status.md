@@ -108,7 +108,7 @@ one of the following tracking labels.
 | multiply                 | yes           | yes          | yes            | yes             | yes         |
 | negate                   | yes           | yes          | yes            | yes             | yes         |
 | not                      | yes           | yes          | yes            | yes             | yes         |
-| optimization_barrier     | yes           | yes          | yes            | yes             | no          |
+| optimization_barrier     | yes           | yes          | yes            | yes             | yes         |
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | yes           | yes          | yes            | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | yes         |
