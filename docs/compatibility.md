@@ -125,20 +125,24 @@ for roundtrip examples of using the Python Serialization APIs.
 
 ## Tests
 
-We have a compatibility suite in [stablehlo/testdata](../stablehlo/testdata)
-that consists of several thousand files dumped from JAX tests. For every pull
-request, we are testing that deserialization of the compatibility suite at HEAD
-produces StableHLO programs which are syntactically identical to the original
-StableHLO programs that were serialized by the latest release of libStablehlo.
+We have a compatibility suite in [stablehlo/tests](../stablehlo/tests)
+that involves [a comprehensive compendium of StableHLO ops](../stablehlo/tests/stablehlo_legalize_to_vhlo.mlir)
+serialized for all supported StableHLO versions. For every pull request, we are
+testing both backward and forward compatibility - i.e. that the suite can be
+deserialized targeting HEAD (backward compatibility), that the compendium
+can be serialized targeting all supported StableHLO versions (forward
+compatibility), and that the results are syntactically identical to the
+original StableHLO programs.
 
 ## Future work
 
-**Organize compatibility suite.** At the moment, the compatibility suite
-is one directory with many unstructured files. We are planning to triage and
-organize it, making sure that it's organized, comprehensive and deduplicated
-([#1240](https://github.com/openxla/stablehlo/issues/1240)).
+**Create a compatibility suite in MLIR upstream:** Using the learnings from
+establishing and maintaining StableHLO guarantees, we are planning to contribute
+a compatibility suite to MLIR upstream to provide early detection for
+accidental compatibility breakages in the MLIR bytecode infrastructure
+([#1632](https://github.com/openxla/stablehlo/issues/1632)).
 
-**Use reference implementation.** At the moment, compatibility testing consists
+**Use reference implementation:** At the moment, compatibility testing consists
 of deserializing the compatibility suite serialized by older versions of
 libStablehlo and making sure that deserialization produces syntactically
 identical programs. We are planning to also use a reference implementation in
@@ -153,3 +157,18 @@ an aspirational goal. At the moment, we don't offer source compatibility
 guarantees, but please let us know if this is an important use case for you,
 and we can have a discussion about supporting it
 ([#1247](https://github.com/openxla/stablehlo/issues/1247)).
+
+**Numerical accuracy:** StableHLO has multiple ops that have
+implementation-defined accuracy across consumers and even within the same
+consumer across versions. As a result, StableHLO doesn't aim to make
+guarantees about numerical accuracy, although this may change in the future
+([#1156](https://github.com/openxla/stablehlo/issues/1156)).
+
+**Bug compatibility:** We may make incompatible changes if the implementation in
+libStablehlo contradicts the StableHLO specification, e.g. if a definition in
+the VHLO dialect is wrong, or if a verifier in the StableHLO dialect does not
+match the spec.
+
+**Unspecced features:** We may make incompatible changes to features which
+are not yet part of the StableHLO specification, e.g. we do not provide
+compatibility guarantees for unregistered attributes.
