@@ -25,9 +25,11 @@ limitations under the License.
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/dialect/TypeInference.h"
+#include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
-#include "stablehlo/reference/StablehloValue.h"
+#include "stablehlo/reference/Index.h"
+#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
 
@@ -138,25 +140,18 @@ void failOnDecomposableOp(Operation &op) {
       op.getName().getStringRef().str().c_str()));
 }
 
-auto getTensors = [](SmallVector<StablehloValue> list) {
-  SmallVector<Tensor> result(list.size());
-  std::transform(list.begin(), list.end(), result.begin(),
-                 [](auto value) { return value.getTensor(); });
-  return result;
-};
-
 template <typename T>
-auto getStablehloValues = [](SmallVector<T> list) {
-  SmallVector<StablehloValue> result(list.size());
+SmallVector<InterpreterValue> getInterpreterValues(SmallVector<T> list) {
+  SmallVector<InterpreterValue> result(list.size());
   std::transform(list.begin(), list.end(), result.begin(),
-                 [](auto value) { return StablehloValue(value); });
+                 [](auto value) { return InterpreterValue(value); });
   return result;
-};
+}
 
 }  // namespace
 
-SmallVector<StablehloValue> eval(
-    Region &region, ArrayRef<StablehloValue> args, Scope *parent,
+SmallVector<InterpreterValue> eval(
+    Region &region, ArrayRef<InterpreterValue> args, Scope *parent,
     llvm::function_ref<llvm::Error(Operation &, Scope &)> fallback) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
@@ -166,32 +161,31 @@ SmallVector<StablehloValue> eval(
 
   Scope scope(parent);
   scope.add(block.getArguments(), args);
+
   for (Operation &op : block) {
     if (auto absOp = dyn_cast<AbsOp>(op)) {
-      auto operand = scope.find(absOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(absOp.getOperand());
       auto result = evalAbsOp(operand, absOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto addOp = dyn_cast<AddOp>(op)) {
-      auto lhs = scope.find(addOp.getLhs()).getTensor();
-      auto rhs = scope.find(addOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(addOp.getLhs());
+      auto rhs = scope.findTensor(addOp.getRhs());
       auto result = evalAddOp(lhs, rhs, addOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto afterAllOp = dyn_cast<AfterAllOp>(op)) {
-      auto inputs = scope.find(afterAllOp.getInputs());
-      SmallVector<Token> tokens;
-      for (auto &input : inputs) tokens.push_back(input.getToken());
-      auto result = evalAfterAllOp(tokens, afterAllOp->getContext());
-      scope.add(op.getResults(), StablehloValue(result));
+      auto inputs = scope.findTokens(afterAllOp.getInputs());
+      auto result = evalAfterAllOp(inputs, afterAllOp->getContext());
+      scope.add(op.getResults(), {result});
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
-      auto lhs = scope.find(andOp.getLhs()).getTensor();
-      auto rhs = scope.find(andOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(andOp.getLhs());
+      auto rhs = scope.findTensor(andOp.getRhs());
       auto result = evalAndOp(lhs, rhs, andOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto atan2Op = dyn_cast<Atan2Op>(op)) {
-      auto lhs = scope.find(atan2Op.getLhs()).getTensor();
-      auto rhs = scope.find(atan2Op.getRhs()).getTensor();
+      auto lhs = scope.findTensor(atan2Op.getLhs());
+      auto rhs = scope.findTensor(atan2Op.getRhs());
       auto result = evalAtan2Op(lhs, rhs, atan2Op.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto batchNormGradOp = dyn_cast<BatchNormGradOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto batchNormInferenceOp = dyn_cast<BatchNormInferenceOp>(op)) {
@@ -199,81 +193,81 @@ SmallVector<StablehloValue> eval(
     } else if (auto batchNormTrainingOp = dyn_cast<BatchNormTrainingOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
-      auto operand = scope.find(broadcastInDimOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
           Axes(broadcastInDimOp.getBroadcastDimensions());
       auto result = evalBroadcastInDimOp(operand, broadcastDimensions,
                                          broadcastInDimOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<BroadcastOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
-      auto index = scope.find(caseOp.getIndex()).getTensor();
+      auto index = scope.findTensor(caseOp.getIndex());
       auto branches = caseOp.getBranches();
       auto results = evalCaseOp(index, branches, scope);
       scope.add(op.getResults(), results);
     } else if (auto cbrtOp = dyn_cast<CbrtOp>(op)) {
-      auto operand = scope.find(cbrtOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(cbrtOp.getOperand());
       auto result = evalCbrtOp(operand, cbrtOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto ceilOp = dyn_cast<CeilOp>(op)) {
-      auto operand = scope.find(ceilOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(ceilOp.getOperand());
       auto result = evalCeilOp(operand, ceilOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto choleskyOp = dyn_cast<CholeskyOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto clampOp = dyn_cast<ClampOp>(op)) {
-      auto min = scope.find(clampOp.getMin()).getTensor();
-      auto operand = scope.find(clampOp.getOperand()).getTensor();
-      auto max = scope.find(clampOp.getMax()).getTensor();
+      auto min = scope.findTensor(clampOp.getMin());
+      auto operand = scope.findTensor(clampOp.getOperand());
+      auto max = scope.findTensor(clampOp.getMax());
       auto result = evalClampOp(min, operand, max, clampOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto clzOp = dyn_cast<ClzOp>(op)) {
-      auto operand = scope.find(clzOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(clzOp.getOperand());
       auto result = evalClzOp(operand, clzOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
-      auto lhs = scope.find(compareOp.getLhs()).getTensor();
-      auto rhs = scope.find(compareOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(compareOp.getLhs());
+      auto rhs = scope.findTensor(compareOp.getRhs());
       auto comparisonDirection = compareOp.getComparisonDirection();
       auto result =
           evalCompareOp(lhs, rhs, comparisonDirection, compareOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto complexOp = dyn_cast<ComplexOp>(op)) {
-      auto lhs = scope.find(complexOp.getLhs()).getTensor();
-      auto rhs = scope.find(complexOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(complexOp.getLhs());
+      auto rhs = scope.findTensor(complexOp.getRhs());
       auto result = evalComplexOp(lhs, rhs, complexOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto concatenateOp = dyn_cast<ConcatenateOp>(op)) {
-      auto operands = getTensors(scope.find(concatenateOp.getOperands()));
+      auto operands = scope.findTensors(concatenateOp.getOperands());
       auto result = evalConcatenateOp(operands, concatenateOp.getDimension(),
                                       concatenateOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto constantOp = dyn_cast<ConstantOp>(op)) {
       auto result = evalConstantOp(constantOp.getValue());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto convertOp = dyn_cast<ConvertOp>(op)) {
-      auto operand = scope.find(convertOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(convertOp.getOperand());
       auto result = evalConvertOp(operand, convertOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto cosineOp = dyn_cast<CosineOp>(op)) {
-      auto operand = scope.find(cosineOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(cosineOp.getOperand());
       auto result = evalCosineOp(operand, cosineOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<CreateTokenOp>(op)) {
       failOnDecomposableOp(op);
     } else if (isa<CrossReplicaSumOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto divideOp = dyn_cast<DivOp>(op)) {
-      auto lhs = scope.find(divideOp.getLhs()).getTensor();
-      auto rhs = scope.find(divideOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(divideOp.getLhs());
+      auto rhs = scope.findTensor(divideOp.getRhs());
       auto result = evalDivideOp(lhs, rhs, divideOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<DotOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto dotGeneralOp = dyn_cast<DotGeneralOp>(op)) {
-      auto lhs = scope.find(dotGeneralOp.getLhs()).getTensor();
-      auto rhs = scope.find(dotGeneralOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(dotGeneralOp.getLhs());
+      auto rhs = scope.findTensor(dotGeneralOp.getRhs());
       auto lhsBatchingDimensions = Axes(
           dotGeneralOp.getDotDimensionNumbers().getLhsBatchingDimensions());
       auto rhsBatchingDimensions = Axes(
@@ -286,40 +280,39 @@ SmallVector<StablehloValue> eval(
           evalDotGeneralOp(lhs, rhs, lhsBatchingDimensions,
                            rhsBatchingDimensions, lhsContractingDimensions,
                            rhsContractingDimensions, dotGeneralOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto dynamicSliceOp = dyn_cast<DynamicSliceOp>(op)) {
-      auto operand = scope.find(dynamicSliceOp.getOperand()).getTensor();
-      auto startIndices =
-          getTensors(scope.find(dynamicSliceOp.getStartIndices()));
+      auto operand = scope.findTensor(dynamicSliceOp.getOperand());
+      auto startIndices = scope.findTensors(dynamicSliceOp.getStartIndices());
       auto sliceSizes = Sizes(dynamicSliceOp.getSliceSizes());
       auto result = evalDynamicSliceOp(operand, startIndices, sliceSizes,
                                        dynamicSliceOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto dynamicUpdateSliceOp = dyn_cast<DynamicUpdateSliceOp>(op)) {
-      auto operand = scope.find(dynamicUpdateSliceOp.getOperand()).getTensor();
-      auto update = scope.find(dynamicUpdateSliceOp.getUpdate()).getTensor();
+      auto operand = scope.findTensor(dynamicUpdateSliceOp.getOperand());
+      auto update = scope.findTensor(dynamicUpdateSliceOp.getUpdate());
       auto startIndices =
-          getTensors(scope.find(dynamicUpdateSliceOp.getStartIndices()));
+          scope.findTensors(dynamicUpdateSliceOp.getStartIndices());
       auto result = evalDynamicUpdateSliceOp(operand, update, startIndices,
                                              dynamicUpdateSliceOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<EinsumOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto expOp = dyn_cast<ExpOp>(op)) {
-      auto operand = scope.find(expOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(expOp.getOperand());
       auto result = evalExponentialOp(operand, expOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto expm1Op = dyn_cast<Expm1Op>(op)) {
-      auto operand = scope.find(expm1Op.getOperand()).getTensor();
+      auto operand = scope.findTensor(expm1Op.getOperand());
       auto result = evalExpm1Op(operand, expm1Op.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto floorOp = dyn_cast<FloorOp>(op)) {
-      auto operand = scope.find(floorOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(floorOp.getOperand());
       auto result = evalFloorOp(operand, floorOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto gatherOp = dyn_cast<GatherOp>(op)) {
-      auto operand = scope.find(gatherOp.getOperand()).getTensor();
-      auto startIndices = scope.find(gatherOp.getStartIndices()).getTensor();
+      auto operand = scope.findTensor(gatherOp.getOperand());
+      auto startIndices = scope.findTensor(gatherOp.getStartIndices());
       auto result = evalGatherOp(
           operand, startIndices,
           Axes(gatherOp.getDimensionNumbers().getOffsetDims()),
@@ -328,110 +321,110 @@ SmallVector<StablehloValue> eval(
           Axis(gatherOp.getDimensionNumbers().getIndexVectorDim()),
           Sizes(gatherOp.getSliceSizes()), gatherOp.getIndicesAreSorted(),
           gatherOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto getDimensionSizeOp = dyn_cast<GetDimensionSizeOp>(op)) {
-      auto operand = scope.find(getDimensionSizeOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(getDimensionSizeOp.getOperand());
       auto dimension = getDimensionSizeOp.getDimension();
       auto result = evalGetDimensionSizeOp(operand, dimension,
                                            getDimensionSizeOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto ifOp = dyn_cast<IfOp>(op)) {
-      auto pred = scope.find(ifOp.getPred()).getTensor();
+      auto pred = scope.findTensor(ifOp.getPred());
       auto &trueBranch = ifOp.getTrueBranch();
       auto &falseBranch = ifOp.getFalseBranch();
       auto results = evalIfOp(pred, trueBranch, falseBranch, scope);
       scope.add(op.getResults(), results);
     } else if (auto imagOp = dyn_cast<ImagOp>(op)) {
-      auto operand = scope.find(imagOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(imagOp.getOperand());
       auto result = evalImagOp(operand, imagOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
       auto iotaDimension = iotaOp.getIotaDimension();
       auto result = evalIotaOp(iotaDimension, iotaOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto isFiniteOp = dyn_cast<IsFiniteOp>(op)) {
-      auto operand = scope.find(isFiniteOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(isFiniteOp.getOperand());
       auto result = evalIsFiniteOp(operand, isFiniteOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto logOp = dyn_cast<LogOp>(op)) {
-      auto operand = scope.find(logOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(logOp.getOperand());
       auto result = evalLogOp(operand, logOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto log1pOp = dyn_cast<Log1pOp>(op)) {
-      auto operand = scope.find(log1pOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(log1pOp.getOperand());
       auto result = evalLog1pOp(operand, log1pOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto logisticOp = dyn_cast<LogisticOp>(op)) {
-      auto operand = scope.find(logisticOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(logisticOp.getOperand());
       auto result = evalLogisticOp(operand, logisticOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto mapOp = dyn_cast<MapOp>(op)) {
-      auto inputs = getTensors(scope.find(mapOp.getInputs()));
+      auto inputs = scope.findTensors(mapOp.getInputs());
       auto &computation = mapOp.getComputation();
       auto result = evalMapOp(inputs, computation, scope, mapOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
-      auto lhs = scope.find(maxOp.getLhs()).getTensor();
-      auto rhs = scope.find(maxOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(maxOp.getLhs());
+      auto rhs = scope.findTensor(maxOp.getRhs());
       auto result = evalMaxOp(lhs, rhs, maxOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto minOp = dyn_cast<MinOp>(op)) {
-      auto lhs = scope.find(minOp.getLhs()).getTensor();
-      auto rhs = scope.find(minOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(minOp.getLhs());
+      auto rhs = scope.findTensor(minOp.getRhs());
       auto result = evalMinOp(lhs, rhs, minOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto multiplyOp = dyn_cast<MulOp>(op)) {
-      auto lhs = scope.find(multiplyOp.getLhs()).getTensor();
-      auto rhs = scope.find(multiplyOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(multiplyOp.getLhs());
+      auto rhs = scope.findTensor(multiplyOp.getRhs());
       auto result = evalMultiplyOp(lhs, rhs, multiplyOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto negOp = dyn_cast<NegOp>(op)) {
-      auto operand = scope.find(negOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(negOp.getOperand());
       auto result = evalNegOp(operand, negOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto notOp = dyn_cast<NotOp>(op)) {
-      auto operand = scope.find(notOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(notOp.getOperand());
       auto result = evalNotOp(operand, notOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto orOp = dyn_cast<OrOp>(op)) {
-      auto lhs = scope.find(orOp.getLhs()).getTensor();
-      auto rhs = scope.find(orOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(orOp.getLhs());
+      auto rhs = scope.findTensor(orOp.getRhs());
       auto result = evalOrOp(lhs, rhs, orOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto padOp = dyn_cast<PadOp>(op)) {
-      auto operand = scope.find(padOp.getOperand()).getTensor();
-      auto paddingValue = scope.find(padOp.getPaddingValue()).getTensor();
+      auto operand = scope.findTensor(padOp.getOperand());
+      auto paddingValue = scope.findTensor(padOp.getPaddingValue());
       auto edgePaddingLow = Sizes(padOp.getEdgePaddingLow());
       auto interiorPadding = Sizes(padOp.getInteriorPadding());
       auto result = evalPadOp(operand, paddingValue, edgePaddingLow,
                               interiorPadding, padOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto populationCountOp = dyn_cast<PopulationCountOp>(op)) {
-      auto operand = scope.find(populationCountOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(populationCountOp.getOperand());
       auto result = evalPopulationCountOp(operand, populationCountOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto powerOp = dyn_cast<PowOp>(op)) {
-      auto lhs = scope.find(powerOp.getLhs()).getTensor();
-      auto rhs = scope.find(powerOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(powerOp.getLhs());
+      auto rhs = scope.findTensor(powerOp.getRhs());
       auto result = evalPowerOp(lhs, rhs, powerOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto realOp = dyn_cast<RealOp>(op)) {
-      auto operand = scope.find(realOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(realOp.getOperand());
       auto result = evalRealOp(operand, realOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto reduceOp = dyn_cast<ReduceOp>(op)) {
-      auto inputs = getTensors(scope.find(reduceOp.getInputs()));
-      auto initValues = getTensors(scope.find(reduceOp.getInitValues()));
+      auto inputs = scope.findTensors(reduceOp.getInputs());
+      auto initValues = scope.findTensors(reduceOp.getInitValues());
       SmallVector<ShapedType> resultTypes;
       for (auto resultType : reduceOp.getResultTypes())
         resultTypes.push_back(resultType.cast<ShapedType>());
       auto results =
           evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
                        reduceOp.getBody(), scope, resultTypes);
-      scope.add(op.getResults(), getStablehloValues<Tensor>(results));
+      scope.add(op.getResults(), getInterpreterValues<Tensor>(results));
     } else if (auto reduceWindowOp = dyn_cast<ReduceWindowOp>(op)) {
-      auto inputs = getTensors(scope.find(reduceWindowOp.getInputs()));
-      auto initValues = getTensors(scope.find(reduceWindowOp.getInitValues()));
+      auto inputs = scope.findTensors(reduceWindowOp.getInputs());
+      auto initValues = scope.findTensors(reduceWindowOp.getInitValues());
       int64_t rank = inputs[0].getRank();
 
       Sizes windowStrides(rank, 1);
@@ -469,47 +462,46 @@ SmallVector<StablehloValue> eval(
           inputs, initValues, Sizes(reduceWindowOp.getWindowDimensions()),
           windowStrides, baseDilations, windowDilations, paddingLow,
           paddingHigh, reduceWindowOp.getBody(), scope, resultTypes);
-      scope.add(op.getResults(), getStablehloValues<Tensor>(results));
+      scope.add(op.getResults(), getInterpreterValues<Tensor>(results));
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
-      auto lhs = scope.find(remOp.getLhs()).getTensor();
-      auto rhs = scope.find(remOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(remOp.getLhs());
+      auto rhs = scope.findTensor(remOp.getRhs());
       auto result = evalRemOp(lhs, rhs, remOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
-      auto operand = scope.find(reshapeOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(reshapeOp.getOperand());
       auto result = evalReshapeOp(operand, reshapeOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto returnOp = dyn_cast<func::ReturnOp>(op)) {
       return scope.find(returnOp.getOperands());
     } else if (auto returnOp = dyn_cast<ReturnOp>(op)) {
       return scope.find(returnOp.getResults());
     } else if (auto reverseOp = dyn_cast<ReverseOp>(op)) {
-      auto operand = scope.find(reverseOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(reverseOp.getOperand());
       auto dimensions = Axes(reverseOp.getDimensions());
       auto result = evalReverseOp(operand, dimensions, reverseOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<RngBitGeneratorOp>(op)) {
       failOnDecomposableOp(op);
     } else if (isa<RngOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
-      auto operand = scope.find(roundOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(roundOp.getOperand());
       auto result = evalRoundOp(operand, roundOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto roundNearestEvenOp = dyn_cast<RoundNearestEvenOp>(op)) {
-      auto operand = scope.find(roundNearestEvenOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(roundNearestEvenOp.getOperand());
       auto result =
           evalRoundNearestEvenOp(operand, roundNearestEvenOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
-      auto operand = scope.find(rsqrtOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(rsqrtOp.getOperand());
       auto result = evalRsqrtOp(operand, rsqrtOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto scatterOp = dyn_cast<ScatterOp>(op)) {
-      auto inputs = getTensors(scope.find(scatterOp.getInputs()));
-      auto scatterIndices =
-          scope.find(scatterOp.getScatterIndices()).getTensor();
-      auto updates = getTensors(scope.find(scatterOp.getUpdates()));
+      auto inputs = scope.findTensors(scatterOp.getInputs());
+      auto scatterIndices = scope.findTensor(scatterOp.getScatterIndices());
+      auto updates = scope.findTensors(scatterOp.getUpdates());
       auto scatterDimensionNumbers = scatterOp.getScatterDimensionNumbersAttr();
       Axes updateWindowDims(scatterDimensionNumbers.getUpdateWindowDims());
       Axes insertedWindowDims(scatterDimensionNumbers.getInsertedWindowDims());
@@ -522,18 +514,17 @@ SmallVector<StablehloValue> eval(
           evalScatterOp(inputs, scatterIndices, updates, updateWindowDims,
                         insertedWindowDims, scatterDimsToOperandDims,
                         indexVectorDim, updateComputation, scope, resultTypes);
-      scope.add(op.getResults(), getStablehloValues<Tensor>(results));
+      scope.add(op.getResults(), getInterpreterValues<Tensor>(results));
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
-      auto pred = scope.find(selectOp.getPred()).getTensor();
-      auto onTrue = scope.find(selectOp.getOnTrue()).getTensor();
-      auto onFalse = scope.find(selectOp.getOnFalse()).getTensor();
+      auto pred = scope.findTensor(selectOp.getPred());
+      auto onTrue = scope.findTensor(selectOp.getOnTrue());
+      auto onFalse = scope.findTensor(selectOp.getOnFalse());
       auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto selectAndScatterOp = dyn_cast<SelectAndScatterOp>(op)) {
-      auto operand = scope.find(selectAndScatterOp.getOperand()).getTensor();
-      auto source = scope.find(selectAndScatterOp.getSource()).getTensor();
-      auto initValue =
-          scope.find(selectAndScatterOp.getInitValue()).getTensor();
+      auto operand = scope.findTensor(selectAndScatterOp.getOperand());
+      auto source = scope.findTensor(selectAndScatterOp.getSource());
+      auto initValue = scope.findTensor(selectAndScatterOp.getInitValue());
       auto rank = operand.getRank();
 
       Sizes windowDimensions(rank, 1);
@@ -562,71 +553,71 @@ SmallVector<StablehloValue> eval(
           operand, source, initValue, windowDimensions, windowStrides,
           paddingLow, selectAndScatterOp.getSelect(),
           selectAndScatterOp.getScatter(), scope, selectAndScatterOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
-      auto lhs = scope.find(shiftLeftOp.getLhs()).getTensor();
-      auto rhs = scope.find(shiftLeftOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(shiftLeftOp.getLhs());
+      auto rhs = scope.findTensor(shiftLeftOp.getRhs());
       auto result = evalShiftLeftOp(lhs, rhs, shiftLeftOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto shiftRightArithmeticOp =
                    dyn_cast<ShiftRightArithmeticOp>(op)) {
-      auto lhs = scope.find(shiftRightArithmeticOp.getLhs()).getTensor();
-      auto rhs = scope.find(shiftRightArithmeticOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(shiftRightArithmeticOp.getLhs());
+      auto rhs = scope.findTensor(shiftRightArithmeticOp.getRhs());
       auto result = evalShiftRightArithmeticOp(
           lhs, rhs, shiftRightArithmeticOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto shiftRightLogicalOp = dyn_cast<ShiftRightLogicalOp>(op)) {
-      auto lhs = scope.find(shiftRightLogicalOp.getLhs()).getTensor();
-      auto rhs = scope.find(shiftRightLogicalOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(shiftRightLogicalOp.getLhs());
+      auto rhs = scope.findTensor(shiftRightLogicalOp.getRhs());
       auto result =
           evalShiftRightLogicalOp(lhs, rhs, shiftRightLogicalOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto signOp = dyn_cast<SignOp>(op)) {
-      auto operand = scope.find(signOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(signOp.getOperand());
       auto result = evalSignOp(operand, signOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto sineOp = dyn_cast<SineOp>(op)) {
-      auto operand = scope.find(sineOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(sineOp.getOperand());
       auto result = evalSineOp(operand, sineOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto sliceOp = dyn_cast<SliceOp>(op)) {
-      auto operand = scope.find(sliceOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(sliceOp.getOperand());
       auto startIndices = Sizes(sliceOp.getStartIndices());
       auto strides = Sizes(sliceOp.getStrides());
       auto result =
           evalSliceOp(operand, startIndices, strides, sliceOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto sortOp = dyn_cast<SortOp>(op)) {
-      auto operands = getTensors(scope.find(sortOp.getInputs()));
+      auto operands = scope.findTensors(sortOp.getInputs());
       auto dimension = sortOp.getDimension();
       auto isStable = sortOp.getIsStable();
       auto &comparator = sortOp.getComparator();
       auto results =
           evalSortOp(operands, dimension, isStable, comparator, scope);
-      scope.add(op.getResults(), getStablehloValues<Tensor>(results));
+      scope.add(op.getResults(), getInterpreterValues<Tensor>(results));
     } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
-      auto operand = scope.find(sqrtOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(sqrtOp.getOperand());
       auto result = evalSqrtOp(operand, sqrtOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto subtractOp = dyn_cast<SubtractOp>(op)) {
-      auto lhs = scope.find(subtractOp.getLhs()).getTensor();
-      auto rhs = scope.find(subtractOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(subtractOp.getLhs());
+      auto rhs = scope.findTensor(subtractOp.getRhs());
       auto result = evalSubtractOp(lhs, rhs, subtractOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (auto tanhOp = dyn_cast<TanhOp>(op)) {
-      auto operand = scope.find(tanhOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(tanhOp.getOperand());
       auto result = evalTanhOp(operand, tanhOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<TorchIndexSelectOp>(op)) {
       failOnDecomposableOp(op);
     } else if (isa<TraceOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto transposeOp = dyn_cast<TransposeOp>(op)) {
-      auto operand = scope.find(transposeOp.getOperand()).getTensor();
+      auto operand = scope.findTensor(transposeOp.getOperand());
       auto permutation = Axes(transposeOp.getPermutation());
       auto result =
           evalTransposeOp(operand, permutation, transposeOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else if (isa<TriangularSolveOp>(op)) {
       failOnDecomposableOp(op);
     } else if (isa<UnaryEinsumOp>(op)) {
@@ -638,10 +629,10 @@ SmallVector<StablehloValue> eval(
       auto results = evalWhileOp(operand, cond, body, scope);
       scope.add(op.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
-      auto lhs = scope.find(xorOp.getLhs()).getTensor();
-      auto rhs = scope.find(xorOp.getRhs()).getTensor();
+      auto lhs = scope.findTensor(xorOp.getLhs());
+      auto rhs = scope.findTensor(xorOp.getRhs());
       auto result = evalXorOp(lhs, rhs, xorOp.getType());
-      scope.add(op.getResults(), StablehloValue(result));
+      scope.add(op.getResults(), {result});
     } else {
       if (!fallback)
         report_fatal_error(
@@ -704,8 +695,8 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
   return result;
 }
 
-SmallVector<StablehloValue> evalCaseOp(const Tensor &index,
-                                       RegionRange branches, Scope &scope) {
+SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
+                                         RegionRange branches, Scope &scope) {
   int64_t indexValue = index.get({}).getIntegerValue().getSExtValue();
   if (indexValue < 0 || indexValue >= static_cast<int64_t>(branches.size()))
     indexValue = branches.size() - 1;
@@ -1012,8 +1003,8 @@ Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
   return result;
 }
 
-SmallVector<StablehloValue> evalIfOp(const Tensor &pred, Region &trueBranch,
-                                     Region &falseBranch, Scope &scope) {
+SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
+                                       Region &falseBranch, Scope &scope) {
   return pred.get({}).getBooleanValue() ? eval(trueBranch, {}, &scope)
                                         : eval(falseBranch, {}, &scope);
 }
@@ -1065,14 +1056,13 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
                  ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    SmallVector<StablehloValue> args;
+    SmallVector<InterpreterValue> args;
     for (size_t i = 0; i < inputs.size(); ++i) {
-      auto tensor =
-          Tensor(computation.getArgument(i).getType().cast<ShapedType>());
+      Tensor tensor(computation.getArgument(i).getType().cast<ShapedType>());
       tensor.set({}, inputs[i].get(*it));
-      args.push_back(StablehloValue(tensor));
+      args.emplace_back(tensor);
     }
-    result.set(*it, getTensors(eval(computation, args, &scope))[0].get({}));
+    result.set(*it, eval(computation, args, &scope)[0].getTensor().get({}));
   }
   return result;
 }
@@ -1165,7 +1155,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
-    results.push_back(Tensor(resultType, initValue.get({})));
+    results.emplace_back(resultType, initValue.get({}));
 
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
@@ -1175,19 +1165,19 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       resultIndex.push_back(inputIndexElement);
     }
 
-    SmallVector<StablehloValue> bodyArgs;
+    SmallVector<InterpreterValue> bodyArgs;
     for (auto [result, initValue] : llvm::zip(results, initValues)) {
       Tensor tensor(initValue.getType(), result.get(resultIndex));
-      bodyArgs.push_back(StablehloValue(tensor));
+      bodyArgs.emplace_back(tensor);
     }
     for (auto [input, initValue] : llvm::zip(inputs, initValues)) {
       Tensor tensor(initValue.getType(), input.get(*inputIt));
-      bodyArgs.push_back(StablehloValue(tensor));
+      bodyArgs.emplace_back(tensor);
     }
 
-    auto bodyResult = getTensors(eval(body, bodyArgs, &scope));
+    auto bodyResult = eval(body, bodyArgs, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
-      result.set(resultIndex, value.get({}));
+      result.set(resultIndex, value.getTensor().get({}));
   }
   return results;
 }
@@ -1200,7 +1190,7 @@ SmallVector<Tensor> evalReduceWindowOp(
     Scope &scope, ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
-    results.push_back(Tensor(resultType, initValue.get({})));
+    results.emplace_back(resultType, initValue.get({}));
 
   SmallVector<Tensor> paddedInputs;
   for (auto [input, initValue] : llvm::zip(inputs, initValues))
@@ -1324,22 +1314,21 @@ SmallVector<Tensor> evalScatterOp(
     auto resultIndex = fullStartIndex + fullWindowIndex;
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
-    SmallVector<StablehloValue> updateComputationArgs;
+    SmallVector<InterpreterValue> updateComputationArgs;
     for (auto result : results) {
       Tensor tensor(RankedTensorType::get({}, result.getElementType()),
                     result.get(resultIndex));
-      updateComputationArgs.push_back(StablehloValue(tensor));
+      updateComputationArgs.emplace_back(tensor);
     }
     for (auto update : updates) {
       Tensor tensor(RankedTensorType::get({}, update.getElementType()),
                     update.get(updateIndex));
-      updateComputationArgs.push_back(StablehloValue(tensor));
+      updateComputationArgs.emplace_back(tensor);
     }
 
-    auto updatedValues =
-        getTensors(eval(updateComputation, updateComputationArgs, &scope));
+    auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
     for (auto [result, updatedValue] : llvm::zip(results, updatedValues))
-      result.set(resultIndex, updatedValue.get({}));
+      result.set(resultIndex, updatedValue.getTensor().get({}));
   }
 
   return results;
@@ -1467,7 +1456,7 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator,
                                Scope &scope) {
   SmallVector<Tensor> results;
-  for (const auto &input : inputs) results.push_back(Tensor(input.getType()));
+  for (const auto &input : inputs) results.emplace_back(input.getType());
   auto adjustedDimension =
       dimension >= 0 ? dimension : dimension + inputs[0].getRank();
 
@@ -1489,20 +1478,18 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
         inputs[0].getShape()[adjustedDimension]);
     std::iota(inputsTogether.begin(), inputsTogether.end(), 0);
     auto comparatorTogether = [&](int64_t lhsHandle, int64_t rhsHandle) {
-      SmallVector<StablehloValue> args;
+      SmallVector<InterpreterValue> args;
       auto lhsIndex = *resultIt;
       auto rhsIndex = *resultIt;
       lhsIndex[adjustedDimension] = lhsHandle;
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
         auto argType = RankedTensorType::get({}, input.getElementType());
-        auto tensor1 = Tensor(argType, input.get(lhsIndex));
-        args.push_back(StablehloValue(tensor1));
-        auto tensor2 = Tensor(argType, input.get(rhsIndex));
-        args.push_back(StablehloValue(tensor2));
+        args.emplace_back(Tensor(argType, input.get(lhsIndex)));
+        args.emplace_back(Tensor(argType, input.get(rhsIndex)));
       }
-      auto comparatorResult = getTensors(eval(comparator, args, &scope));
-      return comparatorResult[0].get({}).getBooleanValue();
+      auto comparatorResult = eval(comparator, args, &scope);
+      return comparatorResult[0].getTensor().get({}).getBooleanValue();
     };
     if (isStable)
       std::stable_sort(inputsTogether.begin(), inputsTogether.end(),
@@ -1563,14 +1550,14 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
   return result;
 }
 
-SmallVector<StablehloValue> evalWhileOp(SmallVector<StablehloValue> operand,
-                                        Region &cond, Region &body,
-                                        Scope &scope) {
-  SmallVector<StablehloValue> results(operand);
+SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
+                                          Region &cond, Region &body,
+                                          Scope &scope) {
+  SmallVector<InterpreterValue> results(operand);
 
   auto condResults = eval(cond, operand, &scope);
 
-  while (getTensors(condResults)[0].get({}).getBooleanValue()) {
+  while (condResults[0].getTensor().get({}).getBooleanValue()) {
     results = eval(body, results, &scope);
     condResults = eval(cond, results, &scope);
   }

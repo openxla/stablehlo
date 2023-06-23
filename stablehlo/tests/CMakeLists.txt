@@ -65,7 +65,7 @@ add_mlir_dialect_library(CheckOps
 
   LINK_LIBS PUBLIC
   StablehloBase
-  StablehloReferenceStablehloValue
+  StablehloReferenceInterpreterValue
   StablehloReferenceTensor
   StablehloReferenceToken
   MLIRIR

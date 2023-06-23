@@ -63,17 +63,15 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
   auto expectedResult = scope.find(op->getOperands())[1];
   bool isInt = expectedResult.isTensor() &&
                expectedResult.getTensor().getElementType().isa<IntegerType>();
-  bool isToken = expectedResult.isToken();
   auto status =
-      isInt || isToken
-          ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
-          : stablehlo::check::evalExpectAlmostEqOp(actualResult.getTensor(),
-                                                   expectedResult.getTensor());
+      isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
+            : stablehlo::check::evalExpectAlmostEqOp(
+                  actualResult.getTensor(), expectedResult.getTensor());
   if (status)
-    scope.add(op.getResults(), stablehlo::StablehloValue(
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
                                    makeBooleanTensor(op->getContext(), false)));
   else
-    scope.add(op.getResults(), stablehlo::StablehloValue(
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
                                    makeBooleanTensor(op->getContext(), true)));
 
   return status;

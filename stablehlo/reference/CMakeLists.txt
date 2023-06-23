@@ -52,15 +52,15 @@ add_mlir_library(StablehloReferenceScope
   Scope.cpp
 
   LINK_LIBS PUBLIC
-  StablehloReferenceStablehloValue
+  StablehloReferenceInterpreterValue
   StablehloReferenceTensor
   StablehloReferenceToken
   MLIRSupport
 )
 
-add_mlir_library(StablehloReferenceStablehloValue
+add_mlir_library(StablehloReferenceInterpreterValue
   PARTIAL_SOURCES_INTENDED
-  StablehloValue.cpp
+  InterpreterValue.cpp
 
   LINK_LIBS PUBLIC
   MLIRIR
@@ -100,7 +100,8 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceAxes
   StablehloReferenceElement
   StablehloReferenceScope
-  StablehloReferenceStablehloValue
+  StablehloReferenceIndex
+  StablehloReferenceInterpreterValue
   StablehloReferenceTensor
   StablehloReferenceToken
   StablehloTypeInference

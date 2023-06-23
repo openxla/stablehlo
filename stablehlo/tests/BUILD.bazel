@@ -32,7 +32,7 @@ cc_library(
     deps = [
         ":check_ops_inc_gen",
         "//:base",
-        "//:reference_stablehlovalue",
+        "//:reference_interpretervalue",
         "//:reference_tensor",
         "//:reference_token",
     ],

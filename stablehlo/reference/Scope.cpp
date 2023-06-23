@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "Scope.h"
+#include "stablehlo/reference/Scope.h"
 
 #include "llvm/Support/FormatVariadic.h"
 #include "mlir/Support/DebugStringHelper.h"
@@ -21,7 +21,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-void Scope::add(Value ssaValue, StablehloValue runtimeValue) {
+void Scope::add(Value ssaValue, InterpreterValue runtimeValue) {
   // We are instantiating a new `Scope` object every time the
   // interpreter evaluates a region. With that, the `stack_frame_` should not
   // have any duplicates.
@@ -35,14 +35,15 @@ void Scope::add(Value ssaValue, StablehloValue runtimeValue) {
   stack_frame_[ssaValue] = runtimeValue;
 }
 
-void Scope::add(ValueRange ssaValues, ArrayRef<StablehloValue> runtimeValues) {
+void Scope::add(ValueRange ssaValues,
+                ArrayRef<InterpreterValue> runtimeValues) {
   assert(ssaValues.size() == runtimeValues.size());
   if (runtimeValues.empty()) return;
   for (auto [ssaValue, runtimeValue] : llvm::zip(ssaValues, runtimeValues))
     add(ssaValue, runtimeValue);
 }
 
-StablehloValue Scope::find(Value ssaValue) const {
+InterpreterValue Scope::find(Value ssaValue) const {
   auto it = stack_frame_.find(ssaValue);
 
   if (it != stack_frame_.end()) return it->second;
@@ -54,9 +55,43 @@ StablehloValue Scope::find(Value ssaValue) const {
   return parent_->find(ssaValue);
 }
 
-SmallVector<StablehloValue> Scope::find(ValueRange ssaValues) const {
+SmallVector<InterpreterValue> Scope::find(ValueRange ssaValues) const {
   return llvm::to_vector(
       llvm::map_range(ssaValues, [&](Value value) { return find(value); }));
+}
+
+Tensor Scope::findTensor(Value ssaValue) const {
+  auto it = stack_frame_.find(ssaValue);
+
+  if (it != stack_frame_.end()) return it->second.getTensor();
+
+  if (!parent_)
+    llvm::report_fatal_error(llvm::formatv("value {0} not found in scope",
+                                           debugString(ssaValue).c_str()));
+
+  return parent_->find(ssaValue).getTensor();
+}
+
+SmallVector<Tensor> Scope::findTensors(ValueRange ssaValues) const {
+  return llvm::to_vector(llvm::map_range(
+      ssaValues, [&](Value value) { return find(value).getTensor(); }));
+}
+
+Token Scope::findToken(Value ssaValue) const {
+  auto it = stack_frame_.find(ssaValue);
+
+  if (it != stack_frame_.end()) return it->second.getToken();
+
+  if (!parent_)
+    llvm::report_fatal_error(llvm::formatv("value {0} not found in scope",
+                                           debugString(ssaValue).c_str()));
+
+  return parent_->find(ssaValue).getToken();
+}
+
+SmallVector<Token> Scope::findTokens(ValueRange ssaValues) const {
+  return llvm::to_vector(llvm::map_range(
+      ssaValues, [&](Value value) { return find(value).getToken(); }));
 }
 
 }  // namespace stablehlo

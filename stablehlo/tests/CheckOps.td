@@ -110,8 +110,8 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
   }];
 
   let arguments = (ins
-      HLO_TensorOrToken:$lhs,
-      HLO_TensorOrToken:$rhs
+      HLO_Tensor:$lhs,
+      HLO_Tensor:$rhs
   );
 
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";

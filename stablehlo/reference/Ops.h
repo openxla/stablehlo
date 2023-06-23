@@ -19,8 +19,8 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
+#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Scope.h"
-#include "stablehlo/reference/StablehloValue.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
 
@@ -36,8 +36,8 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType);
-SmallVector<StablehloValue> evalCaseOp(const Tensor &index,
-                                       RegionRange branches, Scope &scope);
+SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
+                                         RegionRange branches, Scope &scope);
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
 Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
@@ -76,8 +76,8 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
                     ShapedType resultType);
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType);
-SmallVector<StablehloValue> evalIfOp(const Tensor &pred, Region &trueBranch,
-                                     Region &falseBranch, Scope &scope);
+SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
+                                       Region &falseBranch, Scope &scope);
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType);
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType);
@@ -150,9 +150,9 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
 Tensor evalTanhOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);
-SmallVector<StablehloValue> evalWhileOp(SmallVector<StablehloValue> operand,
-                                        Region &cond, Region &body,
-                                        Scope &scope);
+SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
+                                          Region &cond, Region &body,
+                                          Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`
@@ -161,8 +161,8 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 /// values for the terminator's arguments. The optional callback `fallback` is
 /// used for evaluating ops which are not supported by the interpreter.
 /// Assumes that `region` has only one block.
-SmallVector<StablehloValue> eval(
-    Region &region, ArrayRef<StablehloValue> args, Scope *parent = nullptr,
+SmallVector<InterpreterValue> eval(
+    Region &region, ArrayRef<InterpreterValue> args, Scope *parent = nullptr,
     function_ref<llvm::Error(Operation &, Scope &)> fallback = nullptr);
 
 }  // namespace stablehlo

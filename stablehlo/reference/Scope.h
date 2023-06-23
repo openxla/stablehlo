@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_SCOPE_H_
-#define STABLEHLO_REFERENCE_SCOPE_H_
+#ifndef STABLEHLO_REFERENCE_SCOPE_H
+#define STABLEHLO_REFERENCE_SCOPE_H
 
-#include "stablehlo/reference/StablehloValue.h"
+#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
 
@@ -38,24 +38,41 @@ class Scope {
   Scope &operator=(const Scope &) = delete;
 
   /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
-  /// evaluated runtime StablehloValue value (`runtimeValue`).
-  void add(Value ssaValue, StablehloValue runtimeValue);
+  /// evaluated runtime value (`runtimeValue`).
+  void add(Value ssaValue, InterpreterValue runtimeValue);
 
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
-  /// evaluated runtime ArrayRef<StablehloValue> values (`runtimeValues`).
-  void add(ValueRange ssaValues, ArrayRef<StablehloValue> runtimeValues);
+  /// evaluated runtime values (`runtimeValues`).
+  void add(ValueRange ssaValues, ArrayRef<InterpreterValue> runtimeValues);
 
   /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
   /// with the current scope and then recursively continues over to the scope
   /// defined by `parent_`.
-  StablehloValue find(Value ssaValue) const;
+  InterpreterValue find(Value ssaValue) const;
 
   /// Find the runtime values mapped to SSA values `ssaValues`.
-  SmallVector<StablehloValue> find(ValueRange ssaValues) const;
+  SmallVector<InterpreterValue> find(ValueRange ssaValues) const;
+
+  /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
+  /// with the current scope and then recursively continues over to the scope
+  /// defined by `parent_`.
+  Tensor findTensor(Value ssaValue) const;
+
+  /// Find the runtime values mapped to SSA values `ssaValues`.
+  SmallVector<Tensor> findTensors(ValueRange ssaValues) const;
+
+  /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
+  /// with the current scope and then recursively continues over to the scope
+  /// defined by `parent_`.
+  Token findToken(Value ssaValue) const;
+
+  /// Find the runtime values mapped to SSA values `ssaValues`.
+  SmallVector<Token> findTokens(ValueRange ssaValues) const;
 
  private:
-  /// Internal store for mapping from SSA values to runtime `Tensor` values.
-  llvm::DenseMap<Value, StablehloValue> stack_frame_;
+  /// Internal store for mapping from SSA values to runtime `InterpreterValue`
+  /// values.
+  llvm::DenseMap<Value, InterpreterValue> stack_frame_;
 
   /// A handle to the parent's scope.
   Scope *parent_;
@@ -64,4 +81,4 @@ class Scope {
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_REFERENCE_SCOPE_H_
+#endif  // STABLEHLO_REFERENCE_SCOPE_H
