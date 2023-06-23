@@ -3,7 +3,7 @@
 func.func @uniform_dequantize(%arg: tensor<1x!quant.uniform<ui8:f16, 34.0:16>>) -> tensor<1xf16> {
   // expected-error @+1 {{failed to legalize operation 'vhlo.uniform_dequantize_v1' that was explicitly marked illegal}}
   %0 = stablehlo.uniform_dequantize %arg : (tensor<1x!quant.uniform<ui8:f16, 34.0:16>>) -> tensor<1xf16>
-  func.return %0 : tensor<1xf16> 
+  func.return %0 : tensor<1xf16>
 }
 
 // -----

@@ -35,7 +35,7 @@ def VHLO_VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   ];
 }
 
-def VHLO_VerifyOperandAndResultTypesInterface 
+def VHLO_VerifyOperandAndResultTypesInterface
     : OpInterface<"VerifyOperandAndResultTypesInterface"> {
   let cppNamespace = "::mlir::vhlo";
   let methods = [
@@ -43,7 +43,7 @@ def VHLO_VerifyOperandAndResultTypesInterface
       [{ Verify that an op has compatible operands and result types.
          This is useful if an op's structure hasn't changed, but has changed in
          the types of operands and results that are supported.}],
-      "::mlir::LogicalResult", "verifyOperandAndResultTypes", 
+      "::mlir::LogicalResult", "verifyOperandAndResultTypes",
       (ins "const mlir::vhlo::Version &":$targetVersion)>,
   ];
 }

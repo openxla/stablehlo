@@ -176,8 +176,6 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   return success();
 }
 
-
-
 // This is a stop gap solution to prevent any changes to quantized
 // ops from causing forward incompatibilities.
 //
