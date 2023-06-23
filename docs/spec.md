@@ -174,8 +174,9 @@ following constraints:
 * (C10) `size(scales) = size(zero_points)`.
 * (C11) If `is_empty(quantization_dimension)`, then `size(scales) = 1`.
 * (C12) `0 <= quantization_dimension`.
-* (C13) `0 <= multipliers`.
-* (C14) `0 < shifts`.
+* (C13) `size(multipliers) = size(shifts) = size(zero_points)`.
+* (C14) `0 <= multipliers`.
+* (C15) `0 < shifts`.
 
 All quantized tensor types, in a given StableHLO operation, either
 use scales or multipliers and shifts. The `scales`, `multiplers` and `shifts`,
