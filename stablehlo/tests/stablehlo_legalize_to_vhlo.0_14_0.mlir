@@ -2026,12 +2026,26 @@ func.func @op_uniform_dequantize(%arg0: tensor<!quant.uniform<i8:f32, 34.0:16>>)
 }
 // CHECK-LABEL: "op_uniform_dequantize"
 
+func.func @op_uniform_dequantize_f16(%arg0: tensor<!quant.uniform<i8:f16, 34.0:16>>) -> tensor<f16> {
+  // CHECK: "vhlo.uniform_dequantize_v1"(%arg0) : (!vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f16_v1, 3.400000e+01:16, -128:127, 1>>) -> !vhlo.tensor_v1<!vhlo.f16_v1>
+  %0 = "stablehlo.uniform_dequantize"(%arg0) : (tensor<!quant.uniform<i8:f16, 34.0:16>>) -> tensor<f16>
+  func.return %0 : tensor<f16>
+}
+// CHECK-LABEL: "op_uniform_dequantize_f16"
+
 func.func @op_uniform_quantize(%arg0: tensor<f32>) -> tensor<!quant.uniform<i8:f32, 34.0:16>> {
   // CHECK: "vhlo.uniform_quantize_v1"(%arg0) : (!vhlo.tensor_v1<!vhlo.f32_v1>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f32_v1, 3.400000e+01:16, -128:127, 1>>
   %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<f32>) -> tensor<!quant.uniform<i8:f32, 34.0:16>>
   func.return %0 : tensor<!quant.uniform<i8:f32, 34.0:16>>
 }
 // CHECK-LABEL: "op_uniform_quantize"
+
+func.func @op_uniform_quantize_f16(%arg0: tensor<f16>) -> tensor<!quant.uniform<i8:f16, 34.0:16>> {
+  // CHECK: "vhlo.uniform_quantize_v1"(%arg0) : (!vhlo.tensor_v1<!vhlo.f16_v1>) -> !vhlo.tensor_v1<!vhlo.quant_v1<!vhlo.i8_v1:!vhlo.f16_v1, 3.400000e+01:16, -128:127, 1>>
+  %0 = "stablehlo.uniform_quantize"(%arg0) : (tensor<f16>) -> tensor<!quant.uniform<i8:f16, 34.0:16>>
+  func.return %0 : tensor<!quant.uniform<i8:f16, 34.0:16>>
+}
+// CHECK-LABEL: "op_uniform_quantize_f16"
 
 func.func @op_while(%arg0: tensor<i1>) -> tensor<i1> {
   //      CHECK: "vhlo.while_v1"(%arg0) ({

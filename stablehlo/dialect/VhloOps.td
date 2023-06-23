@@ -35,6 +35,19 @@ def VHLO_VersionedOpInterface : OpInterface<"VersionedOpInterface"> {
   ];
 }
 
+def VHLO_VerifyOperandAndResultTypesInterface 
+    : OpInterface<"VerifyOperandAndResultTypesInterface"> {
+  let cppNamespace = "::mlir::vhlo";
+  let methods = [
+    InterfaceMethod<
+      [{ Verify that an op has compatible operands and result types.
+         This is useful if an op's structure hasn't changed, but has changed in
+         the types of operands and results that are supported.}],
+      "::mlir::LogicalResult", "verifyOperandAndResultTypes", 
+      (ins "const mlir::vhlo::Version &":$targetVersion)>,
+  ];
+}
+
 class VHLO_Op<string mnemonic, string minVersion, string maxVersion, list<Trait> traits = []> :
     Op<VHLO_Dialect, mnemonic,
       [DeclareOpInterfaceMethods<VHLO_VersionedOpInterface>] # traits> {
@@ -1035,17 +1048,21 @@ def VHLO_UnaryEinsumOpV1 : VHLO_Op<"unary_einsum_v1", "0.9.0", "current"> {
 // TODO(#588): UniformDequantizeOp is not part of the StableHLO spec.
 // This operation is a work in progress, so it is not yet included in
 // the StableHLO specification.
-def VHLO_UniformDequantizeOpV1 : VHLO_Op<"uniform_dequantize_v1", "0.9.0", "current"> {
+def VHLO_UniformDequantizeOpV1 : VHLO_Op<"uniform_dequantize_v1", "0.9.0", "current",
+    [VHLO_VerifyOperandAndResultTypesInterface]> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
+  let extraClassDeclaration = "LogicalResult verifyOperandAndResultTypes(const Version&);";
 }
 
 // TODO(#588): UniformQuantizeOp is not part of the StableHLO spec.
 // This operation is a work in progress, so it is not yet included in
 // the StableHLO specification.
-def VHLO_UniformQuantizeOpV1 : VHLO_Op<"uniform_quantize_v1", "0.9.0", "current"> {
+def VHLO_UniformQuantizeOpV1 : VHLO_Op<"uniform_quantize_v1", "0.9.0", "current",
+   [VHLO_VerifyOperandAndResultTypesInterface]> {
   let arguments = (ins VHLO_AnyType:$operand);
   let results = (outs VHLO_AnyType:$result);
+  let extraClassDeclaration = "LogicalResult verifyOperandAndResultTypes(const Version&);";
 }
 
 def VHLO_WhileOpV1 : VHLO_Op<"while_v1", "0.9.0", "current"> {

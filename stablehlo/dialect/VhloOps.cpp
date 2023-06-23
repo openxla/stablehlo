@@ -23,7 +23,7 @@ limitations under the License.
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "mlir/Dialect/Quant/QuantOps.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
@@ -37,6 +37,9 @@ limitations under the License.
 #include "mlir/Support/LogicalResult.h"
 #include "stablehlo/dialect/AssemblyFormat.h"
 #include "stablehlo/dialect/VhloBytecode.h"
+#include "stablehlo/dialect/VhloOps.h"
+
+#define DEBUG_TYPE "compat-passes"
 
 namespace mlir {
 namespace vhlo {
@@ -295,6 +298,52 @@ void VhloDialect::printAttribute(Attribute attr, DialectAsmPrinter& os) const {
   LogicalResult result = generatedAttributePrinter(attr, os);
   (void)result;
   assert(succeeded(result));
+}
+
+/// Operand and Result Type Verifiers
+namespace {
+Type getTensorElementTypeOrSelf(Type t) {
+  if (auto ranked = t.dyn_cast<RankedTensorV1Type>()) {
+    return ranked.getElementType();
+  }
+  if (auto unranked = t.dyn_cast<UnrankedTensorV1Type>()) {
+    return unranked.getElementType();
+  }
+  return t;
+}
+
+bool isLegalQuantizedTypeV14(Type t, const Version& targetVersion) {
+  if (Version(0, 14, 0) <= targetVersion) return true;
+  t = getTensorElementTypeOrSelf(t);
+  return t.isa<FloatBF16V1Type>() || t.isa<FloatF32V1Type>() ||
+         t.isa<UniformQuantizedV1Type>();
+}
+}  // namespace
+
+LogicalResult UniformDequantizeOpV1::verifyOperandAndResultTypes(
+    const Version& targetVersion) {
+  if (!isLegalQuantizedTypeV14(getResult().getType(), targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "failed to legalize uniform_dequantize result type "
+               << getOperand().getType() << " to version " << targetVersion
+               << '\n');
+    return failure();
+  }
+  return success();
+}
+
+LogicalResult UniformQuantizeOpV1::verifyOperandAndResultTypes(
+    const Version& targetVersion) {
+  LLVM_DEBUG(llvm::dbgs() << "Verifying type " << getOperand().getType()
+                          << '\n');
+  if (!isLegalQuantizedTypeV14(getOperand().getType(), targetVersion)) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "failed to legalize uniform_quantize operand type "
+               << getOperand().getType() << " to version " << targetVersion
+               << '\n');
+    return failure();
+  }
+  return success();
 }
 
 }  // namespace vhlo

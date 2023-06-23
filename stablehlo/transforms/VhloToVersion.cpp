@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <algorithm>
 #include <climits>
 #include <memory>
 #include <utility>
@@ -24,11 +25,10 @@ limitations under the License.
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/IR/Attributes.h"
-#include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -176,12 +176,28 @@ LogicalResult isLegalType(Type type, const Version& targetVersion) {
   return success();
 }
 
+
+
+// This is a stop gap solution to prevent any changes to quantized
+// ops from causing forward incompatibilities.
+//
+// In a better solution, this sort of the verification would be more closely
+// tied to the op itself. We could add another interface.
+bool opHasLegalOperands(Operation* op, const Version& targetVersion) {
+  auto opInterface = dyn_cast<VerifyOperandAndResultTypesInterface>(op);
+  if (!opInterface) return true;
+  return succeeded(opInterface.verifyOperandAndResultTypes(targetVersion));
+}
+
 bool isLegalOperation(Operation* op, const Version& targetVersion) {
   // Validate op
   auto opInterface = dyn_cast<VersionedOpInterface>(op);
   if (!opInterface) return false;
   if (!isLegalVersion(opInterface, targetVersion)) return false;
+  if (!opHasLegalOperands(op, targetVersion)) return false;
   LLVM_DEBUG(llvm::dbgs() << "Legal version for target. " << op << '\n');
+
+  // Stop-gap solution to ensure forward compatibility of quantized ops
 
   // Validate attributes
   auto isLegalAttrFn = [&](const NamedAttribute& attr) {
