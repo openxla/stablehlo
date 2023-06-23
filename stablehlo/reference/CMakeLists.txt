@@ -20,14 +20,6 @@ add_mlir_library(StablehloReferenceAxes
   MLIRIR
 )
 
-add_mlir_library(StablehloReferenceTypes
-  PARTIAL_SOURCES_INTENDED
-  Types.cpp
-
-  LINK_LIBS PUBLIC
-  MLIRIR
-)
-
 add_mlir_library(StablehloReferenceElement
   PARTIAL_SOURCES_INTENDED
   Element.cpp
@@ -47,12 +39,41 @@ add_mlir_library(StablehloReferenceIndex
   MLIRSupport
 )
 
+add_mlir_library(StablehloReferenceInterpreterValue
+  PARTIAL_SOURCES_INTENDED
+  InterpreterValue.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  StablehloReferenceTensor
+  StablehloReferenceToken
+)
+
+add_mlir_library(StablehloReferenceOps
+  PARTIAL_SOURCES_INTENDED
+  Ops.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRFuncDialect
+  StablehloOps
+  StablehloReferenceAxes
+  StablehloReferenceElement
+  StablehloReferenceScope
+  StablehloReferenceIndex
+  StablehloReferenceInterpreterValue
+  StablehloReferenceTensor
+  StablehloReferenceToken
+  StablehloTypeInference
+)
+
 add_mlir_library(StablehloReferenceScope
   PARTIAL_SOURCES_INTENDED
   Scope.cpp
 
   LINK_LIBS PUBLIC
+  StablehloReferenceInterpreterValue
   StablehloReferenceTensor
+  StablehloReferenceToken
   MLIRSupport
 )
 
@@ -68,17 +89,20 @@ add_mlir_library(StablehloReferenceTensor
   StablehloReferenceTypes
 )
 
-add_mlir_library(StablehloReferenceOps
+add_mlir_library(StablehloReferenceToken
   PARTIAL_SOURCES_INTENDED
-  Ops.cpp
+  Token.cpp
 
   LINK_LIBS PUBLIC
-  MLIRFuncDialect
+  MLIRIR
+  MLIRSupport
   StablehloOps
-  StablehloReferenceAxes
-  StablehloReferenceElement
-  StablehloReferenceIndex
-  StablehloReferenceScope
-  StablehloReferenceTensor
-  StablehloTypeInference
+)
+
+add_mlir_library(StablehloReferenceTypes
+  PARTIAL_SOURCES_INTENDED
+  Types.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
 )

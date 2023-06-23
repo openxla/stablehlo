@@ -59,17 +59,19 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
     return stablehlo::invalidArgument("Unsupported op: %s",
                                       debugString(op).c_str());
   }
-  auto actualResult = scope.find(op->getOperands())[0];
-  auto expectedResult = scope.find(op->getOperands())[1];
+  auto actualResult = scope.findTensors(op->getOperands())[0];
+  auto expectedResult = scope.findTensors(op->getOperands())[1];
   bool isInt = expectedResult.getElementType().isa<IntegerType>();
   auto status =
       isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
             : stablehlo::check::evalExpectAlmostEqOp(actualResult,
                                                      expectedResult);
   if (status)
-    scope.add(op.getResults(), makeBooleanTensor(op->getContext(), false));
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
+                                   makeBooleanTensor(op->getContext(), false)));
   else
-    scope.add(op.getResults(), makeBooleanTensor(op->getContext(), true));
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
+                                   makeBooleanTensor(op->getContext(), true)));
 
   return status;
 }
@@ -89,8 +91,8 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
 
   if (auto expectAlmostEqOp =
           dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
-    stablehlo::Tensor runtimeLhs = scope.find(expectAlmostEqOp.getLhs());
-    stablehlo::Tensor runtimeRhs = scope.find(expectAlmostEqOp.getRhs());
+    auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
+    auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
     auto status =
         stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
     return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
@@ -98,8 +100,7 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
 
   if (auto expectAlmostEqConstOp =
           dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
-    stablehlo::Tensor runtimeOperand =
-        scope.find(expectAlmostEqConstOp.getLhs());
+    auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
     auto status = stablehlo::check::evalExpectAlmostEqConstOp(
         runtimeOperand, expectAlmostEqConstOp.getValue());
     return wrapStatus(std::move(status), funcName,
@@ -107,14 +108,14 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
   }
 
   if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
-    stablehlo::Tensor runtimeLhs = scope.find(expectEqOp.getLhs());
-    stablehlo::Tensor runtimeRhs = scope.find(expectEqOp.getRhs());
+    auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
+    auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
     auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
     return wrapStatus(std::move(status), funcName, "check.expect_eq");
   }
 
   if (auto expectEqConstOp = dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
-    stablehlo::Tensor runtimeOperand = scope.find(expectEqConstOp.getLhs());
+    auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
     auto status = stablehlo::check::evalExpectEqConstOp(
         runtimeOperand, expectEqConstOp.getValue());
     return wrapStatus(std::move(status), funcName, "check.expect_eq_const");

@@ -661,8 +661,12 @@ it only exists to establish data dependencies from `result` to `inputs`.
 #### Examples
 
 ```mlir
+// %input0: !stablehlo.token
+// %input1: !stablehlo.token
 %result = "stablehlo.after_all"(%input0, %input1) : (!stablehlo.token, !stablehlo.token) -> !stablehlo.token
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_after_all.mlir)
 
 ### all_gather
 

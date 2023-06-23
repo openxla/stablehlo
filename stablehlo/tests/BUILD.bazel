@@ -32,7 +32,9 @@ cc_library(
     deps = [
         ":check_ops_inc_gen",
         "//:base",
+        "//:reference_interpretervalue",
         "//:reference_tensor",
+        "//:reference_token",
     ],
 )
 
@@ -67,6 +69,29 @@ td_library(
     ],
 )
 
+cc_library(
+    name = "test_utils",
+    srcs = [
+        "TestUtils.cpp",
+    ],
+    hdrs = [
+        "TestUtils.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":test_utils_inc_gen",
+        "//:stablehlo_assembly_format",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:ShapeDialect",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
 gentbl_cc_library(
     name = "test_utils_inc_gen",
     strip_include_prefix = ".",
@@ -94,29 +119,6 @@ td_library(
     includes = ["."],
     deps = [
         "@llvm-project//mlir:PassBaseTdFiles",
-    ],
-)
-
-cc_library(
-    name = "test_utils",
-    srcs = [
-        "TestUtils.cpp",
-    ],
-    hdrs = [
-        "TestUtils.h",
-    ],
-    strip_include_prefix = ".",
-    deps = [
-        ":test_utils_inc_gen",
-        "//:stablehlo_assembly_format",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:FuncDialect",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:InferTypeOpInterface",
-        "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:ShapeDialect",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:Transforms",
     ],
 )
 
