@@ -31,9 +31,9 @@ features introduced since the old version.
 
 \* StableHLO programs are converted to/from portable artifacts via
 [compatibility APIs](#apis), and the semantics of these programs are
-defined by [the StableHLO spec](spec.md). In the future, we will provide a
-reference implementation which will provide an executable version of the
-specification.
+defined by [the StableHLO spec](spec.md). Consult
+[the "Out of scope" section](#out-of-scope) to see examples of what is not
+covered by this definition of compatibility.
 
 ## APIs
 
@@ -152,11 +152,20 @@ and comprehensively testing the reference implementation
 
 ## Out of scope
 
-**Source compatibility** for C, C++ and Python APIs within libStablehlo is
-an aspirational goal. At the moment, we don't offer source compatibility
-guarantees, but please let us know if this is an important use case for you,
-and we can have a discussion about supporting it
-([#1247](https://github.com/openxla/stablehlo/issues/1247)).
+**Non-portable artifacts:** Compatibility guarantees are only provided for
+portable artifacts which are created in [a very specific way](#apis).
+Other kinds of artifacts, e.g. prettyprinted representation of the StableHLO
+dialect or even bytecode representation of the StableHLO dialect, do not have
+compatibility guarantees.
+
+**Unspecced features:** We may make incompatible changes to features which
+are not yet part of the StableHLO specification, e.g. we do not provide
+compatibility guarantees for unregistered attributes.
+
+**Bug compatibility:** We may make incompatible changes if the implementation in
+libStablehlo contradicts the StableHLO specification, e.g. if a definition in
+the VHLO dialect is wrong, or if a verifier in the StableHLO dialect does not
+match the spec.
 
 **Numerical accuracy:** StableHLO has multiple ops that have
 implementation-defined accuracy across consumers and even within the same
@@ -164,11 +173,8 @@ consumer across versions. As a result, StableHLO doesn't aim to make
 guarantees about numerical accuracy, although this may change in the future
 ([#1156](https://github.com/openxla/stablehlo/issues/1156)).
 
-**Bug compatibility:** We may make incompatible changes if the implementation in
-libStablehlo contradicts the StableHLO specification, e.g. if a definition in
-the VHLO dialect is wrong, or if a verifier in the StableHLO dialect does not
-match the spec.
-
-**Unspecced features:** We may make incompatible changes to features which
-are not yet part of the StableHLO specification, e.g. we do not provide
-compatibility guarantees for unregistered attributes.
+**Source compatibility** for C, C++ and Python APIs within libStablehlo is
+an aspirational goal. At the moment, we don't offer source compatibility
+guarantees, but please let us know if this is an important use case for you,
+and we can have a discussion about supporting it
+([#1247](https://github.com/openxla/stablehlo/issues/1247)).
