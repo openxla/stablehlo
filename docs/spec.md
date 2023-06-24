@@ -1136,23 +1136,27 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
 
+For quantized types, performs
+`quantize(batch_norm_inference(dequantize(operand), scale, offset, mean,
+            variance, epsilon, feature_index), type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints   |
-|-------|-----------------|---------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1-C7)       |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
-| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
-| (I4)  | `mean`          | 1-dimensional tensor of floating-point type | (C5)          |
-| (I5)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C6)    |
-| (I6)  | `epsilon`       | constant of type `f32`                      |               |
-| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+| Label | Name            | Type                                                         | Constraints   |
+|-------|-----------------|--------------------------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor | (C1-C7)       |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point type                  | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point type                  | (C2), (C4)    |
+| (I4)  | `mean`          | 1-dimensional tensor of floating-point type                  | (C5)          |
+| (I5)  | `variance`      | 1-dimensional tensor of floating-point type                  | (C2), (C6)    |
+| (I6)  | `epsilon`       | constant of type `f32`                                       |               |
+| (I7)  | `feature_index` | constant of type `si64`                                      | (C1), (C3-C6) |
 
 #### Outputs
 
-| Name     | Type                          | Constraints |
-|----------|-------------------------------|-------------|
-| `result` | tensor of floating-point type | (C2), (C7)  |
+| Name     | Type                                                         | Constraints |
+|----------|--------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point type or per-tensor quantized tensor | (C2), (C7)  |
 
 #### Constraints
 
@@ -1530,18 +1534,22 @@ strict lower triangle correspondingly, are implementation-defined.
 If there exists `i` where the input matrix is not an Hermitian positive-definite
 matrix, then the behavior is undefined.
 
+For quantized types, performs
+`quantize(cholesky(dequantize(a), lower), type(result))`.
+
 #### Inputs
 
 | Label | Name    | Type                                       | Constraints |
 |-------|---------|--------------------------------------------|-------------|
-| (I1)  | `a`     | tensor of floating-point or complex type   | (C1-C3)     |
+| (I1)  | `a`     | tensor of floating-point or complex type or per-tensor
+quantized tensor   | (C1-C3)     |
 | (I2)  | `lower` | 0-dimensional tensor constant of type `i1` |             |
 
 #### Outputs
 
-| Name     | Type                                     | Constraints |
-|----------|------------------------------------------|-------------|
-| `result` | tensor of floating-point or complex type | (C1)        |
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -1861,9 +1869,9 @@ Produces an `output` tensor from a constant `value`.
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `output` | tensor | (C1)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `output` | tensor or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -2701,13 +2709,16 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 * `result2[i0, ..., :, iR-1] = ifft(result1[i0, ..., :, iR-1])`.
 * `result[i0, ..., :] = irfft(result2[i0, ..., :])`.
 
+For quantized types, performs
+`quantize(fft(dequantize(operand), fft_type, fft_length), type(result))`.
+
 #### Inputs
 
-| Label | Name         | Type                                         | Constraints            |
-|-------|--------------|----------------------------------------------|------------------------|
-| (I1)  | `operand`    | tensor of floating-point or complex type     | (C1), (C2), (C4), (C5) |
-| (I2)  | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   | (C2), (C5)             |
-| (I3)  | `fft_length` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C4)       |
+| Label | Name         | Type                                                                    | Constraints            |
+|-------|--------------|-------------------------------------------------------------------------|------------------------|
+| (I1)  | `operand`    | tensor of floating-point or complex type or per-tensor quantized tensor | (C1), (C2), (C4), (C5) |
+| (I2)  | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`                              | (C2), (C5)             |
+| (I3)  | `fft_length` | 1-dimensional tensor constant of type `si64`                            | (C1), (C3), (C4)       |
 
 #### Outputs
 
@@ -2723,9 +2734,9 @@ for `fft_type = RFFT`. For example, for `L = 3`:
     have the same complex type.
   * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
     have the same complex type.
-  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
-    `element_type(result)` is a complex type of the same floating-point
-    semantics.
+  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type or
+    `is_quantized(operand)` and `element_type(result)` is a complex type of the
+    same floating-point semantics.
   * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
     `element_type(result)` is a floating-point type of the same floating-point
     semantics.
@@ -3112,9 +3123,9 @@ constant(result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                              | Constraints |
-|----------|---------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type | (C1)        |
+| Name     | Type                                                                             | Constraints |
+|----------|----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -3654,12 +3665,11 @@ Semantics of `outfeed_config` is implementation-defined.
 
 #### Inputs
 
-| Label | Name             | Type                       |
-|-------|------------------|----------------------------|
-| (I1)  | `inputs`         | variadic number of tensors or per-tensor quantized
-tensors|
-| (I2)  | `token`          | `token`                    |
-| (I3)  | `outfeed_config` | constant of type `string`  |
+| Label | Name             | Type                                                       |
+|-------|------------------|------------------------------------------------------------|
+| (I1)  | `inputs`         | variadic number of tensors or per-tensor quantized tensors |
+| (I2)  | `token`          | `token`                                                    |
+| (I3)  | `outfeed_config` | constant of type `string`                                  |
 
 #### Outputs
 
@@ -4424,25 +4434,29 @@ In conversations with many stakeholders, this op has come up as effectively
 deprecated, so in the future we are planning to explore removing it
 ([#597](https://github.com/openxla/stablehlo/issues/597)).
 
+For quantized types, performs
+`quantize(rng(dequantize(a), dequantize(b), shape, rng_distribution), type(result))`.
+
 #### Inputs
 
-| Label | Name               | Type                                                             | Constraints |
-|-------|--------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
-| (I2)  | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
-| (I3)  | `shape`            | 1-dimensional tensor constant of type `si64`                     | (C3)        |
-| (I4)  | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   | (C2)        |
+| Label | Name               | Type                                                                                            | Constraints |
+|-------|--------------------|-------------------------------------------------------------------------------------------------|-------------|
+| (I1)  | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1), (C2)  |
+| (I2)  | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1), (C2)  |
+| (I3)  | `shape`            | 1-dimensional tensor constant of type `si64`                                                    | (C3)        |
+| (I4)  | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                                                  | (C2)        |
 
 #### Outputs
 
-| Name     | Type                                               | Constraints |
-|----------|----------------------------------------------------|-------------|
-| `result` | tensor of integer, boolean, or floating-point type | (C1-C3)     |
+| Name     | Type                                                                              | Constraints |
+|----------|-----------------------------------------------------------------------------------|-------------|
+| `result` | tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1-C3)     |
 
 #### Constraints
 
-* (C1) `element_type(a) = element_type(b) = element_type(result)`.
-* (C2) If `rng_distribution = NORMAL`, then `is_float(a)`.
+* (C1) `baseline_element_type(a) = baseline_element_type(b) =
+       baseline_element_type(result)`.
+* (C2) If `rng_distribution = NORMAL`, then `is_float(a)` or `is_quantized(a)`.
 * (C3) `shape(result) = shape`.
 
 #### Examples
@@ -5502,22 +5516,26 @@ the values in the other triangle are implementation-defined.
 If `unit_diagonal` is true, then the implementation can assume that the diagonal
 elements of `a` are equal to 1, otherwise the behavior is undefined.
 
+For quantized types, performs
+`quantize(triangular_solve(dequantize(a), dequantize(b), left_side, lower,
+            unit_diagonal, transpose_a), type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                               | Constraints |
-|-------|-----------------|----------------------------------------------------|-------------|
-| (I1)  | `a`             | tensor of floating-point or complex type           | (C1-C3)     |
-| (I2)  | `b`             | tensor of floating-point or complex type           | (C1-C4)     |
-| (I3)  | `left_side`     | constant of type `i1`                              | (C3)        |
-| (I4)  | `lower`         | constant of type `i1`                              |             |
-| (I5)  | `unit_diagonal` | constant of type `i1`                              |             |
-| (I6)  | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |             |
+| Label | Name            | Type                                                                    | Constraints |
+|-------|-----------------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `a`             | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C3)     |
+| (I2)  | `b`             | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C4)     |
+| (I3)  | `left_side`     | constant of type `i1`                                                   | (C3)        |
+| (I4)  | `lower`         | constant of type `i1`                                                   |             |
+| (I5)  | `unit_diagonal` | constant of type `i1`                                                   |             |
+| (I6)  | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT`                      |             |
 
 #### Outputs
 
-| Name     | Type                                     | Constraints |
-|----------|------------------------------------------|-------------|
-| `result` | tensor of floating-point or complex type | (C1)        |
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
