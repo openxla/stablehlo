@@ -1414,9 +1414,9 @@ where:
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C4)        |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C4)        |
 
 #### Constraints
 
@@ -2993,9 +2993,9 @@ pred ? true_branch() : false_branch()`.
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C3)        |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
@@ -3575,15 +3575,15 @@ an identity, i.e. `result = operand`.
 
 #### Arguments
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `operand` | variadic number of tensors or tokens | (C1)        |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `operand` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                 | Constraints |
-|----------|--------------------------------------|-------------|
-| `result` | variadic number of tensors or tokens | (C1)        |
+| Name     | Type                                                               | Constraints |
+|----------|--------------------------------------------------------------------|-------------|
+| `result` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1)        |
 
 #### Constraints
 
@@ -5685,17 +5685,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                 | Constraints |
-|-------|-----------|--------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`    | function                             | (C1)        |
-| (I3)  | `body`    | function                             | (C2)        |
+| Label | Name      | Type                                                               | Constraints |
+|-------|-----------|--------------------------------------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                                                           | (C1)        |
+| (I3)  | `body`    | function                                                           | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C3)        |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
