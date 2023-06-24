@@ -856,14 +856,14 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
-Element reducePrecision(const Element &el, uint32_t exponentBits,
-                        uint32_t mantissaBits) {
+Element reducePrecision(const Element &el, int32_t exponentBits,
+                        int32_t mantissaBits) {
   auto intVal = el.getFloatValue().bitcastToAPInt().getZExtValue();
   auto type = el.getType().cast<FloatType>();
-  auto bitWidth = type.getWidth();
+  int32_t bitWidth = type.getWidth();
 
   // Mantissa has an implicit leading 1 and binary point, hence subtracting one.
-  auto srcMantissaBits = type.getFPMantissaWidth() - 1;
+  int32_t srcMantissaBits = type.getFPMantissaWidth() - 1;
   auto destMantissaBits = mantissaBits;
   if (destMantissaBits < srcMantissaBits) {
     auto lastMantissaBitMask = 1UL << (srcMantissaBits - destMantissaBits);

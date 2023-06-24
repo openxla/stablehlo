@@ -1187,8 +1187,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
   return results;
 }
 
-Tensor evalReducePrecisionOp(const Tensor &operand, uint32_t exponentBits,
-                             uint32_t mantissaBits, ShapedType resultType) {
+Tensor evalReducePrecisionOp(const Tensor &operand, int32_t exponentBits,
+                             int32_t mantissaBits, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it,

@@ -247,8 +247,8 @@ Element power(const Element &e1, const Element &e2);
 Element real(const Element &e);
 
 /// Returns the Element object rounded to the specified precision type.
-Element reducePrecision(const Element &el, uint32_t exponentBits,
-                        uint32_t mantissaBits);
+Element reducePrecision(const Element &el, int32_t exponentBits,
+                        int32_t mantissaBits);
 
 /// Returns the remainder for two Element objects.
 Element rem(const Element &e1, const Element &e2);
