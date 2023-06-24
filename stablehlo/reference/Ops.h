@@ -106,6 +106,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  const Axes &dimensions, Region &body,
                                  Scope &scope,
                                  ArrayRef<ShapedType> resultTypes);
+Tensor evalReducePrecisionOp(const Tensor &operand, int32_t exponentBits,
+                             int32_t mantissaBits, ShapedType resultType);
 SmallVector<Tensor> evalReduceWindowOp(
     ArrayRef<Tensor> inputs, ArrayRef<Tensor> initValues,
     const Sizes &windowDimensions, const Sizes &windowStrides,

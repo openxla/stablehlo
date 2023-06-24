@@ -3380,7 +3380,7 @@ func.func @reduce_precision(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
 
 // -----
 
-func.func @reduce_precision_invalid_exponent(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
+func.func @reduce_precision_c2(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
   // expected-error @+1 {{exponent_bits must be at least 1.}}
   %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits=0 : i32, mantissa_bits=3 : i32} : (tensor<2x4xf32>) -> tensor<2x4xf32>
   func.return %0 : tensor<2x4xf32>
@@ -3388,7 +3388,7 @@ func.func @reduce_precision_invalid_exponent(%arg: tensor<2x4xf32>) -> tensor<2x
 
 // -----
 
-func.func @reduce_precision_invalid_mantissa(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
+func.func @reduce_precision_c3(%arg: tensor<2x4xf32>) -> tensor<2x4xf32> {
   // expected-error @+1 {{mantissa_bits must be at least 0.}}
   %0 = "stablehlo.reduce_precision"(%arg) {exponent_bits=1 : i32, mantissa_bits=-1 : i32} : (tensor<2x4xf32>) -> tensor<2x4xf32>
   func.return %0 : tensor<2x4xf32>

@@ -856,6 +856,71 @@ Element real(const Element &el) {
                                      debugString(el.getType()).c_str()));
 }
 
+Element reducePrecision(const Element &el, int32_t exponentBits,
+                        int32_t mantissaBits) {
+  auto intVal = el.getFloatValue().bitcastToAPInt().getZExtValue();
+  auto type = el.getType().cast<FloatType>();
+  int32_t bitWidth = type.getWidth();
+
+  // Mantissa has an implicit leading 1 and binary point, hence subtracting one.
+  int32_t srcMantissaBits = type.getFPMantissaWidth() - 1;
+  auto destMantissaBits = mantissaBits;
+  if (destMantissaBits < srcMantissaBits) {
+    auto lastMantissaBitMask = 1UL << (srcMantissaBits - destMantissaBits);
+
+    // Compute rounding bias for round-to-nearest with ties to even.
+    auto baseRoundingBias = (lastMantissaBitMask >> 1) - 1;
+    auto xLastMantissaBit =
+        (intVal & lastMantissaBitMask) >> (srcMantissaBits - destMantissaBits);
+    auto xRoundingBias = xLastMantissaBit + baseRoundingBias;
+
+    // Add rounding bias, and mask out truncated bits.
+    auto truncationMask = ~(lastMantissaBitMask - 1);
+    intVal = intVal + xRoundingBias;
+    intVal = intVal & truncationMask;
+  }
+
+  // Exponent bit calculated by subtracting mantissa bits and sign bit.
+  auto srcExponentBits = bitWidth - srcMantissaBits - 1;
+  auto destExponentBits = exponentBits;
+  if (destExponentBits < srcExponentBits) {
+    auto signBitMask = 1UL << (bitWidth - 1);
+    auto expBitsMask = ((1UL << srcExponentBits) - 1) << srcMantissaBits;
+
+    // An exponent of 2^(n-1)-1 (i.e. 0b0111...) with 0 being the most
+    // significant bit is equal to 1.0f for all exponent sizes. Adding 2^(n-1)-1
+    // to this results in highest non-infinite exponent, and subtracting
+    // 2^(n-1)-1 results in lowest exponent (i.e. 0.0f) for a bit size of n.
+    auto exponentBias = (1UL << (srcExponentBits - 1)) - 1;
+    auto reducedExponentBias = (1UL << (destExponentBits - 1)) - 1;
+    auto reducedMaxExponent = exponentBias + reducedExponentBias;
+    auto reducedMinExponent = exponentBias - reducedExponentBias;
+
+    // Handle overflow or underflow.
+    auto xExponent = intVal & expBitsMask;
+    auto xOverflows = xExponent > (reducedMaxExponent << srcMantissaBits);
+    auto xUnderflows = xExponent <= (reducedMinExponent << srcMantissaBits);
+
+    // Compute appropriately-signed values of zero and infinity.
+    auto xSignedZero = intVal & signBitMask;
+    auto xSignedInf = xSignedZero | expBitsMask;
+
+    // Force to zero or infinity if overflow or underflow.
+    intVal = xOverflows ? xSignedInf : intVal;
+    intVal = xUnderflows ? xSignedZero : intVal;
+  }
+
+  Element reducedResult(
+      type, APFloat(type.getFloatSemantics(), APInt(bitWidth, intVal)));
+
+  if (el.getFloatValue().isNaN())
+    reducedResult = destMantissaBits > 0
+                        ? el
+                        : Element(type, reducedResult.getFloatValue().getInf(
+                                            type.getFloatSemantics()));
+  return reducedResult;
+}
+
 Element rem(const Element &e1, const Element &e2) {
   return map(
       e1, e2,

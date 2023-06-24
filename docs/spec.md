@@ -4010,15 +4010,17 @@ More formally:
 #### Examples
 
 ```mlir
-// Logical values: -Inf, +Inf, NaN, ...
-// %operand: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1000.0, 1000000.0]
+// Logical values: +Inf, NaN, +Denormal, 0.0, 65519.0, 65520.0
+// %operand: [0x7FF0000000000000, 0x7FFFFFFFFFFFFFFF, 0x0000000000000001, 0.0, 65519.0, 65520.0]
 %output = "stablehlo.reduce_precision"(%operand) {
   exponent_bits = 5 : i32,
-  mantissa_bits = 2 : i32
-} : (tensor<6xf32>) -> tensor<6xf32>
-// Logical values: -Inf, +Inf, NaN, NaN, 0.0, 1024.0, +Inf
-// %output: [0xFF800000, 0x7F800000, 0x7FFFFFFF, 0.0, 1024.0, 0x7F800000]
+  mantissa_bits = 10 : i32
+} : (tensor<6xf64>) -> tensor<6xf64>
+// Logical values: +Inf, NaN, 0.0, 0.0, 65504.0, +Inf
+// %output: [0x7FF0000000000000, 0x7FFFFFFFFFFFFFFF, 0.0, 0.0, 65504.0, 0x7FF0000000000000]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_precision.mlir)
 
 ### reduce_scatter
 
