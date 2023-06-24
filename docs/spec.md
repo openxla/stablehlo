@@ -698,7 +698,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints |
 |-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                       | (C1), (C6)  |
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C6)  |
 | (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
@@ -706,9 +706,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C6)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C6)        |
 
 #### Constraints
 
@@ -849,7 +849,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name               | Type                                         | Constraints      |
 |-------|--------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`          | tensor                                       | (C1)             |
+| (I1)  | `operand`          | tensor or per-tensor quantized tensor        | (C1)             |
 | (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
 | (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
 | (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
@@ -858,9 +858,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C8)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C8)        |
 
 #### Constraints
 
@@ -1640,15 +1640,15 @@ Afterwards, `result@process` is given by:
 
 | Label | Name                  | Type                                         | Constraints |
 |-------|-----------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`             | tensor                                       | (C5)        |
+| (I1)  | `operand`             | tensor or per-tensor quantized tensor        | (C5)        |
 | (I2)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64` | (C1-C4)     |
 | (I3)  | `channel_id`          | constant of type `si64`                      |             |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -3079,9 +3079,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C1), (C2)  |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1), (C2)  |
 
 #### Constraints
 
@@ -3656,7 +3656,8 @@ Semantics of `outfeed_config` is implementation-defined.
 
 | Label | Name             | Type                       |
 |-------|------------------|----------------------------|
-| (I1)  | `inputs`         | variadic number of tensors |
+| (I1)  | `inputs`         | variadic number of tensors or per-tensor quantized
+tensors|
 | (I2)  | `token`          | `token`                    |
 | (I3)  | `outfeed_config` | constant of type `string`  |
 
@@ -3904,9 +3905,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C2), (C3)  |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C2), (C3)  |
 
 #### Constraints
 
@@ -4937,13 +4938,13 @@ implementation-defined. This flag duplicates the information provided in
 
 #### Inputs
 
-| Label | Name               | Type                                            | Constraints |
-|-------|--------------------|-------------------------------------------------|-------------|
-| (I1)  | `inputs`           | variadic number of tensors                      |             |
-| (I2)  | `token`            | `token`                                         |             |
-| (I3)  | `channel_id`       | constant of type `si64`                         |             |
-| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
-| (I5)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
+| Label | Name               | Type                                                       | Constraints |
+|-------|--------------------|------------------------------------------------------------|-------------|
+| (I1)  | `inputs`           | variadic number of tensors or per-tensor quantized tensors |             |
+| (I2)  | `token`            | `token`                                                    |             |
+| (I3)  | `channel_id`       | constant of type `si64`                                    |             |
+| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`            | (C1)        |
+| (I5)  | `is_host_transfer` | constant of type `i1`                                      | (C1)        |
 
 #### Outputs
 
