@@ -5,7 +5,7 @@ Initial version: 6/23/2023<br/>
 Last updated: 6/23/2023<br/>
 Discussion thread: [openxla-discuss](https://groups.google.com/a/openxla.org/g/openxla-discuss/c/rfd30zKR9uU/m/khMs-1ZEAAAJ).
 
-# Summary
+## Summary
 
 The original StableHLO Compatibility [RFC](https://github.com/openxla/stablehlo/blob/main/rfcs/20220912-compatibility.md)
 contained backward and forwards compatibility of 5 years within a major release,
