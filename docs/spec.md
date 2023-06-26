@@ -517,7 +517,7 @@ have the following constraints:
 * (C2) `is_wellformed(imaginary_part, complex_element_type(complex_type))`.
 
 ```ebnf
-TensorConstant ::= TensorLiteral ':' TensorType
+TensorConstant ::= TensorLiteral ':' ( TensorType | QuantizedTensorType )
 TensorLiteral  ::= 'dense' '<' (DenseLiteral | ElementLiteral) '>'
 DenseLiteral   ::= DenseDimension | DenseElements
 DenseDimension ::= '[' [DenseLiteral {',' DenseLiteral}] ']'
@@ -533,8 +533,10 @@ represents a tensor value with the following mapping from indices to elements:
 implementation-defined. Tensor constants have the following constraints:
 
 * (C1) `has_syntax(tensor_literal, element_type(tensor_type))`, where:
-  * `has_syntax(element_literal: Syntax, element_type: Type) =
-    is_wellformed(element_literal, type)`.
+  * `has_syntax(element_literal: Syntax, tensor_element_type: Type) =
+    is_wellformed(element_literal, tensor_element_type)`.
+  * `has_syntax(element_literal: Syntax, quantized_tensor_element_type: Type) =
+    is_wellformed(element_literal, storage_type(quantized_tensor_element_type))`.
   * `has_syntax(tensor_literal: List, element_type: Type) =
     has_syntax(tensor_literal..., element_type)`.
 * (C2) `has_shape(tensor_literal, shape(tensor_type))`, where:
@@ -1875,7 +1877,8 @@ Produces an `output` tensor from a constant `value`.
 
 #### Constraints
 
-* (C1) `type(value) = type(output)`.
+* (C1) `type(value) = is_quantized(output) ? storage_type(output) :
+       type(output)`.
 
 #### Examples
 
