@@ -4437,29 +4437,25 @@ In conversations with many stakeholders, this op has come up as effectively
 deprecated, so in the future we are planning to explore removing it
 ([#597](https://github.com/openxla/stablehlo/issues/597)).
 
-For quantized types, performs
-`quantize(rng(dequantize(a), dequantize(b), shape, rng_distribution), type(result))`.
-
 #### Inputs
 
-| Label | Name               | Type                                                                                            | Constraints |
-|-------|--------------------|-------------------------------------------------------------------------------------------------|-------------|
-| (I1)  | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1), (C2)  |
-| (I2)  | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1), (C2)  |
-| (I3)  | `shape`            | 1-dimensional tensor constant of type `si64`                                                    | (C3)        |
-| (I4)  | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                                                  | (C2)        |
+| Label | Name               | Type                                                             | Constraints |
+|-------|--------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `a`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
+| (I2)  | `b`                | 0-dimensional tensor of integer, boolean, or floating-point type | (C1), (C2)  |
+| (I3)  | `shape`            | 1-dimensional tensor constant of type `si64`                     | (C3)        |
+| (I4)  | `rng_distribution` | enum of `UNIFORM` and `NORMAL`                                   | (C2)        |
 
 #### Outputs
 
-| Name     | Type                                                                              | Constraints |
-|----------|-----------------------------------------------------------------------------------|-------------|
-| `result` | tensor of integer, boolean, or floating-point type or per-tensor quantized tensor | (C1-C3)     |
+| Name     | Type                                               | Constraints |
+|----------|----------------------------------------------------|-------------|
+| `result` | tensor of integer, boolean, or floating-point type | (C1-C3)     |
 
 #### Constraints
 
-* (C1) `baseline_element_type(a) = baseline_element_type(b) =
-       baseline_element_type(result)`.
-* (C2) If `rng_distribution = NORMAL`, then `is_float(a)` or `is_quantized(a)`.
+* (C1) `element_type(a) = element_type(b) = element_type(result)`.
+* (C2) If `rng_distribution = NORMAL`, then `is_float(a)`.
 * (C3) `shape(result) = shape`.
 
 #### Examples
