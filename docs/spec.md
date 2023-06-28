@@ -2712,8 +2712,11 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 * `result2[i0, ..., :, iR-1] = ifft(result1[i0, ..., :, iR-1])`.
 * `result[i0, ..., :] = irfft(result2[i0, ..., :])`.
 
-For quantized types, performs
-`quantize(fft(dequantize(operand), fft_type, fft_length), type(result))`.
+For quantized types, performs:
+
+* `fft(dequantize(operand), fft_type, fft_length)` if `fft_type = RFFT`.
+* `quantize(fft((operand, fft_type, fft_length), type(result)))` if `fft_type
+   = IRFFT`.
 
 #### Inputs
 
@@ -2725,9 +2728,9 @@ For quantized types, performs
 
 #### Outputs
 
-| Name     | Type                                     | Constraints      |
-|----------|------------------------------------------|------------------|
-| `result` | tensor of floating-point or complex type | (C2), (C4), (C5) |
+| Name     | Type                                                                    | Constraints      |
+|----------|-------------------------------------------------------------------------|------------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C2), (C4), (C5) |
 
 #### Constraints
 
@@ -2737,12 +2740,12 @@ For quantized types, performs
     have the same complex type.
   * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
     have the same complex type.
-  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type or
-    `is_quantized(operand)` and `element_type(result)` is a complex type of the
-    same floating-point semantics.
-  * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
-    `element_type(result)` is a floating-point type of the same floating-point
-    semantics.
+  * If `fft_type = RFFT`, (`is_float(operand)` or `is_quantized(operand)`) and
+    `is_complex(result)` such that `complex_element_type(element_type(result))
+    = is_quantized(operand) ? expressed_type(operand) : element_type(operand)`.
+  * If `fft_type = IRFFT`, `is_complex(operand)`and (`is_float(result)` or
+    `is_quantized(result)`) such that `complex_element_type(element_type(operand))
+    = is_quantized(result) ? expressed_type(result) : element_type(result)`.
 * (C3) `1 <= size(fft_length) <= 3`.
 * (C4) If among `operand` and `result`, there is a tensor `real` of a
 floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
