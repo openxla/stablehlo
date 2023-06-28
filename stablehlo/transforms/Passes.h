@@ -51,9 +51,12 @@ void populateVhloToVersionPatterns(RewritePatternSet *patterns,
 //// Pass pipelines ////
 
 // StableHLO consumers can add this pipeline to convert portable
-// artifacts to StableHLO programs.
+// artifacts to StableHLO programs. This pipeline will silently pass
+// if programs are not portable artifacts.
 void createDeserializePortableArtifactPipeline(OpPassManager &pm);
 
+// Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
+// for opt tools.
 void registerPassPipelines();
 
 }  // namespace stablehlo
