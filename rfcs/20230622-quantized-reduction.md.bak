@@ -1,0 +1,195 @@
+# StableHLO Compatibility RFC
+
+Status: Review<br/>
+Initial version: 06/22/2023<br/>
+Last updated: <br/>
+Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/)
+
+## Version log
+
+* 9/12/2022: Initial version.
+* 11/9/2022: Major updates based on a prototype implementation and conversations
+             with OpenXLA and MLIR communities.
+* 12/13/2022: Approved.
+
+## Introduction
+
+The reduction op, for non-quantized types, has constrainsts like
+
+```
+(C2) element_type(inputs...) = element_type(init_values...) = element_type(results...).
+(C6) body has type tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>) where Ei = element_type(inputs[i]).
+```
+
+which constrainted the signature of reduce op and its assoiated reducer block to
+have the same element types for operands, arguments and returns. For reducer
+block performing accumulative operation like add, this means that the the result
+of accumulation can overflow in which case the result will be implementation
+dependent (e.g., saturated or wrap around). From the conversation with various
+customers it seems a reasonable behavior for non quantized data types. With
+quantized data types, the such loss in precision is not acceptable and hence the
+motivation is to perform the accumulation is some higher data type. The
+[syntax](https://github.com/openxla/stablehlo/blob/main/docs/spec.md#reduce) of
+`reduce` op, in its current form, does not have any component to express the
+accumulation type and hence the proposal here is to make some structural changes
+in order to support quantization with wider accumulation type.
+
+## Proposal
+
+[1] discuses an option, proposed by @loganchien, on how to achive the structual
+changes as mentioned above. I note that some of the examples are diagrams here
+are borrowed from an internal doc @loganchien authored.
+
+This is about introducing on-the-fly type conversions, which (1) convert the
+input type to the type of the compute region argument or (2) convert the result
+type of the compute region to the output type.  The code snippet looks like:
+
+```
+%result = "stablehlo.reduce"(%input, %init_value) ({
+    ^input_conversion(
+            %input: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>):
+        %input_rescaled = "stablehlo.uniform_quantize"(%input)
+            : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>)
+            -> tensor<!quant.uniform<i32:f32, input_scale:0>>
+        "stablehlo.return"(%input_rescaled)
+            : (tensor<!quant.uniform<i32:f32, input_scale:0>>) -> ()
+
+    }, {
+    ^reduce_computation(
+            %lhs: tensor<!quant.uniform<i32:f32, input_scale:0>>,
+            %rhs: tensor<!quant.uniform<i32:f32, input_scale:0>>):
+        %add = "stablehlo.add"(%lhs, %rhs)
+            : (tensor<!quant.uniform<i32:f32, input_scale:0>>,
+               tensor<!quant.uniform<i32:f32, input_scale:0>>)
+            -> tensor<!quant.uniform<i32:f32, input_scale:0>>
+        "stablehlo.return"(%add)
+            : (tensor<!quant.uniform<i32:f32, input_scale:0>>) -> ()
+    }, {
+    ^output_conversion(
+            %intermediate_result: tensor<!quant.uniform<i32:f32, input_scale:0>>):
+        %output_rescaled = "stablehlo.uniform_quantize"(%intermediate_result)
+            : (tensor<!quant.uniform<i32:f32, input_scale:0>>)
+            -> tensor<!quant.uniform<ui8:f32, output_scale:output_zp>>
+        "stablehlo.return"(%output_rescaled)
+            : (tensor<!quant.uniform<ui8:f32, output_scale:output_zp>>) -> ()
+    }) {
+        dimensions = dense<...> : tensor<1xi64>
+    } : (tensor<... x !quant.uniform<ui8:f32, input_scale:input_zp>>,
+         tensor<... x !quant.uniform<ui8:f32, input_scale:input_zp>>)
+    -> tensor<... x !quant.uniform<ui8:f32, output_scale:output_zp>>
+```
+
+### pros
+
+The first option enables programmers to program at (almost) baremetal. If the HW
+can support reduction computation in wider type (e.g.  in the SIMD instruction
+set, we typically do widening/compute/narrowing within the kernel to save the
+memory bandwidth), the programmer can explicitly request for that.
+
+### cons
+
+The disadvantage of this representation is that the syntax is more verbose and
+requires more changes to the specification for stablehlo.reduce.
+
+In this option, the `input_conversion` and `output_conversion` can be optional
+if
+1. If the input/result type matches the block argument or the result type of the
+   `reduce_computation`.
+2. The reducer block is performing some non-accumulative operation like min/max.
+
+### Constraints
+ - The argument and result type of the `reduce_computation` region must be the
+   same.
+ - number of regions is variadic with size = 1 or 3.
+
+### Semantics
+Here we are informally including the additional semantics that is need to
+support the proposal.
+
+```
++----------+  +--------+ +--------+    +----------+  +--------+ +--------+
+|init_value|  |input[0]| |input[1]|    |init_value|  |input[2]| |input[3]|
++----------+  +--------+ +--------+    +----------+  +--------+ +--------+
+    |             |          |               |           |          |
++----------+  +--------+ +--------+    +----------+  +--------+ +--------+
+|input     |  |input   | |input   |    |input     |  |input   | |input   |
+|convert   |  |convert | |convert |    |convert   |  |convert | |convert |
++----------+  +--------+ +--------+    +----------+  +--------+ +--------+
+      \      /           /                   \      /           /
+      +-------+         /                    +-------+         /
+      |compute|        /                     |compute|        /
+      +-------+       /                      +-------+       /
+             \       /                              \       /
+              +-------+                              +-------+
+              |compute|                              |compute|
+              +-------+                              +-------+
+                     \___________           ___________/
+                                 \         /
+                                  +-------+
+                                  |compute|
+                                  +-------+
+                                      |
+                                  +-------+
+                                  |output |
+                                  |convert|
+                                  +-------+
+```
+
+### Semantics of `input_conversion` block
+The `input_conversion` block is applied selectively to the leaf nodes of a
+schedule tree.
+
+### Semantics of `output_conversion` block
+The `output_conversion` block is applied just after the `result` for a particular
+index is computed.
+
+Once we define the specification of `reduce` op, other ops based on reduction
+can be deifned as follows:
+
+## reduce_window
+Similar to reduce this op can take optional region arguments  `input_conversion`
+and `output_conversion`
+
+## select_and_scatter
+This op originally takes two function arguments `select` and `scatter`. As the
+`select` function is supposed to perform a non-accumulative operation, we may
+not need additional functions here for input or output cnversions. But the
+`scatter` function could be accompanied with `input_conversion` and
+`output_conversion` functions.
+
+## Other options considered
+
+### Rescale input to accumulation type
+
+This option is about adding `stablehlo.uniform_quantize` and
+`stablehlo.dequantize` ops respectvely before and after reduce op which operates
+on the "accumulator" type:
+
+```
+%widen = "stablehlo.convert"(%input)
+    : (tensor<... x !quant.uniform<ui8:f32, ...>>) -> tensor<... x !quant.uniform<i32:f32, ...>>
+%reduce = "stablehlo.reduce"(%widen) {
+    ^reduce_computation(%lhs: !quant.uniform<i32:f32, ...>, %rhs: !qunat.uniform<i32:f32, ...>):
+        // reduce_computation_block
+    }
+    : (tensor<... x !quant.uniform<i32:f32, ...>>) -> tensor<... x !quant.uniform<i32:f32, ...>>
+%narrowed = "stablehlo.convert"(%reduce)
+    : (tensor<... x !quant.uniform<i32:f32, ...>>) -> tensor<... x !quant.uniform<ui8:f32, ...>>
+```
+
+#### pros
+
+ - An advantage of this option is that we only need minor changes to the
+   specification (i.e. to allow quantized types).
+
+#### cons
+
+  -  The compiler must pattern match 3 operations and map them into some internal
+     representation (that is not expressible in StableHLO) before their compilation
+     or execution.
+  -  The compiler must ensure that the `stablehlo.uniform_quantize` (or
+     `stablehlo.convert` in the case of `bf16` or `f16`) is not folded before the
+     backend matches the pattern.
+
+## References
+ - [1] [discussion](https://github.com/openxla/stablehlo/pull/1538).
