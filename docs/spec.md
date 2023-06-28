@@ -1348,14 +1348,14 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 | Label | Name                   | Type                                         | Constraints   |
 |-------|------------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`              | tensor                                       | (C1-C3), (C5) |
+| (I1)  | `operand`              | tensor or per-tensor quantized tensor        | (C1-C2), (C5) |
 | (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints      |
-|----------|--------|------------------|
-| `result` | tensor | (C1), (C3), (C5) |
+| Name     | Type                                  | Constraints      |
+|----------|---------------------------------------|------------------|
+| `result` | tensor or per-tensor quantized tensor | (C1), (C3), (C5) |
 
 #### Constraints
 
@@ -1805,16 +1805,16 @@ arguments and produces a `result` tensor. More formally,
 
 #### Inputs
 
-| Label | Name        | Type                       | Constraints      |
-|-------|-------------|----------------------------|------------------|
-| (I1)  | `inputs`    | variadic number of tensors | (C1-C6)          |
-| (I2)  | `dimension` | constant of type `si64`    | (C2), (C4), (C6) |
+| Label | Name        | Type                                                       | Constraints      |
+|-------|-------------|------------------------------------------------------------|------------------|
+| (I1)  | `inputs`    | variadic number of tensors or per-tensor quantized tensors | (C1-C6)          |
+| (I2)  | `dimension` | constant of type `si64`                                    | (C2), (C4), (C6) |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C5), (C6)  |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C5-C6)     |
 
 #### Constraints
 
@@ -2436,15 +2436,15 @@ contain the sizes of the slice for each dimension. More formally,
 
 | Label | Name            | Type                                                     | Constraints      |
 |-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                                   | (C1), (C2), (C4) |
+| (I1)  | `operand`       | tensor or per-tensor quantized tensor                    | (C1), (C2), (C4) |
 | (I2)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C2), (C3)       |
 | (I3)  | `slice_sizes`   | 1-dimensional tensor constant of type `si64`             | (C2), (C4), (C5) |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1), (C5)  |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1), (C5)  |
 
 #### Constraints
 
@@ -2494,15 +2494,15 @@ More formally, `result[result_index]` is defined as:
 
 | Label | Name            | Type                                                     | Constraints      |
 |-------|-----------------|----------------------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor                                                   | (C1-C4), (C6)    |
-| (I2)  | `update`        | tensor                                                   | (C3), (C3), (C6) |
+| (I1)  | `operand`       | tensor or per-tensor quantized tensor                    | (C1-C4), (C6)    |
+| (I2)  | `update`        | tensor or per-tensor quantized tensor                    | (C2), (C3), (C6) |
 | (I3)  | `start_indices` | variadic number of 0-dimensional tensors of integer type | (C4), (C5)       |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -2800,22 +2800,22 @@ behavior is undefined. More formally, for all `i1 < i2` from `indices(result)`,
 
 #### Inputs
 
-| Label | Name                   | Type                                         | Constraints                   |
-|-------|------------------------|----------------------------------------------|-------------------------------|
-| (I1)  | `operand`              | tensor                                       | (C1), (C10-C12), (C14)        |
-| (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)             |
-| (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4), (C5), (C13)       |
-| (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6), (C7), (C8), (C13) |
-| (I5)  | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)             |
-| (I6)  | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)             |
-| (I7)  | `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C7), (C8), (C11-C13)         |
-| (I8)  | `indices_are_sorted`   | constant of type `i1`                        |                               |
+| Label | Name                   | Type                                         | Constraints                  |
+|-------|------------------------|----------------------------------------------|------------------------------|
+| (I1)  | `operand`              | tensor or per-tensor quantized tensor        | (C1), (C7), (C10-C12), (C14) |
+| (I2)  | `start_indices`        | tensor of integer type                       | (C2), (C3), (C13)            |
+| (I3)  | `offset_dims`          | 1-dimensional tensor constant of type `si64` | (C1), (C4-C5), (C13)         |
+| (I4)  | `collapsed_slice_dims` | 1-dimensional tensor constant of type `si64` | (C1), (C6-C8), (C13)         |
+| (I5)  | `start_index_map`      | 1-dimensional tensor constant of type `si64` | (C3), (C9), (C10)            |
+| (I6)  | `index_vector_dim`     | constant of type `si64`                      | (C2), (C3), (C13)            |
+| (I7)  | `slice_sizes`          | 1-dimensional tensor constant of type `si64` | (C8), (C11-C13)              |
+| (I8)  | `indices_are_sorted`   | constant of type `i1`                        |                              |
 
 #### Outputs
 
-| Name     | Type   | Constraints        |
-|----------|--------|--------------------|
-| `result` | tensor | (C5), (C13), (C15) |
+| Name     | Type                                  | Constraints     |
+|----------|---------------------------------------|-----------------|
+| `result` | tensor or per-tensor quantized tensor | (C5), (C13-C14) |
 
 #### Constraints
 
@@ -4641,24 +4641,24 @@ undefined.
 
 #### Inputs
 
-| Label | Name                           | Type                                         | Constraints                                     |
-|-------|--------------------------------|----------------------------------------------|-------------------------------------------------|
-| (I1)  | `inputs`                       | variadic number of tensors                   | (C1), (C2), (C4-C6), (C10), (C13), (C15), (C16) |
-| (I2)  | `scatter_indices`              | tensor of integer type                       | (C4), (C11), (C14)                              |
-| (I3)  | `updates`                      | variadic number of tensors                   | (C3-C6), (C8)                                   |
-| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C7), (C8)                          |
-| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64` | (C2), (C4), (C9), (C10)                         |
-| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64` | (C11-C13)                                       |
-| (I7)  | `index_vector_dim`             | constant of type `si64`                      | (C4), (C11), (C14)                              |
-| (I8)  | `indices_are_sorted`           | constant of type `i1`                        |                                                 |
-| (I9)  | `unique_indices`               | constant of type `i1`                        |                                                 |
-| (I10) | `update_computation`           | function                                     | (C15)                                           |
+| Label | Name                           | Type                                                       | Constraints                                  |
+|-------|--------------------------------|------------------------------------------------------------|----------------------------------------------|
+| (I1)  | `inputs`                       | variadic number of tensors or per-tensor quantized tensors | (C1), (C2), (C4-C6), (C10), (C13), (C15-C16) |
+| (I2)  | `scatter_indices`              | tensor of integer type                                     | (C4), (C11), (C14)                           |
+| (I3)  | `updates`                      | variadic number of tensors or per-tensor quantized tensors | (C3-C6), (C8)                                |
+| (I4)  | `update_window_dims`           | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C7), (C8)                       |
+| (I5)  | `inserted_window_dims`         | 1-dimensional tensor constant of type `si64`               | (C2), (C4), (C9), (C10)                      |
+| (I6)  | `scatter_dims_to_operand_dims` | 1-dimensional tensor constant of type `si64`               | (C11-C13)                                    |
+| (I7)  | `index_vector_dim`             | constant of type `si64`                                    | (C4), (C11), (C14)                           |
+| (I8)  | `indices_are_sorted`           | constant of type `i1`                                      |                                              |
+| (I9)  | `unique_indices`               | constant of type `i1`                                      |                                              |
+| (I10) | `update_computation`           | function                                                   | (C15)                                        |
 
 #### Outputs
 
-| Name      | Type                       |
-|-----------|----------------------------|
-| `results` | variadic number of tensors |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C15)       |
 
 #### Constraints
 
@@ -4692,7 +4692,7 @@ undefined.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
   where `Ei = element_type(inputs[i])`.
-* (C16) `type(inputs...) = type(result...)`.
+* (C16) `type(inputs...) = type(results...)`.
 
 #### Examples
 
@@ -5225,18 +5225,18 @@ More formally, for all `result_index` in `index_space(results[0])`:
 
 #### Inputs
 
-| Label | Name         | Type                       | Constraints |
-|-------|--------------|----------------------------|-------------|
-| (I1)  | `inputs`     | variadic number of tensors | (C1)        |
-| (I2)  | `dimension`  | constant of type `si64`    | (C4)        |
-| (I3)  | `is_stable`  | constant of type `i1`      |             |
-| (I4)  | `comparator` | function                   | (C5)        |
+| Label | Name         | Type                                                       | Constraints |
+|-------|--------------|------------------------------------------------------------|-------------|
+| (I1)  | `inputs`     | variadic number of tensors or per-tensor quantized tensors | (C1-C5)     |
+| (I2)  | `dimension`  | constant of type `si64`                                    | (C4)        |
+| (I3)  | `is_stable`  | constant of type `i1`                                      |             |
+| (I4)  | `comparator` | function                                                   | (C5)        |
 
 #### Outputs
 
-| Name      | Type                       | Constraints |
-|-----------|----------------------------|-------------|
-| `results` | variadic number of tensors | (C2), (C3)  |
+| Name      | Type                                                       | Constraints |
+|-----------|------------------------------------------------------------|-------------|
+| `results` | variadic number of tensors or per-tensor quantized tensors | (C2), (C3)  |
 
 #### Constraints
 
