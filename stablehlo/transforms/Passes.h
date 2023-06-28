@@ -47,6 +47,15 @@ void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
 void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
+
+//// Pass pipelines ////
+
+// StableHLO consumers can add this pipeline to convert portable
+// artifacts to StableHLO programs.
+void createDeserializePortableArtifactPipeline(OpPassManager &pm);
+
+void registerPassPipelines();
+
 }  // namespace stablehlo
 }  // namespace mlir
 

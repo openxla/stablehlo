@@ -76,9 +76,7 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
 
   // Convert VHLO --> VHLO(current) --> StableHLO
   PassManager pm(context);
-  pm.addPass(stablehlo::createVhloToVersionPass(
-      {vhlo::Version::getCurrentVersion().toString()}));
-  pm.addPass(stablehlo::createVhloLegalizeToStablehloPass());
+  createDeserializePortableArtifactPipeline(pm);
   if (!succeeded(pm.run(*module))) {
     return nullptr;
   }
