@@ -12,10 +12,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/transforms/Passes.h"
-
 #include "mlir/Pass/PassManager.h"
 #include "stablehlo/dialect/Version.h"
+#include "stablehlo/transforms/Passes.h"
 
 namespace mlir {
 namespace stablehlo {
