@@ -159,8 +159,9 @@ dialect or even bytecode representation of the StableHLO dialect, do not have
 compatibility guarantees.
 
 **Unspecced features:** We may make incompatible changes to features which
-are not yet part of the StableHLO specification, e.g. we do not provide
-compatibility guarantees for unregistered attributes.
+are historically supported in StableHLO programs but are not yet part of the
+StableHLO specification, e.g. we do not provide compatibility guarantees for
+unregistered attributes.
 
 **Bug compatibility:** We may make incompatible changes if the implementation in
 libStablehlo contradicts the StableHLO specification, e.g. if a definition in
