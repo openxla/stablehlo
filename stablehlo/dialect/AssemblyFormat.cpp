@@ -18,10 +18,12 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Regex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
+#include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
 namespace hlo {
@@ -273,6 +275,73 @@ ParseResult parseDenseI64Array(OpAsmParser& parser,
   RankedTensorType type =
       RankedTensorType::get(data.size(), parser.getBuilder().getI64Type());
   attr = DenseIntElementsAttr::get(type, data);
+  return success();
+}
+
+void printSliceRanges(OpAsmPrinter& p, Operation* op,
+                      DenseIntElementsAttr startIndices,
+                      DenseIntElementsAttr limitIndices,
+                      DenseIntElementsAttr strides) {
+  p << "[";
+  // Let's be safe if we're printing invalid IR somehow: this can't be parsed
+  // back!
+  if (startIndices.size() != limitIndices.size() ||
+      startIndices.size() != strides.size()) {
+    p << "start_indices: ";
+    llvm::interleaveComma(startIndices, p);
+    p << ", limit_indices: ";
+    llvm::interleaveComma(limitIndices, p);
+    p << ", strides: ";
+    llvm::interleaveComma(strides, p);
+    p << "]";
+    return;
+  }
+
+  llvm::interleaveComma(
+      llvm::zip(startIndices, limitIndices, strides), p,
+      [&](std::tuple<llvm::APInt, llvm::APInt, llvm::APInt> pack) {
+        auto [start, limit, stride] = pack;
+        p << start << ":" << limit;
+        if (stride != 1) {
+          p << ":" << stride;
+        }
+      });
+  p << "]";
+  return;
+}
+
+ParseResult parseSliceRanges(OpAsmParser& parser,
+                             DenseIntElementsAttr& startIndices,
+                             DenseIntElementsAttr& limitIndices,
+                             DenseIntElementsAttr& strides) {
+  if (parser.parseLSquare()) return failure();
+  // Parse groups of comma-separated: `start`:`limit`[:`stride`]
+  // If the stride isn't provided it'll be 1.
+  SmallVector<int64_t> start, limit, stride;
+  if (failed(parser.parseOptionalRSquare())) {
+    do {
+      start.emplace_back();
+      limit.emplace_back();
+      if (parser.parseInteger(start.back()) || parser.parseColon() ||
+          parser.parseInteger(limit.back()))
+        return failure();
+      if (parser.parseOptionalColon()) {
+        stride.push_back(1);
+      } else {
+        stride.emplace_back();
+        if (parser.parseInteger(stride.back())) return failure();
+      }
+      if (succeeded(parser.parseOptionalRSquare())) break;
+      if (failed(parser.parseComma())) return failure();
+    } while (1);
+  }
+
+  RankedTensorType type =
+      RankedTensorType::get(start.size(), parser.getBuilder().getI64Type());
+  startIndices = DenseIntElementsAttr::get(type, start);
+  limitIndices = DenseIntElementsAttr::get(type, limit);
+  strides = DenseIntElementsAttr::get(type, stride);
+
   return success();
 }
 
