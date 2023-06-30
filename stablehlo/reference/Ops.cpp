@@ -185,9 +185,9 @@ SmallVector<InterpreterValue> eval(
     } else if (auto batchNormTrainingOp = dyn_cast<BatchNormTrainingOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto bitcastConvertOp = dyn_cast<BitcastConvertOp>(op)) {
-      auto operand = scope.find(bitcastConvertOp.getOperand());
+      auto operand = scope.findTensor(bitcastConvertOp.getOperand());
       auto result = evalBitcastConvertOp(operand, bitcastConvertOp.getType());
-      scope.add(op.getResults(), {result});
+      scope.add(bitcastConvertOp.getResult(), result);
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       auto operand = scope.findTensor(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -690,46 +690,37 @@ Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
 
   auto resultElementType = result.getElementType();
-  auto resultBitWidth = isSupportedComplexType(resultElementType)
-                            ? resultElementType.cast<ComplexType>()
-                                  .getElementType()
-                                  .cast<FloatType>()
-                                  .getIntOrFloatBitWidth()
-                            : resultElementType.getIntOrFloatBitWidth();
+  auto resultNumBits = numBits(result.getElementType());
+  auto operandNumBits = numBits(operand.getElementType());
 
-  auto operandElementType = operand.getElementType();
-  auto operandBitWidth = isSupportedComplexType(operandElementType)
-                             ? operandElementType.cast<ComplexType>()
-                                   .getElementType()
-                                   .cast<FloatType>()
-                                   .getIntOrFloatBitWidth()
-                             : operandElementType.getIntOrFloatBitWidth();
-
-  if (resultBitWidth < operandBitWidth) {
+  if (resultNumBits < operandNumBits) {
     auto resultIt = result.index_begin();
     for (auto operandIt = operand.index_begin();
          operandIt != operand.index_end(); ++operandIt) {
-      auto elements =
-          bitcastConvert(resultElementType, {operand.get(*operandIt)});
-      for (auto element : elements) result.set(*resultIt++, element);
+      auto resultElements =
+          bitcastConvertOneToMany(resultElementType, operand.get(*operandIt));
+      for (auto resultElement : resultElements)
+        result.set(*resultIt++, resultElement);
     }
     return result;
   }
 
-  if (resultBitWidth > operandBitWidth) {
+  if (resultNumBits > operandNumBits) {
     auto operandIt = operand.index_begin();
     for (auto resultIt = result.index_begin(); resultIt != result.index_end();
          ++resultIt) {
-      SmallVector<Element> elements;
-      for (uint64_t i = 0; i < resultBitWidth / operandBitWidth; ++i)
-        elements.push_back(operand.get(*operandIt++));
-      result.set(*resultIt, bitcastConvert(resultElementType, elements)[0]);
+      SmallVector<Element> operandElements;
+      for (auto i = 0; i < resultNumBits / operandNumBits; ++i)
+        operandElements.push_back(operand.get(*operandIt++));
+      result.set(*resultIt,
+                 bitcastConvertManyToOne(resultElementType, operandElements));
     }
     return result;
   }
 
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, bitcastConvert(resultElementType, {operand.get(*it)})[0]);
+    result.set(*it,
+               bitcastConvertOneToOne(resultElementType, operand.get(*it)));
   return result;
 }
 

@@ -1815,7 +1815,7 @@ def StableHLO_BitcastConvertOp : StableHLO_ShapedInterfaceOp<"bitcast_convert",
     ```
   }];
 
-  let arguments = (ins HLO_Tensor:$operand);
+  let arguments = (ins HLO_Tensor:$operand /*bitcast_convert_i1*/);
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
 

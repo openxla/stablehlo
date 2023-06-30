@@ -75,6 +75,12 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Returns the implementation-defined bits of the underlying value.
+  APInt toBits() const;
+
+  /// Creates an Element from implementation-defined bits.
+  static Element fromBits(Type type, APInt bits);
+
   /// Overloaded not (logical) operator.
   Element operator!() const;
 
@@ -149,18 +155,10 @@ Element atan2(const Element &e1, const Element &e2);
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
 
-/// Returns bitcast converted Element(s). Let E and E' be the element types of
-/// `elements[0].getType()` and `type` respectively and member of `elements` has
-/// the same type:
-// * size(elements) = 1 and num_bits(E') < num_bits(E):
-//   returns n Elements such that n = bitwidth(E)/bitwidth(E') and n *
-//   num_bits(E') == num_bits(E).
-// * size(elements) > 1 and num_bits(E') > num_bits(E):
-//   returns a single Element such that size(elements) * num_bits(E) ==
-//   num_bits(E').
-// * size(elements) = 1 and num_bits(E') == num_bits(E):
-//   returns a single Element of type `type`.
-SmallVector<Element> bitcastConvert(Type type, ArrayRef<Element> elements);
+/// Various flavors of bitcast conversion as defined in the specification.
+Element bitcastConvertOneToOne(Type type, const Element &e);
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &e);
+Element bitcastConvertManyToOne(Type type, ArrayRef<Element> es);
 
 /// Returns cube root of Element object.
 Element cbrt(const Element &e);
