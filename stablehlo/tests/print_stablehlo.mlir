@@ -358,3 +358,21 @@ func.func @dot_general(%arg0: tensor<2x2x2xi8>, %arg1: tensor<2x2x3xi8>, %arg2: 
   } : (tensor<2x2xi8>, tensor<2x3xi8>) -> tensor<2x3xi32>
   func.return %0 : tensor<2x2x3xi32>
 }
+
+
+func.func @slice(%arg0: tensor<3x8xf32>, %arg1: tensor<8xf32>)
+  -> (tensor<1xf32>, tensor<2xf32>, tensor<1xf32>, tensor<1xf32>, tensor<2x2xf32>, tensor<2x2xf32>) {
+  // CHECK: stablehlo.slice %arg1 [0:1:2] : (tensor<8xf32>) -> tensor<1xf32>
+  %slice1 = stablehlo.slice %arg1 [0:1:2] : (tensor<8xf32>) -> tensor<1xf32>
+  // CHECK: stablehlo.slice %arg1 [0:4:2] : (tensor<8xf32>) -> tensor<2xf32>
+  %slice2 = stablehlo.slice %arg1 [0:4:2] : (tensor<8xf32>) -> tensor<2xf32>
+  // CHECK: stablehlo.slice %arg1 [0:1] : (tensor<8xf32>) -> tensor<1xf32>
+  %slice3 = stablehlo.slice %arg1 [0:1:1] : (tensor<8xf32>) -> tensor<1xf32>
+  // CHECK: stablehlo.slice %arg1 [0:1] : (tensor<8xf32>) -> tensor<1xf32>
+  %slice4 = stablehlo.slice %arg1 [0:1] : (tensor<8xf32>) -> tensor<1xf32>
+  // CHECK: stablehlo.slice %arg0 [1:3, 4:8:2] : (tensor<3x8xf32>) -> tensor<2x2xf32>
+  %slice5 = stablehlo.slice %arg0 [1:3, 4:8:2] : (tensor<3x8xf32>) -> tensor<2x2xf32>
+  // CHECK: stablehlo.slice %arg0 [1:3, 4:8:2] : (tensor<3x8xf32>) -> tensor<2x2xf32>
+  %slice6 = stablehlo.slice %arg0 [1:3:1, 4:8:2] : (tensor<3x8xf32>) -> tensor<2x2xf32>
+  return %slice1, %slice2, %slice3, %slice4, %slice5, %slice6 : tensor<1xf32>, tensor<2xf32>, tensor<1xf32>, tensor<1xf32>, tensor<2x2xf32>, tensor<2x2xf32>
+}

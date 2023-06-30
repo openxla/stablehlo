@@ -1604,11 +1604,18 @@ def StableHLO_SliceOp: StableHLO_Op<
 
     Example:
     ```mlir
+    %result = stablehlo.slice %operand [1:3, 4:8:2]
+       : (tensor<3x8xi64>) -> tensor<2x2xi64>
+
+    // Same in generic form: the `1:3` above is mapped to the first entry in
+    // `start_indices` and `limit_indices`, while `strides` is implicitly 1.
+    // The `4:8:2` above is parsed into the second entry of `start_indices`,
+    // `limit_indices` and `strides` respectively.
     %result = "stablehlo.slice" (%operand) {
-      start_indices = dense<[1, 2]> : tensor<2xi64>,
-      limit_indices = dense<[3, 4]> : tensor<2xi64>,
-      strides = dense<1> : tensor<2xi64>
-    } : (tensor<3x4xi64>) -> tensor<2x2xi64>
+      start_indices = dense<[1, 4]> : tensor<2xi64>,
+      limit_indices = dense<[3, 8]> : tensor<2xi64>,
+      strides = dense<[1, 2]> : tensor<2xi64>
+    } : (tensor<3x8xi64>) -> tensor<2x2xi64>
     ```
   }];
 
@@ -1618,6 +1625,11 @@ def StableHLO_SliceOp: StableHLO_Op<
     I64ElementsAttr:$limit_indices,
     I64ElementsAttr:$strides
   );
+
+  let assemblyFormat = [{
+    $operand custom<SliceRanges>($start_indices, $limit_indices, $strides)
+      attr-dict `:` functional-type(operands, results)
+  }];
 
   let results = (outs HLO_Tensor);
 }

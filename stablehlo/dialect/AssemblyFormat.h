@@ -186,6 +186,17 @@ void printDenseI64Array(OpAsmPrinter& p, Operation* op,
 
 ParseResult parseDenseI64Array(OpAsmParser& parser, DenseIntElementsAttr& attr);
 
+// SliceRanges - Used to print multi-dimensional ranges for slice.
+void printSliceRanges(OpAsmPrinter& p, Operation* op,
+                      DenseIntElementsAttr startIndices,
+                      DenseIntElementsAttr limitIndices,
+                      DenseIntElementsAttr strides);
+
+ParseResult parseSliceRanges(OpAsmParser& parser,
+                             DenseIntElementsAttr& startIndices,
+                             DenseIntElementsAttr& limitIndices,
+                             DenseIntElementsAttr& strides);
+
 // DimSizes - Print an array of ints. Dynamic dimensions printed as `?`.
 //
 //   Generic:
