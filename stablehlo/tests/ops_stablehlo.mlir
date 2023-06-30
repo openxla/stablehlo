@@ -798,16 +798,7 @@ func.func @all_gather_invalid_replica_group(%arg0: tensor<8x2xf32>) -> tensor<8x
 
 // CHECK-LABEL: func @broadcast
 func.func @broadcast(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[1, 2]> : tensor<2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
-  func.return %0 : tensor<1x2x3xi32>
-}
-
-// -----
-
-func.func @broadcast_bad_sizes_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{broadcast_sizes has rank 2 instead of rank 1}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[[1, 2]]> : tensor<1x2xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 1, 2>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
 
@@ -816,7 +807,7 @@ func.func @broadcast_bad_sizes_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
 func.func @broadcast_bad_result_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x2x3xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<1x2x3xi32>
   func.return %0 : tensor<1x2x3xi32>
 }
 
@@ -825,7 +816,7 @@ func.func @broadcast_bad_result_rank(%arg0: tensor<3xi32>) -> tensor<1x2x3xi32> 
 func.func @broadcast_bad_first_part_result_shape(%arg0: tensor<3xi32>) -> tensor<1x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<1x3xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<1x3xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<1x3xi32>
   func.return %0 : tensor<1x3xi32>
 }
 
@@ -834,7 +825,7 @@ func.func @broadcast_bad_first_part_result_shape(%arg0: tensor<3xi32>) -> tensor
 func.func @broadcast_bad_second_part_result_shape(%arg0: tensor<3xi32>) -> tensor<2x1xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.broadcast' op inferred type(s) 'tensor<2x3xi32>' are incompatible with return type(s) of operation 'tensor<2x1xi32>'}}
-  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = dense<[2]> : tensor<1xi64>} : (tensor<3xi32>) -> tensor<2x1xi32>
+  %0 = "stablehlo.broadcast"(%arg0) {broadcast_sizes = array<i64: 2>} : (tensor<3xi32>) -> tensor<2x1xi32>
   func.return %0 : tensor<2x1xi32>
 }
 
@@ -2138,7 +2129,7 @@ func.func @select_c2(%arg0: tensor<i1>, %arg1: tensor<2x3xf32>, %arg2: tensor<2x
 
 // CHECK-LABEL: func @slice
 func.func @slice(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
 
@@ -2148,9 +2139,9 @@ func.func @slice_c2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{the number of elements in start_indices (3) does not match the rank of the operand (2)}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0, 0]> : tensor<3xi64>,
-    limit_indices = dense<[2, 4, 0]> : tensor<3xi64>,
-    strides = dense<[1, 2, 0]> : tensor<3xi64>
+    start_indices = array<i64: 1, 0, 0>,
+    limit_indices = array<i64: 2, 4, 0>,
+    strides = array<i64: 1, 2, 0>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2161,9 +2152,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{negative start index -1 in dimension 0}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[-1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: -1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2174,9 +2165,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{limit index 5 is larger than dimension size 4 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 5]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 5>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2187,9 +2178,9 @@ func.func @slice_c3(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{start index 3 is larger than limit index 2 in dimension 1}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 3]> : tensor<2xi64>,
-    limit_indices = dense<[2, 2]> : tensor<2xi64>,
-    strides = dense<[1, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 3>,
+    limit_indices = array<i64: 2, 2>,
+    strides = array<i64: 1, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2200,9 +2191,9 @@ func.func @slice_c4(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{stride must be positive but got 0 in dimension 0}}
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 0]> : tensor<2xi64>,
-    limit_indices = dense<[2, 4]> : tensor<2xi64>,
-    strides = dense<[0, 2]> : tensor<2xi64>
+    start_indices = array<i64: 1, 0>,
+    limit_indices = array<i64: 2, 4>,
+    strides = array<i64: 0, 2>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
 }
@@ -2212,31 +2203,18 @@ func.func @slice_c4(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
 // CHECK-LABEL: func @slice_dynamic_dim
 func.func @slice_dynamic_dim(%arg0: tensor<3x?xi32>) -> tensor<1x?xi32> {
   %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[1, 1]> : tensor<2xi64>,
-    limit_indices = dense<[2, 2]> : tensor<2xi64>,
-    strides = dense<[1, 1]> : tensor<2xi64>
+    start_indices = array<i64: 1, 1>,
+    limit_indices = array<i64: 2, 2>,
+    strides = array<i64: 1, 1>
   } : (tensor<3x?xi32>) -> tensor<1x?xi32>
   func.return %0 : tensor<1x?xi32>
 }
 
 // -----
 
-func.func @slice_i2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{start_indices has rank 2 instead of required rank 1}}
-  %0 = "stablehlo.slice"(%arg0) {
-    start_indices = dense<[[1, 0]]> : tensor<1x2xi64>,
-    limit_indices = dense<[[2, 4]]> : tensor<1x2xi64>,
-    strides = dense<[[1, 2]]> : tensor<1x2xi64>
-  } : (tensor<3x4xi32>) -> tensor<1x2xi32>
-  func.return %0 : tensor<1x2xi32>
-}
-
-// -----
-
 // CHECK-LABEL: func @slice_unranked
 func.func @slice_unranked(%arg0: tensor<*xi32>) -> tensor<*xi32> {
-  %0 = "stablehlo.slice"(%arg0) {start_indices = dense<[1, 0]> : tensor<2xi64>, limit_indices = dense<[2, 4]> : tensor<2xi64>, strides = dense<[1, 2]> : tensor<2xi64>} : (tensor<*xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.slice"(%arg0) {start_indices = array<i64: 1, 0>, limit_indices = array<i64: 2, 4>, strides = array<i64: 1, 2>} : (tensor<*xi32>) -> tensor<*xi32>
   func.return %0 : tensor<*xi32>
 }
 
@@ -2244,7 +2222,7 @@ func.func @slice_unranked(%arg0: tensor<*xi32>) -> tensor<*xi32> {
 
 // CHECK-LABEL: func @dynamic_slice
 func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2253,7 +2231,7 @@ func.func @dynamic_slice(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tens
 func.func @dynamic_slice_c2(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{has mismatched number of slice sizes (1) and number of start indices (2)}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[4]> : tensor<1xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2262,7 +2240,7 @@ func.func @dynamic_slice_c2(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: t
 func.func @dynamic_slice_c2(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>) -> tensor<1x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{has mismatched number of start indices (1) and the rank of operand (2)}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1) {slice_sizes = dense<[1]> : tensor<1xi64>} : (tensor<3x4xi32>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1) {slice_sizes = array<i64: 1>} : (tensor<3x4xi32>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2271,7 +2249,7 @@ func.func @dynamic_slice_c2(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>) -> tenso
 func.func @dynamic_slice_c3(%arg0: tensor<3x4xi32>, %arg1: tensor<i32>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{start indices must have same element type}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i32>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i32>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2280,7 +2258,7 @@ func.func @dynamic_slice_c3(%arg0: tensor<3x4xi32>, %arg1: tensor<i32>, %arg2: t
 func.func @dynamic_slice_c4(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{has negative size index to dynamic slice: -1}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[-1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: -1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2289,7 +2267,7 @@ func.func @dynamic_slice_c4(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: t
 func.func @dynamic_slice_c4(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{has slice size 10 greater than dimension size 4 in dimension 1 of operand}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 10]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 10>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2298,7 +2276,7 @@ func.func @dynamic_slice_c4(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: t
 func.func @dynamic_slice_c5(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<2x4xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<1x4xi32>' are incompatible with return type(s) of operation 'tensor<2x4xi32>'}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<2x4xi32>
   func.return %0 : tensor<2x4xi32>
 }
 
@@ -2306,16 +2284,7 @@ func.func @dynamic_slice_c5(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: t
 
 // CHECK-LABEL: func @dynamic_slice_dynamic_dim
 func.func @dynamic_slice_dynamic_dim(%arg0: tensor<?x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<[1, 4]> : tensor<2xi64>} : (tensor<?x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
-  func.return %0 : tensor<1x4xi32>
-}
-
-// -----
-
-func.func @dynamic_slice_i3(%arg0: tensor<3x4xi32>, %arg1: tensor<i64>, %arg2: tensor<i64>) -> tensor<1x4xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{slice_sizes should be rank 1, but got rank 0.}}
-  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = dense<1> : tensor<i64>} : (tensor<3x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
+  %0 = "stablehlo.dynamic_slice"(%arg0, %arg1, %arg2) {slice_sizes = array<i64: 1, 4>} : (tensor<?x4xi32>, tensor<i64>, tensor<i64>) -> tensor<1x4xi32>
   func.return %0 : tensor<1x4xi32>
 }
 
@@ -2408,21 +2377,21 @@ func.func @dynamic_update_slice_dynamic_sizes(%operand: tensor<?x4xi64>, %update
 
 // CHECK-LABEL: func @transpose
 func.func @transpose(%arg0: tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
 // -----
 
 func.func @transpose_ranked(%arg0: tensor<?x?x?x?xi32>) ->  tensor<?x?x?x?xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<?x?x?x?xi32>) -> tensor<?x?x?x?xi32>
   func.return %0: tensor<?x?x?x?xi32>
 }
 
 // -----
 
 func.func @transpose_unranked(%arg0: tensor<*xi32>) ->  tensor<*xi32> {
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<*xi32>) -> tensor<*xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<*xi32>) -> tensor<*xi32>
   func.return %0: tensor<*xi32>
 }
 
@@ -2436,19 +2405,10 @@ func.func @transpose_missing_permutation(%arg0: tensor<1x2x3x4xi32>) -> tensor<2
 
 // -----
 
-func.func @transpose_bad_permutations_rank(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{permutation has rank 2 instead of rank 1}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[[1]]> : tensor<1x1xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
-  func.return %0: tensor<2x1x4x3xi32>
-}
-
-// -----
-
 func.func @transpose_bad_permutations_size(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{TransposeOp operand rank 4 does not match permutation size 1}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1]> : tensor<1xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
@@ -2456,8 +2416,8 @@ func.func @transpose_bad_permutations_size(%arg0: tensor<1x2x3x4xi32>) ->  tenso
 
 func.func @transpose_bad_permutation(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x4x3xi32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{attribute permutation must be a permutation of [0, 1, 2, 3] but got dense<[1, 0, 3, 9]> : tensor<4xi64>}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 9]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
+  // expected-error@+1 {{attribute permutation must be a permutation of [0, 1, 2, 3] but got 1, 0, 3, 9}}
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 9>} : (tensor<1x2x3x4xi32>) -> tensor<2x1x4x3xi32>
   func.return %0: tensor<2x1x4x3xi32>
 }
 
@@ -2466,7 +2426,7 @@ func.func @transpose_bad_permutation(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2x1x
 func.func @transpose_operand_result_rank_mismatch(%arg0: tensor<1x2x3x4xi32>) ->  tensor<2xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{op inferred type(s) 'tensor<2x1x4x3xi32>' are incompatible with return type(s) of operation 'tensor<2xi32>'}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x2x3x4xi32>) -> tensor<2xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x2x3x4xi32>) -> tensor<2xi32>
   func.return %0: tensor<2xi32>
 }
 
@@ -2475,7 +2435,7 @@ func.func @transpose_operand_result_rank_mismatch(%arg0: tensor<1x2x3x4xi32>) ->
 func.func @transpose_operand_result_permutation_mismatch(%arg0: tensor<1x?x3x?xi32>) ->  tensor<?x2x?x?xi32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{op inferred type(s) 'tensor<?x1x?x3xi32>' are incompatible with return type(s) of operation 'tensor<?x2x?x?xi32>}}
-  %0 = "stablehlo.transpose"(%arg0) {permutation = dense<[1, 0, 3, 2]> : tensor<4xi64>} : (tensor<1x?x3x?xi32>) -> tensor<?x2x?x?xi32>
+  %0 = "stablehlo.transpose"(%arg0) {permutation = array<i64: 1, 0, 3, 2>} : (tensor<1x?x3x?xi32>) -> tensor<?x2x?x?xi32>
   func.return %0: tensor<?x2x?x?xi32>
 }
 
@@ -2852,7 +2812,7 @@ func.func @reshape_invalid_shapes(%operand: tensor<2x4xf32>) -> tensor<3x3xf32> 
 // CHECK-LABEL: func @reverse
 func.func @reverse(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<[0, 1]> : tensor<2xi64>
+    dimensions = array<i64: 0, 1>
   } : (tensor<3x2xi32>) -> tensor<3x2xi32>
   func.return %0 : tensor<3x2xi32>
 }
@@ -2862,7 +2822,7 @@ func.func @reverse(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
 func.func @reverse_c2(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{dimensions should be unique. Got: 0, 0}}
   %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<[0, 0]> : tensor<2xi64>
+    dimensions = array<i64: 0, 0>
   } : (tensor<3x2xi32>) -> tensor<3x2xi32>
   func.return %0 : tensor<3x2xi32>
 }
@@ -2872,7 +2832,7 @@ func.func @reverse_c2(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
 func.func @reverse_c3(%operand: tensor<*xi32>) -> tensor<*xi32> {
   // expected-error @+1 {{all dimensions should be non-negative. Got dimension: -1.}}
   %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<-1> : tensor<1xi64>
+    dimensions = array<i64: -1>
   } : (tensor<*xi32>) -> tensor<*xi32>
   func.return %0 : tensor<*xi32>
 }
@@ -2882,7 +2842,7 @@ func.func @reverse_c3(%operand: tensor<*xi32>) -> tensor<*xi32> {
 func.func @reverse_c3(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{all dimensions should be non-negative. Got dimension: -1.}}
   %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<-1> : tensor<1xi64>
+    dimensions = array<i64: -1>
   } : (tensor<3x2xi32>) -> tensor<3x2xi32>
   func.return %0 : tensor<3x2xi32>
 }
@@ -2892,17 +2852,7 @@ func.func @reverse_c3(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
 func.func @reverse_c3(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
   // expected-error @+1 {{all dimensions should be between [0, 2). Got dimension: 2.}}
   %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<2> : tensor<1xi64>
-  } : (tensor<3x2xi32>) -> tensor<3x2xi32>
-  func.return %0 : tensor<3x2xi32>
-}
-
-// -----
-
-func.func @reverse_i2(%operand: tensor<3x2xi32>) -> tensor<3x2xi32> {
-  // expected-error @+1 {{dimensions has rank 0 instead of required rank 1.}}
-  %0 = "stablehlo.reverse"(%operand) {
-    dimensions = dense<2> : tensor<i64>
+    dimensions = array<i64: 2>
   } : (tensor<3x2xi32>) -> tensor<3x2xi32>
   func.return %0 : tensor<3x2xi32>
 }
@@ -4725,7 +4675,7 @@ func.func @error_batch_norm_grad_c5(%input: tensor<2x2x2x2xf32>, %scale: tensor<
 
 // CHECK-LABEL: @fft
 func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type FFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4733,7 +4683,7 @@ func.func @fft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
 
 // CHECK-LABEL: @ifft
 func.func @ifft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type IFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4741,7 +4691,7 @@ func.func @ifft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xcomplex<f32>> {
 
 // CHECK-LABEL: @rfft
 func.func @rfft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>>
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
@@ -4749,7 +4699,7 @@ func.func @rfft(%arg0: tensor<3x9xf32>) -> tensor<3x5xcomplex<f32>> {
 
 // CHECK-LABEL: @irfft
 func.func @irfft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32>
   func.return %0 : tensor<3x16xf32>
 }
 
@@ -4757,7 +4707,7 @@ func.func @irfft(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xf32> {
 
 // CHECK-LABEL: @rfft_unranked
 func.func @rfft_unranked(%arg0: tensor<*xf32>) -> tensor<*xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<*xf32>) -> tensor<*xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<*xf32>) -> tensor<*xcomplex<f32>>
   func.return %0 : tensor<*xcomplex<f32>>
 }
 
@@ -4766,7 +4716,7 @@ func.func @rfft_unranked(%arg0: tensor<*xf32>) -> tensor<*xcomplex<f32>> {
 func.func @rfft_not_float32or64(%arg0: tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{RFFT requires f32 or f64 input type, but is given 'f16'.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf16>) -> tensor<3x5xcomplex<f32>>
   func.return %0 : tensor<3x5xcomplex<f32>>
 }
 
@@ -4775,7 +4725,7 @@ func.func @rfft_not_float32or64(%arg0: tensor<3x9xf16>) -> tensor<3x5xcomplex<f3
 func.func @fft_invalid_rank(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{rank must be between 1 and 3, but got 4.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<4xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9, 9, 9, 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4784,7 +4734,7 @@ func.func @fft_invalid_rank(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> 
 func.func @fft_rank_mismatch(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{operand rank must not be less than fft rank of 3 for operand of type 'tensor<3x9xf32>'}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<3xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9, 9, 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4793,7 +4743,7 @@ func.func @fft_rank_mismatch(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
 func.func @rfft_invalid_dim(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{RFFT requires innermost dimensions to be compatible with fft_length. Got: 3, 9 but wanted 9, 9.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<2xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9, 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4802,7 +4752,7 @@ func.func @rfft_invalid_dim(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> 
 func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{IRFFT requires non-final dimensions to be compatible with fft_length. Got: 3, 9 but wanted 9, 9, and 3 != 9.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<2xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9, 9>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
 
@@ -4811,7 +4761,7 @@ func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
 func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{IRFFT requires innermost dimension to be compatible with fft_length[-1]/2+1. Got: 9 but fft_length is 9.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
 
@@ -4820,7 +4770,7 @@ func.func @irfft_invalid_dim(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x9xf32>
 func.func @irfft_invalid_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{FFT/IFFT/IRFFT take a complex tensor as input, but is given 'tensor<3x9xf32>'}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
   func.return %0 : tensor<3x9xcomplex<f32>>
 }
 
@@ -4829,7 +4779,7 @@ func.func @irfft_invalid_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xcomplex<f32>>
 func.func @irfft_invalid_ret_elt(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<3x16xf32>' are incompatible with return type(s) of operation 'tensor<3x16xcomplex<f32>>'}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<3x9xcomplex<f32>>) -> tensor<3x16xcomplex<f32>>
   func.return %0 : tensor<3x16xcomplex<f32>>
 }
 
@@ -4838,7 +4788,7 @@ func.func @irfft_invalid_ret_elt(%arg0: tensor<3x9xcomplex<f32>>) -> tensor<3x16
 func.func @rfft_invalid_ret_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<3x5xcomplex<f32>>' are incompatible with return type(s) of operation 'tensor<3x9xf32>'}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x9xf32>) -> tensor<3x9xf32>
   func.return %0 : tensor<3x9xf32>
 }
 
@@ -4846,7 +4796,7 @@ func.func @rfft_invalid_ret_elt(%arg0: tensor<3x9xf32>) -> tensor<3x9xf32> {
 
 // CHECK-LABEL: @rfft_dynamic
 func.func @rfft_dynamic(%arg0: tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>>
   func.return %0 : tensor<?x?xcomplex<f32>>
 }
 
@@ -4855,7 +4805,7 @@ func.func @rfft_dynamic(%arg0: tensor<?x?xf32>) -> tensor<?x?xcomplex<f32>> {
 func.func @rfft_dynamic_incompatible_dims(%arg0: tensor<3x10xf32>) -> tensor<?x?xcomplex<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{RFFT requires innermost dimensions to be compatible with fft_length. Got: 3, 10 but wanted 9.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<9> : tensor<1xi64>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x10xf32>) -> tensor<?x?xcomplex<f32>>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 9>, fft_type = #stablehlo<fft_type RFFT> } : (tensor<3x10xf32>) -> tensor<?x?xcomplex<f32>>
   func.return %0 : tensor<?x?xcomplex<f32>>
 }
 
@@ -4863,7 +4813,7 @@ func.func @rfft_dynamic_incompatible_dims(%arg0: tensor<3x10xf32>) -> tensor<?x?
 
 // CHECK-LABEL: @irfft_dynamic
 func.func @irfft_dynamic(%arg0: tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
 
@@ -4872,7 +4822,7 @@ func.func @irfft_dynamic(%arg0: tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32> {
 func.func @irfft_dynamic_incompatible_non_final_dims(%arg0: tensor<?x3x15xcomplex<f32>>) -> tensor<?x?x?xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{IRFFT requires non-final dimensions to be compatible with fft_length. Got: -9223372036854775808, 3, 15 but wanted 4, 16, and 3 != 4}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<[4, 16]> : tensor<2xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x3x15xcomplex<f32>>) -> tensor<?x?x?xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 4, 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x3x15xcomplex<f32>>) -> tensor<?x?x?xf32>
   func.return %0 : tensor<?x?x?xf32>
 }
 
@@ -4881,7 +4831,7 @@ func.func @irfft_dynamic_incompatible_non_final_dims(%arg0: tensor<?x3x15xcomple
 func.func @irfft_dynamic_incompatible_final_dim(%arg0: tensor<?x8xcomplex<f32>>) -> tensor<?x?xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{IRFFT requires innermost dimension to be compatible with fft_length[-1]/2+1. Got: 8 but fft_length is 16.}}
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x8xcomplex<f32>>) -> tensor<?x?xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x8xcomplex<f32>>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
 
@@ -4889,7 +4839,7 @@ func.func @irfft_dynamic_incompatible_final_dim(%arg0: tensor<?x8xcomplex<f32>>)
 
 // CHECK-LABEL: @irfft_dynamic
 func.func @irfft_dynamic(%arg0: tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32> {
-  %0 = "stablehlo.fft"(%arg0) { fft_length = dense<16> : tensor<1xi64>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32>
+  %0 = "stablehlo.fft"(%arg0) { fft_length = array<i64: 16>, fft_type = #stablehlo<fft_type IRFFT> } : (tensor<?x?xcomplex<f32>>) -> tensor<?x?xf32>
   func.return %0 : tensor<?x?xf32>
 }
 
@@ -5078,9 +5028,9 @@ func.func @conv_i4(%arg0: tensor<64x8x8x8xi4>, %arg1: tensor<4x4x8x32xi4>) -> te
 // CHECK-LABEL: func @pad
 func.func @pad(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 0, 1, 2>,
+    edge_padding_high = array<i64: 1, 1, 0>,
+    interior_padding = array<i64: 0, 0, 1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
@@ -5092,9 +5042,9 @@ func.func @pad_c2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7x
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{edge_padding_low length (2) must match operand rank (3)}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1]> : tensor<2xi64>,
-    edge_padding_high = dense<[1, 1]> : tensor<2xi64>,
-    interior_padding = dense<[0, 0]> : tensor<2xi64>
+    edge_padding_low = array<i64: 0, 1>,
+    edge_padding_high = array<i64: 1, 1>,
+    interior_padding = array<i64: 0, 0>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
@@ -5105,9 +5055,9 @@ func.func @pad_c3(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x3x
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Interior padding cannot be negative: -1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, -1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 0, 1, 2>,
+    edge_padding_high = array<i64: 1, 1, 0>,
+    interior_padding = array<i64: 0, 0, -1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x3xf16>
   func.return %0 : tensor<2x4x3xf16>
 }
@@ -5118,9 +5068,9 @@ func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7x
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{Padding result in negative size for dimension 2}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1, -4]> : tensor<3xi64>,
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 0]> : tensor<3xi64>
+    edge_padding_low = array<i64: 0, 1, -4>,
+    edge_padding_high = array<i64: 1, 1, 0>,
+    interior_padding = array<i64: 0, 0, 0>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
@@ -5131,9 +5081,9 @@ func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<8x8x8x
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'stablehlo.pad' op inferred type(s) 'tensor<2x4x7xf16>' are incompatible with return type(s) of operation 'tensor<8x8x8xf16>'}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 0, 1, 2>,
+    edge_padding_high = array<i64: 1, 1, 0>,
+    interior_padding = array<i64: 0, 0, 1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<8x8x8xf16>
   func.return %0 : tensor<8x8x8xf16>
 }
@@ -5144,9 +5094,9 @@ func.func @pad_c4(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<8x8x8x
 func.func @pad_dynamic(%arg0: tensor<?x48x48x32xf32>) -> tensor<?x48x48x48xf32> {
   %0 = "stablehlo.constant"() {value = dense<0.000000e+00> : tensor<f32>} : () -> tensor<f32>
   %1 = "stablehlo.pad"(%arg0, %0) {
-    edge_padding_low = dense<0> : tensor<4xi64>,
-    edge_padding_high = dense<[0, 0, 0, 16]> : tensor<4xi64>,
-    interior_padding = dense<0> : tensor<4xi64>
+    edge_padding_low = array<i64: 0, 0, 0, 0>,
+    edge_padding_high = array<i64: 0, 0, 0, 16>,
+    interior_padding = array<i64: 0, 0, 0, 0>
   } : (tensor<?x48x48x32xf32>, tensor<f32>) -> tensor<?x48x48x48xf32>
   func.return %1 : tensor<?x48x48x48xf32>
 }
@@ -5157,9 +5107,9 @@ func.func @pad_i2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<2xf16>) -> tensor<2x4x
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{padding value type should be a rank-0 tensor, is rank 1}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<[0, 1, 2]> : tensor<3xi64>,
-    edge_padding_high = dense<[1, 1, 0]> : tensor<3xi64>,
-    interior_padding = dense<[0, 0, 1]> : tensor<3xi64>
+    edge_padding_low = array<i64: 0, 1, 2>,
+    edge_padding_high = array<i64: 1, 1, 0>,
+    interior_padding = array<i64: 0, 0, 1>
   } : (tensor<1x2x3xf16>, tensor<2xf16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }
@@ -5168,11 +5118,11 @@ func.func @pad_i2(%arg0: tensor<1x2x3xf16>, %arg1: tensor<2xf16>) -> tensor<2x4x
 
 func.func @pad_i3(%arg0: tensor<1x2x3xf16>, %arg1: tensor<f16>) -> tensor<2x4x7xf16> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{edge_padding_low has rank 0 instead of required rank 1}}
+  // expected-error@+1 {{edge_padding_low length (1) must match operand rank (3)}}
   %0 = "stablehlo.pad"(%arg0, %arg1) {
-    edge_padding_low = dense<1> : tensor<i64>,
-    edge_padding_high = dense<1> : tensor<i64>,
-    interior_padding = dense<1> : tensor<i64>
+    edge_padding_low = array<i64: 1>,
+    edge_padding_high = array<i64: 1>,
+    interior_padding = array<i64: 1>
   } : (tensor<1x2x3xf16>, tensor<f16>) -> tensor<2x4x7xf16>
   func.return %0 : tensor<2x4x7xf16>
 }

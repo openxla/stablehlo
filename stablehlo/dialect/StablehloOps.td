@@ -1592,7 +1592,8 @@ def StableHLO_CompareOp: StableHLO_Op<"compare", [Pure, Elementwise,
 def StableHLO_SliceOp: StableHLO_Op<
       "slice",
       [Pure, SameOperandsAndResultElementType /*slice_c1*/,
-       AllTypesMatch<["start_indices", "limit_indices", "strides"]> /*slice_c2*/,
+      AllMatchSameOperatorTrait<["start_indices", "limit_indices",
+      "strides"], "$_self.size()", "size"> /*slice_c2*/,
        DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Slice operation";
   let description = [{
@@ -1621,9 +1622,9 @@ def StableHLO_SliceOp: StableHLO_Op<
 
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$start_indices,
-    I64ElementsAttr:$limit_indices,
-    I64ElementsAttr:$strides
+    DenseI64ArrayAttr:$start_indices,
+    DenseI64ArrayAttr:$limit_indices,
+    DenseI64ArrayAttr:$strides
   );
 
   let assemblyFormat = [{
@@ -1654,14 +1655,14 @@ def StableHLO_DynamicSliceOp: StableHLO_Op<"dynamic_slice",
   let arguments = (ins
     HLO_Tensor:$operand /*dynamic_slice_i1*/,
     Variadic<HLO_ScalarIntTensor>:$start_indices /*dynamic_slice_i2*/,
-    I64ElementsAttr:$slice_sizes /*dynamic_slice_i3*/
+    DenseI64ArrayAttr:$slice_sizes /*dynamic_slice_i3*/
   );
 
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
     $operand `,` custom<VariadicOperandWithAttribute>($start_indices)
-      `sizes` `=` custom<DenseI64Array>($slice_sizes)
+      `sizes` `=` $slice_sizes
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -1851,13 +1852,13 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$broadcast_sizes
+    DenseI64ArrayAttr:$broadcast_sizes
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `sizes` `=` custom<DenseI64Array>($broadcast_sizes)
+    $operand `,` `sizes` `=` $broadcast_sizes
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2332,13 +2333,13 @@ def StableHLO_FftOp: StableHLO_Op<"fft", [InferTensorType, Pure]> {
   let arguments = (ins
     HLO_FpOrComplexTensor:$operand,
     StableHLO_FftTypeAttr:$fft_type,
-    I64ElementsAttr:$fft_length
+    DenseI64ArrayAttr:$fft_length
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `type` `=` $fft_type `,` `length` `=` custom<DenseI64Array>($fft_length)
+    $operand `,` `type` `=` $fft_type `,` `length` `=` $fft_length
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2690,7 +2691,7 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$dimensions
+    DenseI64ArrayAttr:$dimensions
   );
 
   let hasVerifier = 1;
@@ -2698,15 +2699,16 @@ def StableHLO_ReverseOp: StableHLO_Op<"reverse",
   let results = (outs HLO_Tensor:$result);
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($dimensions)
+    $operand `,` `dims` `=` $dimensions
       attr-dict `:` custom<SameOperandsAndResultType>(type($operand), type($result))
   }];
 }
 
 def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
       [Pure, SameOperandsAndResultElementType /*pad_c1*/,
-      AllTypesMatch<["edge_padding_low", "edge_padding_high",
-      "interior_padding"]> /*pad_c2, pad_i3, pad_i4, pad_i5*/,
+      /*pad_c2, pad_i3, pad_i4, pad_i5*/
+      AllMatchSameOperatorTrait<["edge_padding_low", "edge_padding_high",
+      "interior_padding"], "$_self.size()", "size">,
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Pad operation";
   let description = [{
@@ -2725,18 +2727,18 @@ def StableHLO_PadOp: StableHLO_ShapedInterfaceOp<"pad",
   let arguments = (ins
     HLO_Tensor:$operand /*pad_i1*/,
     HLO_Tensor:$padding_value /*pad_i2*/,
-    I64ElementsAttr:$edge_padding_low /*pad_i3*/,
-    I64ElementsAttr:$edge_padding_high /*pad_i4*/,
-    I64ElementsAttr:$interior_padding /*pad_i5*/
+    DenseI64ArrayAttr:$edge_padding_low /*pad_i3*/,
+    DenseI64ArrayAttr:$edge_padding_high /*pad_i4*/,
+    DenseI64ArrayAttr:$interior_padding /*pad_i5*/
   );
 
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
     $operand `,` $padding_value `,`
-      `low` `=` custom<DenseI64Array>($edge_padding_low) `,`
-      `high` `=` custom<DenseI64Array>($edge_padding_high) `,`
-      `interior` `=` custom<DenseI64Array>($interior_padding)
+      `low` `=` $edge_padding_low `,`
+      `high` `=` $edge_padding_high `,`
+      `interior` `=` $interior_padding
       attr-dict `:` functional-type(operands, results)
   }];
 }
@@ -2781,12 +2783,12 @@ def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
   }];
   let arguments = (ins
     HLO_Tensor:$operand,
-    I64ElementsAttr:$permutation
+    DenseI64ArrayAttr:$permutation
   );
   let results = (outs HLO_Tensor);
 
   let assemblyFormat = [{
-    $operand `,` `dims` `=` custom<DenseI64Array>($permutation)
+    $operand `,` `dims` `=` $permutation
       attr-dict `:` functional-type(operands, results)
   }];
 }
