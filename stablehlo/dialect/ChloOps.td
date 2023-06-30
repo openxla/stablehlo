@@ -156,7 +156,7 @@ def CHLO_BroadcastDivOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastMaxOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_maximum",
-    [Commutative, Pure, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, HLO_CompatibleOperandsAndResultElementType]> {
   string summary = "Maximum operator (with optional broadcasting)";
 
   string description = [{
@@ -169,7 +169,7 @@ def CHLO_BroadcastMaxOp : CHLO_BroadcastBinaryElementwiseOp<
 
 def CHLO_BroadcastMinOp : CHLO_BroadcastBinaryElementwiseOp<
     "broadcast_minimum",
-    [Commutative, Pure, SameOperandsAndResultElementType]> {
+    [Commutative, Pure, HLO_CompatibleOperandsAndResultElementType]> {
   string summary = "Minimum operator (with optional broadcasting)";
 
   string description = [{
