@@ -2,7 +2,7 @@
 
 Status: Review<br/>
 Initial version: 06/22/2023<br/>
-Last updated: <br/>
+Last updated: 07/02/2023<br/>
 Discussion thread: [GitHub](https://github.com/openxla/stablehlo/pull/1664)
 
 ## Version log
@@ -134,7 +134,7 @@ reduce op.
 ### Implementation details
 
 From the implementation POV of the proposed spec, we note that
-`input_conversion` and `output_conversion` can very well be optional with
+`input_conversion` or `output_conversion` can very well be optional with
 default values as identity functions. For example, the following code snippet
 
 ```mlir
@@ -190,10 +190,10 @@ Note that with default values, the  input/result type of `reduce` op matches
 with the argument or the result type of the `reduce_computation`, including the
 quantization parameters.
 
-It is important to enforce the following aspect in the implementations: both
-conversion functions must be provided or both must be missing. If this is not
-followed, and there are two functions provided in the IR, it would be difficult
-to determine which function is intended for which purpose.
+Also, note that the relative order of `input_conversion` or `output_conversion`
+w.r.t the `reduce_computation` can be used to identify the appropriate
+conversion function when any one of `input_conversion` or `output_conversion` is
+missing.
 
 The existing pretty printing is currently producing the following output
 `stablehlo.reduce(%input init: %init_value) applies stablehlo.add across
@@ -333,7 +333,7 @@ non-quantized types. For example,
     %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) ->
     tensor<f32>
     "stablehlo.return"(%0) : (tensor<f32>) -> ()
-  },
+  }, {
   ^output_conversion(%arg0: tensor<f32>):
     %0 = "stablehlo.convert"(%arg0): (tensor<f32>) -> (tensor<bf16>)
     "stablehlo.return"(%0) : (tensor<bf16>) -> (tensor<bf16>)
@@ -519,3 +519,4 @@ More formally:
        element_type(input_types(output_conversion))`.
 * (C11) `shape(operand) = shape(result)`.
 <!-- markdownlint-enable line-length -->
+```
