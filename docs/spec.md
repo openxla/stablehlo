@@ -1298,14 +1298,14 @@ implementation-defined as well.
 
 #### Inputs
 
-| Label | Name      | Type                        | Constraints |
-|-------|-----------|-----------------------------|-------------|
+| Label | Name      | Type                       | Constraints |
+|-------|-----------|----------------------------|-------------|
 | (I1)  | `operand` | tensor or quantized tensor | (C1-C2)     |
 
 #### Outputs
 
-| Name     | Type                        | Constraints |
-|----------|-----------------------------|-------------|
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
 | `result` | tensor or quantized tensor | (C1-C2)     |
 
 #### Constraints
@@ -3067,10 +3067,9 @@ Reads data from the infeed and produces `results`.
 Semantics of `infeed_config` is implementation-defined.
 
 `results` consist of payload values which come first and a token which comes
-last. The operation produces a token to reify the side effect of this operation
-as a value that other operations can take a data dependency on. In the future,
-we are planning to split the payload and the token into two separate outputs
-to improve clarity ([#670](https://github.com/openxla/stablehlo/issues/670)).
+last. In the future, we are planning to split the payload and the token into two
+separate outputs to improve clarity
+([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
 
@@ -3654,9 +3653,6 @@ Writes `inputs` to the outfeed and produces a `result` token.
 
 Semantics of `outfeed_config` is implementation-defined.
 
-The operation takes a token and produces a token to reify its side effects
-as a value that other operations can take a data dependency on.
-
 #### Inputs
 
 | Label | Name             | Type                       |
@@ -3894,9 +3890,8 @@ implementation-defined. This flag duplicates the information provided in
 ([#666](https://github.com/openxla/stablehlo/issues/666)).
 
 `results` consist of payload values which come first and a token which comes
-last. The operation produces a token to reify its side effects as a value that
-other operations can take a data dependency on. In the future, we are planning
-to split the payload and the token into two separate outputs to improve clarity
+last. In the future, we are planning to split the payload and the token into two
+separate outputs to improve clarity
 ([#670](https://github.com/openxla/stablehlo/issues/670)).
 
 #### Inputs
@@ -4934,9 +4929,6 @@ More formally:
 
 Sends `inputs` to a channel `channel_id` and produces a `result` token.
 
-The operation takes a token and produces a token to reify its side effects
-as a value that other operations can take a data dependency on.
-
 If `is_host_transfer` is `true`, then the operation transfers data to the
 host. Otherwise, it transfers data to another device. What this means is
 implementation-defined. This flag duplicates the information provided in
@@ -5789,10 +5781,12 @@ A StableHLO program is executed by providing input values to the `main` function
 and computing output values. Output values of a function are computed by
 executing the graph of ops rooted in the corresponding `return` op.
 
-The execution order is implementation-defined, as long as ops are executed
-before their uses. Possible execution orders of the example program above are
-`%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` → `%1` → `%2` → `%4`
-→ `return`.
+The execution order is implementation-defined as long as it is aligned with
+dataflow, i.e. if ops are executed before their uses. In StableHLO, all
+side-effecting ops consume and/or produce token(s) to reify the side effects as
+a value that other operations can take a data dependency on. Possible execution
+orders of the example program above are `%0` → `%1` → `%2` → `%3` → `%4` →
+`return` or `%3` → `%0` → `%1` → `%2` → `%4` → `return`.
 
 More formally, a **StableHLO process** is a combination of:
 1\) a StableHLO program, 2) operation statuses (not executed yet,
