@@ -58,5 +58,11 @@ bool isSupportedComplexType(Type type) {
   return complexElemTy.isF32() || complexElemTy.isF64();
 }
 
+int64_t numBits(Type type) {
+  if (isSupportedComplexType(type))
+    return numBits(type.cast<ComplexType>().getElementType()) * 2;
+  return type.getIntOrFloatBitWidth();
+}
+
 }  // namespace stablehlo
 }  // namespace mlir

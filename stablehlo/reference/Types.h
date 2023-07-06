@@ -46,6 +46,14 @@ bool isSupportedFloatType(Type type);
 /// StableHLO specification. Such types are: complex<f32> and complex<f64>.
 bool isSupportedComplexType(Type type);
 
+/// Returns the number of bits in the representation of an element type.
+///   * For boolean type: 1.
+///   * For integer types: bit width (e.g. 32 for si32).
+///   * For floating-point types: bit width (e.g. 32 for f32).
+///   * For complex types: 2x the bit width of element type (e.g. 64 for
+///     complex<f32>).
+int64_t numBits(Type type);
+
 }  // namespace stablehlo
 }  // namespace mlir
 

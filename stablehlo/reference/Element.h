@@ -75,6 +75,12 @@ class Element {
   /// complex type.
   std::complex<APFloat> getComplexValue() const;
 
+  /// Returns the implementation-defined bits of the underlying value.
+  APInt toBits() const;
+
+  /// Creates an Element from implementation-defined bits.
+  static Element fromBits(Type type, APInt bits);
+
   /// Overloaded not (logical) operator.
   Element operator!() const;
 
@@ -148,6 +154,11 @@ Element atan2(const Element &e1, const Element &e2);
 /// For complex element type, checks if both real and imaginary parts are
 /// individually equal modulo the tolerance.
 Element areApproximatelyEqual(const Element &e1, const Element &e2);
+
+/// Various flavors of bitcast conversion as defined in the specification.
+Element bitcastConvertOneToOne(Type type, const Element &e);
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &e);
+Element bitcastConvertManyToOne(Type type, ArrayRef<Element> es);
 
 /// Returns cube root of Element object.
 Element cbrt(const Element &e);

@@ -53,7 +53,7 @@ one of the following tracking labels.
 | batch_norm_grad          | yes           | revisit      | yes            | no              | revisit     |
 | batch_norm_inference     | yes           | revisit      | yes            | no              | revisit     |
 | batch_norm_training      | yes           | revisit      | yes            | no              | revisit     |
-| bitcast_convert          | yes           | yes          | infeasible     | yes             | no          |
+| bitcast_convert          | yes           | yes          | infeasible     | yes             | yes         |
 | broadcast                | no            | yes\*        | yes\*          | yes             | revisit     |
 | broadcast_in_dim         | yes           | yes          | infeasible     | yes             | yes         |
 | case                     | yes           | revisit      | yes            | no              | yes         |

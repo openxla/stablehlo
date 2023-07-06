@@ -184,6 +184,10 @@ SmallVector<InterpreterValue> eval(
       failOnDecomposableOp(op);
     } else if (auto batchNormTrainingOp = dyn_cast<BatchNormTrainingOp>(op)) {
       failOnDecomposableOp(op);
+    } else if (auto bitcastConvertOp = dyn_cast<BitcastConvertOp>(op)) {
+      auto operand = scope.findTensor(bitcastConvertOp.getOperand());
+      auto result = evalBitcastConvertOp(operand, bitcastConvertOp.getType());
+      scope.add(bitcastConvertOp.getResult(), result);
     } else if (auto broadcastInDimOp = dyn_cast<BroadcastInDimOp>(op)) {
       auto operand = scope.findTensor(broadcastInDimOp.getOperand());
       auto broadcastDimensions =
@@ -679,6 +683,44 @@ Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs,
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, atan2(lhs.get(*it), rhs.get(*it)));
+  return result;
+}
+
+Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+
+  auto resultElementType = result.getElementType();
+  auto resultNumBits = numBits(result.getElementType());
+  auto operandNumBits = numBits(operand.getElementType());
+
+  if (resultNumBits < operandNumBits) {
+    auto resultIt = result.index_begin();
+    for (auto operandIt = operand.index_begin();
+         operandIt != operand.index_end(); ++operandIt) {
+      auto resultElements =
+          bitcastConvertOneToMany(resultElementType, operand.get(*operandIt));
+      for (auto resultElement : resultElements)
+        result.set(*resultIt++, resultElement);
+    }
+    return result;
+  }
+
+  if (resultNumBits > operandNumBits) {
+    auto operandIt = operand.index_begin();
+    for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+         ++resultIt) {
+      SmallVector<Element> operandElements;
+      for (auto i = 0; i < resultNumBits / operandNumBits; ++i)
+        operandElements.push_back(operand.get(*operandIt++));
+      result.set(*resultIt,
+                 bitcastConvertManyToOne(resultElementType, operandElements));
+    }
+    return result;
+  }
+
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it,
+               bitcastConvertOneToOne(resultElementType, operand.get(*it)));
   return result;
 }
 

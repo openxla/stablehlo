@@ -260,6 +260,46 @@ std::complex<APFloat> Element::getComplexValue() const {
   return std::complex<APFloat>(floatPair.first, floatPair.second);
 }
 
+APInt Element::toBits() const {
+  if (isSupportedBooleanType(type_))
+    return APInt(/*numBits=*/1, getBooleanValue() ? 1 : 0);
+  if (isSupportedIntegerType(type_)) return getIntegerValue();
+  if (isSupportedFloatType(type_)) return getFloatValue().bitcastToAPInt();
+  if (isSupportedComplexType(type_)) {
+    // Package the real part into the low half of the result bits,
+    // and the imaginary part into the high half of the result bits.
+    auto realBits = getComplexValue().real().bitcastToAPInt();
+    auto imagBits = getComplexValue().imag().bitcastToAPInt();
+    return imagBits.zext(numBits(type_)).shl(numBits(type_) / 2) +
+           realBits.zext(numBits(type_));
+  }
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type_).c_str()));
+}
+
+Element Element::fromBits(Type type, APInt bits) {
+  if (numBits(type) != bits.getBitWidth())
+    llvm::report_fatal_error("numBits(type) != bits.getBitWidth()");
+  if (isSupportedBooleanType(type)) return Element(type, !bits.isZero());
+  if (isSupportedIntegerType(type)) return Element(type, bits);
+  if (isSupportedFloatType(type))
+    return Element(type,
+                   APFloat(type.cast<FloatType>().getFloatSemantics(), bits));
+  if (isSupportedComplexType(type)) {
+    // Interpret the low half of the bits as the real part, and
+    // the high half of the bits as the imaginary part.
+    auto elementType = type.cast<ComplexType>().getElementType();
+    auto realBits = bits.extractBits(numBits(type) / 2, 0);
+    auto realElement = fromBits(elementType, realBits);
+    auto imagBits = bits.extractBits(numBits(type) / 2, numBits(type) / 2);
+    auto imagElement = fromBits(elementType, imagBits);
+    return Element(type,
+                   {realElement.getFloatValue(), imagElement.getFloatValue()});
+  }
+  report_fatal_error(invalidArgument("Unsupported element type: %s",
+                                     debugString(type).c_str()));
+}
+
 Element Element::operator!() const {
   return Element(IntegerType::get(getType().getContext(), 1),
                  !getBooleanValue());
@@ -593,6 +633,52 @@ Element atan2(const Element &e1, const Element &e2) {
 
   report_fatal_error(invalidArgument("Unsupported element type: %s",
                                      debugString(type).c_str()));
+}
+
+Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
+  SmallVector<Element> results;
+
+  auto resultNumBits = numBits(type);
+  auto operandNumBits = numBits(elements[0].getType());
+  if (resultNumBits % operandNumBits != 0)
+    report_fatal_error(invalidArgument(
+        "Unsupported bitcast conversion from %s to %s",
+        debugString(elements[0].getType()).c_str(), debugString(type).c_str()));
+
+  APInt resultBits(resultNumBits, 0);
+  for (auto element : llvm::reverse(elements)) {
+    if (operandNumBits != numBits(element.getType()))
+      llvm::report_fatal_error("All elements must have the same numBits");
+    auto operandBits = element.toBits();
+    resultBits =
+        resultBits.shl(operandNumBits) + operandBits.zext(resultNumBits);
+  }
+  return Element::fromBits(type, resultBits);
+}
+
+SmallVector<Element> bitcastConvertOneToMany(Type type, const Element &el) {
+  SmallVector<Element> results;
+
+  auto resultNumBits = numBits(type);
+  auto operandNumBits = numBits(el.getType());
+  if (operandNumBits % resultNumBits != 0)
+    report_fatal_error(invalidArgument(
+        "Unsupported bitcast conversion from %s to %s",
+        debugString(el.getType()).c_str(), debugString(type).c_str()));
+
+  for (auto i = 0; i < operandNumBits; i += resultNumBits) {
+    auto resultBits = el.toBits().extractBits(resultNumBits, i);
+    results.push_back(Element::fromBits(type, resultBits));
+  }
+  return results;
+}
+
+Element bitcastConvertOneToOne(Type type, const Element &el) {
+  if (numBits(type) != numBits(el.getType()))
+    report_fatal_error(invalidArgument(
+        "Unsupported bitcast conversion from %s to %s",
+        debugString(el.getType()).c_str(), debugString(type).c_str()));
+  return Element::fromBits(type, el.toBits());
 }
 
 Element cbrt(const Element &el) {
