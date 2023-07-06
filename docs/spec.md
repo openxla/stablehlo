@@ -4671,12 +4671,13 @@ Given that, `results = exec(schedule, inputs)`, where:
 * `schedule` is an implementation-defined permutation of
   `index_space(updates[0])`.
 * `exec([update_index, ...], results) = exec([...], updated_results)` where:
-  * `updated_values =
-    update_computation(results...[result_index], updates...[update_index])`.
-  * `updated_results` is a copy of `results` with `results...[result_index]`
-    set to `updated_values...`.
-  * If `result_index` is out of bounds for `shape(results[0])`, the behavior
-    is implementation-defined.
+  * If `result_index` is in bounds for `shape(results...)`
+    * `updated_values =
+      update_computation(results...[result_index], updates...[update_index])`.
+    * `updated_results` is a copy of `results` with `results...[result_index]`
+      set to `updated_values...`.
+  * Otherwise
+    * `updated_results = results`.
 * `exec([], results) = results`.
 
 If `indices_are_sorted` is `true` then the implementation can assume that
@@ -4752,7 +4753,7 @@ undefined.
 //          [[9, 10], [11, 12], [13, 14], [15, 16]],
 //          [[17, 18], [19, 20], [21, 22], [23, 24]]
 //         ]
-// %scatter_indices: [[[0, 2], [1, 0], [2, 1]], [[0, 1], [1, 0], [2, 0]]]
+// %scatter_indices: [[[0, 2], [1, 0], [2, 1]], [[0, 1], [1, 0], [0, 9]]]
 // %update: [
 //           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]],
 //           [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]]
@@ -4771,7 +4772,7 @@ undefined.
   unique_indices = false
 } : (tensor<3x4x2xi64>, tensor<2x3x2xi64>, tensor<2x3x2x2xi64>) -> tensor<3x4x2xi64>
 // %result: [
-//           [[1, 2], [5, 6], [8, 9], [8, 9]],
+//           [[1, 2], [5, 6], [7, 8], [7, 8]],
 //           [[10, 11], [12, 13], [14, 15], [16, 17]],
 //           [[18, 19], [20, 21], [21, 22], [23, 24]]
 //          ]
