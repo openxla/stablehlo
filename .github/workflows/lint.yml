@@ -50,3 +50,15 @@ jobs:
       - name: Run Whitespace Checks
         run: |
           ./build_tools/github_actions/lint_whitespace_checks.sh
+
+  version-checks:
+    # This job can only be run on pull_request since GITHUB_BASE_REF is only set on PR.
+    if: "github.event_name == 'pull_request'"
+    runs-on: ${{ github.repository == 'openxla/stablehlo' && 'ubuntu-22.04-64core' ||  'ubuntu-22.04'  }}
+    steps:
+      - name: Checking out repository
+        uses: actions/checkout@v2
+
+      - name: Run Version Checks
+        run: |
+          ./build_tools/github_actions/lint_version.sh
