@@ -181,7 +181,7 @@ Element::Element(Type type, APInt value) {
                                        debugString(type).c_str()));
   if (type.getIntOrFloatBitWidth() != value.getBitWidth())
     report_fatal_error(
-        invalidArgument("Bitwidth mismatch. Type: %s, Value: %s",
+        invalidArgument("Bit width mismatch. Type: %s, Value: %s",
                         debugString(type.getIntOrFloatBitWidth()).c_str(),
                         debugString(value.getBitWidth()).c_str()));
   type_ = type;

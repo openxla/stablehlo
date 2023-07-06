@@ -62,7 +62,7 @@ LogicalResult deserializePortableArtifact(StringRef artifactStr,
   auto module = deserializePortableArtifact(artifactStr, &context);
   if (!module) return failure();
 
-  // This bytecode does not need to specify verison number or producer string,
+  // This bytecode does not need to specify version number or producer string,
   // since it is not required to be any more stable than textual assembly.
   return writeBytecodeToFile(*module, os);
 }

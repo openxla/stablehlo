@@ -192,12 +192,12 @@ LogicalResult BroadcastComplexOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
     OpaqueProperties properties, RegionRange /*regions*/,
-    SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ShapedType lhsType = operands[0].getType().cast<ShapedType>();
   Type elementType = ComplexType::get(lhsType.getElementType());
   return InferBroadcastBinaryOpReturnTypeComponents(
       context, location, operands, attributes, properties, elementType,
-      inferedReturnShapes);
+      inferredReturnShapes);
 }
 LogicalResult BroadcastComplexOp::reifyReturnTypeShapes(
     OpBuilder& builder, ValueRange operands,
@@ -225,11 +225,11 @@ LogicalResult BroadcastCompareOp::inferReturnTypeComponents(
     MLIRContext* context, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
     OpaqueProperties properties, RegionRange /*regions*/,
-    SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   Type elementType = IntegerType::get(context, 1);
   return InferBroadcastBinaryOpReturnTypeComponents(
       context, location, operands, attributes, properties, elementType,
-      inferedReturnShapes);
+      inferredReturnShapes);
 }
 
 LogicalResult BroadcastCompareOp::reifyReturnTypeShapes(
@@ -285,21 +285,21 @@ LogicalResult IsPosInfOp::inferReturnTypes(
 // Macros for method definitions that are common to most broadcasting ops.
 //===----------------------------------------------------------------------===//
 
-#define BROADCAST_BINARY_OP_DEFS(Op)                                \
-  LogicalResult Op::inferReturnTypeComponents(                      \
-      MLIRContext* context, std::optional<Location> location,       \
-      ValueShapeRange operands, DictionaryAttr attributes,          \
-      OpaqueProperties properties, RegionRange regions,             \
-      SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) { \
-    return InferBroadcastBinaryOpReturnTypeComponents(              \
-        context, location, operands, attributes, properties,        \
-        /*element_type=*/nullptr, inferedReturnShapes);             \
-  }                                                                 \
-  LogicalResult Op::reifyReturnTypeShapes(                          \
-      OpBuilder& builder, ValueRange operands,                      \
-      SmallVectorImpl<Value>& reifiedReturnShapes) {                \
-    return ReifyBroadcastBinaryOpReturnTypeShapes(                  \
-        builder, getOperation(), operands, reifiedReturnShapes);    \
+#define BROADCAST_BINARY_OP_DEFS(Op)                                 \
+  LogicalResult Op::inferReturnTypeComponents(                       \
+      MLIRContext* context, std::optional<Location> location,        \
+      ValueShapeRange operands, DictionaryAttr attributes,           \
+      OpaqueProperties properties, RegionRange regions,              \
+      SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) { \
+    return InferBroadcastBinaryOpReturnTypeComponents(               \
+        context, location, operands, attributes, properties,         \
+        /*element_type=*/nullptr, inferredReturnShapes);             \
+  }                                                                  \
+  LogicalResult Op::reifyReturnTypeShapes(                           \
+      OpBuilder& builder, ValueRange operands,                       \
+      SmallVectorImpl<Value>& reifiedReturnShapes) {                 \
+    return ReifyBroadcastBinaryOpReturnTypeShapes(                   \
+        builder, getOperation(), operands, reifiedReturnShapes);     \
   }
 
 BROADCAST_BINARY_OP_DEFS(BroadcastAddOp)
@@ -350,16 +350,16 @@ LogicalResult ConstantLikeOp::inferReturnTypeComponents(
     MLIRContext* /*context*/, std::optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes,
     OpaqueProperties properties, RegionRange /*regions*/,
-    SmallVectorImpl<ShapedTypeComponents>& inferedReturnShapes) {
+    SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
   ConstantLikeOp::Adaptor op(operands, attributes, properties);
   if (failed(op.verify(location.value()))) return failure();
   Type elementType = op.getValue().getType();
   Type operandType = op.getOperand().getType();
   if (operandType.isa<UnrankedTensorType>()) {
-    inferedReturnShapes.emplace_back(elementType);
+    inferredReturnShapes.emplace_back(elementType);
   } else {
     const auto& shape = operandType.cast<RankedTensorType>().getShape();
-    inferedReturnShapes.emplace_back(shape, elementType);
+    inferredReturnShapes.emplace_back(shape, elementType);
   }
   return success();
 }

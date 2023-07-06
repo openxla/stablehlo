@@ -1587,13 +1587,13 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
       return success();
     };
 
-    FunctionType reduceOpFntype;
+    FunctionType reduceOpFnType;
     if (parser.parseKeyword("across") || parser.parseKeyword("dimensions") ||
         parser.parseEqual() ||
         parser.parseCommaSeparatedList(AsmParser::Delimiter::Square,
                                        parseDim) ||
         parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseColon() || parser.parseType(reduceOpFntype) ||
+        parser.parseColon() || parser.parseType(reduceOpFnType) ||
         parser.parseKeyword("reducer"))
       return failure();
     OpBuilder builder(parser.getBuilder().getContext());
@@ -1634,14 +1634,14 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
     reducerOperands.append(reducerInitOperands);
     reducerTypes.append(reducerInitTypes);
     reducerLocs.append(reducerInitLocs);
-    result.addTypes(reduceOpFntype.getResults());
+    result.addTypes(reduceOpFnType.getResults());
     SmallVector<OpAsmParser::Argument> reducerArgs;
     createArgs(reducerOperands, reducerTypes, reducerArgs);
 
     // Derive the SSA-values for reduce-op's operands and parse the region, and
     // the optional trailing location.
     std::optional<Location> trailingLoc;
-    if (parser.resolveOperands(operands, reduceOpFntype.getInputs(), loc,
+    if (parser.resolveOperands(operands, reduceOpFnType.getInputs(), loc,
                                result.operands) ||
         parser.parseRegion(*result.addRegion(), reducerArgs))
       return failure();
@@ -1655,7 +1655,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   }
 
   // Parse the inner-op name and check if the contract on inner-op
-  // mentioned in "isEligibleForCompactPrint::E2" for pretty-priting is met.
+  // mentioned in "isEligibleForCompactPrint::E2" for pretty-printing is met.
   FailureOr<OperationName> innerOpNameInfo = parser.parseCustomOperationName();
   if (failed(innerOpNameInfo)) return failure();
 
@@ -1681,16 +1681,16 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   };
 
   std::optional<Location> explicitLoc;
-  FunctionType reduceOpFntype;
+  FunctionType reduceOpFnType;
   if (parser.parseKeyword("across") || parser.parseKeyword("dimensions") ||
       parser.parseEqual() ||
       parser.parseCommaSeparatedList(AsmParser::Delimiter::Square, parseDim) ||
-      parser.parseColon() || parser.parseType(reduceOpFntype) ||
+      parser.parseColon() || parser.parseType(reduceOpFnType) ||
       parser.parseOptionalLocationSpecifier(explicitLoc))
     return failure();
 
-  if (!reduceOpFntype || reduceOpFntype.getInputs().empty()) {
-    if (!reduceOpFntype) return parser.emitError(loc, "expected function type");
+  if (!reduceOpFnType || reduceOpFnType.getInputs().empty()) {
+    if (!reduceOpFnType) return parser.emitError(loc, "expected function type");
     return parser.emitError(loc,
                             "input types missing in reduce-op function type");
   }
@@ -1700,13 +1700,13 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   Location reduceOpLoc = explicitLoc.value_or(currLocation);
 
   // Derive the SSA-values for reduce-op's operands.
-  if (parser.resolveOperands(operands, reduceOpFntype.getInputs(), loc,
+  if (parser.resolveOperands(operands, reduceOpFnType.getInputs(), loc,
                              result.operands))
     return failure();
 
   // Derive the type of inner-op from that of reduce-op's input operand.
   auto innerOpType = RankedTensorType::get(
-      /*shape=*/{}, getElementTypeOrSelf(reduceOpFntype.getInput(0)));
+      /*shape=*/{}, getElementTypeOrSelf(reduceOpFnType.getInput(0)));
 
   // Add a region for reduce-op.
   Region& region = *result.addRegion();
@@ -1732,7 +1732,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
 
   // Populate the reduce-op operation-state with result-type, location, and
   // dimension attribute.
-  result.addTypes(reduceOpFntype.getResults());
+  result.addTypes(reduceOpFnType.getResults());
   result.location = innerOp->getLoc();
   result.addAttribute("dimensions", builder.getI64TensorAttr(dimensions));
 
@@ -2783,7 +2783,8 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 }  // namespace
 
 // Custom printer and parser for convolution attribute.
-void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
+void printConvolutionDimensions(AsmPrinter& p,
+                                ConvDimensionNumbersAttr dimNums) {
   // TODO(b/202040055): we should check the attribute invariant and print the
   // "raw" form if they are violated, otherwise we'll crash here.
   auto printDim =
@@ -2811,22 +2812,22 @@ void printConvolutionDimensions(AsmPrinter& p, ConvDimensionNumbersAttr dnums) {
         p << ']';
       };
 
-  printDim(dnums.getInputSpatialDimensions(),
-           {{dnums.getInputBatchDimension(), IOBatch},
-            {dnums.getInputFeatureDimension(), IOFeature}});
+  printDim(dimNums.getInputSpatialDimensions(),
+           {{dimNums.getInputBatchDimension(), IOBatch},
+            {dimNums.getInputFeatureDimension(), IOFeature}});
   p << "x";
-  printDim(dnums.getKernelSpatialDimensions(),
-           {{dnums.getKernelInputFeatureDimension(), KIFeature},
-            {dnums.getKernelOutputFeatureDimension(), KOFeature}});
+  printDim(dimNums.getKernelSpatialDimensions(),
+           {{dimNums.getKernelInputFeatureDimension(), KIFeature},
+            {dimNums.getKernelOutputFeatureDimension(), KOFeature}});
   p << "->";
-  printDim(dnums.getOutputSpatialDimensions(),
-           {{dnums.getOutputBatchDimension(), IOBatch},
-            {dnums.getOutputFeatureDimension(), IOFeature}});
+  printDim(dimNums.getOutputSpatialDimensions(),
+           {{dimNums.getOutputBatchDimension(), IOBatch},
+            {dimNums.getOutputFeatureDimension(), IOFeature}});
 }
 
 void printConvolutionDimensions(AsmPrinter& p, Operation*,
-                                ConvDimensionNumbersAttr dnums) {
-  printConvolutionDimensions(p, dnums);
+                                ConvDimensionNumbersAttr dimNums) {
+  printConvolutionDimensions(p, dimNums);
 }
 
 // Custom printer and parser for ConvDimensionNumbersAttr.
@@ -2840,7 +2841,7 @@ void ConvDimensionNumbersAttr::print(AsmPrinter& printer) const {
 // a struct instead of the compressed format. This enables writing tests
 // covering impossible/invalid internal representation for the attribute.
 static ParseResult parseConvolutionDimensionsRaw(
-    AsmParser& parser, ConvDimensionNumbersAttr& dnums) {
+    AsmParser& parser, ConvDimensionNumbersAttr& dimNums) {
   int64_t inputBatchDimension = 0;
   int64_t inputFeatureDimension = 0;
   SmallVector<int64_t> inputSpatialDimensions;
@@ -2876,7 +2877,7 @@ static ParseResult parseConvolutionDimensionsRaw(
         << "failed parsing dot dimension numbers attribute";
     return failure();
   }
-  dnums = ConvDimensionNumbersAttr::get(
+  dimNums = ConvDimensionNumbersAttr::get(
       parser.getBuilder().getContext(), inputBatchDimension,
       inputFeatureDimension, inputSpatialDimensions,
       kernelInputFeatureDimension, kernelOutputFeatureDimension,
@@ -2886,7 +2887,7 @@ static ParseResult parseConvolutionDimensionsRaw(
 }
 
 ParseResult parseConvolutionDimensions(AsmParser& parser,
-                                       ConvDimensionNumbersAttr& dnums) {
+                                       ConvDimensionNumbersAttr& dimNums) {
   // Parsing a single set of dim numbers gives the spatial dimensions as a
   // single ArrayRef<int64_t> and a list of non-spatial dimensions as
   // IntegerAttrs (indexed by the NonSpatialDim enum).
@@ -3041,7 +3042,7 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
   llvm::SmallVector<int64_t> outputSpatialDimensions = parsedDims.first;
   const int64_t outBatchDimension = parsedDims.second[IOBatch];
   const int64_t outputFeatureDimension = parsedDims.second[IOFeature];
-  dnums = ConvDimensionNumbersAttr::get(
+  dimNums = ConvDimensionNumbersAttr::get(
       parser.getBuilder().getContext(), inputBatchDimension,
       inputFeatureDimension, inputSpatialDimensions,
       kernelInputFeatureDimension, kernelOutputFeatureDimension,
@@ -3053,14 +3054,14 @@ ParseResult parseConvolutionDimensions(AsmParser& parser,
 
 Attribute ConvDimensionNumbersAttr::parse(AsmParser& parser, Type type) {
   if (failed(parser.parseLess())) return {};
-  ConvDimensionNumbersAttr dnums;
+  ConvDimensionNumbersAttr dimNums;
   if (succeeded(parser.parseOptionalKeyword("raw"))) {
-    if (failed(parseConvolutionDimensionsRaw(parser, dnums))) return {};
-    return dnums;
+    if (failed(parseConvolutionDimensionsRaw(parser, dimNums))) return {};
+    return dimNums;
   }
-  if (failed(parseConvolutionDimensions(parser, dnums))) return {};
+  if (failed(parseConvolutionDimensions(parser, dimNums))) return {};
   if (failed(parser.parseGreater())) return {};
-  return dnums;
+  return dimNums;
 }
 
 namespace {
@@ -3221,7 +3222,7 @@ static void buildSortComparisonBody(llvm::ArrayRef<Type> elementTypes,
                                     ComparisonDirection direction,
                                     std::optional<StringRef> compareType,
                                     Region* body, OpBuilder* builder) {
-  OpBuilder::InsertionGuard insertionPointGurad(*builder);
+  OpBuilder::InsertionGuard insertionPointGuard(*builder);
 
   Location loc = body->getLoc();
   Block* block = builder->createBlock(body);
