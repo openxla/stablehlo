@@ -5783,10 +5783,11 @@ executing the graph of ops rooted in the corresponding `return` op.
 
 The execution order is implementation-defined as long as it is aligned with
 dataflow, i.e. if ops are executed before their uses. In StableHLO, all
-side-effecting ops consume and/or produce token(s) to reify the side effects as
-a value that other operations can take a data dependency on. Possible execution
-orders of the example program above are `%0` → `%1` → `%2` → `%3` → `%4` →
-`return` or `%3` → `%0` → `%1` → `%2` → `%4` → `return`.
+side-effecting ops consume one token and produce one token (multiple tokens can
+be multiplexed into one token via `after_all`), so the execution order of side
+effects is also aligned with dataflow. Possible execution orders of the example
+program above are `%0` → `%1` → `%2` → `%3` → `%4` → `return` or `%3` → `%0` →
+`%1` → `%2` → `%4` → `return`.
 
 More formally, a **StableHLO process** is a combination of:
 1\) a StableHLO program, 2) operation statuses (not executed yet,
