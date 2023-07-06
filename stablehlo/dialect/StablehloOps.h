@@ -81,11 +81,12 @@ class TokenType : public Type::TypeBase<TokenType, Type, TypeStorage> {
 LogicalResult verifyCollectivePermuteSourceTargetPairs(
     Operation *op, DenseIntElementsAttr attr);
 
-void printConvolutionDimensions(AsmPrinter &p, ConvDimensionNumbersAttr dnums);
+void printConvolutionDimensions(AsmPrinter &p,
+                                ConvDimensionNumbersAttr dimNums);
 void printConvolutionDimensions(AsmPrinter &p, Operation *,
-                                ConvDimensionNumbersAttr dnums);
+                                ConvDimensionNumbersAttr dimNums);
 ParseResult parseConvolutionDimensions(AsmParser &parser,
-                                       ConvDimensionNumbersAttr &dnums);
+                                       ConvDimensionNumbersAttr &dimNums);
 
 // Custom formatting for convolution window attributes.
 void printWindowAttributes(OpAsmPrinter &p, Operation *op,

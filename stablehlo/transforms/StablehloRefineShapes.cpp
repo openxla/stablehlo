@@ -241,9 +241,9 @@ struct EvalConvertOpPattern : public OpRewritePattern<ConvertOp> {
     if (!resultType.getElementType().isa<IntegerType>())
       return rewriter.notifyMatchFailure(op,
                                          "expected integer result tensor type");
-    auto resultBitwidth = resultType.getElementType().getIntOrFloatBitWidth();
+    auto resultBitWidth = resultType.getElementType().getIntOrFloatBitWidth();
     return evalElementwise(rewriter, op, [&](APSInt operand) {
-      return operand.extOrTrunc(resultBitwidth);
+      return operand.extOrTrunc(resultBitWidth);
     });
   }
 };
@@ -528,7 +528,7 @@ LogicalResult refineReturnTypes(PatternRewriter& rewriter, Operation* op,
 //      traversal, and only then we apply the refinements. If there are other
 //      types, then the corresponding refinements must be completely empty.
 //   2) Encodings are not supported. In principle, TypeExtensions should be
-//      supportable, but this needs careful thinking through. Given that noone
+//      supportable, but this needs careful thinking through. Given that no one
 //      asked for support for bounded dynamism in this pass yet, this is left
 //      for future work.
 // This function also signals PatternRewriter that it needs to visit all the
@@ -679,7 +679,7 @@ struct RefineBitcastConvertOpPattern
     if (!operandType.hasRank())
       return rewriter.notifyMatchFailure(op, "expected ranked operand type");
 
-    // If bitwidths of the operand and the result are different, then
+    // If bit widths of the operand and the result are different, then
     // operand and result shapes have different ranks.
     // This complicates the logic quite a bit and is not needed to pass the
     // current tests, so we leave this for future work.
@@ -692,7 +692,7 @@ struct RefineBitcastConvertOpPattern
     };
 
     if (getBitWidthFn(operandType) != getBitWidthFn(resultType))
-      return rewriter.notifyMatchFailure(op, "unsupported bitwidth");
+      return rewriter.notifyMatchFailure(op, "unsupported bit width");
 
     return refineReturnShape(rewriter, op, operandType.getShape());
   }
@@ -1143,7 +1143,7 @@ struct StablehloRefineShapesPass
     // function. This is sufficient because we only support one function per
     // program at the moment.
     // TODO(#1048): Find out why .maxIterations = 1 no longer works.
-    // There have been recent refactorings in applyPatternsAndFoldGreedily
+    // There have been recent refactors to applyPatternsAndFoldGreedily
     // upstream, and that might be the reason.
     GreedyRewriteConfig config;
     config.useTopDownTraversal = true;
