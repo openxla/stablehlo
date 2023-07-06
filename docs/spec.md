@@ -2347,7 +2347,7 @@ Also, in the future we may consider adding support for hybrid quantization
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following (at the
-moment, the semantics of these enum values is under-specified, but we are
+moment, the semantics of these enum values is underspecified, but we are
 planning to address this in
 [#755](https://github.com/openxla/stablehlo/issues/755)):
 
