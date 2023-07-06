@@ -307,7 +307,6 @@ void printSliceRanges(OpAsmPrinter& p, Operation* op,
         }
       });
   p << "]";
-  return;
 }
 
 ParseResult parseSliceRanges(OpAsmParser& parser,

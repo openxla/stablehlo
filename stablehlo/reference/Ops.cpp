@@ -699,7 +699,7 @@ Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType) {
          operandIt != operand.index_end(); ++operandIt) {
       auto resultElements =
           bitcastConvertOneToMany(resultElementType, operand.get(*operandIt));
-      for (auto resultElement : resultElements)
+      for (const auto &resultElement : resultElements)
         result.set(*resultIt++, resultElement);
     }
     return result;

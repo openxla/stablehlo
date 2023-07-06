@@ -459,7 +459,7 @@ func.func @dynamic_reshape_inapplicable_dynamic_result_type(%arg0: tensor<4xf32>
 // CHECK-LABEL: func @real_dynamic_slice_to_dynamic_slice_success_static_result_type
 func.func @real_dynamic_slice_to_dynamic_slice_success_static_result_type(%arg0: tensor<4xf32>, %arg1: tensor<1xi64>) -> tensor<1xf32> {
   //  CHECK-NOT: stablehlo.real_dynamic_slice
-  //      CHECK: [[SIZE0_1D:%.*]] = stablehlo.slice %arg1 [0:1]
+  //      CHECK: [[SIZE0_1D:%.*]] = stablehlo.slice %arg1 [0:1] : (tensor<1xi64>) -> tensor<1xi64>
   // CHECK-NEXT: [[SIZE0_0D:%.*]] = stablehlo.reshape [[SIZE0_1D]] : (tensor<1xi64>) -> tensor<i64>
   // CHECK-NEXT: stablehlo.dynamic_slice %arg0, [[SIZE0_0D]], sizes = [1] : (tensor<4xf32>, tensor<i64>) -> tensor<1xf32>
   %0 = stablehlo.constant dense<1> : tensor<1xi64>
@@ -474,7 +474,7 @@ func.func @real_dynamic_slice_to_dynamic_slice_success_static_result_type(%arg0:
 // CHECK-LABEL: func @real_dynamic_slice_to_dynamic_slice_success_dynamic_result_type
 func.func @real_dynamic_slice_to_dynamic_slice_success_dynamic_result_type(%arg0: tensor<4xf32>, %arg1: tensor<1xi64>) -> tensor<?xf32> {
   //  CHECK-NOT: stablehlo.real_dynamic_slice
-  //      CHECK: [[SIZE0_1D:%.*]] = stablehlo.slice %arg1 [0:1]
+  //      CHECK: [[SIZE0_1D:%.*]] = stablehlo.slice %arg1 [0:1] : (tensor<1xi64>) -> tensor<1xi64>
   // CHECK-NEXT: [[SIZE0_0D:%.*]] = stablehlo.reshape [[SIZE0_1D]] : (tensor<1xi64>) -> tensor<i64>
   // CHECK-NEXT: stablehlo.dynamic_slice %arg0, [[SIZE0_0D]], sizes = [1] : (tensor<4xf32>, tensor<i64>) -> tensor<?xf32>
   %0 = stablehlo.constant dense<1> : tensor<1xi64>
@@ -509,7 +509,7 @@ func.func @real_dynamic_slice_to_dynamic_slice_inapplicable_unsupported_limit(%a
 // CHECK-LABEL: func @real_dynamic_slice_to_slice_success_static_result_type
 func.func @real_dynamic_slice_to_slice_success_static_result_type(%arg0: tensor<4xf32>) -> tensor<1xf32> {
   //  CHECK-NOT: stablehlo.real_dynamic_slice
-  //      CHECK: stablehlo.slice %arg0 [0:1:2]
+  //      CHECK: stablehlo.slice %arg0 [0:1:2] : (tensor<4xf32>) -> tensor<1xf32>
   %0 = stablehlo.constant dense<0> : tensor<1xi64>
   %1 = stablehlo.constant dense<1> : tensor<1xi64>
   %2 = stablehlo.constant dense<2> : tensor<1xi64>
@@ -522,7 +522,7 @@ func.func @real_dynamic_slice_to_slice_success_static_result_type(%arg0: tensor<
 // CHECK-LABEL: func @real_dynamic_slice_to_slice_success_dynamic_result_type
 func.func @real_dynamic_slice_to_slice_success_dynamic_result_type(%arg0: tensor<4xf32>) -> tensor<?xf32> {
   //  CHECK-NOT: stablehlo.real_dynamic_slice
-  //      CHECK: stablehlo.slice %arg0 [0:1:2]
+  //      CHECK: stablehlo.slice %arg0 [0:1:2] : (tensor<4xf32>) -> tensor<?xf32>
   %0 = stablehlo.constant dense<0> : tensor<1xi64>
   %1 = stablehlo.constant dense<1> : tensor<1xi64>
   %2 = stablehlo.constant dense<2> : tensor<1xi64>
