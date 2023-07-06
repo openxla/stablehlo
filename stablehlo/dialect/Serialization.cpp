@@ -76,7 +76,7 @@ OwningOpRef<ModuleOp> deserializePortableArtifact(StringRef sourceStr,
 
   // Convert VHLO --> VHLO(current) --> StableHLO
   PassManager pm(context);
-  createDeserializePortableArtifactPipeline(pm);
+  createStablehloDeserializePipeline(pm);
   if (!succeeded(pm.run(*module))) {
     return nullptr;
   }

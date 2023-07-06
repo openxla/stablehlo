@@ -19,7 +19,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-void createDeserializePortableArtifactPipeline(OpPassManager &pm) {
+void createStablehloDeserializePipeline(OpPassManager &pm) {
   // Convert VHLO(version x.y.z) --> VHLO(current).
   pm.addPass(stablehlo::createVhloToVersionPass(
       {vhlo::Version::getCurrentVersion().toString()}));
@@ -31,7 +31,7 @@ void createDeserializePortableArtifactPipeline(OpPassManager &pm) {
 void registerPassPipelines() {
   PassPipelineRegistration<>("stablehlo-deserialize",
                              "Run an example pipeline.",
-                             createDeserializePortableArtifactPipeline);
+                             createStablehloDeserializePipeline);
 }
 
 }  // namespace stablehlo
