@@ -2129,7 +2129,7 @@ If `batch_group_count > 1`:
   window_reversal = dense<false> : tensor<2xi1>,
   // In the StableHLO dialect, dimension numbers are encoded via:
   // `[<input dimensions>]x[<kernel dimensions>]->[output dimensions]`.
-  // "b" is batch dimenion, "f" is feature dimension,
+  // "b" is batch dimension, "f" is feature dimension,
   // "i" is input feature dimension, "o" is output feature dimension,
   // "0/1/etc" are spatial dimensions.
   dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,

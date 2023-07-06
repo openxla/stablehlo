@@ -4,7 +4,7 @@
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=stablehlo-bytecode 2>&1 | (! grep 'Not Implemented')
 
 // This test compares the output from `stablehlo-opt` of this file, to a round
-// trip of the a bytecoded version of this file. If the outputs do not match,
+// trip of the a bytecode version of this file. If the outputs do not match,
 // the test will fail.
 //
 // Additionally this test will fail if any ops are not implemented on read or
