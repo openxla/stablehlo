@@ -646,7 +646,7 @@ Element bitcastConvertManyToOne(Type type, ArrayRef<Element> elements) {
         debugString(elements[0].getType()).c_str(), debugString(type).c_str()));
 
   APInt resultBits(resultNumBits, 0);
-  for (auto element : llvm::reverse(elements)) {
+  for (const auto &element : llvm::reverse(elements)) {
     if (operandNumBits != numBits(element.getType()))
       llvm::report_fatal_error("All elements must have the same numBits");
     auto operandBits = element.toBits();
