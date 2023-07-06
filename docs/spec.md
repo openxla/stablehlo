@@ -4223,7 +4223,7 @@ where:
 * (C15) `shape(results[0]) = num_windows` where:
   * `dilated_input_shape = shape(inputs[0]) = 0 ? 0 : (shape(inputs[0]) - 1) * base_dilations + 1`.
   * `padded_input_shape = padding[:, 0] + dilated_input_shape + padding[:, 1]`.
-  * `dilated_window_shape = window_dimensions = 0 ? 0 : (window_dimensions - 1) * window_dilations + 1`.
+  * `dilated_window_shape = (window_dimensions - 1) * window_dilations + 1`.
   * `is_empty_window = padded_input_shape = 0 || dilated_window_shape > padded_input_shape`.
   * `num_windows = is_empty_window ? 0 : floor((padded_input_shape - dilated_window_shape) / window_strides) + 1`.
 * (C16) `element_type(results...) = element_type(init_values...)`.
