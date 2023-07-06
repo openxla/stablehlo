@@ -47,6 +47,22 @@ void populateVhloToStablehloPatterns(RewritePatternSet *patterns,
 void populateVhloToVersionPatterns(RewritePatternSet *patterns,
                                    TypeConverter *converter,
                                    MLIRContext *contexts);
+
+//// Pass pipelines ////
+
+// StableHLO consumers can add this pipeline to convert portable artifacts to
+// StableHLO programs. This pipeline will silently pass if programs are not
+// portable artifacts.
+//
+// Uses vhlo-to-version and vhlo-legalize-to-stablehlo passes. Does not require
+// an option to specify VHLO target version since it always converts VHLO to
+// the current version in order to legalize to StableHLO.
+void createStablehloDeserializePipeline(OpPassManager &pm);
+
+// Adds `stablehlo-deserialize` pipeline as a registered pass pipeline
+// for opt tools.
+void registerPassPipelines();
+
 }  // namespace stablehlo
 }  // namespace mlir
 
