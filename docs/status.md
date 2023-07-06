@@ -27,7 +27,7 @@ one of the following tracking labels.
     [StableHLO semantics](https://github.com/openxla/stablehlo/blob/main/docs/spec.md).
   - **yes\***: there is an implementation, and it's in sync with
     [XLA semantics](https://www.tensorflow.org/xla/operation_semantics).
-    Since XLA semantics is oftentimes underdocumented, we are using
+    Since XLA semantics is oftentimes under-documented, we are using
     [hlo_verifier.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/hlo_verifier.cc)
     and [shape_inference.cc](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/service/shape_inference.cc)
     as the reference.

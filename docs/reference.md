@@ -229,7 +229,7 @@ func.func @check_tolerance() {
 ```
 
 This is just the first step in testing the numerical accuracy of StableHLO ops.
-At the moment, this is an underspecified area of the StableHLO spec, and there is
+At the moment, this is an under-specified area of the StableHLO spec, and there is
 ongoing work to figure it out [#1156](https://github.com/openxla/stablehlo/issues/1156)
 based on our experience using StableHLO in practice and on feedback from
 stakeholders. As this works proceeds, we will update the infrastructure

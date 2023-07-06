@@ -70,13 +70,13 @@ More importantly, VHLO is abstracted behind serialization. This means that ML
 frameworks (producers) only need to target StableHLO ops, and compiler
 backends (consumers) only need to support the latest version, which is the
 StableHLO op set. Conversions to and from VHLO are taken care of with machinery
-maintainted in the StableHLO repo.
+maintained in the StableHLO repo.
 
 ## MLIR Bytecode Format Versions
 
 In order to maintain forward compatibility, StableHLO versions have an
 associated MLIR Bytecode Format version. Additionally, the latest version of
-StableHLO will use the lateset version of the MLIR Bytecode Format. When the
+StableHLO will use the latest version of the MLIR Bytecode Format. When the
 MLIR Bytecode Format version is incremented, the next release of StableHLO will
 increment the minor version and update [Version.cpp](https://github.com/openxla/stablehlo/blob/main/stablehlo/dialect/Version.cpp#:~:text=getBytecodeVersion)
 to use the latest MLIR Bytecode Format version.
@@ -145,7 +145,7 @@ A few examples:
 
 After adding a test point to `stablehlo_legalize_to_vhlo.mlir`, create a
 versioned copy of the file named `stablehlo_legalize_to_vhlo.0_X_0.mlir` as
-follows, along with a bytecoded version of said file with a `.0_X_0.mlir.bc`
+follows, along with a bytecode version of said file with a `.0_X_0.mlir.bc`
 extension. Add [proper FileCheck lines](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/stablehlo_legalize_to_vhlo.0_9_0.mlir#L1-L3)
 for forward and backward compatibility testing.
 

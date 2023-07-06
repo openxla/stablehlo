@@ -2129,7 +2129,7 @@ If `batch_group_count > 1`:
   window_reversal = dense<false> : tensor<2xi1>,
   // In the StableHLO dialect, dimension numbers are encoded via:
   // `[<input dimensions>]x[<kernel dimensions>]->[output dimensions]`.
-  // "b" is batch dimenion, "f" is feature dimension,
+  // "b" is batch dimension, "f" is feature dimension,
   // "i" is input feature dimension, "o" is output feature dimension,
   // "0/1/etc" are spatial dimensions.
   dimension_numbers = #stablehlo.conv<[b, 0, 1, f]x[0, 1, i, o]->[b, 0, 1, f]>,
@@ -2347,7 +2347,7 @@ Also, in the future we may consider adding support for hybrid quantization
 
 `precision_config` controls the tradeoff between speed and accuracy for
 computations on accelerator backends. This can be one of the following (at the
-moment, the semantics of these enum values is underspecified, but we are
+moment, the semantics of these enum values is under-specified, but we are
 planning to address this in
 [#755](https://github.com/openxla/stablehlo/issues/755)):
 
