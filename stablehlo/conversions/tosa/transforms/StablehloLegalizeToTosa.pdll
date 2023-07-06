@@ -47,6 +47,15 @@ Rewrite positiveFloatInfinityLike(op: Op, type: Type) -> Op [{
         llvm::cast<mlir::ShapedType>(type), outputValue));
 }];
 
+Rewrite changeElementTypeToI1(type: Type) -> Type [{
+  auto tensorType = type.cast<mlir::TensorType>();
+  if (tensorType.hasRank()) {
+    return RankedTensorType::get(tensorType.getShape(), rewriter.getI1Type());
+  } else {
+    return UnrankedTensorType::get(rewriter.getI1Type());
+  }
+}];
+
 // Nullary ops.
 Pattern =>
   replace op<stablehlo.constant> {value = input: Attr<_: Tosa_Tensor>}
@@ -84,7 +93,8 @@ Pattern {
     let positiveInfinity = positiveFloatInfinityLike(root, inputType);
     let inputAbs = op<tosa.abs>(input) -> (inputType);
     let equalsResult = op<tosa.equal>(positiveInfinity, inputAbs);
-    let notEqualsResult = op<tosa.logical_not>(equalsResult);
+    let notEqualsType = changeElementTypeToI1(inputType);
+    let notEqualsResult = op<tosa.logical_not>(equalsResult) -> (notEqualsType);
     replace root with notEqualsResult;
   };
 }
