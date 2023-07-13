@@ -1149,20 +1149,21 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
 ```
 
 For quantized types, performs
-`quantize(batch_norm_inference(dequantize(operand), scale, offset, mean,
-            variance, epsilon, feature_index), type(result))`.
+`dequantize_op_quantize(lambda operand, scale, offset, mean, variance:
+batch_norm_inference(operand, scale, offset, mean, variance, epsilon,
+feature_index), operand, scale, offset, mean, variance, type(result))`.
 
 #### Inputs
 
-| Label | Name            | Type                                                         | Constraints   |
-|-------|-----------------|--------------------------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor | (C1-C7)       |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type                  | (C2), (C3)    |
-| (I3)  | `offset`        | 1-dimensional tensor of floating-point type                  | (C2), (C4)    |
-| (I4)  | `mean`          | 1-dimensional tensor of floating-point type                  | (C5)          |
-| (I5)  | `variance`      | 1-dimensional tensor of floating-point type                  | (C2), (C6)    |
-| (I6)  | `epsilon`       | constant of type `f32`                                       |               |
-| (I7)  | `feature_index` | constant of type `si64`                                      | (C1), (C3-C6) |
+| Label | Name            | Type                                                                | Constraints   |
+|-------|-----------------|---------------------------------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor        | (C1-C7)       |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)    |
+| (I4)  | `mean`          | 1-dimensional tensor of floating-point or per-tensor quantized type | (C5)          |
+| (I5)  | `variance`      | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C6)    |
+| (I6)  | `epsilon`       | constant of type `f32`                                              |               |
+| (I7)  | `feature_index` | constant of type `si64`                                             | (C1), (C3-C6) |
 
 #### Outputs
 
@@ -1173,13 +1174,14 @@ For quantized types, performs
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
-  same element type.
+* (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
+       baseline_element_type(offset) = baseline_element_type(mean) =
+       baseline_element_type(variance) = baseline_type(result)`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(mean) = dim(operand, feature_index)`.
 * (C6) `size(variance) = dim(operand, feature_index)`.
-* (C7) `type(operand) = type(result)`.
+* (C7) `baseline_type(operand) = baseline_type(result)`.
 
 #### Examples
 
@@ -1547,7 +1549,7 @@ If there exists `i` where the input matrix is not an Hermitian positive-definite
 matrix, then the behavior is undefined.
 
 For quantized types, performs
-`quantize(cholesky(dequantize(a), lower), type(result))`.
+`dequantize_op_quantize(lambda operand: cholesky(operand, lower), a, type(result))`.
 
 #### Inputs
 
@@ -1565,7 +1567,7 @@ quantized tensor   | (C1-C3)     |
 
 #### Constraints
 
-* (C1) `type(a) = type(result)`.
+* (C1) `baseline_type(a) = baseline_type(result)`.
 * (C2) `2 <= rank(a)`.
 * (C3) `dim(a, -2) = dim(a, -1)`.
 
@@ -5522,8 +5524,8 @@ If `unit_diagonal` is true, then the implementation can assume that the diagonal
 elements of `a` are equal to 1, otherwise the behavior is undefined.
 
 For quantized types, performs
-`quantize(triangular_solve(dequantize(a), dequantize(b), left_side, lower,
-            unit_diagonal, transpose_a), type(result))`.
+`dequantize_op_quantize(lambda x, y: triangular_solve(x, y, left_side, lower,
+unit_diagonal, transpose_a), a, b, type(result))`.
 
 #### Inputs
 
@@ -5544,12 +5546,12 @@ For quantized types, performs
 
 #### Constraints
 
-* (C1) `element_type(a) = element_type(b)`.
+* (C1) `baseline_element_type(a) = baseline_element_type(b)`.
 * (C2) `2 <= rank(a) = rank(b) = R`.
 * (C3) The relationship between `shape(a)` and `shape(b)` is defined as follows:
   * `shape(a)[:-3] = shape(b)[:-3]`.
   * `dim(a, -2) = dim(a, -1) = dim(b, left_side ? -2 : -1)`.
-* (C4) `type(b) = type(result)`.
+* (C4) `baseline_type(b) = baseline_type(result)`.
 
 #### Examples
 
