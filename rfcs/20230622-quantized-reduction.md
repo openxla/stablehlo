@@ -162,21 +162,21 @@ should be interpreted as
     ^input_conversion(
             %input: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>):
         "stablehlo.return"(%input)
-            : (tensor<!quant.uniform<ui8:f32, input_scale:0>>) -> ()
+            : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>) -> ()
 
     }, {
     ^reduce_computation(
-            %lhs: tensor<!quant.uniform<ui8:f32, input_scale:0>>,
-            %rhs: tensor<!quant.uniform<ui8:f32, input_scale:0>>):
+            %lhs: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>,
+            %rhs: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>):
         %add = "stablehlo.add"(%lhs, %rhs)
-            : (tensor<!quant.uniform<ui8:f32, input_scale:0>>,
-               tensor<!quant.uniform<ui8:f32, input_scale:0>>)
-            -> tensor<!quant.uniform<ui8:f32, input_scale:0>>
+            : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>,
+               tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>)
+            -> tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>
         "stablehlo.return"(%add)
-            : (tensor<!quant.uniform<ui8:f32, input_scale:0>>) -> ()
+            : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>) -> ()
     }, {
     ^output_conversion(
-            %intermediate_result: tensor<!quant.uniform<ui8:f32, input_scale:0>>):
+            %intermediate_result: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>):
         "stablehlo.return"(%intermediate_result)
             : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>) -> ()
     }) {
@@ -262,21 +262,21 @@ of `reduce` op. The code snippet for `reduce` looks like:
 %result = "stablehlo.reduce"(%input, %init_value) ({
     ^reduce_computation(
             %elem: tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>,
-            %acc: tensor<!quant.uniform<i32:f32, input_scale:0>>):
+            %acc: tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>):
         %elem_rescaled = "stablehlo.uniform_quantize"(%elem)
             : (tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>)
-            -> tensor<!quant.uniform<i32:f32, input_scale:0>>
+            -> tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>
         %add = "stablehlo.add"(%elem_rescaled, %acc)
-            : (tensor<!quant.uniform<i32:f32, input_scale:0>>,
-               tensor<!quant.uniform<i32:f32, input_scale:0>>)
-            -> tensor<!quant.uniform<i32:f32, input_scale:0>>
+            : (tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>,
+               tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>)
+            -> tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>
         "stablehlo.return"(%0)
-            : (tensor<!quant.uniform<i32:f32, input_scale:0>>) -> ()
+            : (tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>) -> ()
     }) {
         dimensions = dense<1> : tensor<1xi64>
     } : (tensor<... x !quant.uniform<ui8:f32, input_scale:input_zp>>,
-         tensor<... x !quant.uniform<i32:f32, input_scale:0>>)
-    -> tensor<... x !quant.uniform<i32:f32, input_scale:0>>
+         tensor<... x !quant.uniform<i32:f32, accum_scale:accum_zp>>)
+    -> tensor<... x !quant.uniform<i32:f32, accum_scale:accum_zp>>
 ```
 
 In this option, the `init_value` type and the `result` type can be different
