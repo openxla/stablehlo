@@ -517,7 +517,7 @@ have the following constraints:
 * (C2) `is_wellformed(imaginary_part, complex_element_type(complex_type))`.
 
 ```ebnf
-TensorConstant ::= TensorLiteral ':' ( TensorType | QuantizedTensorType )
+TensorConstant ::= TensorLiteral ':' TensorType
 TensorLiteral  ::= 'dense' '<' (DenseLiteral | ElementLiteral) '>'
 DenseLiteral   ::= DenseDimension | DenseElements
 DenseDimension ::= '[' [DenseLiteral {',' DenseLiteral}] ']'
@@ -533,10 +533,8 @@ represents a tensor value with the following mapping from indices to elements:
 implementation-defined. Tensor constants have the following constraints:
 
 * (C1) `has_syntax(tensor_literal, element_type(tensor_type))`, where:
-  * `has_syntax(element_literal: Syntax, tensor_element_type: Type) =
-    is_wellformed(element_literal, tensor_element_type)`.
-  * `has_syntax(element_literal: Syntax, quantized_tensor_element_type: Type) =
-    is_wellformed(element_literal, storage_type(quantized_tensor_element_type))`.
+  * `has_syntax(element_literal: Syntax, element_type: Type) =
+    is_wellformed(element_literal, type)`.
   * `has_syntax(tensor_literal: List, element_type: Type) =
     has_syntax(tensor_literal..., element_type)`.
 * (C2) `has_shape(tensor_literal, shape(tensor_type))`, where:
@@ -545,6 +543,18 @@ implementation-defined. Tensor constants have the following constraints:
     size(tensor_literal) = shape[0] and
     has_shape(tensor_literal..., shape[1:])`.
   * otherwise, `false`.
+
+```ebnf
+QuantizedTensorConstant ::= QuantizedTensorLiteral ':' QuantizedTensorType
+QuantizedTensorLiteral  ::= 'dense' '<' (DenseLiteral | ElementLiteral) '>'
+```
+
+**Quantized tensor constants** represent quantized tensor values using the same
+notation as tensor constants, with elements specified as constants of their
+storage type. Quantized tensor constants have the following constraints:
+
+* (C1) `has_syntax(quantized_tensor_literal, storage_type(quantized_tensor_type))`.
+* (C2) `has_shape(quantized_tensor_literal, shape(quantized_tensor_type))`.
 
 ```ebnf
 StringConstant  ::= StringLiteral
@@ -1420,9 +1430,9 @@ where:
 
 #### Outputs
 
-| Name      | Type                                                               | Constraints |
-|-----------|--------------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C4)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C4)        |
 
 #### Constraints
 
@@ -1871,14 +1881,13 @@ Produces an `output` tensor from a constant `value`.
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `output` | tensor or per-tensor quantized tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `output` | tensor or quantized tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `type(value) = is_quantized(output) ? storage_type(output) :
-       type(output)`.
+* (C1) `type(value) = type(output)`.
 
 #### Examples
 
@@ -2712,25 +2721,19 @@ for `fft_type = RFFT`. For example, for `L = 3`:
 * `result2[i0, ..., :, iR-1] = ifft(result1[i0, ..., :, iR-1])`.
 * `result[i0, ..., :] = irfft(result2[i0, ..., :])`.
 
-For quantized types, performs:
-
-* `fft(dequantize(operand), fft_type, fft_length)` if `fft_type = RFFT`.
-* `quantize(fft((operand, fft_type, fft_length), type(result)))` if `fft_type
-   = IRFFT`.
-
 #### Inputs
 
-| Label | Name         | Type                                                                    | Constraints            |
-|-------|--------------|-------------------------------------------------------------------------|------------------------|
-| (I1)  | `operand`    | tensor of floating-point or complex type or per-tensor quantized tensor | (C1), (C2), (C4), (C5) |
-| (I2)  | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`                              | (C2), (C5)             |
-| (I3)  | `fft_length` | 1-dimensional tensor constant of type `si64`                            | (C1), (C3), (C4)       |
+| Label | Name         | Type                                         | Constraints            |
+|-------|--------------|----------------------------------------------|------------------------|
+| (I1)  | `operand`    | tensor of floating-point or complex type     | (C1), (C2), (C4), (C5) |
+| (I2)  | `fft_type`   | enum of `FFT`, `IFFT`, `RFFT`, and `IRFFT`   | (C2), (C5)             |
+| (I3)  | `fft_length` | 1-dimensional tensor constant of type `si64` | (C1), (C3), (C4)       |
 
 #### Outputs
 
-| Name     | Type                                                                    | Constraints      |
-|----------|-------------------------------------------------------------------------|------------------|
-| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C2), (C4), (C5) |
+| Name     | Type                                     | Constraints      |
+|----------|------------------------------------------|------------------|
+| `result` | tensor of floating-point or complex type | (C2), (C4), (C5) |
 
 #### Constraints
 
@@ -2740,12 +2743,12 @@ For quantized types, performs:
     have the same complex type.
   * If `fft_type = IFFT`, `element_type(operand)` and `element_type(result)`
     have the same complex type.
-  * If `fft_type = RFFT`, (`is_float(operand)` or `is_quantized(operand)`) and
-    `is_complex(result)` such that `complex_element_type(element_type(result))
-    = is_quantized(operand) ? expressed_type(operand) : element_type(operand)`.
-  * If `fft_type = IRFFT`, `is_complex(operand)`and (`is_float(result)` or
-    `is_quantized(result)`) such that `complex_element_type(element_type(operand))
-    = is_quantized(result) ? expressed_type(result) : element_type(result)`.
+  * If `fft_type = RFFT`, `element_type(operand)` is a floating-point type and
+    `element_type(result)` is a complex type of the same floating-point
+    semantics.
+  * If `fft_type = IRFFT`, `element_type(operand)` is a complex type and
+    `element_type(result)` is a floating-point type of the same floating-point
+    semantics.
 * (C3) `1 <= size(fft_length) <= 3`.
 * (C4) If among `operand` and `result`, there is a tensor `real` of a
 floating-point type, then `shape(real)[-size(fft_length):] = fft_length`.
@@ -3010,9 +3013,9 @@ pred ? true_branch() : false_branch()`.
 
 #### Outputs
 
-| Name      | Type                                                               | Constraints |
-|-----------|--------------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C3)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
@@ -3096,9 +3099,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                                               | Constraints |
-|-----------|--------------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1), (C2)  |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C1), (C2)  |
 
 #### Constraints
 
@@ -3671,11 +3674,11 @@ Semantics of `outfeed_config` is implementation-defined.
 
 #### Inputs
 
-| Label | Name             | Type                                                       |
-|-------|------------------|------------------------------------------------------------|
-| (I1)  | `inputs`         | variadic number of tensors or per-tensor quantized tensors |
-| (I2)  | `token`          | `token`                                                    |
-| (I3)  | `outfeed_config` | constant of type `string`                                  |
+| Label | Name             | Type                                            |
+|-------|------------------|-------------------------------------------------|
+| (I1)  | `inputs`         | variadic number of tensors or quantized tensors |
+| (I2)  | `token`          | `token`                                         |
+| (I3)  | `outfeed_config` | constant of type `string`                       |
 
 #### Outputs
 
@@ -3921,9 +3924,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                                               | Constraints |
-|-----------|--------------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C2), (C3)  |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C2), (C3)  |
 
 #### Constraints
 
@@ -4954,13 +4957,13 @@ implementation-defined. This flag duplicates the information provided in
 
 #### Inputs
 
-| Label | Name               | Type                                                       | Constraints |
-|-------|--------------------|------------------------------------------------------------|-------------|
-| (I1)  | `inputs`           | variadic number of tensors or per-tensor quantized tensors |             |
-| (I2)  | `token`            | `token`                                                    |             |
-| (I3)  | `channel_id`       | constant of type `si64`                                    |             |
-| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST`            | (C1)        |
-| (I5)  | `is_host_transfer` | constant of type `i1`                                      | (C1)        |
+| Label | Name               | Type                                            | Constraints |
+|-------|--------------------|-------------------------------------------------|-------------|
+| (I1)  | `inputs`           | variadic number of tensors or quantized tensors |             |
+| (I2)  | `token`            | `token`                                         |             |
+| (I3)  | `channel_id`       | constant of type `si64`                         |             |
+| (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
+| (I5)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
 
 #### Outputs
 
@@ -5706,17 +5709,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                                               | Constraints |
-|-------|-----------|--------------------------------------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`    | function                                                           | (C1)        |
-| (I3)  | `body`    | function                                                           | (C2)        |
+| Label | Name      | Type                                                    | Constraints |
+|-------|-----------|---------------------------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors, quantized tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                                                | (C1)        |
+| (I3)  | `body`    | function                                                | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                                               | Constraints |
-|-----------|--------------------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, per-tensor quantized tensors or tokens | (C3)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
