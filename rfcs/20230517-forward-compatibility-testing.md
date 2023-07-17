@@ -1,4 +1,8 @@
 # StableHLO Forward Compatibility Testing
+Status: Approved<br/>
+Initial version: 5/17/2023<br/>
+Last updated: 7/12/2023<br/>
+Discussion thread: [OpenXLA Discuss](https://groups.google.com/a/openxla.org/g/openxla-discuss/c/hAL5pFCKl-g)
 
 ## Background
 
