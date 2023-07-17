@@ -1655,9 +1655,8 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(is_quantized(result) ? constant(zero_point(result),
-  storage_type(result)) : constant(0, element_type(result)), [], type(result))`
-  otherwise.
+* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
+   otherwise.
 
 #### Inputs
 
