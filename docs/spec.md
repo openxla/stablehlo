@@ -446,6 +446,7 @@ Constant ::= BooleanConstant
            | FloatConstant
            | ComplexConstant
            | TensorConstant
+           | QuantizedTensorConstant
            | StringConstant
            | EnumConstant
 ```
@@ -1553,11 +1554,10 @@ For quantized types, performs
 
 #### Inputs
 
-| Label | Name    | Type                                       | Constraints |
-|-------|---------|--------------------------------------------|-------------|
-| (I1)  | `a`     | tensor of floating-point or complex type or per-tensor
-quantized tensor   | (C1-C3)     |
-| (I2)  | `lower` | 0-dimensional tensor constant of type `i1` |             |
+| Label | Name    | Type                                                                    | Constraints |
+|-------|---------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `a`     | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C3)     |
+| (I2)  | `lower` | 0-dimensional tensor constant of type `i1`                              |             |
 
 #### Outputs
 
@@ -1655,8 +1655,9 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
-   otherwise.
+* `broadcast_in_dim(is_quantized(result) ? constant(zero_point(result),
+  storage_type(result)) : constant(0, element_type(result)), [], type(result))`
+  otherwise.
 
 #### Inputs
 
@@ -1998,7 +1999,8 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padding_value = constant(is_quantized_tensor(lhs) ? zero_point(lhs) : 0, element_type(lhs))`.
+* `padding_value = is_quantized_tensor(lhs) ? constant(zero_point(lhs),
+        storage_type(lhs)) : constant(0, element_type(lhs))`.
 * `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
@@ -2355,7 +2357,7 @@ More formally, `result[result_index] = dot_product`, where:
   * `integer_dot_product = reduce(
       inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
                        (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
-      init_values=[constant(0, element_type(result)],
+      init_values=[constant(0, storage_type(result)],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
@@ -3124,7 +3126,8 @@ separate outputs to improve clarity
 
 Fills an `output` tensor with values in increasing order starting from zero
 along the `iota_dimension` dimension. More formally, `output[result_index] =
-constant(result_index[iota_dimension], element_type(output))`.
+constant(result_index[iota_dimension], is_quantized(output) ?
+        storage_type(output) : element_type(output))`.
 
 #### Inputs
 
