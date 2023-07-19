@@ -257,14 +257,26 @@ func.func @eval_concatenate_2d() -> tensor<2x2xi64> {
 
 // -----
 
-// CHECK-LABEL: func @eval_convert
-func.func @eval_convert() -> tensor<i64> {
+// CHECK-LABEL: func @eval_convert_common_case
+func.func @eval_convert_common_case() -> tensor<i64> {
   // CHECK-NOT: stablehlo.convert
   // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<4> : tensor<i64>
   // CHECK: return [[RESULT]]
   %0 = stablehlo.constant dense<4> : tensor<i32>
   %1 = stablehlo.convert %0 : (tensor<i32>) -> tensor<i64>
   func.return %1 : tensor<i64>
+}
+
+// -----
+
+// CHECK-LABEL: func @eval_convert_i1
+func.func @eval_convert_i1() -> tensor<2xi64> {
+  // CHECK-NOT: stablehlo.convert
+  // CHECK: [[RESULT:%.*]] = stablehlo.constant dense<[1, 0]> : tensor<2xi64>
+  // CHECK: return [[RESULT]]
+  %0 = stablehlo.constant dense<[true, false]> : tensor<2xi1>
+  %1 = stablehlo.convert %0 : (tensor<2xi1>) -> tensor<2xi64>
+  return %1 : tensor<2xi64>
 }
 
 // -----
