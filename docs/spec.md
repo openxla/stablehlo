@@ -1655,8 +1655,9 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
-   otherwise.
+* `broadcast_in_dim(constant(is_quantized(result) ? quantize(0,
+  element_type(result)) : 0, element_type(result)), [], type(result))`
+  otherwise.
 
 #### Inputs
 
@@ -1998,8 +1999,7 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padding_value = is_quantized_tensor(lhs) ? constant(zero_point(lhs),
-        storage_type(lhs)) : constant(0, element_type(lhs))`.
+* `padding_value = constant(is_quantized(lhs) ? quantize(0, element_type(lhs)) : 0, element_type(lhs))`.
 * `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
@@ -3124,9 +3124,13 @@ separate outputs to improve clarity
 #### Semantics
 
 Fills an `output` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. More formally, `output[result_index] =
-constant(result_index[iota_dimension], is_quantized(output) ?
-        storage_type(output) : element_type(output))`.
+along the `iota_dimension` dimension. More formally,
+
+* For non-quantized case: `output[result_index] = constant(
+        result_index[iota_dimension], element_type(output))`.
+* For quantized case: `output[result_index] = constant(
+        quantize(result_index[iota_dimension], element_type(output)),
+        element_type(output))`.
 
 #### Inputs
 
