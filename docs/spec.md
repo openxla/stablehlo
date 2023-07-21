@@ -1177,7 +1177,7 @@ feature_index), operand, scale, offset, mean, variance, type(result))`.
 * (C1) `0 <= feature_index < rank(operand)`.
 * (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
        baseline_element_type(offset) = baseline_element_type(mean) =
-       baseline_element_type(variance) = baseline_type(result)`.
+       baseline_element_type(variance) = baseline_element_type(result)`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(mean) = dim(operand, feature_index)`.
