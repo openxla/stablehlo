@@ -233,9 +233,6 @@ gentbl_filegroup(
 
 td_library(
     name = "chlo_ops_py_td_files",
-    srcs = [
-        "@llvm-project//mlir:include/mlir/Bindings/Python/Attributes.td",
-    ],
     includes = [
         ".",
         "include",
@@ -641,9 +638,6 @@ gentbl_filegroup(
 
 td_library(
     name = "stablehlo_ops_py_td_files",
-    srcs = [
-        "@llvm-project//mlir:include/mlir/Bindings/Python/Attributes.td",
-    ],
     includes = ["."],
     deps = [
         ":stablehlo_ops_td_files",
@@ -1020,9 +1014,6 @@ gentbl_filegroup(
 
 td_library(
     name = "vhlo_ops_py_td_files",
-    srcs = [
-        "@llvm-project//mlir:include/mlir/Bindings/Python/Attributes.td",
-    ],
     includes = [
         ".",
         "include",
