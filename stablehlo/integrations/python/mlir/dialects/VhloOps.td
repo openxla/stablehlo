@@ -16,7 +16,6 @@ limitations under the License.
 #ifndef STABLEHLO_INTEGRATIONS_PYTHON_VHLO_OPS
 #define STABLEHLO_INTEGRATIONS_PYTHON_VHLO_OPS
 
-include "mlir/Bindings/Python/Attributes.td"
 include "stablehlo/dialect/VhloOps.td"
 
 #endif
