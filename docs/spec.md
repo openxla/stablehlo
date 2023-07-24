@@ -446,6 +446,7 @@ Constant ::= BooleanConstant
            | FloatConstant
            | ComplexConstant
            | TensorConstant
+           | QuantizedTensorConstant
            | StringConstant
            | EnumConstant
 ```
@@ -543,6 +544,18 @@ implementation-defined. Tensor constants have the following constraints:
     size(tensor_literal) = shape[0] and
     has_shape(tensor_literal..., shape[1:])`.
   * otherwise, `false`.
+
+```ebnf
+QuantizedTensorConstant ::= QuantizedTensorLiteral ':' QuantizedTensorType
+QuantizedTensorLiteral  ::= 'dense' '<' (DenseLiteral | ElementLiteral) '>'
+```
+
+**Quantized tensor constants** represent quantized tensor values using the same
+notation as tensor constants, with elements specified as constants of their
+storage type. Quantized tensor constants have the following constraints:
+
+* (C1) `has_syntax(quantized_tensor_literal, storage_type(quantized_tensor_type))`.
+* (C2) `has_shape(quantized_tensor_literal, shape(quantized_tensor_type))`.
 
 ```ebnf
 StringConstant  ::= StringLiteral
@@ -698,7 +711,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints |
 |-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                       | (C1), (C6)  |
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C6)  |
 | (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
@@ -706,9 +719,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C6)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C6)        |
 
 #### Constraints
 
@@ -849,7 +862,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name               | Type                                         | Constraints      |
 |-------|--------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`          | tensor                                       | (C1)             |
+| (I1)  | `operand`          | tensor or per-tensor quantized tensor        | (C1)             |
 | (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
 | (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
 | (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
@@ -858,9 +871,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C8)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C8)        |
 
 #### Constraints
 
@@ -1136,34 +1149,40 @@ def batch_norm_inference(operand, scale, offset, mean, variance, epsilon, featur
   return add(multiply(scale_bcast, normalized_operand), offset_bcast)
 ```
 
+For quantized types, performs
+`dequantize_op_quantize(lambda operand, scale, offset, mean, variance:
+batch_norm_inference(operand, scale, offset, mean, variance, epsilon,
+feature_index), operand, scale, offset, mean, variance, type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints   |
-|-------|-----------------|---------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1-C7)       |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
-| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
-| (I4)  | `mean`          | 1-dimensional tensor of floating-point type | (C5)          |
-| (I5)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C6)    |
-| (I6)  | `epsilon`       | constant of type `f32`                      |               |
-| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+| Label | Name            | Type                                                                | Constraints   |
+|-------|-----------------|---------------------------------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor        | (C1-C7)       |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)    |
+| (I4)  | `mean`          | 1-dimensional tensor of floating-point or per-tensor quantized type | (C5)          |
+| (I5)  | `variance`      | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C6)    |
+| (I6)  | `epsilon`       | constant of type `f32`                                              |               |
+| (I7)  | `feature_index` | constant of type `si64`                                             | (C1), (C3-C6) |
 
 #### Outputs
 
-| Name     | Type                          | Constraints |
-|----------|-------------------------------|-------------|
-| `result` | tensor of floating-point type | (C2), (C7)  |
+| Name     | Type                                                         | Constraints |
+|----------|--------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point type or per-tensor quantized tensor | (C2), (C7)  |
 
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `offset`, `mean`, `variance` and `result` have the
-  same element type.
+* (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
+       baseline_element_type(offset) = baseline_element_type(mean) =
+       baseline_element_type(variance) = baseline_element_type(result)`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(mean) = dim(operand, feature_index)`.
 * (C6) `size(variance) = dim(operand, feature_index)`.
-* (C7) `type(operand) = type(result)`.
+* (C7) `baseline_type(operand) = baseline_type(result)`.
 
 #### Examples
 
@@ -1414,9 +1433,9 @@ where:
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C4)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C4)        |
 
 #### Constraints
 
@@ -1530,22 +1549,25 @@ strict lower triangle correspondingly, are implementation-defined.
 If there exists `i` where the input matrix is not an Hermitian positive-definite
 matrix, then the behavior is undefined.
 
+For quantized types, performs
+`dequantize_op_quantize(lambda operand: cholesky(operand, lower), a, type(result))`.
+
 #### Inputs
 
-| Label | Name    | Type                                       | Constraints |
-|-------|---------|--------------------------------------------|-------------|
-| (I1)  | `a`     | tensor of floating-point or complex type   | (C1-C3)     |
-| (I2)  | `lower` | 0-dimensional tensor constant of type `i1` |             |
+| Label | Name    | Type                                                                    | Constraints |
+|-------|---------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `a`     | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C3)     |
+| (I2)  | `lower` | 0-dimensional tensor constant of type `i1`                              |             |
 
 #### Outputs
 
-| Name     | Type                                     | Constraints |
-|----------|------------------------------------------|-------------|
-| `result` | tensor of floating-point or complex type | (C1)        |
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `type(a) = type(result)`.
+* (C1) `baseline_type(a) = baseline_type(result)`.
 * (C2) `2 <= rank(a)`.
 * (C3) `dim(a, -2) = dim(a, -1)`.
 
@@ -1633,22 +1655,23 @@ Afterwards, `result@process` is given by:
 
 * `operand@process_groups[i, 0]`, if there exists an `i` such that
   `process_groups[i, 1] = process`.
-* `broadcast_in_dim(constant(0, element_type(result)), [], type(result))`
-   otherwise.
+* `broadcast_in_dim(constant(is_quantized(result) ? quantize(0,
+  element_type(result)) : 0, element_type(result)), [], type(result))`
+  otherwise.
 
 #### Inputs
 
 | Label | Name                  | Type                                         | Constraints |
 |-------|-----------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`             | tensor                                       | (C5)        |
+| (I1)  | `operand`             | tensor or per-tensor quantized tensor        | (C5)        |
 | (I2)  | `source_target_pairs` | 2-dimensional tensor constant of type `si64` | (C1-C4)     |
 | (I3)  | `channel_id`          | constant of type `si64`                      |             |
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C1)        |
+| Name     | Type                                  | Constraints |
+|----------|---------------------------------------|-------------|
+| `result` | tensor or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -1861,9 +1884,9 @@ Produces an `output` tensor from a constant `value`.
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `output` | tensor | (C1)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `output` | tensor or quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -1976,7 +1999,7 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padding_value = constant(is_quantized_tensor(lhs) ? zero_point(lhs) : 0, element_type(lhs))`.
+* `padding_value = constant(is_quantized(lhs) ? quantize(0, element_type(lhs)) : 0, element_type(lhs))`.
 * `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
@@ -2333,7 +2356,7 @@ More formally, `result[result_index] = dot_product`, where:
   * `integer_dot_product = reduce(
       inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
                        (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
-      init_values=[constant(0, element_type(result)],
+      init_values=[constant(0, storage_type(result)],
       dimensions=range(size(lhs_contracting_dimensions)),
       body=lambda x, y: add(x, y))`.
   * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
@@ -2993,9 +3016,9 @@ pred ? true_branch() : false_branch()`.
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C3)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
@@ -3079,9 +3102,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C1), (C2)  |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C1), (C2)  |
 
 #### Constraints
 
@@ -3101,8 +3124,11 @@ separate outputs to improve clarity
 #### Semantics
 
 Fills an `output` tensor with values in increasing order starting from zero
-along the `iota_dimension` dimension. More formally, `output[result_index] =
-constant(result_index[iota_dimension], element_type(output))`.
+along the `iota_dimension` dimension. More formally,
+
+`output[result_index] = constant(is_quantized(output) ?
+quantize(result_index[iota_dimension], element_type(output)) :
+result_index[iota_dimension], element_type(output))`.
 
 #### Inputs
 
@@ -3112,9 +3138,9 @@ constant(result_index[iota_dimension], element_type(output))`.
 
 #### Outputs
 
-| Name     | Type                                              | Constraints |
-|----------|---------------------------------------------------|-------------|
-| `output` | tensor of integer, floating-point or complex type | (C1)        |
+| Name     | Type                                                                             | Constraints |
+|----------|----------------------------------------------------------------------------------|-------------|
+| `output` | tensor of integer, floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
@@ -3575,15 +3601,15 @@ an identity, i.e. `result = operand`.
 
 #### Arguments
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `operand` | variadic number of tensors or tokens | (C1)        |
+| Name      | Type                                                               | Constraints |
+|-----------|--------------------------------------------------------------------|-------------|
+| `operand` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1)        |
 
 #### Outputs
 
-| Name     | Type                                 | Constraints |
-|----------|--------------------------------------|-------------|
-| `result` | variadic number of tensors or tokens | (C1)        |
+| Name     | Type                                                               | Constraints |
+|----------|--------------------------------------------------------------------|-------------|
+| `result` | variadic number of tensors, per-tensor quantized tensors or tokens | (C1)        |
 
 #### Constraints
 
@@ -3654,11 +3680,11 @@ Semantics of `outfeed_config` is implementation-defined.
 
 #### Inputs
 
-| Label | Name             | Type                       |
-|-------|------------------|----------------------------|
-| (I1)  | `inputs`         | variadic number of tensors |
-| (I2)  | `token`          | `token`                    |
-| (I3)  | `outfeed_config` | constant of type `string`  |
+| Label | Name             | Type                                            |
+|-------|------------------|-------------------------------------------------|
+| (I1)  | `inputs`         | variadic number of tensors or quantized tensors |
+| (I2)  | `token`          | `token`                                         |
+| (I3)  | `outfeed_config` | constant of type `string`                       |
 
 #### Outputs
 
@@ -3904,9 +3930,9 @@ separate outputs to improve clarity
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C2), (C3)  |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C2), (C3)  |
 
 #### Constraints
 
@@ -4939,7 +4965,7 @@ implementation-defined. This flag duplicates the information provided in
 
 | Label | Name               | Type                                            | Constraints |
 |-------|--------------------|-------------------------------------------------|-------------|
-| (I1)  | `inputs`           | variadic number of tensors                      |             |
+| (I1)  | `inputs`           | variadic number of tensors or quantized tensors |             |
 | (I2)  | `token`            | `token`                                         |             |
 | (I3)  | `channel_id`       | constant of type `si64`                         |             |
 | (I4)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `DEVICE_TO_HOST` | (C1)        |
@@ -5501,31 +5527,35 @@ the values in the other triangle are implementation-defined.
 If `unit_diagonal` is true, then the implementation can assume that the diagonal
 elements of `a` are equal to 1, otherwise the behavior is undefined.
 
+For quantized types, performs
+`dequantize_op_quantize(lambda x, y: triangular_solve(x, y, left_side, lower,
+unit_diagonal, transpose_a), a, b, type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                               | Constraints |
-|-------|-----------------|----------------------------------------------------|-------------|
-| (I1)  | `a`             | tensor of floating-point or complex type           | (C1-C3)     |
-| (I2)  | `b`             | tensor of floating-point or complex type           | (C1-C4)     |
-| (I3)  | `left_side`     | constant of type `i1`                              | (C3)        |
-| (I4)  | `lower`         | constant of type `i1`                              |             |
-| (I5)  | `unit_diagonal` | constant of type `i1`                              |             |
-| (I6)  | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT` |             |
+| Label | Name            | Type                                                                    | Constraints |
+|-------|-----------------|-------------------------------------------------------------------------|-------------|
+| (I1)  | `a`             | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C3)     |
+| (I2)  | `b`             | tensor of floating-point or complex type or per-tensor quantized tensor | (C1-C4)     |
+| (I3)  | `left_side`     | constant of type `i1`                                                   | (C3)        |
+| (I4)  | `lower`         | constant of type `i1`                                                   |             |
+| (I5)  | `unit_diagonal` | constant of type `i1`                                                   |             |
+| (I6)  | `transpose_a`   | enum of `NO_TRANSPOSE`, `TRANSPOSE`, and `ADJOINT`                      |             |
 
 #### Outputs
 
-| Name     | Type                                     | Constraints |
-|----------|------------------------------------------|-------------|
-| `result` | tensor of floating-point or complex type | (C1)        |
+| Name     | Type                                                                    | Constraints |
+|----------|-------------------------------------------------------------------------|-------------|
+| `result` | tensor of floating-point or complex type or per-tensor quantized tensor | (C1)        |
 
 #### Constraints
 
-* (C1) `element_type(a) = element_type(b)`.
+* (C1) `baseline_element_type(a) = baseline_element_type(b)`.
 * (C2) `2 <= rank(a) = rank(b) = R`.
 * (C3) The relationship between `shape(a)` and `shape(b)` is defined as follows:
   * `shape(a)[:-3] = shape(b)[:-3]`.
   * `dim(a, -2) = dim(a, -1) = dim(b, left_side ? -2 : -1)`.
-* (C4) `type(b) = type(result)`.
+* (C4) `baseline_type(b) = baseline_type(result)`.
 
 #### Examples
 
@@ -5685,17 +5715,17 @@ The behavior of an infinite loop is TBD
 
 #### Inputs
 
-| Label | Name      | Type                                 | Constraints |
-|-------|-----------|--------------------------------------|-------------|
-| (I1)  | `operand` | variadic number of tensors or tokens | (C1-C3)     |
-| (I2)  | `cond`    | function                             | (C1)        |
-| (I3)  | `body`    | function                             | (C2)        |
+| Label | Name      | Type                                                    | Constraints |
+|-------|-----------|---------------------------------------------------------|-------------|
+| (I1)  | `operand` | variadic number of tensors, quantized tensors or tokens | (C1-C3)     |
+| (I2)  | `cond`    | function                                                | (C1)        |
+| (I3)  | `body`    | function                                                | (C2)        |
 
 #### Outputs
 
-| Name      | Type                                 | Constraints |
-|-----------|--------------------------------------|-------------|
-| `results` | variadic number of tensors or tokens | (C3)        |
+| Name      | Type                                                    | Constraints |
+|-----------|---------------------------------------------------------|-------------|
+| `results` | variadic number of tensors, quantized tensors or tokens | (C3)        |
 
 #### Constraints
 
