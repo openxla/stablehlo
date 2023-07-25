@@ -2076,7 +2076,7 @@ If `batch_group_count > 1`:
        input_spatial_dimensions + [input_feature_dimension]`:
   * `is_unique(input_dimensions)`.
   * `0 <= input_dimensions < N`.
-* (C14) `dim(rhs, kernel_input_feature_dimension = dim(lhs, input_feature_dimension) / feature_group_count`.
+* (C14) `dim(rhs, kernel_input_feature_dimension) = dim(lhs, input_feature_dimension) / feature_group_count`.
 * (C15) `dim(rhs, kernel_output_feature_dimension) % batch_group_count = 0`.
 * (C16) `dim(rhs, kernel_output_feature_dimension) % feature_group_count = 0`.
 * (C17) `size(kernel_spatial_dimensions) = N - 2`.
