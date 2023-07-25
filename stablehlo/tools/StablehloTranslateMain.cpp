@@ -31,6 +31,7 @@ limitations under the License.
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.h"
+#include "stablehlo/tests/InterpreterOps.h"
 
 namespace mlir {
 
@@ -150,6 +151,7 @@ TranslateFromMLIRRegistration interpretRegistration(
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
+      registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
 

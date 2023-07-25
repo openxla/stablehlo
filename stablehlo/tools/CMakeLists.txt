@@ -58,6 +58,7 @@ target_link_libraries(stablehlo-translate PRIVATE
   StablehloReferenceTensor
   StablehloRegister
   StablehloSerialization
+  StablehloTestsInterpreterOps
   VhloOps
 )
 

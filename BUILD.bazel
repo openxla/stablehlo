@@ -823,6 +823,7 @@ cc_binary(
         ":stablehlo_serialization",
         ":vhlo_ops",
         "//stablehlo/tests:check_ops",
+        "//stablehlo/tests:interpreter_ops",
         "//stablehlo/tests:test_utils",
         "@llvm-project//mlir:AllPassesAndDialects",
         "@llvm-project//mlir:FuncDialect",
