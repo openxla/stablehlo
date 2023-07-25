@@ -220,9 +220,8 @@ To avoid identification of identity functions which could be tricky in general.
 ## Option 2: re-scale input to accumulation type
 
 This option is the simplest from the POV for specification of quantized `reduce`
-op. This is adding `stablehlo.uniform_quantize` and `stablehlo.dequantize` ops
-respectively before and after reduce op which operates on the "accumulator"
-type.
+op. This is adding `stablehlo.uniform_quantize`ops before and after reduce op
+which operates on the "accumulator" type.
 
 ```mlir
 %widen = "stablehlo.uniform_quantize"(%input)
@@ -234,7 +233,7 @@ type.
     }
     : (tensor<... x !quant.uniform<i32:f32, ...>>) -> tensor<... x !quant.uniform<i32:f32, ...>>
 
-%narrowed = "stablehlo.uniform_dequantize"(%reduce)
+%narrowed = "stablehlo.uniform_quantize"(%reduce)
     : (tensor<... x !quant.uniform<i32:f32, ...>>) -> tensor<... x !quant.uniform<ui8:f32, ...>>
 ```
 
