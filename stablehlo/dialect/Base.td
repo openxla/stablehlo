@@ -189,6 +189,11 @@ class HLO_NativeOpTrait<string name> : NativeOpTrait<name> {
 // semantics.
 def HLO_BroadcastingElementwise : HLO_NativeOpTrait<"BroadcastingElementwise">;
 
+// This class adds property that the operation is commutative.
+// Upstream IsCommutative has default folders, and StableHLO aims to have no
+// default folders or canonicalizations.
+def HLO_Commutative : HLO_NativeOpTrait<"IsCommutative">;
+
 // Op has pairwise operand and result type matching: the number of operands
 // must be equal to the number of results and the type of ith operand must
 // match the type of ith result.

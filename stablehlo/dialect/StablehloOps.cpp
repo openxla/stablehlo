@@ -1467,7 +1467,7 @@ static bool isEligibleForCompactPrint(ReduceOp op) {
   if (innerOp.getNumOperands() != 2 ||
       !innerOp.hasTrait<mlir::OpTrait::OneResult>() ||
       !hasSameOperandAndResultTypes(innerOp) ||
-      !innerOp.hasTrait<mlir::OpTrait::IsCommutative>() ||
+      !innerOp.hasTrait<mlir::hlo::OpTrait::IsCommutative>() ||
       !innerOp.hasTrait<mlir::OpTrait::ZeroRegions>())
     return false;
 
@@ -1664,7 +1664,7 @@ ParseResult ReduceOp::parse(OpAsmParser& parser, OperationState& result) {
   if (!innerOpDialect || !innerOpDialect->getNamespace().equals("stablehlo") ||
       !innerOpNameInfo->hasTrait<mlir::OpTrait::NOperands<2>::Impl>() ||
       !innerOpNameInfo->hasTrait<mlir::OpTrait::OneResult>() ||
-      !innerOpNameInfo->hasTrait<mlir::OpTrait::IsCommutative>() ||
+      !innerOpNameInfo->hasTrait<mlir::hlo::OpTrait::IsCommutative>() ||
       !innerOpNameInfo->hasTrait<mlir::OpTrait::ZeroRegions>()) {
     parser.emitError(loc,
                      "expected the inner-op to be a commutative binary-op from "
