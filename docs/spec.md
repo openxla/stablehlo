@@ -6329,33 +6329,47 @@ def baseline_type(x: Value | Placeholder | Type) -> Type:
 floating-point tensor types. This happens via converting quantized elements
 which represent integer values of the storage type into corresponding
 floating-point values of the expressed type using the zero point and scale
-associated with the quantized element type. At the moment, this function only
-works for per-tensor quantization. Per-axis quantization is work in progress
-([#1574](https://github.com/openxla/stablehlo/issues/1574)).
+associated with the quantized element type.
 
 ```python
+def get_zero_points(quantized_type, result_type):
+  if is_per_tensor_quantized(quantized_type):
+    return broadcast_in_dim(constant(zero_point(quantized_type), storage_type(quantized_type)), [], result_type)
+  if is_per_axis_quantized(quantized_type):
+    for i in index_space(result_type):
+      d = quantized_dimension(quantized_type)
+      zero_points[i] = zero_points(quantized_type)[i[d]]
+    return zero_points
+
+def get_scales(quantized_type, result_type):
+  if is_per_tensor_quantized(quantized_type):
+    return broadcast_in_dim(constant(scale(quantized_type), expressed_type(quantized_type)), [],
+            type(result_type))
+  if is_per_axis_quantized(quantized_type):
+    for i in index_space(result_type):
+      d = quantized_dimension(quantized_type)
+      scales[i] = scales(quantized_type)[i[d]]
+    return scales
+
 def dequantize(x: Value) -> Value:
   assert is_quantized(x)
   x_storage = bitcast_convert(x, storage_type(x))
-  x_storage_sub = x_storage - zero_point(x_storage)
+  x_storage_sub = x_storage - get_zero_points(type(x), type(x_storage))
   x_expressed_sub = convert(x_storage_sub, expressed_type(x))
-  return x_expressed_sub * scale(x)
+  return x_expressed_sub * get_scales(type(x), type(x_expressed_sub))
 ```
 
 * `quantize` is defined on floating-point tensor types and turns them into
 quantized tensor types. This happens via converting floating-point values
 of the expressed type into corresponding integer values of the storage type
 using the zero point and scale associated with the quantized element type.
-At the moment, this function only works for per-tensor quantization. Per-axis
-quantization is work in progress
-([#1574](https://github.com/openxla/stablehlo/issues/1574)).
 
 ```python
 def quantize(x: Value, type: Type) -> Value:
   assert is_float(x) and is_quantized(type)
-  x_expressed_rounded = round_nearest_even(x / scale(type))
+  x_expressed_rounded = round_nearest_even(x / get_scales(type, type(x)))
   x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
-  x_storage_add = x_storage_rounded + zero_point(type)
+  x_storage_add = x_storage_rounded + get_zero_points(type, type(x_storage_rounded))
   x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
   return bitcast_convert(x_storage, type)
 ```
