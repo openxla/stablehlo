@@ -102,6 +102,7 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &interiorPadding,
                  ShapedType resultType);
+Tensor evalPartitionIdOp(Process *process, MLIRContext *context);
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType);
 Tensor evalPowerOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalRealOp(const Tensor &operand, ShapedType resultType);

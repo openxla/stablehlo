@@ -404,6 +404,9 @@ SmallVector<InterpreterValue> eval(
       auto result = evalPadOp(operand, paddingValue, edgePaddingLow,
                               interiorPadding, padOp.getType());
       scope.add(padOp.getResult(), result);
+    } else if (auto partitionIdOp = dyn_cast<PartitionIdOp>(op)) {
+      auto result = evalPartitionIdOp(process, op.getContext());
+      scope.add(partitionIdOp.getResult(), result);
     } else if (auto populationCountOp = dyn_cast<PopulationCountOp>(op)) {
       auto operand = scope.findTensor(populationCountOp.getOperand());
       auto result = evalPopulationCountOp(operand, populationCountOp.getType());
@@ -1188,6 +1191,16 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
       result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
+}
+
+Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
+  if (!process)
+    llvm::report_fatal_error(
+        "partition_id is only supported when run via interpreter.run_parallel");
+  auto partitionId = process->processId.partitionId;
+  auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
+  return Tensor(RankedTensorType::get({}, elementType),
+                Element(elementType, APInt(32, partitionId)));
 }
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
