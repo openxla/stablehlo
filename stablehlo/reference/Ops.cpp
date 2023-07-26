@@ -342,14 +342,14 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(isFiniteOp.getOperand());
       auto result = evalIsFiniteOp(operand, isFiniteOp.getType());
       scope.add(isFiniteOp.getResult(), result);
-    } else if (auto logOp = dyn_cast<LogOp>(op)) {
-      auto operand = scope.findTensor(logOp.getOperand());
-      auto result = evalLogOp(operand, logOp.getType());
-      scope.add(logOp.getResult(), result);
     } else if (auto log1pOp = dyn_cast<Log1pOp>(op)) {
       auto operand = scope.findTensor(log1pOp.getOperand());
       auto result = evalLog1pOp(operand, log1pOp.getType());
       scope.add(log1pOp.getResult(), result);
+    } else if (auto logOp = dyn_cast<LogOp>(op)) {
+      auto operand = scope.findTensor(logOp.getOperand());
+      auto result = evalLogOp(operand, logOp.getType());
+      scope.add(logOp.getResult(), result);
     } else if (auto logisticOp = dyn_cast<LogisticOp>(op)) {
       auto operand = scope.findTensor(logisticOp.getOperand());
       auto result = evalLogisticOp(operand, logisticOp.getType());
@@ -493,15 +493,15 @@ SmallVector<InterpreterValue> eval(
       failOnDecomposableOp(op);
     } else if (isa<RngOp>(op)) {
       failOnDecomposableOp(op);
-    } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
-      auto operand = scope.findTensor(roundOp.getOperand());
-      auto result = evalRoundOp(operand, roundOp.getType());
-      scope.add(roundOp.getResult(), result);
     } else if (auto roundNearestEvenOp = dyn_cast<RoundNearestEvenOp>(op)) {
       auto operand = scope.findTensor(roundNearestEvenOp.getOperand());
       auto result =
           evalRoundNearestEvenOp(operand, roundNearestEvenOp.getType());
       scope.add(roundNearestEvenOp.getResult(), result);
+    } else if (auto roundOp = dyn_cast<RoundOp>(op)) {
+      auto operand = scope.findTensor(roundOp.getOperand());
+      auto result = evalRoundOp(operand, roundOp.getType());
+      scope.add(roundOp.getResult(), result);
     } else if (auto rsqrtOp = dyn_cast<RsqrtOp>(op)) {
       auto operand = scope.findTensor(rsqrtOp.getOperand());
       auto result = evalRsqrtOp(operand, rsqrtOp.getType());
@@ -523,12 +523,6 @@ SmallVector<InterpreterValue> eval(
                         insertedWindowDims, scatterDimsToOperandDims,
                         indexVectorDim, updateComputation, scope, resultTypes);
       scope.add(scatterOp.getResults(), results);
-    } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
-      auto pred = scope.findTensor(selectOp.getPred());
-      auto onTrue = scope.findTensor(selectOp.getOnTrue());
-      auto onFalse = scope.findTensor(selectOp.getOnFalse());
-      auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
-      scope.add(selectOp.getResult(), result);
     } else if (auto selectAndScatterOp = dyn_cast<SelectAndScatterOp>(op)) {
       auto operand = scope.findTensor(selectAndScatterOp.getOperand());
       auto source = scope.findTensor(selectAndScatterOp.getSource());
@@ -562,6 +556,12 @@ SmallVector<InterpreterValue> eval(
           paddingLow, selectAndScatterOp.getSelect(),
           selectAndScatterOp.getScatter(), scope, selectAndScatterOp.getType());
       scope.add(selectAndScatterOp.getResult(), result);
+    } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
+      auto pred = scope.findTensor(selectOp.getPred());
+      auto onTrue = scope.findTensor(selectOp.getOnTrue());
+      auto onFalse = scope.findTensor(selectOp.getOnFalse());
+      auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
+      scope.add(selectOp.getResult(), result);
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
       auto lhs = scope.findTensor(shiftLeftOp.getLhs());
       auto rhs = scope.findTensor(shiftLeftOp.getRhs());
@@ -776,6 +776,18 @@ Tensor evalClampOp(const Tensor &min, const Tensor &operand, const Tensor &max,
   return result;
 }
 
+Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    auto element =
+        convert(resultType.getElementType(),
+                static_cast<uint64_t>(
+                    operand.get(*it).getIntegerValue().countLeadingZeros()));
+    result.set(*it, element);
+  }
+  return result;
+}
+
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
                      ShapedType resultType) {
@@ -845,18 +857,6 @@ Tensor evalCosineOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, cosine(operand.get(*it)));
-  return result;
-}
-
-Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
-  Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    auto element =
-        convert(resultType.getElementType(),
-                static_cast<uint64_t>(
-                    operand.get(*it).getIntegerValue().countLeadingZeros()));
-    result.set(*it, element);
-  }
   return result;
 }
 
@@ -1302,17 +1302,17 @@ Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
   return result;
 }
 
-Tensor evalRoundOp(const Tensor &operand, ShapedType resultType) {
-  Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it)
-    result.set(*it, roundNearestAfz(operand.get(*it)));
-  return result;
-}
-
 Tensor evalRoundNearestEvenOp(const Tensor &operand, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, roundNearestEven(operand.get(*it)));
+  return result;
+}
+
+Tensor evalRoundOp(const Tensor &operand, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it)
+    result.set(*it, roundNearestAfz(operand.get(*it)));
   return result;
 }
 
@@ -1389,17 +1389,6 @@ SmallVector<Tensor> evalScatterOp(
   return results;
 }
 
-Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
-                    const Tensor &onFalse, ShapedType resultType) {
-  Tensor result(resultType);
-  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
-    Element predValue = pred.getRank() != 0 ? pred.get(*it) : pred.get({});
-    result.set(
-        *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
-  }
-  return result;
-}
-
 Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
                               const Tensor &initValue,
                               const Sizes &windowDimensions,
@@ -1453,6 +1442,17 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
         result.set(operandIndex, reducedResult[0].get({}));
       }
     });
+  }
+  return result;
+}
+
+Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
+                    const Tensor &onFalse, ShapedType resultType) {
+  Tensor result(resultType);
+  for (auto it = result.index_begin(); it != result.index_end(); ++it) {
+    Element predValue = pred.getRank() != 0 ? pred.get(*it) : pred.get({});
+    result.set(
+        *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
   return result;
 }
