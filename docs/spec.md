@@ -1999,7 +1999,7 @@ If `feature_group_count = 1` and `batch_group_count = 1`, then for all
 `output_spatial_index` in `index_space(dim(result, output_spatial_dimensions...))`,
 `result[result_shape(:, output_spatial_index, :)] = dot_product` where:
 
-* `padding_value = constant(is_quantized(lhs) ? quantize(0, element_type(lhs)) : 0, element_type(lhs))`.
+* `padding_value = constant(0, element_type(lhs))`.
 * `padded_lhs = pad(lhs, padding_value, lhs_padding[:, 0], lhs_padding[:, 1], lhs_base_dilations - 1)`.
 * `lhs_window_start = lhs_shape(0, output_spatial_index, 0) * lhs_window_strides`.
 * `lhs_window = slice(padded_lhs, lhs_window_start, lhs_window_start + lhs_window_dimensions, lhs_window_dilations)`.
@@ -2026,6 +2026,16 @@ If `batch_group_count > 1`:
 * `results... = convolution(lhses..., rhses..., ..., batch_group_count=1, ...)`.
 * `result = concatenate(results, output_feature_dimension)`.
 <!-- markdownlint-enable line-length -->
+
+For quantized types, performs `dequantize_op_quantize(
+    lambda lhs, rhs: convolution(lhs, rhs, window_strides, padding,
+        lhs_dilation, rhs_dilation, window_reversal, input_batch_dimension,
+        input_feature_dimension, input_spatial_dimensions,
+        kernel_input_feature_dimension, kernel_output_feature_dimension,
+        kernel_spatial_dimensions, output_batch_dimension,
+        output_feature_dimension, output_spatial_dimensions,
+        feature_group_count, batch_group_count, precision_config), lhs, rhs,
+    type(result))`.
 
 #### Inputs
 
@@ -2346,22 +2356,17 @@ More formally, `result[result_index] = dot_product`, where:
 * `transposed_rhs = transpose(rhs, rhs_batching_dimensions + rhs_result_dimensions + rhs_contracting_dimensions)`.
 * `transposed_rhs_slice = slice(transposed_rhs, result_batching_index + result_rhs_index + [:, ..., :])`.
 * `reshaped_rhs_slice = reshape(transposed_rhs_slice, dims(rhs, rhs_contracting_dimensions))`.
-* For non-quantized types:
-  * `dot_product = reduce(
-      inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
-      init_values=[constant(0, element_type(result))],
-      dimensions=range(size(lhs_contracting_dimensions)),
-      body=lambda x, y: add(x, y))`.
-* For quantized types:
-  * `integer_dot_product = reduce(
-      inputs=[multiply((reshaped_lhs_slice - zero_point(reshaped_lhs_slice)),
-                       (reshaped_rhs_slice - zero_point(reshaped_rhs_slice))],
-      init_values=[constant(0, storage_type(result)],
-      dimensions=range(size(lhs_contracting_dimensions)),
-      body=lambda x, y: add(x, y))`.
-  * `rounded_dot_product = round_nearest_even(integer_dot_product * (scale(reshaped_lhs_slice) * scale(reshape_rhs_slice) / scale(result)))`.
-  * `dot_product = clamp(storage_min(result), rounded_dot_product + zero_point(result), storage_max(result))`.
+* `dot_product = reduce(
+    inputs=[multiply(reshaped_lhs_slice, reshaped_rhs_slice)],
+    init_values=[constant(0, element_type(result))],
+    dimensions=range(size(lhs_contracting_dimensions)),
+    body=lambda x, y: add(x, y))`.
 <!-- markdownlint-enable line-length -->
+
+For quantized types, performs `dequantize_op_quantize(
+    lambda lhs, rhs: dot_general(lhs, rhs, lhs_batching_dimensions,
+        rhs_batching_dimensions, lhs_contracting_dimensions,
+        rhs_contracting_dimensions, precision_config), lhs, rhs, type(result))`.
 
 This only specifies semantics for per-tensor quantization. Per-axis quantization
 is work in progress ([#1574](https://github.com/openxla/stablehlo/issues/1574)).
