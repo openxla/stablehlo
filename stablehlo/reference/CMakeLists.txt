@@ -53,7 +53,9 @@ add_mlir_dialect_library(InterpreterOps
   InterpreterOpsIncGen
 
   LINK_LIBS PUBLIC
+  StablehloOps
   StablehloReferenceInterpreterValue
+  StablehloReferenceProcessGrid
   MLIRIR
   MLIRSupport
 )
@@ -80,9 +82,17 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceIndex
   StablehloReferenceInterpreterValue
+  StablehloReferenceProcessGrid
   StablehloReferenceTensor
   StablehloReferenceToken
   StablehloTypeInference
+)
+
+add_mlir_library(StablehloReferenceProcessGrid
+  PARTIAL_SOURCES_INTENDED
+  ProcessGrid.cpp
+
+  LINK_LIBS PUBLIC
 )
 
 add_mlir_library(StablehloReferenceScope

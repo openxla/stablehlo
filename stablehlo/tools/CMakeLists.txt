@@ -54,6 +54,7 @@ target_link_libraries(stablehlo-translate PRIVATE
   CheckOps
   InterpreterOps
   StablehloOps
+  StablehloReferenceInterpreterValue
   StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceTensor

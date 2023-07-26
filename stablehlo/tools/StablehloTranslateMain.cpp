@@ -13,7 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/ADT/StringRef.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
@@ -28,6 +30,7 @@ limitations under the License.
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
+#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
@@ -77,7 +80,8 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
   return status;
 }
 
-llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
+llvm::Error interpreterFallback(Operation &op, stablehlo::Process &process,
+                                stablehlo::Scope &scope,
                                 llvm::StringRef funcName) {
   if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
     if (customCall.getCallTargetName() == "check.eq") {
@@ -122,6 +126,21 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Scope &scope,
     return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
   }
 
+  if (auto runParallelOp =
+          dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
+    auto runtimeOperands = scope.find(runParallelOp.getInputs());
+    auto numReplicas = runParallelOp.getNumReplicas();
+    auto numPartitions = runParallelOp.getNumPartitions();
+    SmallVector<StringRef> programs;
+    for (auto program : runParallelOp.getPrograms().getValue())
+      programs.push_back(program.cast<StringAttr>().strref());
+    auto results = stablehlo::interpreter::evalRunParallelOp(
+        runtimeOperands, programs, numReplicas, numPartitions, op);
+    scope.add(runParallelOp.getResults(), results);
+    return wrapStatus(llvm::Error::success(), funcName,
+                      "interpreter.run_parallel");
+  }
+
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
@@ -132,14 +151,21 @@ TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        auto interpreterFallbackFn = [&](Operation &op,
-                                         stablehlo::Scope &scope) {
-          return interpreterFallback(op, scope, funcOp.getSymName());
+        if (auto symNameAttr = module.getSymNameAttr())
+          if (symNameAttr.strref().equals(StringRef("distribution_ops")) &&
+              funcOp.getSymName() != "main")
+            return WalkResult::advance();
+
+        auto interpreterFallbackFn =
+            [&](Operation &op, stablehlo::Process &process,
+                stablehlo::Scope &scope) -> llvm::Error {
+          return interpreterFallback(op, process, scope, funcOp.getSymName());
         };
 
         // Run the test model.
-        auto results = stablehlo::eval(funcOp.getBody(), {}, /*parent=*/nullptr,
-                                       interpreterFallbackFn);
+        auto results =
+            stablehlo::eval(funcOp.getBody(), /*args=*/{}, /*process=*/nullptr,
+                            /*parent=*/nullptr, interpreterFallbackFn);
 
         // Dump the results.
         for (auto &result : results) result.print(os);

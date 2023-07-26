@@ -37,6 +37,23 @@ def Interpreter_Dialect : Dialect {
 //===----------------------------------------------------------------------===//
 
 def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
+  let summary = "RunParallel operation";
+  let description = [{
+    Runs `programs` in parallel with variadic `inputs` for the program. Each
+    input in `inputs` correspond to the inputs of each program in `programs`,
+    and the results from the programs are guaranteed to be in the same order
+    specified in `programs`. If the constraints are not met, the behavior is
+    undefined.
+
+    Example:
+    ```mlir
+    %results:2 = "interpreter.run_parallel"() {
+      programs=["foo"],
+      num_replicas=2,
+      num_partitions=1
+    } : () -> (tensor<ui32>, tensor<ui32>)
+    ```
+  }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
     StrArrayAttr:$programs,

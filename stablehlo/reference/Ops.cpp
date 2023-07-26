@@ -30,6 +30,7 @@ limitations under the License.
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
 #include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
 
@@ -70,7 +71,7 @@ Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<Tensor> initValues,
                                  const Axes &dimensions, Region &body,
-                                 Scope &scope) {
+                                 Process &process, Scope &scope) {
   SmallVector<Type> inputTypes;
   for (const auto &input : inputs) inputTypes.push_back(input.getType());
 
@@ -94,7 +95,8 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
       llvm::report_fatal_error("Could not infer ReduceOp's return type");
     resultTypes.push_back(shapedType);
   }
-  return evalReduceOp(inputs, initValues, dimensions, body, scope, resultTypes);
+  return evalReduceOp(inputs, initValues, dimensions, body, process, scope,
+                      resultTypes);
 }
 
 Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
@@ -143,8 +145,9 @@ void failOnDecomposableOp(Operation &op) {
 }  // namespace
 
 SmallVector<InterpreterValue> eval(
-    Region &region, ArrayRef<InterpreterValue> args, Scope *parent,
-    llvm::function_ref<llvm::Error(Operation &, Scope &)> fallback) {
+    Region &region, ArrayRef<InterpreterValue> args, Process *process,
+    Scope *parent,
+    llvm::function_ref<llvm::Error(Operation &, Process &, Scope &)> fallback) {
   Block &block = region.front();
   if (block.getArguments().size() != args.size())
     report_fatal_error(invalidArgument(
@@ -200,7 +203,7 @@ SmallVector<InterpreterValue> eval(
     } else if (auto caseOp = dyn_cast<CaseOp>(op)) {
       auto index = scope.findTensor(caseOp.getIndex());
       auto branches = caseOp.getBranches();
-      auto results = evalCaseOp(index, branches, scope);
+      auto results = evalCaseOp(index, branches, *process, scope);
       scope.add(caseOp.getResults(), results);
     } else if (auto cbrtOp = dyn_cast<CbrtOp>(op)) {
       auto operand = scope.findTensor(cbrtOp.getOperand());
@@ -328,7 +331,7 @@ SmallVector<InterpreterValue> eval(
       auto pred = scope.findTensor(ifOp.getPred());
       auto &trueBranch = ifOp.getTrueBranch();
       auto &falseBranch = ifOp.getFalseBranch();
-      auto results = evalIfOp(pred, trueBranch, falseBranch, scope);
+      auto results = evalIfOp(pred, trueBranch, falseBranch, *process, scope);
       scope.add(ifOp.getResults(), results);
     } else if (auto imagOp = dyn_cast<ImagOp>(op)) {
       auto operand = scope.findTensor(imagOp.getOperand());
@@ -357,7 +360,8 @@ SmallVector<InterpreterValue> eval(
     } else if (auto mapOp = dyn_cast<MapOp>(op)) {
       auto inputs = scope.findTensors(mapOp.getInputs());
       auto &computation = mapOp.getComputation();
-      auto result = evalMapOp(inputs, computation, scope, mapOp.getType());
+      auto result =
+          evalMapOp(inputs, computation, *process, scope, mapOp.getType());
       scope.add(mapOp.getResult(), result);
     } else if (auto maxOp = dyn_cast<MaxOp>(op)) {
       auto lhs = scope.findTensor(maxOp.getLhs());
@@ -421,7 +425,7 @@ SmallVector<InterpreterValue> eval(
         resultTypes.push_back(resultType.cast<ShapedType>());
       auto results =
           evalReduceOp(inputs, initValues, Axes(reduceOp.getDimensions()),
-                       reduceOp.getBody(), scope, resultTypes);
+                       reduceOp.getBody(), *process, scope, resultTypes);
       scope.add(reduceOp.getResults(), results);
     } else if (auto reducePrecisionOp = dyn_cast<ReducePrecisionOp>(op)) {
       auto operand = scope.findTensor(reducePrecisionOp.getOperand());
@@ -469,13 +473,16 @@ SmallVector<InterpreterValue> eval(
       auto results = evalReduceWindowOp(
           inputs, initValues, Sizes(reduceWindowOp.getWindowDimensions()),
           windowStrides, baseDilations, windowDilations, paddingLow,
-          paddingHigh, reduceWindowOp.getBody(), scope, resultTypes);
+          paddingHigh, reduceWindowOp.getBody(), *process, scope, resultTypes);
       scope.add(reduceWindowOp.getResults(), results);
     } else if (auto remOp = dyn_cast<RemOp>(op)) {
       auto lhs = scope.findTensor(remOp.getLhs());
       auto rhs = scope.findTensor(remOp.getRhs());
       auto result = evalRemOp(lhs, rhs, remOp.getType());
       scope.add(remOp.getResult(), result);
+    } else if (auto replicaIdOp = dyn_cast<ReplicaIdOp>(op)) {
+      auto result = evalReplicaIdOp(*process, op.getContext());
+      scope.add(replicaIdOp.getResult(), result);
     } else if (auto reshapeOp = dyn_cast<ReshapeOp>(op)) {
       auto operand = scope.findTensor(reshapeOp.getOperand());
       auto result = evalReshapeOp(operand, reshapeOp.getType());
@@ -518,10 +525,10 @@ SmallVector<InterpreterValue> eval(
       Axis indexVectorDim(scatterDimensionNumbers.getIndexVectorDim());
       auto &updateComputation = scatterOp.getUpdateComputation();
       SmallVector<ShapedType> resultTypes(scatterOp->getResultTypes());
-      auto results =
-          evalScatterOp(inputs, scatterIndices, updates, updateWindowDims,
-                        insertedWindowDims, scatterDimsToOperandDims,
-                        indexVectorDim, updateComputation, scope, resultTypes);
+      auto results = evalScatterOp(
+          inputs, scatterIndices, updates, updateWindowDims, insertedWindowDims,
+          scatterDimsToOperandDims, indexVectorDim, updateComputation, *process,
+          scope, resultTypes);
       scope.add(scatterOp.getResults(), results);
     } else if (auto selectAndScatterOp = dyn_cast<SelectAndScatterOp>(op)) {
       auto operand = scope.findTensor(selectAndScatterOp.getOperand());
@@ -554,7 +561,8 @@ SmallVector<InterpreterValue> eval(
       auto result = evalSelectAndScatterOp(
           operand, source, initValue, windowDimensions, windowStrides,
           paddingLow, selectAndScatterOp.getSelect(),
-          selectAndScatterOp.getScatter(), scope, selectAndScatterOp.getType());
+          selectAndScatterOp.getScatter(), *process, scope,
+          selectAndScatterOp.getType());
       scope.add(selectAndScatterOp.getResult(), result);
     } else if (auto selectOp = dyn_cast<SelectOp>(op)) {
       auto pred = scope.findTensor(selectOp.getPred());
@@ -600,8 +608,8 @@ SmallVector<InterpreterValue> eval(
       auto dimension = sortOp.getDimension();
       auto isStable = sortOp.getIsStable();
       auto &comparator = sortOp.getComparator();
-      auto results =
-          evalSortOp(operands, dimension, isStable, comparator, scope);
+      auto results = evalSortOp(operands, dimension, isStable, comparator,
+                                *process, scope);
       scope.add(sortOp.getResults(), results);
     } else if (auto sqrtOp = dyn_cast<SqrtOp>(op)) {
       auto operand = scope.findTensor(sqrtOp.getOperand());
@@ -634,7 +642,7 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
       auto &body = whileOp.getBody();
-      auto results = evalWhileOp(operand, cond, body, scope);
+      auto results = evalWhileOp(operand, cond, body, *process, scope);
       scope.add(whileOp.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       auto lhs = scope.findTensor(xorOp.getLhs());
@@ -645,7 +653,7 @@ SmallVector<InterpreterValue> eval(
       if (!fallback)
         report_fatal_error(
             invalidArgument("Unsupported op: %s", debugString(op).c_str()));
-      auto status = fallback(op, scope);
+      auto status = fallback(op, *process, scope);
       if (status) llvm::report_fatal_error(std::move(status));
     }
   }
@@ -742,12 +750,13 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
 }
 
 SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
-                                         RegionRange branches, Scope &scope) {
+                                         RegionRange branches, Process &process,
+                                         Scope &scope) {
   int64_t indexValue = index.get({}).getIntegerValue().getSExtValue();
   if (indexValue < 0 || indexValue >= static_cast<int64_t>(branches.size()))
     indexValue = branches.size() - 1;
 
-  return eval(*branches[indexValue], {}, &scope);
+  return eval(*branches[indexValue], {}, &process, &scope);
 }
 
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType) {
@@ -1051,9 +1060,11 @@ Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
 }
 
 SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
-                                       Region &falseBranch, Scope &scope) {
-  return pred.get({}).getBooleanValue() ? eval(trueBranch, {}, &scope)
-                                        : eval(falseBranch, {}, &scope);
+                                       Region &falseBranch, Process &process,
+                                       Scope &scope) {
+  return pred.get({}).getBooleanValue()
+             ? eval(trueBranch, {}, &process, &scope)
+             : eval(falseBranch, {}, &process, &scope);
 }
 
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
@@ -1099,8 +1110,8 @@ Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
-Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
-                 ShapedType resultType) {
+Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process &process,
+                 Scope &scope, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it) {
     SmallVector<InterpreterValue> args;
@@ -1109,7 +1120,8 @@ Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Scope &scope,
       tensor.set({}, inputs[i].get(*it));
       args.emplace_back(tensor);
     }
-    result.set(*it, eval(computation, args, &scope)[0].getTensor().get({}));
+    result.set(
+        *it, eval(computation, args, &process, &scope)[0].getTensor().get({}));
   }
   return result;
 }
@@ -1203,7 +1215,7 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<Tensor> initValues,
                                  const Axes &dimensions, Region &body,
-                                 Scope &scope,
+                                 Process &process, Scope &scope,
                                  ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
@@ -1223,7 +1235,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
     for (auto [input, initValue] : llvm::zip(inputs, initValues))
       bodyArgs.emplace_back(Tensor(initValue.getType(), input.get(*inputIt)));
 
-    auto bodyResult = eval(body, bodyArgs, &scope);
+    auto bodyResult = eval(body, bodyArgs, &process, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
       result.set(resultIndex, value.getTensor().get({}));
   }
@@ -1244,7 +1256,7 @@ SmallVector<Tensor> evalReduceWindowOp(
     const Sizes &windowDimensions, const Sizes &windowStrides,
     const Sizes &baseDilations, const Sizes &windowDilations,
     const Sizes &paddingLow, const Sizes &paddingHigh, Region &body,
-    Scope &scope, ArrayRef<ShapedType> resultTypes) {
+    Process &process, Scope &scope, ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
     results.emplace_back(resultType, initValue.get({}));
@@ -1262,8 +1274,8 @@ SmallVector<Tensor> evalReduceWindowOp(
       windows.push_back(
           evalSliceOp(paddedInput, windowStart, windowEnd, windowDilations));
 
-    auto reducedValues =
-        evalReduceOp(windows, initValues, inputs[0].getAxes(), body, scope);
+    auto reducedValues = evalReduceOp(windows, initValues, inputs[0].getAxes(),
+                                      body, process, scope);
     for (auto [result, value] : llvm::zip(results, reducedValues))
       result.set(*resultIt, value.get({}));
   }
@@ -1275,6 +1287,13 @@ Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, rem(lhs.get(*it), rhs.get(*it)));
   return result;
+}
+
+Tensor evalReplicaIdOp(Process &process, MLIRContext *context) {
+  auto replicaId = static_cast<uint64_t>(process.processId.replicaId);
+  auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
+  return Tensor(RankedTensorType::get({}, elementType),
+                convert(elementType, replicaId));
 }
 
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
@@ -1327,8 +1346,8 @@ SmallVector<Tensor> evalScatterOp(
     ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
     ArrayRef<Tensor> updates, const Axes &updateWindowDims,
     const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
-    Axis indexVectorDim, Region &updateComputation, Scope &scope,
-    ArrayRef<ShapedType> resultTypes) {
+    Axis indexVectorDim, Region &updateComputation, Process &process,
+    Scope &scope, ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (const auto &input : inputs) results.push_back(input);
 
@@ -1381,7 +1400,8 @@ SmallVector<Tensor> evalScatterOp(
           Tensor(RankedTensorType::get({}, update.getElementType()),
                  update.get(updateIndex)));
 
-    auto updatedValues = eval(updateComputation, updateComputationArgs, &scope);
+    auto updatedValues =
+        eval(updateComputation, updateComputationArgs, &process, &scope);
     for (auto [result, updatedValue] : llvm::zip(results, updatedValues))
       result.set(resultIndex, updatedValue.getTensor().get({}));
   }
@@ -1394,7 +1414,7 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
                               const Sizes &windowDimensions,
                               const Sizes &windowStrides,
                               const Sizes &paddingLow, Region &select,
-                              Region &scatter, Scope &scope,
+                              Region &scatter, Process &process, Scope &scope,
                               ShapedType resultType) {
   Tensor result(resultType, initValue.get({}));
 
@@ -1423,7 +1443,8 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
       InterpreterValue currInterpreterVal(
           Tensor(RankedTensorType::get({}, currVal.getType()), currVal));
       auto selectResult =
-          eval(select, {selectedInterpreterVal, currInterpreterVal}, &scope);
+          eval(select, {selectedInterpreterVal, currInterpreterVal}, &process,
+               &scope);
 
       bool selected = !selectResult[0].getTensor().get({}).getBooleanValue();
       if (selected) {
@@ -1437,8 +1458,8 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
             RankedTensorType::get({2}, initValue.getElementType()));
         sourceValues.set({0}, source.get(*sourceIt));
         sourceValues.set({1}, result.get(operandIndex));
-        auto reducedResult =
-            evalReduceOp({sourceValues}, {initValue}, {0}, scatter, scope);
+        auto reducedResult = evalReduceOp({sourceValues}, {initValue}, {0},
+                                          scatter, process, scope);
         result.set(operandIndex, reducedResult[0].get({}));
       }
     });
@@ -1509,7 +1530,7 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
 
 SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator,
-                               Scope &scope) {
+                               Process &process, Scope &scope) {
   SmallVector<Tensor> results;
   for (const auto &input : inputs) results.emplace_back(input.getType());
   auto adjustedDimension =
@@ -1543,7 +1564,7 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
         args.emplace_back(Tensor(argType, input.get(lhsIndex)));
         args.emplace_back(Tensor(argType, input.get(rhsIndex)));
       }
-      auto comparatorResult = eval(comparator, args, &scope);
+      auto comparatorResult = eval(comparator, args, &process, &scope);
       return comparatorResult[0].getTensor().get({}).getBooleanValue();
     };
     if (isStable)
@@ -1607,14 +1628,14 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
 
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
                                           Region &cond, Region &body,
-                                          Scope &scope) {
+                                          Process &process, Scope &scope) {
   SmallVector<InterpreterValue> results(operand);
 
-  auto condResults = eval(cond, operand, &scope);
+  auto condResults = eval(cond, operand, &process, &scope);
 
   while (condResults[0].getTensor().get({}).getBooleanValue()) {
-    results = eval(body, results, &scope);
-    condResults = eval(cond, results, &scope);
+    results = eval(body, results, &process, &scope);
+    condResults = eval(cond, results, &process, &scope);
   }
 
   return results;
