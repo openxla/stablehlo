@@ -2391,7 +2391,7 @@ planning to address this in
 | Label | Name                         | Type                                                         | Constraints                   |
 |-------|------------------------------|--------------------------------------------------------------|-------------------------------|
 | (I1)  | `lhs`                        | tensor or per-tensor quantized tensor                        | (C5-C6), (C9-C10), (C12-C16)  |
-| (I2)  | `rhs`                        | tensor or quantized tensor                                   | (C7-C10), (C12-C18)           |
+| (I2)  | `rhs`                        | tensor or per-tensor quantized tensor                        | (C7-C10), (C12)               |
 | (I3)  | `lhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C3), (C5), (C9), (C12) |
 | (I4)  | `rhs_batching_dimensions`    | 1-dimensional tensor constant of type `si64`                 | (C1), (C4), (C7), (C9)        |
 | (I5)  | `lhs_contracting_dimensions` | 1-dimensional tensor constant of type `si64`                 | (C2), (C3), (C6), (C10)       |
@@ -2400,9 +2400,9 @@ planning to address this in
 
 #### Outputs
 
-| Name     | Type                       | Constraints                |
-|----------|----------------------------|----------------------------|
-| `result` | tensor or quantized tensor | (C12), (C14), (C16), (C18) |
+| Name     | Type                                  | Constraints         |
+|----------|---------------------------------------|---------------------|
+| `result` | tensor or per-tensor quantized tensor | (C12), (C14), (C16) |
 
 #### Constraints
 
@@ -2429,8 +2429,6 @@ planning to address this in
   * (C15) `storage_type(lhs) = storage_type(rhs)`.
   * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
   * (C17) `zero_points(rhs) = 0`.
-  * (C18) If `is_per_tensor_quantized(rhs)`,
-    then `is_per_tensor_quantized(result)`.
 
 #### Examples
 
