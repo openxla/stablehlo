@@ -52,13 +52,13 @@ target_link_libraries(stablehlo-translate PRIVATE
   MLIRTransforms
   MLIRTranslateLib
   CheckOps
+  InterpreterOps
   StablehloOps
   StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceTensor
   StablehloRegister
   StablehloSerialization
-  StablehloTestsInterpreterOps
   VhloOps
 )
 

@@ -13,28 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/tests/InterpreterOps.h"
+#ifndef STABLEHLO_REFERENCE_INTERPRETER_OPS
+#define STABLEHLO_REFERENCE_INTERPRETER_OPS
 
-#define GET_OP_CLASSES
-#include "stablehlo/tests/InterpreterOps.cpp.inc"
+#include "mlir/IR/Dialect.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Operation.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/InterpreterValue.h"
 
 namespace mlir {
 namespace stablehlo {
 namespace interpreter {
 
-//===----------------------------------------------------------------------===//
-// Interpreter Dialect Constructor
-//===----------------------------------------------------------------------===//
-
-InterpreterDialect::InterpreterDialect(MLIRContext *context)
-    : Dialect(getDialectNamespace(), context,
-              TypeID::get<InterpreterDialect>()) {
-  addOperations<
-#define GET_OP_LIST
-#include "stablehlo/tests/InterpreterOps.cpp.inc"
-      >();
-}
+class InterpreterDialect : public Dialect {
+ public:
+  explicit InterpreterDialect(MLIRContext *context);
+  static StringRef getDialectNamespace() { return "interpreter"; }
+};
 
 }  // namespace interpreter
 }  // namespace stablehlo
 }  // namespace mlir
+
+#define GET_OP_CLASSES
+#include "stablehlo/reference/InterpreterOps.h.inc"
+
+#endif  // STABLEHLO_REFERENCE_INTERPRETER_OPS

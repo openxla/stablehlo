@@ -13,11 +13,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_TESTS_INTERPRETER_OPS
-#define STABLEHLO_TESTS_INTERPRETER_OPS
+#ifndef STABLEHLO_REFERENCE_INTERPRETER_OPS
+#define STABLEHLO_REFERENCE_INTERPRETER_OPS
 
 include "stablehlo/dialect/Base.td"
-include "stablehlo/tests/InterpreterDialect.td"
+
+//===----------------------------------------------------------------------===//
+// Interpreter dialect.
+//===----------------------------------------------------------------------===//
+
+def Interpreter_Dialect : Dialect {
+  let name = "interpreter";
+  let cppNamespace = "::mlir::stablehlo::interpreter";
+
+  let description = [{
+    Dialect to implement interpreter-specific functionality, outside of the
+    StableHLO spec.
+  }];
+}
 
 //===----------------------------------------------------------------------===//
 // Interpreter op definitions.
@@ -33,4 +46,4 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   let results = (outs Variadic<HLO_TensorOrToken>:$results);
 }
 
-#endif  // STABLEHLO_TESTS_INTERPRETER_OPS
+#endif  // STABLEHLO_REFERENCE_INTERPRETER_OPS

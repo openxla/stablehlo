@@ -27,11 +27,11 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.h"
-#include "stablehlo/tests/InterpreterOps.h"
 
 namespace mlir {
 

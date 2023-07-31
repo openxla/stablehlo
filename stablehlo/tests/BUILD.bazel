@@ -70,55 +70,6 @@ td_library(
 )
 
 cc_library(
-    name = "interpreter_ops",
-    srcs = [
-        "InterpreterOps.cpp",
-    ],
-    hdrs = [
-        "InterpreterOps.h",
-    ],
-    strip_include_prefix = ".",
-    deps = [
-        ":interpreter_ops_inc_gen",
-        "//:reference_interpretervalue",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
-    ],
-)
-
-gentbl_cc_library(
-    name = "interpreter_ops_inc_gen",
-    tbl_outs = [
-        (
-            ["-gen-op-decls"],
-            "InterpreterOps.h.inc",
-        ),
-        (
-            ["-gen-op-defs"],
-            "InterpreterOps.cpp.inc",
-        ),
-    ],
-    tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "InterpreterOps.td",
-    strip_include_prefix = ".",
-    deps = [
-        ":interpreter_ops_td_files",
-    ],
-)
-
-td_library(
-    name = "interpreter_ops_td_files",
-    srcs = [
-        "InterpreterDialect.td",
-        "InterpreterOps.td",
-    ],
-    includes = ["."],
-    deps = [
-        "//:base_td_files",
-    ],
-)
-
-cc_library(
     name = "test_utils",
     srcs = [
         "TestUtils.cpp",
