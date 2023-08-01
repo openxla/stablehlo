@@ -27,6 +27,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
@@ -150,6 +151,7 @@ TranslateFromMLIRRegistration interpretRegistration(
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();
       registry.insert<stablehlo::check::CheckDialect>();
+      registry.insert<stablehlo::interpreter::InterpreterDialect>();
       registry.insert<stablehlo::StablehloDialect>();
     });
 

@@ -39,6 +39,25 @@ add_mlir_library(StablehloReferenceIndex
   MLIRSupport
 )
 
+set(LLVM_TARGET_DEFINITIONS InterpreterOps.td)
+mlir_tablegen(InterpreterOps.h.inc -gen-op-decls)
+mlir_tablegen(InterpreterOps.cpp.inc -gen-op-defs)
+add_public_tablegen_target(InterpreterOpsIncGen)
+add_dependencies(mlir-headers InterpreterOpsIncGen)
+
+add_mlir_dialect_library(InterpreterOps
+  PARTIAL_SOURCES_INTENDED
+  InterpreterOps.cpp
+
+  DEPENDS
+  InterpreterOpsIncGen
+
+  LINK_LIBS PUBLIC
+  StablehloReferenceInterpreterValue
+  MLIRIR
+  MLIRSupport
+)
+
 add_mlir_library(StablehloReferenceInterpreterValue
   PARTIAL_SOURCES_INTENDED
   InterpreterValue.cpp
