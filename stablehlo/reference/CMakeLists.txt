@@ -53,8 +53,8 @@ add_mlir_dialect_library(InterpreterOps
   InterpreterOpsIncGen
 
   LINK_LIBS PUBLIC
-  StablehloOps
   StablehloReferenceInterpreterValue
+  StablehloReferenceOps
   StablehloReferenceProcessGrid
   MLIRIR
   MLIRSupport
