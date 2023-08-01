@@ -156,6 +156,7 @@ LogicalResult matchInts(Value value, SmallVector<APSInt>& result) {
   DenseIntElementsAttr attr;
   if (!matchPattern(value, m_Constant(&attr))) return failure();
 
+  // Signless types are treated as signed, per StableHLO convention.
   // Unless the type is i1 (which models boolean type from the StableHLO spec),
   // in which case it's considered to be unsigned.
   auto elementType = attr.getType().getElementType();
