@@ -3400,7 +3400,7 @@ LogicalResult verifyDynamicBroadcastInDimOp(
 
   for (int i = 0; i != bcastDimensionsSize; ++i) {
     auto dimIndex = bcastDimensions.getValues<int64_t>()[i];
-    if (dimIndex >= resultRank)
+    if (dimIndex < 0 || dimIndex >= resultRank)
       return emitOptionalError(location,
                                "broadcast_dimensions contains invalid value ",
                                dimIndex, " for result with rank ", resultRank);

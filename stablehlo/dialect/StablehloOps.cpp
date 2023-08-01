@@ -2786,7 +2786,8 @@ char nonSpatialDimToString(NonSpatialDim dim) {
 void printConvolutionDimensions(AsmPrinter& p,
                                 ConvDimensionNumbersAttr dimNums) {
   // TODO(b/202040055): we should check the attribute invariant and print the
-  // "raw" form if they are violated, otherwise we'll crash here.
+  // "raw" form if they are violated, for now report_fatal_error is used to
+  // prevent invalid access.
   auto printDim =
       [&p](ArrayRef<int64_t> spatialDims,
            ArrayRef<std::pair<int64_t, NonSpatialDim>> non_spatialDims) {

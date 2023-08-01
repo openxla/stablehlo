@@ -1330,7 +1330,7 @@ SmallVector<Tensor> evalScatterOp(
     Axis indexVectorDim, Region &updateComputation, Scope &scope,
     ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
-  for (auto input : inputs) results.push_back(input);
+  for (const auto &input : inputs) results.push_back(input);
 
   Axes updateScatterDims;
   for (auto d : updates[0].getAxes())
@@ -1372,11 +1372,11 @@ SmallVector<Tensor> evalScatterOp(
     if (!resultIndex.inBounds(results[0].getShape())) continue;
 
     SmallVector<InterpreterValue> updateComputationArgs;
-    for (auto result : results)
+    for (const auto &result : results)
       updateComputationArgs.push_back(
           Tensor(RankedTensorType::get({}, result.getElementType()),
                  result.get(resultIndex)));
-    for (auto update : updates)
+    for (const auto &update : updates)
       updateComputationArgs.push_back(
           Tensor(RankedTensorType::get({}, update.getElementType()),
                  update.get(updateIndex)));
