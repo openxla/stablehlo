@@ -131,11 +131,17 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
     auto runtimeOperands = scope.find(runParallelOp.getInputs());
     auto numReplicas = runParallelOp.getNumReplicas();
     auto numPartitions = runParallelOp.getNumPartitions();
-    SmallVector<StringRef> programs;
-    for (auto program : runParallelOp.getPrograms().getValue())
-      programs.push_back(program.cast<StringAttr>().strref());
+
+    SmallVector<SmallVector<StringAttr>> programs(
+        runParallelOp.getPrograms().size());
+    for (auto [i, programPartitions] :
+         llvm::enumerate(runParallelOp.getPrograms()))
+      for (auto &program : programPartitions.cast<ArrayAttr>())
+        programs[i].push_back(program.cast<StringAttr>());
+
+    SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
     auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, programs, numReplicas, numPartitions, op);
+        runtimeOperands, programs, numReplicas, numPartitions, symbolTable);
     scope.add(runParallelOp.getResults(), results);
     return wrapStatus(llvm::Error::success(), funcName,
                       "interpreter.run_parallel");
@@ -150,11 +156,17 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
-      auto opsCount = 0;
-      module.walk([&](func::FuncOp funcOp) { opsCount++; });
+      auto numFuncs = 0;
+      bool isDistributed = false;
+      module.walk([&](func::FuncOp funcOp) {
+        if (funcOp.getSymName() == "main") isDistributed = true;
+        numFuncs++;
+      });
+
+      if (numFuncs > 1 && !isDistributed) return failure();
 
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        if (opsCount > 1 && funcOp.getSymName() != "main")
+        if (numFuncs > 1 && funcOp.getSymName() != "main")
           return WalkResult::advance();
 
         auto interpreterFallbackFn =

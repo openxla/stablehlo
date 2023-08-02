@@ -55,7 +55,6 @@ add_mlir_dialect_library(InterpreterOps
   LINK_LIBS PUBLIC
   StablehloReferenceInterpreterValue
   StablehloReferenceOps
-  StablehloReferenceProcess
   MLIRIR
   MLIRSupport
 )
@@ -82,17 +81,9 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceIndex
   StablehloReferenceInterpreterValue
-  StablehloReferenceProcess
   StablehloReferenceTensor
   StablehloReferenceToken
   StablehloTypeInference
-)
-
-add_mlir_library(StablehloReferenceProcess
-  PARTIAL_SOURCES_INTENDED
-  Process.cpp
-
-  LINK_LIBS PUBLIC
 )
 
 add_mlir_library(StablehloReferenceScope

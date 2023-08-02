@@ -1290,7 +1290,9 @@ Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 }
 
 Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
-  if (!process) llvm::report_fatal_error("Process cannot be null");
+  if (!process)
+    llvm::report_fatal_error(
+        "replica_id is only supported when run via interpreter.run_parallel");
   auto replicaId = process->processId.replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
   return Tensor(RankedTensorType::get({}, elementType),

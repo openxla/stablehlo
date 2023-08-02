@@ -7,7 +7,7 @@ module @distribution_ops {
   }
   func.func public @main() {
     %results:2 = "interpreter.run_parallel"() {
-      programs=["replica_id", "replica_id"],
+      programs=[["replica_id"], ["replica_id"]],
       num_replicas=2,
       num_partitions=1
     } : () -> (tensor<ui32>, tensor<ui32>)

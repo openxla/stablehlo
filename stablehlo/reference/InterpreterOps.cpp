@@ -15,10 +15,6 @@ limitations under the License.
 
 #include "stablehlo/reference/InterpreterOps.h"
 
-#include <future>
-#include <map>
-#include <thread>
-
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
@@ -53,40 +49,37 @@ InterpreterDialect::InterpreterDialect(MLIRContext *context)
 // Interpreter Ops Verifier
 //===----------------------------------------------------------------------===//
 
-LogicalResult verifyRunParallelOp(RunParallelOp op,
-                                  std::optional<Location> location,
-                                  ValueRange inputs, ArrayAttr programs,
-                                  int64_t numReplicas, int64_t numPartitions) {
-  size_t argsSize = 0;
-  for (auto &program : programs) {
-    auto funcName = program.cast<StringAttr>().strref();
-    auto func =
-        op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(funcName);
-    if (!func)
-      return emitOptionalError(location, "Function \"", funcName,
-                               "\" not found");
+LogicalResult RunParallelOp::verify() {
+  size_t numArgs = 0;
+  size_t numPrograms = 0;
+  for (auto &programPartitions : getPrograms()) {
+    for (auto &program : programPartitions.cast<ArrayAttr>()) {
+      auto funcName = program.cast<StringAttr>();
+      auto func =
+          (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
+              funcName);
+      if (!func)
+        return emitOptionalError(getLoc(), "Function ", funcName, " not found");
 
-    argsSize += func.getNumArguments();
+      numArgs += func.getNumArguments();
+      numPrograms++;
+    }
   }
 
-  if (inputs.size() != argsSize)
-    return emitOptionalError(
-        location, "The inputs size: ", inputs.size(),
-        " does not match sum of all inputs of programs: ", argsSize);
+  if (getInputs().size() != numArgs)
+    return emitOptionalError(getLoc(),
+                             "Number of inputs should match the sum of the "
+                             "number of inputs of all programs (",
+                             numArgs, ") but got ", getInputs().size());
 
-  if (programs.size() != (size_t)numReplicas * numPartitions)
-    return emitOptionalError(location,
+  if (numPrograms != getNumReplicas() * getNumPartitions())
+    return emitOptionalError(getLoc(),
                              "Number of programs should match numReplicas * "
                              "numPartitions (",
-                             numReplicas, " * ", numPartitions, ") but got ",
-                             programs.size());
+                             getNumReplicas(), " * ", getNumPartitions(),
+                             ") but got ", numPrograms);
 
   return success();
-}
-
-LogicalResult RunParallelOp::verify() {
-  return verifyRunParallelOp(*this, getLoc(), getInputs(), getPrograms(),
-                             getNumReplicas(), getNumPartitions());
 }
 
 //===----------------------------------------------------------------------===//
@@ -94,16 +87,15 @@ LogicalResult RunParallelOp::verify() {
 //===----------------------------------------------------------------------===//
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, ArrayRef<StringRef> programs,
-    uint32_t numReplicas, uint32_t numPartitions, Operation &op) {
+    ArrayRef<InterpreterValue> inputs,
+    SmallVector<SmallVector<StringAttr>> programs, uint32_t numReplicas,
+    uint32_t numPartitions, SymbolTable &symbolTable) {
   llvm::ThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
-  SmallVector<std::thread> processMap;
   for (uint32_t i = 0; i < numReplicas; ++i) {
     for (uint32_t j = 0; j < numPartitions; ++j) {
-      auto funcName = programs[i * numPartitions + j];
-      auto func =
-          op.getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(funcName);
+      auto funcName = programs[i][j];
+      auto func = llvm::cast<func::FuncOp>(symbolTable.lookup(funcName));
 
       auto evalWrapper = [](Region &region, ArrayRef<InterpreterValue> args,
                             ProcessId processId) {

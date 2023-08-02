@@ -32,6 +32,9 @@ def Interpreter_Dialect : Dialect {
   }];
 }
 
+def Interpreter_ArrayOfStrArrayAttr : TypedArrayAttrBase<StrArrayAttr,
+    "Array of StrArrayAttr">;
+
 //===----------------------------------------------------------------------===//
 // Interpreter op definitions.
 //===----------------------------------------------------------------------===//
@@ -39,16 +42,27 @@ def Interpreter_Dialect : Dialect {
 def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   let summary = "RunParallel operation";
   let description = [{
-    Runs `programs` in parallel with variadic `inputs` for the program. Each
-    input in `inputs` correspond to the inputs of each program in `programs`.
-    The results from the programs are guaranteed to be in the same order
-    specified in `programs` where the program at index `idx` map to process id
-    (r, p) where `idx = r * num_partitions + p`.
+    Runs a two-dimensional grid of `num_replicas` by `num_partitions` StableHLO
+    processes based on programs specified by `programs`.
+
+    Given that each program in the grid can have a different number of inputs
+    and outputs, we'd want a ragged three-dimensional tensor to model `inputs`
+    and `results`, which cannot be easily achieved via conventional means.
+
+    Instead, `inputs` and `results` are represented in a flattened way, obtained
+    by reshaping the said three-dimensional tensors into a one-dimensional form
+    (with the same semantics as StableHLO's reshape). This is a reversible
+    transformation because StableHLO programs have a static number of inputs and
+    outputs.
+
+    For example, for a 2x2 StableHLO process grid, `inputs` first has inputs
+    from the process `(0, 0)` (i.e. replica_id = 0 and partition_id = 0),
+    then `(0, 1)` (i.e. replica_id = 0 and partition_id = 1), etc.
 
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
-      programs=["foo", "bar"],
+      programs=[["foo"], ["bar"]],
       num_replicas=2,
       num_partitions=1
     } : () -> (tensor<ui32>, tensor<ui32>)
@@ -56,7 +70,7 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
-    StrArrayAttr:$programs,
+    Interpreter_ArrayOfStrArrayAttr:$programs,
     I64Attr:$num_replicas,
     I64Attr:$num_partitions
   );
