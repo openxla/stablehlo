@@ -13,11 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_PROCESSGRID_H
-#define STABLEHLO_REFERENCE_PROCESSGRID_H
+#ifndef STABLEHLO_REFERENCE_PROCESS_H
+#define STABLEHLO_REFERENCE_PROCESS_H
 
 #include <cstdint>
-#include <utility>
 
 namespace mlir {
 namespace stablehlo {
@@ -25,30 +24,13 @@ namespace stablehlo {
 struct ProcessId {
   uint32_t replicaId;
   uint32_t partitionId;
-
-  bool operator<(const ProcessId &other) const {
-    return std::pair<uint32_t, uint32_t>{replicaId, partitionId} <
-           std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
-  }
 };
-
-class ProcessGrid;
 
 struct Process {
   ProcessId processId;
-  ProcessGrid *processGrid;
-};
-
-/// Class to model a process grid.
-class ProcessGrid {
- public:
-  /// \name Constructors
-  /// @{
-  ProcessGrid();
-  /// @}
 };
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_REFERENCE_PROCESSGRID_H
+#endif  // STABLEHLO_REFERENCE_PROCESS_H

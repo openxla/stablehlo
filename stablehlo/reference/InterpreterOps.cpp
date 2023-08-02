@@ -19,13 +19,15 @@ limitations under the License.
 #include <map>
 #include <thread>
 
+#include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Region.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Ops.h"
-#include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Process.h"
 
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"
@@ -47,54 +49,76 @@ InterpreterDialect::InterpreterDialect(MLIRContext *context)
       >();
 }
 
+//===----------------------------------------------------------------------===//
+// Interpreter Ops Verifier
+//===----------------------------------------------------------------------===//
+
+LogicalResult verifyRunParallelOp(RunParallelOp op,
+                                  std::optional<Location> location,
+                                  ValueRange inputs, ArrayAttr programs,
+                                  int64_t numReplicas, int64_t numPartitions) {
+  size_t argsSize = 0;
+  for (auto &program : programs) {
+    auto funcName = program.cast<StringAttr>().strref();
+    auto func =
+        op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(funcName);
+    if (!func)
+      return emitOptionalError(location, "Function \"", funcName,
+                               "\" not found");
+
+    argsSize += func.getNumArguments();
+  }
+
+  if (inputs.size() != argsSize)
+    return emitOptionalError(
+        location, "The inputs size: ", inputs.size(),
+        " does not match sum of all inputs of programs: ", argsSize);
+
+  if (programs.size() != (size_t)numReplicas * numPartitions)
+    return emitOptionalError(location,
+                             "Number of programs should match numReplicas * "
+                             "numPartitions (",
+                             numReplicas, " * ", numPartitions, ") but got ",
+                             programs.size());
+
+  return success();
+}
+
+LogicalResult RunParallelOp::verify() {
+  return verifyRunParallelOp(*this, getLoc(), getInputs(), getPrograms(),
+                             getNumReplicas(), getNumPartitions());
+}
+
+//===----------------------------------------------------------------------===//
+// Interpreter Ops Evaluator
+//===----------------------------------------------------------------------===//
+
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, ArrayRef<StringRef> programs,
     uint32_t numReplicas, uint32_t numPartitions, Operation &op) {
-  std::map<ProcessId, std::future<SmallVector<InterpreterValue>>> futureResults;
-  std::map<ProcessId, std::thread> processMap;
-  ProcessGrid processGrid{};
-  SmallVector<InterpreterValue> results;
+  llvm::ThreadPool threadPool;
+  SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
+  SmallVector<std::thread> processMap;
   for (uint32_t i = 0; i < numReplicas; ++i) {
     for (uint32_t j = 0; j < numPartitions; ++j) {
-      ProcessId processId{i, j};
+      auto funcName = programs[i * numPartitions + j];
+      auto func =
+          op.getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(funcName);
 
       auto evalWrapper = [](Region &region, ArrayRef<InterpreterValue> args,
-                            ProcessId processId, ProcessGrid *processGrid) {
-        Process process{processId, processGrid};
+                            ProcessId processId) {
+        Process process{processId};
         return eval(region, args, &process, /*parent=*/nullptr,
                     /*fallback=*/nullptr);
       };
-      std::packaged_task<SmallVector<InterpreterValue>(
-          Region &, ArrayRef<InterpreterValue>, ProcessId, ProcessGrid *)>
-          task(evalWrapper);
 
-      auto &parentBlock =
-          op.getParentRegion()->getParentRegion()->getBlocks().front();
-      auto program = std::find_if(
-          parentBlock.begin(), parentBlock.end(), [&](Operation &op) {
-            return dyn_cast<func::FuncOp>(op).getSymName().equals(programs[j]);
-          });
-
-      futureResults[processId] = task.get_future();
-      processMap[processId] = std::thread(
-          std::move(task), std::ref(dyn_cast<func::FuncOp>(program).getBody()),
-          inputs, processId, &processGrid);
+      futures.emplace_back(threadPool.async(
+          evalWrapper, std::ref(func.getBody()), inputs, ProcessId{i, j}));
     }
   }
 
-  for (uint32_t i = 0; i < numReplicas; ++i) {
-    for (uint32_t j = 0; j < numPartitions; ++j) {
-      ProcessId processId{i, j};
-      processMap[processId].join();
-    }
-  }
-
-  for (uint32_t i = 0; i < numReplicas; ++i) {
-    for (uint32_t j = 0; j < numPartitions; ++j) {
-      ProcessId processId{i, j};
-      results.append(futureResults[processId].get());
-    }
-  }
+  SmallVector<InterpreterValue> results;
+  for (auto &future : futures) results.append(future.get());
   return results;
 }
 

@@ -291,7 +291,7 @@ cc_library(
         ":interpreter_ops_inc_gen",
         ":reference_interpretervalue",
         ":reference_ops",
-        ":reference_process_grid",
+        ":reference_process",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
@@ -422,7 +422,7 @@ cc_library(
         ":reference_errors",
         ":reference_index",
         ":reference_interpretervalue",
-        ":reference_process_grid",
+        ":reference_process",
         ":reference_scope",
         ":reference_tensor",
         ":reference_token",
@@ -437,9 +437,9 @@ cc_library(
 )
 
 cc_library(
-    name = "reference_process_grid",
+    name = "reference_process",
     hdrs = [
-        "stablehlo/reference/ProcessGrid.h",
+        "stablehlo/reference/Process.h",
     ],
     strip_include_prefix = ".",
 )
@@ -525,6 +525,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":chlo_ops",
+        ":interpreter_ops",
         ":stablehlo_ops",
         ":vhlo_ops",
         "@llvm-project//mlir:IR",

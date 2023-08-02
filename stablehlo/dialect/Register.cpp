@@ -23,6 +23,7 @@ limitations under the License.
 #include "stablehlo/dialect/ChloOps.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/VhloOps.h"
+#include "stablehlo/reference/InterpreterOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -32,6 +33,7 @@ void registerAllDialects(mlir::DialectRegistry &registry) {
   registry.insert<mlir::sparse_tensor::SparseTensorDialect>();
   registry.insert<mlir::chlo::ChloDialect,
                   mlir::stablehlo::StablehloDialect,
+                  mlir::stablehlo::interpreter::InterpreterDialect,
                   mlir::vhlo::VhloDialect>();
   // clang-format on
 }

@@ -80,7 +80,7 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
   return status;
 }
 
-llvm::Error interpreterFallback(Operation &op, stablehlo::Process &process,
+llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
                                 stablehlo::Scope &scope,
                                 llvm::StringRef funcName) {
   if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
@@ -150,14 +150,15 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process &process,
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
+      auto opsCount = 0;
+      module.walk([&](func::FuncOp funcOp) { opsCount++; });
+
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
-        if (auto symNameAttr = module.getSymNameAttr())
-          if (symNameAttr.strref().equals(StringRef("distribution_ops")) &&
-              funcOp.getSymName() != "main")
-            return WalkResult::advance();
+        if (opsCount > 1 && funcOp.getSymName() != "main")
+          return WalkResult::advance();
 
         auto interpreterFallbackFn =
-            [&](Operation &op, stablehlo::Process &process,
+            [&](Operation &op, stablehlo::Process *process,
                 stablehlo::Scope &scope) -> llvm::Error {
           return interpreterFallback(op, process, scope, funcOp.getSymName());
         };

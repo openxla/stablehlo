@@ -85,6 +85,7 @@ add_mlir_dialect_library(StablehloRegister
 
   DEPENDS
   ChloOpsIncGen
+  InterpreterOps
   StablehloOpsIncGen
   VhloOpsIncGen
 

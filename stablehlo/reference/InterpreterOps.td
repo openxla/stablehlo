@@ -40,15 +40,15 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   let summary = "RunParallel operation";
   let description = [{
     Runs `programs` in parallel with variadic `inputs` for the program. Each
-    input in `inputs` correspond to the inputs of each program in `programs`,
-    and the results from the programs are guaranteed to be in the same order
-    specified in `programs`. If the constraints are not met, the behavior is
-    undefined.
+    input in `inputs` correspond to the inputs of each program in `programs`.
+    The results from the programs are guaranteed to be in the same order
+    specified in `programs` where the program at index `idx` map to process id
+    (r, p) where `idx = r * num_partitions + p`.
 
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
-      programs=["foo"],
+      programs=["foo", "bar"],
       num_replicas=2,
       num_partitions=1
     } : () -> (tensor<ui32>, tensor<ui32>)
@@ -61,6 +61,7 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
     I64Attr:$num_partitions
   );
   let results = (outs Variadic<HLO_TensorOrToken>:$results);
+  let hasVerifier = 1;
 }
 
 #endif  // STABLEHLO_REFERENCE_INTERPRETER_OPS

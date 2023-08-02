@@ -13,12 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Process.h"
 
 namespace mlir {
-namespace stablehlo {
-
-ProcessGrid::ProcessGrid() {}
-
-}  // namespace stablehlo
+namespace stablehlo {}  // namespace stablehlo
 }  // namespace mlir

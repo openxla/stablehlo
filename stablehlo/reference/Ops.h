@@ -20,7 +20,7 @@ limitations under the License.
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
 #include "stablehlo/reference/InterpreterValue.h"
-#include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/reference/Token.h"
@@ -39,7 +39,7 @@ Tensor evalBroadcastInDimOp(const Tensor &operand,
                             const Axes &broadcastDimensions,
                             ShapedType resultType);
 SmallVector<InterpreterValue> evalCaseOp(const Tensor &index,
-                                         RegionRange branches, Process &process,
+                                         RegionRange branches, Process *process,
                                          Scope &scope);
 Tensor evalCbrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalCeilOp(const Tensor &operand, ShapedType resultType);
@@ -80,7 +80,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType);
 SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
-                                       Region &falseBranch, Process &process,
+                                       Region &falseBranch, Process *process,
                                        Scope &scope);
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType);
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType);
@@ -88,7 +88,7 @@ Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLog1pOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLogOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLogisticOp(const Tensor &operand, ShapedType resultType);
-Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process &process,
+Tensor evalMapOp(ArrayRef<Tensor> inputs, Region &computation, Process *process,
                  Scope &scope, ShapedType resultType);
 Tensor evalMaxOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalMinOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
@@ -108,7 +108,7 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType);
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<Tensor> initValues,
                                  const Axes &dimensions, Region &body,
-                                 Process &process, Scope &scope,
+                                 Process *process, Scope &scope,
                                  ArrayRef<ShapedType> resultTypes);
 Tensor evalReducePrecisionOp(const Tensor &operand, int32_t exponentBits,
                              int32_t mantissaBits, ShapedType resultType);
@@ -117,9 +117,9 @@ SmallVector<Tensor> evalReduceWindowOp(
     const Sizes &windowDimensions, const Sizes &windowStrides,
     const Sizes &baseDilations, const Sizes &windowDilations,
     const Sizes &paddingLow, const Sizes &paddingHigh, Region &body,
-    Process &process, Scope &scope, ArrayRef<ShapedType> resultTypes);
+    Process *process, Scope &scope, ArrayRef<ShapedType> resultTypes);
 Tensor evalRemOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
-Tensor evalReplicaIdOp(Process &process, MLIRContext *context);
+Tensor evalReplicaIdOp(Process *process, MLIRContext *context);
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType);
 Tensor evalReverseOp(const Tensor &operand, const Axes &dimensions,
                      ShapedType resultType);
@@ -130,7 +130,7 @@ SmallVector<Tensor> evalScatterOp(
     ArrayRef<Tensor> inputs, const Tensor &scatterIndices,
     ArrayRef<Tensor> updates, const Axes &updateWindowDims,
     const Axes &insertedWindowDims, const Axes &scatterDimsToOperandDims,
-    Axis indexVectorDim, Region &updateComputation, Process &process,
+    Axis indexVectorDim, Region &updateComputation, Process *process,
     Scope &scope, ArrayRef<ShapedType> resultTypes);
 Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
                     const Tensor &onFalse, ShapedType resultType);
@@ -139,7 +139,7 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
                               const Sizes &windowDimensions,
                               const Sizes &windowStrides,
                               const Sizes &paddingLow, Region &select,
-                              Region &scatter, Process &process, Scope &scope,
+                              Region &scatter, Process *process, Scope &scope,
                               ShapedType resultType);
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,
                        ShapedType resultType);
@@ -153,7 +153,7 @@ Tensor evalSliceOp(const Tensor &operand, const Sizes &startIndices,
                    const Sizes &strides, ShapedType resultType);
 SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
                                bool isStable, Region &comparator,
-                               Process &process, Scope &scope);
+                               Process *process, Scope &scope);
 Tensor evalSqrtOp(const Tensor &operand, ShapedType resultType);
 Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
                       ShapedType resultType);
@@ -162,7 +162,7 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
                                           Region &cond, Region &body,
-                                          Process &process, Scope &scope);
+                                          Process *process, Scope &scope);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`
@@ -174,7 +174,7 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 SmallVector<InterpreterValue> eval(
     Region &region, ArrayRef<InterpreterValue> args, Process *process = nullptr,
     Scope *parent = nullptr,
-    function_ref<llvm::Error(Operation &, Process &, Scope &)> fallback =
+    function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
         nullptr);
 
 }  // namespace stablehlo
