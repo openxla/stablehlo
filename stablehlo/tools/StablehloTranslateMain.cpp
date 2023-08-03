@@ -133,8 +133,8 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
     SmallVector<SmallVector<StringAttr>> programs(
         runParallelOp.getPrograms().size());
     for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
-      for (auto &partition : replica.cast<ArrayAttr>())
-        programs[i].push_back(partition.cast<StringAttr>());
+      for (auto &program : replica.cast<ArrayAttr>())
+        programs[i].push_back(program.cast<StringAttr>());
 
     SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
     auto results = stablehlo::interpreter::evalRunParallelOp(

@@ -62,8 +62,8 @@ LogicalResult RunParallelOp::verify() {
           getLoc(), "Sizes of second dimension of `programs` should all match ",
           numPartitions, " but got ", replica.cast<ArrayAttr>().size());
 
-    for (auto &partition : replica.cast<ArrayAttr>()) {
-      auto funcName = partition.cast<StringAttr>();
+    for (auto &program : replica.cast<ArrayAttr>()) {
+      auto funcName = program.cast<StringAttr>();
       auto func =
           (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
               funcName);

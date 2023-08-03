@@ -1,4 +1,4 @@
-// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file -allow-unregistered-dialect | FileCheck %s
+// RUN: stablehlo-opt %s -verify-diagnostics -split-input-file | FileCheck %s
 
 // CHECK-LABEL: func @main
 module @run_parallel_success {
