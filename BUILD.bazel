@@ -292,6 +292,8 @@ cc_library(
         ":reference_interpretervalue",
         ":reference_ops",
         ":reference_process",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
@@ -903,6 +905,7 @@ cc_binary(
         "stablehlo/tools/StablehloOptMain.cpp",
     ],
     deps = [
+        ":interpreter_ops",
         ":register",
         ":stablehlo_passes",
         ":tosa_passes",
