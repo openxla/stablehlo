@@ -4344,6 +4344,8 @@ Produces `replica_id` of the current process.
 %result = "stablehlo.replica_id"() : () -> tensor<ui32>
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_replica_id.mlir)
+
 ### reshape
 
 #### Semantics

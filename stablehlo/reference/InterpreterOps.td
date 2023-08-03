@@ -32,18 +32,46 @@ def Interpreter_Dialect : Dialect {
   }];
 }
 
+def Interpreter_ArrayOfStrArrayAttr : TypedArrayAttrBase<StrArrayAttr,
+    "Array of StrArrayAttr">;
+
 //===----------------------------------------------------------------------===//
 // Interpreter op definitions.
 //===----------------------------------------------------------------------===//
 
 def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
+  let summary = "RunParallel operation";
+  let description = [{
+    Runs a two-dimensional grid of `num_replicas` by `num_partitions` StableHLO
+    processes based on programs specified by two-dimensional grid of `programs`.
+
+    Given that each program in the grid can have a different number of inputs
+    and outputs, we'd want a ragged three-dimensional tensor to model `inputs`
+    and `results`, which cannot be easily achieved via conventional means.
+
+    Instead, `inputs` and `results` are represented in a flattened way, obtained
+    by reshaping the said three-dimensional tensors into a one-dimensional form
+    (with the same semantics as StableHLO's reshape). This is a reversible
+    transformation because StableHLO programs have a static number of inputs and
+    outputs.
+
+    For example, for a 2x2 StableHLO process grid, `inputs` first has inputs
+    from the process `(0, 0)` (i.e. replica_id = 0 and partition_id = 0),
+    then `(0, 1)` (i.e. replica_id = 0 and partition_id = 1), etc.
+
+    Example:
+    ```mlir
+    %results:2 = "interpreter.run_parallel"() {
+      programs=[["foo"], ["bar"]]
+    } : () -> (tensor<ui32>, tensor<ui32>)
+    ```
+  }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
-    StrArrayAttr:$programs,
-    I64Attr:$num_replicas,
-    I64Attr:$num_partitions
+    Interpreter_ArrayOfStrArrayAttr:$programs
   );
   let results = (outs Variadic<HLO_TensorOrToken>:$results);
+  let hasVerifier = 1;
 }
 
 #endif  // STABLEHLO_REFERENCE_INTERPRETER_OPS

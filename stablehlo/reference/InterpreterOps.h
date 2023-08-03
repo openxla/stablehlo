@@ -32,6 +32,10 @@ class InterpreterDialect : public Dialect {
   static StringRef getDialectNamespace() { return "interpreter"; }
 };
 
+SmallVector<InterpreterValue> evalRunParallelOp(
+    ArrayRef<InterpreterValue> inputs,
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
+
 }  // namespace interpreter
 }  // namespace stablehlo
 }  // namespace mlir

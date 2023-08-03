@@ -54,6 +54,7 @@ add_mlir_dialect_library(InterpreterOps
 
   LINK_LIBS PUBLIC
   StablehloReferenceInterpreterValue
+  StablehloReferenceOps
   MLIRIR
   MLIRSupport
 )
