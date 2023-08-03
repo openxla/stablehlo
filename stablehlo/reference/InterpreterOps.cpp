@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Region.h"
@@ -50,11 +51,19 @@ InterpreterDialect::InterpreterDialect(MLIRContext *context)
 //===----------------------------------------------------------------------===//
 
 LogicalResult RunParallelOp::verify() {
+  if (getPrograms().empty() || getPrograms()[0].cast<ArrayAttr>().empty())
+    return emitOptionalError(getLoc(), "`programs` attribute cannot be empty");
+
   size_t numArgs = 0;
-  size_t numPrograms = 0;
-  for (auto &programPartitions : getPrograms()) {
-    for (auto &program : programPartitions.cast<ArrayAttr>()) {
-      auto funcName = program.cast<StringAttr>();
+  auto numPartitions = getPrograms()[0].cast<ArrayAttr>().size();
+  for (auto &replica : getPrograms()) {
+    if (replica.cast<ArrayAttr>().size() != numPartitions)
+      return emitOptionalError(
+          getLoc(), "Sizes of second dimension of `programs` should all match ",
+          numPartitions, " but got ", replica.cast<ArrayAttr>().size());
+
+    for (auto &partition : replica.cast<ArrayAttr>()) {
+      auto funcName = partition.cast<StringAttr>();
       auto func =
           (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
               funcName);
@@ -62,7 +71,6 @@ LogicalResult RunParallelOp::verify() {
         return emitOptionalError(getLoc(), "Function ", funcName, " not found");
 
       numArgs += func.getNumArguments();
-      numPrograms++;
     }
   }
 
@@ -71,13 +79,6 @@ LogicalResult RunParallelOp::verify() {
                              "Number of inputs should match the sum of the "
                              "number of inputs of all programs (",
                              numArgs, ") but got ", getInputs().size());
-
-  if (numPrograms != getNumReplicas() * getNumPartitions())
-    return emitOptionalError(getLoc(),
-                             "Number of programs should match numReplicas * "
-                             "numPartitions (",
-                             getNumReplicas(), " * ", getNumPartitions(),
-                             ") but got ", numPrograms);
 
   return success();
 }
@@ -88,15 +89,13 @@ LogicalResult RunParallelOp::verify() {
 
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs,
-    SmallVector<SmallVector<StringAttr>> programs, uint32_t numReplicas,
-    uint32_t numPartitions, SymbolTable &symbolTable) {
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
   llvm::ThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
-  for (uint32_t i = 0; i < numReplicas; ++i) {
-    for (uint32_t j = 0; j < numPartitions; ++j) {
+  for (uint32_t i = 0; i < programs.size(); ++i) {
+    for (uint32_t j = 0; j < programs[0].size(); ++j) {
       auto funcName = programs[i][j];
       auto func = llvm::cast<func::FuncOp>(symbolTable.lookup(funcName));
-
       auto evalWrapper = [](Region &region, ArrayRef<InterpreterValue> args,
                             ProcessId processId) {
         Process process{processId};

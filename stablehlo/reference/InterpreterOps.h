@@ -34,8 +34,7 @@ class InterpreterDialect : public Dialect {
 
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs,
-    SmallVector<SmallVector<StringAttr>> programs, uint32_t numReplicas,
-    uint32_t numPartitions, SymbolTable &symbolTable);
+    SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
 
 }  // namespace interpreter
 }  // namespace stablehlo

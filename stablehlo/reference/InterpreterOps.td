@@ -43,7 +43,7 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   let summary = "RunParallel operation";
   let description = [{
     Runs a two-dimensional grid of `num_replicas` by `num_partitions` StableHLO
-    processes based on programs specified by `programs`.
+    processes based on programs specified by two-dimensional grid of `programs`.
 
     Given that each program in the grid can have a different number of inputs
     and outputs, we'd want a ragged three-dimensional tensor to model `inputs`
@@ -62,17 +62,13 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
-      programs=[["foo"], ["bar"]],
-      num_replicas=2,
-      num_partitions=1
+      programs=[["foo"], ["bar"]]
     } : () -> (tensor<ui32>, tensor<ui32>)
     ```
   }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
-    Interpreter_ArrayOfStrArrayAttr:$programs,
-    I64Attr:$num_replicas,
-    I64Attr:$num_partitions
+    Interpreter_ArrayOfStrArrayAttr:$programs
   );
   let results = (outs Variadic<HLO_TensorOrToken>:$results);
   let hasVerifier = 1;

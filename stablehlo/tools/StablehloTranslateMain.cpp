@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/OpDefinition.h"
@@ -129,19 +130,15 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
   if (auto runParallelOp =
           dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
     auto runtimeOperands = scope.find(runParallelOp.getInputs());
-    auto numReplicas = runParallelOp.getNumReplicas();
-    auto numPartitions = runParallelOp.getNumPartitions();
-
     SmallVector<SmallVector<StringAttr>> programs(
         runParallelOp.getPrograms().size());
-    for (auto [i, programPartitions] :
-         llvm::enumerate(runParallelOp.getPrograms()))
-      for (auto &program : programPartitions.cast<ArrayAttr>())
-        programs[i].push_back(program.cast<StringAttr>());
+    for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
+      for (auto &partition : replica.cast<ArrayAttr>())
+        programs[i].push_back(partition.cast<StringAttr>());
 
     SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
     auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, programs, numReplicas, numPartitions, symbolTable);
+        runtimeOperands, programs, symbolTable);
     scope.add(runParallelOp.getResults(), results);
     return wrapStatus(llvm::Error::success(), funcName,
                       "interpreter.run_parallel");
@@ -157,13 +154,15 @@ TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       auto numFuncs = 0;
-      bool isDistributed = false;
+      bool hasMain = false;
       module.walk([&](func::FuncOp funcOp) {
-        if (funcOp.getSymName() == "main") isDistributed = true;
+        if (funcOp.getSymName() == "main") hasMain = true;
         numFuncs++;
       });
 
-      if (numFuncs > 1 && !isDistributed) return failure();
+      if (numFuncs > 1 && !hasMain)
+        llvm::report_fatal_error(
+            "Must have \"main\" function when multiple FuncOps are present");
 
       auto walkResult = module.walk([&](func::FuncOp funcOp) {
         if (numFuncs > 1 && funcOp.getSymName() != "main")
