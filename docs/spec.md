@@ -3792,6 +3792,8 @@ Produces `partition_id` of the current process.
 %result = "stablehlo.partition_id"() : () -> tensor<ui32>
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_partition_id.mlir)
+
 ### popcnt
 
 #### Semantics

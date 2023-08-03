@@ -112,7 +112,7 @@ one of the following tracking labels.
 | or                       | yes           | yes          | yes            | yes             | yes         |
 | outfeed                  | yes           | yes          | yes            | no              | no          |
 | pad                      | yes           | yes          | yes            | yes             | yes         |
-| partition_id             | yes           | yes          | yes            | yes             | no          |
+| partition_id             | yes           | yes          | yes            | yes             | yes         |
 | popcnt                   | yes           | yes          | yes            | yes             | yes         |
 | power                    | yes           | yes          | yes            | yes             | yes         |
 | real                     | yes           | yes          | yes            | yes             | yes         |

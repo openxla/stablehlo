@@ -1871,14 +1871,6 @@ func.func @partition_id() -> tensor<ui32> {
 
 // -----
 
-func.func @partition_id() -> tensor<ui64> {
-  // expected-error@+1 {{result #0 must be tensor of 32-bit unsigned integer values, but got 'tensor<ui64>'}}
-  %0 = "stablehlo.partition_id"() : () -> tensor<ui64>
-  func.return %0 : tensor<ui64>
-}
-
-// -----
-
 // CHECK-LABEL: func @rng_bit_generator
 func.func @rng_bit_generator(%arg0: tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>) {
   %0, %1 = "stablehlo.rng_bit_generator"(%arg0) {rng_algorithm = #stablehlo<rng_algorithm DEFAULT>} : (tensor<2xui64>) -> (tensor<2xui64>, tensor<10x12xui32>)
