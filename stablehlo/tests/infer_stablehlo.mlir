@@ -152,6 +152,19 @@ func.func @concat(%arg0: tensor<1xi32>, %arg1: tensor<2xi32>)  -> tensor<3xindex
 
 // -----
 
+// CHECK-LABEL: func @collective_permute_c5
+func.func @collective_permute_c5(%arg0: tensor<2x2xi64>) -> tensor<2x2xindex> {
+  %0 = "stablehlo.collective_permute"(%arg0) {
+    source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+  } : (tensor<2x2xi64>) -> tensor<2x2xi64>
+  // CHECK: types0 = tensor<2x2xi64>
+  %1 = "hlo_test_infer.get_return_types"(%0) : (tensor<2x2xi64>) -> tensor<2x2xindex>
+  func.return %1 : tensor<2x2xindex>
+}
+
+// -----
+
 // CHECK-LABEL: @gather_c13
 func.func @gather_c13(%operand : tensor<2x4x9xi32>, %start_indices : tensor<1x5x2xi32>) -> tensor<1x5x8xindex> {
   %res = "stablehlo.gather"(%operand, %start_indices) {

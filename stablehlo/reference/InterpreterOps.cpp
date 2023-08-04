@@ -18,13 +18,15 @@ limitations under the License.
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Operation.h"
+#include "mlir/IR/Dialect.h"
 #include "mlir/IR/Region.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Ops.h"
-#include "stablehlo/reference/Process.h"
+#include "stablehlo/reference/ProcessGrid.h"
 
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.cpp.inc"
@@ -92,19 +94,30 @@ SmallVector<InterpreterValue> evalRunParallelOp(
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
   llvm::ThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
-  for (uint32_t i = 0; i < programs.size(); ++i) {
-    for (uint32_t j = 0; j < programs[0].size(); ++j) {
+
+  uint32_t numReplicas = programs.size();
+  uint32_t numPartitions = programs[0].size();
+  ProcessGrid processGrid{numReplicas, numPartitions};
+
+  auto inputItr = inputs.begin();
+
+  for (uint32_t i = 0; i < numReplicas; ++i) {
+    for (uint32_t j = 0; j < numPartitions; ++j) {
       auto funcName = programs[i][j];
       auto func = llvm::cast<func::FuncOp>(symbolTable.lookup(funcName));
-      auto evalWrapper = [](Region &region, ArrayRef<InterpreterValue> args,
-                            ProcessId processId) {
-        Process process{processId};
+      auto evalWrapper = [&](Region &region, ArrayRef<InterpreterValue> args,
+                             ProcessId processId) {
+        Process process{processId, &processGrid};
         return eval(region, args, &process, /*parent=*/nullptr,
                     /*fallback=*/nullptr);
       };
 
+      auto numArgs = func.getBody().front().getArguments().size();
+      SmallVector<InterpreterValue> args(inputItr, inputItr + numArgs);
+      inputItr += numArgs;
+
       futures.emplace_back(threadPool.async(
-          evalWrapper, std::ref(func.getBody()), inputs, ProcessId{i, j}));
+          evalWrapper, std::ref(func.getBody()), args, ProcessId{i, j}));
     }
   }
 

@@ -2029,7 +2029,7 @@ def StableHLO_ConcatenateOp : StableHLO_ShapedInterfaceOp<"concatenate",
 }
 
 def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
-    [HLO_CompatibleOperandsAndResultType]> {
+    [HLO_CompatibleOperandsAndResultType /*collective_permute_c5*/]> {
   let summary = "CollectivePermute operation";
   let description = [{
     Within each process group in the process grid, sends the value of the
@@ -2042,17 +2042,16 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     Example:
     ```mlir
     %result = "stablehlo.collective_permute"(%operand) {
-      source_target_pairs = dense<[[0, 1]]> : tensor<1x2xi64>,
-      // channel_id = 0
+      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-    } : (tensor<2x2xf32>) -> tensor<2x2xf32>
+    } : (tensor<2x2xi64>) -> tensor<2x2xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64ElementsAttr:$source_target_pairs,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    HLO_Tensor:$operand, /*collective_permute_i1*/
+    I64ElementsAttr:$source_target_pairs, /*collective_permute_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*collective_permute_i3*/
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;

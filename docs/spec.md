@@ -1686,19 +1686,22 @@ Afterwards, `result@process` is given by:
 #### Examples
 
 ```mlir
-// num_replicas: 2
+// num_replicas: 3
 // num_partitions: 1
 // %operand@(0, 0): [[1, 2], [3, 4]]
 // %operand@(1, 0): [[5, 6], [7, 8]]
+// %operand@(2, 0): [[9, 10], [11, 12]]
 %result = "stablehlo.collective_permute"(%operand) {
-  source_target_pairs = dense<[[0, 1]]> : tensor<1x2xi64>,
-  // channel_id = 0
+  source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-} : (tensor<2x2xf32>) -> tensor<2x2xf32>
+} : (tensor<2x2xi64>) -> tensor<2x2xi64>
 //
 // %result@(0, 0): [[0, 0], [0, 0]]
 // %result@(1, 0): [[1, 2], [3, 4]]
+// %result@(2, 0): [[5, 6], [7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_collective_permute.mlir)
 
 ### compare
 
