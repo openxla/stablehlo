@@ -832,7 +832,7 @@ Tensor evalCollectivePermuteOp(
   if (channelId <= 0) processGroups = process->crossReplica(sourceTargetPairs);
   if (channelId > 0) processGroups = process->crossPartition(sourceTargetPairs);
 
-  std::optional<Tensor> result;
+  Tensor result;
   for (auto processGroup : processGroups) {
     auto from = processGroup[0];
     auto to = processGroup[1];
@@ -844,7 +844,7 @@ Tensor evalCollectivePermuteOp(
     result = rendezvousResult.lookup(from);
   }
 
-  if (result) return *result;
+  if (result) return result;
   return evalBroadcastInDimOp(
       Tensor(RankedTensorType::get({}, operand.getElementType()),
              convert(operand.getElementType(), 0.0)),

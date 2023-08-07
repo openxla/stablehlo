@@ -82,6 +82,12 @@ class Tensor {
   /// Assignment operator.
   Tensor &operator=(const Tensor &other) = default;
 
+  /// Boolean conversion operator.
+  explicit operator bool() const { return (bool)impl_; }
+
+  /// Logical not operator.
+  bool operator!() const { return !impl_; }
+
   /// Returns type of the Tensor object.
   ShapedType getType() const { return impl_->getType(); };
 

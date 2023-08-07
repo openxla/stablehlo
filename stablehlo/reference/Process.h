@@ -24,6 +24,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+/// StableHLO process.
 class Process {
  public:
   /// \name Constructors
@@ -38,11 +39,8 @@ class Process {
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
-  /// Getter for `id_`;
+  /// Getter for the underlying StableHLO `process_id`.
   ProcessId getId();
-
-  /// Getter for `grid_`;
-  ProcessGrid *getGrid();
 
   /// See `ProcessGrid::rendezvous`.
   RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
@@ -52,7 +50,8 @@ class Process {
   /// StableHLO `process_id`.
   ProcessId id_;
 
-  /// StableHLO `process grid`.
+  /// See ProcessGrid. The pointer is used to gain access to allow
+  /// synchronization among participating processes.
   ProcessGrid *grid_;
 };
 

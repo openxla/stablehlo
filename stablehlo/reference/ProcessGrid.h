@@ -39,6 +39,10 @@ struct ProcessId {
   /// StableHLO `partition_id`.
   uint32_t partitionId;
 
+  // The sort order for ProcessId is not defined in StableHLO, and it's
+  // internally used in ProcessGrid::rendezvous as part of a sorted key on the
+  // map. This operator is conveniently used to help define the ordering since
+  // ordering is defined for StableHLO process group.
   bool operator<(const ProcessId &other) const;
 
   bool operator==(const ProcessId &other) const;
@@ -47,33 +51,36 @@ struct ProcessId {
 };
 
 // StableHLO `process_group`.
-struct ProcessGroup : public SmallVector<ProcessId> {};
+class ProcessGroup : public SmallVector<ProcessId> {};
 
 // StableHLO `process_groups`.
-struct ProcessGroups : public SmallVector<ProcessGroup> {};
+class ProcessGroups : public SmallVector<ProcessGroup> {};
 
+/// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
+/// synchronize at a barrier and contribute a Tensor each.
+/// This class is pretty much a map from ProcessId to Tensor, with the
+/// map-like API.
 class RendezvousResult {
  public:
-  /// Iterates through the map `result_` and returns the value associated with
-  /// the key `processId`.
-  /// If key is not found, return an empty `Tensor`.
+  /// Iterates through the map and returns the value associated with the key
+  /// `processId`. If key is not found, return an empty `Tensor`.
   Tensor lookup(ProcessId processId);
 
-  /// Inserts `tensor` into the map `result_` using the key `processId`.
+  /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
 
-  /// Erases all elements in the map `result_`.
+  /// Erases all elements in the map.
   void clear();
 
-  /// Returns the size of `result_`.
+  /// Returns the number of elements in the map.
   size_t size();
 
  private:
-  ///
+  /// Internal map representation of the result of `ProcessGrid::rendezvous`.
   std::map<ProcessId, Tensor> result_;
 };
 
-/// Class to model a process grid.
+/// StableHLO process grid.
 class ProcessGrid {
  public:
   /// \name Constructors
@@ -81,19 +88,19 @@ class ProcessGrid {
   ProcessGrid(uint32_t numReplicas, uint32_t numPartitions);
   /// @}
 
-  /// StableHLO `cross_replcia`.
+  /// StableHLO `cross_replica` communication strategy.
   ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
 
-  /// StableHLO `cross_partition`.
+  /// StableHLO `cross_partition` communication strategy.
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
   /// Each participating process in the `processGroup` appends its data
-  /// `operand` to the `channels_` map using the pair (processGroup, channelId)
-  /// as a key. `channels_` is cleared before any process adds its data.
+  /// `operand` to the map using the pair (`processGroup`, `channelId`)
+  /// as a key. The map is cleared before any process adds its data.
   /// `rendezvous` then returns `RendezvousResult` containing a mapping of
   /// `processId` to its data `operand` once all participating processes have
-  /// successfully added their data. Throws an error after a timeout when
+  /// successfully added their data. Throws an error after a timeout when the
   /// synchronization deadlocks.
   RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
                               ProcessId processId, const Tensor &operand);

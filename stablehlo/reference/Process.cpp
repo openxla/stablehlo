@@ -22,21 +22,19 @@ Process::Process(ProcessId id, ProcessGrid *grid) : id_(id), grid_(grid) {}
 
 ProcessGroups Process::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
-  return getGrid()->crossReplica(replicaGroups);
+  return grid_->crossReplica(replicaGroups);
 }
 
 ProcessGroups Process::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
-  return getGrid()->crossPartition(partitionGroups);
+  return grid_->crossPartition(partitionGroups);
 }
 
 ProcessId Process::getId() { return id_; }
 
-ProcessGrid *Process::getGrid() { return grid_; }
-
 RendezvousResult Process::rendezvous(ProcessGroup processGroup,
                                      int64_t channelId, const Tensor &operand) {
-  return getGrid()->rendezvous(processGroup, channelId, getId(), operand);
+  return grid_->rendezvous(processGroup, channelId, getId(), operand);
 }
 
 }  // namespace stablehlo
