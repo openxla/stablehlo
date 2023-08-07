@@ -2042,10 +2042,10 @@ def StableHLO_CollectivePermuteOp: StableHLO_Op<"collective_permute",
     Example:
     ```mlir
     %result = "stablehlo.collective_permute"(%operand) {
-      source_target_pairs = dense<[[0, 1], [1, 2]]> : tensor<2x2xi64>,
+      source_target_pairs = dense<[[0, 1]]> : tensor<1x2xi64>,
       // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-    } : (tensor<4x2xf32>) -> tensor<4x2xf32>
+    } : (tensor<2x2xf32>) -> tensor<2x2xf32>
     ```
   }];
 
