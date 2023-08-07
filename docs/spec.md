@@ -1648,8 +1648,8 @@ Within each process group in the StableHLO process grid, sends the value of the
 The operation splits the StableHLO process grid into `process_groups` which is
 defined as follows:
 
-* `cross_replica(replica_groups)` if `channel_id <= 0`.
-* `cross_partition(replica_groups)` if `channel_id > 0`.
+* `cross_replica(source_target_pairs)` if `channel_id <= 0`.
+* `cross_partition(source_target_pairs)` if `channel_id > 0`.
 
 Afterwards, `result@process` is given by:
 
@@ -1678,7 +1678,7 @@ Afterwards, `result@process` is given by:
 * (C1) `dim(source_target_pairs, 1) = 2`.
 * (C2) `is_unique(source_target_pairs[:, 0])`.
 * (C3) `is_unique(source_target_pairs[:, 1])`.
-* (C4) `0 <= source_target_pairs < N`, where N is defined as:
+* (C4) `0 <= source_target_pairs < N`, where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
 * (C5) `type(result) = type(operand)`.
@@ -1691,7 +1691,7 @@ Afterwards, `result@process` is given by:
 // %operand@(0, 0): [[1, 2], [3, 4]]
 // %operand@(1, 0): [[5, 6], [7, 8]]
 %result = "stablehlo.collective_permute"(%operand) {
-  source_target_pairs = dense<[[0, 1]]> : tensor<2x2xi64>,
+  source_target_pairs = dense<[[0, 1]]> : tensor<1x2xi64>,
   // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
 } : (tensor<2x2xf32>) -> tensor<2x2xf32>
