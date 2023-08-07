@@ -25,40 +25,36 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-SmallVector<ProcessGroup> ProcessGroups::find(ProcessId &processId) {
-  SmallVector<ProcessGroup> groupsFound{};
-
-  for (auto processGroup : *this)
-    for (auto id : processGroup)
-      if (id == processId) groupsFound.push_back(processGroup);
-
-  return groupsFound;
+bool ProcessId::operator<(const ProcessId &other) const {
+  return std::pair<uint32_t, uint32_t>{replicaId, partitionId} <
+         std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
 }
 
-ProcessGroups Process::crossReplica(
-    SmallVector<SmallVector<uint32_t>> replicaGroups) {
-  return grid->crossReplica(replicaGroups);
+bool ProcessId::operator==(const ProcessId &other) const {
+  return std::pair<uint32_t, uint32_t>{replicaId, partitionId} ==
+         std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
 }
 
-ProcessGroups Process::crossPartition(
-    SmallVector<SmallVector<uint32_t>> partitionGroups) {
-  return grid->crossPartition(partitionGroups);
+bool ProcessId::operator!=(const ProcessId &other) const {
+  return !(*this == other);
 }
 
-SmallVector<std::pair<ProcessId, Tensor>> Process::rendezvous(
-    ProcessGroup processGroup, int64_t channelId, const Tensor &operand) {
-  return grid->rendezvous(processGroup, channelId, id, operand);
+Tensor RendezvousResult::lookup(ProcessId processId) {
+  auto it = result_.find(processId);
+  if (it != result_.end()) return it->second;
+  return {};
 }
+
+void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
+  result_[processId] = tensor;
+}
+
+void RendezvousResult::clear() { result_.clear(); }
+
+size_t RendezvousResult::size() { return result_.size(); }
 
 ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions)
-    : numReplicas_(numReplicas),
-      numPartitions_(numPartitions),
-      resourceLockMap_(
-          std::map<std::pair<ProcessGroup, int64_t>, std::mutex>()),
-      resourceConditionMap_(std::map<std::pair<ProcessGroup, int64_t>,
-                                     std::condition_variable>()),
-      channels_(std::map<std::pair<ProcessGroup, int64_t>,
-                         SmallVector<std::pair<ProcessId, Tensor>>>()) {}
+    : numReplicas_(numReplicas), numPartitions_(numPartitions) {}
 
 ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
@@ -89,39 +85,29 @@ ProcessGroups ProcessGrid::crossPartition(
   return processGroups;
 }
 
-SmallVector<std::pair<ProcessId, Tensor>> ProcessGrid::rendezvous(
-    ProcessGroup processGroup, int64_t channelId, ProcessId &processId,
-    const Tensor &operand) {
+RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
+                                         int64_t channelId, ProcessId processId,
+                                         const Tensor &operand) {
+  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   {
-    std::unique_lock<std::mutex> lk(
-        resourceLockMap_[{processGroup, channelId}]);
-    channels_[{processGroup, channelId}].push_back({processId, operand});
+    std::lock_guard<std::mutex> lock(channelLocks_[channelKey]);
+    if (channels_[channelKey].size() == processGroup.size())
+      channels_[channelKey].clear();
+    channels_[channelKey].insert(processId, operand);
   }
-
-  resourceConditionMap_[{processGroup, channelId}].notify_all();
-
   {
-    std::unique_lock<std::mutex> lk(
-        resourceLockMap_[{processGroup, channelId}]);
-    if (channels_[{processGroup, channelId}].size() == processGroup.size())
-      resourceConditionMap_[{processGroup, channelId}].notify_all();
+    std::unique_lock<std::mutex> lock(channelLocks_[channelKey]);
+    if (channels_[channelKey].size() == processGroup.size())
+      channelConditions_[channelKey].notify_all();
 
-    if (!resourceConditionMap_[{processGroup, channelId}].wait_for(
-            lk, std::chrono::seconds(3), [&] {
-              return channels_[{processGroup, channelId}].size() ==
-                     processGroup.size();
+    if (!channelConditions_[channelKey].wait_for(
+            lock, std::chrono::seconds(3), [&] {
+              return channels_[channelKey].size() == processGroup.size();
             }))
       llvm::report_fatal_error("rendezvous timed out");
-
-    std::sort(channels_[{processGroup, channelId}].begin(),
-              channels_[{processGroup, channelId}].end(),
-              [](std::pair<ProcessId, Tensor> &lhs,
-                 std::pair<ProcessId, Tensor> &rhs) {
-                return lhs.first < rhs.first;
-              });
   }
 
-  return channels_[{processGroup, channelId}];
+  return channels_[channelKey];
 }
 
 }  // namespace stablehlo

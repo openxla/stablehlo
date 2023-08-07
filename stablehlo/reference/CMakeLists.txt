@@ -82,10 +82,20 @@ add_mlir_library(StablehloReferenceOps
   StablehloReferenceScope
   StablehloReferenceIndex
   StablehloReferenceInterpreterValue
+  StablehloReferenceProcess
   StablehloReferenceProcessGrid
   StablehloReferenceTensor
   StablehloReferenceToken
   StablehloTypeInference
+)
+
+add_mlir_library(StablehloReferenceProcess
+  PARTIAL_SOURCES_INTENDED
+  Process.cpp
+
+  LINK_LIBS PUBLIC
+  StablehloReferenceProcessGrid
+  StablehloReferenceTensor
 )
 
 add_mlir_library(StablehloReferenceProcessGrid

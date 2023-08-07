@@ -1,0 +1,62 @@
+/* Copyright 2023 The StableHLO Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+#ifndef STABLEHLO_REFERENCE_PROCESS_H
+#define STABLEHLO_REFERENCE_PROCESS_H
+
+#include <cstdint>
+
+#include "stablehlo/reference/ProcessGrid.h"
+#include "stablehlo/reference/Tensor.h"
+
+namespace mlir {
+namespace stablehlo {
+
+class Process {
+ public:
+  /// \name Constructors
+  /// @{
+  Process(ProcessId id, ProcessGrid *grid);
+  /// @}
+
+  /// See `ProcessGrid::crossReplica`.
+  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
+
+  /// See `ProcessGrid::crossPartition`.
+  ProcessGroups crossPartition(
+      SmallVector<SmallVector<uint32_t>> partitionGroups);
+
+  /// Getter for `id_`;
+  ProcessId getId();
+
+  /// Getter for `grid_`;
+  ProcessGrid *getGrid();
+
+  /// See `ProcessGrid::rendezvous`.
+  RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
+                              const Tensor &operand);
+
+ private:
+  /// StableHLO `process_id`.
+  ProcessId id_;
+
+  /// StableHLO `process grid`.
+  ProcessGrid *grid_;
+};
+
+}  // namespace stablehlo
+}  // namespace mlir
+
+#endif  // STABLEHLO_REFERENCE_PROCESS_H

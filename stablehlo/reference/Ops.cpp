@@ -29,7 +29,7 @@ limitations under the License.
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
-#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
@@ -229,16 +229,16 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(collectivePermuteOp.getOperand());
 
       auto sourceTargetPairsAttr = collectivePermuteOp.getSourceTargetPairs();
-      auto sourceTargetPairsShape =
-          sourceTargetPairsAttr.getShapedType().getShape();
       SmallVector<SmallVector<uint32_t>> sourceTargetPairs(
-          sourceTargetPairsAttr.getNumElements() / sourceTargetPairsShape[1]);
-      auto it = sourceTargetPairsAttr.getValues<int64_t>().begin();
-      for (auto &group : sourceTargetPairs)
-        for (auto i = 0; i < sourceTargetPairsShape[1]; ++i)
-          group.push_back(*it++);
+          sourceTargetPairsAttr.getNumElements() / 2);
+      auto sourceTargetPairsIt =
+          sourceTargetPairsAttr.getValues<int64_t>().begin();
+      for (auto &sourceTargetPair : sourceTargetPairs) {
+        sourceTargetPair.push_back(*sourceTargetPairsIt++);
+        sourceTargetPair.push_back(*sourceTargetPairsIt++);
+      }
 
-      auto channelId = -1;
+      ChannelId channelId = 0;
       if (auto channelHandle = collectivePermuteOp.getChannelHandleAttr())
         channelId = channelHandle.getHandle();
 
@@ -822,7 +822,7 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
 
 Tensor evalCollectivePermuteOp(
     const Tensor &operand, SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
-    int64_t channelId, Process *process) {
+    ChannelId channelId, Process *process) {
   if (!process)
     llvm::report_fatal_error(
         "collective_permute is only supported when run via "
@@ -832,18 +832,19 @@ Tensor evalCollectivePermuteOp(
   if (channelId <= 0) processGroups = process->crossReplica(sourceTargetPairs);
   if (channelId > 0) processGroups = process->crossPartition(sourceTargetPairs);
 
-  auto foundProcessGroups = processGroups.find(process->id);
-  SmallVector<SmallVector<std::pair<ProcessId, Tensor>>> listOfGroupOperands;
-  for (auto [i, processGroup] : llvm::enumerate(foundProcessGroups))
-    listOfGroupOperands.push_back(
-        process->rendezvous(processGroup, channelId, operand));
+  std::optional<Tensor> result;
+  for (auto processGroup : processGroups) {
+    auto from = processGroup[0];
+    auto to = processGroup[1];
+    if (from != process->getId() && to != process->getId()) continue;
 
-  for (auto [i, processGroup] : llvm::enumerate(processGroups))
-    if (processGroups[i][1] == process->id)
-      for (auto groupOperands : listOfGroupOperands)
-        for (auto [id, tensor] : groupOperands)
-          if (processGroups[i][0] == id) return tensor;
+    auto rendezvousResult =
+        process->rendezvous(processGroup, channelId, operand);
+    if (to != process->getId()) continue;
+    result = rendezvousResult.lookup(from);
+  }
 
+  if (result) return *result;
   return evalBroadcastInDimOp(
       Tensor(RankedTensorType::get({}, operand.getElementType()),
              convert(operand.getElementType(), 0.0)),
@@ -1247,7 +1248,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
   if (!process)
     llvm::report_fatal_error(
         "partition_id is only supported when run via interpreter.run_parallel");
-  auto partitionId = process->id.partitionId;
+  auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
   return Tensor(RankedTensorType::get({}, elementType),
                 Element(elementType, APInt(32, partitionId)));
@@ -1356,7 +1357,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
   if (!process)
     llvm::report_fatal_error(
         "replica_id is only supported when run via interpreter.run_parallel");
-  auto replicaId = process->id.replicaId;
+  auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
   return Tensor(RankedTensorType::get({}, elementType),
                 Element(elementType, APInt(32, replicaId)));

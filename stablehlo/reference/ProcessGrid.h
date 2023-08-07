@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_PROCESSGRID_H_
-#define STABLEHLO_REFERENCE_PROCESSGRID_H_
+#ifndef STABLEHLO_REFERENCE_PROCESSGRID_H
+#define STABLEHLO_REFERENCE_PROCESSGRID_H
 
 #include <condition_variable>
 #include <cstdint>
@@ -29,7 +29,9 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-// Object to represent StableHLO `process_id`.
+using ChannelId = int64_t;
+
+// StableHLO `process_id`.
 struct ProcessId {
   /// StableHLO `replica_id`.
   uint32_t replicaId;
@@ -37,25 +39,38 @@ struct ProcessId {
   /// StableHLO `partition_id`.
   uint32_t partitionId;
 
-  bool operator<(const ProcessId &other) const {
-    return std::pair<uint32_t, uint32_t>{replicaId, partitionId} <
-           std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
-  }
+  bool operator<(const ProcessId &other) const;
 
-  bool operator==(const ProcessId &other) const {
-    return std::pair<uint32_t, uint32_t>{replicaId, partitionId} ==
-           std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
-  }
+  bool operator==(const ProcessId &other) const;
+
+  bool operator!=(const ProcessId &other) const;
 };
 
-// Object to represent StableHLO process group.
-struct ProcessGroup : SmallVector<ProcessId> {};
+// StableHLO `process_group`.
+struct ProcessGroup : public SmallVector<ProcessId> {};
 
-// Object to represent StableHLO process groups.
-class ProcessGroups : public SmallVector<ProcessGroup> {
+// StableHLO `process_groups`.
+struct ProcessGroups : public SmallVector<ProcessGroup> {};
+
+class RendezvousResult {
  public:
-  /// Returns an array of process groups.
-  SmallVector<ProcessGroup> find(ProcessId &processId);
+  /// Iterates through the map `result_` and returns the value associated with
+  /// the key `processId`.
+  /// If key is not found, return an empty `Tensor`.
+  Tensor lookup(ProcessId processId);
+
+  /// Inserts `tensor` into the map `result_` using the key `processId`.
+  void insert(ProcessId processId, Tensor tensor);
+
+  /// Erases all elements in the map `result_`.
+  void clear();
+
+  /// Returns the size of `result_`.
+  size_t size();
+
+ private:
+  ///
+  std::map<ProcessId, Tensor> result_;
 };
 
 /// Class to model a process grid.
@@ -66,60 +81,47 @@ class ProcessGrid {
   ProcessGrid(uint32_t numReplicas, uint32_t numPartitions);
   /// @}
 
-  /// Cross-replica communication strategy.
+  /// StableHLO `cross_replcia`.
   ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
 
-  /// Cross-partition communication strategy.
+  /// StableHLO `cross_partition`.
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
-  /// Synchronizes running processes in the `ProcessGroup` and returns the
-  /// collected resources from all partitipating processes in the process group.
-  SmallVector<std::pair<ProcessId, Tensor>> rendezvous(
-      ProcessGroup processGroup, int64_t channelId, ProcessId &processId,
-      const Tensor &operand);
+  /// Each participating process in the `processGroup` appends its data
+  /// `operand` to the `channels_` map using the pair (processGroup, channelId)
+  /// as a key. `channels_` is cleared before any process adds its data.
+  /// `rendezvous` then returns `RendezvousResult` containing a mapping of
+  /// `processId` to its data `operand` once all participating processes have
+  /// successfully added their data. Throws an error after a timeout when
+  /// synchronization deadlocks.
+  RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
+                              ProcessId processId, const Tensor &operand);
 
  private:
-  /// The number of replicas the interpreter models.
+  /// StableHLO `num_replicas`.
   uint32_t numReplicas_;
 
-  /// The number of partitions the interpreter models.
+  /// StableHLO `num_partitions`.
   uint32_t numPartitions_;
 
-  /// Synchronization primitive used in `rendezvous` function.
-  std::map<std::pair<ProcessGroup, int64_t>, std::mutex> resourceLockMap_;
+  /// Internal storage used to implement `rendezvous`.
+  /// Each call to `rendezvous`, i.e. each combination `processGroup` and
+  /// `channelId`, has its own key in the map.
+  /// Within the implementation of `rendezvous`, the value corresponding to
+  /// this key is gradually populated with tensors arriving from different
+  /// processes in the process group.
+  std::map<std::pair<ProcessGroup, ChannelId>, RendezvousResult> channels_;
 
-  /// Synchronization primitive used in `rendezvous` function.
-  std::map<std::pair<ProcessGroup, int64_t>, std::condition_variable>
-      resourceConditionMap_;
+  /// Synchronization primitive used to manage concurrent access to `channels_`.
+  std::map<std::pair<ProcessGroup, ChannelId>, std::mutex> channelLocks_;
 
-  /// Internal mapping of StableHLO `channel_id` to its value.
-  std::map<std::pair<ProcessGroup, int64_t>,
-           SmallVector<std::pair<ProcessId, Tensor>>>
-      channels_;
-};
-
-struct Process {
-  /// StableHLO `process_id`.
-  ProcessId id;
-
-  /// StableHLO process grid.
-  ProcessGrid *grid;
-
-  /// Cross-replica communication strategy.
-  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
-
-  /// Cross-partition communication strategy.
-  ProcessGroups crossPartition(
-      SmallVector<SmallVector<uint32_t>> partitionGroups);
-
-  /// Synchronizes running processes in the `ProcessGroup` and returns the
-  /// collected resources from all partitipating processes in the process group.
-  SmallVector<std::pair<ProcessId, Tensor>> rendezvous(
-      ProcessGroup processGroup, int64_t channelId, const Tensor &operand);
+  /// Synchronization primitive used to manage concurrent access to `channels_`.
+  std::map<std::pair<ProcessGroup, ChannelId>, std::condition_variable>
+      channelConditions_;
 };
 
 }  // namespace stablehlo
 }  // namespace mlir
 
-#endif  // STABLEHLO_REFERENCE_PROCESSGRID_H_
+#endif  // STABLEHLO_REFERENCE_PROCESSGRID_H

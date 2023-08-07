@@ -99,7 +99,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   uint32_t numPartitions = programs[0].size();
   ProcessGrid processGrid{numReplicas, numPartitions};
 
-  auto inputItr = inputs.begin();
+  auto inputsIt = inputs.begin();
 
   for (uint32_t i = 0; i < numReplicas; ++i) {
     for (uint32_t j = 0; j < numPartitions; ++j) {
@@ -113,8 +113,8 @@ SmallVector<InterpreterValue> evalRunParallelOp(
       };
 
       auto numArgs = func.getBody().front().getArguments().size();
-      SmallVector<InterpreterValue> args(inputItr, inputItr + numArgs);
-      inputItr += numArgs;
+      SmallVector<InterpreterValue> args(inputsIt, inputsIt + numArgs);
+      inputsIt += numArgs;
 
       futures.emplace_back(threadPool.async(
           evalWrapper, std::ref(func.getBody()), args, ProcessId{i, j}));
