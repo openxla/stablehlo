@@ -95,13 +95,24 @@ class ProcessGrid {
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
-  /// Each participating process in the `processGroup` appends its data
-  /// `operand` to the map using the pair (`processGroup`, `channelId`)
-  /// as a key. The map is cleared before any process adds its data.
-  /// `rendezvous` then returns `RendezvousResult` containing a mapping of
-  /// `processId` to its data `operand` once all participating processes have
-  /// successfully added their data. Throws an error after a timeout when the
-  /// synchronization deadlocks.
+  /// Synchronize a StableHLO process with the `processId` with other StableHLO
+  /// processes in the `processGroup` using a `channelId`.
+  ///
+  /// A call to this method represents a barrier, i.e. it blocks the calling
+  /// OS thread until all StableHLO processes from the `processGroup` call this
+  /// method with the same `channelId`. If the calling OS thread doesn't
+  /// correspond to the StableHLO process with `processId`, the behavior is
+  /// undefined.
+  ///
+  /// If any of the StableHLO processes from `processGroup` fail to arrive
+  /// at the barrier within 3 seconds, the `rendezvous` fails with a fatal
+  /// error for all calling OS threads. This is to make sure that errors in
+  /// underlying StableHLO programs or bugs in the StableHLO interpreter don't
+  /// deadlock the interpreter.
+  ///
+  /// At the barrier, each StableHLO process contributes a tensor, and these
+  /// tensors are accumulated in `RendezvousResult` which is returned to all
+  /// callers once the barrier has been reached by all StableHLO processes.
   RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
                               ProcessId processId, const Tensor &operand);
 
