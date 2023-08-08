@@ -102,6 +102,24 @@ func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
 
 // -----
 
+// CHECK-LABEL: func @all_reduce_c7
+func.func @all_reduce_c7(%arg0: tensor<10xf32>) -> tensor<10xf32> {
+  %0 = "stablehlo.all_reduce"(%arg0) ({
+  // Perform max reduction inside the region
+  ^bb0(%lhs: tensor<f32>, %rhs: tensor<f32>):
+    %max = stablehlo.maximum %lhs, %rhs : tensor<f32>
+    "stablehlo.return"(%max) : (tensor<f32>) -> ()
+  })
+  {
+    replica_groups = dense<[[0, 2, 4, 6], [1, 3, 5, 7]]> : tensor<2x4xi64>,
+    channel_handle = #stablehlo.channel_handle<handle = 5,type = 2>,
+    use_global_device_ids
+  } : (tensor<10xf32>) -> tensor<10xf32>
+  func.return %0 : tensor<10xf32>
+}
+
+// -----
+
 // CHECK-LABEL: func @alltoall
 func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xindex> {
   %0 = "stablehlo.all_to_all"(%data) {

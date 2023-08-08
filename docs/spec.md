@@ -784,13 +784,13 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                                             | Constraints |
-|-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
-| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
-| (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
-| (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
-| (I5)  | `computation`           | function                                                         | (C5)        |
+| Label | Name                    | Type                                         | Constraints |
+|-------|-------------------------|----------------------------------------------|-------------|
+| (I1)  | `operand`               | tensor                                       | (C5), (C6)  |
+| (I2)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C1-C3)     |
+| (I3)  | `channel_id`            | constant of type `si64`                      | (C4)        |
+| (I4)  | `use_global_device_ids` | constant of type `i1`                        | (C4)        |
+| (I5)  | `computation`           | function                                     | (C5)        |
 
 #### Outputs
 
@@ -801,36 +801,37 @@ Afterwards, within each `process_group`:
 #### Constraints
 
 * (C1) `is_unique(replica_groups)`.
-* (C2) `size(replica_groups)` is defined as:
+* (C2) `rank(replica_groups) = 2`.
+* (C3) `1 < size(replica_groups)`.
+* (C4) `0 <= replica_groups < N` where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.
   * `num_processes` if `flattened_ids` is used.
-* (C3) `0 <= replica_groups < size(replica_groups)`.
-* (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
+* (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
-* (C6) `type(result) = type(operand)`.
+* (C7) `type(result) = type(operand)`.
 
 #### Examples
 
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [1.0, 2.0, 3.0, 4.0]
-// %operand@(1, 0): [5.0, 6.0, 7.0, 8.0]
+// %operand@(0, 0): [1, 2, 3, 4]
+// %operand@(1, 0): [5, 6, 7, 8]
 %result = "stablehlo.all_reduce"(%operand) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-    "stablehlo.return"(%0) : (tensor<f32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-  // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-  // use_global_device_ids = false
-} : (tensor<4xf32>) -> tensor<4xf32>
-// %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
-// %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
+} : (tensor<i64>) -> tensor<i64>
+// %result@(0, 0): [6, 8, 10, 12]
+// %result@(1, 0): [6, 8, 10, 12]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_all_reduce.mlir)
 
 ### all_to_all
 

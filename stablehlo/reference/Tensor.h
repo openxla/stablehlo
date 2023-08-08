@@ -71,6 +71,8 @@ class Tensor {
   /// \name Constructors
   /// @{
   Tensor();
+  /// This constructor initializes the tensor with a scalar value.
+  explicit Tensor(const Element &initValue);
   explicit Tensor(ShapedType type);
   explicit Tensor(ShapedType type, AsmResourceBlob blob);
   /// This constructor initializes the tensor populated with the provided

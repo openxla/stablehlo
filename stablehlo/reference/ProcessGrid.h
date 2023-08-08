@@ -52,10 +52,12 @@ struct ProcessId {
 };
 
 // StableHLO `process_group`.
-class ProcessGroup : public SmallVector<ProcessId> {};
+struct ProcessGroup : public SmallVector<ProcessId> {};
 
 // StableHLO `process_groups`.
-class ProcessGroups : public SmallVector<ProcessGroup> {};
+struct ProcessGroups : public SmallVector<ProcessGroup> {
+  ProcessGroups findAll(ProcessId processId);
+};
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
 /// synchronize at a barrier and contribute a Tensor each.
@@ -65,6 +67,9 @@ class RendezvousResult {
  public:
   /// Erases all elements in the map.
   void clear();
+
+  /// Returns the tensor values of the map `result_`.
+  SmallVector<Tensor> getTensors();
 
   /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
@@ -95,6 +100,14 @@ class ProcessGrid {
 
   /// StableHLO `cross_replica` communication strategy.
   ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
+
+  /// StableHLO `cross_replica_and_partition` communication strategy.
+  ProcessGroups crossReplicaAndPartition(
+      SmallVector<SmallVector<uint32_t>> partitionGroups);
+
+  /// StableHLO `flattened_ids` communication strategy.
+  ProcessGroups flattenedIds(
+      SmallVector<SmallVector<uint32_t>> partitionGroups);
 
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);

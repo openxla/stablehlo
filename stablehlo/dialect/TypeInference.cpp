@@ -426,6 +426,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   std::optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
+  // all_reduce_c2
   if (replicaGroupType.getRank() != 2)
     return emitOptionalError(location,
                              "replica groups should be a rank 2 tensor");
@@ -438,6 +439,11 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                              "groups cannot be empty");
 
   auto replicaIds = replicaGroups.getValues<int64_t>();
+
+  // all_reduce_c3
+  if (replicaGroups.getNumElements() == 0)
+    return emitOptionalError(location, "replica group cannot be empty");
+
   llvm::SmallSet<int64_t, 8> replicaIdsSeen;
   for (int64_t replicaId : replicaIds) {
     // Replica groups are stored in a 2D tensor. If the op supports non-uniform
@@ -447,11 +453,13 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
       return emitOptionalError(location, "Invalid replica id -1");
     }
 
+    // all_reduce_c1
     if (!replicaIdsSeen.insert(replicaId).second)
       return emitOptionalError(location, "replica id #", replicaId,
                                " seen more than once");
   }
 
+  // all_reduce_c4
   for (size_t id = 0; id < replicaIdsSeen.size(); id++)
     if (!replicaIdsSeen.contains(id))
       return emitOptionalError(location, "replica id #", id,
@@ -539,18 +547,21 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions) {
   int64_t numInputs = inputTypes.size();
 
-  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
+  // select_and_scatter_c10
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
+  // select_and_scatter_c10
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
+  // select_and_scatter_c10
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -558,7 +569,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
-  // reduce_c6, reduce_window_c13, scatter_c15, select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
+  // select_and_scatter_c10
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
@@ -572,7 +584,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   }
 
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c10
+    // all_reduce_c6, reduce_c2, reduce_window_c13, scatter_c15,
+    // select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -581,8 +594,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c2, reduce_window_c13, scatter_c15, select_and_scatter_c3,
-    // select_and_scatter_c10
+    // all_reduce_c6, reduce_c2, reduce_window_c13, scatter_c15,
+    // select_and_scatter_c3, select_and_scatter_c10
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -594,8 +607,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // reduce_c6, reduce_window_c13, reduce_window_i2, scatter_c6, scatter_c15,
-    // select_and_scatter_c10
+    // all_reduce_c6, reduce_c6, reduce_window_c13, reduce_window_i2,
+    // scatter_c6, scatter_c15, select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -3097,14 +3110,24 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
 
 LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
-                                bool useGlobalDeviceIds, Region& computation) {
+                                int64_t channelId, bool useGlobalDeviceIds,
+                                Region& computation) {
+  // all_reduce_c1...all_reduce_c4
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/false,
                                  useGlobalDeviceIds,
                                  /*expectedGroupSize=*/std::nullopt)))
     return failure();
 
+  // all_reduce_c5
+  if (useGlobalDeviceIds && channelId <= 0)
+    return emitOptionalError(
+        location,
+        "channel_id must be positive when useGlobalDeviceIds is set but got: ",
+        channelId);
+
   auto operandType = operand.getType().cast<ShapedType>();
+  // all_reduce_c6
   if (failed(verifyReducerShape(
           location, computation.front(), {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},

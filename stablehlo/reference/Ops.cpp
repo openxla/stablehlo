@@ -171,6 +171,27 @@ SmallVector<InterpreterValue> eval(
       auto inputs = scope.findTokens(afterAllOp.getInputs());
       auto result = evalAfterAllOp(inputs, afterAllOp->getContext());
       scope.add(afterAllOp.getResult(), result);
+    } else if (auto allReduceOp = dyn_cast<AllReduceOp>(op)) {
+      auto operand = scope.findTensor(allReduceOp.getOperand());
+
+      auto replicaGroupsAttr = allReduceOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(
+          replicaGroupsAttr.getNumElements() / replicaGroupsShape[1]);
+      for (auto &group : replicaGroups) {
+        auto it = replicaGroupsAttr.getValues<int64_t>().begin();
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i) group.push_back(*it++);
+      }
+
+      auto channelId = 0;
+      if (auto channelHandle = allReduceOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalAllReduceOp(operand, replicaGroups, channelId,
+                                    allReduceOp.getUseGlobalDeviceIds(),
+                                    allReduceOp.getComputation(), process,
+                                    scope, allReduceOp.getType());
+      scope.add(allReduceOp.getResult(), result);
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
       auto lhs = scope.findTensor(andOp.getLhs());
       auto rhs = scope.findTensor(andOp.getRhs());
@@ -705,6 +726,51 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 
 Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
   return Token(context);
+}
+
+Tensor evalAllReduceOp(const Tensor &operand,
+                       SmallVector<SmallVector<uint32_t>> replicaGroups,
+                       int64_t channelId, bool useGlobalDeviceIds,
+                       Region &region, Process *process, Scope &scope,
+                       ShapedType resultType) {
+  if (!process)
+    llvm::report_fatal_error(
+        "all_reduce is only supported when run via interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplicaAndPartition(replicaGroups);
+  if (channelId > 0 && useGlobalDeviceIds)
+    processGroups = process->flattenedIds(replicaGroups);
+
+  auto processGroup = processGroups.findAll(process->getId())[0];
+  auto groupOperands =
+      process->rendezvous(processGroup, channelId, operand).getTensors();
+
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    SmallVector<Tensor> inputs;
+    for (auto input : groupOperands)
+      inputs.push_back(
+          Tensor(RankedTensorType::get({1}, operand.getElementType()),
+                 input.get(*resultIt)));
+
+    auto concatResultShape = inputs[0].getShape();
+    concatResultShape[0] = inputs.size();
+    auto concatenateResult = evalConcatenateOp(
+        inputs, 0,
+        RankedTensorType::get(concatResultShape, operand.getElementType()));
+
+    result.set(*resultIt,
+               evalReduceOp(concatenateResult,
+                            Tensor(convert(operand.getElementType(), 0.0)), {0},
+                            region, process, scope)[0]
+                   .get({}));
+  }
+  return result;
 }
 
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {

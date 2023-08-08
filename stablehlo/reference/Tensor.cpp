@@ -20,6 +20,7 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
@@ -86,6 +87,12 @@ Buffer::Buffer(ShapedType type, AsmResourceBlob blob)
 }  // namespace detail
 
 Tensor::Tensor() {}
+
+Tensor::Tensor(const Element &initValue)
+    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(
+          RankedTensorType::get({}, initValue.getType()))) {
+  this->set({}, initValue);
+}
 
 Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
