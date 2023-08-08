@@ -13,12 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef STABLEHLO_REFERENCE_INTERPRETER_OPS
-#define STABLEHLO_REFERENCE_INTERPRETER_OPS
+#ifndef STABLEHLO_REFERENCE_INTERPRETEROPS_H
+#define STABLEHLO_REFERENCE_INTERPRETEROPS_H
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/InterpreterValue.h"
 
@@ -43,4 +42,4 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 #define GET_OP_CLASSES
 #include "stablehlo/reference/InterpreterOps.h.inc"
 
-#endif  // STABLEHLO_REFERENCE_INTERPRETER_OPS
+#endif  // STABLEHLO_REFERENCE_INTERPRETEROPS_H

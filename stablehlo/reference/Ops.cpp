@@ -29,8 +29,8 @@ limitations under the License.
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
-#include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Process.h"
+#include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Token.h"
 #include "stablehlo/reference/Types.h"
 
@@ -225,6 +225,26 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(clzOp.getOperand());
       auto result = evalClzOp(operand, clzOp.getType());
       scope.add(clzOp.getResult(), result);
+    } else if (auto collectivePermuteOp = dyn_cast<CollectivePermuteOp>(op)) {
+      auto operand = scope.findTensor(collectivePermuteOp.getOperand());
+
+      auto sourceTargetPairsAttr = collectivePermuteOp.getSourceTargetPairs();
+      SmallVector<SmallVector<uint32_t>> sourceTargetPairs(
+          sourceTargetPairsAttr.getNumElements() / 2);
+      auto sourceTargetPairsIt =
+          sourceTargetPairsAttr.getValues<int64_t>().begin();
+      for (auto &sourceTargetPair : sourceTargetPairs) {
+        sourceTargetPair.push_back(*sourceTargetPairsIt++);
+        sourceTargetPair.push_back(*sourceTargetPairsIt++);
+      }
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = collectivePermuteOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalCollectivePermuteOp(operand, sourceTargetPairs,
+                                            channelId, process);
+      scope.add(collectivePermuteOp.getResult(), result);
     } else if (auto compareOp = dyn_cast<CompareOp>(op)) {
       auto lhs = scope.findTensor(compareOp.getLhs());
       auto rhs = scope.findTensor(compareOp.getRhs());
@@ -800,6 +820,37 @@ Tensor evalClzOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+Tensor evalCollectivePermuteOp(
+    const Tensor &operand, SmallVector<SmallVector<uint32_t>> sourceTargetPairs,
+    ChannelId channelId, Process *process) {
+  if (!process)
+    llvm::report_fatal_error(
+        "collective_permute is only supported when run via "
+        "interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0) processGroups = process->crossReplica(sourceTargetPairs);
+  if (channelId > 0) processGroups = process->crossPartition(sourceTargetPairs);
+
+  Tensor result;
+  for (auto processGroup : processGroups) {
+    auto from = processGroup[0];
+    auto to = processGroup[1];
+    if (from != process->getId() && to != process->getId()) continue;
+
+    auto rendezvousResult =
+        process->rendezvous(processGroup, channelId, operand);
+    if (to != process->getId()) continue;
+    result = rendezvousResult.lookup(from);
+  }
+
+  if (result) return result;
+  return evalBroadcastInDimOp(
+      Tensor(RankedTensorType::get({}, operand.getElementType()),
+             convert(operand.getElementType(), 0.0)),
+      {}, operand.getType());
+}
+
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
                      ComparisonDirection comparisonDirection,
                      ShapedType resultType) {
@@ -1197,7 +1248,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
   if (!process)
     llvm::report_fatal_error(
         "partition_id is only supported when run via interpreter.run_parallel");
-  auto partitionId = process->processId.partitionId;
+  auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
   return Tensor(RankedTensorType::get({}, elementType),
                 Element(elementType, APInt(32, partitionId)));
@@ -1306,7 +1357,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
   if (!process)
     llvm::report_fatal_error(
         "replica_id is only supported when run via interpreter.run_parallel");
-  auto replicaId = process->processId.replicaId;
+  auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
   return Tensor(RankedTensorType::get({}, elementType),
                 Element(elementType, APInt(32, replicaId)));
