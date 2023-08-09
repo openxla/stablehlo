@@ -176,11 +176,14 @@ SmallVector<InterpreterValue> eval(
 
       auto replicaGroupsAttr = allReduceOp.getReplicaGroups();
       auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(
-          replicaGroupsAttr.getNumElements() / replicaGroupsShape[1]);
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto it = replicaGroupsAttr.getValues<int64_t>().begin();
       for (auto &group : replicaGroups) {
-        auto it = replicaGroupsAttr.getValues<int64_t>().begin();
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i) group.push_back(*it++);
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++it) {
+          auto replicaId = *it;
+          if (replicaId == -1) continue;
+          group.push_back(replicaId);
+        }
       }
 
       auto channelId = 0;
@@ -731,7 +734,7 @@ Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
 Tensor evalAllReduceOp(const Tensor &operand,
                        SmallVector<SmallVector<uint32_t>> replicaGroups,
                        int64_t channelId, bool useGlobalDeviceIds,
-                       Region &region, Process *process, Scope &scope,
+                       Region &computation, Process *process, Scope &scope,
                        ShapedType resultType) {
   if (!process)
     llvm::report_fatal_error(
@@ -745,31 +748,31 @@ Tensor evalAllReduceOp(const Tensor &operand,
   if (channelId > 0 && useGlobalDeviceIds)
     processGroups = process->flattenedIds(replicaGroups);
 
-  auto processGroup = processGroups.findAll(process->getId())[0];
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup)
+    llvm::report_fatal_error(invalidArgument(
+        "Failed to find process group with process_id: (%d, %d)",
+        process->getId().replicaId, process->getId().partitionId));
+
   auto groupOperands =
-      process->rendezvous(processGroup, channelId, operand).getTensors();
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
 
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
-    SmallVector<Tensor> inputs;
-    for (auto input : groupOperands)
-      inputs.push_back(
-          Tensor(RankedTensorType::get({1}, operand.getElementType()),
-                 input.get(*resultIt)));
-
-    auto concatResultShape = inputs[0].getShape();
-    concatResultShape[0] = inputs.size();
-    auto concatenateResult = evalConcatenateOp(
-        inputs, 0,
-        RankedTensorType::get(concatResultShape, operand.getElementType()));
-
-    result.set(*resultIt,
-               evalReduceOp(concatenateResult,
-                            Tensor(convert(operand.getElementType(), 0.0)), {0},
-                            region, process, scope)[0]
-                   .get({}));
+    Tensor resultElement;
+    for (auto groupOperand : groupOperands) {
+      Tensor groupOperandElement(groupOperand.get(*resultIt));
+      if (resultElement)
+        resultElement = eval(computation, {resultElement, groupOperandElement},
+                             process, &scope)[0]
+                            .getTensor();
+      else
+        resultElement = groupOperandElement;
+    }
+    result.set(*resultIt, resultElement.get({}));
   }
+
   return result;
 }
 
@@ -916,10 +919,8 @@ Tensor evalCollectivePermuteOp(
   }
 
   if (result) return result;
-  return evalBroadcastInDimOp(
-      Tensor(RankedTensorType::get({}, operand.getElementType()),
-             convert(operand.getElementType(), 0.0)),
-      {}, operand.getType());
+  return evalBroadcastInDimOp(Tensor(convert(operand.getElementType(), 0.0)),
+                              {}, operand.getType());
 }
 
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
@@ -1330,8 +1331,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
         "partition_id is only supported when run via interpreter.run_parallel");
   auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return Tensor(RankedTensorType::get({}, elementType),
-                Element(elementType, APInt(32, partitionId)));
+  return Tensor(Element(elementType, APInt(32, partitionId)));
 }
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
@@ -1439,8 +1439,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
         "replica_id is only supported when run via interpreter.run_parallel");
   auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return Tensor(RankedTensorType::get({}, elementType),
-                Element(elementType, APInt(32, replicaId)));
+  return Tensor(Element(elementType, APInt(32, replicaId)));
 }
 
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
@@ -1539,13 +1538,9 @@ SmallVector<Tensor> evalScatterOp(
 
     SmallVector<InterpreterValue> updateComputationArgs;
     for (const auto &result : results)
-      updateComputationArgs.push_back(
-          Tensor(RankedTensorType::get({}, result.getElementType()),
-                 result.get(resultIndex)));
+      updateComputationArgs.push_back(Tensor(result.get(resultIndex)));
     for (const auto &update : updates)
-      updateComputationArgs.push_back(
-          Tensor(RankedTensorType::get({}, update.getElementType()),
-                 update.get(updateIndex)));
+      updateComputationArgs.push_back(Tensor(update.get(updateIndex)));
 
     auto updatedValues =
         eval(updateComputation, updateComputationArgs, process, &scope);
@@ -1584,11 +1579,8 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
         selectedIndex = operandIndex;
       }
 
-      InterpreterValue selectedInterpreterVal(
-          Tensor(RankedTensorType::get({}, selectedVal.value().getType()),
-                 selectedVal.value()));
-      InterpreterValue currInterpreterVal(
-          Tensor(RankedTensorType::get({}, currVal.getType()), currVal));
+      InterpreterValue selectedInterpreterVal(Tensor(selectedVal.value()));
+      InterpreterValue currInterpreterVal(Tensor{currVal});
       auto selectResult =
           eval(select, {selectedInterpreterVal, currInterpreterVal}, process,
                &scope);
@@ -1707,9 +1699,8 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       lhsIndex[adjustedDimension] = lhsHandle;
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
-        auto argType = RankedTensorType::get({}, input.getElementType());
-        args.emplace_back(Tensor(argType, input.get(lhsIndex)));
-        args.emplace_back(Tensor(argType, input.get(rhsIndex)));
+        args.emplace_back(Tensor(input.get(lhsIndex)));
+        args.emplace_back(Tensor(input.get(rhsIndex)));
       }
       auto comparatorResult = eval(comparator, args, process, &scope);
       return comparatorResult[0].getTensor().get({}).getBooleanValue();

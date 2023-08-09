@@ -784,13 +784,13 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                         | Constraints |
-|-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                       | (C5), (C6)  |
-| (I2)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C1-C3)     |
-| (I3)  | `channel_id`            | constant of type `si64`                      | (C4)        |
-| (I4)  | `use_global_device_ids` | constant of type `i1`                        | (C4)        |
-| (I5)  | `computation`           | function                                     | (C5)        |
+| Label | Name                    | Type                                                             | Constraints |
+|-------|-------------------------|------------------------------------------------------------------|-------------|
+| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
+| (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
+| (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
+| (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
+| (I5)  | `computation`           | function                                                         | (C5)        |
 
 #### Outputs
 
@@ -802,7 +802,7 @@ Afterwards, within each `process_group`:
 
 * (C1) `is_unique(replica_groups)`.
 * (C2) `rank(replica_groups) = 2`.
-* (C3) `1 < size(replica_groups)`.
+* (C3) `1 <= size(replica_groups)`.
 * (C4) `0 <= replica_groups < N` where `N` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.

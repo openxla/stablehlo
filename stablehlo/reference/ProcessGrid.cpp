@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
@@ -49,14 +50,12 @@ bool ProcessId::operator==(const ProcessId &other) const {
 // ProcessGroups.
 //===----------------------------------------------------------------------===//
 
-ProcessGroups ProcessGroups::findAll(ProcessId processId) {
-  ProcessGroups groupsFound{};
-
+std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
   for (auto processGroup : *this)
     for (auto id : processGroup)
-      if (id == processId) groupsFound.push_back(processGroup);
+      if (id == processId) return processGroup;
 
-  return groupsFound;
+  return std::nullopt;
 }
 
 //===----------------------------------------------------------------------===//
@@ -75,7 +74,7 @@ Tensor RendezvousResult::lookup(ProcessId processId) {
   return {};
 }
 
-SmallVector<Tensor> RendezvousResult::getTensors() {
+SmallVector<Tensor> RendezvousResult::getSortedTensors() {
   return llvm::to_vector(
       llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
@@ -107,6 +106,8 @@ ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
   for (auto replicaGroup : replicaGroups) {
+    if (replicaGroup.empty())
+      llvm::report_fatal_error("empty replicaGroup found during crossReplica");
     for (uint32_t partitionId = 0; partitionId < numPartitions_;
          ++partitionId) {
       ProcessGroup processGroup;
@@ -118,15 +119,13 @@ ProcessGroups ProcessGrid::crossReplica(
   return processGroups;
 }
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
-  std::lock_guard<std::mutex> lock(outfeedLock_);
-  outfeed_.emplace(inputs);
-}
-
 ProcessGroups ProcessGrid::crossReplicaAndPartition(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
   for (auto replicaGroup : replicaGroups) {
+    if (replicaGroup.empty())
+      llvm::report_fatal_error(
+          "empty replicaGroup found during crossReplicaAndPartition");
     ProcessGroup processGroup;
     for (uint32_t partitionId = 0; partitionId < numPartitions_; ++partitionId)
       for (uint32_t replicaId : replicaGroup)
@@ -140,6 +139,9 @@ ProcessGroups ProcessGrid::flattenedIds(
     SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
   ProcessGroups processGroups;
   for (auto flattenedIdGroup : flattenedIdGroups) {
+    if (flattenedIdGroup.empty())
+      llvm::report_fatal_error(
+          "empty flattenedIdGroup found during flattenedIds");
     ProcessGroup processGroup;
     for (auto flattenedId : flattenedIdGroup) {
       uint32_t replicaId = flattenedId / numPartitions_;
@@ -149,6 +151,11 @@ ProcessGroups ProcessGrid::flattenedIds(
     processGroups.push_back(processGroup);
   }
   return processGroups;
+}
+
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
+  std::lock_guard<std::mutex> lock(outfeedLock_);
+  outfeed_.emplace(inputs);
 }
 
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,

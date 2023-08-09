@@ -55,7 +55,7 @@ func.func @all_reduce_c1(%operand: tensor<10xf32>) -> tensor<10xf32> {
 
 // -----
 
-func.func @all_reduce_c2(%operand: tensor<10xf32>) -> tensor<10xf32> {
+func.func @all_reduce_c2_i2(%operand: tensor<10xf32>) -> tensor<10xf32> {
   // expected-error@+1 {{replica groups should be a rank 2 tensor}}
   %0 = "stablehlo.all_reduce"(%operand) ({
   ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):

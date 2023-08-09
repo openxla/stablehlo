@@ -426,7 +426,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   std::optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
-  // all_reduce_c2
+  // all_reduce_c2_i2
   if (replicaGroupType.getRank() != 2)
     return emitOptionalError(location,
                              "replica groups should be a rank 2 tensor");

@@ -20,6 +20,7 @@ limitations under the License.
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <utility>
 
@@ -52,11 +53,15 @@ struct ProcessId {
 };
 
 // StableHLO `process_group`.
-struct ProcessGroup : public SmallVector<ProcessId> {};
+class ProcessGroup : public SmallVector<ProcessId> {};
 
 // StableHLO `process_groups`.
-struct ProcessGroups : public SmallVector<ProcessGroup> {
-  ProcessGroups findAll(ProcessId processId);
+class ProcessGroups : public SmallVector<ProcessGroup> {
+ public:
+  /// Iterates through the ProcessGroups and finds the first ProcessGroup
+  /// containing the `processId`. If the group is not found, std::nullopt is
+  /// returned.
+  std::optional<ProcessGroup> findGroup(ProcessId processId);
 };
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
@@ -68,8 +73,9 @@ class RendezvousResult {
   /// Erases all elements in the map.
   void clear();
 
-  /// Returns the tensor values of the map `result_`.
-  SmallVector<Tensor> getTensors();
+  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
+  /// of Tensors sorted by ProcessId.
+  SmallVector<Tensor> getSortedTensors();
 
   /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
