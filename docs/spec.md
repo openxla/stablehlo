@@ -6021,6 +6021,46 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
+StableHLO programs allows associating a sharding property to StableHLO operators to
+achieve different parallelism paradigms (data parallelism and partitioning) in a
+unified way.
+
+### Sharding Property
+
+Let us first define a term `device` as the logical abstraction for all the
+processes within the process grid with same `partition_id`. This `partition_id`
+is used as a unique identifier for the device. Most common use case for the
+application of sharding property is when `num_replicas = 1` and `num_partitions
+= number of devices`.
+
+The sharding property associated with a operator specifies how the output tensor
+data is distributed across devices. The effect of associating sharding property
+to a StableHLO program is that it generates a single StableHLO program for all
+devices while transforming each operator to perform computation on partions of
+the operator data following the sharding decision (to be elaborated next)
+imposed by the associated sharding properties.  Each such program does
+computation with individual operators on potentially different partions of the
+tensor data (SPMD style partitioning), collaborating with other devices for data
+exchange, and moves on to the next operator in lock-step.
+
+Sharding properties are associated with partitioning decisions which can be
+ broadly divided into the followings: properties.
+
+  - Replicated: The data associated with the sharded operation is duplicated
+  across all the devices.
+
+  - Tiled:  This property contains a multi-dimensional tensor
+  consisting of device ids which must have the same rank as the data tensor.
+  Each data dimension is sharded across devices along the same dimension in the
+  device tensor, and each device occupies the corresponding tile in the data
+  tensor that matches its location in the device tensor. There is zero data
+  duplication.
+
+  - Partially tiled: This property also contains a multi-dimensional tensor of
+  device ids with additional information to create equally sized subgroups of
+  devices such that data tensor is replicated across devices in each subgroup
+  but tiled across subgroups.
+
 ### Accuracy
 
 At the moment, StableHLO does not provide guarantees about numerical accuracy,
