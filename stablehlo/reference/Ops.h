@@ -103,6 +103,7 @@ Tensor evalNotOp(const Tensor &operand, ShapedType resultType);
 SmallVector<InterpreterValue> evalOptimizationBarrierOp(
     ArrayRef<InterpreterValue> operand);
 Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
+Token evalOutfeedOp(ArrayRef<Tensor> inputs, Token token, Process *process);
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &interiorPadding,
                  ShapedType resultType);

@@ -416,6 +416,11 @@ SmallVector<InterpreterValue> eval(
       auto rhs = scope.findTensor(orOp.getRhs());
       auto result = evalOrOp(lhs, rhs, orOp.getType());
       scope.add(orOp.getResult(), result);
+    } else if (auto outfeedOp = dyn_cast<OutfeedOp>(op)) {
+      auto inputs = scope.findTensors(outfeedOp.getInputs());
+      auto token = scope.findToken(outfeedOp.getToken());
+      auto result = evalOutfeedOp(inputs, token, process);
+      scope.add(outfeedOp.getResult(), result);
     } else if (auto padOp = dyn_cast<PadOp>(op)) {
       auto operand = scope.findTensor(padOp.getOperand());
       auto paddingValue = scope.findTensor(padOp.getPaddingValue());
@@ -1226,6 +1231,11 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, lhs.get(*it) | rhs.get(*it));
   return result;
+}
+
+Token evalOutfeedOp(ArrayRef<Tensor> inputs, Token token, Process *process) {
+  process->outfeed(inputs);
+  return token;
 }
 
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,

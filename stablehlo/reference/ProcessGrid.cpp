@@ -85,6 +85,10 @@ ProcessGroups ProcessGrid::crossPartition(
   return processGroups;
 }
 
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
+  outfeed_.push(llvm::to_vector(inputs));
+}
+
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          int64_t channelId, ProcessId processId,
                                          const Tensor &operand) {

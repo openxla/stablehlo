@@ -110,7 +110,7 @@ one of the following tracking labels.
 | not                      | yes           | yes          | yes            | yes             | yes         |
 | optimization_barrier     | yes           | yes          | yes            | yes             | yes         |
 | or                       | yes           | yes          | yes            | yes             | yes         |
-| outfeed                  | yes           | yes          | yes            | no              | no          |
+| outfeed                  | yes           | yes          | yes            | no              | yes         |
 | pad                      | yes           | yes          | yes            | yes             | yes         |
 | partition_id             | yes           | yes          | yes            | yes             | yes         |
 | popcnt                   | yes           | yes          | yes            | yes             | yes         |

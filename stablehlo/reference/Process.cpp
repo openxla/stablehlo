@@ -30,6 +30,8 @@ ProcessGroups Process::crossPartition(
   return grid_->crossPartition(partitionGroups);
 }
 
+void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }
+
 ProcessId Process::getId() { return id_; }
 
 RendezvousResult Process::rendezvous(ProcessGroup processGroup,

@@ -1028,16 +1028,16 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
 
     Example:
     ```mlir
-    %result = "stablehlo.outfeed"(%input0, %token) {
+    %result = "stablehlo.outfeed"(%inputs0, %token) {
       outfeed_config = ""
-    } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+    } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    HLO_Token:$token,
-    DefaultValuedStrAttr<StrAttr, "">:$outfeed_config
+    Variadic<HLO_Tensor>:$inputs, /*outfeed_i1*/
+    HLO_Token:$token, /*outfeed_i2*/
+    DefaultValuedStrAttr<StrAttr, "">:$outfeed_config /*outfeed_i3*/
   );
   let results = (outs HLO_Token);
 }

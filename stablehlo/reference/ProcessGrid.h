@@ -20,6 +20,7 @@ limitations under the License.
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <utility>
 
 #include "mlir/IR/BuiltinTypes.h"
@@ -95,6 +96,9 @@ class ProcessGrid {
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
+  /// Inserts `inputs` to StableHLO `outfeed`.
+  void outfeed(ArrayRef<Tensor> inputs);
+
   /// Synchronize a StableHLO process with the `processId` with other StableHLO
   /// processes in the `processGroup` using a `channelId`.
   ///
@@ -122,6 +126,9 @@ class ProcessGrid {
 
   /// StableHLO `num_partitions`.
   uint32_t numPartitions_;
+
+  /// StableHLO `outfeed` represented as a queue.
+  std::queue<SmallVector<Tensor>> outfeed_;
 
   /// Internal storage used to implement `rendezvous`.
   /// Each call to `rendezvous`, i.e. each combination `processGroup` and

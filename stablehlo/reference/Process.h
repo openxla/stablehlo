@@ -39,6 +39,9 @@ class Process {
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
+  /// See `ProcessGrid::outfeed`.
+  void outfeed(ArrayRef<Tensor> inputs);
+
   /// Getter for the underlying StableHLO `process_id`.
   ProcessId getId();
 

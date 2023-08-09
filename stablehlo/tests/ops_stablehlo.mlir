@@ -1806,16 +1806,6 @@ func.func @optimization_barrier(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (tens
 
 // -----
 
-// CHECK-LABEL: func @outfeed
-func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
-  %0 = "stablehlo.outfeed"(%arg0, %arg1) {
-    outfeed_config = ""
-  } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
-  func.return %0 : !stablehlo.token
-}
-
-// -----
-
 func.func @real_c2(%arg0: tensor<2x3xcomplex<f32>>) -> tensor<2x3xf16> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{inferred type(s) 'tensor<2x3xf32>' are incompatible with return type(s) of operation 'tensor<2x3xf16>'}}
