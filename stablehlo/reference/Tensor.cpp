@@ -20,7 +20,6 @@ limitations under the License.
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/Error.h"
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Types.h"
@@ -88,24 +87,11 @@ Buffer::Buffer(ShapedType type, AsmResourceBlob blob)
 
 Tensor::Tensor() {}
 
-Tensor::Tensor(const Element &initValue)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(
-          RankedTensorType::get({}, initValue.getType()))) {
-  this->set({}, initValue);
-}
-
 Tensor::Tensor(ShapedType type)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {}
 
 Tensor::Tensor(ShapedType type, AsmResourceBlob blob)
     : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type, std::move(blob))) {}
-
-Tensor::Tensor(ShapedType type, const Element &initValue)
-    : impl_(llvm::makeIntrusiveRefCnt<detail::Buffer>(type)) {
-  for (auto indexIt = this->index_begin(); indexIt != this->index_end();
-       ++indexIt)
-    this->set(*indexIt, initValue);
-}
 
 Element Tensor::get(const Index &index) const {
   Type elementType = getType().getElementType();

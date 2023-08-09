@@ -106,8 +106,6 @@ ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
   for (auto replicaGroup : replicaGroups) {
-    if (replicaGroup.empty())
-      llvm::report_fatal_error("empty replicaGroup found during crossReplica");
     for (uint32_t partitionId = 0; partitionId < numPartitions_;
          ++partitionId) {
       ProcessGroup processGroup;
@@ -123,9 +121,6 @@ ProcessGroups ProcessGrid::crossReplicaAndPartition(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
   for (auto replicaGroup : replicaGroups) {
-    if (replicaGroup.empty())
-      llvm::report_fatal_error(
-          "empty replicaGroup found during crossReplicaAndPartition");
     ProcessGroup processGroup;
     for (uint32_t partitionId = 0; partitionId < numPartitions_; ++partitionId)
       for (uint32_t replicaId : replicaGroup)
@@ -139,9 +134,6 @@ ProcessGroups ProcessGrid::flattenedIds(
     SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
   ProcessGroups processGroups;
   for (auto flattenedIdGroup : flattenedIdGroups) {
-    if (flattenedIdGroup.empty())
-      llvm::report_fatal_error(
-          "empty flattenedIdGroup found during flattenedIds");
     ProcessGroup processGroup;
     for (auto flattenedId : flattenedIdGroup) {
       uint32_t replicaId = flattenedId / numPartitions_;

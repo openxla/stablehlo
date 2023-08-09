@@ -801,16 +801,15 @@ Afterwards, within each `process_group`:
 #### Constraints
 
 * (C1) `is_unique(replica_groups)`.
-* (C2) `rank(replica_groups) = 2`.
-* (C3) `1 <= size(replica_groups)`.
-* (C4) `0 <= replica_groups < N` where `N` is defined as:
+* (C2) `size(replica_groups)` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.
   * `num_processes` if `flattened_ids` is used.
-* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+* (C3) `0 <= replica_groups < size(replica_groups)`.
+* (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
+* (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
-* (C7) `type(result) = type(operand)`.
+* (C6) `type(result) = type(operand)`.
 
 #### Examples
 

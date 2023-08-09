@@ -1331,7 +1331,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
 }
 
 def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
-    [HLO_CompatibleOperandsAndResultType /*all_reduce_c7*/]> {
+    [HLO_CompatibleOperandsAndResultType /*all_reduce_c6*/]> {
   let summary = "AllReduce operation";
   let description = [{
     Within each process group in the process grid, applies a reduction function

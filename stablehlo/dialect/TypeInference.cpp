@@ -411,14 +411,6 @@ unsigned potentiallyComplexBitWidth(Type type) {
                    : type.getIntOrFloatBitWidth();
 }
 
-// Verifies replica groups attached to collective communication operations.
-// P1. 'replicaGroups' must be a 2-D tensor.
-// P2. replicaGroups' cannot be empty.
-// P3. If `allGroupsMustHaveSameSize` is true, then each group is of the same
-//     size.
-// P4. All values in `replica_groups` are unique and covers all the values in
-//     the interval [0, N-1], where N is the total number of replica ids.
-// P5. replica group size must be equal to 'expectedGroupSize'.
 LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   DenseIntElementsAttr replicaGroups,
                                   bool allGroupsMustHaveSameSize,
@@ -426,7 +418,6 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   std::optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
 
-  // all_reduce_c2_i2
   if (replicaGroupType.getRank() != 2)
     return emitOptionalError(location,
                              "replica groups should be a rank 2 tensor");
@@ -439,10 +430,6 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                              "groups cannot be empty");
 
   auto replicaIds = replicaGroups.getValues<int64_t>();
-
-  // all_reduce_c3
-  if (replicaGroups.getNumElements() == 0)
-    return emitOptionalError(location, "replica group cannot be empty");
 
   llvm::SmallSet<int64_t, 8> replicaIdsSeen;
   for (int64_t replicaId : replicaIds) {
@@ -459,7 +446,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                " seen more than once");
   }
 
-  // all_reduce_c4
+  // all_reduce_c3
   for (size_t id = 0; id < replicaIdsSeen.size(); id++)
     if (!replicaIdsSeen.contains(id))
       return emitOptionalError(location, "replica id #", id,
@@ -3112,14 +3099,15 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
                                 int64_t channelId, bool useGlobalDeviceIds,
                                 Region& computation) {
-  // all_reduce_c1...all_reduce_c4
+  // TODO(#498): AllReduceOp does not have rank-2 replicaGroups.
+  // all_reduce_c1...all_reduce_c3
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/false,
                                  useGlobalDeviceIds,
                                  /*expectedGroupSize=*/std::nullopt)))
     return failure();
 
-  // all_reduce_c5
+  // all_reduce_c4
   if (useGlobalDeviceIds && channelId <= 0)
     return emitOptionalError(
         location,
@@ -3127,7 +3115,7 @@ LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
         channelId);
 
   auto operandType = operand.getType().cast<ShapedType>();
-  // all_reduce_c6
+  // all_reduce_c5
   if (failed(verifyReducerShape(
           location, computation.front(), {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},

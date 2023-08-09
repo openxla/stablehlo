@@ -74,7 +74,8 @@ class RendezvousResult {
   void clear();
 
   /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
-  /// of Tensors sorted by ProcessId.
+  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
+  /// lexicographical order.
   SmallVector<Tensor> getSortedTensors();
 
   /// Inserts `tensor` into the map using the key `processId`.
