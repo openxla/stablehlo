@@ -709,31 +709,32 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name                    | Type                                         | Constraints |
-|-------|-------------------------|----------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C6)  |
-| (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C6)  |
-| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C2-C4)     |
-| (I4)  | `channel_id`            | constant of type `si64`                      | (C5)        |
-| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C5)        |
+| Label | Name                    | Type                                         | Constraints      |
+|-------|-------------------------|----------------------------------------------|------------------|
+| (I1)  | `operand`               | tensor or per-tensor quantized tensor        | (C1), (C2), (C7) |
+| (I2)  | `all_gather_dim`        | constant of type `si64`                      | (C1), (C2), (C7) |
+| (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)          |
+| (I4)  | `channel_id`            | constant of type `si64`                      | (C6)             |
+| (I5)  | `use_global_device_ids` | constant of type `i1`                        | (C6)             |
 
 #### Outputs
 
 | Name     | Type                                  | Constraints |
 |----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C6)        |
+| `result` | tensor or per-tensor quantized tensor | (C7)        |
 
 #### Constraints
 
-* (C1) `0 <= all_gather_dim < rank(operand)`.
-* (C2) `is_unique(replica_groups)`.
-* (C3) `size(replica_groups)` is defined as:
+* (C1) `dim(operand, all_gather_dim) > 0`.
+* (C2) `0 <= all_gather_dim < rank(operand)`.
+* (C3) `is_unique(replica_groups)`.
+* (C4) `size(replica_groups)` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.
   * `num_processes` if `flattened_ids` is used.
-* (C4) `0 <= replica_groups < size(replica_groups)`.
-* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C6) `type(result) = type(operand)` except:
+* (C5) `0 <= replica_groups < size(replica_groups)`.
+* (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
+* (C7) `type(result) = type(operand)` except:
   * `dim(result, all_gather_dim) =
     dim(operand, all_gather_dim) * dim(process_groups, 1)`.
 
@@ -742,18 +743,20 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [[1.0, 2.0], [3.0, 4.0]]
-// %operand@(1, 0): [[5.0, 6.0], [7.0, 8.0]]
+// %operand@(0, 0): [[1, 2], [3, 4]]
+// %operand@(1, 0): [[5, 6], [7, 8]]
 %result = "stablehlo.all_gather"(%operand) {
   all_gather_dim = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
   // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
   // use_global_device_ids = false
-} : (tensor<2x2xf32>) -> tensor<2x4xf32>
-// %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
-// %result@(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
+} : (tensor<2x2xi64>) -> tensor<2x4xi64>
+// %result@(0, 0): [[1, 2, 5, 6], [3, 4, 7, 8]]
+// %result@(1, 0): [[1, 2, 5, 6], [3, 4, 7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_all_gather.mlir)
 
 ### all_reduce
 

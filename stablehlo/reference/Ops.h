@@ -33,6 +33,10 @@ namespace stablehlo {
 Tensor evalAbsOp(const Tensor &operand, ShapedType resultType);
 Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context);
+Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
+                       SmallVector<SmallVector<uint32_t>> replicaGroups,
+                       ChannelId channelId, bool useGlobalDeviceIds,
+                       Process *process, ShapedType resultType);
 Tensor evalAllReduceOp(const Tensor &operand,
                        SmallVector<SmallVector<uint32_t>> replicaGroups,
                        ChannelId channelId, bool useGlobalDeviceIds,

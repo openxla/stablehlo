@@ -1297,7 +1297,8 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
   let hasCustomAssemblyFormat = 1;
 }
 
-def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultElementType]> {
+def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
+    [SameOperandsAndResultElementType] /*all_gather_c7*/> {
   string summary = "AllGather operation";
   string description = [{
     Within each process group in the process grid, concatenates the values of the
@@ -1311,20 +1312,18 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
     ```mlir
     %result = "stablehlo.all_gather"(%operand) {
       all_gather_dim = 1 : i64,
-      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-      // channel_id = 0
-      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
-      // use_global_device_ids = false
-    } : (tensor<2x2xf32>) -> tensor<2x4xf32>
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    } : (tensor<2x2xi64>) -> tensor<2x4xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64Attr:$all_gather_dim,
-    I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    HLO_Tensor:$operand, /*all_gather_i1*/
+    I64Attr:$all_gather_dim, /*all_gather_i2*/
+    I64ElementsAttr:$replica_groups, /*all_gather_i3*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*all_gather_i4*/
+    UnitAttr:$use_global_device_ids /*all_gather_i5*/
   );
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;

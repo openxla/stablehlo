@@ -370,7 +370,8 @@ LogicalResult inferWhileOp(std::optional<Location> location, ValueRange operand,
 LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
                                 int64_t allGatherDim,
                                 DenseIntElementsAttr replicaGroups,
-                                bool useGlobalDeviceIds, Value result);
+                                int64_t channelId, bool useGlobalDeviceIds,
+                                Value result);
 
 LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
