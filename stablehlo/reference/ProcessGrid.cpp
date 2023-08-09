@@ -91,17 +91,37 @@ V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
 // ThreadSafeQueue.
 //===----------------------------------------------------------------------===//
 
-void ProcessGrid::ThreadSafeQueue::push(ArrayRef<Tensor> inputs) {
+template <typename T>
+T ProcessGrid::ThreadSafeQueue<T>::front() {
   std::lock_guard<std::mutex> lock(lock_);
-  queue_.emplace(inputs);
+  return queue_.front();
+}
+
+template <typename T>
+void ProcessGrid::ThreadSafeQueue<T>::pop() {
+  std::lock_guard<std::mutex> lock(lock_);
+  queue_.pop();
+}
+
+template <typename T>
+void ProcessGrid::ThreadSafeQueue<T>::push(T input) {
+  std::lock_guard<std::mutex> lock(lock_);
+  queue_.emplace(input);
 }
 
 //===----------------------------------------------------------------------===//
 // ProcessGrid.
 //===----------------------------------------------------------------------===//
 
-ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions)
-    : numReplicas_(numReplicas), numPartitions_(numPartitions) {}
+ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
+                         std::queue<StringAttr> *infeed)
+    : numReplicas_(numReplicas), numPartitions_(numPartitions) {
+  while (!infeed->empty()) {
+    auto head = infeed->front();
+    infeed->pop();
+    infeed_.push(head);
+  }
+}
 
 ProcessGroups ProcessGrid::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
@@ -158,6 +178,12 @@ ProcessGroups ProcessGrid::flattenedIds(
     processGroups.push_back(processGroup);
   }
   return processGroups;
+}
+
+StringAttr ProcessGrid::infeed() {
+  auto result = infeed_.front();
+  infeed_.pop();
+  return result;
 }
 
 void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.push(inputs); }

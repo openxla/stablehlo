@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "stablehlo/reference/InterpreterOps.h"
 
+#include <queue>
+
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -98,14 +100,15 @@ LogicalResult RunParallelOp::verify() {
 //===----------------------------------------------------------------------===//
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs,
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> *infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
   llvm::ThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
   uint32_t numReplicas = programs.size();
   uint32_t numPartitions = programs[0].size();
-  ProcessGrid processGrid{numReplicas, numPartitions};
+  auto processGrid = infeed ? ProcessGrid(numReplicas, numPartitions, infeed)
+                            : ProcessGrid(numReplicas, numPartitions, nullptr);
 
   auto inputsIt = inputs.begin();
 

@@ -102,6 +102,8 @@ SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
                                        Region &falseBranch, Process *process,
                                        Scope &scope);
 Tensor evalImagOp(const Tensor &operand, ShapedType resultType);
+SmallVector<InterpreterValue> evalInfeedOp(Token token, Process *process,
+                                           Region &region, Scope &scope);
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType);
 Tensor evalIsFiniteOp(const Tensor &operand, ShapedType resultType);
 Tensor evalLog1pOp(const Tensor &operand, ShapedType resultType);

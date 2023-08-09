@@ -1003,15 +1003,14 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
 
     Example:
     ```mlir
-    %results:2 = "stablehlo.infeed"(%token) {
-      infeed_config = ""
-    } : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+    %results0:2 = "stablehlo.infeed"(%token) :
+        (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
     ```
   }];
 
   let arguments = (ins
-    HLO_Token:$token,
-    DefaultValuedStrAttr<StrAttr, "">:$infeed_config,
+    HLO_Token:$token, /*infeed_i1*/
+    DefaultValuedStrAttr<StrAttr, "">:$infeed_config, /*infeed_i2*/
     OptionalAttr<ArrayAttr>:$layout
   );
   let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);

@@ -40,6 +40,8 @@ ProcessGroups Process::flattenedIds(
   return grid_->flattenedIds(flattenedIdGroups);
 }
 
+StringAttr Process::infeed() { return grid_->infeed(); }
+
 ProcessId Process::getId() { return id_; }
 
 void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }

@@ -70,6 +70,7 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
   }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
+    OptionalAttr<StrArrayAttr>:$infeed,
     Interpreter_ArrayOfStrArrayAttr:$programs
   );
   let results = (outs Variadic<HLO_TensorOrToken>:$results);

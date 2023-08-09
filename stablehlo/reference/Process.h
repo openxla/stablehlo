@@ -47,6 +47,9 @@ class Process {
   ProcessGroups flattenedIds(
       SmallVector<SmallVector<uint32_t>> flattenedIdGroups);
 
+  /// See "ProcessGrid::infeed".
+  StringAttr infeed();
+
   /// Getter for the underlying StableHLO `process_id`.
   ProcessId getId();
 

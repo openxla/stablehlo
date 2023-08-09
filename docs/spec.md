@@ -3115,27 +3115,38 @@ separate outputs to improve clarity
 
 | Label | Name            | Type                      | Constraints |
 |-------|-----------------|---------------------------|-------------|
-| (I1)  | `token`         | `token`                   | (C2)        |
+| (I1)  | `token`         | `token`                   | (C3)        |
 | (I2)  | `infeed_config` | constant of type `string` |             |
 
 #### Outputs
 
 | Name      | Type                                                    | Constraints |
 |-----------|---------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, quantized tensors or tokens | (C1), (C2)  |
+| `results` | variadic number of tensors, quantized tensors or tokens | (C1-C3)     |
 
 #### Constraints
 
 * (C1) `0 < size(results)`.
-* (C2) `is_token(type(results[-1]))`.
+* (C2) `is_tensor(type(results[:-1]))`.
+* (C3) `is_token(type(results[-1]))`.
 
 #### Examples
 
 ```mlir
-%results0, %results1 = "stablehlo.infeed"(%token) {
+// %token: !stablehlo.token
+// infeed_queue[0]: [[1, 2], [3, 4]]
+// infeed_queue[1]: [[5, 6], [7, 8]]
+%results0:2 = "stablehlo.infeed"(%token) {
   infeed_config = ""
-} : (!stablehlo.token) -> (tensor<3x3x3xi32>, !stablehlo.token)
+} : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
+// results0#0: [[1, 2], [3, 4]]
+%results1:2 = "stablehlo.infeed"(%token) {
+  infeed_config = ""
+} : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
+// results1#0: [[5, 6], [7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_infeed.mlir)
 
 ### iota
 

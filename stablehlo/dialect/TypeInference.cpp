@@ -3563,18 +3563,27 @@ LogicalResult verifyDynamicReshapeOp(std::optional<Location> location,
   return success();
 }
 
-// Checks that the result type is of the form `zero_or_more_type(s),
-// stablehlo::token`
 LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
                              std::optional<Location> location,
                              std::optional<ArrayAttr> layout,
                              ValueRange results) {
   auto resultTypes = results.getType();
+  // infeed_c1
   if (resultTypes.empty())
     return emitOptionalError(
         location, "result is expected to be at least of size 1, but got ",
         resultTypes.size());
 
+  // infeed_c2
+  for (size_t i = 0; i < resultTypes.size() - 1; ++i)
+    if (!resultTypes[i].isa<TensorType>())
+      return emitOptionalError(
+          location,
+          "everything but the last element of result types is expected to "
+          "be of tensor type, but got ",
+          resultTypes[i]);
+
+  // infeed_c3
   if (!dialect->isTokenType(resultTypes[resultTypes.size() - 1]))
     return emitOptionalError(location,
                              "last element of result types is expected to "

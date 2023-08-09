@@ -94,7 +94,8 @@ class ProcessGrid {
  public:
   /// \name Constructors
   /// @{
-  ProcessGrid(uint32_t numReplicas, uint32_t numPartitions);
+  ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
+              std::queue<StringAttr> *infeed);
   /// @}
 
   /// StableHLO `cross_partition` communication strategy.
@@ -111,6 +112,9 @@ class ProcessGrid {
   /// StableHLO `flattened_ids` communication strategy.
   ProcessGroups flattenedIds(
       SmallVector<SmallVector<uint32_t>> flattenedIdGroups);
+
+  /// Retrieves input strings from StableHLO `infeed`.
+  StringAttr infeed();
 
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);
@@ -174,16 +178,23 @@ class ProcessGrid {
   };
 
   /// StableHLO `outfeed` represented as a queue that allows concurrent access.
+  template <typename T>
   class ThreadSafeQueue {
    public:
+    bool empty();
+
+    T front();
+
+    void pop();
+
     /// Add `inputs` to the end of the queue.
-    void push(ArrayRef<Tensor> inputs);
+    void push(T inputs);
 
    private:
     /// Synchronization primitive used to manage concurrent access to the queue.
     std::mutex lock_;
     /// Internal storage used to implement StableHLO `outfeed`.
-    std::queue<SmallVector<Tensor>> queue_;
+    std::queue<T> queue_;
   };
 
   /// StableHLO `num_replicas`.
@@ -192,8 +203,13 @@ class ProcessGrid {
   /// StableHLO `num_partitions`.
   const uint32_t numPartitions_;
 
+  /// Interal queue of strings which represents `func::FuncOp` mnemonic that
+  /// returns a vector of Tensor. The function name is stored instead of the
+  /// vector of tensors to save memory.
+  ThreadSafeQueue<StringAttr> infeed_;
+
   /// See `ThreadSafeQueue`.
-  ThreadSafeQueue outfeed_;
+  ThreadSafeQueue<ArrayRef<Tensor>> outfeed_;
 
   /// See `ThreadSafeMap`.
   ThreadSafeMap<std::pair<ProcessGroup, ChannelId>, RendezvousState> channels_;

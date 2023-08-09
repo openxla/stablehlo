@@ -60,10 +60,10 @@ llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
 
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
                                   stablehlo::Scope &scope) {
-  if (op->getNumOperands() != 2) {
+  if (op->getNumOperands() != 2)
     return stablehlo::invalidArgument("Unsupported op: %s",
                                       debugString(op).c_str());
-  }
+
   auto actualResult = scope.findTensors(op->getOperands())[0];
   auto expectedResult = scope.findTensors(op->getOperands())[1];
   bool isInt = expectedResult.getElementType().isa<IntegerType>();
@@ -130,6 +130,11 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
   if (auto runParallelOp =
           dyn_cast<stablehlo::interpreter::RunParallelOp>(op)) {
     auto runtimeOperands = scope.find(runParallelOp.getInputs());
+    std::queue<StringAttr> infeed;
+    if (auto infeedAttr = runParallelOp.getInfeed())
+      for (auto &value : infeedAttr->getValue())
+        infeed.push(value.cast<StringAttr>());
+
     SmallVector<SmallVector<StringAttr>> programs(
         runParallelOp.getPrograms().size());
     for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
@@ -138,7 +143,7 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
 
     SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
     auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, programs, symbolTable);
+        runtimeOperands, &infeed, programs, symbolTable);
     scope.add(runParallelOp.getResults(), results);
     return wrapStatus(llvm::Error::success(), funcName,
                       "interpreter.run_parallel");
