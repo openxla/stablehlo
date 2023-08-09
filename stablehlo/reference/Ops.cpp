@@ -142,6 +142,20 @@ void failOnDecomposableOp(Operation &op) {
       op.getName().getStringRef().str().c_str()));
 }
 
+Tensor makeScalar(const Element &initValue) {
+  Tensor result(RankedTensorType::get({}, initValue.getType()));
+  result.set({}, initValue);
+  return result;
+}
+
+Tensor makeSplat(ShapedType type, const Element &initValue) {
+  Tensor result(type);
+  for (auto indexIt = result.index_begin(); indexIt != result.index_end();
+       ++indexIt)
+    result.set(*indexIt, initValue);
+  return result;
+}
+
 }  // namespace
 
 SmallVector<InterpreterValue> eval(
@@ -171,6 +185,30 @@ SmallVector<InterpreterValue> eval(
       auto inputs = scope.findTokens(afterAllOp.getInputs());
       auto result = evalAfterAllOp(inputs, afterAllOp->getContext());
       scope.add(afterAllOp.getResult(), result);
+    } else if (auto allReduceOp = dyn_cast<AllReduceOp>(op)) {
+      auto operand = scope.findTensor(allReduceOp.getOperand());
+
+      auto replicaGroupsAttr = allReduceOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups) {
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt) {
+          auto replicaId = *replicaGroupsIt;
+          if (replicaId == -1) continue;
+          replicaGroup.push_back(replicaId);
+        }
+      }
+
+      auto channelId = 0;
+      if (auto channelHandle = allReduceOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalAllReduceOp(operand, replicaGroups, channelId,
+                                    allReduceOp.getUseGlobalDeviceIds(),
+                                    allReduceOp.getComputation(), process,
+                                    scope, allReduceOp.getType());
+      scope.add(allReduceOp.getResult(), result);
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
       auto lhs = scope.findTensor(andOp.getLhs());
       auto rhs = scope.findTensor(andOp.getRhs());
@@ -707,6 +745,51 @@ Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
   return Token(context);
 }
 
+Tensor evalAllReduceOp(const Tensor &operand,
+                       SmallVector<SmallVector<uint32_t>> replicaGroups,
+                       int64_t channelId, bool useGlobalDeviceIds,
+                       Region &computation, Process *process, Scope &scope,
+                       ShapedType resultType) {
+  if (!process)
+    llvm::report_fatal_error(
+        "all_reduce is only supported when run via interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplicaAndPartition(replicaGroups);
+  if (channelId > 0 && useGlobalDeviceIds)
+    processGroups = process->flattenedIds(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup)
+    llvm::report_fatal_error(invalidArgument(
+        "Failed to find process group with process_id: (%d, %d)",
+        process->getId().replicaId, process->getId().partitionId));
+
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+
+  Tensor result(resultType);
+  for (auto resultIt = result.index_begin(); resultIt != result.index_end();
+       ++resultIt) {
+    Tensor resultElement;
+    for (auto groupOperand : groupOperands) {
+      auto groupOperandElement = makeScalar(groupOperand.get(*resultIt));
+      if (resultElement)
+        resultElement = eval(computation, {resultElement, groupOperandElement},
+                             process, &scope)[0]
+                            .getTensor();
+      else
+        resultElement = groupOperandElement;
+    }
+    result.set(*resultIt, resultElement.get({}));
+  }
+
+  return result;
+}
+
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
   Tensor result(resultType);
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
@@ -851,9 +934,8 @@ Tensor evalCollectivePermuteOp(
 
   if (result) return result;
   return evalBroadcastInDimOp(
-      Tensor(RankedTensorType::get({}, operand.getElementType()),
-             convert(operand.getElementType(), 0.0)),
-      {}, operand.getType());
+      makeScalar(convert(operand.getElementType(), 0.0)), {},
+      operand.getType());
 }
 
 Tensor evalCompareOp(const Tensor &lhs, const Tensor &rhs,
@@ -1245,7 +1327,7 @@ Token evalOutfeedOp(ArrayRef<Tensor> inputs, Token token, Process *process) {
 Tensor evalPadOp(const Tensor &operand, const Tensor &paddingValue,
                  const Sizes &edgePaddingLow, const Sizes &interiorPadding,
                  ShapedType resultType) {
-  Tensor result(resultType, paddingValue.get({}));
+  auto result = makeSplat(resultType, paddingValue.get({}));
   for (auto operandIt = operand.index_begin(); operandIt != operand.index_end();
        ++operandIt) {
     auto operandIndex = *operandIt;
@@ -1264,8 +1346,7 @@ Tensor evalPartitionIdOp(Process *process, MLIRContext *context) {
         "partition_id is only supported when run via interpreter.run_parallel");
   auto partitionId = process->getId().partitionId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return Tensor(RankedTensorType::get({}, elementType),
-                Element(elementType, APInt(32, partitionId)));
+  return makeScalar(Element(elementType, APInt(32, partitionId)));
 }
 
 Tensor evalPopulationCountOp(const Tensor &operand, ShapedType resultType) {
@@ -1297,7 +1378,7 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
-    results.emplace_back(resultType, initValue.get({}));
+    results.push_back(makeSplat(resultType, initValue.get({})));
 
   for (auto inputIt = inputs[0].index_begin(); inputIt != inputs[0].index_end();
        ++inputIt) {
@@ -1309,9 +1390,11 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
 
     SmallVector<InterpreterValue> bodyArgs;
     for (auto [result, initValue] : llvm::zip(results, initValues))
-      bodyArgs.push_back(Tensor(initValue.getType(), result.get(resultIndex)));
+      bodyArgs.push_back(
+          makeSplat(initValue.getType(), result.get(resultIndex)));
     for (auto [input, initValue] : llvm::zip(inputs, initValues))
-      bodyArgs.emplace_back(Tensor(initValue.getType(), input.get(*inputIt)));
+      bodyArgs.emplace_back(
+          makeSplat(initValue.getType(), input.get(*inputIt)));
 
     auto bodyResult = eval(body, bodyArgs, process, &scope);
     for (auto [result, value] : llvm::zip(results, bodyResult))
@@ -1337,7 +1420,7 @@ SmallVector<Tensor> evalReduceWindowOp(
     Process *process, Scope &scope, ArrayRef<ShapedType> resultTypes) {
   SmallVector<Tensor> results;
   for (auto [resultType, initValue] : llvm::zip(resultTypes, initValues))
-    results.emplace_back(resultType, initValue.get({}));
+    results.push_back(makeSplat(resultType, initValue.get({})));
 
   SmallVector<Tensor> paddedInputs;
   for (auto [input, initValue] : llvm::zip(inputs, initValues))
@@ -1373,8 +1456,7 @@ Tensor evalReplicaIdOp(Process *process, MLIRContext *context) {
         "replica_id is only supported when run via interpreter.run_parallel");
   auto replicaId = process->getId().replicaId;
   auto elementType = IntegerType::get(context, 32, IntegerType::Unsigned);
-  return Tensor(RankedTensorType::get({}, elementType),
-                Element(elementType, APInt(32, replicaId)));
+  return makeScalar(Element(elementType, APInt(32, replicaId)));
 }
 
 Tensor evalReshapeOp(const Tensor &operand, ShapedType resultType) {
@@ -1473,13 +1555,9 @@ SmallVector<Tensor> evalScatterOp(
 
     SmallVector<InterpreterValue> updateComputationArgs;
     for (const auto &result : results)
-      updateComputationArgs.push_back(
-          Tensor(RankedTensorType::get({}, result.getElementType()),
-                 result.get(resultIndex)));
+      updateComputationArgs.push_back(makeScalar(result.get(resultIndex)));
     for (const auto &update : updates)
-      updateComputationArgs.push_back(
-          Tensor(RankedTensorType::get({}, update.getElementType()),
-                 update.get(updateIndex)));
+      updateComputationArgs.push_back(makeScalar(update.get(updateIndex)));
 
     auto updatedValues =
         eval(updateComputation, updateComputationArgs, process, &scope);
@@ -1497,7 +1575,7 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
                               const Sizes &paddingLow, Region &select,
                               Region &scatter, Process *process, Scope &scope,
                               ShapedType resultType) {
-  Tensor result(resultType, initValue.get({}));
+  auto result = makeSplat(resultType, initValue.get({}));
 
   for (auto sourceIt = source.index_begin(); sourceIt != source.index_end();
        ++sourceIt) {
@@ -1518,11 +1596,8 @@ Tensor evalSelectAndScatterOp(const Tensor &operand, const Tensor &source,
         selectedIndex = operandIndex;
       }
 
-      InterpreterValue selectedInterpreterVal(
-          Tensor(RankedTensorType::get({}, selectedVal.value().getType()),
-                 selectedVal.value()));
-      InterpreterValue currInterpreterVal(
-          Tensor(RankedTensorType::get({}, currVal.getType()), currVal));
+      InterpreterValue selectedInterpreterVal(makeScalar(selectedVal.value()));
+      InterpreterValue currInterpreterVal(makeScalar(currVal));
       auto selectResult =
           eval(select, {selectedInterpreterVal, currInterpreterVal}, process,
                &scope);
@@ -1641,9 +1716,8 @@ SmallVector<Tensor> evalSortOp(ArrayRef<Tensor> inputs, Axis dimension,
       lhsIndex[adjustedDimension] = lhsHandle;
       rhsIndex[adjustedDimension] = rhsHandle;
       for (const auto &input : inputs) {
-        auto argType = RankedTensorType::get({}, input.getElementType());
-        args.emplace_back(Tensor(argType, input.get(lhsIndex)));
-        args.emplace_back(Tensor(argType, input.get(rhsIndex)));
+        args.emplace_back(makeScalar(input.get(lhsIndex)));
+        args.emplace_back(makeScalar(input.get(rhsIndex)));
       }
       auto comparatorResult = eval(comparator, args, process, &scope);
       return comparatorResult[0].getTensor().get({}).getBooleanValue();

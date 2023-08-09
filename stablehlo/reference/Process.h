@@ -39,6 +39,14 @@ class Process {
   /// See `ProcessGrid::crossReplica`.
   ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
 
+  /// See `ProcessGrid::crossReplicaAndPartition`.
+  ProcessGroups crossReplicaAndPartition(
+      SmallVector<SmallVector<uint32_t>> replicaGroups);
+
+  /// See `ProcessGrid::flattenedIds`.
+  ProcessGroups flattenedIds(
+      SmallVector<SmallVector<uint32_t>> flattenedIdGroups);
+
   /// Getter for the underlying StableHLO `process_id`.
   ProcessId getId();
 

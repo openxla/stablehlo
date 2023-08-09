@@ -374,7 +374,8 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
 
 LogicalResult verifyAllReduceOp(std::optional<Location> location, Value operand,
                                 DenseIntElementsAttr replicaGroups,
-                                bool useGlobalDeviceIds, Region& computation);
+                                int64_t channelId, bool useGlobalDeviceIds,
+                                Region& computation);
 
 LogicalResult verifyBitcastConvertOp(std::optional<Location> location,
                                      Value operand, Value result);

@@ -30,6 +30,16 @@ ProcessGroups Process::crossReplica(
   return grid_->crossReplica(replicaGroups);
 }
 
+ProcessGroups Process::crossReplicaAndPartition(
+    SmallVector<SmallVector<uint32_t>> replicaGroups) {
+  return grid_->crossReplicaAndPartition(replicaGroups);
+}
+
+ProcessGroups Process::flattenedIds(
+    SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
+  return grid_->flattenedIds(flattenedIdGroups);
+}
+
 ProcessId Process::getId() { return id_; }
 
 void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }

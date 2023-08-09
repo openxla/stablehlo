@@ -17,8 +17,11 @@ limitations under the License.
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <utility>
 
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "stablehlo/reference/Tensor.h"
 
@@ -44,6 +47,18 @@ bool ProcessId::operator==(const ProcessId &other) const {
 }
 
 //===----------------------------------------------------------------------===//
+// ProcessGroups.
+//===----------------------------------------------------------------------===//
+
+std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
+  for (auto processGroup : *this)
+    for (auto id : processGroup)
+      if (id == processId) return processGroup;
+
+  return std::nullopt;
+}
+
+//===----------------------------------------------------------------------===//
 // RendezvousResult.
 //===----------------------------------------------------------------------===//
 
@@ -57,6 +72,11 @@ Tensor RendezvousResult::lookup(ProcessId processId) {
   auto it = result_.find(processId);
   if (it != result_.end()) return it->second;
   return {};
+}
+
+SmallVector<Tensor> RendezvousResult::getSortedTensors() {
+  return llvm::to_vector(
+      llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
 
 size_t RendezvousResult::size() { return result_.size(); }
@@ -93,6 +113,34 @@ ProcessGroups ProcessGrid::crossReplica(
         processGroup.push_back({replicaId, partitionId});
       processGroups.push_back(processGroup);
     }
+  }
+  return processGroups;
+}
+
+ProcessGroups ProcessGrid::crossReplicaAndPartition(
+    SmallVector<SmallVector<uint32_t>> replicaGroups) {
+  ProcessGroups processGroups;
+  for (auto replicaGroup : replicaGroups) {
+    ProcessGroup processGroup;
+    for (uint32_t partitionId = 0; partitionId < numPartitions_; ++partitionId)
+      for (uint32_t replicaId : replicaGroup)
+        processGroup.push_back({replicaId, partitionId});
+    processGroups.push_back(processGroup);
+  }
+  return processGroups;
+}
+
+ProcessGroups ProcessGrid::flattenedIds(
+    SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
+  ProcessGroups processGroups;
+  for (auto flattenedIdGroup : flattenedIdGroups) {
+    ProcessGroup processGroup;
+    for (auto flattenedId : flattenedIdGroup) {
+      uint32_t replicaId = flattenedId / numPartitions_;
+      uint32_t partitionId = flattenedId % numPartitions_;
+      processGroup.push_back({replicaId, partitionId});
+    }
+    processGroups.push_back(processGroup);
   }
   return processGroups;
 }

@@ -20,6 +20,7 @@ limitations under the License.
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <utility>
 
@@ -55,7 +56,13 @@ struct ProcessId {
 class ProcessGroup : public SmallVector<ProcessId> {};
 
 // StableHLO `process_groups`.
-class ProcessGroups : public SmallVector<ProcessGroup> {};
+class ProcessGroups : public SmallVector<ProcessGroup> {
+ public:
+  /// Iterates through the ProcessGroups and finds the first ProcessGroup
+  /// containing the `processId`. If the group is not found, std::nullopt is
+  /// returned.
+  std::optional<ProcessGroup> findGroup(ProcessId processId);
+};
 
 /// Represents a result of a `ProcessGrid::rendezvous` where multiple processes
 /// synchronize at a barrier and contribute a Tensor each.
@@ -65,6 +72,11 @@ class RendezvousResult {
  public:
   /// Erases all elements in the map.
   void clear();
+
+  /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
+  /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
+  /// lexicographical order.
+  SmallVector<Tensor> getSortedTensors();
 
   /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
@@ -95,6 +107,14 @@ class ProcessGrid {
 
   /// StableHLO `cross_replica` communication strategy.
   ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
+
+  /// StableHLO `cross_replica_and_partition` communication strategy.
+  ProcessGroups crossReplicaAndPartition(
+      SmallVector<SmallVector<uint32_t>> partitionGroups);
+
+  /// StableHLO `flattened_ids` communication strategy.
+  ProcessGroups flattenedIds(
+      SmallVector<SmallVector<uint32_t>> partitionGroups);
 
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);

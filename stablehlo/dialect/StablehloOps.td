@@ -1331,7 +1331,7 @@ def StableHLO_AllGatherOp : StableHLO_Op<"all_gather", [SameOperandsAndResultEle
 }
 
 def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
-    [HLO_CompatibleOperandsAndResultType]> {
+    [HLO_CompatibleOperandsAndResultType /*all_reduce_c6*/]> {
   let summary = "AllReduce operation";
   let description = [{
     Within each process group in the process grid, applies a reduction function
@@ -1344,25 +1344,24 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
     Example:
     ```mlir
     %result = "stablehlo.all_reduce"(%operand) ({
-      ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-        %0 = stablehlo.add %arg1, %arg2 : tensor<f32>
-        stablehlo.return %0 : tensor<f32>
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg1, %arg2 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
     }) {
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
       // use_global_device_ids = false
-    } : (tensor<4xf32>) -> tensor<4xf32>
+    } : (tensor<4xi64>) -> tensor<4xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    HLO_Tensor:$operand, /*all_reduce_i1*/
+    I64ElementsAttr:$replica_groups, /*all_reduce_i2*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*all_reduce_i3*/
+    UnitAttr:$use_global_device_ids /*all_reduce_i4*/
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region SizedRegion<1>:$computation /*all_reduce_i5*/);
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
 }

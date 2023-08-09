@@ -816,21 +816,21 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [1.0, 2.0, 3.0, 4.0]
-// %operand@(1, 0): [5.0, 6.0, 7.0, 8.0]
+// %operand@(0, 0): [1, 2, 3, 4]
+// %operand@(1, 0): [5, 6, 7, 8]
 %result = "stablehlo.all_reduce"(%operand) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-    "stablehlo.return"(%0) : (tensor<f32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+    %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+    "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-  // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-  // use_global_device_ids = false
-} : (tensor<4xf32>) -> tensor<4xf32>
-// %result@(0, 0): [6.0, 8.0, 10.0, 12.0]
-// %result@(1, 0): [6.0, 8.0, 10.0, 12.0]
+} : (tensor<i64>) -> tensor<i64>
+// %result@(0, 0): [6, 8, 10, 12]
+// %result@(1, 0): [6, 8, 10, 12]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_all_reduce.mlir)
 
 ### all_to_all
 
