@@ -523,8 +523,8 @@ func.func @optimization_barrier_c1(%arg0: tensor<f32>, %arg1: tensor<f32>) -> (t
 
 // -----
 
-// CHECK-LABEL: func @outfeed
-func.func @outfeed(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
+// CHECK-LABEL: func @outfeed_c1
+func.func @outfeed_c1(%arg0: tensor<3x3x3xi32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   %0 = "stablehlo.outfeed"(%arg0, %arg1) {
     outfeed_config = ""
   } : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token

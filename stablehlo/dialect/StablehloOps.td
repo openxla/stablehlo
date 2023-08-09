@@ -1018,7 +1018,7 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
 }
 
 def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+    [DeclareOpInterfaceMethods<InferTypeOpInterface> /*outfeed_c1*/]> {
   let summary = "Outfeed operation";
   let description = [{
     Writes `inputs` to the outfeed and produces a `result` token.

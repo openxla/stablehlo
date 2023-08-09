@@ -25,6 +25,14 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+//===----------------------------------------------------------------------===//
+// ProcessId.
+//===----------------------------------------------------------------------===//
+
+bool ProcessId::operator!=(const ProcessId &other) const {
+  return !(*this == other);
+}
+
 bool ProcessId::operator<(const ProcessId &other) const {
   return std::pair<uint32_t, uint32_t>{replicaId, partitionId} <
          std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
@@ -35,8 +43,14 @@ bool ProcessId::operator==(const ProcessId &other) const {
          std::pair<uint32_t, uint32_t>{other.replicaId, other.partitionId};
 }
 
-bool ProcessId::operator!=(const ProcessId &other) const {
-  return !(*this == other);
+//===----------------------------------------------------------------------===//
+// RendezvousResult.
+//===----------------------------------------------------------------------===//
+
+void RendezvousResult::clear() { result_.clear(); }
+
+void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
+  result_[processId] = tensor;
 }
 
 Tensor RendezvousResult::lookup(ProcessId processId) {
@@ -45,16 +59,28 @@ Tensor RendezvousResult::lookup(ProcessId processId) {
   return {};
 }
 
-void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
-  result_[processId] = tensor;
-}
-
-void RendezvousResult::clear() { result_.clear(); }
-
 size_t RendezvousResult::size() { return result_.size(); }
+
+//===----------------------------------------------------------------------===//
+// ProcessGrid.
+//===----------------------------------------------------------------------===//
 
 ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions)
     : numReplicas_(numReplicas), numPartitions_(numPartitions) {}
+
+ProcessGroups ProcessGrid::crossPartition(
+    SmallVector<SmallVector<uint32_t>> partitionGroups) {
+  ProcessGroups processGroups;
+  for (auto partitionGroup : partitionGroups) {
+    for (uint32_t replicaId = 0; replicaId < numReplicas_; ++replicaId) {
+      ProcessGroup processGroup;
+      for (uint32_t partitionId : partitionGroup)
+        processGroup.push_back({replicaId, partitionId});
+      processGroups.push_back(processGroup);
+    }
+  }
+  return processGroups;
+}
 
 ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
@@ -71,22 +97,15 @@ ProcessGroups ProcessGrid::crossReplica(
   return processGroups;
 }
 
-ProcessGroups ProcessGrid::crossPartition(
-    SmallVector<SmallVector<uint32_t>> partitionGroups) {
-  ProcessGroups processGroups;
-  for (auto partitionGroup : partitionGroups) {
-    for (uint32_t replicaId = 0; replicaId < numReplicas_; ++replicaId) {
-      ProcessGroup processGroup;
-      for (uint32_t partitionId : partitionGroup)
-        processGroup.push_back({replicaId, partitionId});
-      processGroups.push_back(processGroup);
-    }
-  }
-  return processGroups;
-}
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.emplace(inputs); }
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
-  outfeed_.push(llvm::to_vector(inputs));
+bool ProcessGrid::outfeedEmpty() { return outfeed_.empty(); }
+
+SmallVector<Tensor> ProcessGrid::popOutfeed() {
+  if (outfeed_.empty()) llvm::report_fatal_error("Outfeed queue is empty");
+  auto results = outfeed_.front();
+  outfeed_.pop();
+  return results;
 }
 
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,

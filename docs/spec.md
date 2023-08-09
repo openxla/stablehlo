@@ -3698,6 +3698,10 @@ Semantics of `outfeed_config` is implementation-defined.
 |----------|---------|
 | `result` | `token` |
 
+#### Constraints
+
+* (C1) `type(result) = token`.
+
 #### Examples
 
 ```mlir

@@ -1234,6 +1234,10 @@ Tensor evalOrOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 }
 
 Token evalOutfeedOp(ArrayRef<Tensor> inputs, Token token, Process *process) {
+  if (!process)
+    llvm::report_fatal_error(
+        "outfeed is only supported when run via interpreter.run_parallel");
+
   process->outfeed(inputs);
   return token;
 }

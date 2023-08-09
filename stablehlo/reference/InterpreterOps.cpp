@@ -123,6 +123,10 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 
   SmallVector<InterpreterValue> results;
   for (auto &future : futures) results.append(future.get());
+
+  while (!processGrid.outfeedEmpty())
+    for (auto outfeed : processGrid.popOutfeed()) results.push_back(outfeed);
+
   return results;
 }
 
