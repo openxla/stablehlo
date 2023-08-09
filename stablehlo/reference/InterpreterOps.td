@@ -59,10 +59,6 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
     from the process `(0, 0)` (i.e. replica_id = 0 and partition_id = 0),
     then `(0, 1)` (i.e. replica_id = 0 and partition_id = 1), etc.
 
-    Lastly if there are contents inside the outfeed queue, they are appended to
-    `results`. The entries of the outfeed queue are vectors of tensors, so each
-    tensor in every entry in the queue is appended to `results`.
-
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
