@@ -6021,45 +6021,175 @@ For example, for `flattened_id_groups = [[0, 1, 2, 3], [4, 5, 6, 7]]`,
 `num_replicas = 4` and `num_partitions = 2`, `flattened_ids` will produce
 `[[(0, 0), (0, 1), (1, 0), (1, 1)], [(2, 0), (2, 1), (3, 0), (3, 1)]]`.
 
-StableHLO programs allows associating a sharding property to StableHLO operators to
-achieve different parallelism paradigms (data parallelism and partitioning) in a
-unified way.
+StableHLO programs allows associating a sharding attribute to StableHLO
+operations to achieve different parallelism paradigms (data parallelism and
+partitioning) in a unified way.
 
-### Sharding Property
+### Sharding Attribute
 
 Let us first define a term `device` as the logical abstraction for all the
-processes within the process grid with same `partition_id`. This `partition_id`
-is used as a unique identifier for the device. Most common use case for the
-application of sharding property is when `num_replicas = 1` and `num_partitions
-= number of devices`.
+processes within the process grid with same `partition_id`. Formally, for a
+given process grid `process_grid`, a device with id `device_id` is defined as a
+logical abstraction of all the process in `process_grid[:][device_id]`. Most
+common use case for the application of sharding property is when the number of
+devices equals `num_partitions` and `num_replicas = 1`.
 
-The sharding property associated with a operator specifies how the output tensor
-data is distributed across devices. The effect of associating sharding property
-to a StableHLO program is that it generates a single StableHLO program for all
-devices while transforming each operator to perform computation on partions of
-the operator data following the sharding decision (to be elaborated next)
-imposed by the associated sharding properties.  Each such program does
-computation with individual operators on potentially different partions of the
-tensor data (SPMD style partitioning), collaborating with other devices for data
-exchange, and moves on to the next operator in lock-step.
+The sharding attribute associated with a operation specifies how the output
+tensor data is partitioned across devices. The effect of associating sharding
+attribute to a StableHLO program is that it generates a single StableHLO program
+for all devices to perform computations on data partitioned across the devices,
+where the partitions are decided based on the sharding attributes, and
+collaboration with other devices for data exchange.
 
-Sharding properties are associated with partitioning decisions which can be
- broadly divided into the followings: properties.
+Next, we detail the syntax and the semantics of this attribute.
 
-  - Replicated: The data associated with the sharded operation is duplicated
-  across all the devices.
+```ebnf
+ShardingAttribute ::=  'sharding={' [(ShardingType | TupleShardingType)] '}'
+ShardingType ::= ShardingTypeWithoutPartitioning | ShardingTypeWithPartitioning
+ShardingTypeWithoutPartitioning ::= ReplicatedSharding | MaximalSharding | ManualSharding
+ShardingTypeWithPartitioning ::= OtherSharding
+ReplicatedSharding ::= 'replicated'
+MaximalSharding ::= 'maximal' 'device=' TileAssignmentDevices
+ManualSharding ::= 'manual'
+OtherSharding ::= 'devices=[' TileAssignmentDimensions `]` TileAssignmentDeviceSpec
+TileAssignmentDimensions ::=  CommaSeparatedIntegerConstants
+TileAssignmentDeviceSpec ::= (TileAssignmentDevices | `<=[` IotaReshapeDimensions `]` [`T` IotaTransposeDimensions]) [(LastTileDimReplicate | LastTimeDims)]
+TileAssignmentDevices ::= CommaSeparatedIntegerConstants
+IotaReshapeDimensions ::= CommaSeparatedIntegerConstants
+IotaTransposeDimensions ::= CommaSeparatedIntegerConstants
+LastTileDimReplicate ::= 'last_tile_dim_replicate'
+LastTimeDims ::= 'last_tile_dim={' [ShardingTypeWithoutPartitioning {',' ShardingTypeWithoutPartitioning}] `}`
+CommaSeparatedIntegerConstants ::= IntegerConstant {',' IntegerConstant}
+TupleShardingType ::= ShardingType {',' ShardingType }
+```
 
-  - Tiled:  This property contains a multi-dimensional tensor
-  consisting of device ids which must have the same rank as the data tensor.
-  Each data dimension is sharded across devices along the same dimension in the
-  device tensor, and each device occupies the corresponding tile in the data
-  tensor that matches its location in the device tensor. There is zero data
-  duplication.
+| Name                         | Type                                                   | Constraints      |
+|------------------------------|--------------------------------------------------------|------------------|
+| `sharding_type`              | enum of `REPLICATED`, `MAXIMAL` and `MANUAL`           | (C1), (C9)       |
+| `tile_assignment_dimensions` | 1-dimensional tensor constant of type `si64`           | (C5)             |
+| `tile_assignment_devices`    | 1-dimensional tensor constant of type `si64`           | (C1), (C4), (C7) |
+| `iota_reshape_dimensions`    | 1-dimensional tensor constant of type `si64`           | (C2), (C4)       |
+| `iota_transpose_dimensions`  | 1-dimensional tensor constant of type `si64`           | (C2-C3)          |
+| `last_tile_dim_replicate`    | constant of type `i1`                                  | (C6)             |
+| `last_tile_dims`             | 1-dimensional tensor constant of type `sharding_type`  | (C5-C6)          |
 
-  - Partially tiled: This property also contains a multi-dimensional tensor of
-  device ids with additional information to create equally sized subgroups of
-  devices such that data tensor is replicated across devices in each subgroup
-  but tiled across subgroups.
+The following are the structural constraints on the sharding annotations:
+
+* (C1) `size(tile_assignment_devices)` is given by:
+  * `= 1` if `sharding_type = MAXIMAL`.
+  * `> 1` if `sharding_type` is not in `{REPLICATED, MAXIMAL, MANUAL}`.
+* (C2) `size(iota_reshape_dimensions) = size(iota_transpose_dimensions)`.
+* (C3) `d  < size(iota_reshape_dimensions) for d in  iota_transpose_dimensions`.
+* (C4) `is_empty(tile_assignment_devices) ^ is_empty(iota_reshape_dimensions) = true`.
+* (C5) If `size(last_tile_dims) != 0`, then  `is_false(last_tile_dim_replicate)`.
+* (C6) `product(tile_assigment_dimensions) = is_empty(iota_reshape_dimensions) ?
+  product(iota_reshape_dimensions) : size(tile_assignment_devices)`.
+
+The manual sharding type requires an additional constraint on the shape of the
+output type `type` of the operation the sharding attribute is applied to.
+
+* (C7) If `replicate_on_last_tile_dim = true`,
+       `rank(type) + 1 = tile_assignment_dimensions`.
+* (C8) If `is_non_empty(last_tile_dims)`,
+       `rank(type) + size(last_tile_dims) = tile_assignment_dimensions`.
+
+**Sharding attribute** associated with a StableHLO operation specifies the how
+the output of the operation is distributed across devices. If the output type is
+a tuple, the sharing attribute is also expressed as tuple with the sub-shardings
+of type **Sharding type**, one per leaf node in the tuple shape, in pre-order.
+Note that the tuple shape could be nested, but the sharding attribute is just a
+flattened list of all leaves in the tuple shape. The shape to which the sharding
+attribute is applied is inferred from the instruction this sharding gets
+attached to.  **Sharding type** represents the type of sharding attribute
+associated with an operation and can be of the following four kinds:
+
+* **replicated**: The output data is replicated across all devices.
+* **maximal**: Only one device, provided in `tile_assignment_dimensions`, runs
+the entire operation.
+* **manual**: The operation is manually sharded by user: the shapes are already
+partitioned. The operation with this attribute does not require any further
+interpretation w.r.t partitioning.
+* **other**: This sharding type is applicable when none of the above types are
+used and should be interpreted with additional components of the sharding
+attribute which are defined next. **tile assignment dimensions** represents how
+each output data axis is partitioned across devices. For a data shape `shape`,
+the `ith` axis is partitioned across devices in `tile_assignment_dimensions[i]`
+    halves. **tile assignment devices** represents an array of devices which
+    participate in the partitioning and expressed via
+    `tile_assignment_dimensions`.  `tile_assignment_devices` together with
+    `tile_assignment_dimensions` represents a multi-dimensional tensor,
+`device_tensor`, of device ids such that `shape(device_tensor) =
+    tile_assignment_dimensions` and  device ids in `tile_assignment_devices` are
+    the elements of the `device_tensor` and the order of device ids in
+    `tile_assignment_devices` follow the ascending lexicographic ordering of
+    `index_space(device_tensor)`. Given a sharding attribute expressed using a
+    `device_tensor` and applied to an operation with output data `data`, a
+    device in `device_tensor`, with an index `index` in
+    `index_space(device_tensor)`, owns a slice `slice` of `data` which is given
+    by the following Python code:
+
+```python
+  start_indices = index * (shape(data) / tile_assignment_dimensions)
+  limit_indices = start_index + (shape(data) / tile_assignment_dimensions)
+  adjusted_limit_indices = minimum(limit_indices, shape(data))
+  slice = slice(data, start_indices, adjusted_limit_indices)
+```
+
+The component **last tile dims** is used to represent the sharding type of
+a groups of devices. Each index `i` in `last_tile_dims` represent particular
+groups of devices with sharding type given by `last_tile_dims[i]`. More
+formally, for an index `i` of `last_tile_dims`, all the devices in
+the group `group`, will follow the sharding type given by `last_tile_dims[i]`,
+such that two devices, with device indices `i0, i1, ..,
+iR-1` and `j0, j1, ..., JR-1` with `R = size(tile_assigment_dimensions`,
+belong to the same `group` if `ik = jk for all k except for
+R-size(last_tile_dims)+i`.
+
+Given a sharding attribute expressed using a `device_tensor` together with
+`last_tile_dims` and applied to an operation with output data `data`, a device
+in `device_tensor`, with an index `index` in `index_space(device_tensor)`, owns
+a slice `slice` of `data` which is given by the following Python code:
+
+```python
+  sliced_index = index[0:size(shape(data))]
+  start_indices = sliced_index * (shape(data) / tile_assignment_dimensions)
+  limit_indices = start_index + (shape(data) / tile_assignment_dimensions)
+  adjusted_limit_indices = minimum(limit_indices, shape(data))
+  slice = slice(data, start_indices, adjusted_limit_indices)
+```
+
+For example, consider the sharding attribute `sharding={devices=[1, 2, 2,
+2]0,1,2,3,4,5,6,7 last_tile_dims={replicated, manual}}` applied to an data with
+shape `[4,4]`. The data is partitioned one-way across the first axis and 2-way
+across the second axis. The resulting slices `data[:,0:2]` and `data[:,2:4]` are
+respectively owned by devices `0, 1, 2, 3` and `4, 5, 6, 7`.  The index `0` of
+`last_tile_dims` represents the following groups of devices: `{0,2}, {1,3},
+{4,6}, {5,7}` and the sharding type within each such group is `replicated`.
+Similarly, the index `1` of `last_tile_dims` represents the following groups:
+`{0,1}, {2,3}, {4,5} and {6,7}` and the sharding type within each such group is
+`manual`. The following diagrams depicts how the groups for each indices of
+`last_tile_dims` are decided.
+
+![](images/spec/device_grouping.svg)
+
+A `true` value of the component **last tile dim replicate** is to support
+partial replication and partial partitioning, in which case, the
+`tile_assignment_dimensions` will have an extra dimension in addition to the
+data shape rank, and the added last dimension represents the subgroups of
+replications. A sharding attribute with `last_tile_dim_replicate` is equivalent
+to the same attribute with `last_tile_dim_replicate` replaced with
+`last_tile_dims={replicated}`.
+
+![](images/spec/sharding_property.svg)
+
+Instead of explicitly listing the device array in `tile_assignment_devices`, one
+can use a shorthand notation using `iota_reshape_dimensions` and
+`iota_transpose_dimensions` such that `tile_assignment_devices` can be
+alternatively represented as shown in the following Python code:
+
+```python
+numpy.arange(math.prod(tile_assignment_devices)).reshape(iota_reshape_dimensions).transpose(iota_transpose_dimensions).reshape(math.prod(tile_assignment_devices))
+```
 
 ### Accuracy
 
