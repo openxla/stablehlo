@@ -10,11 +10,9 @@ module @distribution_ops {
     %inputs0 = stablehlo.constant dense<[[[1, 2], [3, 4]],
                                          [[5, 6], [7, 8]]]> : tensor<2x2x2xi64>
     %token = stablehlo.after_all : !stablehlo.token
-    %result:2 = "interpreter.run_parallel"(%inputs0, %token) {
+    %results0 = "interpreter.run_parallel"(%inputs0, %token) {
       programs=[["outfeed"]]
-    } : (tensor<2x2x2xi64>, !stablehlo.token) -> (!stablehlo.token, tensor<2x2x2xi64>)
-    check.expect_eq_const %result#1, dense<[[[1, 2], [3, 4]],
-                                            [[5, 6], [7, 8]]]> : tensor<2x2x2xi64>
+    } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
     func.return
   }
 }

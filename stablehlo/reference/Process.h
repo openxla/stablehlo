@@ -32,18 +32,18 @@ class Process {
   Process(ProcessId id, ProcessGrid *grid);
   /// @}
 
-  /// See `ProcessGrid::crossReplica`.
-  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
-
   /// See `ProcessGrid::crossPartition`.
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
 
-  /// See `ProcessGrid::outfeed`.
-  void outfeed(ArrayRef<Tensor> inputs);
+  /// See `ProcessGrid::crossReplica`.
+  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
 
   /// Getter for the underlying StableHLO `process_id`.
   ProcessId getId();
+
+  /// See `ProcessGrid::outfeed`.
+  void outfeed(ArrayRef<Tensor> inputs);
 
   /// See `ProcessGrid::rendezvous`.
   RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,

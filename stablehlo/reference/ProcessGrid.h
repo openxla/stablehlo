@@ -99,13 +99,6 @@ class ProcessGrid {
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);
 
-  /// Returns whether the outfeed queue is empty.
-  bool outfeedEmpty();
-
-  /// Pops the first entry in the outfeed queue and returns its contents. The
-  /// method fails with fatal error if the queue is empty.
-  SmallVector<Tensor> popOutfeed();
-
   /// Synchronize a StableHLO process with the `processId` with other StableHLO
   /// processes in the `processGroup` using a `channelId`.
   ///
@@ -136,6 +129,8 @@ class ProcessGrid {
 
   /// StableHLO `outfeed` represented as a queue.
   std::queue<SmallVector<Tensor>> outfeed_;
+
+  std::mutex outfeedLock_;
 
   /// Internal storage used to implement `rendezvous`.
   /// Each call to `rendezvous`, i.e. each combination `processGroup` and

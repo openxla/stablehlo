@@ -1018,7 +1018,7 @@ def StableHLO_InfeedOp : StableHLO_Op<"infeed", []> {
 }
 
 def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
-    [DeclareOpInterfaceMethods<InferTypeOpInterface> /*outfeed_c1*/]> {
+    [DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Outfeed operation";
   let description = [{
     Writes `inputs` to the outfeed and produces a `result` token.
@@ -1028,9 +1028,8 @@ def StableHLO_OutfeedOp : StableHLO_Op<"outfeed",
 
     Example:
     ```mlir
-    %result = "stablehlo.outfeed"(%inputs0, %token) {
-      outfeed_config = ""
-    } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
+    %result = "stablehlo.outfeed"(%inputs0, %token) :
+        (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
 

@@ -97,15 +97,9 @@ ProcessGroups ProcessGrid::crossReplica(
   return processGroups;
 }
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.emplace(inputs); }
-
-bool ProcessGrid::outfeedEmpty() { return outfeed_.empty(); }
-
-SmallVector<Tensor> ProcessGrid::popOutfeed() {
-  if (outfeed_.empty()) llvm::report_fatal_error("Outfeed queue is empty");
-  auto results = outfeed_.front();
-  outfeed_.pop();
-  return results;
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
+  std::lock_guard<std::mutex> lock(outfeedLock_);
+  outfeed_.emplace(inputs);
 }
 
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,

@@ -20,19 +20,19 @@ namespace stablehlo {
 
 Process::Process(ProcessId id, ProcessGrid *grid) : id_(id), grid_(grid) {}
 
-ProcessGroups Process::crossReplica(
-    SmallVector<SmallVector<uint32_t>> replicaGroups) {
-  return grid_->crossReplica(replicaGroups);
-}
-
 ProcessGroups Process::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
   return grid_->crossPartition(partitionGroups);
 }
 
-void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }
+ProcessGroups Process::crossReplica(
+    SmallVector<SmallVector<uint32_t>> replicaGroups) {
+  return grid_->crossReplica(replicaGroups);
+}
 
 ProcessId Process::getId() { return id_; }
+
+void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }
 
 RendezvousResult Process::rendezvous(ProcessGroup processGroup,
                                      int64_t channelId, const Tensor &operand) {
