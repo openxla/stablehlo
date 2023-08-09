@@ -3701,10 +3701,12 @@ Semantics of `outfeed_config` is implementation-defined.
 #### Examples
 
 ```mlir
-%result = "stablehlo.outfeed"(%input0, %token) {
+%result = "stablehlo.outfeed"(%inputs0, %token) {
   outfeed_config = ""
-} : (tensor<3x3x3xi32>, !stablehlo.token) -> !stablehlo.token
+} : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_outfeed.mlir)
 
 ### pad
 

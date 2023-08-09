@@ -57,6 +57,7 @@ LogicalResult RunParallelOp::verify() {
     return emitOptionalError(getLoc(), "`programs` attribute cannot be empty");
 
   size_t numArgs = 0;
+  size_t numResults = 0;
   auto numPartitions = getPrograms()[0].cast<ArrayAttr>().size();
   for (auto &replica : getPrograms()) {
     if (replica.cast<ArrayAttr>().size() != numPartitions)
@@ -73,14 +74,21 @@ LogicalResult RunParallelOp::verify() {
         return emitOptionalError(getLoc(), "Function ", funcName, " not found");
 
       numArgs += func.getNumArguments();
+      numResults += func.getNumResults();
     }
   }
 
   if (getInputs().size() != numArgs)
-    return emitOptionalError(getLoc(),
-                             "Number of inputs should match the sum of the "
-                             "number of inputs of all programs (",
-                             numArgs, ") but got ", getInputs().size());
+    return emitOptionalError(
+        getLoc(), "Number of inputs (", getInputs().size(),
+        ") should match the sum of the number of inputs of all programs (",
+        numArgs, ")");
+
+  if (getResults().size() != numResults)
+    return emitOptionalError(
+        getLoc(), "Number of results (", getResults().size(),
+        ") should match the sum of the number of results of all programs (",
+        numResults, ")");
 
   return success();
 }
@@ -123,6 +131,7 @@ SmallVector<InterpreterValue> evalRunParallelOp(
 
   SmallVector<InterpreterValue> results;
   for (auto &future : futures) results.append(future.get());
+  // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
 }
 

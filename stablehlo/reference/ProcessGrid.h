@@ -20,6 +20,7 @@ limitations under the License.
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <utility>
 
 #include "mlir/IR/BuiltinTypes.h"
@@ -39,6 +40,8 @@ struct ProcessId {
   /// StableHLO `partition_id`.
   uint32_t partitionId;
 
+  bool operator!=(const ProcessId &other) const;
+
   // The sort order for ProcessId is not defined in StableHLO, and it's
   // internally used in ProcessGrid::rendezvous as part of a sorted key on the
   // map. This operator is conveniently used to help define the ordering since
@@ -46,8 +49,6 @@ struct ProcessId {
   bool operator<(const ProcessId &other) const;
 
   bool operator==(const ProcessId &other) const;
-
-  bool operator!=(const ProcessId &other) const;
 };
 
 // StableHLO `process_group`.
@@ -62,15 +63,15 @@ class ProcessGroups : public SmallVector<ProcessGroup> {};
 /// map-like API.
 class RendezvousResult {
  public:
-  /// Iterates through the map and returns the value associated with the key
-  /// `processId`. If key is not found, return an empty `Tensor`.
-  Tensor lookup(ProcessId processId);
+  /// Erases all elements in the map.
+  void clear();
 
   /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
 
-  /// Erases all elements in the map.
-  void clear();
+  /// Iterates through the map and returns the value associated with the key
+  /// `processId`. If key is not found, return an empty `Tensor`.
+  Tensor lookup(ProcessId processId);
 
   /// Returns the number of elements in the map.
   size_t size();
@@ -88,12 +89,15 @@ class ProcessGrid {
   ProcessGrid(uint32_t numReplicas, uint32_t numPartitions);
   /// @}
 
-  /// StableHLO `cross_replica` communication strategy.
-  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
-
   /// StableHLO `cross_partition` communication strategy.
   ProcessGroups crossPartition(
       SmallVector<SmallVector<uint32_t>> partitionGroups);
+
+  /// StableHLO `cross_replica` communication strategy.
+  ProcessGroups crossReplica(SmallVector<SmallVector<uint32_t>> replicaGroups);
+
+  /// Inserts `inputs` to StableHLO `outfeed`.
+  void outfeed(ArrayRef<Tensor> inputs);
 
   /// Synchronize a StableHLO process with the `processId` with other StableHLO
   /// processes in the `processGroup` using a `channelId`.
@@ -122,6 +126,11 @@ class ProcessGrid {
 
   /// StableHLO `num_partitions`.
   uint32_t numPartitions_;
+
+  /// StableHLO `outfeed` represented as a queue.
+  std::queue<SmallVector<Tensor>> outfeed_;
+
+  std::mutex outfeedLock_;
 
   /// Internal storage used to implement `rendezvous`.
   /// Each call to `rendezvous`, i.e. each combination `processGroup` and
