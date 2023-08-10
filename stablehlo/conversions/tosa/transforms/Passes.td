@@ -17,7 +17,10 @@ include "mlir/Pass/PassBase.td"
 
 def StablehloLegalizeToTosaPass : Pass<"stablehlo-legalize-to-tosa", "mlir::func::FuncOp"> {
   let summary = "Legalize StableHLO to TOSA";
-  let dependentDialects = ["::mlir::tosa::TosaDialect"];
+  let dependentDialects = [
+    "::mlir::tosa::TosaDialect, ::mlir::pdl::PDLDialect",
+    "::mlir::pdl_interp::PDLInterpDialect"
+  ];
 }
 
 def StablehloPrepareForTosaPass : Pass<"stablehlo-prepare-for-tosa", "mlir::func::FuncOp"> {

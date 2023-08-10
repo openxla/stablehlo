@@ -19,6 +19,8 @@ limitations under the License.
 #include <memory>
 
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/PDL/IR/PDL.h"
+#include "mlir/Dialect/PDLInterp/IR/PDLInterp.h"
 #include "mlir/Pass/Pass.h"
 
 namespace mlir {
