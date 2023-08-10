@@ -102,8 +102,8 @@ func.func @cholesky(%arg0: tensor<1x2x2xf32>) -> tensor<1x2x2xindex> {
 
 // -----
 
-// CHECK-LABEL: func @alltoall
-func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xindex> {
+// CHECK-LABEL: func @all_to_all_c9
+func.func @all_to_all_c9(%data: tensor<4x16xf32>) -> tensor<16x4xindex> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -117,8 +117,8 @@ func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xindex> {
 
 // -----
 
-// CHECK-LABEL: func @alltoall_bounds
-func.func @alltoall_bounds(%data: tensor<16x?xf32, #stablehlo.bounds<?, 5>>) -> tensor<*xindex> {
+// CHECK-LABEL: func @all_to_all_bounds
+func.func @all_to_all_bounds(%data: tensor<16x?xf32, #stablehlo.bounds<?, 5>>) -> tensor<*xindex> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 0 : i64,
     concat_dimension = 1 : i64,

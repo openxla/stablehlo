@@ -417,8 +417,7 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
                                   bool useGlobalDeviceIds,
                                   std::optional<size_t> expectedGroupSize) {
   auto replicaGroupType = replicaGroups.getType().cast<RankedTensorType>();
-
-  // all_gather_i3
+  // all_gather_i3, all_to_all_i5
   if (replicaGroupType.getRank() != 2)
     return emitOptionalError(location,
                              "replica groups should be a rank 2 tensor");
@@ -442,18 +441,19 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
       return emitOptionalError(location, "Invalid replica id -1");
     }
 
-    // all_gather_c2, all_reduce_c1
+    // all_gather_c2, all_reduce_c1, all_to_all_c5
     if (!replicaIdsSeen.insert(replicaId).second)
       return emitOptionalError(location, "replica id #", replicaId,
                                " seen more than once");
   }
 
-  // all_gather_c4, all_reduce_c3
+  // all_gather_c4, all_reduce_c3, all_to_all_c7
   for (size_t id = 0; id < replicaIdsSeen.size(); id++)
     if (!replicaIdsSeen.contains(id))
       return emitOptionalError(location, "replica id #", id,
                                " not seen in replica groups");
 
+  // all_to_all_c8
   if (allGroupsMustHaveSameSize && expectedGroupSize &&
       (replicaIds.size() / replicaGroupType.getShape()[0] !=
        *expectedGroupSize))
@@ -1385,18 +1385,22 @@ LogicalResult inferAllToAllOp(
     int64_t concatDimension, int64_t splitCount,
     DenseIntElementsAttr replicaGroups,
     SmallVectorImpl<ShapedTypeComponents>& inferredReturnShapes) {
+  // all_to_all_c4
   if (splitCount <= 0)
     return emitOptionalError(location, "AllToAll split_count must be > 0");
 
+  // all_to_all_c5, all_to_all_c7, all_to_all_i5
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
                                  /*useGlobalDeviceIds=*/false, splitCount)))
     return failure();
 
+  // all_to_all_c1
   if (splitDimension < 0)
     return emitOptionalError(location,
                              "AllToAll split_dimension cannot be negative");
 
+  // all_to_all_c3
   if (concatDimension < 0)
     return emitOptionalError(location,
                              "AllToAll concat_dimension cannot be negative");
@@ -1410,19 +1414,20 @@ LogicalResult inferAllToAllOp(
   }
 
   int64_t inputRank = operandRankedType.getRank();
+  // all_to_all_c1
   if (splitDimension >= inputRank)
     return emitOptionalError(location, "AllToAll split_dimension ",
                              splitDimension,
                              " is out-of-bounds for input rank ", inputRank);
+  // all_to_all_c3
   if (concatDimension >= inputRank)
     return emitOptionalError(location, "AllToAll concat_dimension ",
                              concatDimension,
                              " is out-of-bounds for input rank ", inputRank);
 
-  // If operand is ranked, size of split dimension should be a multiple of split
-  // count.
   SmallVector<int64_t> resultShape(operandRankedType.getShape().begin(),
                                    operandRankedType.getShape().end());
+  // all_to_all_c2
   if (isStaticDimSize(resultShape[splitDimension]) &&
       resultShape[splitDimension] % splitCount != 0)
     return emitOptionalError(
