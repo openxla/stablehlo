@@ -2795,16 +2795,24 @@ void printConvolutionDimensions(AsmPrinter& p,
   // prevent invalid access.
   auto printDim =
       [&p](ArrayRef<int64_t> spatialDims,
-           ArrayRef<std::pair<int64_t, NonSpatialDim>> non_spatialDims) {
-        llvm::SmallVector<int64_t> dims(non_spatialDims.size() +
+           ArrayRef<std::pair<int64_t, NonSpatialDim>> nonSpatialDims) {
+        llvm::SmallVector<int64_t> dims(nonSpatialDims.size() +
                                         spatialDims.size());
         // Fill each element of dims with a (< 0) NonSpatialDim enum or a (>=0)
         // spatial dimension index.
         for (const std::pair<int64_t, NonSpatialDim>& nonSpatialDim :
-             non_spatialDims)
+             nonSpatialDims) {
+          if (nonSpatialDim.first < 0 ||
+              static_cast<size_t>(nonSpatialDim.first) >= dims.size())
+            llvm::report_fatal_error("Invalid non-spatial dimension.");
           dims[nonSpatialDim.first] = nonSpatialDim.second;
-        for (const auto& spatial_dim : llvm::enumerate(spatialDims))
-          dims[spatial_dim.value()] = static_cast<int64_t>(spatial_dim.index());
+        }
+        for (const auto& spatialDim : llvm::enumerate(spatialDims)) {
+          if (spatialDim.value() < 0 ||
+              static_cast<size_t>(spatialDim.value()) >= dims.size())
+            llvm::report_fatal_error("Invalid spatial dimension.");
+          dims[spatialDim.value()] = static_cast<int64_t>(spatialDim.index());
+        }
 
         // Each dimension numbers will be printed as a comma separated list
         // surrounded by square brackets, e.g., [b, 0, 1, 2, f]
