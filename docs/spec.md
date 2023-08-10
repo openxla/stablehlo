@@ -4119,7 +4119,7 @@ Afterwards, within each `process_group`:
 * `reduced_value = all_reduce(operand, replica_groups, channel_id,
   use_global_device_ids, computation)`.
 * `parts@sender = split(reduced_value@sender, dim(process_groups, 1),
-  split_dimension)`.
+  scatter_dimension)`.
 * `result@receiver = parts@sender[receiver_index]` for all `sender` in
   `process_group`, where `receiver_index = process_group.index(receiver)`.
 
@@ -4142,17 +4142,17 @@ Afterwards, within each `process_group`:
 
 #### Constraints
 
-* (C1) `dim(operand, scatter_dimension) % dim(process_groups, 1) = 0`.
-* (C2) `0 <= scatter_dimension < rank(operand)`.
-* (C3) `is_unique(replica_groups)`.
-* (C4) `size(replica_groups)` is defined as:
+* (C1) `0 <= scatter_dimension < rank(operand)`.
+* (C2) `is_unique(replica_groups)`.
+* (C3) `size(replica_groups)` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.
   * `num_processes` if `flattened_ids` is used.
-* (C5) `0 <= replica_groups < size(replica_groups)`.
-* (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+* (C4) `0 <= replica_groups < size(replica_groups)`.
+* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
+* (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
+* (C7) `0 < dim(result, scatter_dimension)`.
 * (C8) `type(result) = type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
@@ -4162,35 +4162,27 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [
-//                   [1.0, 2.0, 3.0, 4.0],
-//                   [5.0, 6.0, 7.0, 8.0]
-//                  ]
-// %operand@(1, 0): [
-//                   [9.0, 10.0, 11.0, 12.0],
-//                   [13.0, 14.0, 15.0, 16.0]
-//                  ]
+// %operand@(0, 0): [[1, 2, 3, 4],
+//                   [5, 6, 7, 8]]
+// %operand@(1, 0): [[9, 10, 11, 12],
+//                   [13, 14, 15, 16]]
 %result = "stablehlo.reduce_scatter"(%operand) ({
-  ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tensor<f32>
-  "stablehlo.return"(%0) : (tensor<f32>) -> ()
+  ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+  %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<i64>, tensor<i64>) -> tensor<i64>
+  "stablehlo.return"(%0) : (tensor<i64>) -> ()
 }) {
   scatter_dimension = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-  // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-  // use_global_device_ids = false
-} : (tensor<2x4xf32>) -> tensor<2x2xf32>
+} : (tensor<2x4xi64>) -> tensor<2x2xi64>
 //
-// %result@(0, 0): [
-//                  [10.0, 12.0],
-//                  [18.0, 20.0]
-//                 ]
-// %result@(1, 0): [
-//                  [14.0, 16.0],
-//                  [22.0, 24.0]
-//                 ]
+// %result@(0, 0): [[10, 12],
+//                  [18, 20]]
+// %result@(1, 0): [[14, 16],
+//                  [22, 24]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_reduce_scatter.mlir)
 
 ### reduce_window
 

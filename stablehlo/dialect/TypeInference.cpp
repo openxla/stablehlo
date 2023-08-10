@@ -536,21 +536,21 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                                  ArrayRef<int64_t> allowedDimensions) {
   int64_t numInputs = inputTypes.size();
 
-  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
-  // select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_scatter_c6, reduce_window_c13,
+  // scatter_c15, select_and_scatter_c10
   if (static_cast<int64_t>(block.getArguments().size()) != numInputs * 2)
     return emitOptionalError(loc, "Reduction-region must take ", numInputs * 2,
                              " parameters, but takes ",
                              block.getArguments().size(), " parameter(s)");
 
-  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
-  // select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_scatter_c6, reduce_window_c13,
+  // scatter_c15, select_and_scatter_c10
   if (block.getTerminator()->getOperands().empty())
     return emitOptionalError(
         loc, "The reduction-region expected to return some value(s)");
 
-  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
-  // select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_scatter_c6, reduce_window_c13,
+  // scatter_c15, select_and_scatter_c10
   if (static_cast<int64_t>(block.getTerminator()->getOperands().size()) !=
       numInputs)
     return emitOptionalError(loc, "Reduction-region here must produce ",
@@ -558,8 +558,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
                              block.getTerminator()->getOperands().size(),
                              " instead");
 
-  // all_reduce_c6, reduce_c6, reduce_window_c13, scatter_c15,
-  // select_and_scatter_c10
+  // all_reduce_c6, reduce_c6, reduce_scatter_c6, reduce_window_c13,
+  // scatter_c15, select_and_scatter_c10
   SmallVector<ShapedType> accumulatorSubShapes;
   for (Value retOperand : block.getTerminator()->getOperands()) {
     auto shapedTy = retOperand.getType().dyn_cast<ShapedType>();
@@ -573,8 +573,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
   }
 
   for (int64_t inputIdx = 0; inputIdx < numInputs; ++inputIdx) {
-    // all_reduce_c6, reduce_c2, reduce_window_c13, scatter_c15,
-    // select_and_scatter_c10
+    // all_reduce_c6, reduce_c2, reduce_scatter_c6, reduce_window_c13,
+    // scatter_c15, select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        block.getArgument(inputIdx).getType()))
       return emitOptionalError(
@@ -583,8 +583,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // all_reduce_c6, reduce_c2, reduce_window_c13, scatter_c15,
-    // select_and_scatter_c3, select_and_scatter_c10
+    // all_reduce_c6, reduce_c2, reduce_scatter_c6, reduce_window_c13,
+    // scatter_c15, select_and_scatter_c3, select_and_scatter_c10
     if (!compatibleShapeAndElementType(
             accumulatorSubShapes[inputIdx],
             block.getArgument(numInputs + inputIdx).getType(),
@@ -596,8 +596,8 @@ LogicalResult verifyReducerShape(std::optional<Location> loc, Block& block,
           block.getArgument(numInputs + inputIdx).getType(), " vs ",
           accumulatorSubShapes[inputIdx]);
 
-    // all_reduce_c6, reduce_c6, reduce_window_c13, reduce_window_i2,
-    // scatter_c6, scatter_c15, select_and_scatter_c10
+    // all_reduce_c6, reduce_c6, reduce_scatter_c6, reduce_window_c13,
+    // reduce_window_i2, scatter_c6, scatter_c15, select_and_scatter_c10
     if (!compatibleShapeAndElementType(accumulatorSubShapes[inputIdx],
                                        initValueTypes[inputIdx],
                                        /*ignoreFpPrecision=*/true))
@@ -3712,7 +3712,7 @@ LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
 LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                     Value operand, int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
-                                    bool useGlobalDeviceIds,
+                                    int64_t channelId, bool useGlobalDeviceIds,
                                     Region& computation, Value result) {
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
@@ -3720,6 +3720,7 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                  /*expectedGroupSize=*/std::nullopt)))
     return failure();
   auto operandType = operand.getType().cast<ShapedType>();
+  // reduce_scatter_c6
   if (failed(verifyReducerShape(
           location, computation.front(), {operandType},
           {RankedTensorType::get({}, operandType.getElementType())},
@@ -3728,29 +3729,44 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
 
   auto resultType = result.getType().cast<ShapedType>();
   if (!operandType.hasRank() || !resultType.hasRank()) return success();
+  // reduce_scatter_c8
   if (operandType.getRank() != resultType.getRank())
     return emitOptionalError(location,
                              "operand and result should have same rank");
+
+  // reduce_scatter_c2
   if (scatterDimension < 0)
     return emitOptionalError(location, "expects scatter_dimension >= 0");
+
+  // reduce_scatter_c2
   if (scatterDimension >= operandType.getRank())
     return emitOptionalError(
         location, "scatter dim should be less than operand/result rank");
+
+  // reduce_scatter_c5
+  if (useGlobalDeviceIds && channelId <= 0)
+    return emitOptionalError(
+        location,
+        "channel_id must be positive when useGlobalDeviceIds is set but got: ",
+        channelId);
+
   if (operandType.isDynamicDim(scatterDimension) ||
       resultType.isDynamicDim(scatterDimension))
     return success();
+
   auto operandScatterDimSize = operandType.getDimSize(scatterDimension);
   auto resultScatterDimSize = resultType.getDimSize(scatterDimension);
-  if (operandScatterDimSize == 0)
-    return emitOptionalError(location,
-                             "operand scatter dimension cannot be zero");
+  // reduce_scatter_c7
   if (resultScatterDimSize == 0)
-    return emitOptionalError(location,
-                             "result scatter dimension cannot be zero");
+    return emitOptionalError(
+        location, "result dimension size at scatter_dimension cannot be zero");
 
-  // If operand and result are both ranked, then the size of the scatter
-  // dimension in the operand should be a multiple of the size of the scatter
-  // dimension in the result.
+  // reduce_scatter_c8
+  if (operandScatterDimSize == 0)
+    return emitOptionalError(
+        location, "operand dimension size at scatter_dimension cannot be zero");
+
+  // reduce_scatter_c8
   if (isStaticDimSize(operandScatterDimSize) &&
       isStaticDimSize(resultScatterDimSize) &&
       operandScatterDimSize % resultScatterDimSize != 0)
@@ -3759,7 +3775,7 @@ LogicalResult verifyReduceScatterOp(std::optional<Location> location,
         ", expected to be a multiple of result scatter dimension size ",
         resultScatterDimSize);
 
-  // Non scatter dimensions should be equal.
+  // reduce_scatter_c8
   for (auto index : llvm::seq<int64_t>(0, operandType.getRank())) {
     if (index == scatterDimension) continue;
     if (!verifyCompatibleDims(operandType.getDimSize(index),

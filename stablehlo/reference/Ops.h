@@ -132,6 +132,11 @@ SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<ShapedType> resultTypes);
 Tensor evalReducePrecisionOp(const Tensor &operand, int32_t exponentBits,
                              int32_t mantissaBits, ShapedType resultType);
+Tensor evalReduceScatterOp(const Tensor &operand, int64_t scatterDimension,
+                           SmallVector<SmallVector<uint32_t>> replicaGroups,
+                           ChannelId channelId, bool useGlobalDeviceIds,
+                           Region &region, Process *process, Scope &scope,
+                           ShapedType returnType);
 SmallVector<Tensor> evalReduceWindowOp(
     ArrayRef<Tensor> inputs, ArrayRef<Tensor> initValues,
     const Sizes &windowDimensions, const Sizes &windowStrides,

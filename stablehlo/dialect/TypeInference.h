@@ -463,7 +463,7 @@ LogicalResult verifyReducePrecisionOp(std::optional<Location> location,
 LogicalResult verifyReduceScatterOp(std::optional<Location> location,
                                     Value operand, int64_t scatterDimension,
                                     DenseIntElementsAttr replicaGroups,
-                                    bool useGlobalDeviceIds,
+                                    int64_t channelId, bool useGlobalDeviceIds,
                                     Region& computation, Value result);
 
 LogicalResult verifyReduceWindowOp(

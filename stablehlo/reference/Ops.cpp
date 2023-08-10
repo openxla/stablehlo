@@ -564,6 +564,27 @@ SmallVector<InterpreterValue> eval(
       auto result = evalReducePrecisionOp(operand, exponentBits, mantissaBits,
                                           reducePrecisionOp.getType());
       scope.add(reducePrecisionOp.getResult(), result);
+    } else if (auto reduceScatterOp = dyn_cast<ReduceScatterOp>(op)) {
+      auto operand = scope.findTensor(reduceScatterOp.getOperand());
+      int64_t scatterDimension = reduceScatterOp.getScatterDimension();
+      auto replicaGroupsAttr = reduceScatterOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups)
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
+          replicaGroup.push_back(*replicaGroupsIt);
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = reduceScatterOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalReduceScatterOp(
+          operand, scatterDimension, replicaGroups, channelId,
+          reduceScatterOp.getUseGlobalDeviceIds(),
+          reduceScatterOp.getComputation(), process, scope,
+          reduceScatterOp.getType());
+      scope.add(reduceScatterOp.getResult(), result);
     } else if (auto reduceWindowOp = dyn_cast<ReduceWindowOp>(op)) {
       auto inputs = scope.findTensors(reduceWindowOp.getInputs());
       auto initValues = scope.findTensors(reduceWindowOp.getInitValues());
@@ -1534,6 +1555,48 @@ Tensor evalReducePrecisionOp(const Tensor &operand, int32_t exponentBits,
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it,
                reducePrecision(operand.get(*it), exponentBits, mantissaBits));
+  return result;
+}
+
+Tensor evalReduceScatterOp(const Tensor &operand, int64_t scatterDimension,
+                           SmallVector<SmallVector<uint32_t>> replicaGroups,
+                           ChannelId channelId, bool useGlobalDeviceIds,
+                           Region &region, Process *process, Scope &scope,
+                           ShapedType returnType) {
+  if (!process)
+    llvm::report_fatal_error(
+        "reduce_scatter is only supported when run via "
+        "interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplicaAndPartition(replicaGroups);
+  if (channelId > 0 && useGlobalDeviceIds)
+    processGroups = process->flattenedIds(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup)
+    llvm::report_fatal_error(invalidArgument(
+        "Failed to find process group with process_id: (%d, %d)",
+        process->getId().replicaId, process->getId().partitionId));
+
+  auto reducedValue =
+      evalAllReduceOp(operand, replicaGroups, channelId, useGlobalDeviceIds,
+                      region, process, scope, operand.getType());
+
+  auto parts = split(reducedValue, processGroups[0].size(), scatterDimension,
+                     operand.getType().getContext());
+
+  Tensor result(returnType);
+  for (auto [receiverIndex, sender] : llvm::enumerate(*processGroup)) {
+    if (sender == process->getId()) {
+      result = parts[receiverIndex];
+      break;
+    }
+  }
+
   return result;
 }
 

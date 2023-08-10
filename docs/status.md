@@ -120,7 +120,7 @@ one of the following tracking labels.
 | recv                     | yes           | revisit      | infeasible     | no              | no          |
 | reduce                   | yes           | revisit      | yes            | revisit         | yes         |
 | reduce_precision         | yes           | yes          | yes            | yes             | yes         |
-| reduce_scatter           | yes           | revisit      | no             | no              | no          |
+| reduce_scatter           | yes           | revisit      | no             | no              | yes         |
 | reduce_window            | yes           | revisit      | yes            | no              | yes         |
 | remainder                | yes           | yes          | yes            | yes             | yes         |
 | replica_id               | yes           | yes          | yes            | yes             | yes         |
