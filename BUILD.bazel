@@ -451,7 +451,7 @@ cc_library(
     deps = [
         ":reference_process_grid",
         ":reference_tensor",
-    ]
+    ],
 )
 
 cc_library(
@@ -467,7 +467,7 @@ cc_library(
         ":reference_tensor",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
-    ]
+    ],
 )
 
 cc_library(

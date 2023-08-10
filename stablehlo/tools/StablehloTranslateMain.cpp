@@ -33,7 +33,6 @@ limitations under the License.
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Ops.h"
-#include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Scope.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.h"

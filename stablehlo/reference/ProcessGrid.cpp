@@ -20,9 +20,6 @@ limitations under the License.
 #include <optional>
 #include <utility>
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "stablehlo/reference/Tensor.h"
 
 namespace mlir {
@@ -91,7 +88,7 @@ ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions)
 ProcessGroups ProcessGrid::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
   ProcessGroups processGroups;
-  for (auto partitionGroup : partitionGroups) {
+  for (const auto &partitionGroup : partitionGroups) {
     for (uint32_t replicaId = 0; replicaId < numReplicas_; ++replicaId) {
       ProcessGroup processGroup;
       for (uint32_t partitionId : partitionGroup)
@@ -105,7 +102,7 @@ ProcessGroups ProcessGrid::crossPartition(
 ProcessGroups ProcessGrid::crossReplica(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
-  for (auto replicaGroup : replicaGroups) {
+  for (const auto &replicaGroup : replicaGroups) {
     for (uint32_t partitionId = 0; partitionId < numPartitions_;
          ++partitionId) {
       ProcessGroup processGroup;
@@ -120,7 +117,7 @@ ProcessGroups ProcessGrid::crossReplica(
 ProcessGroups ProcessGrid::crossReplicaAndPartition(
     SmallVector<SmallVector<uint32_t>> replicaGroups) {
   ProcessGroups processGroups;
-  for (auto replicaGroup : replicaGroups) {
+  for (const auto &replicaGroup : replicaGroups) {
     ProcessGroup processGroup;
     for (uint32_t partitionId = 0; partitionId < numPartitions_; ++partitionId)
       for (uint32_t replicaId : replicaGroup)
@@ -133,7 +130,7 @@ ProcessGroups ProcessGrid::crossReplicaAndPartition(
 ProcessGroups ProcessGrid::flattenedIds(
     SmallVector<SmallVector<uint32_t>> flattenedIdGroups) {
   ProcessGroups processGroups;
-  for (auto flattenedIdGroup : flattenedIdGroups) {
+  for (const auto &flattenedIdGroup : flattenedIdGroups) {
     ProcessGroup processGroup;
     for (auto flattenedId : flattenedIdGroup) {
       uint32_t replicaId = flattenedId / numPartitions_;
