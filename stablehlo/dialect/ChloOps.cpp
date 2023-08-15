@@ -416,8 +416,7 @@ LogicalResult BroadcastSelectOp::reifyReturnTypeShapes(
 //===----------------------------------------------------------------------===//
 
 void RankSpecializationClusterOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> /*operands*/,
-    SmallVectorImpl<RegionSuccessor>& regions) {
+    std::optional<unsigned> index, SmallVectorImpl<RegionSuccessor>& regions) {
   // RankSpecializationClusterOp has unconditional control flows into the region
   // and back to the parent, so return the correct RegionSuccessor purely based
   // on the index being None or 0.
