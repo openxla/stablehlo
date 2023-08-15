@@ -142,9 +142,10 @@ ProcessGroups ProcessGrid::flattenedIds(
   return processGroups;
 }
 
-std::mutex &ProcessGrid::getChannelLock(
-    std::pair<ProcessGroup, ChannelId> channelKey) {
-  std::lock_guard<std::mutex> lock(channelLock_);
+std::mutex &ProcessGrid::getChannelsMasterLock(ProcessGroup processGroup,
+                                               ChannelId channelId) {
+  std::lock_guard<std::mutex> lock(channelsMasterLock_);
+  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   return channelLocks_[channelKey];
 }
 
@@ -158,13 +159,15 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   {
-    std::lock_guard<std::mutex> lock(getChannelLock(channelKey));
+    std::lock_guard<std::mutex> lock(
+        getChannelsMasterLock(processGroup, channelId));
     if (channels_[channelKey].size() == processGroup.size())
       channels_[channelKey].clear();
     channels_[channelKey].insert(processId, operand);
   }
   {
-    std::unique_lock<std::mutex> lock(getChannelLock(channelKey));
+    std::unique_lock<std::mutex> lock(
+        getChannelsMasterLock(processGroup, channelId));
     if (channels_[channelKey].size() == processGroup.size())
       channelConditions_[channelKey].notify_all();
 
