@@ -136,7 +136,7 @@ class ProcessGrid {
   /// At the barrier, each StableHLO process contributes a tensor, and these
   /// tensors are accumulated in `RendezvousResult` which is returned to all
   /// callers once the barrier has been reached by all StableHLO processes.
-  RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
+  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
                               ProcessId processId, const Tensor &operand);
 
  private:

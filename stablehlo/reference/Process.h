@@ -54,7 +54,7 @@ class Process {
   void outfeed(ArrayRef<Tensor> inputs);
 
   /// See `ProcessGrid::rendezvous`.
-  RendezvousResult rendezvous(ProcessGroup processGroup, int64_t channelId,
+  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
                               const Tensor &operand);
 
  private:
