@@ -35,7 +35,7 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context);
 Tensor evalAllReduceOp(const Tensor &operand,
                        SmallVector<SmallVector<uint32_t>> replicaGroups,
-                       int64_t channelId, bool useGlobalDeviceIds,
+                       ChannelId channelId, bool useGlobalDeviceIds,
                        Region &computation, Process *process, Scope &scope,
                        ShapedType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);

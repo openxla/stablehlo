@@ -200,7 +200,7 @@ SmallVector<InterpreterValue> eval(
         }
       }
 
-      auto channelId = 0;
+      ChannelId channelId = 0;
       if (auto channelHandle = allReduceOp.getChannelHandleAttr())
         channelId = channelHandle.getHandle();
 
@@ -747,7 +747,7 @@ Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
 
 Tensor evalAllReduceOp(const Tensor &operand,
                        SmallVector<SmallVector<uint32_t>> replicaGroups,
-                       int64_t channelId, bool useGlobalDeviceIds,
+                       ChannelId channelId, bool useGlobalDeviceIds,
                        Region &computation, Process *process, Scope &scope,
                        ShapedType resultType) {
   if (!process)

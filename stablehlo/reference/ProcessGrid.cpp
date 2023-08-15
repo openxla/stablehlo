@@ -155,7 +155,8 @@ void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
 }
 
 RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
-                                         int64_t channelId, ProcessId processId,
+                                         ChannelId channelId,
+                                         ProcessId processId,
                                          const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   {
