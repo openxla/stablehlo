@@ -140,16 +140,25 @@ class ProcessGrid {
                               ProcessId processId, const Tensor &operand);
 
  private:
+  /// Obtain a mutex that is shared between all processes participating in
+  /// a call to `rendezvous` for a given combination of `processGroup` and
+  /// `channelId`.
+  std::mutex &getRendezvousLock(ProcessGroup processGroup, ChannelId channelId);
+
   /// StableHLO `num_replicas`.
-  uint32_t numReplicas_;
+  const uint32_t numReplicas_;
 
   /// StableHLO `num_partitions`.
-  uint32_t numPartitions_;
+  const uint32_t numPartitions_;
 
   /// StableHLO `outfeed` represented as a queue.
   std::queue<SmallVector<Tensor>> outfeed_;
 
   std::mutex outfeedLock_;
+
+  /// Synchronization primitive used to manage concurrent access to
+  /// `channelLocks_`.
+  std::mutex rendezvousLock_;
 
   /// Internal storage used to implement `rendezvous`.
   /// Each call to `rendezvous`, i.e. each combination `processGroup` and

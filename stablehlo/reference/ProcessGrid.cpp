@@ -142,6 +142,13 @@ ProcessGroups ProcessGrid::flattenedIds(
   return processGroups;
 }
 
+std::mutex &ProcessGrid::getRendezvousLock(ProcessGroup processGroup,
+                                           ChannelId channelId) {
+  std::lock_guard<std::mutex> lock(rendezvousLock_);
+  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
+  return channelLocks_[channelKey];
+}
+
 void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
   std::lock_guard<std::mutex> lock(outfeedLock_);
   outfeed_.emplace(inputs);
@@ -152,13 +159,16 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
                                          const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
   {
-    std::lock_guard<std::mutex> lock(channelLocks_[channelKey]);
+    std::lock_guard<std::mutex> lock(
+        getRendezvousLock(processGroup, channelId));
     if (channels_[channelKey].size() == processGroup.size())
       channels_[channelKey].clear();
+
     channels_[channelKey].insert(processId, operand);
   }
   {
-    std::unique_lock<std::mutex> lock(channelLocks_[channelKey]);
+    std::unique_lock<std::mutex> lock(
+        getRendezvousLock(processGroup, channelId));
     if (channels_[channelKey].size() == processGroup.size())
       channelConditions_[channelKey].notify_all();
 
@@ -167,9 +177,9 @@ RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
               return channels_[channelKey].size() == processGroup.size();
             }))
       llvm::report_fatal_error("rendezvous timed out");
-  }
 
-  return channels_[channelKey];
+    return channels_[channelKey];
+  }
 }
 
 }  // namespace stablehlo
