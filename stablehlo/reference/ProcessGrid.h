@@ -24,7 +24,6 @@ limitations under the License.
 #include <queue>
 #include <utility>
 
-#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/Tensor.h"
 
@@ -110,11 +109,11 @@ class ProcessGrid {
 
   /// StableHLO `cross_replica_and_partition` communication strategy.
   ProcessGroups crossReplicaAndPartition(
-      SmallVector<SmallVector<uint32_t>> partitionGroups);
+      SmallVector<SmallVector<uint32_t>> replicaGroups);
 
   /// StableHLO `flattened_ids` communication strategy.
   ProcessGroups flattenedIds(
-      SmallVector<SmallVector<uint32_t>> partitionGroups);
+      SmallVector<SmallVector<uint32_t>> flattenedIdGroups);
 
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);

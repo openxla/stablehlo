@@ -775,7 +775,7 @@ Tensor evalAllReduceOp(const Tensor &operand,
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
        ++resultIt) {
     Tensor resultElement;
-    for (auto groupOperand : groupOperands) {
+    for (const auto &groupOperand : groupOperands) {
       auto groupOperandElement = makeScalar(groupOperand.get(*resultIt));
       if (resultElement)
         resultElement = eval(computation, {resultElement, groupOperandElement},
