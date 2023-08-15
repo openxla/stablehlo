@@ -115,6 +115,9 @@ class ProcessGrid {
   ProcessGroups flattenedIds(
       SmallVector<SmallVector<uint32_t>> flattenedIdGroups);
 
+  /// Synchronizes access to StableHLO `channels`.
+  std::mutex &getChannelLock(std::pair<ProcessGroup, ChannelId> channelKey);
+
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);
 
@@ -158,6 +161,11 @@ class ProcessGrid {
   /// this key is gradually populated with tensors arriving from different
   /// processes in the process group.
   std::map<std::pair<ProcessGroup, ChannelId>, RendezvousResult> channels_;
+
+  /// Synchronization primitive used to manage concurrent access to
+  /// `channelLocks_` to prevent multiple processes from creating multiple
+  /// mutexes when the map entry is empty.
+  std::mutex channelLock_;
 
   /// Synchronization primitive used to manage concurrent access to `channels_`.
   std::map<std::pair<ProcessGroup, ChannelId>, std::mutex> channelLocks_;
