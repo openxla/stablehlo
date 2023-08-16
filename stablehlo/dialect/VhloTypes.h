@@ -33,7 +33,7 @@ class VhloTypeConverterBase : public TypeConverter {
 
   virtual ~VhloTypeConverterBase() = default;
 
-  virtual Attribute convertEncoding(Attribute attr) = 0;
+  virtual Attribute convertEncoding(Attribute attr) const = 0;
 };
 
 // This class is used to manage conversions between VHLO and Builtin

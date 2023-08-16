@@ -55,7 +55,7 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
     addBuiltinToVhloConversions();
   }
 
-  Attribute convertEncoding(Attribute attr) final {
+  Attribute convertEncoding(Attribute attr) const final {
     LLVM_DEBUG(llvm::dbgs() << "Converting encoding.\n" << attr << '\n');
     // Must be VHLO encoding, or convertible to VHLO encoding.
     if (attr.getDialect().getNamespace() ==
@@ -86,7 +86,7 @@ class StablehloToVhloTypeConverter : public vhlo::VhloTypeConverter {
   return vhlo::Name##Version##Attr::get(attr.getContext(), vhloValue.value())
 
 Attribute convertGeneric(Attribute stablehloAttr,
-                         TypeConverter* typeConverter) {
+                         const TypeConverter* typeConverter) {
   // Handle StableHLO attributes.
   // The logic that handles attributes from other dialects (e.g. builtin
   // attributes) lives below.

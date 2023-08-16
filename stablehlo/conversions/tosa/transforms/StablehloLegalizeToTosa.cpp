@@ -335,13 +335,13 @@ struct ConvertStablehloReduceOp : public OpRewritePattern<stablehlo::ReduceOp> {
       reduceOpResult =
           rewriter
               .create<tosa::ReduceSumOp>(op->getLoc(), innerTy, operand,
-                                         rewriter.getI64IntegerAttr(dimension))
+                                         rewriter.getI32IntegerAttr(dimension))
               .getResult();
     } else if (isa<stablehlo::MaxOp>(innerOp)) {
       reduceOpResult =
           rewriter
               .create<tosa::ReduceMaxOp>(op->getLoc(), innerTy, operand,
-                                         rewriter.getI64IntegerAttr(dimension))
+                                         rewriter.getI32IntegerAttr(dimension))
               .getResult();
     } else {
       return rewriter.notifyMatchFailure(
