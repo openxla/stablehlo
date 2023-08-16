@@ -150,9 +150,10 @@ extension. Add [proper FileCheck lines](https://github.com/openxla/stablehlo/blo
 for forward and backward compatibility testing.
 
 ```bash
-$ export TARGET_VERSION=0_X_0
-$ cp stablehlo/tests/stablehlo_legalize_to_vhlo.mlir stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_VERSION.mlir
-$ build/bin/stablehlo-translate --serialize stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_VERSION.mlir --target=current --strip-debuginfo > stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_VERSION.mlir.bc
+$ export TARGET_VERSION=0.X.0
+$ export TARGET_FILENAME=${TARGET_VERSION//./_}
+$ cp stablehlo/tests/stablehlo_legalize_to_vhlo.mlir stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir
+$ build/bin/stablehlo-translate --serialize --target=$TARGET_VERSION --strip-debuginfo stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir > stablehlo/tests/stablehlo_legalize_to_vhlo.$TARGET_FILENAME.mlir.bc
 
 # Replace RUN commands in stablehlo/tests/stablehlo_legalize_to_vhlo.0_X_0.mlir with the following for 0.X.0:
 // RUN: stablehlo-opt --mlir-print-op-generic %s.bc | FileCheck %s
