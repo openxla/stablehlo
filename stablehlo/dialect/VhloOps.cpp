@@ -58,7 +58,7 @@ Type convertTypeToBuiltinForPrint(Type type) {
     VhloToBuiltinPrintConverter() : VhloTypeConverter() {
       addVhloToBuiltinConversions();
     }
-    Attribute convertEncoding(Attribute attr) override { return attr; }
+    Attribute convertEncoding(Attribute attr) const override { return attr; }
   };
   VhloToBuiltinPrintConverter conv;
   return conv.convertType(type);
@@ -69,7 +69,7 @@ Type convertTypeToVhloForParse(Type type) {
     BuiltinToVhloParseConverter() : VhloTypeConverter() {
       addBuiltinToVhloConversions();
     }
-    Attribute convertEncoding(Attribute attr) override { return attr; }
+    Attribute convertEncoding(Attribute attr) const override { return attr; }
   };
   BuiltinToVhloParseConverter conv;
   return conv.convertType(type);

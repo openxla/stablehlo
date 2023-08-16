@@ -30,15 +30,15 @@ func.func @compare_lt(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<
 
 // CHECK-LABEL: @compare_ne
 func.func @compare_ne(%arg0 : tensor<10xi32>, %arg1 : tensor<10xi32>) -> tensor<10xi1> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.equal"(%arg0, %arg1)
-  // CHECK-DAG: %[[VAR1:.*]] = "tosa.logical_not"(%[[VAR0]])
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.equal %arg0, %arg1
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.logical_not %[[VAR0]]
   %0 = "stablehlo.compare"(%arg0, %arg1) {comparison_direction = #stablehlo<comparison_direction NE>} : (tensor<10xi32>, tensor<10xi32>) -> tensor<10xi1>
   return %0 : tensor<10xi1>
 }
 
 // CHECK-LABEL: @concatenate
 func.func @concatenate(%arg0 : tensor<3x3xf32>, %arg1 : tensor<3x3xf32>) -> tensor<6x3xf32> {
-  // CHECK: "tosa.concat"(%arg0, %arg1) <{axis = 0 : i64}> : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
+  // CHECK: tosa.concat %arg0, %arg1 {axis = 0 : i32} : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
   %0 = "stablehlo.concatenate"(%arg0, %arg1) {dimension = 0 : i64} : (tensor<3x3xf32>, tensor<3x3xf32>) -> tensor<6x3xf32>
   return %0 : tensor<6x3xf32>
 }
@@ -60,40 +60,40 @@ func.func @divide_f32(%arg0 : tensor<10xf32>, %arg1 : tensor<10xf32>) -> tensor<
 
 // CHECK-LABEL: @dot_vector_vector
 func.func @dot_vector_vector(%arg0 : tensor<3xf32>, %arg1 : tensor<3xf32>) -> tensor<f32> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.reshape"(%arg0) <{new_shape = array<i64: 1, 1, 3>}>
-  // CHECK-DAG: %[[VAR1:.*]] = "tosa.reshape"(%arg1) <{new_shape = array<i64: 1, 3, 1>}>
-  // CHECK-DAG: %[[VAR2:.*]] = "tosa.matmul"(%[[VAR0]], %[[VAR1]])
-  // CHECK-DAG: %[[VAR3:.*]] = "tosa.reshape"(%[[VAR2]])
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 1, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 1>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<3xf32>, tensor<3xf32>) -> tensor<f32>
   return %0 : tensor<f32>
 }
 
 // CHECK-LABEL: @dot_vector_matrix
 func.func @dot_vector_matrix(%arg0 : tensor<2xf32>, %arg1 : tensor<2x3xf32>) -> tensor<3xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.reshape"(%arg0) <{new_shape = array<i64: 1, 1, 2>}>
-  // CHECK-DAG: %[[VAR1:.*]] = "tosa.reshape"(%arg1) <{new_shape = array<i64: 1, 2, 3>}>
-  // CHECK-DAG: %[[VAR2:.*]] = "tosa.matmul"(%[[VAR0]], %[[VAR1]])
-  // CHECK-DAG: %[[VAR3:.*]] = "tosa.reshape"(%[[VAR2]])
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 1, 2>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2xf32>, tensor<2x3xf32>) -> tensor<3xf32>
   return %0 : tensor<3xf32>
 }
 
 // CHECK-LABEL: @dot_matrix_vector
 func.func @dot_matrix_vector(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3xf32>) -> tensor<2xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.reshape"(%arg0) <{new_shape = array<i64: 1, 2, 3>}>
-  // CHECK-DAG: %[[VAR1:.*]] = "tosa.reshape"(%arg1) <{new_shape = array<i64: 1, 3, 1>}>
-  // CHECK-DAG: %[[VAR2:.*]] = "tosa.matmul"(%[[VAR0]], %[[VAR1]])
-  // CHECK-DAG: %[[VAR3:.*]] = "tosa.reshape"(%[[VAR2]])
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 1>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x3xf32>, tensor<3xf32>) -> tensor<2xf32>
   return %0 : tensor<2xf32>
 }
 
 // CHECK-LABEL: @dot_matrix_matrix
 func.func @dot_matrix_matrix(%arg0 : tensor<2x3xf32>, %arg1 : tensor<3x4xf32>) -> tensor<2x4xf32> {
-  // CHECK-DAG: %[[VAR0:.*]] = "tosa.reshape"(%arg0) <{new_shape = array<i64: 1, 2, 3>}>
-  // CHECK-DAG: %[[VAR1:.*]] = "tosa.reshape"(%arg1) <{new_shape = array<i64: 1, 3, 4>}>
-  // CHECK-DAG: %[[VAR2:.*]] = "tosa.matmul"(%[[VAR0]], %[[VAR1]])
-  // CHECK-DAG: %[[VAR3:.*]] = "tosa.reshape"(%[[VAR2]])
+  // CHECK-DAG: %[[VAR0:.*]] = tosa.reshape %arg0 {new_shape = array<i64: 1, 2, 3>}
+  // CHECK-DAG: %[[VAR1:.*]] = tosa.reshape %arg1 {new_shape = array<i64: 1, 3, 4>}
+  // CHECK-DAG: %[[VAR2:.*]] = tosa.matmul %[[VAR0]], %[[VAR1]]
+  // CHECK-DAG: %[[VAR3:.*]] = tosa.reshape %[[VAR2]]
   %0 = "stablehlo.dot"(%arg0, %arg1) : (tensor<2x3xf32>, tensor<3x4xf32>) -> tensor<2x4xf32>
   return %0 : tensor<2x4xf32>
 }
