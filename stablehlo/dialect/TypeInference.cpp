@@ -3057,7 +3057,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
       return emitOptionalError(
           location, "all_gather_dim must be a valid index of operand");
 
-    // TODO()
+    // TODO(#1745): Sync verification of AllGather with HLO.
     if (operandType.getDimSize(allGatherDim) == 0)
       return emitOptionalError(
           location,
