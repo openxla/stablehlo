@@ -606,7 +606,7 @@ func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x
 
 // -----
 
-func.func @all_gather_c1(%arg0: tensor<128x0xf32>) -> tensor<128x100xf32> {
+func.func @allgather_gather_along_zero_dimension(%arg0: tensor<128x0xf32>) -> tensor<128x100xf32> {
   // expected-error@+1 {{dimension size of operand at 'all_gather_dim' cannot be zero}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -618,7 +618,7 @@ func.func @all_gather_c1(%arg0: tensor<128x0xf32>) -> tensor<128x100xf32> {
 
 // -----
 
-func.func @all_gather_c2(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c1(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{all_gather_dim cannot be negative}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = -1 : i64,
@@ -630,7 +630,7 @@ func.func @all_gather_c2(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c2(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c1(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{all_gather_dim must be a valid index of operand}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 2 : i64,
@@ -642,7 +642,7 @@ func.func @all_gather_c2(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c3(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c2(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{replica id #2 seen more than once}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -654,7 +654,7 @@ func.func @all_gather_c3(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c5(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c4(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{Invalid replica id -1}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -666,7 +666,7 @@ func.func @all_gather_c5(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c5(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c4(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{replica id #4 not seen in replica groups}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -678,7 +678,7 @@ func.func @all_gather_c5(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c6(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c5(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{channel_id cannot be negative when useGlobalDeviceIds is set}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -691,7 +691,7 @@ func.func @all_gather_c6(%arg0: tensor<8x2xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c7(%arg0: tensor<8x2x32xf32>) -> tensor<8x8xf32> {
+func.func @all_gather_c6(%arg0: tensor<8x2x32xf32>) -> tensor<8x8xf32> {
   // expected-error@+1 {{operand and result must have the same rank}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -703,7 +703,7 @@ func.func @all_gather_c7(%arg0: tensor<8x2x32xf32>) -> tensor<8x8xf32> {
 
 // -----
 
-func.func @all_gather_c7(%arg0: tensor<8x2xf32>) -> tensor<4x8xf32> {
+func.func @all_gather_c6(%arg0: tensor<8x2xf32>) -> tensor<4x8xf32> {
   // expected-error@+1 {{operand and result should have the same shape except for the dimension size at 'all_gather_dim'}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,
@@ -715,7 +715,7 @@ func.func @all_gather_c7(%arg0: tensor<8x2xf32>) -> tensor<4x8xf32> {
 
 // -----
 
-func.func @all_gather_c7(%arg0: tensor<128x32xf32>) -> tensor<128x100xf32> {
+func.func @all_gather_c6(%arg0: tensor<128x32xf32>) -> tensor<128x100xf32> {
   // expected-error@+1 {{result gather dimension has size 100, expected to be a multiple of operand gather dimension size 32}}
   %0 = "stablehlo.all_gather"(%arg0) {
     all_gather_dim = 1 : i64,

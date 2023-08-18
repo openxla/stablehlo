@@ -1298,7 +1298,7 @@ def StableHLO_WhileOp: StableHLO_Op<"while", [
 }
 
 def StableHLO_AllGatherOp : StableHLO_Op<"all_gather",
-    [SameOperandsAndResultElementType] /*all_gather_c7*/> {
+    [SameOperandsAndResultElementType] /*all_gather_c6*/> {
   string summary = "AllGather operation";
   string description = [{
     Within each process group in the process grid, concatenates the values of the

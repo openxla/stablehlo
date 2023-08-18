@@ -436,19 +436,19 @@ LogicalResult verifyReplicaGroups(std::optional<Location> location,
   for (int64_t replicaId : replicaIds) {
     // Replica groups are stored in a 2D tensor. If the op supports non-uniform
     // groups, null replica IDs are stored as -1.
-    // all_gather_c5
+    // all_gather_c4
     if (replicaId == -1) {
       if (!allGroupsMustHaveSameSize) continue;
       return emitOptionalError(location, "Invalid replica id -1");
     }
 
-    // all_gather_c3, all_reduce_c1
+    // all_gather_c2, all_reduce_c1
     if (!replicaIdsSeen.insert(replicaId).second)
       return emitOptionalError(location, "replica id #", replicaId,
                                " seen more than once");
   }
 
-  // all_gather_c5, all_reduce_c3
+  // all_gather_c4, all_reduce_c3
   for (size_t id = 0; id < replicaIdsSeen.size(); id++)
     if (!replicaIdsSeen.contains(id))
       return emitOptionalError(location, "replica id #", id,
@@ -3047,37 +3047,37 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
   auto operandType = operand.getType().dyn_cast<RankedTensorType>();
   auto resultType = result.getType().dyn_cast<RankedTensorType>();
 
-  // all_gather_c2
+  // all_gather_c1
   if (allGatherDim < 0)
     return emitOptionalError(location, "all_gather_dim cannot be negative");
 
   if (operandType) {
-    // all_gather_c2
+    // all_gather_c1
     if (allGatherDim >= operandType.getRank())
       return emitOptionalError(
           location, "all_gather_dim must be a valid index of operand");
 
-    // all_gather_c1
+    // TODO()
     if (operandType.getDimSize(allGatherDim) == 0)
       return emitOptionalError(
           location,
           "dimension size of operand at 'all_gather_dim' cannot be zero");
   }
 
-  // all_gather_i3, all_gather_c3, all_gather_c5
+  // all_gather_i3, all_gather_c2, all_gather_c4
   if (failed(verifyReplicaGroups(location, replicaGroups,
                                  /*allGroupsMustHaveSameSize=*/true,
                                  useGlobalDeviceIds,
                                  /*expectedGroupSize=*/std::nullopt)))
     return failure();
 
-  // all_gather_c6
+  // all_gather_c5
   if (useGlobalDeviceIds && channelId < 0)
     return emitOptionalError(
         location,
         "channel_id cannot be negative when useGlobalDeviceIds is set");
 
-  // all_gather_c7
+  // all_gather_c6
   if (operandType && resultType) {
     if (resultType.getRank() != operandType.getRank())
       return emitOptionalError(location,
@@ -3085,7 +3085,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
 
     for (int64_t i = 0; i < operandType.getRank(); i++) {
       if (i == allGatherDim) continue;
-      // all_gather_c7
+      // all_gather_c6
       if (!verifyCompatibleDims(resultType.getDimSize(i),
                                 operandType.getDimSize(i)))
         return emitOptionalError(
@@ -3098,7 +3098,7 @@ LogicalResult verifyAllGatherOp(std::optional<Location> location, Value operand,
         resultType.isDynamicDim(allGatherDim))
       return success();
 
-    // all_gather_c7
+    // all_gather_c6
     if ((resultType.getDimSize(allGatherDim) %
          operandType.getDimSize(allGatherDim)) != 0)
       return emitOptionalError(
