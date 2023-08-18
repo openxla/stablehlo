@@ -6332,7 +6332,7 @@ floating-point values of the expressed type using the zero point and scale
 associated with the quantized element type.
 
 ```python
-def get_zero_points(quantized_type, result_type):
+def compute_zero_points(quantized_type, result_type):
   if is_per_tensor_quantized(quantized_type):
     return broadcast_in_dim(constant(zero_point(quantized_type), storage_type(quantized_type)), [], result_type)
   if is_per_axis_quantized(quantized_type):
@@ -6341,7 +6341,7 @@ def get_zero_points(quantized_type, result_type):
       zero_points[i] = zero_points(quantized_type)[i[d]]
     return zero_points
 
-def get_scales(quantized_type, result_type):
+def compute_scales(quantized_type, result_type):
   if is_per_tensor_quantized(quantized_type):
     return broadcast_in_dim(constant(scale(quantized_type), expressed_type(quantized_type)), [],
             type(result_type))
@@ -6354,9 +6354,9 @@ def get_scales(quantized_type, result_type):
 def dequantize(x: Value) -> Value:
   assert is_quantized(x)
   x_storage = bitcast_convert(x, storage_type(x))
-  x_storage_sub = x_storage - get_zero_points(type(x), type(x_storage))
+  x_storage_sub = x_storage - compute_zero_points(type(x), type(x_storage))
   x_expressed_sub = convert(x_storage_sub, expressed_type(x))
-  return x_expressed_sub * get_scales(type(x), type(x_expressed_sub))
+  return x_expressed_sub * compute_scales(type(x), type(x_expressed_sub))
 ```
 
 * `quantize` is defined on floating-point tensor types and turns them into
@@ -6367,9 +6367,9 @@ using the zero point and scale associated with the quantized element type.
 ```python
 def quantize(x: Value, type: Type) -> Value:
   assert is_float(x) and is_quantized(type)
-  x_expressed_rounded = round_nearest_even(x / get_scales(type, type(x)))
+  x_expressed_rounded = round_nearest_even(x / compute_scales(type, type(x)))
   x_storage_rounded = convert(x_expressed_rounded, storage_type(type))
-  x_storage_add = x_storage_rounded + get_zero_points(type, type(x_storage_rounded))
+  x_storage_add = x_storage_rounded + compute_zero_points(type, type(x_storage_rounded))
   x_storage = clamp(storage_min(type), x_storage_add, storage_max(type))
   return bitcast_convert(x_storage, type)
 ```
