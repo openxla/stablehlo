@@ -156,25 +156,30 @@ Tensor makeSplat(ShapedType type, const Element &initValue) {
   return result;
 }
 
-SmallVector<Tensor> split(const Tensor &input, int64_t groupSize,
-                          Axis splitDimension, MLIRContext *context) {
-  Sizes splitInputShape(input.getShape());
-  splitInputShape[splitDimension] /= groupSize;
+SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
+                          MLIRContext *context) {
+  Sizes resultShape(x.getShape());
+  if (resultShape[axis] % numResults != 0)
+    report_fatal_error(
+        invalidArgument("input dimension at axis (%d) should be divisible "
+                        "by numResults (%d), but got: %d",
+                        axis, numResults, resultShape[axis]));
 
-  SmallVector<Tensor> splitResults;
-  for (auto idx = 0; idx < groupSize; ++idx) {
+  resultShape[axis] /= numResults;
+
+  SmallVector<Tensor> results;
+  for (auto i = 0; i < numResults; ++i) {
     SmallVector<Tensor> inputStartIndices(
-        input.getRank(),
-        makeScalar(convert(IntegerType::get(context, 64), 0.0)));
-    inputStartIndices[splitDimension] = makeScalar(convert(
-        IntegerType::get(context, 64), idx * splitInputShape[splitDimension]));
+        x.getRank(), makeScalar(convert(IntegerType::get(context, 64), 0.0)));
+    inputStartIndices[axis] = makeScalar(
+        convert(IntegerType::get(context, 64), i * resultShape[axis]));
 
-    auto resultTensor = evalDynamicSliceOp(
-        input, inputStartIndices, splitInputShape,
-        RankedTensorType::get(splitInputShape, input.getElementType()));
-    splitResults.push_back(resultTensor);
+    auto result = evalDynamicSliceOp(
+        x, inputStartIndices, resultShape,
+        RankedTensorType::get(resultShape, x.getElementType()));
+    results.push_back(result);
   }
-  return splitResults;
+  return results;
 }
 
 }  // namespace

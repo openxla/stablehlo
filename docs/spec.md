@@ -888,7 +888,7 @@ Afterwards, within each `process_group`:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
 * (C7) `0 <= replica_groups < size(replica_groups)`.
-* (C8) `num_elements(replica_groups) / shape(replica_groups)[0] = split_count`.
+* (C8) `dim(replica_groups, 1) = split_count`.
 * (C9) `type(result) = type(operand)` except:
   * `dim(result, split_dimension) =
     dim(operand, split_dimension) / split_count`.
