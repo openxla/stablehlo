@@ -4142,17 +4142,17 @@ Afterwards, within each `process_group`:
 
 #### Constraints
 
-* (C1) `0 <= scatter_dimension < rank(operand)`.
-* (C2) `is_unique(replica_groups)`.
-* (C3) `size(replica_groups)` is defined as:
+* (C1) `dim(operand, scatter_dimension) % dim(process_groups, 1) = 0`.
+* (C2) `0 <= scatter_dimension < rank(operand)`.
+* (C3) `is_unique(replica_groups)`.
+* (C4) `size(replica_groups)` is defined as:
   * `num_replicas` if `cross_replica` is used.
   * `num_replicas` if `cross_replica_and_partition` is used.
   * `num_processes` if `flattened_ids` is used.
-* (C4) `0 <= replica_groups < size(replica_groups)`.
-* (C5) If `use_global_device_ids = true`, then `channel_id > 0`.
-* (C6) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
+* (C5) `0 <= replica_groups < size(replica_groups)`.
+* (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
+* (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
        `E = element_type(operand)`.
-* (C7) `0 < dim(result, scatter_dimension)`.
 * (C8) `type(result) = type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.

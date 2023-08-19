@@ -142,6 +142,21 @@ void failOnDecomposableOp(Operation &op) {
       op.getName().getStringRef().str().c_str()));
 }
 
+SmallVector<SmallVector<uint32_t>> getReplicaGroups(
+    DenseIntElementsAttr replicaGroupsAttr) {
+  auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+  SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+  auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+  for (auto &replicaGroup : replicaGroups) {
+    for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt) {
+      auto replicaId = *replicaGroupsIt;
+      if (replicaId == -1) continue;
+      replicaGroup.push_back(replicaId);
+    }
+  }
+  return replicaGroups;
+}
+
 Tensor makeScalar(const Element &initValue) {
   Tensor result(RankedTensorType::get({}, initValue.getType()));
   result.set({}, initValue);
@@ -232,18 +247,7 @@ SmallVector<InterpreterValue> eval(
       scope.add(allGatherOp.getResult(), result);
     } else if (auto allReduceOp = dyn_cast<AllReduceOp>(op)) {
       auto operand = scope.findTensor(allReduceOp.getOperand());
-
-      auto replicaGroupsAttr = allReduceOp.getReplicaGroups();
-      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-      for (auto &replicaGroup : replicaGroups) {
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt) {
-          auto replicaId = *replicaGroupsIt;
-          if (replicaId == -1) continue;
-          replicaGroup.push_back(replicaId);
-        }
-      }
+      auto replicaGroups = getReplicaGroups(allReduceOp.getReplicaGroups());
 
       ChannelId channelId = 0;
       if (auto channelHandle = allReduceOp.getChannelHandleAttr())
@@ -567,13 +571,7 @@ SmallVector<InterpreterValue> eval(
     } else if (auto reduceScatterOp = dyn_cast<ReduceScatterOp>(op)) {
       auto operand = scope.findTensor(reduceScatterOp.getOperand());
       int64_t scatterDimension = reduceScatterOp.getScatterDimension();
-      auto replicaGroupsAttr = reduceScatterOp.getReplicaGroups();
-      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
-      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
-      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
-      for (auto &replicaGroup : replicaGroups)
-        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
-          replicaGroup.push_back(*replicaGroupsIt);
+      auto replicaGroups = getReplicaGroups(reduceScatterOp.getReplicaGroups());
 
       ChannelId channelId = 0;
       if (auto channelHandle = reduceScatterOp.getChannelHandleAttr())
