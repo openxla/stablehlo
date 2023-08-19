@@ -1366,7 +1366,7 @@ def StableHLO_AllReduceOp : StableHLO_Op<"all_reduce",
 }
 
 def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
-    [SameOperandsAndResultElementType]> {
+    [SameOperandsAndResultElementType /*reduce_scatter_c8*/]> {
   let summary = "ReduceScatter operation";
   let description = [{
      Within each process group in the process grid, performs reduction, using
@@ -1380,27 +1380,25 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
     Example:
     ```mlir
     %result = "stablehlo.reduce_scatter"(%operand) ({
-      ^bb0(%arg0: tensor<f32>, %arg1: tensor<f32>):
-      %0 = stablehlo.add %arg0, %arg1 : tensor<f32>
-      stablehlo.return %0 : tensor<f32>
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+      %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+      stablehlo.return %0 : tensor<i64>
     }) {
       scatter_dimension = 1 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
-      // channel_id = 0
       channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
-      // use_global_device_ids = false
-    } : (tensor<2x4xf32>) -> tensor<2x2xf32>
+    } : (tensor<2x4xi64>) -> tensor<2x2xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64Attr:$scatter_dimension,
-    I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle,
-    UnitAttr:$use_global_device_ids
+    HLO_Tensor:$operand, /*reduce_scatter_i1*/
+    I64Attr:$scatter_dimension, /*reduce_scatter_i2*/
+    I64ElementsAttr:$replica_groups, /*reduce_scatter_i3*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle, /*reduce_scatter_i4*/
+    UnitAttr:$use_global_device_ids /*reduce_scatter_i5*/
   );
-  let regions = (region SizedRegion<1>:$computation);
+  let regions = (region SizedRegion<1>:$computation /*reduce_scatter_i6*/);
   let results = (outs HLO_Tensor);
   let hasVerifier = 1;
 }

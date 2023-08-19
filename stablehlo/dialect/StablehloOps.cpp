@@ -138,9 +138,13 @@ void CollectivePermuteOp::build(OpBuilder& odsBuilder, OperationState& odsState,
 //===----------------------------------------------------------------------===//
 
 LogicalResult ReduceScatterOp::verify() {
+  int64_t channelId = 0;
+  if (auto channelHandleAttr = getChannelHandleAttr())
+    channelId = channelHandleAttr.getHandle();
+
   return hlo::verifyReduceScatterOp(
       getLoc(), getOperand(), getScatterDimension(), getReplicaGroups(),
-      getUseGlobalDeviceIds(), getComputation(), getResult());
+      channelId, getUseGlobalDeviceIds(), getComputation(), getResult());
 }
 
 //===----------------------------------------------------------------------===//
