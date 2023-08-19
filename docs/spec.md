@@ -742,18 +742,20 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [[1.0, 2.0], [3.0, 4.0]]
-// %operand@(1, 0): [[5.0, 6.0], [7.0, 8.0]]
+// %operand@(0, 0): [[1, 2], [3, 4]]
+// %operand@(1, 0): [[5, 6], [7, 8]]
 %result = "stablehlo.all_gather"(%operand) {
   all_gather_dim = 1 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
   // channel_id = 0
   channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
   // use_global_device_ids = false
-} : (tensor<2x2xf32>) -> tensor<2x4xf32>
-// %result@(0, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
-// %result@(1, 0): [[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]
+} : (tensor<2x2xi64>) -> tensor<2x4xi64>
+// %result@(0, 0): [[1, 2, 5, 6], [3, 4, 7, 8]]
+// %result@(1, 0): [[1, 2, 5, 6], [3, 4, 7, 8]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_all_gather.mlir)
 
 ### all_reduce
 

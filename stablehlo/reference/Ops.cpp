@@ -185,6 +185,25 @@ SmallVector<InterpreterValue> eval(
       auto inputs = scope.findTokens(afterAllOp.getInputs());
       auto result = evalAfterAllOp(inputs, afterAllOp->getContext());
       scope.add(afterAllOp.getResult(), result);
+    } else if (auto allGatherOp = dyn_cast<AllGatherOp>(op)) {
+      auto operand = scope.findTensor(allGatherOp.getOperand());
+
+      auto replicaGroupsAttr = allGatherOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups)
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
+          replicaGroup.push_back(*replicaGroupsIt);
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = allGatherOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalAllGatherOp(
+          operand, allGatherOp.getAllGatherDim(), replicaGroups, channelId,
+          allGatherOp.getUseGlobalDeviceIds(), process, allGatherOp.getType());
+      scope.add(allGatherOp.getResult(), result);
     } else if (auto allReduceOp = dyn_cast<AllReduceOp>(op)) {
       auto operand = scope.findTensor(allReduceOp.getOperand());
 
@@ -743,6 +762,34 @@ Tensor evalAddOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {
 
 Token evalAfterAllOp(ArrayRef<Token> inputs, MLIRContext *context) {
   return Token(context);
+}
+
+Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
+                       SmallVector<SmallVector<uint32_t>> replicaGroups,
+                       ChannelId channelId, bool useGlobalDeviceIds,
+                       Process *process, ShapedType resultType) {
+  if (!process)
+    llvm::report_fatal_error(
+        "all_gather is only supported when run via interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0 && !useGlobalDeviceIds)
+    processGroups = process->crossReplicaAndPartition(replicaGroups);
+  if (channelId > 0 && useGlobalDeviceIds)
+    processGroups = process->flattenedIds(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup)
+    llvm::report_fatal_error(invalidArgument(
+        "Failed to find process group with process_id: (%d, %d)",
+        process->getId().replicaId, process->getId().partitionId));
+
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+
+  return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }
 
 Tensor evalAllReduceOp(const Tensor &operand,
