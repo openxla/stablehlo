@@ -42,6 +42,11 @@ Tensor evalAllReduceOp(const Tensor &operand,
                        ChannelId channelId, bool useGlobalDeviceIds,
                        Region &computation, Process *process, Scope &scope,
                        ShapedType resultType);
+Tensor evalAllToAllOp(const Tensor &operand, Axis splitDimension,
+                      Axis concatDimension, int64_t splitCount,
+                      SmallVector<SmallVector<uint32_t>> replicaGroups,
+                      ChannelId channelId, Process *process,
+                      ShapedType resultType);
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalAtan2Op(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 Tensor evalBitcastConvertOp(const Tensor &operand, ShapedType resultType);

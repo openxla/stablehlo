@@ -399,8 +399,8 @@ func.func @reduce_scatter_dynamic(%data: tensor<?x?xf32>) -> tensor<?x?xf32> {
 
 // -----
 
-// CHECK-LABEL: func @alltoall
-func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+// CHECK-LABEL: func @all_to_all
+func.func @all_to_all(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -413,8 +413,8 @@ func.func @alltoall(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
 
 // -----
 
-// CHECK-LABEL: func @alltoall_unranked_input
-func.func @alltoall_unranked_input(%data: tensor<*xf32>) -> tensor<*xf32> {
+// CHECK-LABEL: func @all_to_all_unranked_input
+func.func @all_to_all_unranked_input(%data: tensor<*xf32>) -> tensor<*xf32> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -426,8 +426,8 @@ func.func @alltoall_unranked_input(%data: tensor<*xf32>) -> tensor<*xf32> {
 
 // -----
 
-// CHECK-LABEL: func @alltoall_dynamic_split_dim
-func.func @alltoall_dynamic_split_dim(%data: tensor<4x?xf32>) -> tensor<20x?xf32> {
+// CHECK-LABEL: func @all_to_all_dynamic_split_dim
+func.func @all_to_all_dynamic_split_dim(%data: tensor<4x?xf32>) -> tensor<20x?xf32> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -439,8 +439,8 @@ func.func @alltoall_dynamic_split_dim(%data: tensor<4x?xf32>) -> tensor<20x?xf32
 
 // -----
 
-// CHECK-LABEL: func @alltoall_dynamic_concat_dim
-func.func @alltoall_dynamic_concat_dim(%data: tensor<?x16xf32>) -> tensor<?x4xf32> {
+// CHECK-LABEL: func @all_to_all_dynamic_concat_dim
+func.func @all_to_all_dynamic_concat_dim(%data: tensor<?x16xf32>) -> tensor<?x4xf32> {
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
@@ -452,7 +452,7 @@ func.func @alltoall_dynamic_concat_dim(%data: tensor<?x16xf32>) -> tensor<?x4xf3
 
 // -----
 
-func.func @alltoall_negative_split_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c1(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{AllToAll split_dimension cannot be negative}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -466,7 +466,7 @@ func.func @alltoall_negative_split_dimension(%data: tensor<4x16xf32>) -> tensor<
 
 // -----
 
-func.func @alltoall_out_bound_split_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c1(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{AllToAll split_dimension 2 is out-of-bounds for input rank 2}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -480,49 +480,7 @@ func.func @alltoall_out_bound_split_dimension(%data: tensor<4x16xf32>) -> tensor
 
 // -----
 
-func.func @alltoall_negative_concat_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll concat_dimension cannot be negative}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = 1 : i64,
-    concat_dimension = -1 : i64,
-    split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @alltoall_out_bound_concat_dimension(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll concat_dimension 2 is out-of-bounds for input rank 2}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = 1 : i64,
-    concat_dimension = 2 : i64,
-    split_count = 4 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @alltoall_invalid_split_count(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{AllToAll split_count must be > 0}}
-  %0 = "stablehlo.all_to_all"(%data) {
-    split_dimension = 1 : i64,
-    concat_dimension = 0 : i64,
-    split_count = 0 : i64,
-    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
-  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
-  func.return %0 : tensor<16x4xf32>
-}
-
-// -----
-
-func.func @alltoall_invalid_split_dim_size(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c2(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{split dimension has size 16, expected to be a multiple of split_count 5}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -536,35 +494,49 @@ func.func @alltoall_invalid_split_dim_size(%data: tensor<4x16xf32>) -> tensor<16
 
 // -----
 
-func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c3(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
+  // expected-error@+1 {{AllToAll concat_dimension cannot be negative}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
-    concat_dimension = 0 : i64,
+    concat_dimension = -1 : i64,
     split_count = 4 : i64,
-    replica_groups = dense<[[[0], [1], [2], [3]]]> : tensor<1x4x1xi64>
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }
 
 // -----
 
-func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c3(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{replica id #1 not seen in replica groups}}
+  // expected-error@+1 {{AllToAll concat_dimension 2 is out-of-bounds for input rank 2}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
-    concat_dimension = 0 : i64,
+    concat_dimension = 2 : i64,
     split_count = 4 : i64,
-    replica_groups = dense<[[-5, -4, -3, 0]]> : tensor<1x4xi64>
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }
 
 // -----
 
-func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c4(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{AllToAll split_count must be > 0}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 0 : i64,
+    replica_groups = dense<[[0, 1, 2, 3]]> : tensor<1x4xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @all_to_all_c5(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{replica id #2 seen more than once}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -578,21 +550,21 @@ func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x
 
 // -----
 
-func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c7(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{replica id #4 not seen in replica groups}}
+  // expected-error@+1 {{replica id #1 not seen in replica groups}}
   %0 = "stablehlo.all_to_all"(%data) {
     split_dimension = 1 : i64,
     concat_dimension = 0 : i64,
     split_count = 4 : i64,
-    replica_groups = dense<[[0, 2, 6, 8], [1, 3, 5, 7]]> : tensor<2x4xi64>
+    replica_groups = dense<[[-5, -4, -3, 0]]> : tensor<1x4xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }
 
 // -----
 
-func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+func.func @all_to_all_c8(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{group size of replica_groups must be 4}}
   %0 = "stablehlo.all_to_all"(%data) {
@@ -600,6 +572,20 @@ func.func @alltoall_invalid_replica_group(%data: tensor<4x16xf32>) -> tensor<16x
     concat_dimension = 0 : i64,
     split_count = 4 : i64,
     replica_groups = dense<[[0, 2, 4], [1, 3, 5]]> : tensor<2x3xi64>
+  } : (tensor<4x16xf32>) -> tensor<16x4xf32>
+  func.return %0 : tensor<16x4xf32>
+}
+
+// -----
+
+func.func @all_to_all_i5(%data: tensor<4x16xf32>) -> tensor<16x4xf32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{replica groups should be a rank 2 tensor}}
+  %0 = "stablehlo.all_to_all"(%data) {
+    split_dimension = 1 : i64,
+    concat_dimension = 0 : i64,
+    split_count = 4 : i64,
+    replica_groups = dense<[[[0], [1], [2], [3]]]> : tensor<1x4x1xi64>
   } : (tensor<4x16xf32>) -> tensor<16x4xf32>
   func.return %0 : tensor<16x4xf32>
 }

@@ -156,6 +156,32 @@ Tensor makeSplat(ShapedType type, const Element &initValue) {
   return result;
 }
 
+SmallVector<Tensor> split(const Tensor &x, int64_t numResults, Axis axis,
+                          MLIRContext *context) {
+  Sizes resultShape(x.getShape());
+  if (resultShape[axis] % numResults != 0)
+    report_fatal_error(
+        invalidArgument("input dimension at axis (%d) should be divisible "
+                        "by numResults (%d), but got: %d",
+                        axis, numResults, resultShape[axis]));
+
+  resultShape[axis] /= numResults;
+
+  SmallVector<Tensor> results;
+  for (auto i = 0; i < numResults; ++i) {
+    SmallVector<Tensor> inputStartIndices(
+        x.getRank(), makeScalar(convert(IntegerType::get(context, 64), 0.0)));
+    inputStartIndices[axis] = makeScalar(
+        convert(IntegerType::get(context, 64), i * resultShape[axis]));
+
+    auto result = evalDynamicSliceOp(
+        x, inputStartIndices, resultShape,
+        RankedTensorType::get(resultShape, x.getElementType()));
+    results.push_back(result);
+  }
+  return results;
+}
+
 }  // namespace
 
 SmallVector<InterpreterValue> eval(
@@ -228,6 +254,25 @@ SmallVector<InterpreterValue> eval(
                                     allReduceOp.getComputation(), process,
                                     scope, allReduceOp.getType());
       scope.add(allReduceOp.getResult(), result);
+    } else if (auto allToAllOp = dyn_cast<AllToAllOp>(op)) {
+      auto operand = scope.findTensor(allToAllOp.getOperand());
+      auto replicaGroupsAttr = allToAllOp.getReplicaGroups();
+      auto replicaGroupsShape = replicaGroupsAttr.getShapedType().getShape();
+      SmallVector<SmallVector<uint32_t>> replicaGroups(replicaGroupsShape[0]);
+      auto replicaGroupsIt = replicaGroupsAttr.getValues<int64_t>().begin();
+      for (auto &replicaGroup : replicaGroups)
+        for (auto i = 0; i < replicaGroupsShape[1]; ++i, ++replicaGroupsIt)
+          replicaGroup.push_back(*replicaGroupsIt);
+
+      ChannelId channelId = 0;
+      if (auto channelHandle = allToAllOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+
+      auto result = evalAllToAllOp(operand, allToAllOp.getSplitDimension(),
+                                   allToAllOp.getConcatDimension(),
+                                   allToAllOp.getSplitCount(), replicaGroups,
+                                   channelId, process, allToAllOp.getType());
+      scope.add(allToAllOp.getResult(), result);
     } else if (auto andOp = dyn_cast<AndOp>(op)) {
       auto lhs = scope.findTensor(andOp.getLhs());
       auto rhs = scope.findTensor(andOp.getRhs());
@@ -835,6 +880,39 @@ Tensor evalAllReduceOp(const Tensor &operand,
   }
 
   return result;
+}
+
+Tensor evalAllToAllOp(const Tensor &operand, Axis splitDimension,
+                      Axis concatDimension, int64_t splitCount,
+                      SmallVector<SmallVector<uint32_t>> replicaGroups,
+                      ChannelId channelId, Process *process,
+                      ShapedType resultType) {
+  if (!process)
+    llvm::report_fatal_error(
+        "all_to_all is only supported when run via interpreter.run_parallel");
+
+  ProcessGroups processGroups;
+  if (channelId <= 0) processGroups = process->crossReplica(replicaGroups);
+  if (channelId > 0) processGroups = process->crossPartition(replicaGroups);
+
+  auto processGroup = processGroups.findGroup(process->getId());
+  if (!processGroup)
+    llvm::report_fatal_error(invalidArgument(
+        "Failed to find process group with process_id: (%d, %d)",
+        process->getId().replicaId, process->getId().partitionId));
+
+  auto groupOperands =
+      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+
+  SmallVector<Tensor> scatteredParts;
+  for (auto groupOperand : groupOperands) {
+    auto splitParts = split(groupOperand, splitCount, splitDimension,
+                            operand.getType().getContext());
+    for (auto [i, processId] : llvm::enumerate(*processGroup))
+      if (processId == process->getId())
+        scatteredParts.push_back(splitParts[i]);
+  }
+  return evalConcatenateOp(scatteredParts, concatDimension, resultType);
 }
 
 Tensor evalAndOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType) {

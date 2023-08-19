@@ -1406,7 +1406,8 @@ def StableHLO_ReduceScatterOp : StableHLO_Op<"reduce_scatter",
 }
 
 def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
-    [SameOperandsAndResultElementType, InferTensorType]> {
+    [SameOperandsAndResultElementType /*all_to_all_c9*/,
+     InferTensorType /*all_to_all_c9*/]> {
   let summary = "AllToAll operation";
   let description = [{
     Within each process group in the process grid, splits the values of the
@@ -1424,17 +1425,17 @@ def StableHLO_AllToAllOp : StableHLO_Op<"all_to_all",
       concat_dimension = 0 : i64,
       split_count = 2 : i64,
       replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-    } : (tensor<2x4xf32>) -> tensor<4x2xf32>
+    } : (tensor<2x4xi64>) -> tensor<4x2xi64>
     ```
   }];
 
   let arguments = (ins
-    HLO_Tensor:$operand,
-    I64Attr:$split_dimension,
-    I64Attr:$concat_dimension,
-    I64Attr:$split_count,
-    I64ElementsAttr:$replica_groups,
-    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle
+    HLO_Tensor:$operand, /*all_to_all_i1*/
+    I64Attr:$split_dimension, /*all_to_all_i2*/
+    I64Attr:$concat_dimension, /*all_to_all_i3*/
+    I64Attr:$split_count, /*all_to_all_i4*/
+    I64ElementsAttr:$replica_groups, /*all_to_all_i5*/
+    OptionalAttr<StableHLO_ChannelHandle>:$channel_handle /*all_to_all_i6*/
   );
   let results = (outs HLO_Tensor);
 

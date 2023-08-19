@@ -862,20 +862,20 @@ Afterwards, within each `process_group`:
 
 #### Inputs
 
-| Label | Name               | Type                                         | Constraints      |
-|-------|--------------------|----------------------------------------------|------------------|
-| (I1)  | `operand`          | tensor or per-tensor quantized tensor        | (C1)             |
-| (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C8) |
-| (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C8)       |
-| (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8) |
-| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C7)             |
-| (I6)  | `channel_id`       | constant of type `si64`                      |                  |
+| Label | Name               | Type                                         | Constraints            |
+|-------|--------------------|----------------------------------------------|------------------------|
+| (I1)  | `operand`          | tensor or per-tensor quantized tensor        | (C1-C3), (C9)          |
+| (I2)  | `split_dimension`  | constant of type `si64`                      | (C1), (C2), (C9)       |
+| (I3)  | `concat_dimension` | constant of type `si64`                      | (C3), (C9)             |
+| (I4)  | `split_count`      | constant of type `si64`                      | (C2), (C4), (C8), (C9) |
+| (I5)  | `replica_groups`   | 2-dimensional tensor constant of type `si64` | (C5-C8)                |
+| (I6)  | `channel_id`       | constant of type `si64`                      |                        |
 
 #### Outputs
 
 | Name     | Type                                  | Constraints |
 |----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C8)        |
+| `result` | tensor or per-tensor quantized tensor | (C9)        |
 
 #### Constraints
 
@@ -888,7 +888,8 @@ Afterwards, within each `process_group`:
   * `num_replicas` if `cross_replica` is used.
   * `num_partitions` if `cross_partition` is used.
 * (C7) `0 <= replica_groups < size(replica_groups)`.
-* (C8) `type(result) = type(operand)` except:
+* (C8) `dim(replica_groups, 1) = split_count`.
+* (C9) `type(result) = type(operand)` except:
   * `dim(result, split_dimension) =
     dim(operand, split_dimension) / split_count`.
   * `dim(result, concat_dimension) =
@@ -899,33 +900,27 @@ Afterwards, within each `process_group`:
 ```mlir
 // num_replicas: 2
 // num_partitions: 1
-// %operand@(0, 0): [
-//                   [1.0, 2.0, 3.0, 4.0],
-//                   [5.0, 6.0, 7.0, 8.0]
-//                  ]
-// %operand@(1, 0): [
-//                   [9.0, 10.0, 11.0, 12.0],
-//                   [13.0, 14.0, 15.0, 16.0]
-//                  ]
+// %operand@(0, 0): [[1, 2, 3, 4],
+//                   [5, 6, 7, 8]]
+// %operand@(1, 0): [[9, 10, 11, 12],
+//                   [13, 14, 15, 16]]
 %result = "stablehlo.all_to_all"(%operand) {
   split_dimension = 1 : i64,
   concat_dimension = 0 : i64,
   split_count = 2 : i64,
   replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>
-} : (tensor<2x4xf32>) -> tensor<4x2xf32>
-// %result@(0, 0): [
-//                  [1.0, 2.0],
-//                  [5.0, 6.0],
-//                  [9.0, 10.0],
-//                  [13.0, 14.0]
-//                 ]
-// %result@(1, 0): [
-//                  [3.0, 4.0],
-//                  [7.0, 8.0],
-//                  [11.0, 12.0],
-//                  [15.0, 16.0]
-//                 ]
+} : (tensor<2x4xi64>) -> tensor<4x2xi64>
+// %result@(0, 0): [[1, 2],
+//                  [5, 6],
+//                  [9, 10],
+//                  [13, 14]]
+// %result@(1, 0): [[3, 4],
+//                  [7, 8],
+//                  [11, 12],
+//                  [15, 16]]
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_all_to_all.mlir)
 
 ### and
 
