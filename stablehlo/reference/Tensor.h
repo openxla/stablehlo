@@ -110,6 +110,9 @@ class Tensor {
   /// Provides read access to the tensor element indexed at 'index'.
   Element get(const Index &index) const;
 
+  /// Provides read access to underlying tensor data buffer.
+  const char *getData() const { return impl_->getData().data(); }
+
   /// Provides write access to the tensor element indexed at 'index'.
   ///
   /// \param index The multi-dimensional index to write to.

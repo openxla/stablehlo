@@ -193,9 +193,10 @@ Tensor evalTanhOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);
 Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
-SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
-                                          Region &cond, Region &body,
-                                          Process *process, Scope &scope);
+SmallVector<InterpreterValue> evalWhileOp(
+    SmallVector<InterpreterValue> operand, Region &cond, Region &body,
+    Process *process, Scope &scope,
+    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback);
 Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 
 /// Evaluates an mlir::Region `region` using the runtime values `args`

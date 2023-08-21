@@ -817,7 +817,7 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.find(whileOp.getOperand());
       auto &cond = whileOp.getCond();
       auto &body = whileOp.getBody();
-      auto results = evalWhileOp(operand, cond, body, process, scope);
+      auto results = evalWhileOp(operand, cond, body, process, scope, fallback);
       scope.add(whileOp.getResults(), results);
     } else if (auto xorOp = dyn_cast<XorOp>(op)) {
       auto lhs = scope.findTensor(xorOp.getLhs());
@@ -2030,16 +2030,17 @@ Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType) {
   return Tuple(val, resultType);
 }
 
-SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
-                                          Region &cond, Region &body,
-                                          Process *process, Scope &scope) {
+SmallVector<InterpreterValue> evalWhileOp(
+    SmallVector<InterpreterValue> operand, Region &cond, Region &body,
+    Process *process, Scope &scope,
+    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback) {
   SmallVector<InterpreterValue> results(operand);
 
   auto condResults = eval(cond, operand, process, &scope);
 
   while (condResults[0].getTensor().get({}).getBooleanValue()) {
-    results = eval(body, results, process, &scope);
-    condResults = eval(cond, results, process, &scope);
+    results = eval(body, results, process, &scope, fallback);
+    condResults = eval(cond, results, process, &scope, fallback);
   }
 
   return results;

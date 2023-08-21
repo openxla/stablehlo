@@ -25,7 +25,6 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 #include "stablehlo/reference/Tensor.h"
-#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -42,6 +41,8 @@ llvm::Error evalExpectAlmostEqConstOp(const Tensor &lhs, ElementsAttr value);
 llvm::Error evalExpectAlmostEqOp(const Tensor &lhs, const Tensor &rhs);
 llvm::Error evalExpectEqConstOp(const Tensor &lhs, ElementsAttr value);
 llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs);
+llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
+                                     StringRef probeDir, uint32_t iteration);
 
 }  // namespace check
 }  // namespace stablehlo

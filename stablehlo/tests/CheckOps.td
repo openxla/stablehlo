@@ -118,4 +118,30 @@ def CHECK_ExpectEqOp : Op<CHECK_Dialect, "expect_eq", [SameTypeOperands]> {
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
 }
 
+def CHECK_ExpectSerializedEqOp : Op<CHECK_Dialect, "expect_serialized_eq", []> {
+  let summary = [{Checks value of serialized tensor value.}];
+  let description = [{
+    Verifies that the value of the serialized tensor `probe_id` matches the
+    optionally specified input tensor at iteration `iteration`, using previously
+    serialized filepaths in `index.csv`.
+
+    ```mlir
+    check.expect_serialized_eq %arg0,
+      probe_id = "probe0",
+      iter = 0 : tensor<2xi32>
+    ```
+  }];
+
+  let arguments = (ins
+      HLO_Tensor:$expected,
+      StrAttr:$probe_id,
+      DefaultValuedOptionalAttr<UI32Attr, "0">:$iteration
+  );
+
+  let assemblyFormat = [{
+    $expected `,` `probe_id` `=` $probe_id (`,` `iter` `=` $iteration^)?
+    attr-dict `:` type($expected)
+  }];
+}
+
 #endif  // STABLEHLO_DIALECT_CHECK_OPS
