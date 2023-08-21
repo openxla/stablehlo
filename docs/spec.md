@@ -1364,16 +1364,16 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Inputs
 
-| Label | Name                   | Type                                         | Constraints   |
-|-------|------------------------|----------------------------------------------|---------------|
-| (I1)  | `operand`              | tensor or per-tensor quantized tensor        | (C1-C2), (C5) |
-| (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5)       |
+| Label | Name                   | Type                                         | Constraints      |
+|-------|------------------------|----------------------------------------------|------------------|
+| (I1)  | `operand`              | tensor or quantized tensor                   | (C1-C2), (C5-C7) |
+| (I2)  | `broadcast_dimensions` | 1-dimensional tensor constant of type `si64` | (C2-C5), (C7)    |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints      |
-|----------|---------------------------------------|------------------|
-| `result` | tensor or per-tensor quantized tensor | (C1), (C3), (C5) |
+| Name     | Type                       | Constraints         |
+|----------|----------------------------|---------------------|
+| `result` | tensor or quantized tensor | (C1), (C3), (C5-C7) |
 
 #### Constraints
 
@@ -1384,6 +1384,12 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 * (C5) For all `d` in `axes(operand)`:
   * `dim(operand, d) = 1` or
   * `dim(operand, d) = dim(result, broadcast_dimensions[d])`.
+* (C6) `is_per_tensor_quantized(operand) = is_per_tensor_quantized(result)`.
+* (C7) If `is_per_axis_quantized(result)`:
+  * `quantized_dimension(result) = broadcast_dimensions[quantized_dimension(operand)]`.
+  * `If dim(operand, quantized_dimension(operand)) = 1, then
+    scales(result)[i] = scales(operand)[0] for i in
+    range(dim(result, quantized_dimension(result)))`.
 
 #### Examples
 
@@ -4361,20 +4367,34 @@ ordering of `index_space(result)` and `index_space(operand)`.
 
 #### Inputs
 
-| Label | Name      | Type                                  | Constraints |
-|-------|-----------|---------------------------------------|-------------|
-| (I1)  | `operand` | tensor or per-tensor quantized tensor | (C1-C2)     |
+| Label | Name      | Type                       | Constraints |
+|-------|-----------|----------------------------|-------------|
+| (I1)  | `operand` | tensor or quantized tensor | (C1-C4)     |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C1-C2)     |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1-C4)     |
 
 #### Constraints
 
 * (C1) `element_type(operand) = element_type(result)`.
 * (C2) `size(operand) = size(result)`.
+* (C3) `is_per_tensor_quantized(operand) = is_per_tensor_quantized(result)`.
+* (C4) If `is_per_axis_quantized(operand)`:
+  * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(operand, [0, 1, ..., quantization_dimension(result) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
+  * `dim(operand, quantization_dimension(operand)) =
+    dim(result, quantization_dimension(result))`.
+  * `reduce(dims(operand,
+    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y) =
+    reduce(dims(operand,
+    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
 
 #### Examples
 
@@ -5471,22 +5491,25 @@ where `result_index[d] = operand_index[permutation[d]]`.
 
 #### Inputs
 
-| Label | Name          | Type                                         | Constraints |
-|-------|---------------|----------------------------------------------|-------------|
-| (I1)  | `operand`     | tensor or per-tensor quantized tensor        | (C1-C3)     |
-| (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2), (C3)  |
+| Label | Name          | Type                                         | Constraints   |
+|-------|---------------|----------------------------------------------|---------------|
+| (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C5)       |
+| (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2-C3), (C5) |
 
 #### Outputs
 
-| Name     | Type                                  | Constraints |
-|----------|---------------------------------------|-------------|
-| `result` | tensor or per-tensor quantized tensor | (C1), (C3)  |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C1), (C3)  |
 
 #### Constraints
 
 * (C1) `element_type(operand) = element_type(result)`.
 * (C2) `permutation` is a permutation of `range(rank(operand))`.
 * (C3) `shape(result) = dim(operand, permutation...)`.
+* (C4 `is_per_tensor_quantized(operand) = is_per_tensor_quantized(result)`.
+* (C5) If `is_per_axis_quantized(result)`, then `quantized_dimension(result) =
+       permutation(quantized_dimension(operand))`.
 
 #### Examples
 
@@ -6272,6 +6295,9 @@ If `x` is not a tensor or `dim(x, axis) % num_results != 0`, returns `None`.
 
 * `dim(x: Value | Placeholder | Type, axis: Value) -> Value` is a shortcut for
 `shape(x)[axis]`.
+
+* `dims(x: Value | Placeholder | Type, axes: List) -> List` is a shortcut for
+`list(map(lambda axis: dim(x, axis), axes))`.
 
 * `index_space(x: Value | Placeholder | Type) -> Value` is defined on tensors
 and returns `size(x)` indices for the corresponding `TensorType` sorted in
