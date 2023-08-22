@@ -1387,8 +1387,9 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 * (C6) `is_per_tensor_quantized(operand) = is_per_tensor_quantized(result)`.
 * (C7) If `is_per_axis_quantized(result)`:
   * `quantized_dimension(result) = broadcast_dimensions[quantized_dimension(operand)]`.
-  * `If dim(operand, quantized_dimension(operand)) = 1, then
-    scales(result)[i] = scales(operand)[0] for i in
+  * If `dim(operand, quantized_dimension(operand)) = 1`, then
+    `scales(result)[i] = scales(operand)[0] and zero_points(result)[i] =
+    zero_points(operand)[0] for i in
     range(dim(result, quantized_dimension(result)))`.
 
 #### Examples
@@ -4385,15 +4386,15 @@ ordering of `index_space(result)` and `index_space(operand)`.
 * (C4) If `is_per_axis_quantized(operand)`:
   * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
     init_values=1, dimensions=[0], body=lambda x, y: x * y) =
-    reduce(dims(operand, [0, 1, ..., quantization_dimension(result) - 1]),
+    reduce(dims(result, [0, 1, ..., quantization_dimension(result) - 1]),
     init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
   * `dim(operand, quantization_dimension(operand)) =
     dim(result, quantization_dimension(result))`.
   * `reduce(dims(operand,
     [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
     init_values=1, dimensions=[0], body=lambda x, y: x * y) =
-    reduce(dims(operand,
-    [quantization_dimension(operand) + 1, ..., rank(operand) - 1]),
+    reduce(dims(result,
+    [quantization_dimension(result) + 1, ..., rank(result) - 1]),
     init_values=1, dimensions=[0], body=lambda x, y: x * y)`.
 
 #### Examples
@@ -5508,8 +5509,8 @@ where `result_index[d] = operand_index[permutation[d]]`.
 * (C2) `permutation` is a permutation of `range(rank(operand))`.
 * (C3) `shape(result) = dim(operand, permutation...)`.
 * (C4 `is_per_tensor_quantized(operand) = is_per_tensor_quantized(result)`.
-* (C5) If `is_per_axis_quantized(result)`, then `quantized_dimension(result) =
-       permutation(quantized_dimension(operand))`.
+* (C5) If `is_per_axis_quantized(result)`, then `quantized_dimension(operand) =
+       permutation(quantized_dimension(result))`.
 
 #### Examples
 
