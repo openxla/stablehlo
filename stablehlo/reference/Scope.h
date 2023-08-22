@@ -49,6 +49,10 @@ class Scope {
   /// evaluated runtime value (`runtimeValue`).
   void add(Value ssaValue, Token runtimeValue);
 
+  /// Add the mapping from SSA value (`ssaValue`), defined in a region, to its
+  /// evaluated runtime value (`runtimeValue`).
+  void add(Value ssaValue, Tuple runtimeValue);
+
   /// Add the mapping from SSA values (`ssaValues`), defined in a region, to its
   /// evaluated runtime values (`runtimeValues`).
   void add(ValueRange ssaValues, ArrayRef<InterpreterValue> runtimeValues);
@@ -84,6 +88,11 @@ class Scope {
 
   /// Find the runtime values mapped to SSA values `ssaValues`.
   SmallVector<Token> findTokens(ValueRange ssaValues) const;
+
+  /// Find the runtime value mapped to SSA value `ssaValue`. The search starts
+  /// with the current scope and then recursively continues over to the scope
+  /// defined by `parent_`.
+  Tuple findTuple(Value ssaValue) const;
 
  private:
   /// Internal store for mapping from SSA values to runtime `InterpreterValue`

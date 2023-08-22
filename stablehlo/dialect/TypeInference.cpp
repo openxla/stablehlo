@@ -2320,11 +2320,13 @@ LogicalResult inferGetTupleElementOp(
     SmallVectorImpl<Type>& inferredReturnTypes) {
   auto operandType = operand.getType().dyn_cast<TupleType>();
   if (!operandType) return failure();
+  // get_tuple_element_c1
   if (index < 0 || index >= static_cast<int64_t>(operandType.size()))
     return emitOptionalError(location, "index ", index,
                              " is out of bounds of operand with size ",
                              operandType.size());
 
+  // get_tuple_element_c2
   inferredReturnTypes.push_back(operandType.getType(index));
   return success();
 }
@@ -3006,6 +3008,7 @@ LogicalResult inferTriangularSolveOp(
 LogicalResult inferTupleOp(MLIRContext* context, std::optional<Location>,
                            ValueRange val,
                            SmallVectorImpl<Type>& inferredReturnTypes) {
+  // tuple_c1
   inferredReturnTypes.push_back(TupleType::get(context, val.getTypes()));
   return success();
 }

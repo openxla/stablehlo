@@ -664,6 +664,24 @@ func.func @scatter_bounds(%input_tensor: tensor<200x?x?xf32, #stablehlo.bounds<?
 
 // -----
 
+func.func @tuple_c1(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<f32>, tensor<f32>>'}}
+  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>>
+  func.return %0 : tuple<tensor<f32>, tensor<f32>, tensor<f32>>
+}
+
+// -----
+
+func.func @get_tuple_element_c2(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<i32> {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
+  %0 = "stablehlo.get_tuple_element"(%arg0) {index = 0 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<i32>
+  func.return %0 : tensor<i32>
+}
+
+// -----
+
 // CHECK-LABEL: func @get_dimension_size
 func.func @get_dimension_size(%arg0: tensor<4x2xf32>) -> tensor<index> {
   %0 = "stablehlo.get_dimension_size"(%arg0) {dimension = 1 : i64} : (tensor<4x2xf32>) -> tensor<i32>

@@ -44,6 +44,10 @@ void Scope::add(Value ssaValue, Token runtimeValue) {
   add(ssaValue, InterpreterValue(runtimeValue));
 }
 
+void Scope::add(Value ssaValue, Tuple runtimeValue) {
+  add(ssaValue, InterpreterValue(runtimeValue));
+}
+
 void Scope::add(ValueRange ssaValues,
                 ArrayRef<InterpreterValue> runtimeValues) {
   assert(ssaValues.size() == runtimeValues.size());
@@ -96,6 +100,10 @@ Token Scope::findToken(Value ssaValue) const {
 SmallVector<Token> Scope::findTokens(ValueRange ssaValues) const {
   return llvm::to_vector(llvm::map_range(
       ssaValues, [&](Value value) { return find(value).getToken(); }));
+}
+
+Tuple Scope::findTuple(Value ssaValue) const {
+  return find(ssaValue).getTuple();
 }
 
 }  // namespace stablehlo
