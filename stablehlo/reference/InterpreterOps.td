@@ -30,6 +30,8 @@ def Interpreter_Dialect : Dialect {
     Dialect to implement interpreter-specific functionality, outside of the
     StableHLO spec.
   }];
+
+  let usePropertiesForAttributes = 0;
 }
 
 def Interpreter_ArrayOfStrArrayAttr : TypedArrayAttrBase<StrArrayAttr,

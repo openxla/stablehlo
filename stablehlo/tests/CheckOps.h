@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_DIALECT_CHECKOPS_H_
 #define STABLEHLO_DIALECT_CHECKOPS_H_
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/Dialect/Quant/QuantTypes.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
