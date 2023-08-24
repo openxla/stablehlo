@@ -924,7 +924,7 @@ Tensor evalAllToAllOp(const Tensor &operand, Axis splitDimension,
       process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
 
   SmallVector<Tensor> scatteredParts;
-  for (auto groupOperand : groupOperands) {
+  for (const auto &groupOperand : groupOperands) {
     auto splitParts = split(groupOperand, splitCount, splitDimension,
                             operand.getType().getContext());
     for (auto [i, processId] : llvm::enumerate(*processGroup))
