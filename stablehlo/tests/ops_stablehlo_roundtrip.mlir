@@ -764,8 +764,8 @@ func.func @test_xor(%arg0: tensor<4xi1>, %arg1: tensor<4xi1>) -> tensor<4xi1> {
 
 // Attribute Tests:
 func.func @test_attr_frontend_attributes(%arg: tensor<3x4xf32>, %token: !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token> {
-  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_dtoh_0"}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
-  %1:2 = "stablehlo.recv"(%0) {channel_handle = #stablehlo.channel_handle<handle = 2, type = 3>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_original_type = "f32", _xla_host_transfer_rendezvous = "channel_htod_0"}} : (!stablehlo.token) -> (tensor<3x4xf32>, !stablehlo.token)
+  %0 = "stablehlo.send"(%arg, %token) {channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_rendezvous = "channel_dtoh_0"}} : (tensor<3x4xf32>, !stablehlo.token) -> !stablehlo.token
+  %1:2 = "stablehlo.recv"(%0) {channel_handle = #stablehlo.channel_handle<handle = 2, type = 3>, is_host_transfer = true, stablehlo.frontend_attributes = {_xla_host_transfer_rendezvous = "channel_htod_0"}} : (!stablehlo.token) -> (tensor<3x4xf32>, !stablehlo.token)
   %2 = "stablehlo.tuple"(%1#0, %1#1) : (tensor<3x4xf32>, !stablehlo.token) -> tuple<tensor<3x4xf32>, !stablehlo.token>
   func.return %2 : tuple<tensor<3x4xf32>, !stablehlo.token>
 }
