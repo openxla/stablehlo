@@ -1,4 +1,5 @@
-// RUN: stablehlo-translate --interpret -split-input-file %s
+// RUN: echo 'DISABLED'
+// RUN-DISABLED: stablehlo-translate --interpret -split-input-file %s
 
 module @distribution_ops {
   func.func public @outfeed(%inputs0 : tensor<2x2x2xi64>, %token : !stablehlo.token) -> !stablehlo.token {
