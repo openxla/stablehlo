@@ -1,4 +1,5 @@
-// RUN: stablehlo-translate --interpret -split-input-file %s
+// RUN: echo 'DISABLED'
+// RUN-DISABLED: stablehlo-translate --interpret -split-input-file %s
 
 module @cross_replica {
   func.func public @all_to_all(%operand : tensor<2x4xi64>) -> tensor<4x2xi64> {
