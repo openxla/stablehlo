@@ -1377,7 +1377,12 @@ in the `operand` tensor and produces a `result` tensor. More formally,
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(result)`.
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)`,
+  `scales(operand)`, and `zero_points(operand)` may differ from
+  `quantization_dimension(result)`, `scales(result)`, and `zero_points(result)`
+  resp., if `is_quantized(operand)`.
 * (C2) `size(broadcast_dimensions) = rank(operand)`.
 * (C3) `0 <= broadcast_dimensions < rank(result)`.
 * (C4) `is_unique(broadcast_dimensions)`.
@@ -4379,7 +4384,10 @@ ordering of `index_space(result)` and `index_space(operand)`.
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(result)`.
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)` and
+    `quantization_dimension(result)` may differ, if `is_quantized(operand)`.
 * (C2) `size(operand) = size(result)`.
 * (C3) If `is_per_axis_quantized(operand)`:
   * `reduce(dims(operand, [0, 1, ..., quantization_dimension(operand) - 1]),
@@ -5493,7 +5501,7 @@ where `result_index[d] = operand_index[permutation[d]]`.
 | Label | Name          | Type                                         | Constraints |
 |-------|---------------|----------------------------------------------|-------------|
 | (I1)  | `operand`     | tensor or quantized tensor                   | (C1-C4)     |
-| (I2)  | `permutation` | 1-dimensional tensor constant of type `si74` | (C2-C4)     |
+| (I2)  | `permutation` | 1-dimensional tensor constant of type `si64` | (C2-C4)     |
 
 #### Outputs
 
@@ -5503,7 +5511,10 @@ where `result_index[d] = operand_index[permutation[d]]`.
 
 #### Constraints
 
-* (C1) `element_type(operand) = element_type(result)`.
+* (C1) `element_type(result)` is given by:
+  * `element_type(operand)`, if `!is_quantized(operand)`.
+  * `element_type(operand)` except that `quantization_dimension(operand)` and
+    `quantization_dimension(result)` may differ, if `is_quantized(operand)`.
 * (C2) `permutation` is a permutation of `range(rank(operand))`.
 * (C3) `shape(result) = dim(operand, permutation...)`.
 * (C4) If `is_per_axis_quantized(result)`, then `quantized_dimension(operand) =
