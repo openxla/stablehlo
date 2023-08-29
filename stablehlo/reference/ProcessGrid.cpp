@@ -59,15 +59,19 @@ std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
 // RendezvousResult.
 //===----------------------------------------------------------------------===//
 
-void RendezvousResult::clear() { result_.clear(); }
+RendezvousResult::RendezvousResult(std::map<ProcessId, Tensor> result)
+    : result_(result) {}
 
 void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
   result_[processId] = tensor;
 }
 
 Tensor RendezvousResult::lookup(ProcessId processId) {
-  auto it = result_.find(processId);
-  if (it != result_.end()) return it->second;
+  auto it = result_.begin();
+  while (it != result_.end()) {
+    if (it->first == processId) return it->second;
+    it++;
+  }
   return {};
 }
 
@@ -76,7 +80,24 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() {
       llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
 
-size_t RendezvousResult::size() { return result_.size(); }
+//===----------------------------------------------------------------------===//
+// ThreadSafeMap.
+//===----------------------------------------------------------------------===//
+
+template <typename K, typename V>
+V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
+  std::lock_guard<std::mutex> lock(lock_);
+  return map_[key];
+}
+
+//===----------------------------------------------------------------------===//
+// ThreadSafeQueue.
+//===----------------------------------------------------------------------===//
+
+void ProcessGrid::ThreadSafeQueue::push(ArrayRef<Tensor> inputs) {
+  std::lock_guard<std::mutex> lock(lock_);
+  queue_.emplace(inputs);
+}
 
 //===----------------------------------------------------------------------===//
 // ProcessGrid.
@@ -142,45 +163,61 @@ ProcessGroups ProcessGrid::flattenedIds(
   return processGroups;
 }
 
-std::mutex &ProcessGrid::getRendezvousLock(ProcessGroup processGroup,
-                                           ChannelId channelId) {
-  std::lock_guard<std::mutex> lock(rendezvousLock_);
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.push(inputs); }
+
+std::shared_ptr<RendezvousResult> ProcessGrid::rendezvous(
+    ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
+    const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
-  return channelLocks_[channelKey];
-}
+  // Immediately return the result. The logic below doesn't work for a single
+  // process.
+  if (processGroup.size() == 1)
+    return std::make_shared<RendezvousResult>(
+        RendezvousResult({std::pair{processId, operand}}));
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
-  std::lock_guard<std::mutex> lock(outfeedLock_);
-  outfeed_.emplace(inputs);
-}
+  auto &state = channels_[channelKey];
 
-RendezvousResult ProcessGrid::rendezvous(ProcessGroup processGroup,
-                                         ChannelId channelId,
-                                         ProcessId processId,
-                                         const Tensor &operand) {
-  std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);
-  {
-    std::lock_guard<std::mutex> lock(
-        getRendezvousLock(processGroup, channelId));
-    if (channels_[channelKey].size() == processGroup.size())
-      channels_[channelKey].clear();
+  std::unique_lock<std::mutex> lock(state.mutex);
+  state.values[processId] = operand;
 
-    channels_[channelKey].insert(processId, operand);
-  }
-  {
-    std::unique_lock<std::mutex> lock(
-        getRendezvousLock(processGroup, channelId));
-    if (channels_[channelKey].size() == processGroup.size())
-      channelConditions_[channelKey].notify_all();
-
+  std::shared_ptr<RendezvousResult> result;
+  if (state.values.size() == processGroup.size()) {
+    // The last process to contribute moves the values into the result.
+    result = std::make_shared<RendezvousResult>(state.values);
+    state.result = result;
+    state.values.clear();
+    channelConditions_[channelKey].notify_one();
+  } else {
+    // The remaining processes wait for the last process to contribute to move
+    // the values into the shared result.
     if (!channelConditions_[channelKey].wait_for(
-            lock, std::chrono::seconds(3), [&] {
-              return channels_[channelKey].size() == processGroup.size();
-            }))
-      llvm::report_fatal_error("rendezvous timed out");
+            lock, std::chrono::seconds(3),
+            [&] { return state.result != nullptr; }))
+      llvm::report_fatal_error(
+          "rendezvous timed out: not all processes have contributed yet");
 
-    return channels_[channelKey];
+    // The shared result from the state owns one, the last process to contribute
+    // owns one, and the remaining processes (except the last) owns one here.
+    if (state.result.use_count() < (int64_t)processGroup.size()) {
+      result = state.result;
+      channelConditions_[channelKey].notify_one();
+    } else {
+      // Of the remaining processes, the last remaining process to arrive takes
+      // the result from the state to allow the process that contributed last to
+      // exit the function.
+      channelConditions_[channelKey].notify_one();
+      return std::move(state.result);
+    }
   }
+
+  // Wait for the remaining processes to have retrieved the result.
+  if (!channelConditions_[channelKey].wait_for(
+          lock, std::chrono::seconds(3),
+          [&] { return state.result == nullptr; }))
+    llvm::report_fatal_error(
+        "rendezvous timed out: not all process has received the results yet");
+
+  return result;
 }
 
 }  // namespace stablehlo

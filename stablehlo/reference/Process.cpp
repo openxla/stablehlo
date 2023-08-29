@@ -44,9 +44,9 @@ ProcessId Process::getId() { return id_; }
 
 void Process::outfeed(ArrayRef<Tensor> inputs) { grid_->outfeed(inputs); }
 
-RendezvousResult Process::rendezvous(ProcessGroup processGroup,
-                                     ChannelId channelId,
-                                     const Tensor &operand) {
+std::shared_ptr<RendezvousResult> Process::rendezvous(ProcessGroup processGroup,
+                                                      ChannelId channelId,
+                                                      const Tensor &operand) {
   return grid_->rendezvous(processGroup, channelId, getId(), operand);
 }
 

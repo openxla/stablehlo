@@ -19,6 +19,7 @@ limitations under the License.
 #include <condition_variable>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
@@ -69,8 +70,7 @@ class ProcessGroups : public SmallVector<ProcessGroup> {
 /// map-like API.
 class RendezvousResult {
  public:
-  /// Erases all elements in the map.
-  void clear();
+  RendezvousResult(std::map<ProcessId, Tensor> result);
 
   /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
   /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
@@ -83,9 +83,6 @@ class RendezvousResult {
   /// Iterates through the map and returns the value associated with the key
   /// `processId`. If key is not found, return an empty `Tensor`.
   Tensor lookup(ProcessId processId);
-
-  /// Returns the number of elements in the map.
-  size_t size();
 
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.
@@ -134,16 +131,60 @@ class ProcessGrid {
   /// deadlock the interpreter.
   ///
   /// At the barrier, each StableHLO process contributes a tensor, and these
-  /// tensors are accumulated in `RendezvousResult` which is returned to all
-  /// callers once the barrier has been reached by all StableHLO processes.
-  RendezvousResult rendezvous(ProcessGroup processGroup, ChannelId channelId,
-                              ProcessId processId, const Tensor &operand);
+  /// tensors are accumulated in `RendezvousResult` whose shard pointer is
+  /// returned to all callers once the barrier has been reached by all StableHLO
+  /// processes.
+  std::shared_ptr<RendezvousResult> rendezvous(ProcessGroup processGroup,
+                                               ChannelId channelId,
+                                               ProcessId processId,
+                                               const Tensor &operand);
 
  private:
-  /// Obtain a mutex that is shared between all processes participating in
-  /// a call to `rendezvous` for a given combination of `processGroup` and
-  /// `channelId`.
-  std::mutex &getRendezvousLock(ProcessGroup processGroup, ChannelId channelId);
+  /// Internal storate used in `rendezvous` to manage concurrent access to the
+  /// shared resource. Processes contribute their data to `values` concurrently.
+  /// Once all processes have added their data, the data in `values` is moved to
+  /// `result` that multiple processes can concurrently read from.
+  struct RendezvousState {
+    /// Synchronization primitive used to manage concurrent access to this
+    /// object.
+    std::mutex mutex;
+    /// Internal storage used to store data contributed by the processes.
+    std::map<ProcessId, Tensor> values;
+    /// Shared pointer to the result of `rendezvous`.
+    std::shared_ptr<RendezvousResult> result;
+  };
+
+  /// Stores the result of `rendezvous` represented as a map that allows
+  /// concurrent access.
+  /// Each call to `rendezvous`, i.e. each combination `processGroup` and
+  /// `channelId`, has its own key in the map. Within the implementation of
+  /// `rendezvous`, the value corresponding to this key is gradually populated
+  /// with tensors arriving from different processes in the process group.
+  template <typename K, typename V>
+  class ThreadSafeMap {
+   public:
+    /// Returns a reference to the data associated with the `key`.
+    V &operator[](const K &key);
+
+   private:
+    /// Synchronization primitive used to manage concurrent access to the map.
+    std::mutex lock_;
+    /// Internal storage used to implement `rendezvous`.
+    std::map<K, V> map_;
+  };
+
+  /// StableHLO `outfeed` represented as a queue that allows concurrent access.
+  class ThreadSafeQueue {
+   public:
+    /// Add `inputs` to the end of the queue.
+    void push(ArrayRef<Tensor> inputs);
+
+   private:
+    /// Synchronization primitive used to manage concurrent access to the queue.
+    std::mutex lock_;
+    /// Internal storage used to implement StableHLO `outfeed`.
+    std::queue<SmallVector<Tensor>> queue_;
+  };
 
   /// StableHLO `num_replicas`.
   const uint32_t numReplicas_;
@@ -151,28 +192,14 @@ class ProcessGrid {
   /// StableHLO `num_partitions`.
   const uint32_t numPartitions_;
 
-  /// StableHLO `outfeed` represented as a queue.
-  std::queue<SmallVector<Tensor>> outfeed_;
+  /// See `ThreadSafeQueue`.
+  ThreadSafeQueue outfeed_;
 
-  std::mutex outfeedLock_;
-
-  /// Synchronization primitive used to manage concurrent access to
-  /// `channelLocks_`.
-  std::mutex rendezvousLock_;
-
-  /// Internal storage used to implement `rendezvous`.
-  /// Each call to `rendezvous`, i.e. each combination `processGroup` and
-  /// `channelId`, has its own key in the map.
-  /// Within the implementation of `rendezvous`, the value corresponding to
-  /// this key is gradually populated with tensors arriving from different
-  /// processes in the process group.
-  std::map<std::pair<ProcessGroup, ChannelId>, RendezvousResult> channels_;
+  /// See `ThreadSafeMap`.
+  ThreadSafeMap<std::pair<ProcessGroup, ChannelId>, RendezvousState> channels_;
 
   /// Synchronization primitive used to manage concurrent access to `channels_`.
-  std::map<std::pair<ProcessGroup, ChannelId>, std::mutex> channelLocks_;
-
-  /// Synchronization primitive used to manage concurrent access to `channels_`.
-  std::map<std::pair<ProcessGroup, ChannelId>, std::condition_variable>
+  ThreadSafeMap<std::pair<ProcessGroup, ChannelId>, std::condition_variable>
       channelConditions_;
 };
 

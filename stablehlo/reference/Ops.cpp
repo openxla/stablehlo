@@ -859,8 +859,8 @@ Tensor evalAllGatherOp(const Tensor &operand, int64_t allGatherDim,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands =
-      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
+                           ->getSortedTensors();
 
   return evalConcatenateOp(groupOperands, allGatherDim, resultType);
 }
@@ -888,8 +888,8 @@ Tensor evalAllReduceOp(const Tensor &operand,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands =
-      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
+                           ->getSortedTensors();
 
   Tensor result(resultType);
   for (auto resultIt = result.index_begin(); resultIt != result.index_end();
@@ -929,8 +929,8 @@ Tensor evalAllToAllOp(const Tensor &operand, Axis splitDimension,
         "Failed to find process group with process_id: (%d, %d)",
         process->getId().replicaId, process->getId().partitionId));
 
-  auto groupOperands =
-      process->rendezvous(*processGroup, channelId, operand).getSortedTensors();
+  auto groupOperands = process->rendezvous(*processGroup, channelId, operand)
+                           ->getSortedTensors();
 
   SmallVector<Tensor> scatteredParts;
   for (const auto &groupOperand : groupOperands) {
@@ -1080,7 +1080,7 @@ Tensor evalCollectivePermuteOp(
     if (from != process->getId() && to != process->getId()) continue;
 
     auto rendezvousResult =
-        process->rendezvous(processGroup, channelId, operand);
+        *process->rendezvous(processGroup, channelId, operand);
     if (to != process->getId()) continue;
     result = rendezvousResult.lookup(from);
   }
