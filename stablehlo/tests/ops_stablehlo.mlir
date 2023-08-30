@@ -2618,38 +2618,14 @@ func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4x
 // -----
 
 // CHECK-LABEL: func @tuple
-func.func @tuple(%arg0: tensor<1xi32>, %arg1: tensor<1x2xf32>) -> tuple<tensor<1xi32>, tensor<1x2xf32>> {
-  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<1xi32>, tensor<1x2xf32>) -> tuple<tensor<1xi32>, tensor<1x2xf32>>
-  func.return %0: tuple<tensor<1xi32>, tensor<1x2xf32>>
+func.func @tuple(%arg0: tensor<1xi32>, %arg1: !stablehlo.token, %arg2: tuple<>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<>> {
+  %0 = "stablehlo.tuple"(%arg0, %arg1, %arg2) : (tensor<1xi32>, !stablehlo.token, tuple<>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<>>
+  func.return %0: tuple<tensor<1xi32>, !stablehlo.token, tuple<>>
 }
 
 // -----
 
-func.func @tuple_token(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> tuple<tensor<f32>, !stablehlo.token> {
-  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, !stablehlo.token) -> tuple<tensor<f32>, !stablehlo.token>
-  func.return %0 : tuple<tensor<f32>, !stablehlo.token>
-}
-
-// -----
-
-func.func @tuple_arg_size_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<f32>, tensor<f32>>'}}
-  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>>
-  func.return %0 : tuple<tensor<f32>, tensor<f32>, tensor<f32>>
-}
-
-// -----
-
-func.func @tuple_type_mismatch(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<i32>> {
-  // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{inferred type(s) 'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<i32>>'}}
-  %0 = "stablehlo.tuple"(%arg0, %arg1) : (tensor<f32>, tensor<f32>) -> tuple<tensor<f32>, tensor<i32>>
-  func.return %0 : tuple<tensor<f32>, tensor<i32>>
-}
-
-// -----
-
+// CHECK-LABEL: func @get_tuple_element
 func.func @get_tuple_element(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
   %0 = "stablehlo.get_tuple_element"(%arg0) {index = 0 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
   func.return %0 : tensor<f32>
@@ -2657,23 +2633,16 @@ func.func @get_tuple_element(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f
 
 // -----
 
-func.func @get_tuple_element_token(%arg0: tuple<tensor<f32>, !stablehlo.token>) -> !stablehlo.token {
-  %0 = "stablehlo.get_tuple_element"(%arg0) {index = 1 : i32} : (tuple<tensor<f32>, !stablehlo.token>) -> !stablehlo.token
-  func.return %0 : !stablehlo.token
-}
-
-// -----
-
-func.func @get_tuple_element_bad_type(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<i32> {
+func.func @get_tuple_element_c1(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
   // expected-error@+2 {{failed to infer returned types}}
-  // expected-error@+1 {{inferred type(s) 'tensor<f32>' are incompatible with return type(s) of operation 'tensor<i32>'}}
-  %0 = "stablehlo.get_tuple_element"(%arg0) {index = 0 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<i32>
-  func.return %0 : tensor<i32>
+  // expected-error@+1 {{index -1 is out of bounds of operand with size 2}}
+  %0 = "stablehlo.get_tuple_element"(%arg0) {index = -1 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>
+  func.return %0 : tensor<f32>
 }
 
 // -----
 
-func.func @get_tuple_element_index_out_of_bounds(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
+func.func @get_tuple_element_c1(%arg0: tuple<tensor<f32>, tensor<i32>>) -> tensor<f32> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{index 2 is out of bounds of operand with size 2}}
   %0 = "stablehlo.get_tuple_element"(%arg0) {index = 2 : i32} : (tuple<tensor<f32>, tensor<i32>>) -> tensor<f32>

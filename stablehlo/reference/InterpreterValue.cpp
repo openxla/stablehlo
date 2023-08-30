@@ -24,25 +24,65 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
+//===----------------------------------------------------------------------===//
+// Tuple.
+//===----------------------------------------------------------------------===//
+
+Tuple::Tuple(ArrayRef<InterpreterValue> val, TupleType type) : type_(type) {
+  for (auto value : val)
+    values_.push_back(std::make_shared<InterpreterValue>(std::move(value)));
+}
+
+InterpreterValue Tuple::get(int32_t index) const { return *values_[index]; }
+
+TupleType Tuple::getType() const { return type_; }
+
+void Tuple::print(raw_ostream &os) const {
+  getType().print(os);
+  os << " (\n";
+  for (size_t i = 0; i < values_.size(); ++i) {
+    values_[i]->dump();
+    if (i != values_.size() - 1) os << ",";
+    os << "\n";
+  }
+  os << ")";
+}
+
+void Tuple::dump() const { print(llvm::errs()); }
+
+//===----------------------------------------------------------------------===//
+// InterpreterValue.
+//===----------------------------------------------------------------------===//
+
 InterpreterValue::InterpreterValue(const Tensor &tensor) : value_(tensor) {}
 InterpreterValue::InterpreterValue(const Token &token) : value_(token) {}
+InterpreterValue::InterpreterValue(const Tuple &tuple) : value_(tuple) {}
 
 Tensor InterpreterValue::getTensor() const {
   if (!isTensor())
-    llvm::report_fatal_error("InterpreterValue is not a Tensor.");
+    report_fatal_error(invalidArgument("InterpreterValue is not a Tensor."));
 
   return std::get<Tensor>(value_);
 }
 
 Token InterpreterValue::getToken() const {
-  if (!isToken()) llvm::report_fatal_error("InterpreterValue is not a Token.");
+  if (!isToken())
+    report_fatal_error(invalidArgument("InterpreterValue is not a Token."));
 
   return std::get<Token>(value_);
+}
+
+Tuple InterpreterValue::getTuple() const {
+  if (!isTuple())
+    report_fatal_error(invalidArgument("InterpreterValue is not a Tuple."));
+
+  return std::get<Tuple>(value_);
 }
 
 Type InterpreterValue::getType() const {
   if (isTensor()) return getTensor().getType();
   if (isToken()) return getToken().getType();
+  if (isTuple()) return getTuple().getType();
 
   report_fatal_error(invalidArgument("Unsupported interpreter value."));
 }
@@ -55,11 +95,17 @@ bool InterpreterValue::isToken() const {
   return std::holds_alternative<Token>(value_);
 }
 
+bool InterpreterValue::isTuple() const {
+  return std::holds_alternative<Tuple>(value_);
+}
+
 void InterpreterValue::print(raw_ostream &os) const {
   if (isTensor())
     getTensor().print(os);
   else if (isToken())
     getToken().print(os);
+  else if (isTuple())
+    getTuple().print(os);
   else
     report_fatal_error(invalidArgument("Unsupported interpreter value."));
 }

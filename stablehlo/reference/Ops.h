@@ -97,6 +97,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
                     ShapedType resultType);
 Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
                               ShapedType resultType);
+InterpreterValue evalGetTupleElementOp(const Tuple &operand, int32_t index);
 SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
                                        Region &falseBranch, Process *process,
                                        Scope &scope);
@@ -185,6 +186,7 @@ Tensor evalSubtractOp(const Tensor &lhs, const Tensor &rhs,
 Tensor evalTanhOp(const Tensor &operand, ShapedType resultType);
 Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
                        ShapedType resultType);
+Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType);
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,
                                           Region &cond, Region &body,
                                           Process *process, Scope &scope);

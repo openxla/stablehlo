@@ -453,6 +453,11 @@ SmallVector<InterpreterValue> eval(
       auto result = evalGetDimensionSizeOp(operand, dimension,
                                            getDimensionSizeOp.getType());
       scope.add(getDimensionSizeOp.getResult(), result);
+    } else if (auto getTupleElementOp = dyn_cast<GetTupleElementOp>(op)) {
+      auto operand = scope.findTuple(getTupleElementOp.getOperand());
+      auto result =
+          evalGetTupleElementOp(operand, getTupleElementOp.getIndex());
+      scope.add(getTupleElementOp.getResult(), result);
     } else if (auto ifOp = dyn_cast<IfOp>(op)) {
       auto pred = scope.findTensor(ifOp.getPred());
       auto &trueBranch = ifOp.getTrueBranch();
@@ -785,6 +790,10 @@ SmallVector<InterpreterValue> eval(
       scope.add(transposeOp.getResult(), result);
     } else if (isa<TriangularSolveOp>(op)) {
       failOnDecomposableOp(op);
+    } else if (auto tupleOp = dyn_cast<TupleOp>(op)) {
+      auto val = scope.find(tupleOp.getVal());
+      auto result = evalTupleOp(val, tupleOp.getType().cast<TupleType>());
+      scope.add(tupleOp.getResult(), result);
     } else if (isa<UnaryEinsumOp>(op)) {
       failOnDecomposableOp(op);
     } else if (auto whileOp = dyn_cast<WhileOp>(op)) {
@@ -1342,6 +1351,10 @@ Tensor evalGetDimensionSizeOp(const Tensor &operand, Axis dimension,
   result.set(
       {}, convert(resultType.getElementType(), operand.getShape()[dimension]));
   return result;
+}
+
+InterpreterValue evalGetTupleElementOp(const Tuple &operand, int32_t index) {
+  return operand.get(index);
 }
 
 SmallVector<InterpreterValue> evalIfOp(const Tensor &pred, Region &trueBranch,
@@ -1965,6 +1978,10 @@ Tensor evalTransposeOp(const Tensor &operand, const Axes &permutation,
     result.set(resultIndex, operand.get(operandIndex));
   }
   return result;
+}
+
+Tuple evalTupleOp(ArrayRef<InterpreterValue> val, TupleType resultType) {
+  return Tuple(val, resultType);
 }
 
 SmallVector<InterpreterValue> evalWhileOp(SmallVector<InterpreterValue> operand,

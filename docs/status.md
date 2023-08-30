@@ -93,7 +93,7 @@ one of the following tracking labels.
 | floor                    | yes           | yes          | yes            | yes             | yes         |
 | gather                   | yes           | yes          | yes            | no              | yes         |
 | get_dimension_size       | yes           | yes          | yes            | yes             | yes         |
-| get_tuple_element        | yes           | yes          | yes            | yes             | no          |
+| get_tuple_element        | yes           | yes          | yes            | yes             | yes         |
 | if                       | yes           | revisit      | yes            | no              | yes         |
 | imag                     | yes           | yes          | yes            | yes             | yes         |
 | infeed                   | yes           | revisit      | infeasible     | no              | no          |
@@ -151,7 +151,7 @@ one of the following tracking labels.
 | trace                    | no            | revisit      | no             | yes             | revisit     |
 | transpose                | yes           | yes          | yes            | yes             | yes         |
 | triangular_solve         | yes           | revisit      | yes            | no              | revisit     |
-| tuple                    | yes           | yes          | yes            | yes             | no          |
+| tuple                    | yes           | yes          | yes            | yes             | yes         |
 | unary_einsum             | no            | revisit      | no             | yes             | revisit     |
 | uniform_dequantize       | yes           | yes          | yes            | yes             | no          |
 | uniform_quantize         | yes           | revisit      | infeasible     | yes             | no          |

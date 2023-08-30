@@ -3001,6 +3001,8 @@ Extracts element at `index` position of the `operand` tuple and produces a
 // %result: [1.0, 2.0]
 ```
 
+&nbsp;[More Examples](../stablehlo/tests/interpret_tuple_and_get_tuple_element.mlir)
+
 ### if
 
 #### Semantics
@@ -5614,6 +5616,8 @@ Produces a `result` tuple from values `val`.
 %result = "stablehlo.tuple"(%val0, %val1) : (tensor<2xf32>, tuple<tensor<i32>>) -> tuple<tensor<2xf32>, tuple<tensor<i32>>>
 // %result: ([1.0, 2.0], (3))
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_tuple_and_get_tuple_element.mlir)
 
 ### uniform_dequantize
 

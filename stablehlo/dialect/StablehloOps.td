@@ -1495,7 +1495,7 @@ def StableHLO_ReduceOp: StableHLO_ShapedInterfaceOp<"reduce", [
 // StableHLO tuple op definitions.
 //===----------------------------------------------------------------------===//
 def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
-     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+     DeclareOpInterfaceMethods<InferTypeOpInterface> /*get_tuple_element_c2*/]> {
   let summary = "GetTupleElement operation";
   let description = [{
     Extracts element at `index` position of the `operand` tuple and produces a
@@ -1506,12 +1506,12 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
 
     Example:
     ```mlir
-    %result = stablehlo.get_tuple_element %operand[0] : (tuple<tensor<2xf32>, tuple<tensor<i32>>>) -> tensor<2xf32>
+    %result = stablehlo.get_tuple_element %operand[0] : (tuple<tensor<2xf64>, tuple<tensor<i64>>>) -> tensor<2xf64>
     ```
   }];
   let arguments = (ins
-    HLO_Tuple:$operand,
-    I32Attr:$index
+    HLO_Tuple:$operand, /*get_tuple_element_i1*/
+    I32Attr:$index /*get_tuple_element_i2*/
   );
 
   let results = (outs HLO_TensorOrTokenOrTuple);
@@ -1522,7 +1522,7 @@ def StableHLO_GetTupleElementOp: StableHLO_Op<"get_tuple_element", [Pure,
 }
 
 def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
-     DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
+     DeclareOpInterfaceMethods<InferTypeOpInterface> /*tuple_c1*/]> {
   let summary = "Tuple operation";
   let description = [{
     Produces a `result` tuple from values `val`.
@@ -1532,11 +1532,11 @@ def StableHLO_TupleOp : StableHLO_Op<"tuple", [Pure,
 
     Example:
     ```mlir
-    %result = stablehlo.tuple %val0, %val1 : tuple<tensor<2xf32>, tuple<tensor<i32>>>
+    %result = stablehlo.tuple %val0, %val1 : tuple<tensor<2xf64>, tuple<tensor<i64>>>
     ```
    }];
 
-  let arguments = (ins Variadic<HLO_TensorOrTokenOrTuple>:$val);
+  let arguments = (ins Variadic<HLO_TensorOrTokenOrTuple>:$val /*tuple_i1*/);
   let results = (outs HLO_Tuple:$result);
 
   let assemblyFormat = [{
