@@ -34,12 +34,16 @@ class Tuple {
   Tuple(ArrayRef<InterpreterValue> val, TupleType type);
   /// @}
 
+  /// Getter method to access individual elements within the tuple.
   InterpreterValue get(int32_t index) const;
 
+  /// Getter method for type.
   TupleType getType() const;
 
   /// Prints Tuple objects.
   void print(raw_ostream &os) const;
+
+  /// Print utilities for Tuple objects.
   void dump() const;
 
  private:

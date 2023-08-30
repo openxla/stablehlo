@@ -2618,9 +2618,9 @@ func.func @triangular_solve(%arg0: tensor<10x5x4x4xf32>, %arg1: tensor<10x5x4x4x
 // -----
 
 // CHECK-LABEL: func @tuple
-func.func @tuple(%arg0: tensor<1xi32>, %arg1: !stablehlo.token, %arg2: tuple<!stablehlo.token>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<!stablehlo.token>> {
-  %0 = "stablehlo.tuple"(%arg0, %arg1, %arg2) : (tensor<1xi32>, !stablehlo.token, tuple<!stablehlo.token>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<!stablehlo.token>>
-  func.return %0: tuple<tensor<1xi32>, !stablehlo.token, tuple<!stablehlo.token>>
+func.func @tuple(%arg0: tensor<1xi32>, %arg1: !stablehlo.token, %arg2: tuple<>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<>> {
+  %0 = "stablehlo.tuple"(%arg0, %arg1, %arg2) : (tensor<1xi32>, !stablehlo.token, tuple<>) -> tuple<tensor<1xi32>, !stablehlo.token, tuple<>>
+  func.return %0: tuple<tensor<1xi32>, !stablehlo.token, tuple<>>
 }
 
 // -----

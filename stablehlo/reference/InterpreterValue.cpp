@@ -60,19 +60,21 @@ InterpreterValue::InterpreterValue(const Tuple &tuple) : value_(tuple) {}
 
 Tensor InterpreterValue::getTensor() const {
   if (!isTensor())
-    llvm::report_fatal_error("InterpreterValue is not a Tensor.");
+    report_fatal_error(invalidArgument("InterpreterValue is not a Tensor."));
 
   return std::get<Tensor>(value_);
 }
 
 Token InterpreterValue::getToken() const {
-  if (!isToken()) llvm::report_fatal_error("InterpreterValue is not a Token.");
+  if (!isToken())
+    report_fatal_error(invalidArgument("InterpreterValue is not a Token."));
 
   return std::get<Token>(value_);
 }
 
 Tuple InterpreterValue::getTuple() const {
-  if (!isTuple()) llvm::report_fatal_error("InterpreterValue is not a Tuple.");
+  if (!isTuple())
+    report_fatal_error(invalidArgument("InterpreterValue is not a Tuple."));
 
   return std::get<Tuple>(value_);
 }
