@@ -1,4 +1,6 @@
-// RUN: diff <(stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt) <(stablehlo-opt %s)
+// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
+// RUN: stablehlo-opt %s > %t.1
+// RUN: diff %t.0 %t.1
 
 module @jit_fun_flat_jax {
   func.func public @main(%arg0: tensor<i64>, %arg1: tensor<?x8x4x3x3x4xf32> {mhlo.sharding = ""}, %arg2: tensor<?x4x8x3x4x2xf32> {mhlo.sharding = ""}) -> tensor<?x8x4x3x2xf32> {

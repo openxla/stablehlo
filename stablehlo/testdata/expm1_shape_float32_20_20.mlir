@@ -1,5 +1,7 @@
 // RUN-DISABLED(#1278): stablehlo-opt -inline %s | stablehlo-translate --interpret
-// RUN: diff <(stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt) <(stablehlo-opt %s)
+// RUN: stablehlo-translate --serialize --target=current %s | stablehlo-translate --deserialize | stablehlo-opt > %t.0
+// RUN: stablehlo-opt %s > %t.1
+// RUN: diff %t.0 %t.1
 
 module @jit_testcase {
   func.func public @main() -> tensor<i1> {
