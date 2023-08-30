@@ -602,21 +602,21 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
     if (!stablehloOp.getWindowStridesAttr())
       addDefaultAttr("window_strides",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+                         SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getPaddingAttr())
       addDefaultAttr("padding",
                      DenseIntElementsAttr::get(
                          RankedTensorType::get({numSpatialDimensions, 2},
                                                builder.getI64Type()),
-                         SmallVector<int64_t>(numSpatialDimensions * 2, 0l)));
+                         SmallVector<int64_t>(numSpatialDimensions * 2, 0ll)));
     if (!stablehloOp.getLhsDilationAttr())
       addDefaultAttr("lhs_dilation",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+                         SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getRhsDilationAttr())
       addDefaultAttr("rhs_dilation",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numSpatialDimensions, 1l)));
+                         SmallVector<int64_t>(numSpatialDimensions, 1ll)));
     if (!stablehloOp.getWindowReversalAttr())
       addDefaultAttr("window_reversal",
                      DenseIntElementsAttr::get(
@@ -699,21 +699,21 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
     if (!stablehloOp.getWindowStridesAttr())
       addDefaultAttr("window_strides",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+                         SmallVector<int64_t>(numWindowDimensions, 1ll)));
     if (!stablehloOp.getBaseDilationsAttr())
       addDefaultAttr("base_dilations",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+                         SmallVector<int64_t>(numWindowDimensions, 1ll)));
     if (!stablehloOp.getWindowDilationsAttr())
       addDefaultAttr("window_dilations",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+                         SmallVector<int64_t>(numWindowDimensions, 1ll)));
     if (!stablehloOp.getPaddingAttr())
       addDefaultAttr("padding",
                      DenseIntElementsAttr::get(
                          RankedTensorType::get({numWindowDimensions, 2},
                                                builder.getI64Type()),
-                         SmallVector<int64_t>(numWindowDimensions * 2, 0l)));
+                         SmallVector<int64_t>(numWindowDimensions * 2, 0ll)));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::ScatterOp>::value) {
     if (!stablehloOp.getIndicesAreSortedAttr())
@@ -731,13 +731,13 @@ LogicalResult addDefaults(const OpConversionPattern<StablehloOpTy>& pattern,
     if (!stablehloOp.getWindowStridesAttr())
       addDefaultAttr("window_strides",
                      builder.getI64TensorAttr(
-                         SmallVector<int64_t>(numWindowDimensions, 1l)));
+                         SmallVector<int64_t>(numWindowDimensions, 1ll)));
     if (!stablehloOp.getPaddingAttr())
       addDefaultAttr("padding",
                      DenseIntElementsAttr::get(
                          RankedTensorType::get({numWindowDimensions, 2},
                                                builder.getI64Type()),
-                         SmallVector<int64_t>(numWindowDimensions * 2, 0l)));
+                         SmallVector<int64_t>(numWindowDimensions * 2, 0ll)));
   }
   if constexpr (std::is_same<StablehloOpTy, stablehlo::SortOp>::value) {
     if (!stablehloOp.getDimensionAttr())

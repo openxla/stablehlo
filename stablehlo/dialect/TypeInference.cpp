@@ -2515,7 +2515,7 @@ LogicalResult inferPadOp(std::optional<Location> location, Type operandType,
       int64_t operandSizeOrBound = isStaticDim ? inputShape[i] : inputBounds[i];
       int64_t resultSizeOrBound =
           operandSizeOrBound + paddingLowVal + paddingHighVal +
-          std::max<int64_t>(operandSizeOrBound - 1, 0LL) * paddingInteriorVal;
+          std::max<int64_t>(operandSizeOrBound - 1, 0ll) * paddingInteriorVal;
 
       // pad_c4
       if (resultSizeOrBound < 0) {
