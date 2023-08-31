@@ -16,7 +16,7 @@ add_custom_target(check-stablehlo-python)
 
 function(add_stablehlo_python_test test_name file_name)
 add_custom_target(${test_name}
-  PYTHONPATH=${STABLEHLO_BINARY_DIR}/python_packages/stablehlo:$ENV{PYTHONPATH} ${Python3_EXECUTABLE} ${file_name}
+  ${CMAKE_COMMAND} -E env PYTHONPATH=${STABLEHLO_BINARY_DIR}/python_packages/stablehlo ${Python3_EXECUTABLE} ${file_name}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   DEPENDS
     StablehloUnifiedPythonModules
