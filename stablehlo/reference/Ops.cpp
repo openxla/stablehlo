@@ -1326,7 +1326,7 @@ Tensor evalGatherOp(const Tensor &operand, const Tensor &startIndices,
       if (dStartIt == startIndexMap.end()) continue;
       auto dStart = dStartIt - startIndexMap.begin();
       fullStartIndex[dOperand] = std::clamp<int64_t>(
-          startIndex[dStart], 0L,
+          startIndex[dStart], 0ll,
           operand.getShape()[dOperand] - sliceSizes[dOperand]);
     }
 

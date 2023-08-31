@@ -953,7 +953,7 @@ Element reducePrecision(const Element &el, int32_t exponentBits,
   int32_t srcMantissaBits = type.getFPMantissaWidth() - 1;
   auto destMantissaBits = mantissaBits;
   if (destMantissaBits < srcMantissaBits) {
-    auto lastMantissaBitMask = 1UL << (srcMantissaBits - destMantissaBits);
+    auto lastMantissaBitMask = 1ull << (srcMantissaBits - destMantissaBits);
 
     // Compute rounding bias for round-to-nearest with ties to even.
     auto baseRoundingBias = (lastMantissaBitMask >> 1) - 1;
@@ -971,15 +971,15 @@ Element reducePrecision(const Element &el, int32_t exponentBits,
   auto srcExponentBits = bitWidth - srcMantissaBits - 1;
   auto destExponentBits = exponentBits;
   if (destExponentBits < srcExponentBits) {
-    auto signBitMask = 1UL << (bitWidth - 1);
-    auto expBitsMask = ((1UL << srcExponentBits) - 1) << srcMantissaBits;
+    auto signBitMask = 1ull << (bitWidth - 1);
+    auto expBitsMask = ((1ull << srcExponentBits) - 1) << srcMantissaBits;
 
     // An exponent of 2^(n-1)-1 (i.e. 0b0111...) with 0 being the most
     // significant bit is equal to 1.0f for all exponent sizes. Adding 2^(n-1)-1
     // to this results in highest non-infinite exponent, and subtracting
     // 2^(n-1)-1 results in lowest exponent (i.e. 0.0f) for a bit size of n.
-    auto exponentBias = (1UL << (srcExponentBits - 1)) - 1;
-    auto reducedExponentBias = (1UL << (destExponentBits - 1)) - 1;
+    auto exponentBias = (1ull << (srcExponentBits - 1)) - 1;
+    auto reducedExponentBias = (1ull << (destExponentBits - 1)) - 1;
     auto reducedMaxExponent = exponentBias + reducedExponentBias;
     auto reducedMinExponent = exponentBias - reducedExponentBias;
 
