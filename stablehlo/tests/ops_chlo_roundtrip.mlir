@@ -1,7 +1,9 @@
 // RUN: stablehlo-opt %s | FileCheck %s
 // RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt | FileCheck %s
-// RUN: stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | (! grep 'Not Implemented')
-// RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | (! grep 'Not Implemented')
+// RUN: stablehlo-opt -emit-bytecode -debug-only=chlo-bytecode %s 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+// RUN: stablehlo-opt -emit-bytecode %s | stablehlo-opt -debug-only=chlo-bytecode 2>&1 | FileCheck --check-prefix=CHECK-WARN %s
+
+// CHECK-WARN-NOT: Not Implemented
 
 // CHECK-LABEL: func @chlo_acos(
 // CHECK-SAME:  %[[A:.*]]: tensor<8x8xf64>
