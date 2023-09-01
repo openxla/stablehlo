@@ -20,9 +20,9 @@ limitations under the License.
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Interfaces/FunctionInterfaces.h"
 #include "stablehlo/dialect/Version.h"
 #include "stablehlo/dialect/VhloTypes.h"
 
