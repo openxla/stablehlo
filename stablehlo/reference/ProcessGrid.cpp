@@ -67,11 +67,8 @@ void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
 }
 
 Tensor RendezvousResult::lookup(ProcessId processId) {
-  auto it = result_.begin();
-  while (it != result_.end()) {
-    if (it->first == processId) return it->second;
-    it++;
-  }
+  auto it = result_.find(processId);
+  if (it != result_.end()) return it->second;
   return {};
 }
 
@@ -198,7 +195,7 @@ std::shared_ptr<RendezvousResult> ProcessGrid::rendezvous(
 
     // The shared result from the state owns one, the last process to contribute
     // owns one, and the remaining processes (except the last) owns one here.
-    if (state.result.use_count() < (int64_t)processGroup.size()) {
+    if (state.result.use_count() < static_cast<int64_t>(processGroup.size())) {
       result = state.result;
       channelConditions_[channelKey].notify_one();
     } else {
