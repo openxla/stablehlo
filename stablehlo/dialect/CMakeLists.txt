@@ -114,6 +114,7 @@ add_mlir_dialect_library(StablehloSerialization
   VhloOps
   MLIRBytecodeWriter
   MLIRIR
+  MLIRParser
 )
 
 add_mlir_dialect_library(StablehloTypeInference
