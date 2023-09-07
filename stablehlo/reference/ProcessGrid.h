@@ -134,10 +134,10 @@ class ProcessGrid {
   /// tensors are accumulated in `RendezvousResult` whose shard pointer is
   /// returned to all callers once the barrier has been reached by all StableHLO
   /// processes.
-  std::shared_ptr<RendezvousResult> rendezvous(ProcessGroup processGroup,
-                                               ChannelId channelId,
-                                               ProcessId processId,
-                                               const Tensor &operand);
+  const std::shared_ptr<RendezvousResult> rendezvous(ProcessGroup processGroup,
+                                                     ChannelId channelId,
+                                                     ProcessId processId,
+                                                     const Tensor &operand);
 
  private:
   /// Internal storate used in `rendezvous` to manage concurrent access to the
