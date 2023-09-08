@@ -38,7 +38,7 @@ class Version {
   static FailureOr<Version> fromString(llvm::StringRef versionRef);
 
   /// Return a Version representing the current VHLO dialect version.
-  static Version getCurrentVersion() { return Version(0, 14, 18); }
+  static Version getCurrentVersion() { return Version(0, 14, 19); }
 
   /// Return a Version representing the minimum supported VHLO dialect version.
   static Version getMinimumVersion() { return Version(0, 9, 0); }
