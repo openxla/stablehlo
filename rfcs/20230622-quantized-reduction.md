@@ -95,8 +95,18 @@ partially addresses
 for reduce op in that it allows the input or init value to differ from the
 corresponding block arguments w.r.t the precision of floating-point types.
 However, the mixed precision implementation in HLO seems more detailed in the
-sense that even allows `inputs` and `init_values` to differ in floating-point
-precision. My proposal would be to treat the above ticket separately.
+following sense:
+
+* [Decide on mixed precision](https://github.com/openxla/stablehlo/issues/369)
+allows `inputs` and `init_values` to differ in floating-point precision.
+Whereas, the current proposal considers them to have the same element type.
+* [Decide on mixed precision](https://github.com/openxla/stablehlo/issues/369)
+allows the element type of block arguments to differ from that of the block
+return value. The current proposal considers them to have the same element type.
+* There are other ops (than reduce) which need support for mixed precision (here
+is the [list of ops](https://github.com/tensorflow/tensorflow/blob/1d69ba72834b963b72075a82c10959f6bb74e473/tensorflow/compiler/xla/service/hlo_verifier.cc#L1681-L1714)).
+
+Having said that, my proposal would be to treat the above ticket separately.
 
 ## Appendix
 
