@@ -36,7 +36,7 @@ namespace stablehlo {
 namespace detail {
 
 /// Underlying storage class for Tensor objects.
-class Buffer : public llvm::RefCountedBase<Buffer> {
+class Buffer : public llvm::ThreadSafeRefCountedBase<Buffer> {
  public:
   /// \name Constructors
   /// @{
