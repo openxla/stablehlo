@@ -1358,7 +1358,8 @@ implementation-defined as well.
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. More formally,
-`result[result_index] = operand[operand_index]` where:
+`result[result_index] = rank(operand) = 0 ? operand : operand[operand_index]`
+where:
 
 * `operand_index[d] = 0` if `dim(operand, d) = 1`.
 * `operand_index[d] = result_index[broadcast_dimensions[d]]` otherwise.
