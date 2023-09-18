@@ -1358,8 +1358,8 @@ implementation-defined as well.
 
 Expands the dimensions and/or rank of an input tensor by duplicating the data
 in the `operand` tensor and produces a `result` tensor. More formally,
-`result[result_index] = rank(operand) = 0 ? operand : operand[operand_index]`
-where:
+`result[result_index] = operand[operand_index]` where for all `d` in
+`axes(operand)`:
 
 * `operand_index[d] = 0` if `dim(operand, d) = 1`.
 * `operand_index[d] = result_index[broadcast_dimensions[d]]` otherwise.
@@ -1606,8 +1606,8 @@ For quantized types, performs
 Clamps every element of the `operand` tensor between a minimum and maximum
 value and produces a `result` tensor. More formally, `result[result_index] =
 minimum(maximum(operand[result_index], min_element), max_element)`,
-where `min_element = rank(min) = 0 ? min : min[result_index]`,
-`max_element = rank(max) = 0 ? max : max[result_index]`. For quantized types,
+where `min_element = rank(min) = 0 ? min[] : min[result_index]`,
+`max_element = rank(max) = 0 ? max[] : max[result_index]`. For quantized types,
 performs `dequantize_op_quantize(clamp, min, operand, max, type(result))`.
 
 Imposing an ordering on complex numbers involves surprising semantics,
@@ -4839,7 +4839,7 @@ undefined.
 Produces a `result` tensor where each element is selected from `on_true` or
 `on_false` tensor based on the value of the corresponding element of `pred`.
 More formally, `result[result_index] = pred_element ? on_true[result_index] :
-on_false[result_index]`, where `pred_element = rank(pred) = 0 ? pred :
+on_false[result_index]`, where `pred_element = rank(pred) = 0 ? pred[] :
 pred[result_index]`. For quantized types, performs
 `dequantize_select_quantize(pred, on_true, on_false, type(result))`.
 
