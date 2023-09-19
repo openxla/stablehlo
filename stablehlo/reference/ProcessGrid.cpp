@@ -66,13 +66,13 @@ void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
   result_[processId] = tensor;
 }
 
-Tensor RendezvousResult::lookup(ProcessId processId) {
+Tensor RendezvousResult::lookup(ProcessId processId) const {
   auto it = result_.find(processId);
   if (it != result_.end()) return it->second;
   return {};
 }
 
-SmallVector<Tensor> RendezvousResult::getSortedTensors() {
+SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
   return llvm::to_vector(
       llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
@@ -162,7 +162,7 @@ ProcessGroups ProcessGrid::flattenedIds(
 
 void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.push(inputs); }
 
-const std::shared_ptr<RendezvousResult> ProcessGrid::rendezvous(
+std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
     const Tensor &operand) {
   std::pair<ProcessGroup, ChannelId> channelKey(processGroup, channelId);

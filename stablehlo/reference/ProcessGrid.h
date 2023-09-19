@@ -75,14 +75,14 @@ class RendezvousResult {
   /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
   /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in
   /// lexicographical order.
-  SmallVector<Tensor> getSortedTensors();
+  SmallVector<Tensor> getSortedTensors() const;
 
   /// Inserts `tensor` into the map using the key `processId`.
   void insert(ProcessId processId, Tensor tensor);
 
   /// Iterates through the map and returns the value associated with the key
   /// `processId`. If key is not found, return an empty `Tensor`.
-  Tensor lookup(ProcessId processId);
+  Tensor lookup(ProcessId processId) const;
 
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.
@@ -134,7 +134,7 @@ class ProcessGrid {
   /// tensors are accumulated in `RendezvousResult` whose shard pointer is
   /// returned to all callers once the barrier has been reached by all StableHLO
   /// processes.
-  const std::shared_ptr<RendezvousResult> rendezvous(ProcessGroup processGroup,
+  std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,
                                                      ChannelId channelId,
                                                      ProcessId processId,
                                                      const Tensor &operand);
