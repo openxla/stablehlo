@@ -70,7 +70,7 @@ class ProcessGroups : public SmallVector<ProcessGroup> {
 /// map-like API.
 class RendezvousResult {
  public:
-  RendezvousResult(std::map<ProcessId, Tensor> result);
+  RendezvousResult(std::map<ProcessId, Tensor> const &result);
 
   /// Iterates through the (ProcessId, Tensor) map entires and returns a vector
   /// of Tensors sorted by ProcessId--(replicaId, partitionId) pair--in

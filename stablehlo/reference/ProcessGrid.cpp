@@ -59,7 +59,7 @@ std::optional<ProcessGroup> ProcessGroups::findGroup(ProcessId processId) {
 // RendezvousResult.
 //===----------------------------------------------------------------------===//
 
-RendezvousResult::RendezvousResult(std::map<ProcessId, Tensor> result)
+RendezvousResult::RendezvousResult(std::map<ProcessId, Tensor> const &result)
     : result_(result) {}
 
 void RendezvousResult::insert(ProcessId processId, Tensor tensor) {
