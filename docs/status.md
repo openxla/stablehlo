@@ -96,7 +96,7 @@ one of the following tracking labels.
 | get_tuple_element        | yes           | yes          | yes            | yes             | yes         |
 | if                       | yes           | revisit      | yes            | no              | yes         |
 | imag                     | yes           | yes          | yes            | yes             | yes         |
-| infeed                   | yes           | revisit      | infeasible     | no              | yes         |
+| infeed                   | yes           | yes          | infeasible     | no              | yes         |
 | iota                     | yes           | yes          | infeasible     | yes             | yes         |
 | is_finite                | yes           | yes          | yes            | yes             | yes         |
 | log                      | yes           | yes          | yes            | yes             | yes         |

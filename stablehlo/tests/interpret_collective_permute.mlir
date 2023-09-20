@@ -13,7 +13,7 @@ module @cross_replica {
     %inputs1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %inputs2 = stablehlo.constant dense<[[9, 10], [11, 12]]> : tensor<2x2xi64>
     %results:3 = "interpreter.run_parallel"(%inputs0, %inputs1, %inputs2) {
-      programs=[["collective_permute"], ["collective_permute"], ["collective_permute"]]
+      programs=[[@collective_permute], [@collective_permute], [@collective_permute]]
     } : (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>) ->
         (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>)
     check.expect_eq_const %results#0, dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>
@@ -38,7 +38,7 @@ module @cross_partition {
     %inputs1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %inputs2 = stablehlo.constant dense<[[9, 10], [11, 12]]> : tensor<2x2xi64>
     %results:3 = "interpreter.run_parallel"(%inputs0, %inputs1, %inputs2) {
-      programs=[["collective_permute", "collective_permute", "collective_permute"]]
+      programs=[[@collective_permute, @collective_permute, @collective_permute]]
     } : (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>) ->
         (tensor<2x2xi64>, tensor<2x2xi64>, tensor<2x2xi64>)
     check.expect_eq_const %results#0, dense<[[0, 0], [0, 0]]> : tensor<2x2xi64>

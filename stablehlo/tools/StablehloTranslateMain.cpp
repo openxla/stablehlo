@@ -133,17 +133,17 @@ llvm::Error interpreterFallback(Operation &op, stablehlo::Process *process,
     std::queue<StringAttr> infeed;
     if (auto infeedAttr = runParallelOp.getInfeed())
       for (auto &value : infeedAttr->getValue())
-        infeed.push(value.cast<StringAttr>());
+        infeed.push(value.cast<FlatSymbolRefAttr>().getAttr());
 
     SmallVector<SmallVector<StringAttr>> programs(
         runParallelOp.getPrograms().size());
     for (auto [i, replica] : llvm::enumerate(runParallelOp.getPrograms()))
       for (auto &program : replica.cast<ArrayAttr>())
-        programs[i].push_back(program.cast<StringAttr>());
+        programs[i].push_back(program.cast<FlatSymbolRefAttr>().getAttr());
 
     SymbolTable symbolTable{op.getParentOfType<ModuleOp>()};
     auto results = stablehlo::interpreter::evalRunParallelOp(
-        runtimeOperands, &infeed, programs, symbolTable);
+        runtimeOperands, infeed, programs, symbolTable);
     scope.add(runParallelOp.getResults(), results);
     return wrapStatus(llvm::Error::success(), funcName,
                       "interpreter.run_parallel");

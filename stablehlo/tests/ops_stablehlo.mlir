@@ -1673,7 +1673,7 @@ func.func @infeed_c1(%token: !stablehlo.token) -> tensor<3x3xi32> {
 // -----
 
 func.func @infeed_c2(%token: !stablehlo.token) -> tuple<!stablehlo.token, !stablehlo.token> {
-  // expected-error@+1 {{everything but the last element of result types is expected to be of tensor type, but got '!stablehlo.token'}}
+  // expected-error@+1 {{all elements of result types except the last element is expected to be of tensor type, but got '!stablehlo.token'}}
   %0:2 = "stablehlo.infeed"(%token) {infeed_config = "foobar", layout = [[[0]], [0]]} : (!stablehlo.token) -> (!stablehlo.token, !stablehlo.token)
   %1 = "stablehlo.tuple"(%0#0, %0#1) : (!stablehlo.token, !stablehlo.token) -> tuple<!stablehlo.token, !stablehlo.token>
   func.return %1 : tuple<!stablehlo.token, !stablehlo.token>

@@ -3113,10 +3113,10 @@ separate outputs to improve clarity
 
 #### Inputs
 
-| Label | Name            | Type                      | Constraints |
-|-------|-----------------|---------------------------|-------------|
-| (I1)  | `token`         | `token`                   | (C3)        |
-| (I2)  | `infeed_config` | constant of type `string` |             |
+| Label | Name            | Type                      |
+|-------|-----------------|---------------------------|
+| (I1)  | `token`         | `token`                   |
+| (I2)  | `infeed_config` | constant of type `string` |
 
 #### Outputs
 
@@ -3127,7 +3127,7 @@ separate outputs to improve clarity
 #### Constraints
 
 * (C1) `0 < size(results)`.
-* (C2) `is_tensor(type(results[:-1]))`.
+* (C2) `is_empty(result[:-1]) or is_tensor(type(results[:-1]))`.
 * (C3) `is_token(type(results[-1]))`.
 
 #### Examples

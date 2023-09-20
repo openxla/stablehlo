@@ -18,7 +18,7 @@ module @cross_replica {
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
                                          [13, 14, 15, 16]]> : tensor<2x4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["reduce_scatter"], ["reduce_scatter"]]
+      programs=[[@reduce_scatter], [@reduce_scatter]]
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<2x2xi64>, tensor<2x2xi64>)
     check.expect_eq_const %results#0, dense<[[10, 12],
                                              [18, 20]]> : tensor<2x2xi64>
@@ -49,7 +49,7 @@ module @cross_replica_and_partition {
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
                                          [13, 14, 15, 16]]> : tensor<2x4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["reduce_scatter"], ["reduce_scatter"]]
+      programs=[[@reduce_scatter], [@reduce_scatter]]
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<2x2xi64>, tensor<2x2xi64>)
     check.expect_eq_const %results#0, dense<[[10, 12],
                                              [18, 20]]> : tensor<2x2xi64>
@@ -81,7 +81,7 @@ module @flattened_ids {
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
                                          [13, 14, 15, 16]]> : tensor<2x4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["reduce_scatter"], ["reduce_scatter"]]
+      programs=[[@reduce_scatter], [@reduce_scatter]]
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<2x2xi64>, tensor<2x2xi64>)
     check.expect_eq_const %results#0, dense<[[10, 12],
                                              [18, 20]]> : tensor<2x2xi64>

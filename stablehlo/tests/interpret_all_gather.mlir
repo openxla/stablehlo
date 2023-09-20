@@ -12,7 +12,7 @@ module @cross_replica {
     %0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
     %1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %results:2 = "interpreter.run_parallel"(%0, %1) {
-      programs=[["all_gather"], ["all_gather"]]
+      programs=[[@all_gather], [@all_gather]]
     } : (tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
     check.expect_eq_const %results#0, dense<[[1, 2, 5, 6],
                                              [3, 4, 7, 8]]> : tensor<2x4xi64>
@@ -37,7 +37,7 @@ module @cross_replica_and_partition {
     %0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
     %1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %results:2 = "interpreter.run_parallel"(%0, %1) {
-      programs=[["all_gather"], ["all_gather"]]
+      programs=[[@all_gather], [@all_gather]]
     } : (tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
     check.expect_eq_const %results#0, dense<[[1, 2, 5, 6],
                                              [3, 4, 7, 8]]> : tensor<2x4xi64>
@@ -63,7 +63,7 @@ module @flattened_ids {
     %0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
     %1 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
     %results:2 = "interpreter.run_parallel"(%0, %1) {
-      programs=[["all_gather"], ["all_gather"]]
+      programs=[[@all_gather], [@all_gather]]
     } : (tensor<2x2xi64>, tensor<2x2xi64>) -> (tensor<2x4xi64>, tensor<2x4xi64>)
     check.expect_eq_const %results#0, dense<[[1, 2, 5, 6],
                                              [3, 4, 7, 8]]> : tensor<2x4xi64>

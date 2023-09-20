@@ -114,11 +114,11 @@ void ProcessGrid::ThreadSafeQueue<T>::push(T input) {
 //===----------------------------------------------------------------------===//
 
 ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
-                         std::queue<StringAttr> *infeed)
+                         std::queue<StringAttr> &infeed)
     : numReplicas_(numReplicas), numPartitions_(numPartitions) {
-  while (!infeed->empty()) {
-    auto head = infeed->front();
-    infeed->pop();
+  while (!infeed.empty()) {
+    auto head = infeed.front();
+    infeed.pop();
     infeed_.push(head);
   }
 }

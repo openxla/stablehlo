@@ -8,25 +8,53 @@ module @distribution_ops {
         (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
     %results1:2 = "stablehlo.infeed"(%token) :
         (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
-    return %results0#0, %results0#1, %results1#0, %results1#1 :
+    func.return %results0#0, %results0#1, %results1#0, %results1#1 :
         tensor<2x2xi64>, !stablehlo.token, tensor<2x2xi64>, !stablehlo.token
   }
   func.func public @infeed_queue0() -> (tensor<2x2xi64>) {
     %queue0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
-    return %queue0 : tensor<2x2xi64>
+    func.return %queue0 : tensor<2x2xi64>
   }
   func.func public @infeed_queue1() -> (tensor<2x2xi64>) {
     %queue0 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
-    return %queue0 : tensor<2x2xi64>
+    func.return %queue0 : tensor<2x2xi64>
   }
   func.func public @main() {
     %token = stablehlo.after_all : !stablehlo.token
     %results:4 = "interpreter.run_parallel"(%token) {
-      programs=[["infeed"]],
-      infeed=["infeed_queue0", "infeed_queue1"],
-      num_replicas=1,
-      num_partitions=1
+      infeed=[@infeed_queue0, @infeed_queue1],
+      programs=[[@infeed]]
     } : (!stablehlo.token) ->
+        (tensor<2x2xi64>, !stablehlo.token, tensor<2x2xi64>, !stablehlo.token)
+    check.expect_eq_const %results#0, dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
+    check.expect_eq_const %results#2, dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
+    func.return
+  }
+}
+
+// -----
+
+module @distribution_ops {
+  func.func public @infeed(%token : !stablehlo.token) ->
+                          (tensor<2x2xi64>, !stablehlo.token) {
+    %results0:2 = "stablehlo.infeed"(%token) :
+        (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
+    func.return %results0#0, %results0#1: tensor<2x2xi64>, !stablehlo.token
+  }
+  func.func public @infeed_queue0() -> (tensor<2x2xi64>) {
+    %queue0 = stablehlo.constant dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
+    func.return %queue0 : tensor<2x2xi64>
+  }
+  func.func public @infeed_queue1() -> (tensor<2x2xi64>) {
+    %queue0 = stablehlo.constant dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>
+    func.return %queue0 : tensor<2x2xi64>
+  }
+  func.func public @main() {
+    %token = stablehlo.after_all : !stablehlo.token
+    %results:4 = "interpreter.run_parallel"(%token, %token) {
+      infeed=[@infeed_queue0, @infeed_queue1],
+      programs=[[@infeed], [@infeed]]
+    } : (!stablehlo.token, !stablehlo.token) ->
         (tensor<2x2xi64>, !stablehlo.token, tensor<2x2xi64>, !stablehlo.token)
     check.expect_eq_const %results#0, dense<[[1, 2], [3, 4]]> : tensor<2x2xi64>
     check.expect_eq_const %results#2, dense<[[5, 6], [7, 8]]> : tensor<2x2xi64>

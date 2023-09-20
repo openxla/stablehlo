@@ -95,7 +95,7 @@ class ProcessGrid {
   /// \name Constructors
   /// @{
   ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
-              std::queue<StringAttr> *infeed);
+              std::queue<StringAttr> &infeed);
   /// @}
 
   /// StableHLO `cross_partition` communication strategy.

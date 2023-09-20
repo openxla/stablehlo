@@ -68,7 +68,7 @@ LogicalResult RunParallelOp::verify() {
           numPartitions, " but got ", replica.cast<ArrayAttr>().size());
 
     for (auto &program : replica.cast<ArrayAttr>()) {
-      auto funcName = program.cast<StringAttr>();
+      auto funcName = program.cast<FlatSymbolRefAttr>().getAttr();
       auto func =
           (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
               funcName);
@@ -92,6 +92,32 @@ LogicalResult RunParallelOp::verify() {
         ") should match the sum of the number of results of all programs (",
         numResults, ")");
 
+  if (getInfeed()) {
+    if (getInfeed()->empty())
+      return emitOptionalError(
+          getLoc(), "infeed attribute is optional or should not be empty");
+
+    for (auto it = getInfeed()->begin(); it != getInfeed()->end(); ++it) {
+      auto funcName = (*it).dyn_cast<FlatSymbolRefAttr>().getAttr();
+      auto func =
+          (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
+              funcName);
+      if (!func)
+        return emitOptionalError(getLoc(), "Function ", funcName, " not found");
+
+      if (func.getNumResults() != 1)
+        return emitOptionalError(getLoc(), "Function ", funcName,
+                                 " should return 1 tensor but returns ",
+                                 func.getNumResults());
+
+      for (auto type : func.getResultTypes())
+        if (!type.isa<ShapedType>())
+          return emitOptionalError(
+              getLoc(), "Function ", funcName,
+              " should return a tensor type, but instead returns ", type);
+    }
+  }
+
   return success();
 }
 
@@ -100,15 +126,14 @@ LogicalResult RunParallelOp::verify() {
 //===----------------------------------------------------------------------===//
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> *infeed,
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable) {
   llvm::ThreadPool threadPool;
   SmallVector<std::shared_future<SmallVector<InterpreterValue>>> futures;
 
   uint32_t numReplicas = programs.size();
   uint32_t numPartitions = programs[0].size();
-  auto processGrid = infeed ? ProcessGrid(numReplicas, numPartitions, infeed)
-                            : ProcessGrid(numReplicas, numPartitions, nullptr);
+  ProcessGrid processGrid(numReplicas, numPartitions, infeed);
 
   auto inputsIt = inputs.begin();
 

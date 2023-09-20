@@ -16,7 +16,7 @@ module @cross_replica {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["all_reduce"], ["all_reduce"]]
+      programs=[[@all_reduce], [@all_reduce]]
     } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
     check.expect_eq_const %results#0, dense<[6, 8, 10, 12]> : tensor<4xi64>
     check.expect_eq_const %results#1, dense<[6, 8, 10, 12]> : tensor<4xi64>
@@ -42,7 +42,7 @@ module @cross_replica_and_partition {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["all_reduce"], ["all_reduce"]]
+      programs=[[@all_reduce], [@all_reduce]]
     } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
     check.expect_eq_const %results#0, dense<[6, 8, 10, 12]> : tensor<4xi64>
     check.expect_eq_const %results#1, dense<[6, 8, 10, 12]> : tensor<4xi64>
@@ -69,7 +69,7 @@ module @flattened_ids {
     %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["all_reduce"], ["all_reduce"]]
+      programs=[[@all_reduce], [@all_reduce]]
     } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
     check.expect_eq_const %results#0, dense<[6, 8, 10, 12]> : tensor<4xi64>
     check.expect_eq_const %results#1, dense<[6, 8, 10, 12]> : tensor<4xi64>
@@ -96,7 +96,7 @@ module @ragged_replica_groups {
     %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
     %inputs2 = stablehlo.constant dense<[6, 8, 10, 12]> : tensor<4xi64>
     %results:3 = "interpreter.run_parallel"(%inputs0, %inputs1, %inputs2) {
-      programs=[["all_reduce"], ["all_reduce"], ["all_reduce"]]
+      programs=[[@all_reduce], [@all_reduce], [@all_reduce]]
     } : (tensor<4xi64>, tensor<4xi64>, tensor<4xi64>) ->
         (tensor<4xi64>, tensor<4xi64>, tensor<4xi64>)
     check.expect_eq_const %results#0, dense<[6, 8, 10, 12]> : tensor<4xi64>

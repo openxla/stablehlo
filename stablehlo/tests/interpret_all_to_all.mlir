@@ -16,7 +16,7 @@ module @cross_replica {
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
                                          [13, 14, 15, 16]]> : tensor<2x4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["all_to_all"], ["all_to_all"]]
+      programs=[[@all_to_all], [@all_to_all]]
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<4x2xi64>, tensor<4x2xi64>)
     check.expect_eq_const %results#0, dense<[[1, 2],
                                              [5, 6],
@@ -49,7 +49,7 @@ module @cross_partition {
     %inputs1 = stablehlo.constant dense<[[9, 10, 11, 12],
                                          [13, 14, 15, 16]]> : tensor<2x4xi64>
     %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
-      programs=[["all_to_all", "all_to_all"]]
+      programs=[[@all_to_all, @all_to_all]]
     } : (tensor<2x4xi64>, tensor<2x4xi64>) -> (tensor<4x2xi64>, tensor<4x2xi64>)
     check.expect_eq_const %results#0, dense<[[1, 2],
                                              [5, 6],

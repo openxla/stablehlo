@@ -34,7 +34,7 @@ class InterpreterDialect : public Dialect {
 };
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> *infeed,
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
 
 }  // namespace interpreter
