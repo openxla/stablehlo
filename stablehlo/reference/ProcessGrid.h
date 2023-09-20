@@ -23,6 +23,7 @@ limitations under the License.
 #include <mutex>
 #include <optional>
 #include <queue>
+#include <set>
 #include <utility>
 
 #include "mlir/Support/LLVM.h"
@@ -52,6 +53,14 @@ struct RendezvousState {
   std::shared_ptr<RendezvousResult> result;
 };
 
+struct SendRecvState {
+  /// Synchronization primitive used to manage concurrent access to this
+  /// object.
+  std::mutex mutex;
+  /// Internal storage used to store data contributed by the processes.
+  SmallVector<Tensor> result;
+};
+
 /// Stores the result of `rendezvous` represented as a map that allows
 /// concurrent access.
 /// Each call to `rendezvous`, i.e. each combination `processGroup` and
@@ -64,11 +73,40 @@ class ThreadSafeMap {
   /// Returns a reference to the data associated with the `key`.
   V &operator[](const K &key);
 
+  /// Returns the size of the map.
+  size_t size();
+
  private:
   /// Synchronization primitive used to manage concurrent access to the map.
   std::mutex lock_;
   /// Internal storage used to implement `rendezvous`.
   std::map<K, V> map_;
+};
+
+/// Internal set that manages concurrent access to implement `send` and
+/// `recv`.
+template <typename T>
+class ThreadSafeSet {
+ public:
+  /// Returns an iterator that points one past the last element in the set.
+  typename std::set<T>::iterator end();
+
+  /// Remove `value` from the set.
+  void erase(T value);
+
+  /// Returns an iterator that points to the element `value`, or `end()` if
+  /// not found.
+  typename std::set<T>::iterator find(T value);
+
+  /// Add `value` to the set.
+  void insert(T value);
+
+ private:
+  /// Synchronization primitive used to manage concurrent access to the set.
+  std::mutex lock_;
+
+  /// Internal storage used to manage `send` and `recv` order.
+  std::set<T> set_;
 };
 
 /// StableHLO `infeed` and `outfeed` represented as a queue that allows
@@ -153,6 +191,8 @@ class RendezvousResult {
   /// `processId`. If key is not found, return an empty `Tensor`.
   Tensor lookup(ProcessId processId) const;
 
+  size_t size() const;
+
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.
   std::map<ProcessId, Tensor> result_;
@@ -188,6 +228,13 @@ class ProcessGrid {
   /// Inserts `inputs` to StableHLO `outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);
 
+  /// Receives data from a channel with `channelId` and returns the data.
+  /// `recv` has to be called first before `send` to indicate to the sending
+  /// process that the receiver is ready to receive data. The process then waits
+  /// until there is data in the channel. The data in the channel with
+  /// `channel_id` is returned.
+  SmallVector<Tensor> recv(ChannelId channelId, ProcessId processId);
+
   /// Synchronize a StableHLO process with the `processId` with other StableHLO
   /// processes in the `processGroup` using a `channelId`.
   ///
@@ -212,6 +259,12 @@ class ProcessGrid {
                                                      ProcessId processId,
                                                      const Tensor &operand);
 
+  /// Sends `inputs` to a channel with `channelId`.
+  /// The channel with `channel_id` is emptied before the receiving process can
+  /// receive values. If there are multiple processes sending data to a
+  /// duplciate `channelId`, the behavior is undefined.
+  void send(ArrayRef<Tensor> inputs, ChannelId channelId, ProcessId processId);
+
  private:
   /// StableHLO `num_replicas`.
   const uint32_t numReplicas_;
@@ -226,6 +279,23 @@ class ProcessGrid {
 
   /// See `ThreadSafeQueue`.
   detail::ThreadSafeQueue<SmallVector<Tensor>> outfeed_;
+
+  /// Internal storage used to implement `send` and `recv`.
+  /// `send` can write its data to the channel with ChannelId once the ops are
+  /// ready to communicate. `recv` receives data from the same channel once the
+  /// data is ready to read.
+  detail::ThreadSafeMap<ChannelId, detail::SendRecvState> sendRecvChannels_;
+
+  /// Synchronization primitive used to manage concurrent access to
+  /// `sendRecvChannels_`.
+  std::map<ChannelId, std::condition_variable> sendRecvConditions_;
+
+  /// Synchronization primitive used to signal send and recv operations are
+  /// ready to communicate.
+  /// The presence of a ChannelId in the set indicates that the receiving
+  /// process is ready to receive data using this ChannelId from the sender
+  /// process.
+  detail::ThreadSafeSet<ChannelId> sendRecvReady_;
 
   /// See `ThreadSafeMap`.
   detail::ThreadSafeMap<std::pair<ProcessGroup, ChannelId>,

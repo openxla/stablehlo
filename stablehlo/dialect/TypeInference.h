@@ -318,6 +318,8 @@ LogicalResult inferSelectAndScatterOp(
 
 LogicalResult inferSendOp(HloDialectInterface* dialect,
                           std::optional<Location> location,
+                          bool isDeviceToDevice, bool isDeviceToHost,
+                          bool isHostTransfer,
                           SmallVectorImpl<Type>& inferredReturnTypes);
 
 LogicalResult inferSetDimensionSizeOp(
@@ -450,7 +452,8 @@ LogicalResult verifyRealDynamicSliceOp(std::optional<Location> location,
 
 LogicalResult verifyRecvOp(HloDialectInterface* dialect,
                            std::optional<Location> location,
-                           ValueRange results);
+                           bool isDeviceToDevice, bool isHostToDevice,
+                           bool isHostTransfer, ValueRange results);
 
 LogicalResult verifyReduceOp(std::optional<Location> location,
                              ValueRange inputs, ValueRange initValues,

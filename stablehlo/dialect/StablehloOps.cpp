@@ -1330,10 +1330,14 @@ LogicalResult OutfeedOp::inferReturnTypes(
 
 LogicalResult SendOp::inferReturnTypes(
     MLIRContext* context, std::optional<Location> location, ValueRange operands,
-    DictionaryAttr, OpaqueProperties, RegionRange,
+    DictionaryAttr attributes, OpaqueProperties properties, RegionRange regions,
     SmallVectorImpl<Type>& inferredReturnTypes) {
+  SendOp::Adaptor adaptor(operands, attributes, properties, regions);
+  bool isDeviceToDevice = adaptor.getChannelHandle().getType() == 1;
+  bool isDeviceToHost = adaptor.getChannelHandle().getType() == 2;
   return hlo::inferSendOp(getStablehloDialect(context), location,
-                          inferredReturnTypes);
+                          isDeviceToDevice, isDeviceToHost,
+                          adaptor.getIsHostTransfer(), inferredReturnTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1341,8 +1345,11 @@ LogicalResult SendOp::inferReturnTypes(
 //===----------------------------------------------------------------------===//
 
 LogicalResult RecvOp::verify() {
+  bool isDeviceToDevice = getChannelHandle().getType() == 1;
+  bool isHostToDevice = getChannelHandle().getType() == 3;
   return hlo::verifyRecvOp(getStablehloDialect(getContext()), getLoc(),
-                           getResults());
+                           isDeviceToDevice, isHostToDevice,
+                           getIsHostTransfer(), getResults());
 }
 
 //===----------------------------------------------------------------------===//

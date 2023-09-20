@@ -77,6 +77,8 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
       llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
 
+size_t RendezvousResult::size() const { return result_.size(); }
+
 //===----------------------------------------------------------------------===//
 // ThreadSafeMap.
 //===----------------------------------------------------------------------===//
@@ -85,6 +87,39 @@ template <typename K, typename V>
 V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
+}
+
+template <typename K, typename V>
+size_t detail::ThreadSafeMap<K, V>::size() {
+  return map_.size();
+}
+
+//===----------------------------------------------------------------------===//
+// ThreadSafeSet.
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+typename std::set<T>::iterator detail::ThreadSafeSet<T>::end() {
+  std::lock_guard<std::mutex> lock(lock_);
+  return set_.end();
+}
+
+template <typename T>
+void detail::ThreadSafeSet<T>::erase(T input) {
+  std::lock_guard<std::mutex> lock(lock_);
+  set_.erase(input);
+}
+
+template <typename T>
+typename std::set<T>::iterator detail::ThreadSafeSet<T>::find(T value) {
+  std::lock_guard<std::mutex> lock(lock_);
+  return set_.find(value);
+}
+
+template <typename T>
+void detail::ThreadSafeSet<T>::insert(T input) {
+  std::lock_guard<std::mutex> lock(lock_);
+  set_.insert(input);
 }
 
 //===----------------------------------------------------------------------===//
@@ -182,6 +217,19 @@ void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
   outfeed_.push(llvm::to_vector(inputs));
 }
 
+SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
+                                      ProcessId processId) {
+  sendRecvReady_.insert(channelId);
+  sendRecvConditions_[channelId].notify_all();
+  auto &state = sendRecvChannels_[channelId];
+  std::unique_lock<std::mutex> lock(state.mutex);
+  if (!sendRecvConditions_[channelId].wait_for(
+          lock, std::chrono::seconds(3),
+          [&] { return sendRecvChannels_[channelId].result.size() != 0; }))
+    llvm::report_fatal_error("recv timed out");
+  return sendRecvChannels_[channelId].result;
+}
+
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
     const Tensor &operand) {
@@ -246,6 +294,20 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
         "rendezvous timed out: not all process has received the results yet");
 
   return result;
+}
+
+void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
+                       ProcessId processId) {
+  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
+  if (!sendRecvConditions_[channelId].wait_for(
+          lock, std::chrono::seconds(3), [&] {
+            return sendRecvReady_.find(channelId) != sendRecvReady_.end();
+          }))
+    llvm::report_fatal_error("send timed out");
+
+  sendRecvChannels_[channelId].result = llvm::to_vector(inputs);
+  sendRecvReady_.erase(channelId);
+  sendRecvConditions_[channelId].notify_all();
 }
 
 }  // namespace stablehlo

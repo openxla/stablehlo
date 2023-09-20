@@ -560,6 +560,13 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(realOp.getOperand());
       auto result = evalRealOp(operand, realOp.getType());
       scope.add(realOp.getResult(), result);
+    } else if (auto recvOp = dyn_cast<RecvOp>(op)) {
+      auto token = scope.findToken(recvOp.getToken());
+      ChannelId channelId = 0;
+      if (auto channelHandle = recvOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+      auto results = evalRecvOp(token, channelId, process);
+      scope.add(recvOp.getResults(), results);
     } else if (auto reduceOp = dyn_cast<ReduceOp>(op)) {
       auto inputs = scope.findTensors(reduceOp.getInputs());
       auto initValues = scope.findTensors(reduceOp.getInitValues());
@@ -728,6 +735,14 @@ SmallVector<InterpreterValue> eval(
       auto onFalse = scope.findTensor(selectOp.getOnFalse());
       auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
       scope.add(selectOp.getResult(), result);
+    } else if (auto sendOp = dyn_cast<SendOp>(op)) {
+      auto inputs = scope.findTensors(sendOp.getInputs());
+      auto token = scope.findToken(sendOp.getToken());
+      ChannelId channelId = 0;
+      if (auto channelHandle = sendOp.getChannelHandleAttr())
+        channelId = channelHandle.getHandle();
+      auto result = evalSendOp(inputs, token, channelId, process);
+      scope.add(sendOp.getResult(), result);
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
       auto lhs = scope.findTensor(shiftLeftOp.getLhs());
       auto rhs = scope.findTensor(shiftLeftOp.getRhs());
@@ -1547,6 +1562,14 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+SmallVector<InterpreterValue> evalRecvOp(Token token, ChannelId channelId,
+                                         Process *process) {
+  SmallVector<InterpreterValue> results;
+  for (auto tensor : process->recv(channelId)) results.push_back(tensor);
+  results.push_back(token);
+  return results;
+}
+
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<Tensor> initValues,
                                  const Axes &dimensions, Region &body,
@@ -1850,6 +1873,12 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
   return result;
+}
+
+Token evalSendOp(ArrayRef<Tensor> inputs, Token token, ChannelId channelId,
+                 Process *process) {
+  process->send(inputs, channelId);
+  return token;
 }
 
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,

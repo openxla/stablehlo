@@ -1890,7 +1890,62 @@ func.func @real_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
 
 // -----
 
-func.func @recv_non_token_second_result(%token: !stablehlo.token) -> tuple<tensor<3x4xi32>, tensor<i32>> {
+func.func @recv_c1(%token: !stablehlo.token) -> tuple<tensor<3x4xi32>, tensor<i32>> {
+  // expected-error@+1 {{channel_type should be DEVICE_TO_DEVICE when is_host_transfer is false}}
+  %0:2 = "stablehlo.recv"(%token) {
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 3  // Host to device channel
+    >
+  } : (!stablehlo.token) -> (tensor<3x4xi32>, tensor<i32>)
+  %1 =  "stablehlo.tuple"(%0#0, %0#1) : (tensor<3x4xi32>, tensor<i32>) -> tuple<tensor<3x4xi32>, tensor<i32>>
+  func.return %1 : tuple<tensor<3x4xi32>, tensor<i32>>
+}
+
+// -----
+
+func.func @recv_c1(%token: !stablehlo.token) -> tuple<tensor<3x4xi32>, tensor<i32>> {
+  // expected-error@+1 {{channel_type should be HOST_TO_DEVICE when is_host_transfer is true}}
+  %0:2 = "stablehlo.recv"(%token) {
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 1  // Device to device channel
+    >,
+    is_host_transfer = true
+  } : (!stablehlo.token) -> (tensor<3x4xi32>, tensor<i32>)
+  %1 =  "stablehlo.tuple"(%0#0, %0#1) : (tensor<3x4xi32>, tensor<i32>) -> tuple<tensor<3x4xi32>, tensor<i32>>
+  func.return %1 : tuple<tensor<3x4xi32>, tensor<i32>>
+}
+
+// -----
+
+func.func @recv_c2(%token: !stablehlo.token) {
+  // expected-error@+1 {{result is expected to be at least of size 1, but got 0}}
+  "stablehlo.recv"(%token) {
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 1  // Device to device channel
+    >
+  } : (!stablehlo.token) -> ()
+  func.return
+}
+
+// -----
+
+func.func @recv_c3(%token: !stablehlo.token) -> (!stablehlo.token, !stablehlo.token) {
+  // expected-error@+1 {{everything but the last element of result types is expected to be of tensor type, but got '!stablehlo.token'}}
+  %0:2 = "stablehlo.recv"(%token) {
+    channel_handle = #stablehlo.channel_handle<
+      handle = 5,
+      type = 1  // Device to device channel
+    >
+  } : (!stablehlo.token) -> (!stablehlo.token, !stablehlo.token)
+  func.return %0#0 : !stablehlo.token
+}
+
+// -----
+
+func.func @recv_c4(%token: !stablehlo.token) -> tuple<tensor<3x4xi32>, tensor<i32>> {
   // expected-error@+1 {{last element of result types is expected to be of token type, but got 'tensor<i32>'}}
   %0:2 = "stablehlo.recv"(%token) {
     channel_handle = #stablehlo.channel_handle<
@@ -2264,6 +2319,29 @@ func.func @slice_i2(%arg0: tensor<3x4xi32>) -> tensor<1x2xi32> {
     strides = dense<[[1, 2]]> : tensor<1x2xi64>
   } : (tensor<3x4xi32>) -> tensor<1x2xi32>
   func.return %0 : tensor<1x2xi32>
+}
+
+// -----
+
+func.func @send_c1(%arg0: tensor<2x2xi64>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{channel_type should be DEVICE_TO_DEVICE when is_host_transfer is false}}
+  %0 = "stablehlo.send"(%arg0, %arg1) {
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>
+  } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
+  func.return %0 : !stablehlo.token
+}
+
+// -----
+
+func.func @send_c1(%arg0: tensor<2x2xi64>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  // expected-error@+2 {{failed to infer returned types}}
+  // expected-error@+1 {{channel_type should be DEVICE_TO_HOST when is_host_transfer is true}}
+  %0 = "stablehlo.send"(%arg0, %arg1) {
+    channel_handle = #stablehlo.channel_handle<handle = 1, type = 1>,
+    is_host_transfer = true
+  } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
+  func.return %0 : !stablehlo.token
 }
 
 // -----

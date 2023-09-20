@@ -3956,7 +3956,7 @@ separate outputs to improve clarity
 
 | Label | Name               | Type                                            | Constraints |
 |-------|--------------------|-------------------------------------------------|-------------|
-| (I1)  | `token`            | `token`                                         | (C3)        |
+| (I1)  | `token`            | `token`                                         | (C4)        |
 | (I2)  | `channel_id`       | constant of type `si64`                         |             |
 | (I3)  | `channel_type`     | enum of `DEVICE_TO_DEVICE` and `HOST_TO_DEVICE` | (C1)        |
 | (I4)  | `is_host_transfer` | constant of type `i1`                           | (C1)        |
@@ -3965,7 +3965,7 @@ separate outputs to improve clarity
 
 | Name      | Type                                                    | Constraints |
 |-----------|---------------------------------------------------------|-------------|
-| `results` | variadic number of tensors, quantized tensors or tokens | (C2), (C3)  |
+| `results` | variadic number of tensors, quantized tensors or tokens | (C2-C4)     |
 
 #### Constraints
 
@@ -3973,18 +3973,19 @@ separate outputs to improve clarity
   * `HOST_TO_DEVICE` if `is_host_transfer = true`,
   * `DEVICE_TO_DEVICE` otherwise.
 * (C2) `0 < size(results)`.
-* (C3) `is_token(type(results[-1]))`.
+* (C3) `is_tensor(type(results[:-1]))`.
+* (C4) `is_token(type(results[-1]))`.
 
 #### Examples
 
 ```mlir
 %results0, %results1 = "stablehlo.recv"(%token) {
-  // channel_id = 5 : i64,
-  // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
-  channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+  channel_handle = #stablehlo.channel_handle<handle = 1, type = 3>,
   is_host_transfer = true
-} : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+} : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_send_recv.mlir)
 
 ### reduce
 
@@ -5030,12 +5031,12 @@ implementation-defined. This flag duplicates the information provided in
 
 ```mlir
 %result = "stablehlo.send"(%operand, %token) {
-  // channel_id = 5 : i64,
-  // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
-  channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+  channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>,
   is_host_transfer = true
-} : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
+} : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
 ```
+
+&nbsp;[More Examples](../stablehlo/tests/interpret_send_recv.mlir)
 
 ### shift_left
 
