@@ -3579,8 +3579,8 @@ LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
     if (!resultTypes[i].isa<TensorType>())
       return emitOptionalError(
           location,
-          "all elements of result types except the last element is expected to "
-          "be of tensor type, but got ",
+          "all elements of result types, except the last element, are expected "
+          "to be of tensor type, but got ",
           resultTypes[i]);
 
   // infeed_c3

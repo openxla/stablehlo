@@ -82,7 +82,7 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
 //===----------------------------------------------------------------------===//
 
 template <typename K, typename V>
-V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
+V &ThreadSafeMap<K, V>::operator[](const K &key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
 }
@@ -92,19 +92,23 @@ V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-T ProcessGrid::ThreadSafeQueue<T>::front() {
+ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
+    : queue_(queue) {}
+
+template <typename T>
+T ThreadSafeQueue<T>::front() {
   std::lock_guard<std::mutex> lock(lock_);
   return queue_.front();
 }
 
 template <typename T>
-void ProcessGrid::ThreadSafeQueue<T>::pop() {
+void ThreadSafeQueue<T>::pop() {
   std::lock_guard<std::mutex> lock(lock_);
   queue_.pop();
 }
 
 template <typename T>
-void ProcessGrid::ThreadSafeQueue<T>::push(T input) {
+void ThreadSafeQueue<T>::push(T input) {
   std::lock_guard<std::mutex> lock(lock_);
   queue_.emplace(input);
 }
@@ -115,13 +119,9 @@ void ProcessGrid::ThreadSafeQueue<T>::push(T input) {
 
 ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
                          std::queue<StringAttr> &infeed)
-    : numReplicas_(numReplicas), numPartitions_(numPartitions) {
-  while (!infeed.empty()) {
-    auto head = infeed.front();
-    infeed.pop();
-    infeed_.push(head);
-  }
-}
+    : numReplicas_(numReplicas),
+      numPartitions_(numPartitions),
+      infeed_(infeed) {}
 
 ProcessGroups ProcessGrid::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
@@ -186,7 +186,9 @@ StringAttr ProcessGrid::infeed() {
   return result;
 }
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.push(inputs); }
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
+  outfeed_.push(llvm::to_vector(inputs));
+}
 
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,

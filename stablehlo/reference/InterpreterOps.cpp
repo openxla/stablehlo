@@ -69,9 +69,9 @@ LogicalResult RunParallelOp::verify() {
 
     for (auto &program : replica.cast<ArrayAttr>()) {
       auto funcName = program.cast<FlatSymbolRefAttr>().getAttr();
-      auto func =
-          (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
-              funcName);
+      auto func = getOperation()
+                      ->getParentOfType<ModuleOp>()
+                      .lookupSymbol<func::FuncOp>(funcName);
       if (!func)
         return emitOptionalError(getLoc(), "Function ", funcName, " not found");
 
@@ -92,16 +92,16 @@ LogicalResult RunParallelOp::verify() {
         ") should match the sum of the number of results of all programs (",
         numResults, ")");
 
-  if (getInfeed()) {
-    if (getInfeed()->empty())
+  if (const auto &infeed = getInfeed()) {
+    if (infeed->empty())
       return emitOptionalError(
           getLoc(), "infeed attribute is optional or should not be empty");
 
-    for (auto it = getInfeed()->begin(); it != getInfeed()->end(); ++it) {
-      auto funcName = (*it).dyn_cast<FlatSymbolRefAttr>().getAttr();
-      auto func =
-          (*this)->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
-              funcName);
+    for (auto flatSymbolRefAttr : infeed->getAsRange<FlatSymbolRefAttr>()) {
+      auto funcName = flatSymbolRefAttr.getAttr();
+      auto func = getOperation()
+                      ->getParentOfType<ModuleOp>()
+                      .lookupSymbol<func::FuncOp>(funcName);
       if (!func)
         return emitOptionalError(getLoc(), "Function ", funcName, " not found");
 
@@ -110,11 +110,11 @@ LogicalResult RunParallelOp::verify() {
                                  " should return 1 tensor but returns ",
                                  func.getNumResults());
 
-      for (auto type : func.getResultTypes())
-        if (!type.isa<ShapedType>())
-          return emitOptionalError(
-              getLoc(), "Function ", funcName,
-              " should return a tensor type, but instead returns ", type);
+      auto resultType = func.getResultTypes()[0];
+      if (!resultType.isa<ShapedType>())
+        return emitOptionalError(
+            getLoc(), "Function ", funcName,
+            " should return a tensor type, but instead returns ", resultType);
     }
   }
 
