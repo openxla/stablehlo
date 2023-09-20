@@ -604,11 +604,11 @@ func.func @default_outfeed(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stab
 func.func @default_recv(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token) {
   //      CHECK: "vhlo.recv_v1"(%arg0) {
   // CHECK-SAME:   channel_id = #vhlo.integer_v1<0 : i64>,
-  // CHECK-SAME:   channel_type = #vhlo.integer_v1<0 : i64>,
+  // CHECK-SAME:   channel_type = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   is_host_transfer = #vhlo.bool_v1<false>
   // CHECK-SAME: } : (!vhlo.token_v1) -> (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.token_v1)
   %0:2 = "stablehlo.recv"(%arg0) {
-    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>
   } : (!stablehlo.token) -> (tensor<f32>, !stablehlo.token)
   func.return %0#0, %0#1 : tensor<f32>, !stablehlo.token
 }
@@ -617,11 +617,11 @@ func.func @default_recv(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.tok
 func.func @default_send(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   //      CHECK: "vhlo.send_v1"(%arg0, %arg1) {
   // CHECK-SAME:   channel_id = #vhlo.integer_v1<0 : i64>,
-  // CHECK-SAME:   channel_type = #vhlo.integer_v1<0 : i64>,
+  // CHECK-SAME:   channel_type = #vhlo.integer_v1<1 : i64>,
   // CHECK-SAME:   is_host_transfer = #vhlo.bool_v1<false>
   // CHECK-SAME: } : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.token_v1) -> !vhlo.token_v1
   %0 = "stablehlo.send"(%arg0, %arg1) {
-    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 1>
   } : (tensor<f32>, !stablehlo.token) -> !stablehlo.token
   func.return %0 : !stablehlo.token
 }
@@ -1587,11 +1587,11 @@ func.func @op_real(%arg0: tensor<complex<f32>>) -> tensor<f32> {
 func.func @op_recv(%arg0: !stablehlo.token) -> (tensor<f32>, !stablehlo.token) {
   //      CHECK: "vhlo.recv_v1"(%arg0) {
   // CHECK-SAME:   channel_id = #vhlo.integer_v1<0 : i64>,
-  // CHECK-SAME:   channel_type = #vhlo.integer_v1<0 : i64>,
+  // CHECK-SAME:   channel_type = #vhlo.integer_v1<3 : i64>,
   // CHECK-SAME:   is_host_transfer = #vhlo.bool_v1<true>
   // CHECK-SAME: } : (!vhlo.token_v1) -> (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.token_v1)
   %0:2 = "stablehlo.recv"(%arg0) {
-    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 3>,
     is_host_transfer = true
   } : (!stablehlo.token) -> (tensor<f32>, !stablehlo.token)
   func.return %0#0, %0#1 : tensor<f32>, !stablehlo.token
@@ -1840,11 +1840,11 @@ func.func @op_select(%arg0: tensor<i1>, %arg1: tensor<f32>, %arg2: tensor<f32>) 
 func.func @op_send(%arg0: tensor<f32>, %arg1: !stablehlo.token) -> !stablehlo.token {
   //      CHECK: "vhlo.send_v1"(%arg0, %arg1) {
   // CHECK-SAME:   channel_id = #vhlo.integer_v1<0 : i64>,
-  // CHECK-SAME:   channel_type = #vhlo.integer_v1<0 : i64>,
+  // CHECK-SAME:   channel_type = #vhlo.integer_v1<2 : i64>,
   // CHECK-SAME:   is_host_transfer = #vhlo.bool_v1<true>
   // CHECK-SAME: } : (!vhlo.tensor_v1<!vhlo.f32_v1>, !vhlo.token_v1) -> !vhlo.token_v1
   %0 = "stablehlo.send"(%arg0, %arg1) {
-    channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>,
+    channel_handle = #stablehlo.channel_handle<handle = 0, type = 2>,
     is_host_transfer = true
   } : (tensor<f32>, !stablehlo.token) -> !stablehlo.token
   func.return %0 : !stablehlo.token
