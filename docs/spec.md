@@ -3973,7 +3973,7 @@ separate outputs to improve clarity
   * `HOST_TO_DEVICE` if `is_host_transfer = true`,
   * `DEVICE_TO_DEVICE` otherwise.
 * (C2) `0 < size(results)`.
-* (C3) `is_tensor(type(results[:-1]))`.
+* (C3) `is_empty(result[:-1])` or `is_tensor(type(results[:-1]))`.
 * (C4) `is_token(type(results[-1]))`.
 
 #### Examples

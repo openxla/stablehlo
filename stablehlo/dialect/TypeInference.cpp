@@ -3697,28 +3697,28 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
                              "channel_type should be HOST_TO_DEVICE when "
                              "is_host_transfer is true");
 
-  auto resultTypes = results.getTypes();
   // recv_c2
-  if (resultTypes.empty())
+  if (results.empty())
     return emitOptionalError(
         location, "result is expected to be at least of size 1, but got ",
-        resultTypes.size());
+        results.size());
 
   // recv_c3
-  for (size_t i = 0; i < resultTypes.size() - 1; ++i)
-    if (!resultTypes[i].isa<TensorType>())
+  for (auto resultType : results.drop_back().getTypes())
+    if (!resultType.isa<TensorType>())
       return emitOptionalError(
           location,
           "everything but the last element of result types is expected to be "
           "of tensor type, but got ",
-          resultTypes[i]);
+          resultType);
 
   // recv_c4
-  if (!dialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+  if (!dialect->isTokenType(results.back().getType()))
     return emitOptionalError(location,
                              "last element of result types is expected to "
                              "be of token type, but got ",
-                             resultTypes[resultTypes.size() - 1]);
+                             results.back().getType());
+
   return success();
 }
 

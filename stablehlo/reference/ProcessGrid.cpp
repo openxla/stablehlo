@@ -220,13 +220,15 @@ void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
 SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
                                       ProcessId processId) {
   sendRecvReady_.insert(channelId);
-  sendRecvConditions_[channelId].notify_all();
+  sendRecvConditions_[channelId].notify_one();
+
   auto &state = sendRecvChannels_[channelId];
   std::unique_lock<std::mutex> lock(state.mutex);
   if (!sendRecvConditions_[channelId].wait_for(
           lock, std::chrono::seconds(3),
           [&] { return sendRecvChannels_[channelId].result.size() != 0; }))
     llvm::report_fatal_error("recv timed out");
+
   return sendRecvChannels_[channelId].result;
 }
 
@@ -307,7 +309,7 @@ void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
 
   sendRecvChannels_[channelId].result = llvm::to_vector(inputs);
   sendRecvReady_.erase(channelId);
-  sendRecvConditions_[channelId].notify_all();
+  sendRecvConditions_[channelId].notify_one();
 }
 
 }  // namespace stablehlo
