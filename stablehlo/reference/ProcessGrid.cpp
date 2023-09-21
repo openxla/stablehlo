@@ -82,7 +82,7 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
 //===----------------------------------------------------------------------===//
 
 template <typename K, typename V>
-V &ThreadSafeMap<K, V>::operator[](const K &key) {
+V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
 }
@@ -92,23 +92,23 @@ V &ThreadSafeMap<K, V>::operator[](const K &key) {
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
+detail::ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
     : queue_(queue) {}
 
 template <typename T>
-T ThreadSafeQueue<T>::front() {
+T detail::ThreadSafeQueue<T>::front() {
   std::lock_guard<std::mutex> lock(lock_);
   return queue_.front();
 }
 
 template <typename T>
-void ThreadSafeQueue<T>::pop() {
+void detail::ThreadSafeQueue<T>::pop() {
   std::lock_guard<std::mutex> lock(lock_);
   queue_.pop();
 }
 
 template <typename T>
-void ThreadSafeQueue<T>::push(T input) {
+void detail::ThreadSafeQueue<T>::push(T input) {
   std::lock_guard<std::mutex> lock(lock_);
   queue_.emplace(input);
 }

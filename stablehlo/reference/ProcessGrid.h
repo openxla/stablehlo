@@ -34,7 +34,7 @@ namespace stablehlo {
 struct ProcessId;
 class RendezvousResult;
 
-namespace {
+namespace detail {
 
 /// Internal storate used in `rendezvous` to manage concurrent access to the
 /// shared resource. Processes contribute their data to `values` concurrently.
@@ -99,7 +99,7 @@ class ThreadSafeQueue {
   std::queue<T> queue_;
 };
 
-}  // namespace
+}  // namespace detail
 
 using ChannelId = int64_t;
 
@@ -225,16 +225,19 @@ class ProcessGrid {
   /// Interal queue of strings which represents `func::FuncOp` mnemonic that
   /// returns a vector of Tensor. The function name is stored instead of the
   /// vector of tensors to save memory. See `ThreadSafeQueue`.
-  ThreadSafeQueue<StringAttr> infeed_;
+  detail::ThreadSafeQueue<StringAttr> infeed_;
 
   /// See `ThreadSafeQueue`.
-  ThreadSafeQueue<SmallVector<Tensor>> outfeed_;
+  detail::ThreadSafeQueue<SmallVector<Tensor>> outfeed_;
 
   /// See `ThreadSafeMap`.
-  ThreadSafeMap<std::pair<ProcessGroup, ChannelId>, RendezvousState> channels_;
+  detail::ThreadSafeMap<std::pair<ProcessGroup, ChannelId>,
+                        detail::RendezvousState>
+      channels_;
 
   /// Synchronization primitive used to manage concurrent access to `channels_`.
-  ThreadSafeMap<std::pair<ProcessGroup, ChannelId>, std::condition_variable>
+  detail::ThreadSafeMap<std::pair<ProcessGroup, ChannelId>,
+                        std::condition_variable>
       channelConditions_;
 };
 
