@@ -96,15 +96,11 @@ detail::ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
     : queue_(queue) {}
 
 template <typename T>
-T detail::ThreadSafeQueue<T>::front() {
+T detail::ThreadSafeQueue<T>::pop() {
   std::lock_guard<std::mutex> lock(lock_);
-  return queue_.front();
-}
-
-template <typename T>
-void detail::ThreadSafeQueue<T>::pop() {
-  std::lock_guard<std::mutex> lock(lock_);
+  auto result = queue_.front();
   queue_.pop();
+  return result;
 }
 
 template <typename T>
@@ -180,11 +176,7 @@ ProcessGroups ProcessGrid::flattenedIds(
   return processGroups;
 }
 
-StringAttr ProcessGrid::infeed() {
-  auto result = infeed_.front();
-  infeed_.pop();
-  return result;
-}
+StringAttr ProcessGrid::infeed() { return infeed_.pop(); }
 
 void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
   outfeed_.push(llvm::to_vector(inputs));

@@ -82,11 +82,8 @@ class ThreadSafeQueue {
   ThreadSafeQueue(const std::queue<T> &queue);
   /// @}
 
-  /// Returns a copy of the data at the first element of the queue.
-  T front();
-
-  /// Remove the first element of the queue.
-  void pop();
+  /// Remove the first element of the queue and return it.
+  T pop();
 
   /// Add `inputs` to the end of the queue.
   void push(T inputs);
