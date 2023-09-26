@@ -3575,20 +3575,20 @@ LogicalResult verifyInfeedOp(HloDialectInterface* dialect,
         resultTypes.size());
 
   // infeed_c2
-  for (size_t i = 0; i < resultTypes.size() - 1; ++i)
-    if (!resultTypes[i].isa<TensorType>())
+  for (auto resultType : results.drop_back().getTypes())
+    if (!resultType.isa<TensorType>())
       return emitOptionalError(
           location,
           "all elements of result types, except the last element, are expected "
           "to be of tensor type, but got ",
-          resultTypes[i]);
+          resultType);
 
   // infeed_c3
-  if (!dialect->isTokenType(resultTypes[resultTypes.size() - 1]))
+  if (!dialect->isTokenType(results.back().getType()))
     return emitOptionalError(location,
                              "last element of result types is expected to "
                              "be of token type, but got ",
-                             resultTypes[resultTypes.size() - 1]);
+                             results.back().getType());
 
   if (!layout.has_value()) return success();
   if (!layout.value())
