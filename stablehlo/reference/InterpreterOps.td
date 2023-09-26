@@ -66,7 +66,7 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
-      infeed=[%infeed_queue0, @infeed_queue1]
+      infeed=[@infeed_queue0, @infeed_queue1]
       programs=[[@foo], [@bar]]
     } : () -> (tensor<ui32>, tensor<ui32>)
     ```
