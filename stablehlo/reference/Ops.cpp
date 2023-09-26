@@ -468,6 +468,10 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(imagOp.getOperand());
       auto result = evalImagOp(operand, imagOp.getType());
       scope.add(imagOp.getResult(), result);
+    } else if (auto infeedOp = dyn_cast<InfeedOp>(op)) {
+      auto token = scope.findToken(infeedOp.getToken());
+      auto results = evalInfeedOp(token, process, region, scope);
+      scope.add(infeedOp.getResults(), results);
     } else if (auto iotaOp = dyn_cast<IotaOp>(op)) {
       auto iotaDimension = iotaOp.getIotaDimension();
       auto result = evalIotaOp(iotaDimension, iotaOp.getType());
@@ -1370,6 +1374,21 @@ Tensor evalImagOp(const Tensor &operand, ShapedType resultType) {
   for (auto it = result.index_begin(); it != result.index_end(); ++it)
     result.set(*it, imag(operand.get(*it)));
   return result;
+}
+
+SmallVector<InterpreterValue> evalInfeedOp(Token token, Process *process,
+                                           Region &region, Scope &scope) {
+  if (!process)
+    llvm::report_fatal_error(
+        "infeed is only supported when run via interpreter.run_parallel");
+
+  auto mnemonic = process->infeed();
+  auto results = eval(region.getParentOfType<ModuleOp>()
+                          .lookupSymbol<func::FuncOp>(mnemonic)
+                          .getBody(),
+                      {}, process, &scope);
+  results.push_back(token);
+  return results;
 }
 
 Tensor evalIotaOp(Axis iotaDimension, ShapedType resultType) {

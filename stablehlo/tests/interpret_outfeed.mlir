@@ -11,7 +11,7 @@ module @distribution_ops {
                                          [[5, 6], [7, 8]]]> : tensor<2x2x2xi64>
     %token = stablehlo.after_all : !stablehlo.token
     %results0 = "interpreter.run_parallel"(%inputs0, %token) {
-      programs=[["outfeed"]]
+      programs=[[@outfeed]]
     } : (tensor<2x2x2xi64>, !stablehlo.token) -> !stablehlo.token
     func.return
   }

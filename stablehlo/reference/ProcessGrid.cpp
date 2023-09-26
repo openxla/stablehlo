@@ -82,7 +82,7 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
 //===----------------------------------------------------------------------===//
 
 template <typename K, typename V>
-V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
+V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
 }
@@ -91,17 +91,33 @@ V &ProcessGrid::ThreadSafeMap<K, V>::operator[](const K &key) {
 // ThreadSafeQueue.
 //===----------------------------------------------------------------------===//
 
-void ProcessGrid::ThreadSafeQueue::push(ArrayRef<Tensor> inputs) {
+template <typename T>
+detail::ThreadSafeQueue<T>::ThreadSafeQueue(const std::queue<T> &queue)
+    : queue_(queue) {}
+
+template <typename T>
+T detail::ThreadSafeQueue<T>::pop() {
   std::lock_guard<std::mutex> lock(lock_);
-  queue_.emplace(inputs);
+  auto result = queue_.front();
+  queue_.pop();
+  return result;
+}
+
+template <typename T>
+void detail::ThreadSafeQueue<T>::push(T input) {
+  std::lock_guard<std::mutex> lock(lock_);
+  queue_.emplace(input);
 }
 
 //===----------------------------------------------------------------------===//
 // ProcessGrid.
 //===----------------------------------------------------------------------===//
 
-ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions)
-    : numReplicas_(numReplicas), numPartitions_(numPartitions) {}
+ProcessGrid::ProcessGrid(uint32_t numReplicas, uint32_t numPartitions,
+                         std::queue<StringAttr> &infeed)
+    : numReplicas_(numReplicas),
+      numPartitions_(numPartitions),
+      infeed_(infeed) {}
 
 ProcessGroups ProcessGrid::crossPartition(
     SmallVector<SmallVector<uint32_t>> partitionGroups) {
@@ -160,7 +176,11 @@ ProcessGroups ProcessGrid::flattenedIds(
   return processGroups;
 }
 
-void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) { outfeed_.push(inputs); }
+StringAttr ProcessGrid::infeed() { return infeed_.pop(); }
+
+void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
+  outfeed_.push(llvm::to_vector(inputs));
+}
 
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,

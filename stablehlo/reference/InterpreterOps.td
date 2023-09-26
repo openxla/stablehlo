@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_INTERPRETER_OPS
 #define STABLEHLO_REFERENCE_INTERPRETER_OPS
 
+include "mlir/IR/OpBase.td"
 include "stablehlo/dialect/Base.td"
 
 //===----------------------------------------------------------------------===//
@@ -34,8 +35,9 @@ def Interpreter_Dialect : Dialect {
   let usePropertiesForAttributes = 0;
 }
 
-def Interpreter_ArrayOfStrArrayAttr : TypedArrayAttrBase<StrArrayAttr,
-    "Array of StrArrayAttr">;
+def Interpreter_ArrayOfFlatSymbolRefArrayAttr :
+    TypedArrayAttrBase<FlatSymbolRefArrayAttr,
+    "Array of FlatSymbolRefArrayAttr">;
 
 //===----------------------------------------------------------------------===//
 // Interpreter op definitions.
@@ -64,13 +66,15 @@ def Interpreter_RunParallelOp : Op<Interpreter_Dialect, "run_parallel", []> {
     Example:
     ```mlir
     %results:2 = "interpreter.run_parallel"() {
-      programs=[["foo"], ["bar"]]
+      infeed=[@infeed_queue0, @infeed_queue1]
+      programs=[[@foo], [@bar]]
     } : () -> (tensor<ui32>, tensor<ui32>)
     ```
   }];
   let arguments = (ins
     Variadic<HLO_TensorOrToken>:$inputs,
-    Interpreter_ArrayOfStrArrayAttr:$programs
+    OptionalAttr<FlatSymbolRefArrayAttr>:$infeed,
+    Interpreter_ArrayOfFlatSymbolRefArrayAttr:$programs
   );
   let results = (outs Variadic<HLO_TensorOrToken>:$results);
   let hasVerifier = 1;

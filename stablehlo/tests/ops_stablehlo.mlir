@@ -1632,16 +1632,7 @@ func.func @imag_unranked(%arg0: tensor<*xf32>) -> tensor<*xf32> {
 
 // -----
 
-func.func @infeed_non_token_second_result(%token: !stablehlo.token) -> tuple<tensor<i32>, tensor<i32>> {
-  // expected-error@+1 {{last element of result types is expected to be of token type, but got 'tensor<i32>'}}
-  %0:2 = "stablehlo.infeed"(%token) {infeed_config = "foobar", layout = [[[0]], [0]]} : (!stablehlo.token) -> (tensor<i32>, tensor<i32>)
-  %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<i32>, tensor<i32>) -> tuple<tensor<i32>, tensor<i32>>
-  func.return %1 : tuple<tensor<i32>, tensor<i32>>
-}
-
-// -----
-
-func.func @main(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
+func.func @infeed(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
   // expected-error@+1 {{layout-attribute size must be 2 (which is the number of op-results - 1 (for token result)), but got 1}}
   %0:3 = "stablehlo.infeed"(%arg0) {infeed_config = "foobar", layout=[[0, 1]]} : (!stablehlo.token) -> (tensor<3x3xi32>, tensor<i1>, !stablehlo.token)
   func.return %0#0 : tensor<3x3xi32>
@@ -1649,7 +1640,7 @@ func.func @main(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
 
 // -----
 
-func.func @main(%arg0: !stablehlo.token) -> !stablehlo.token {
+func.func @infeed(%arg0: !stablehlo.token) -> !stablehlo.token {
   // expected-error@+1 {{layout-attribute size must be 0 (which is the number of op-results - 1 (for token result)), but got 1}}
   %0:1 = "stablehlo.infeed"(%arg0) {infeed_config = "foobar", layout=[[]]} : (!stablehlo.token) -> (!stablehlo.token)
   func.return %0#0 : !stablehlo.token
@@ -1657,7 +1648,7 @@ func.func @main(%arg0: !stablehlo.token) -> !stablehlo.token {
 
 // -----
 
-func.func @main(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
+func.func @infeed(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
   // expected-error@+1 {{layout-attribute expected to have elements of type array, but got 0 : i64}}
   %0:2 = "stablehlo.infeed"(%arg0) {infeed_config = "foobar", layout=[0]} : (!stablehlo.token) -> (tensor<3x3xi32>, !stablehlo.token)
   func.return %0#0 : tensor<3x3xi32>
@@ -1665,10 +1656,36 @@ func.func @main(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
 
 // -----
 
-func.func @main(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
-  // expected-error@+1 {{ayout-attribute's leaf elements are expected to be of type integer, but got []}}
+func.func @infeed(%arg0: !stablehlo.token) -> tensor<3x3xi32> {
+  // expected-error@+1 {{layout-attribute's leaf elements are expected to be of type integer, but got []}}
   %0:2 = "stablehlo.infeed"(%arg0) {infeed_config = "foobar", layout=[[0,[]]]} : (!stablehlo.token) -> (tensor<3x3xi32>, !stablehlo.token)
   func.return %0#0 : tensor<3x3xi32>
+}
+
+// -----
+
+func.func @infeed_c1(%token: !stablehlo.token) -> tensor<3x3xi32> {
+  // expected-error@+1 {{result is expected to be at least of size 1, but got 0}}
+  "stablehlo.infeed"(%token) {infeed_config = "foobar", layout=[[[0]], [0]]} : (!stablehlo.token) -> ()
+  func.return
+}
+
+// -----
+
+func.func @infeed_c2(%token: !stablehlo.token) -> tuple<!stablehlo.token, !stablehlo.token> {
+  // expected-error@+1 {{all elements of result types, except the last element, are expected to be of tensor type, but got '!stablehlo.token'}}
+  %0:2 = "stablehlo.infeed"(%token) {infeed_config = "foobar", layout = [[[0]], [0]]} : (!stablehlo.token) -> (!stablehlo.token, !stablehlo.token)
+  %1 = "stablehlo.tuple"(%0#0, %0#1) : (!stablehlo.token, !stablehlo.token) -> tuple<!stablehlo.token, !stablehlo.token>
+  func.return %1 : tuple<!stablehlo.token, !stablehlo.token>
+}
+
+// -----
+
+func.func @infeed_c3(%token: !stablehlo.token) -> tuple<tensor<i32>, tensor<i32>> {
+  // expected-error@+1 {{last element of result types is expected to be of token type, but got 'tensor<i32>'}}
+  %0:2 = "stablehlo.infeed"(%token) {infeed_config = "foobar", layout = [[[0]], [0]]} : (!stablehlo.token) -> (tensor<i32>, tensor<i32>)
+  %1 = "stablehlo.tuple"(%0#0, %0#1) : (tensor<i32>, tensor<i32>) -> tuple<tensor<i32>, tensor<i32>>
+  func.return %1 : tuple<tensor<i32>, tensor<i32>>
 }
 
 // -----

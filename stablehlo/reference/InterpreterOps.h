@@ -16,6 +16,8 @@ limitations under the License.
 #ifndef STABLEHLO_REFERENCE_INTERPRETEROPS_H
 #define STABLEHLO_REFERENCE_INTERPRETEROPS_H
 
+#include <queue>
+
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LLVM.h"
@@ -32,7 +34,7 @@ class InterpreterDialect : public Dialect {
 };
 
 SmallVector<InterpreterValue> evalRunParallelOp(
-    ArrayRef<InterpreterValue> inputs,
+    ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
 
 }  // namespace interpreter
