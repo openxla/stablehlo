@@ -88,15 +88,11 @@ class ThreadSafeMap {
 template <typename T>
 class ThreadSafeSet {
  public:
-  /// Returns an iterator that points one past the last element in the set.
-  typename std::set<T>::iterator end();
+  /// Returns whether the element `value` exists in the set.
+  bool contains(T value);
 
   /// Remove `value` from the set.
   void erase(T value);
-
-  /// Returns an iterator that points to the element `value`, or `end()` if
-  /// not found.
-  typename std::set<T>::iterator find(T value);
 
   /// Add `value` to the set.
   void insert(T value);
@@ -272,7 +268,7 @@ class ProcessGrid {
   /// StableHLO `num_partitions`.
   const uint32_t numPartitions_;
 
-  /// Interal queue of strings which represents `func::FuncOp` mnemonic that
+  /// Internal queue of strings which represents `func::FuncOp` mnemonic that
   /// returns a vector of Tensor. The function name is stored instead of the
   /// vector of tensors to save memory. See `ThreadSafeQueue`.
   detail::ThreadSafeQueue<StringAttr> infeed_;

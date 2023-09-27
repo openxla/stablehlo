@@ -621,8 +621,7 @@ SmallVector<InterpreterValue> eval(
 
       Sizes paddingLow(rank, 0), paddingHigh(rank, 0);
       if (auto paddingAttr = reduceWindowOp.getPadding()) {
-        auto paddingOrErr =
-            hlo::convertPaddingAttribute(reduceWindowOp.getPadding(), {});
+        auto paddingOrErr = hlo::convertPaddingAttribute(paddingAttr, {});
         if (failed(paddingOrErr))
           report_fatal_error(invalidArgument("Invalid padding format found."));
         for (auto i = 0; i < static_cast<int64_t>(paddingOrErr->size()); ++i) {
@@ -1564,7 +1563,7 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
 SmallVector<InterpreterValue> evalRecvOp(Token token, ChannelId channelId,
                                          Process *process) {
   SmallVector<InterpreterValue> results;
-  for (auto tensor : process->recv(channelId)) results.push_back(tensor);
+  for (const auto &tensor : process->recv(channelId)) results.push_back(tensor);
   results.push_back(token);
   return results;
 }

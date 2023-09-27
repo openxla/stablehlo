@@ -1089,7 +1089,7 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
   let arguments = (ins
     HLO_Token:$token, /*recv_i1*/
     StableHLO_ChannelHandle:$channel_handle, /*recv_i2_i3*/
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*recv_i3*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*recv_i4*/
   );
 
   let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);

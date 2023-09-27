@@ -99,27 +99,21 @@ size_t detail::ThreadSafeMap<K, V>::size() {
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-typename std::set<T>::iterator detail::ThreadSafeSet<T>::end() {
+bool detail::ThreadSafeSet<T>::contains(T value) {
   std::lock_guard<std::mutex> lock(lock_);
-  return set_.end();
+  return set_.find(value) != set_.end();
 }
 
 template <typename T>
-void detail::ThreadSafeSet<T>::erase(T input) {
+void detail::ThreadSafeSet<T>::erase(T value) {
   std::lock_guard<std::mutex> lock(lock_);
-  set_.erase(input);
+  set_.erase(value);
 }
 
 template <typename T>
-typename std::set<T>::iterator detail::ThreadSafeSet<T>::find(T value) {
+void detail::ThreadSafeSet<T>::insert(T value) {
   std::lock_guard<std::mutex> lock(lock_);
-  return set_.find(value);
-}
-
-template <typename T>
-void detail::ThreadSafeSet<T>::insert(T input) {
-  std::lock_guard<std::mutex> lock(lock_);
-  set_.insert(input);
+  set_.insert(value);
 }
 
 //===----------------------------------------------------------------------===//
@@ -222,11 +216,10 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
   sendRecvReady_.insert(channelId);
   sendRecvConditions_[channelId].notify_one();
 
-  auto &state = sendRecvChannels_[channelId];
-  std::unique_lock<std::mutex> lock(state.mutex);
+  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
   if (!sendRecvConditions_[channelId].wait_for(
           lock, std::chrono::seconds(3),
-          [&] { return sendRecvChannels_[channelId].result.size() != 0; }))
+          [&] { return !sendRecvChannels_[channelId].result.empty(); }))
     llvm::report_fatal_error("recv timed out");
 
   return sendRecvChannels_[channelId].result;
@@ -302,9 +295,8 @@ void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
                        ProcessId processId) {
   std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
   if (!sendRecvConditions_[channelId].wait_for(
-          lock, std::chrono::seconds(3), [&] {
-            return sendRecvReady_.find(channelId) != sendRecvReady_.end();
-          }))
+          lock, std::chrono::seconds(3),
+          [&] { return sendRecvReady_.contains(channelId); }))
     llvm::report_fatal_error("send timed out");
 
   sendRecvChannels_[channelId].result = llvm::to_vector(inputs);
