@@ -1859,7 +1859,7 @@ def StableHLO_BroadcastOp : StableHLO_ShapedInterfaceOp<"broadcast",
 }
 
 def StableHLO_BroadcastInDimOp : StableHLO_Op<"broadcast_in_dim",
-      [Pure, SameOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
+      [Pure, HLO_CompatibleOperandsAndResultElementType /*broadcast_in_dim_c1*/]> {
   let summary = "BroadcastInDim operation";
   let description = [{
     Expands the dimensions and/or rank of an input tensor by duplicating the
@@ -2432,7 +2432,7 @@ def StableHLO_MapOp: StableHLO_ShapedInterfaceOp<"map",
 }
 
 def StableHLO_ReshapeOp: StableHLO_Op<"reshape",
-      [Pure, SameOperandsAndResultElementType]> {
+      [Pure, HLO_CompatibleOperandsAndResultElementType]> {
   let summary = "Reshape operation";
   let description = [{
     Performs reshape of `operand` tensor to a `result` tensor.
@@ -2759,7 +2759,7 @@ def StableHLO_TraceOp: StableHLO_Op<"trace", []> {
 }
 
 def StableHLO_TransposeOp: StableHLO_ShapedInterfaceOp<"transpose",
-      [Pure, SameOperandsAndResultElementType,
+      [Pure, HLO_CompatibleOperandsAndResultElementType,
       DeclareOpInterfaceMethods<InferTypeOpInterface>]> {
   let summary = "Transpose operation";
   let description = [{
