@@ -228,7 +228,7 @@ class ProcessGrid {
   /// `recv` has to be called first before `send` to indicate to the sending
   /// process that the receiver is ready to receive data. The process then waits
   /// until there is data in the channel. The data in the channel with
-  /// `channel_id` is returned.
+  /// `channelId` is returned.
   SmallVector<Tensor> recv(ChannelId channelId, ProcessId processId);
 
   /// Synchronize a StableHLO process with the `processId` with other StableHLO
@@ -256,7 +256,7 @@ class ProcessGrid {
                                                      const Tensor &operand);
 
   /// Sends `inputs` to a channel with `channelId`.
-  /// The channel with `channel_id` is emptied before the receiving process can
+  /// The channel with `channelId` is emptied before the receiving process can
   /// receive values. If there are multiple processes sending data to a
   /// duplciate `channelId`, the behavior is undefined.
   void send(ArrayRef<Tensor> inputs, ChannelId channelId, ProcessId processId);
@@ -273,7 +273,8 @@ class ProcessGrid {
   /// vector of tensors to save memory. See `ThreadSafeQueue`.
   detail::ThreadSafeQueue<StringAttr> infeed_;
 
-  /// See `ThreadSafeQueue`.
+  /// Internal queue of vector of Tensor which represents `inputs` stored in
+  /// StableHLO `outfeed`. See `ThreadSafeQueue`.
   detail::ThreadSafeQueue<SmallVector<Tensor>> outfeed_;
 
   /// Internal storage used to implement `send` and `recv`.

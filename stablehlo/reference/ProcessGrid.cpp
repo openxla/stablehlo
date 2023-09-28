@@ -213,10 +213,10 @@ void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
 
 SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
                                       ProcessId processId) {
+  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
   sendRecvReady_.insert(channelId);
   sendRecvConditions_[channelId].notify_one();
 
-  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
   if (!sendRecvConditions_[channelId].wait_for(
           lock, std::chrono::seconds(3),
           [&] { return !sendRecvChannels_[channelId].result.empty(); }))
