@@ -73,9 +73,6 @@ class ThreadSafeMap {
   /// Returns a reference to the data associated with the `key`.
   V &operator[](const K &key);
 
-  /// Returns the size of the map.
-  size_t size();
-
  private:
   /// Synchronization primitive used to manage concurrent access to the map.
   std::mutex lock_;
@@ -186,8 +183,6 @@ class RendezvousResult {
   /// Iterates through the map and returns the value associated with the key
   /// `processId`. If key is not found, return an empty `Tensor`.
   Tensor lookup(ProcessId processId) const;
-
-  size_t size() const;
 
  private:
   /// Internal map representation of the result of `ProcessGrid::rendezvous`.

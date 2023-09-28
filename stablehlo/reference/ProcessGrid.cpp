@@ -77,8 +77,6 @@ SmallVector<Tensor> RendezvousResult::getSortedTensors() const {
       llvm::map_range(result_, [](const auto &pair) { return pair.second; }));
 }
 
-size_t RendezvousResult::size() const { return result_.size(); }
-
 //===----------------------------------------------------------------------===//
 // ThreadSafeMap.
 //===----------------------------------------------------------------------===//
@@ -87,11 +85,6 @@ template <typename K, typename V>
 V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
   std::lock_guard<std::mutex> lock(lock_);
   return map_[key];
-}
-
-template <typename K, typename V>
-size_t detail::ThreadSafeMap<K, V>::size() {
-  return map_.size();
 }
 
 //===----------------------------------------------------------------------===//
