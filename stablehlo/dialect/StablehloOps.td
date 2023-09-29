@@ -1053,19 +1053,17 @@ def StableHLO_SendOp : StableHLO_Op<"send",
     Example:
     ```mlir
     %result = "stablehlo.send"(%operand, %token) {
-      // channel_id = 5 : i64,
-      // channel_type = #stablehlo<channel_type DEVICE_TO_HOST>,
-      channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+      channel_handle = #stablehlo.channel_handle<handle = 1, type = 2>,
       is_host_transfer = true
-    } : (tensor<3x4xi32>, !stablehlo.token) -> !stablehlo.token
+    } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
     ```
   }];
 
   let arguments = (ins
-    Variadic<HLO_Tensor>:$inputs,
-    HLO_Token:$token,
-    StableHLO_ChannelHandle:$channel_handle,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
+    Variadic<HLO_Tensor>:$inputs, /*send_i1*/
+    HLO_Token:$token, /*send_i2*/
+    StableHLO_ChannelHandle:$channel_handle, /*send_i3_i4*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*send_i5*/
   );
 
   let results = (outs HLO_Token);
@@ -1082,18 +1080,16 @@ def StableHLO_RecvOp : StableHLO_Op<"recv", []> {
     Example:
     ```mlir
     %results:2 = "stablehlo.recv"(%token) {
-      // channel_id = 5 : i64,
-      // channel_type = #stablehlo<channel_type HOST_TO_DEVICE>,
-      channel_handle = #stablehlo.channel_handle<handle = 5, type = 3>,
+      channel_handle = #stablehlo.channel_handle<handle = 1, type = 3>,
       is_host_transfer = true
-    } : (!stablehlo.token) -> (tensor<3x4xi32>, !stablehlo.token)
+    } : (!stablehlo.token) -> (tensor<2x2xi64>, !stablehlo.token)
     ```
   }];
 
   let arguments = (ins
-    HLO_Token:$token,
-    StableHLO_ChannelHandle:$channel_handle,
-    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer
+    HLO_Token:$token, /*recv_i1*/
+    StableHLO_ChannelHandle:$channel_handle, /*recv_i2_i3*/
+    DefaultValuedOptionalAttr<BoolAttr, "false">:$is_host_transfer /*recv_i4*/
   );
 
   let results = (outs Variadic<HLO_StaticShapeTensorOrToken>);

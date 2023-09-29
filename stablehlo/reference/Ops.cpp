@@ -238,8 +238,8 @@ SmallVector<InterpreterValue> eval(
           replicaGroup.push_back(*replicaGroupsIt);
 
       ChannelId channelId = 0;
-      if (auto channelHandle = allGatherOp.getChannelHandleAttr())
-        channelId = channelHandle.getHandle();
+      if (auto channelHandle = allGatherOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
 
       auto result = evalAllGatherOp(
           operand, allGatherOp.getAllGatherDim(), replicaGroups, channelId,
@@ -250,8 +250,8 @@ SmallVector<InterpreterValue> eval(
       auto replicaGroups = getReplicaGroups(allReduceOp.getReplicaGroups());
 
       ChannelId channelId = 0;
-      if (auto channelHandle = allReduceOp.getChannelHandleAttr())
-        channelId = channelHandle.getHandle();
+      if (auto channelHandle = allReduceOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
 
       auto result = evalAllReduceOp(operand, replicaGroups, channelId,
                                     allReduceOp.getUseGlobalDeviceIds(),
@@ -269,8 +269,8 @@ SmallVector<InterpreterValue> eval(
           replicaGroup.push_back(*replicaGroupsIt);
 
       ChannelId channelId = 0;
-      if (auto channelHandle = allToAllOp.getChannelHandleAttr())
-        channelId = channelHandle.getHandle();
+      if (auto channelHandle = allToAllOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
 
       auto result = evalAllToAllOp(operand, allToAllOp.getSplitDimension(),
                                    allToAllOp.getConcatDimension(),
@@ -345,8 +345,8 @@ SmallVector<InterpreterValue> eval(
       }
 
       ChannelId channelId = 0;
-      if (auto channelHandle = collectivePermuteOp.getChannelHandleAttr())
-        channelId = channelHandle.getHandle();
+      if (auto channelHandle = collectivePermuteOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
 
       auto result = evalCollectivePermuteOp(operand, sourceTargetPairs,
                                             channelId, process);
@@ -560,6 +560,13 @@ SmallVector<InterpreterValue> eval(
       auto operand = scope.findTensor(realOp.getOperand());
       auto result = evalRealOp(operand, realOp.getType());
       scope.add(realOp.getResult(), result);
+    } else if (auto recvOp = dyn_cast<RecvOp>(op)) {
+      auto token = scope.findToken(recvOp.getToken());
+      ChannelId channelId = 0;
+      if (auto channelHandle = recvOp.getChannelHandle())
+        channelId = channelHandle.getHandle();
+      auto results = evalRecvOp(token, channelId, process);
+      scope.add(recvOp.getResults(), results);
     } else if (auto reduceOp = dyn_cast<ReduceOp>(op)) {
       auto inputs = scope.findTensors(reduceOp.getInputs());
       auto initValues = scope.findTensors(reduceOp.getInitValues());
@@ -583,8 +590,8 @@ SmallVector<InterpreterValue> eval(
       auto replicaGroups = getReplicaGroups(reduceScatterOp.getReplicaGroups());
 
       ChannelId channelId = 0;
-      if (auto channelHandle = reduceScatterOp.getChannelHandleAttr())
-        channelId = channelHandle.getHandle();
+      if (auto channelHandle = reduceScatterOp.getChannelHandle())
+        channelId = channelHandle->getHandle();
 
       auto result = evalReduceScatterOp(
           operand, scatterDimension, replicaGroups, channelId,
@@ -598,24 +605,23 @@ SmallVector<InterpreterValue> eval(
       int64_t rank = inputs[0].getRank();
 
       Sizes windowStrides(rank, 1);
-      if (auto windowStridesAttr = reduceWindowOp.getWindowStridesAttr())
-        windowStrides.assign(windowStridesAttr.value_begin<int64_t>(),
-                             windowStridesAttr.value_end<int64_t>());
+      if (auto windowStridesAttr = reduceWindowOp.getWindowStrides())
+        windowStrides.assign(windowStridesAttr->value_begin<int64_t>(),
+                             windowStridesAttr->value_end<int64_t>());
 
       Sizes baseDilations(rank, 1);
-      if (auto baseDilationsAttr = reduceWindowOp.getBaseDilationsAttr())
-        baseDilations.assign(baseDilationsAttr.value_begin<int64_t>(),
-                             baseDilationsAttr.value_end<int64_t>());
+      if (auto baseDilationsAttr = reduceWindowOp.getBaseDilations())
+        baseDilations.assign(baseDilationsAttr->value_begin<int64_t>(),
+                             baseDilationsAttr->value_end<int64_t>());
 
       Sizes windowDilations(rank, 1);
-      if (auto windowDilationsAttr = reduceWindowOp.getWindowDilationsAttr())
-        windowDilations.assign(windowDilationsAttr.value_begin<int64_t>(),
-                               windowDilationsAttr.value_end<int64_t>());
+      if (auto windowDilationsAttr = reduceWindowOp.getWindowDilations())
+        windowDilations.assign(windowDilationsAttr->value_begin<int64_t>(),
+                               windowDilationsAttr->value_end<int64_t>());
 
       Sizes paddingLow(rank, 0), paddingHigh(rank, 0);
-      if (auto paddingAttr = reduceWindowOp.getPaddingAttr()) {
-        auto paddingOrErr =
-            hlo::convertPaddingAttribute(reduceWindowOp.getPadding(), {});
+      if (auto paddingAttr = reduceWindowOp.getPadding()) {
+        auto paddingOrErr = hlo::convertPaddingAttribute(paddingAttr, {});
         if (failed(paddingOrErr))
           report_fatal_error(invalidArgument("Invalid padding format found."));
         for (auto i = 0; i < static_cast<int64_t>(paddingOrErr->size()); ++i) {
@@ -675,7 +681,7 @@ SmallVector<InterpreterValue> eval(
       auto inputs = scope.findTensors(scatterOp.getInputs());
       auto scatterIndices = scope.findTensor(scatterOp.getScatterIndices());
       auto updates = scope.findTensors(scatterOp.getUpdates());
-      auto scatterDimensionNumbers = scatterOp.getScatterDimensionNumbersAttr();
+      auto scatterDimensionNumbers = scatterOp.getScatterDimensionNumbers();
       Axes updateWindowDims(scatterDimensionNumbers.getUpdateWindowDims());
       Axes insertedWindowDims(scatterDimensionNumbers.getInsertedWindowDims());
       Axes scatterDimsToOperandDims(
@@ -695,16 +701,15 @@ SmallVector<InterpreterValue> eval(
       auto rank = operand.getRank();
 
       Sizes windowDimensions(rank, 1);
-      if (auto windowDimensionsAttr =
-              selectAndScatterOp.getWindowDimensionsAttr())
+      if (auto windowDimensionsAttr = selectAndScatterOp.getWindowDimensions())
         windowDimensions.assign(
-            windowDimensionsAttr.getValues<int64_t>().begin(),
-            windowDimensionsAttr.getValues<int64_t>().end());
+            windowDimensionsAttr->getValues<int64_t>().begin(),
+            windowDimensionsAttr->getValues<int64_t>().end());
 
       Sizes windowStrides(rank, 1);
-      if (auto windowStridesAttr = selectAndScatterOp.getWindowStridesAttr())
-        windowStrides.assign(windowStridesAttr.getValues<int64_t>().begin(),
-                             windowStridesAttr.getValues<int64_t>().end());
+      if (auto windowStridesAttr = selectAndScatterOp.getWindowStrides())
+        windowStrides.assign(windowStridesAttr->getValues<int64_t>().begin(),
+                             windowStridesAttr->getValues<int64_t>().end());
 
       Sizes paddingLow(rank, 0);
       if (auto padding = selectAndScatterOp.getPadding()) {
@@ -728,6 +733,14 @@ SmallVector<InterpreterValue> eval(
       auto onFalse = scope.findTensor(selectOp.getOnFalse());
       auto result = evalSelectOp(pred, onTrue, onFalse, selectOp.getType());
       scope.add(selectOp.getResult(), result);
+    } else if (auto sendOp = dyn_cast<SendOp>(op)) {
+      auto inputs = scope.findTensors(sendOp.getInputs());
+      auto token = scope.findToken(sendOp.getToken());
+      ChannelId channelId = 0;
+      if (auto channelHandle = sendOp.getChannelHandle())
+        channelId = channelHandle.getHandle();
+      auto result = evalSendOp(inputs, token, channelId, process);
+      scope.add(sendOp.getResult(), result);
     } else if (auto shiftLeftOp = dyn_cast<ShiftLeftOp>(op)) {
       auto lhs = scope.findTensor(shiftLeftOp.getLhs());
       auto rhs = scope.findTensor(shiftLeftOp.getRhs());
@@ -1547,6 +1560,14 @@ Tensor evalRealOp(const Tensor &operand, ShapedType resultType) {
   return result;
 }
 
+SmallVector<InterpreterValue> evalRecvOp(Token token, ChannelId channelId,
+                                         Process *process) {
+  SmallVector<InterpreterValue> results;
+  for (const auto &tensor : process->recv(channelId)) results.push_back(tensor);
+  results.push_back(token);
+  return results;
+}
+
 SmallVector<Tensor> evalReduceOp(ArrayRef<Tensor> inputs,
                                  ArrayRef<Tensor> initValues,
                                  const Axes &dimensions, Region &body,
@@ -1850,6 +1871,12 @@ Tensor evalSelectOp(const Tensor &pred, const Tensor &onTrue,
         *it, predValue.getBooleanValue() ? onTrue.get(*it) : onFalse.get(*it));
   }
   return result;
+}
+
+Token evalSendOp(ArrayRef<Tensor> inputs, Token token, ChannelId channelId,
+                 Process *process) {
+  process->send(inputs, channelId);
+  return token;
 }
 
 Tensor evalShiftLeftOp(const Tensor &lhs, const Tensor &rhs,

@@ -88,6 +88,28 @@ V &detail::ThreadSafeMap<K, V>::operator[](const K &key) {
 }
 
 //===----------------------------------------------------------------------===//
+// ThreadSafeSet.
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+bool detail::ThreadSafeSet<T>::contains(T value) {
+  std::lock_guard<std::mutex> lock(lock_);
+  return set_.find(value) != set_.end();
+}
+
+template <typename T>
+void detail::ThreadSafeSet<T>::erase(T value) {
+  std::lock_guard<std::mutex> lock(lock_);
+  set_.erase(value);
+}
+
+template <typename T>
+void detail::ThreadSafeSet<T>::insert(T value) {
+  std::lock_guard<std::mutex> lock(lock_);
+  set_.insert(value);
+}
+
+//===----------------------------------------------------------------------===//
 // ThreadSafeQueue.
 //===----------------------------------------------------------------------===//
 
@@ -182,6 +204,22 @@ void ProcessGrid::outfeed(ArrayRef<Tensor> inputs) {
   outfeed_.push(llvm::to_vector(inputs));
 }
 
+SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
+                                      ProcessId processId) {
+  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
+  sendRecvReady_.insert(channelId);
+  sendRecvConditions_[channelId].notify_one();
+
+  if (!sendRecvConditions_[channelId].wait_for(
+          lock, std::chrono::seconds(3),
+          [&] { return !sendRecvChannels_[channelId].result.empty(); }))
+    llvm::report_fatal_error("recv timed out");
+
+  auto result = sendRecvChannels_[channelId].result;
+  sendRecvChannels_[channelId].result.clear();
+  return result;
+}
+
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
     ProcessGroup processGroup, ChannelId channelId, ProcessId processId,
     const Tensor &operand) {
@@ -246,6 +284,19 @@ std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
         "rendezvous timed out: not all process has received the results yet");
 
   return result;
+}
+
+void ProcessGrid::send(ArrayRef<Tensor> inputs, ChannelId channelId,
+                       ProcessId processId) {
+  std::unique_lock<std::mutex> lock(sendRecvChannels_[channelId].mutex);
+  if (!sendRecvConditions_[channelId].wait_for(
+          lock, std::chrono::seconds(3),
+          [&] { return sendRecvReady_.contains(channelId); }))
+    llvm::report_fatal_error("send timed out");
+
+  sendRecvChannels_[channelId].result = llvm::to_vector(inputs);
+  sendRecvReady_.erase(channelId);
+  sendRecvConditions_[channelId].notify_one();
 }
 
 }  // namespace stablehlo

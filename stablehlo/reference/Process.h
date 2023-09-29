@@ -56,10 +56,16 @@ class Process {
   /// See `ProcessGrid::outfeed`.
   void outfeed(ArrayRef<Tensor> inputs);
 
+  /// See `ProcessGrid::recv`.
+  SmallVector<Tensor> recv(ChannelId channelId);
+
   /// See `ProcessGrid::rendezvous`.
   std::shared_ptr<RendezvousResult const> rendezvous(ProcessGroup processGroup,
                                                      ChannelId channelId,
                                                      const Tensor &operand);
+
+  /// See `ProcessGrid::send`.
+  void send(ArrayRef<Tensor> inputs, ChannelId channelId);
 
  private:
   /// StableHLO `process_id`.

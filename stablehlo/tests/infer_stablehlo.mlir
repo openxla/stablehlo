@@ -664,6 +664,19 @@ func.func @scatter_bounds(%input_tensor: tensor<200x?x?xf32, #stablehlo.bounds<?
 
 // -----
 
+// CHECK-LABEL: func @send
+func.func @send(%arg0: tensor<2x2xi64>, %arg1: !stablehlo.token) -> !stablehlo.token {
+  %0 = "stablehlo.send"(%arg0, %arg1) {
+    channel_handle = #stablehlo.channel_handle<handle = 5, type = 2>,
+    is_host_transfer = true
+  } : (tensor<2x2xi64>, !stablehlo.token) -> !stablehlo.token
+  // CHECK: types0 = !stablehlo.token
+  %1 = "hlo_test_infer.get_return_types"(%0) : (!stablehlo.token) -> !stablehlo.token
+  func.return %1 : !stablehlo.token
+}
+
+// -----
+
 func.func @tuple_c1(%arg0: tensor<f32>, %arg1: tensor<f32>) -> tuple<tensor<f32>, tensor<f32>, tensor<f32>> {
   // expected-error@+2 {{failed to infer returned types}}
   // expected-error@+1 {{'tuple<tensor<f32>, tensor<f32>>' are incompatible with return type(s) of operation 'tuple<tensor<f32>, tensor<f32>, tensor<f32>>'}}
