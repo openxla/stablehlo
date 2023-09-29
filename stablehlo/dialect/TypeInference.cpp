@@ -2725,13 +2725,13 @@ LogicalResult inferSendOp(HloDialectInterface* dialect,
                           bool isDeviceToDevice, bool isDeviceToHost,
                           bool isHostTransfer,
                           SmallVectorImpl<Type>& inferredReturnTypes) {
-  // send_c1
+  // send_c1_i4
   if (!isHostTransfer && !isDeviceToDevice)
     return emitOptionalError(location,
                              "channel_type should be DEVICE_TO_DEVICE when "
                              "is_host_transfer is false");
 
-  // send_c1
+  // send_c1_i4
   if (isHostTransfer && !isDeviceToHost)
     return emitOptionalError(location,
                              "channel_type should be DEVICE_TO_HOST when "
@@ -3685,13 +3685,13 @@ LogicalResult verifyRecvOp(HloDialectInterface* dialect,
                            std::optional<Location> location,
                            bool isDeviceToDevice, bool isHostToDevice,
                            bool isHostTransfer, ValueRange results) {
-  // recv_c1
+  // recv_c1_i3
   if (!isHostTransfer && !isDeviceToDevice)
     return emitOptionalError(location,
                              "channel_type should be DEVICE_TO_DEVICE when "
                              "is_host_transfer is false");
 
-  // recv_c1
+  // recv_c1_i3
   if (isHostTransfer && !isHostToDevice)
     return emitOptionalError(location,
                              "channel_type should be HOST_TO_DEVICE when "

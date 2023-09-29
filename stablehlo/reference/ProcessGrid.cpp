@@ -215,7 +215,9 @@ SmallVector<Tensor> ProcessGrid::recv(ChannelId channelId,
           [&] { return !sendRecvChannels_[channelId].result.empty(); }))
     llvm::report_fatal_error("recv timed out");
 
-  return sendRecvChannels_[channelId].result;
+  auto result = sendRecvChannels_[channelId].result;
+  sendRecvChannels_[channelId].result.clear();
+  return result;
 }
 
 std::shared_ptr<RendezvousResult const> ProcessGrid::rendezvous(
