@@ -41,15 +41,14 @@ The RFC introduces the following proposal, emerged out of discussion in the
 [thread](https://github.com/openxla/stablehlo/pull/1538#issuecomment-1599476906)
 , along with their tradeoffs.
 
-The proposal allows the reducer block to express the computation in a different
-element type (preferably wider accumulation type) than the one used in reduce
-op's ops arguments and return type. For illustrative purposes, in the following
-example, the operand element type
-`tensor<!quant.uniform<ui8:f32, input_scale:input_zp>>`  is different from the
-element type for reduction region's block arguments.  Similarly, the element
-type of the reduce op's result
-`!quant.uniform<ui8:f32, output_scale:output_zp>>` is different from that of
-block return (`tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>`).
+The proposal optionally allows the reducer block to express the computation in a
+different element type (preferably wider accumulation type) than the one used in
+reduce op's ops arguments and return type. For illustrative purposes, in the
+following example, the operand element type `tensor<!quant.uniform<ui8:f32,
+input_scale:input_zp>>`  is different from the element type for reduction
+region's block arguments.  Similarly, the element type of the reduce op's
+result `!quant.uniform<ui8:f32, output_scale:output_zp>>` is different from
+that of block return (`tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>`).
 
 ```mlir
 %result = "stablehlo.reduce"(%input, %init_value) ({
@@ -71,11 +70,14 @@ block return (`tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>`).
 
 ### Semantics
 
-If (1) the input operand type is different from the reduction block
-argument type or (2) the op result type is different from the reduction block
-return type, there will be implicit type conversion defined by either
+If (1) the input operand type is different from the reduction block argument
+type or (2) the op result type is different from the reduction block return
+type, there will be implicit type conversion defined by either
 `stablehlo.convert`, `stablehlo.uniform_quantize`, or
-`stablehlo.uniform_dequantize`. For example,
+`stablehlo.uniform_dequantize`. When the types are not differnet, i.e., when (1)
+and (2) does not hold true, then no implicit convertion is needed.
+
+For example,
 
  | Implicit type conversion op       | element type of operand or block return | element type of block argument or op return |
  |-----------------------------------|-----------------------------------------|---------------------------------------------|
