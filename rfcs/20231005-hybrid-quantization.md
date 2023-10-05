@@ -1,0 +1,114 @@
+# RFC: Hybrid quantized ops for weight-only quantization
+
+Status: Review<br/>
+Initial version: 10/05/2023<br/>
+Last updated: 10/05/2023<br/>
+
+## Introduction
+
+This RFC proposes to extend the convolution and dot_general ops to allow
+differing element types for their operands and define their semantics to
+represent weight-only quantization. This work is related to the more general
+topic of [mixed precision](https://github.com/openxla/stablehlo/issues/369), but
+does not aim to address it in its entirety.
+
+Weight-only quantization is a quantization scheme which is often used to reduce
+the size of models that are memory-bound. A weight-only quantized graph accepts
+input in float and weight in quantized type, dequantizes the weight and performs
+float computation. Even though weight-only quantization can already be expressed
+using a combination of uniform_dequantize op and float-only op, we propose to
+extend the semantics of some float-only ops as a representation of weight-only
+quantization because of the following reasons.
+
+* It aligns well with the existing behavior of the corresponding HLO ops which
+allow operand types to differ and upcast operands to the highest-precision type
+in such a case.
+* Being able to express weight-only natively in StableHLO, it does not rely on
+pattern matching by backend to avoid patterns that might result in bad
+performance.
+* Constant and dequantize can unintentionally be folded in downstreams and
+hybrid op removes concern on constant folding. We can also consider inserting
+optimization_barrier in between to prevent constant folding, but this requires
+upstream frameworks to embed optimization_barrier and downstreams to pattern
+match additional optimization_barrier. It is hard to guarantee these
+requirements on use-cases across various frameworks and hardwares.
+
+## Examples
+
+Here are examples of hybrid quantized convolution and dot_general.
+
+```mlir
+%conv = "stablehlo.convolution"(%input_f, %weight_q) ... : (tensor<...xf32>, !quant.uniform<i8:f32, scale:zp>) -> tensor<...xf32>>
+```
+
+```mlir
+%dot = "stablehlo.dot_general"(%lhs_f, %rhs_q) ... : (tensor<...xf32>, !quant.uniform<i8:f32, scale:zp>) -> tensor<...xf32>>
+```
+
+## Proposed spec changes
+
+We propose to modify a few constraints on quantized convolution and dot_general
+to represent weight-only quantization using hybrid op.
+
+### convolution
+
+#### Current constraints
+
+* If the operation uses quantized tensors:
+  * (C28) `is_quantized_tensor(lhs) and is_quantized_tensor(rhs) and
+    is_quantized_tensor(result)`.
+  * (C29) `storage_type(lhs) =  storage_type(rhs)`.
+  * (C30) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C31) If `is_per_tensor_quantized(rhs)`,
+    then `is_per_tensor_quantized(result)`.
+  * (C32) If `is_per_axis_quantized(rhs)`, then
+    `quantization_dimension(rhs) = kernel_output_feature_dimension`.
+  * (C33) If `is_per_axis_quantized(result)`, then
+    `quantization_dimension(result) = output_feature_dimension`.
+
+#### Proposed constraints
+
+* If the operation uses quantized tensors:
+  * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C29) `If is_per_axis_quantized(rhs)`,
+    then `quantization_dimension(rhs) = kernel_output_feature_dimension`.
+  * (C30) `If is_per_axis_quantized(result)`, then 
+    `quantization_dimension(result) = output_feature_dimension`.
+  * If `is_quantized(lhs)`:
+    * (C31) `storage_type(lhs) = storage_type(rhs)`.
+    * (C32) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+    * (C33) If `is_per_tensor_quantized(rhs)`, then
+      `is_per_tensor_quantized(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C34) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+
+### dot_general
+
+#### Current constraints
+
+* If the operation uses quantized tensors:
+  * (C14) `is_quantized(lhs) and is_quantized(rhs) and is_quantized(result)`.
+  * (C15) `storage_type(lhs) = storage_type(rhs)`.
+  * (C16) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * (C17) `zero_points(rhs) = 0`.
+
+#### Proposed constraints
+
+* If the operation uses quantized tensors:
+  * (C14) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
+  * (C15) `zero_points(rhs) = 0`.
+  * If `is_quantized(lhs)`:
+    * (C16) `storage_type(lhs) = storage_type(rhs)`.
+    * (C17) `expressed_type(lhs) = expressed_type(rhs) = expressed_type(result)`.
+  * If `!is_quantized(lhs)`:
+    * (C18) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
+
+## Dynamic Range Quantizaion
+
+Dynamic range quantization(DRQ) is a quantization scheme, which has the same
+input interface with weight-only quantization. A dynamic range quantized graph
+also accepts input in float and weight in quantized type. Instead of
+dequantizing weights, inputs are quantized on-the-fly based on input range and
+computation is done in quantized type. To represent DRQ, we can consider
+utilizing custom call, but this issue will be considered separately from this
+RFC as more discussion is needed. 
