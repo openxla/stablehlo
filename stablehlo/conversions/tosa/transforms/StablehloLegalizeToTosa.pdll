@@ -141,7 +141,7 @@ Pattern =>
 Pattern =>
   replace op<stablehlo.multiply>(input0 : Value<_: Tosa_Tensor>,
                             input1 : Value<_: Tosa_Tensor>)
-     with op<tosa.mul>(input0, input1) {shift = attr<"0 : i32">};
+     with op<tosa.mul>(input0, input1) {shift = attr<"0 : i8">};
 Pattern =>
   replace op<stablehlo.or>(input0 : Value<_: Tosa_Tensor>,
                       input1 : Value<_: Tosa_Tensor>)
