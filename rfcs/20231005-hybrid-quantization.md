@@ -35,7 +35,9 @@ requirements on use-cases across various frameworks and hardwares.
 
 ## Examples
 
-Here are examples of hybrid quantized convolution and dot_general.
+Here are examples of hybrid quantized convolution and dot_general. Hybrid
+quantized ops will get float input(or lhs) and quantized weight(or rhs) as
+operands and output float results.
 
 ```mlir
 %conv = "stablehlo.convolution"(%input_f, %weight_q) ... : (tensor<...xf32>, !quant.uniform<i8:f32, scale:zp>) -> tensor<...xf32>>
