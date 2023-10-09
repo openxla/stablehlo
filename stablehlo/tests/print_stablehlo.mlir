@@ -302,11 +302,11 @@ func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.bounds<3, ?>>,
 // CHECK-LABEL: func @encodings
 func.func @encodings(%arg0: tensor<10x20xf32, #CSR>,
                      %arg1: tensor<10x20xf32, #DCSR>) -> tensor<10x20xf32> {
-  // CHECK:      %0 = stablehlo.add %arg0, %arg1 : (tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>, tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "compressed", "compressed" ] }>>) -> tensor<10x20xf32>
-  // CHECK-NEXT: %1 = stablehlo.add %arg1, %arg1 : tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "compressed", "compressed" ] }>>
-  // CHECK-NEXT: %2 = stablehlo.abs %arg0 : (tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>) -> tensor<10x20xf32>
-  // CHECK-NEXT: %3 = stablehlo.abs %arg0 : tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>
-  // CHECK-NEXT: %4 = stablehlo.complex %arg0, %arg0 : (tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>, tensor<10x20xf32, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>) -> tensor<10x20xcomplex<f32>>
+  // CHECK:      %0 = stablehlo.add %arg0, %arg1 : (tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>, tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed, d1 : compressed) }>>) -> tensor<10x20xf32>
+  // CHECK-NEXT: %1 = stablehlo.add %arg1, %arg1 : tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : compressed, d1 : compressed) }>>
+  // CHECK-NEXT: %2 = stablehlo.abs %arg0 : (tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>) -> tensor<10x20xf32>
+  // CHECK-NEXT: %3 = stablehlo.abs %arg0 : tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>
+  // CHECK-NEXT: %4 = stablehlo.complex %arg0, %arg0 : (tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>, tensor<10x20xf32, #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>>) -> tensor<10x20xcomplex<f32>>
   %0 = "stablehlo.add"(%arg0, %arg1) : (tensor<10x20xf32, #CSR>,
                                    tensor<10x20xf32, #DCSR>) -> tensor<10x20xf32>
   %1 = "stablehlo.add"(%arg1, %arg1) : (tensor<10x20xf32, #DCSR>,
