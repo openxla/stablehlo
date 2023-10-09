@@ -72,7 +72,7 @@ that of block return (`tensor<!quant.uniform<i32:f32, accum_scale:accum_zp>>`).
 
 If (1) the input operand type is different from the reduction block argument
 type or (2) the op result type is different from the reduction block return
-type, there will be implicit type conversion defined by either
+type, there will be an implicit type conversion defined by either
 `stablehlo.convert`, `stablehlo.uniform_quantize`, or
 `stablehlo.uniform_dequantize`. When the types are not differnet, i.e., when (1)
 and (2) does not hold true, then no implicit convertion is needed.
@@ -180,7 +180,7 @@ portions of the spec which needs modification.
 
 * (C?) `element_type(inputs...) = element_type(init_values...)`.
 * (C?) `baseline_element_type(inputs...) = baseline_element_type(results...)`.
-* (C?) `body` has type `tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
+* (C?) `body` has type `(tensor<E0>, ..., tensor<EN-1>, tensor<E0>, ...,`
        `tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)` where
        `is_integer(element_type(inputs[i])) = is_integer(element_type(E[i]))` or
        `is_float(element_type(inputs[i])) = is_float(element_type(E[i]))` or
