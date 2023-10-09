@@ -292,11 +292,11 @@ func.func @extensions(%arg0 : tensor<?x?xf32, #stablehlo.bounds<3, ?>>,
 }
 
 #CSR = #sparse_tensor.encoding<{
-  lvlTypes = ["dense", "compressed"]
+  map = (d0, d1) -> (d0 : dense, d1 : compressed)
 }>
 
 #DCSR = #sparse_tensor.encoding<{
-  lvlTypes = ["compressed", "compressed"]
+  map = (d0, d1) -> (d0 : compressed, d1 : compressed)
 }>
 
 // CHECK-LABEL: func @encodings
