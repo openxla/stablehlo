@@ -325,8 +325,7 @@ static decltype(auto) dispatchType(Type type, Args&&... args) {
 }  // namespace
 
 llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename, ShapedType type) {
-  if (llvm::support::endian::system_endianness() ==
-      llvm::support::endianness::big)
+  if (llvm::endianness::native == llvm::support::endianness::big)
     llvm::report_fatal_error("Only little endian supported.");
 
   return dispatchType<FromNumpy>(type.getElementType(), filename, type);
@@ -334,8 +333,7 @@ llvm::ErrorOr<Tensor> deserializeTensor(StringRef filename, ShapedType type) {
 
 llvm::Error serializeTensor(StringRef filename, ShapedType type,
                             const char* data) {
-  if (llvm::support::endian::system_endianness() ==
-      llvm::support::endianness::big)
+  if (llvm::endianness::native == llvm::support::endianness::big)
     llvm::report_fatal_error("Only little endian supported.");
 
   return dispatchType<ToNumpy>(type.getElementType(), filename, type, data);
