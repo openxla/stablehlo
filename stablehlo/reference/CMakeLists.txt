@@ -61,6 +61,17 @@ add_mlir_dialect_library(InterpreterOps
   MLIRSupport
 )
 
+add_mlir_library(StablehloReferenceInterpreterApi
+  PARTIAL_SOURCES_INTENDED
+  InterpreterApi.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  StablehloReferenceProcess
+  StablehloReferenceScope
+  StablehloReferenceTensor
+)
+
 add_mlir_library(StablehloReferenceInterpreterValue
   PARTIAL_SOURCES_INTENDED
   InterpreterValue.cpp

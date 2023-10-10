@@ -393,6 +393,25 @@ cc_library(
 )
 
 cc_library(
+    name = "reference_interpreter_api",
+    srcs = [
+        "stablehlo/reference/InterpreterApi.cpp",
+    ],
+    hdrs = [
+        "stablehlo/reference/InterpreterApi.h",
+    ],
+    strip_include_prefix = ".",
+    deps = [
+        ":reference_errors",
+        ":reference_process",
+        ":reference_scope",
+        ":reference_tensor",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+cc_library(
     name = "reference_interpretervalue",
     srcs = [
         "stablehlo/reference/InterpreterValue.cpp",
@@ -921,6 +940,7 @@ cc_binary(
     deps = [
         ":interpreter_ops",
         ":reference_errors",
+        ":reference_interpreter_api",
         ":reference_interpretervalue",
         ":reference_ops",
         ":reference_process_grid",

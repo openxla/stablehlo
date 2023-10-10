@@ -29,6 +29,7 @@ limitations under the License.
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
+#include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Token.h"

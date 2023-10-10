@@ -19,6 +19,7 @@ limitations under the License.
 #include "mlir/IR/BuiltinAttributes.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/reference/Axes.h"
+#include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/InterpreterValue.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
@@ -208,7 +209,7 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 SmallVector<InterpreterValue> eval(
     Region &region, ArrayRef<InterpreterValue> args, Process *process = nullptr,
     Scope *parent = nullptr,
-    function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
+    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
         nullptr);
 
 }  // namespace stablehlo

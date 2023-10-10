@@ -1,0 +1,98 @@
+/* Copyright 2023 The StableHLO Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+#ifndef STABLEHLO_REFERENCE_INTERPRETERAPI_H
+#define STABLEHLO_REFERENCE_INTERPRETERAPI_H
+
+#include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorOr.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Support/LLVM.h"
+#include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/Process.h"
+#include "stablehlo/reference/Scope.h"
+
+namespace mlir {
+namespace stablehlo {
+
+/// Base interpreter fallback callback functor to run when no registered kernels
+/// are found for a given StableHLO operation.
+struct InterpreterConfiguration;
+struct InterpreterFallback {
+  virtual llvm::Error operator()(Operation &op, Process *process,
+                                 Scope &scope) = 0;
+
+  virtual ~InterpreterFallback() = default;
+
+  /// Set the user provided interpreter configuration.
+  void setConfig(const InterpreterConfiguration &cfg) { config = &cfg; }
+
+  /// Set the topmost currently executing function in the module.
+  void setFcn(func::FuncOp fcn) { currentFcn = fcn; }
+
+  /// The user provided interpreter configuration.
+  const InterpreterConfiguration *config;
+
+  /// The topmost function currently being executed in the module.
+  func::FuncOp currentFcn;
+};
+
+struct InterpreterConfiguration {
+  /// If specified, the directory to which StableHLO interpreter tensors will
+  /// be serialized to disk.
+  std::string probeInstrumentationDir = "";
+
+  /// If specified, use this function as the entrypoint function into the model.
+  /// Will otherwise default to “main”.
+  std::string mainFunction = "main";
+
+  /// If specified, use the callback to run on ops which do not have a
+  /// registered kernel.
+  InterpreterFallback *fallback = nullptr;
+
+  /// If set, optionally dump tensor values to the specified stream.
+  raw_ostream *stream = nullptr;
+};
+
+/// The default fallback callback used by StableHLO for interpreter validation
+/// and module instrumentation.
+struct DefaultInterpreterFallback : public InterpreterFallback {
+  virtual llvm::Error operator()(Operation &op, Process *process,
+                                 Scope &scope) final;
+
+  /// Counts how many times a given probe_id has been used while profiling.
+  llvm::StringMap<int32_t> instrumentedTensors;
+};
+
+/// Invoke the StableHLO reference interpreter with the given unparsed MLIR
+/// module input and provided inputs. Returns a list of interpreter outputs.
+/// Can optionally pass a fallback interpreter callback which executes when no
+/// builtin kernels are matched.
+llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
+    const std::string &mlir, ArrayRef<InterpreterValue> inputs,
+    const InterpreterConfiguration &config);
+
+/// Invoke the StableHLO reference interpreter with the given parsed MLIR
+/// module input and provided inputs. Returns a list of interpreter outputs.
+/// Can optionally pass a fallback interpreter callback which executes when no
+/// builtin kernels are matched.
+llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
+    ModuleOp module, ArrayRef<InterpreterValue> inputs,
+    const InterpreterConfiguration &config);
+
+}  // namespace stablehlo
+}  // namespace mlir
+
+#endif  // STABLEHLO_REFERENCE_INTERPRETERAPI_H
