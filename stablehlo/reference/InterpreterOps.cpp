@@ -17,6 +17,9 @@ limitations under the License.
 
 #include <queue>
 
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/ThreadPool.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -27,6 +30,7 @@ limitations under the License.
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LLVM.h"
 #include "stablehlo/reference/InterpreterValue.h"
+#include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
 #include "stablehlo/reference/ProcessGrid.h"
 
@@ -36,6 +40,32 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace interpreter {
+namespace {
+
+// Appends a new line item to an instrumentation metadata file, `index.json` in
+// the form: `probeId,probeOutputDir/filename`.
+llvm::Error writeProbeMetadata(StringRef probeId, StringRef filename,
+                               StringRef probeOutputDir) {
+  if (probeOutputDir.empty())
+    return createStringError(llvm::errc::invalid_argument,
+                             "Probe serialization directory cannot be empty.");
+
+  llvm::SmallString<128> filepath(probeOutputDir);
+  llvm::sys::path::append(filepath, numpy::kInstrumentationMetadataFilename);
+
+  int fd;
+  if (llvm::sys::fs::openFileForWrite(filepath, fd,
+                                      llvm::sys::fs::CD_CreateAlways,
+                                      llvm::sys::fs::OF_Append))
+    return createStringError(llvm::errc::io_error,
+                             "Failed to open instrumentation metadata file.");
+
+  llvm::raw_fd_ostream out(fd, /*shouldClose=*/true);
+  out << probeId.str() << ',' << filename.str() << '\n';
+
+  return llvm::Error::success();
+}
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Interpreter Dialect Constructor
@@ -161,6 +191,28 @@ SmallVector<InterpreterValue> evalRunParallelOp(
   for (auto &future : futures) results.append(future.get());
   // TODO(#1725): Figure out how to test the outfeed queue.
   return results;
+}
+
+llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
+                        StringRef probeOutputDir,
+                        llvm::StringMap<int32_t> &probeIterations) {
+  llvm::SmallString<128> filepath(probeOutputDir);
+
+  // To properly support loops, append a suffix denoting how many times this
+  // specific probe_id has executed.
+  const int32_t numTimesExecuted = ++probeIterations[probeId];
+
+  llvm::sys::path::append(
+      filepath, probeId + "_" + std::to_string(numTimesExecuted) + ".npy");
+  auto tensor = input.getTensor();
+  if (auto serializationResultError =
+          numpy::serializeTensor(filepath, tensor.getType(), tensor.getData()))
+    return serializationResultError;
+
+  // After the tensor has been serialized to disk, append it to a metadata file
+  // to associate the serialized probe_id with the filepath. By default, this
+  // will live in an `index.csv` file generated in specified `probeOutputDir`.
+  return writeProbeMetadata(probeId, filepath, probeOutputDir);
 }
 
 }  // namespace interpreter

@@ -33,6 +33,7 @@ cc_library(
         ":check_ops_inc_gen",
         "//:base",
         "//:reference_interpretervalue",
+        "//:reference_numpy",
         "//:reference_tensor",
         "//:reference_token",
     ],

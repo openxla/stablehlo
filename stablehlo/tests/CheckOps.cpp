@@ -15,10 +15,16 @@ limitations under the License.
 
 #include "stablehlo/tests/CheckOps.h"
 
+#include <fstream>
+
 #define GET_OP_CLASSES
+#include "llvm/Support/Error.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
+#include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Tensor.h"
 #include "stablehlo/tests/CheckOps.cpp.inc"
 
@@ -73,6 +79,53 @@ llvm::Error evalExpectEqOp(const Tensor &lhs, const Tensor &rhs) {
           debugString(rhs.get(*rhsIt)).c_str(), debugString((*lhsIt)).c_str());
 
   return llvm::Error::success();
+}
+
+// Fetch a previously serialized filepath given a `probeId` and a `probeDir` for
+// a specified `iteration` value from an `index.csv` metadata file. If no data
+// is found, returns an error.
+static llvm::ErrorOr<std::string> getSerializedTensorPath(StringRef probeId,
+                                                          StringRef probeDir,
+                                                          uint32_t iteration) {
+  if (probeDir.empty()) return llvm::errc::invalid_argument;
+
+  llvm::SmallString<128> instrumentationMetadataFile(probeDir);
+  llvm::sys::path::append(instrumentationMetadataFile,
+                          numpy::kInstrumentationMetadataFilename);
+  std::ifstream metadataFile(instrumentationMetadataFile.str().str());
+
+  if (!metadataFile.is_open()) return llvm::errc::io_error;
+
+  std::string line;
+
+  for (uint32_t match = 0; metadataFile >> line && match <= iteration;
+       ++match) {
+    auto pos = line.find(probeId);
+
+    if (pos != std::string::npos && match == iteration)
+      return line.substr(pos + probeId.size() + 1);
+  }
+
+  return llvm::errc::bad_address;
+}
+
+llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
+                                     StringRef probeDir, uint32_t iteration) {
+  auto serializedFilePathOrError =
+      getSerializedTensorPath(probeId, probeDir, iteration);
+
+  if (!serializedFilePathOrError)
+    return llvm::createStringError(serializedFilePathOrError.getError(),
+                                   "Failed to find serialized data for probe");
+
+  auto tensorOrError =
+      numpy::deserializeTensor(*serializedFilePathOrError, expected.getType());
+
+  if (!tensorOrError)
+    return llvm::createStringError(tensorOrError.getError(),
+                                   "Failed to verify serialized tensor.");
+
+  return evalExpectEqOp(expected, *tensorOrError);
 }
 
 }  // namespace check

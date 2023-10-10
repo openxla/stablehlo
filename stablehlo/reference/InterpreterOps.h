@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <queue>
 
+#include "llvm/Support/Error.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/LLVM.h"
@@ -36,6 +38,10 @@ class InterpreterDialect : public Dialect {
 SmallVector<InterpreterValue> evalRunParallelOp(
     ArrayRef<InterpreterValue> inputs, std::queue<StringAttr> &infeed,
     SmallVector<SmallVector<StringAttr>> programs, SymbolTable &symbolTable);
+
+llvm::Error evalProbeOp(InterpreterValue input, StringRef probeId,
+                        StringRef serializationDir,
+                        llvm::StringMap<int32_t> &probeIterations);
 
 }  // namespace interpreter
 }  // namespace stablehlo

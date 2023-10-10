@@ -54,6 +54,7 @@ add_mlir_dialect_library(InterpreterOps
 
   LINK_LIBS PUBLIC
   StablehloReferenceInterpreterValue
+  StablehloReferenceNumPy
   StablehloReferenceOps
   StablehloReferenceProcessGrid
   MLIRIR
@@ -68,6 +69,17 @@ add_mlir_library(StablehloReferenceInterpreterValue
   MLIRIR
   StablehloReferenceTensor
   StablehloReferenceToken
+)
+
+add_mlir_dialect_library(StablehloReferenceNumPy
+  PARTIAL_SOURCES_INTENDED
+  NumPy.cpp
+
+  LINK_LIBS PUBLIC
+  StablehloReferenceIndex
+  StablehloReferenceTensor
+  MLIRIR
+  MLIRSupport
 )
 
 add_mlir_library(StablehloReferenceOps
