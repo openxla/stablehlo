@@ -3,23 +3,29 @@
 The main goal of the StableHLO interpreter is to provide a reference
 implementation to the semantics of StableHLO opset according to its
 specification. The secondary goal is for the implementation to closely follow
-the spec to provide additional clarity to the semantics of even the most
-involved operations like `Convolution`, `Gather`/`Scatter`, and `DotGeneral`.
+the spec, favoring readability over performance, to provide additional clarity
+to the semantics of even the most involved operations like `Convolution`,
+`Gather`/`Scatter`, and `DotGeneral`.
 
 At the moment, OpenXLA supports the interpretation of 91 out of 96 specced
-StableHLO ops, with the remaining 5 ops (`FftOp`, `RngOp`, `RngBitGeneratorOp`,
-`UniformDequantizeOp`, `UniformQuantizeOp`) being a work in progress (see
+StableHLO ops. The remaining 5 ops (`FftOp`, `RngOp`, `RngBitGeneratorOp`,
+`UniformDequantizeOp`, and `UniformQuantizeOp`) have their semantics documented
+in [spec.md](https://github.com/openxla/stablehlo/blob/main/docs/spec.md), and
+have completed initial investigations on how to move forward (see
 [status.md](https://github.com/openxla/stablehlo/blob/main/docs/status.md) for
-a complete list of ops and its latest status).
+a complete list of ops and its latest status). These final enhancements will be
+implemented on an as-needed community basis.
 
 ## Scope
 
 We categorized the StableHLO opset into 11 categories consisting of 118 ops in
-total (see [Appendix](#appendix)). According to our
-[roadmap](https://github.com/openxla/stablehlo/blob/main/docs/roadmap.md), one
-goal of StableHLO v1.0 is to implement a reference interpreter for all specced
-ops from the StableHLO spec. Of the 96 ops that have a spec, we can interpret 91
-ops through OpenXLA (see [Special Cases](#special-cases) for the remaining 5).
+total (see [Appendix](#appendix)).
+[Reference Implementation](https://github.com/orgs/openxla/projects/7)
+workstream organizes the work on implementing [an interpreter](https://github.com/openxla/stablehlo/blob/main/docs/reference.md)
+for 100% of StableHLO ops as defined in the StableHLO specification. We are
+planning to complete all or almost all work in this workstream in StableHLO
+v1.0. Of the 96 ops that have a spec currently, we can interpret 91 ops through
+OpenXLA (see [Special Cases](#special-cases) for the remaining 5).
 
 ## Specification
 
@@ -98,41 +104,126 @@ that the interpreter supports resides in [mlir-hlo-opt.cc](https://github.com/op
 
 ### Quantization
 
-There are two specced ops in this category that the interpreter does not support
-at the moment. These ops are part of an ongoing Quantization work. Supporting
-interpretation of these two ops is a WIP:
+Quantization spec'ing is still WIP, and interpreter support for quantized ops
+(`UniformDequantizeOp`, `UniformQuantizeOp`) and type (`QuantizedTensorType`) is
+tracked by [#1140](https://github.com/openxla/stablehlo/issues/1140),
+[#1141](https://github.com/openxla/stablehlo/issues/1141), and
+[#1691](https://github.com/openxla/stablehlo/issues/1691) respectively.
 
-* `UniformDequantizeOp`
-* `UniformQuantizeOp`
+## Usage Instructions
 
-## Build and Run the Reference Interpreter
+### Building the Reference Interpreter
 
-The interpreter can be built and tested via Bazel or CMake (see
-[README.md](https://github.com/openxla/stablehlo/blob/main/README.md)). To run
-the interpreter, we have a translate tool to interpret StableHLO programs
+The interpreter can be built and tested via Bazel or CMake (preferred). For full
+instructions, see [README.md](https://github.com/openxla/stablehlo/blob/main/README.md).
+
+Bazel:
+
+```sh
+bazel build //...
+```
+
+CMake:
+
+```sh
+mkdir -p build && cd build
+
+cmake .. -GNinja \
+  -DLLVM_ENABLE_LLD="$LLVM_ENABLE_LLD" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ENABLE_ASSERTIONS=On \
+  -DMLIR_DIR=${PWD}/../llvm-build/lib/cmake/mlir
+```
+
+To run the interpreter, we have a translate tool to interpret StableHLO programs
 written in MLIR.
 
-```bash
+```sh
 stablehlo-translate --interpret <path/to/program>
 ```
 
-## Testing StableHLO Programs
+### The Interpreter Dialect
 
 <!-- markdownlint-disable line-length -->
-We use LLVM's [lit](https://llvm.org/docs/CommandGuide/lit.html) tool to run,
-and compare against expected value to test the interpreter (see [stablehlo/tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests)
-for sample tests).
+The `Interpreter` dialect contains various utility ops related to the
+interpreter. Specifically, the `interpreter.run_parallel` (see
+[InterpreterOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/reference/InterpreterOps.td)
+for op semantics and example usage) op allows interpretation of Distribution ops, and more
+utilities plan to be added based on community needs.
 <!-- markdownlint-enable line-length -->
 
-A custom `Check` dialect is used to compare interpreter runtime values with
-expected values. The `Check` ops are embedded into the StableHLO programs which
-is run via callbacks through `stablehlo.custom_call`.
+### The Check Dialect
+
+<!-- markdownlint-disable line-length -->
+The `Check` dialect is used to compare interpreter runtime values to expected
+values. StableHLO program outputs can be tested via various check ops (see
+[CheckOps.td](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/CheckOps.td)
+for op semantics and  example usage).
+<!-- markdownlint-enable line-length -->
+
+### Writing Test Programs
+
+<!-- markdownlint-disable line-length -->
+We use LLVM's [lit](https://llvm.org/docs/CommandGuide/lit.html) tool to run and
+compare against generated file to diff against the output of the interpreter
+(see [stablehlo/tests](https://github.com/openxla/stablehlo/tree/main/stablehlo/tests)
+for example tests).
+
+Testing `AddOp` (sample from
+[interpret_add.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret_add.mlir)):
+<!-- markdownlint-enable line-length -->
+
+```mlir
+// RUN: stablehlo-translate --interpret %s
+
+func.func @add_op_scalar() {
+  %0 = stablehlo.constant dense<2> : tensor<i4>
+  %1 = stablehlo.constant dense<3> : tensor<i4>
+  %2 = stablehlo.add %0, %1 : tensor<i4>
+  check.expect_eq_const %2, dense<5> : tensor<i4>
+  func.return
+}
+```
+
+Testing ops in the Distribution category requires running it via the
+`interpreter.run_parallel` utility op.
+
+Testing `AllReduceOp` (sample from
+[interpret_all_reduce.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret_all_reduce.mlir)):
+
+```mlir
+// RUN: stablehlo-translate --interpret %s
+
+module @cross_replica {
+  func.func public @all_reduce(%operand : tensor<4xi64>) -> tensor<4xi64> {
+    %result = "stablehlo.all_reduce"(%operand) ({
+      ^bb0(%arg0: tensor<i64>, %arg1: tensor<i64>):
+        %0 = stablehlo.add %arg0, %arg1 : tensor<i64>
+        stablehlo.return %0 : tensor<i64>
+    }) {
+      replica_groups = dense<[[0, 1]]> : tensor<1x2xi64>,
+      channel_handle = #stablehlo.channel_handle<handle = 0, type = 0>
+    } : (tensor<4xi64>) -> tensor<4xi64>
+    return %result : tensor<4xi64>
+  }
+  func.func public @main() {
+    %inputs0 = stablehlo.constant dense<[1, 2, 3, 4]> : tensor<4xi64>
+    %inputs1 = stablehlo.constant dense<[5, 6, 7, 8]> : tensor<4xi64>
+    %results:2 = "interpreter.run_parallel"(%inputs0, %inputs1) {
+      programs=[[@all_reduce], [@all_reduce]]
+    } : (tensor<4xi64>, tensor<4xi64>) -> (tensor<4xi64>, tensor<4xi64>)
+    check.expect_eq_const %results#0, dense<[6, 8, 10, 12]> : tensor<4xi64>
+    check.expect_eq_const %results#1, dense<[6, 8, 10, 12]> : tensor<4xi64>
+    func.return
+  }
+}
+```
 
 ## Appendix
 
 ### Convert Miscellaneous Ops
 
-```bash
+```sh
 # batch_norm_grad
 hlo-expand --batch_norm_grad_expander <path/to/hlo_module>
 
@@ -149,16 +240,16 @@ hlo-expand --cholesky_expander <path/to/hlo_module>
 # Supported in StableHLO interpreter.
 
 # fft
-# WIP
+# TBD
 
 # iota
 # Supported in StableHLO interpreter.
 
 # rng
-# WIP
+# TBD
 
 # rng_bit_generator
-# WIP
+# TBD
 
 # triangular_solve
 hlo-expand --triangular_solve_expander <path/to/hlo_module>
@@ -166,7 +257,7 @@ hlo-expand --triangular_solve_expander <path/to/hlo_module>
 
 ### Convert Not In HLO Ops
 
-```bash
+```sh
 # broadcast
 mlir-hlo-opt -mhlo-legalize-broadcast-to-broadcast-in-dim <path/to/input>
 
