@@ -17,9 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -29,7 +27,6 @@ limitations under the License.
 #include "stablehlo/reference/Element.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/Index.h"
-#include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/Process.h"
 #include "stablehlo/reference/ProcessGrid.h"
 #include "stablehlo/reference/Token.h"

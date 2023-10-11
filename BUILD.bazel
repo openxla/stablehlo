@@ -403,6 +403,7 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":reference_errors",
+        ":reference_ops",
         ":reference_process",
         ":reference_scope",
         ":reference_tensor",

@@ -51,10 +51,10 @@ TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
       stablehlo::DefaultInterpreterFallback fallback;
-      stablehlo::InterpreterConfiguration config = {
-          .probeInstrumentationDir = probeOutputDir.getValue(),
-          .fallback = &fallback,
-          .stream = &os};
+      stablehlo::InterpreterConfiguration config;
+      config.probeInstrumentationDir = probeOutputDir.getValue();
+      config.fallback = &fallback;
+      config.stream = &os;
 
       auto status_or_results = runInterpreter(module, /*inputs=*/{}, config);
 

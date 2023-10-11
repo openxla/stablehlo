@@ -34,6 +34,7 @@ cc_library(
         "//:base",
         "//:reference_interpretervalue",
         "//:reference_numpy",
+        "//:reference_scope",
         "//:reference_tensor",
         "//:reference_token",
     ],
