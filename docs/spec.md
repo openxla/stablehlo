@@ -778,18 +778,18 @@ defined as follows:
 
 Afterwards, within each `process_group`:
 
-* `result@process[result_index] = exec(schedule)` for some binary tree
-  `schedule` where:
+* `result@process[result_index] = convert_or_quantize(exec(schedule), type(result))`
+  for some binary tree `schedule` where:
   * `exec(node)` = `computation(exec(node.left), exec(node.right))`.
   * `exec(leaf)` = `leaf.value`.
 * `schedule` is an implementation-defined binary tree whose in-order
-  traversal is `operands@process_group...[result_index]`.
+  traversal is `convert_or_quantize(operands@process_group...[result_index], type(func_inputs(computation)[0]))`.
 
 #### Inputs
 
 | Label | Name                    | Type                                                             | Constraints |
 |-------|-------------------------|------------------------------------------------------------------|-------------|
-| (I1)  | `operand`               | tensor                                                           | (C5), (C6)  |
+| (I1)  | `operand`               | tensor or quantized tensor                                       | (C5), (C6)  |
 | (I2)  | `replica_groups`        | variadic number of 1-dimensional tensor constants of type `si64` | (C1-C3)     |
 | (I3)  | `channel_id`            | constant of type `si64`                                          | (C4)        |
 | (I4)  | `use_global_device_ids` | constant of type `i1`                                            | (C4)        |
@@ -797,9 +797,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C6)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C6)        |
 
 #### Constraints
 
@@ -811,8 +811,8 @@ Afterwards, within each `process_group`:
 * (C3) `0 <= replica_groups < size(replica_groups)`.
 * (C4) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C5) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
-* (C6) `type(result) = type(operand)`.
+       `is_convertible_or_quantizable(E, element_type(operand))`.
+* (C6) `baseline_type(result) = baseline_type(operand)`.
 
 #### Examples
 
@@ -1062,31 +1062,40 @@ def batch_norm_grad(operand, scale, mean, variance, grad_output, epsilon, featur
   return grad_operand, grad_scale, grad_offset
 ```
 
+For quantized types, performs
+`dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, mean,
+variance, grad_output: batch_norm_grad(operand, scale, mean, variance,
+grad_output, epsilon, feature_index), operand, scale, mean, variance,
+grad_output, type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints      |
-|-------|-----------------|---------------------------------------------|------------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1-C3), (C5)    |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C4), (C5) |
-| (I3)  | `mean`          | 1-dimensional tensor of floating-point type | (C2), (C4)       |
-| (I4)  | `variance`      | 1-dimensional tensor of floating-point type | (C2), (C4)       |
-| (I5)  | `grad_output`   | tensor of floating-point type               | (C2), (C3)       |
-| (I6)  | `epsilon`       | constant of type `f32`                      |                  |
-| (I7)  | `feature_index` | constant of type `si64`                     | (C1), (C5)       |
+| Label | Name            | Type                                                                | Constraints      |
+|-------|-----------------|---------------------------------------------------------------------|------------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor        | (C1-C3), (C5)    |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4), (C5) |
+| (I3)  | `mean`          | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)       |
+| (I4)  | `variance`      | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)       |
+| (I5)  | `grad_output`   | tensor of floating-point type or per-tensor quantized tensor        | (C2), (C3)       |
+| (I6)  | `epsilon`       | constant of type `f32`                                              |                  |
+| (I7)  | `feature_index` | constant of type `si64`                                             | (C1), (C5)       |
 
 #### Outputs
 
-| Name           | Type                                        | Constraints |
-|----------------|---------------------------------------------|-------------|
-| `grad_operand` | tensor of floating-point type               | (C2), (C3)  |
-| `grad_scale`   | 1-dimensional tensor of floating-point type | (C2), (C4)  |
-| `grad_offset`  | 1-dimensional tensor of floating-point type | (C2), (C4)  |
+| Name           | Type                                                                | Constraints |
+|----------------|---------------------------------------------------------------------|-------------|
+| `grad_operand` | tensor of floating-point type or per-tensor quantized tensor        | (C2), (C3)  |
+| `grad_scale`   | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)  |
+| `grad_offset`  | 1-dimensional tensor of floating-point or per-tensor quantized type | (C2), (C4)  |
 
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `mean`, `variance`, `grad_output`, `grad_operand`
-       `grad_scale` and `grad_offset` have the same element type.
+* (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
+       baseline_element_type(mean) = baseline_element_type(variance) =
+       baseline_element_type(grad_output) = baseline_element_type(grad_operand)
+       = baseline_element_type(grad_scale) =
+       baseline_element_type(grad_offset)`.
 * (C3) `operand`, `grad_output` and `grad_operand` have the same shape.
 * (C4) `scale`, `mean`, `variance`, `grad_scale` and `grad_offset` have the
        same shape.
@@ -1239,34 +1248,40 @@ def batch_norm_training(operand, scale, offset, epsilon, feature_index):
          mean, variance
 ```
 
+For quantized types, performs
+`dequantize_batch_norm_grad_or_training_quantize(lambda operand, scale, offset:
+batch_norm_training(operand, scale, offset, epsilon, feature_index), operand,
+scale, offset, type(result))`.
+
 #### Inputs
 
-| Label | Name            | Type                                        | Constraints   |
-|-------|-----------------|---------------------------------------------|---------------|
-| (I1)  | `operand`       | tensor of floating-point type               | (C1)          |
-| (I2)  | `scale`         | 1-dimensional tensor of floating-point type | (C2), (C3)    |
-| (I3)  | `offset`        | 1-dimensional tensor of floating-point type | (C2), (C4)    |
-| (I4)  | `epsilon`       | constant of type `f32`                      | (C1), (C3-C6) |
-| (I5)  | `feature_index` | constant of type `si64`                     | (C1), (C3-C6) |
+| Label | Name            | Type                                                           | Constraints   |
+|-------|-----------------|----------------------------------------------------------------|---------------|
+| (I1)  | `operand`       | tensor of floating-point type or per-tensor quantized tensor   | (C1)          |
+| (I2)  | `scale`         | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C3)    |
+| (I3)  | `offset`        | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C4)    |
+| (I4)  | `epsilon`       | constant of type `f32`                                         | (C1), (C3-C6) |
+| (I5)  | `feature_index` | constant of type `si64`                                        | (C1), (C3-C6) |
 
 #### Outputs
 
-| Name         | Type                                        | Constraints |
-|--------------|---------------------------------------------|-------------|
-| `output`     | tensor of floating-point type               | (C7)        |
-| `batch_mean` | 1-dimensional tensor of floating-point type | (C2), (C5)  |
-| `batch_var`  | 1-dimensional tensor of floating-point type | (C2), (C6)  |
+| Name         | Type                                                           | Constraints |
+|--------------|----------------------------------------------------------------|-------------|
+| `output`     | tensor of floating-point type or per-tensor quantized tensor   | (C7)        |
+| `batch_mean` | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C5)  |
+| `batch_var`  | 1-dimensional tensor of floating-point or per-tensor quantized | (C2), (C6)  |
 
 #### Constraints
 
 * (C1) `0 <= feature_index < rank(operand)`.
-* (C2) `operand`, `scale`, `offset`, `output`, `batch_mean` and `batch_var`
-       have the same element type.
+* (C2) `baseline_element_type(operand) = baseline_element_type(scale) =
+       baseline_element_type(offset) = baseline_element_type(batch_mean) =
+       baseline_element_type(batch_var) = baseline_element_type(output)`.
 * (C3) `size(scale) = dim(operand, feature_index)`.
 * (C4) `size(offset) = dim(operand, feature_index)`.
 * (C5) `size(batch_mean) = dim(operand, feature_index)`.
 * (C6) `size(batch_var) = dim(operand, feature_index)`.
-* (C7) `type(output) = type(operand)`.
+* (C7) `baseline_type(output) = baseline_type(operand)`.
 
 #### Examples
 
@@ -4221,7 +4236,7 @@ Afterwards, within each `process_group`:
 
 | Label | Name                    | Type                                         | Constraints            |
 |-------|-------------------------|----------------------------------------------|------------------------|
-| (I1)  | `operand`               | tensor                                       | (C1), (C2), (C7), (C8) |
+| (I1)  | `operand`               | tensor or quantized tensor                   | (C1), (C2), (C7), (C8) |
 | (I2)  | `scatter_dimension`     | constant of type `si64`                      | (C1), (C2), (C8)       |
 | (I3)  | `replica_groups`        | 2-dimensional tensor constant of type `si64` | (C3-C5)                |
 | (I4)  | `channel_id`            | constant of type `si64`                      | (C6)                   |
@@ -4230,9 +4245,9 @@ Afterwards, within each `process_group`:
 
 #### Outputs
 
-| Name     | Type   | Constraints |
-|----------|--------|-------------|
-| `result` | tensor | (C8)        |
+| Name     | Type                       | Constraints |
+|----------|----------------------------|-------------|
+| `result` | tensor or quantized tensor | (C8)        |
 
 #### Constraints
 
@@ -4246,8 +4261,8 @@ Afterwards, within each `process_group`:
 * (C5) `0 <= replica_groups < size(replica_groups)`.
 * (C6) If `use_global_device_ids = true`, then `channel_id > 0`.
 * (C7) `computation` has type `(tensor<E>, tensor<E>) -> (tensor<E>)` where
-       `E = element_type(operand)`.
-* (C8) `type(result) = type(operand)` except:
+       `is_convertible_or_quantizable(E, element_type(operand))`.
+* (C8) `baseline_type(result) = baseline_type(operand)` except:
   * `dim(result, scatter_dimension) = dim(operand, scatter_dimension) /
     dim(process_groups, 1)`.
 
@@ -4804,10 +4819,15 @@ Given that, `results = exec(schedule, inputs)`, where:
   `index_space(updates[0])`.
 * `exec([update_index, ...], results) = exec([...], updated_results)` where:
   * If `result_index` is in bounds for `shape(results...)`
-    * `updated_values =
-      update_computation(results...[result_index], updates...[update_index])`.
+    * `updated_values = update_computation(
+      convert_or_quantize(results...[result_index], type(func_inputs(
+           update_computation)[:len(func_inputs(update_computation))//2])... ),
+      convert_or_quantize(updates...[update_index], type(func_inputs(
+           update_computation)[len(func_inputs(update_computation))//2:])... ))`
+    * `updated_values_converted = convert_or_quantize(
+           updated_values, type(results...))`
     * `updated_results` is a copy of `results` with `results...[result_index]`
-      set to `updated_values...`.
+      set to `updated_values_converted...`.
   * Otherwise
     * `updated_results = results`.
 * `exec([], results) = results`.
@@ -4874,8 +4894,8 @@ undefined.
 * (C14) `0 <= index_vector_dim <= rank(scatter_indices)`.
 * (C15) `update_computation` has type `(tensor<E0>, ..., tensor<EN-1>,
   tensor<E0>, ..., tensor<EN-1>) -> (tensor<E0>, ..., tensor<EN-1>)`,
-  where `Ei = element_type(inputs[i])`.
-* (C16) `type(inputs...) = type(results...)`.
+  where `is_convertible_or_quantizable(Ei, element_type(inputs[i]))`.
+* (C16) `baseline_type(inputs...) = baseline_type(results...)`.
 
 #### Examples
 
@@ -6545,16 +6565,22 @@ def dequantize_op_quantize(op, *inputs_and_output_type):
   float_result = op(*float_inputs)
   return quantize(float_result, output_type)
 
-def dequantize_select_quantize(pred, on_true, on_false, output_type):
-  float_on_true = dequantize(on_true)
-  float_on_false = dequantize(on_false)
-  float_result = select(pred, float_on_true, float_on_false)
-  return quantize(float_result, output_type)
+def dequantize_batch_norm_grad_or_training_quantize(op, *inputs_and_output_types):
+  inputs = inputs_and_output_type[:-3]
+  float_inputs = map(dequantize, inputs)
+  float_results = op(*float_inputs)
+  return map(quantize, float_results, inputs_and_output_type[-3:])
 
 def dequantize_compare(lhs, rhs, comparison_direction):
   float_lhs = dequantize(lhs)
   float_rhs = dequantize(rhs)
   return compare(float_lhs, float_rhs, comparison_direction, FLOAT)
+
+def dequantize_select_quantize(pred, on_true, on_false, output_type):
+  float_on_true = dequantize(on_true)
+  float_on_false = dequantize(on_false)
+  float_result = select(pred, float_on_true, float_on_false)
+  return quantize(float_result, output_type)
 ```
 
 #### Grid computations
