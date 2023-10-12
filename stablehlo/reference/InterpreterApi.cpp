@@ -12,11 +12,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
 #include "stablehlo/reference/InterpreterApi.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
@@ -29,7 +29,6 @@ limitations under the License.
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
 #include "stablehlo/reference/Ops.h"
-#include "stablehlo/tests/CheckOps.h"
 
 namespace mlir {
 namespace stablehlo {
@@ -47,62 +46,9 @@ llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
 
 }  // namespace
 
-llvm::Error DefaultInterpreterFallback::operator()(Operation &op,
-                                                   Process *process,
-                                                   Scope &scope) {
-  llvm::StringRef funcName = currentFcn.getSymName();
-  if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
-    if (customCall.getCallTargetName() == "check.eq") {
-      auto status = check::evalCustomCallCheckEq(customCall, scope);
-      return wrapStatus(std::move(status), funcName,
-                        "stablehlo.custom_call(@check.eq)");
-    }
-
-    return stablehlo::invalidArgument("Unsupported custom call: %s",
-                                      debugString(op).c_str());
-  }
-
-  if (auto expectAlmostEqOp =
-          dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
-    auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
-    auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
-    auto status =
-        stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
-    return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
-  }
-
-  if (auto expectAlmostEqConstOp =
-          dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
-    auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
-    auto status = stablehlo::check::evalExpectAlmostEqConstOp(
-        runtimeOperand, expectAlmostEqConstOp.getValue());
-    return wrapStatus(std::move(status), funcName,
-                      "check.expect_almost_eq_const");
-  }
-
-  if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
-    auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
-    auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
-    auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
-    return wrapStatus(std::move(status), funcName, "check.expect_eq");
-  }
-
-  if (auto expectEqConstOp = dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
-    auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
-    auto status = stablehlo::check::evalExpectEqConstOp(
-        runtimeOperand, expectEqConstOp.getValue());
-    return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
-  }
-
-  if (auto expectSerializedEqOp =
-          dyn_cast<stablehlo::check::ExpectSerializedEqOp>(op)) {
-    auto runtimeOperand = scope.findTensor(expectSerializedEqOp.getExpected());
-    auto status = stablehlo::check::evalExpectSerializedEqOp(
-        runtimeOperand, expectSerializedEqOp.getProbeId(),
-        config->probeInstrumentationDir, expectSerializedEqOp.getIteration());
-    return wrapStatus(std::move(status), funcName,
-                      "check.expect_serialized_eq");
-  }
+llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
+                                            Scope &scope) {
+llvm::StringRef funcName = currentFcn.getSymName();
 
   if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
     auto input =
@@ -136,6 +82,12 @@ llvm::Error DefaultInterpreterFallback::operator()(Operation &op,
                       "interpreter.run_parallel");
   }
 
+  return handleOp(op, process, scope);
+}
+
+llvm::Error InterpreterFallback::handleOp(Operation &op,
+                                                     Process *process,
+                                                     Scope &scope) {
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
@@ -181,7 +133,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
 
   SmallVector<InterpreterValue> results;
   llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
-      nullptr;
+      InterpreterFallback();
 
   if (config.fallback) {
     config.fallback->setConfig(config);

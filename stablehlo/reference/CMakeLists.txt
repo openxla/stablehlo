@@ -67,6 +67,7 @@ add_mlir_library(StablehloReferenceInterpreterApi
 
   LINK_LIBS PUBLIC
   MLIRIR
+  InterpreterOps
   StablehloReferenceProcess
   StablehloReferenceScope
   StablehloReferenceTensor

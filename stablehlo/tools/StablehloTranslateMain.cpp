@@ -14,12 +14,14 @@ limitations under the License.
 ==============================================================================*/
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Support/DebugStringHelper.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -28,6 +30,7 @@ limitations under the License.
 #include "stablehlo/dialect/Serialization.h"
 #include "stablehlo/dialect/StablehloOps.h"
 #include "stablehlo/dialect/Version.h"
+#include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterApi.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/tests/CheckOps.h"
@@ -47,22 +50,126 @@ llvm::cl::opt<std::string> targetOption(
     "target", llvm::cl::desc("Target version for serialization"),
     llvm::cl::init(""));
 
+namespace {
+
+stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
+  auto builder = Builder(context);
+  auto type = RankedTensorType::get({}, builder.getI1Type());
+  auto res = DenseElementsAttr::get(type, builder.getBoolAttr(true));
+  return stablehlo::makeTensor(res);
+}
+
+llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
+                       llvm::StringRef fallbackName) {
+  if (status)
+    return stablehlo::invalidArgument(
+        "Error evaluating function: %s. \n\tFallback for %s failed: %s",
+        funcName.data(), fallbackName.data(),
+        toString(std::move(status)).c_str());
+  return llvm::Error::success();
+}
+
+llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
+                                  stablehlo::Scope &scope) {
+  if (op->getNumOperands() != 2)
+    return stablehlo::invalidArgument("Unsupported op: %s",
+                                      debugString(op).c_str());
+
+  auto actualResult = scope.findTensors(op->getOperands())[0];
+  auto expectedResult = scope.findTensors(op->getOperands())[1];
+  bool isInt = expectedResult.getElementType().isa<IntegerType>();
+  auto status =
+      isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
+            : stablehlo::check::evalExpectAlmostEqOp(actualResult,
+                                                     expectedResult);
+  if (status)
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
+                                   makeBooleanTensor(op->getContext(), false)));
+  else
+    scope.add(op.getResults(), stablehlo::InterpreterValue(
+                                   makeBooleanTensor(op->getContext(), true)));
+
+  return status;
+}
+
+/// The default fallback callback used by StableHLO for interpreter validation
+/// and module instrumentation.
+struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
+  virtual llvm::Error handleOp(Operation &op, stablehlo::Process *process,
+                               stablehlo::Scope &scope) final {
+    llvm::StringRef funcName = currentFcn.getSymName();
+    if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
+      if (customCall.getCallTargetName() == "check.eq") {
+        auto status = evalCustomCallCheckEq(customCall, scope);
+        return wrapStatus(std::move(status), funcName,
+                          "stablehlo.custom_call(@check.eq)");
+      }
+
+      return stablehlo::invalidArgument("Unsupported custom call: %s",
+                                        debugString(op).c_str());
+    }
+
+    if (auto expectAlmostEqOp =
+            dyn_cast<stablehlo::check::ExpectAlmostEqOp>(op)) {
+      auto runtimeLhs = scope.findTensor(expectAlmostEqOp.getLhs());
+      auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
+      auto status =
+          stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
+      return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
+    }
+
+    if (auto expectAlmostEqConstOp =
+            dyn_cast<stablehlo::check::ExpectAlmostEqConstOp>(op)) {
+      auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
+      auto status = stablehlo::check::evalExpectAlmostEqConstOp(
+          runtimeOperand, expectAlmostEqConstOp.getValue());
+      return wrapStatus(std::move(status), funcName,
+                        "check.expect_almost_eq_const");
+    }
+
+    if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
+      auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
+      auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
+      auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
+      return wrapStatus(std::move(status), funcName, "check.expect_eq");
+    }
+
+    if (auto expectEqConstOp =
+            dyn_cast<stablehlo::check::ExpectEqConstOp>(op)) {
+      auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
+      auto status = stablehlo::check::evalExpectEqConstOp(
+          runtimeOperand, expectEqConstOp.getValue());
+      return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
+    }
+
+    if (auto expectSerializedEqOp =
+            dyn_cast<stablehlo::check::ExpectSerializedEqOp>(op)) {
+      auto runtimeOperand =
+          scope.findTensor(expectSerializedEqOp.getExpected());
+      auto status = stablehlo::check::evalExpectSerializedEqOp(
+          runtimeOperand, expectSerializedEqOp.getProbeId(),
+          config->probeInstrumentationDir, expectSerializedEqOp.getIteration());
+      return wrapStatus(std::move(status), funcName,
+                        "check.expect_serialized_eq");
+    }
+
+    return stablehlo::invalidArgument("Unsupported op: %s",
+                                      debugString(op).c_str());
+  }
+};
+
+}  // namespace
+
 TranslateFromMLIRRegistration interpretRegistration(
     "interpret", "Interpreter for StableHLO",
     [](ModuleOp module, raw_ostream &os) {
-      stablehlo::DefaultInterpreterFallback fallback;
+      DefaultInterpreterFallback fallback;
       stablehlo::InterpreterConfiguration config;
       config.probeInstrumentationDir = probeOutputDir.getValue();
       config.fallback = &fallback;
       config.stream = &os;
 
-      auto status_or_results = runInterpreter(module, /*inputs=*/{}, config);
-
-      if (status_or_results.getError()) {
-        return success(false);
-      }
-
-      return success();
+      return success(runInterpreter(module, /*inputs=*/{}, config).getError());
     },
     [](DialectRegistry &registry) {
       registry.insert<func::FuncDialect>();

@@ -208,7 +208,7 @@ Tensor evalXorOp(const Tensor &lhs, const Tensor &rhs, ShapedType resultType);
 SmallVector<InterpreterValue> eval(
     Region &region, ArrayRef<InterpreterValue> args, Process *process = nullptr,
     Scope *parent = nullptr,
-    llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
+    function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
         nullptr);
 
 }  // namespace stablehlo

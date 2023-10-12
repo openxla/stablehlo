@@ -31,8 +31,7 @@ namespace stablehlo {
 /// are found for a given StableHLO operation.
 struct InterpreterConfiguration;
 struct InterpreterFallback {
-  virtual llvm::Error operator()(Operation &op, Process *process,
-                                 Scope &scope) = 0;
+  llvm::Error operator()(Operation &op, Process *process, Scope &scope);
 
   virtual ~InterpreterFallback() = default;
 
@@ -42,11 +41,20 @@ struct InterpreterFallback {
   /// Set the topmost currently executing function in the module.
   void setFcn(func::FuncOp fcn) { currentFcn = fcn; }
 
+ protected:
+  /// Custom op kernels for any user specified ops not found in the StableHLO
+  /// op dialect or StableHLO interpreter dialect.
+  virtual llvm::Error handleOp(Operation &op, Process *process, Scope &scope);
+
   /// The user provided interpreter configuration.
   const InterpreterConfiguration *config;
 
   /// The topmost function currently being executed in the module.
   func::FuncOp currentFcn;
+
+ private:
+  /// Counts how many times a given probe_id has been used while profiling.
+  llvm::StringMap<int32_t> instrumentedTensors;
 };
 
 struct InterpreterConfiguration {
@@ -64,16 +72,6 @@ struct InterpreterConfiguration {
 
   /// If set, optionally dump tensor values to the specified stream.
   raw_ostream *stream = nullptr;
-};
-
-/// The default fallback callback used by StableHLO for interpreter validation
-/// and module instrumentation.
-struct DefaultInterpreterFallback : public InterpreterFallback {
-  virtual llvm::Error operator()(Operation &op, Process *process,
-                                 Scope &scope) final;
-
-  /// Counts how many times a given probe_id has been used while profiling.
-  llvm::StringMap<int32_t> instrumentedTensors;
 };
 
 /// Invoke the StableHLO reference interpreter with the given unparsed MLIR

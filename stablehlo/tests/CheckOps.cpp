@@ -31,14 +31,6 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 namespace check {
-namespace {
-stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
-  auto builder = Builder(context);
-  auto type = RankedTensorType::get({}, builder.getI1Type());
-  auto res = DenseElementsAttr::get(type, builder.getBoolAttr(true));
-  return stablehlo::makeTensor(res);
-}
-}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Check Dialect Constructor
@@ -134,29 +126,6 @@ llvm::Error evalExpectSerializedEqOp(const Tensor &expected, StringRef probeId,
                                    "Failed to verify serialized tensor.");
 
   return evalExpectEqOp(expected, *tensorOrError);
-}
-
-llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
-                                  stablehlo::Scope &scope) {
-  if (op->getNumOperands() != 2) {
-    return stablehlo::invalidArgument("Unsupported op: %s",
-                                      debugString(op).c_str());
-  }
-  auto actualResult = scope.findTensors(op->getOperands())[0];
-  auto expectedResult = scope.findTensors(op->getOperands())[1];
-  bool isInt = expectedResult.getElementType().isa<IntegerType>();
-  auto status =
-      isInt ? stablehlo::check::evalExpectEqOp(actualResult, expectedResult)
-            : stablehlo::check::evalExpectAlmostEqOp(actualResult,
-                                                     expectedResult);
-  if (status)
-    scope.add(op.getResults(), stablehlo::InterpreterValue(
-                                   makeBooleanTensor(op->getContext(), false)));
-  else
-    scope.add(op.getResults(), stablehlo::InterpreterValue(
-                                   makeBooleanTensor(op->getContext(), true)));
-
-  return status;
 }
 
 }  // namespace check
