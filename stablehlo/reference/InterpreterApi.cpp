@@ -48,7 +48,7 @@ llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
 
 llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
                                             Scope &scope) {
-llvm::StringRef funcName = currentFcn.getSymName();
+  llvm::StringRef funcName = currentFcn.getSymName();
 
   if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
     auto input =
@@ -85,9 +85,8 @@ llvm::StringRef funcName = currentFcn.getSymName();
   return handleOp(op, process, scope);
 }
 
-llvm::Error InterpreterFallback::handleOp(Operation &op,
-                                                     Process *process,
-                                                     Scope &scope) {
+llvm::Error InterpreterFallback::handleOp(Operation &op, Process *process,
+                                          Scope &scope) {
   return stablehlo::invalidArgument("Unsupported op: %s",
                                     debugString(op).c_str());
 }
