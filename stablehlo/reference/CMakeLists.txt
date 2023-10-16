@@ -30,6 +30,15 @@ add_mlir_library(StablehloReferenceElement
   StablehloReferenceTypes
 )
 
+add_mlir_library(StablehloReferenceErrors
+  PARTIAL_SOURCES_INTENDED
+  Errors.cpp
+
+  LINK_LIBS PUBLIC
+  MLIRIR
+  MLIRSupport
+)
+
 add_mlir_library(StablehloReferenceIndex
   PARTIAL_SOURCES_INTENDED
   Index.cpp
@@ -68,6 +77,7 @@ add_mlir_library(StablehloReferenceInterpreterApi
   LINK_LIBS PUBLIC
   MLIRIR
   InterpreterOps
+  StablehloReferenceErrors
   StablehloReferenceProcess
   StablehloReferenceScope
   StablehloReferenceTensor

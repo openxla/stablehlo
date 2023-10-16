@@ -59,16 +59,6 @@ stablehlo::Tensor makeBooleanTensor(MLIRContext *context, bool value) {
   return stablehlo::makeTensor(res);
 }
 
-llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
-                       llvm::StringRef fallbackName) {
-  if (status)
-    return stablehlo::invalidArgument(
-        "Error evaluating function: %s. \n\tFallback for %s failed: %s",
-        funcName.data(), fallbackName.data(),
-        toString(std::move(status)).c_str());
-  return llvm::Error::success();
-}
-
 llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
                                   stablehlo::Scope &scope) {
   if (op->getNumOperands() != 2)
@@ -97,12 +87,12 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
   virtual llvm::Error handleOp(Operation &op, stablehlo::Process *process,
                                stablehlo::Scope &scope) final {
-    llvm::StringRef funcName = currentFcn.getSymName();
+    llvm::StringRef funcName = currentFunction.getSymName();
     if (auto customCall = dyn_cast<stablehlo::CustomCallOp>(op)) {
       if (customCall.getCallTargetName() == "check.eq") {
         auto status = evalCustomCallCheckEq(customCall, scope);
-        return wrapStatus(std::move(status), funcName,
-                          "stablehlo.custom_call(@check.eq)");
+        return stablehlo::wrapStatus(std::move(status), funcName,
+                                     "stablehlo.custom_call(@check.eq)");
       }
 
       return stablehlo::invalidArgument("Unsupported custom call: %s",
@@ -115,7 +105,8 @@ struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeRhs = scope.findTensor(expectAlmostEqOp.getRhs());
       auto status =
           stablehlo::check::evalExpectAlmostEqOp(runtimeLhs, runtimeRhs);
-      return wrapStatus(std::move(status), funcName, "check.expect_almost_eq");
+      return stablehlo::wrapStatus(std::move(status), funcName,
+                                   "check.expect_almost_eq");
     }
 
     if (auto expectAlmostEqConstOp =
@@ -123,15 +114,16 @@ struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeOperand = scope.findTensor(expectAlmostEqConstOp.getLhs());
       auto status = stablehlo::check::evalExpectAlmostEqConstOp(
           runtimeOperand, expectAlmostEqConstOp.getValue());
-      return wrapStatus(std::move(status), funcName,
-                        "check.expect_almost_eq_const");
+      return stablehlo::wrapStatus(std::move(status), funcName,
+                                   "check.expect_almost_eq_const");
     }
 
     if (auto expectEqOp = dyn_cast<stablehlo::check::ExpectEqOp>(op)) {
       auto runtimeLhs = scope.findTensor(expectEqOp.getLhs());
       auto runtimeRhs = scope.findTensor(expectEqOp.getRhs());
       auto status = stablehlo::check::evalExpectEqOp(runtimeLhs, runtimeRhs);
-      return wrapStatus(std::move(status), funcName, "check.expect_eq");
+      return stablehlo::wrapStatus(std::move(status), funcName,
+                                   "check.expect_eq");
     }
 
     if (auto expectEqConstOp =
@@ -139,7 +131,8 @@ struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto runtimeOperand = scope.findTensor(expectEqConstOp.getLhs());
       auto status = stablehlo::check::evalExpectEqConstOp(
           runtimeOperand, expectEqConstOp.getValue());
-      return wrapStatus(std::move(status), funcName, "check.expect_eq_const");
+      return stablehlo::wrapStatus(std::move(status), funcName,
+                                   "check.expect_eq_const");
     }
 
     if (auto expectSerializedEqOp =
@@ -149,8 +142,8 @@ struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
       auto status = stablehlo::check::evalExpectSerializedEqOp(
           runtimeOperand, expectSerializedEqOp.getProbeId(),
           config->probeInstrumentationDir, expectSerializedEqOp.getIteration());
-      return wrapStatus(std::move(status), funcName,
-                        "check.expect_serialized_eq");
+      return stablehlo::wrapStatus(std::move(status), funcName,
+                                   "check.expect_serialized_eq");
     }
 
     return stablehlo::invalidArgument("Unsupported op: %s",

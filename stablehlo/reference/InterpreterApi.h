@@ -27,36 +27,7 @@ limitations under the License.
 namespace mlir {
 namespace stablehlo {
 
-/// Base interpreter fallback callback functor to run when no registered kernels
-/// are found for a given StableHLO operation.
-struct InterpreterConfiguration;
-struct InterpreterFallback {
-  llvm::Error operator()(Operation &op, Process *process, Scope &scope);
-
-  virtual ~InterpreterFallback() = default;
-
-  /// Set the user provided interpreter configuration.
-  void setConfig(const InterpreterConfiguration &cfg) { config = &cfg; }
-
-  /// Set the topmost currently executing function in the module.
-  void setFcn(func::FuncOp fcn) { currentFcn = fcn; }
-
- protected:
-  /// Custom op kernels for any user specified ops not found in the StableHLO
-  /// op dialect or StableHLO interpreter dialect.
-  virtual llvm::Error handleOp(Operation &op, Process *process, Scope &scope);
-
-  /// The user provided interpreter configuration.
-  const InterpreterConfiguration *config;
-
-  /// The topmost function currently being executed in the module.
-  func::FuncOp currentFcn;
-
- private:
-  /// Counts how many times a given probe_id has been used while profiling.
-  llvm::StringMap<int32_t> instrumentedTensors;
-};
-
+class InterpreterFallback;
 struct InterpreterConfiguration {
   /// If specified, the directory to which StableHLO interpreter tensors will
   /// be serialized to disk.
@@ -72,6 +43,38 @@ struct InterpreterConfiguration {
 
   /// If set, optionally dump tensor values to the specified stream.
   raw_ostream *stream = nullptr;
+};
+
+/// Base interpreter fallback callback functor to run when no registered kernels
+/// are found for a given StableHLO operation.
+class InterpreterFallback {
+ public:
+  llvm::Error operator()(Operation &op, Process *process, Scope &scope);
+
+  virtual ~InterpreterFallback() = default;
+
+  /// Set the user provided interpreter configuration.
+  void setConfig(const InterpreterConfiguration &config) {
+    this->config = &config;
+  }
+
+  /// Set the topmost currently executing function in the module.
+  void setFunction(func::FuncOp function) { currentFunction = function; }
+
+ protected:
+  /// Custom op kernels for any user specified ops not found in the StableHLO
+  /// op dialect or StableHLO interpreter dialect.
+  virtual llvm::Error handleOp(Operation &op, Process *process, Scope &scope);
+
+  /// The user provided interpreter configuration.
+  const InterpreterConfiguration *config;
+
+  /// The topmost function currently being executed in the module.
+  func::FuncOp currentFunction;
+
+ private:
+  /// Counts how many times a given probe_id has been used while profiling.
+  llvm::StringMap<int32_t> instrumentedTensors;
 };
 
 /// Invoke the StableHLO reference interpreter with the given unparsed MLIR

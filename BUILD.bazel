@@ -367,6 +367,9 @@ cc_library(
 
 cc_library(
     name = "reference_errors",
+    srcs = [
+        "stablehlo/reference/Errors.cpp",
+    ],
     hdrs = [
         "stablehlo/reference/Errors.h",
     ],

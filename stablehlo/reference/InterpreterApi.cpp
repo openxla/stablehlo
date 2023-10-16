@@ -32,23 +32,10 @@ limitations under the License.
 
 namespace mlir {
 namespace stablehlo {
-namespace {
-
-llvm::Error wrapStatus(llvm::Error status, llvm::StringRef funcName,
-                       llvm::StringRef fallbackName) {
-  if (status)
-    return stablehlo::invalidArgument(
-        "Error evaluating function: %s. \n\tFallback for %s failed: %s",
-        funcName.data(), fallbackName.data(),
-        toString(std::move(status)).c_str());
-  return llvm::Error::success();
-}
-
-}  // namespace
 
 llvm::Error InterpreterFallback::operator()(Operation &op, Process *process,
                                             Scope &scope) {
-  llvm::StringRef funcName = currentFcn.getSymName();
+  llvm::StringRef funcName = currentFunction.getSymName();
 
   if (auto probeOp = dyn_cast<stablehlo::interpreter::ProbeOp>(op)) {
     auto input =
@@ -94,12 +81,11 @@ llvm::Error InterpreterFallback::handleOp(Operation &op, Process *process,
 llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
     const std::string &mlir, ArrayRef<InterpreterValue> inputs,
     const InterpreterConfiguration &config) {
-  std::unique_ptr<llvm::MemoryBuffer> program_buffer =
-      llvm::MemoryBuffer::getMemBuffer(mlir);
-
   llvm::SourceMgr source_mgr;
+  source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
+                                llvm::SMLoc());
+
   MLIRContext context;
-  source_mgr.AddNewSourceBuffer(std::move(program_buffer), llvm::SMLoc());
   OwningOpRef<ModuleOp> module(parseSourceFile<ModuleOp>(source_mgr, &context));
 
   return runInterpreter(module.get(), inputs, config);
@@ -143,22 +129,21 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
     if (numFuncs > 1 && funcOp.getSymName() != config.mainFunction)
       return WalkResult::advance();
 
-    if (config.fallback) {
-      config.fallback->setFcn(funcOp);
-    }
+    if (config.fallback)
+      config.fallback->setFunction(funcOp);
 
     results = stablehlo::eval(funcOp.getBody(), inputs, /*process=*/nullptr,
                               /*parent=*/nullptr, fallback);
 
-    if (config.stream) {
+    if (config.stream)
       for (auto &result : results) result.print(*config.stream);
-    }
+
     return WalkResult::advance();
   });
 
-  if (walkResult.wasInterrupted()) {
+  if (walkResult.wasInterrupted())
     return llvm::errc::interrupted;
-  }
+
   return results;
 }
 
