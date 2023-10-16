@@ -129,8 +129,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
     if (numFuncs > 1 && funcOp.getSymName() != config.mainFunction)
       return WalkResult::advance();
 
-    if (config.fallback)
-      config.fallback->setFunction(funcOp);
+    if (config.fallback) config.fallback->setFunction(funcOp);
 
     results = stablehlo::eval(funcOp.getBody(), inputs, /*process=*/nullptr,
                               /*parent=*/nullptr, fallback);
@@ -141,8 +140,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
     return WalkResult::advance();
   });
 
-  if (walkResult.wasInterrupted())
-    return llvm::errc::interrupted;
+  if (walkResult.wasInterrupted()) return llvm::errc::interrupted;
 
   return results;
 }
