@@ -76,10 +76,8 @@ add_mlir_dialect_library(StablehloReferenceNumPy
   NumPy.cpp
 
   LINK_LIBS PUBLIC
-  StablehloReferenceIndex
   StablehloReferenceTensor
   MLIRIR
-  MLIRSupport
 )
 
 add_mlir_library(StablehloReferenceOps

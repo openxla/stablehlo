@@ -31,7 +31,6 @@ cc_library(
     strip_include_prefix = ".",
     deps = [
         ":check_ops_inc_gen",
-        "//:base",
         "//:reference_interpretervalue",
         "//:reference_numpy",
         "//:reference_tensor",

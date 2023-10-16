@@ -64,7 +64,6 @@ add_mlir_dialect_library(CheckOps
   CheckOpsIncGen
 
   LINK_LIBS PUBLIC
-  StablehloBase
   StablehloReferenceNumPy
   StablehloReferenceTensor
   MLIRIR

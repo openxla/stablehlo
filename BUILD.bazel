@@ -420,11 +420,9 @@ cc_library(
     ],
     strip_include_prefix = ".",
     deps = [
-        ":reference_index",
         ":reference_tensor",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Support",
     ],
 )
 
