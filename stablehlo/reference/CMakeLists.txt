@@ -79,6 +79,7 @@ add_mlir_library(StablehloReferenceInterpreterApi
   InterpreterOps
   StablehloReferenceErrors
   StablehloReferenceProcess
+  StablehloRegister
   StablehloReferenceScope
   StablehloReferenceTensor
 )

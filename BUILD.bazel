@@ -411,6 +411,7 @@ cc_library(
         ":reference_process",
         ":reference_scope",
         ":reference_tensor",
+        ":register",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
     ],

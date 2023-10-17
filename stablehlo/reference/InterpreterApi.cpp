@@ -25,6 +25,7 @@ limitations under the License.
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Support/DebugStringHelper.h"
+#include "stablehlo/dialect/Register.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
 #include "stablehlo/reference/NumPy.h"
@@ -85,7 +86,10 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
                                 llvm::SMLoc());
 
-  MLIRContext context;
+  mlir::DialectRegistry registry;
+  registry.insert<mlir::func::FuncDialect>();
+  registerAllDialects(registry);
+  MLIRContext context(registry);
   OwningOpRef<ModuleOp> module(parseSourceFile<ModuleOp>(source_mgr, &context));
 
   return runInterpreter(module.get(), inputs, config);
