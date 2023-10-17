@@ -29,6 +29,10 @@ namespace stablehlo {
 
 class InterpreterFallback;
 struct InterpreterConfiguration {
+ public:
+  InterpreterConfiguration()
+      : fallback(std::make_unique<InterpreterFallback>()) {}
+
   /// If specified, the directory to which StableHLO interpreter tensors will
   /// be serialized to disk.
   std::string probeInstrumentationDir = "";
@@ -39,7 +43,7 @@ struct InterpreterConfiguration {
 
   /// If specified, use the callback to run on ops which do not have a
   /// registered kernel.
-  InterpreterFallback *fallback = nullptr;
+  std::unique_ptr<InterpreterFallback> fallback;
 
   /// If set, optionally dump tensor values to the specified stream.
   raw_ostream *stream = nullptr;
@@ -73,7 +77,8 @@ class InterpreterFallback {
   func::FuncOp currentFunction;
 
  private:
-  /// Counts how many times a given probe_id has been used while profiling.
+  /// If the input StableHLO program has been instrumented, keep track of how
+  /// many times a given operation has been executed.
   llvm::StringMap<int32_t> instrumentedTensors;
 };
 

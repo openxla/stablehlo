@@ -84,7 +84,7 @@ llvm::Error evalCustomCallCheckEq(stablehlo::CustomCallOp op,
 
 /// The default fallback callback used by StableHLO for interpreter validation
 /// and module instrumentation.
-struct DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
+class DefaultInterpreterFallback : public stablehlo::InterpreterFallback {
   virtual llvm::Error handleOp(Operation &op, stablehlo::Process *process,
                                stablehlo::Scope &scope) final {
     llvm::StringRef funcName = currentFunction.getSymName();

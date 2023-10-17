@@ -29,10 +29,6 @@ void Scope::add(Value ssaValue, InterpreterValue runtimeValue) {
   if (stack_frame_.count(ssaValue))
     llvm::report_fatal_error("Duplicate SSA register found in scope");
 
-  if (ssaValue.getType() != runtimeValue.getType())
-    llvm::report_fatal_error(
-        "Expected same type for an SSA register and its evaluated value");
-
   stack_frame_[ssaValue] = runtimeValue;
 }
 

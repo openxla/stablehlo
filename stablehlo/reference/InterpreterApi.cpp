@@ -86,8 +86,8 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
   source_mgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(mlir),
                                 llvm::SMLoc());
 
-  mlir::DialectRegistry registry;
-  registry.insert<mlir::func::FuncDialect>();
+  DialectRegistry registry;
+  registry.insert<func::FuncDialect>();
   registerAllDialects(registry);
   MLIRContext context(registry);
   OwningOpRef<ModuleOp> module(parseSourceFile<ModuleOp>(source_mgr, &context));
@@ -121,13 +121,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
   }
 
   SmallVector<InterpreterValue> results;
-  llvm::function_ref<llvm::Error(Operation &, Process *, Scope &)> fallback =
-      InterpreterFallback();
-
-  if (config.fallback) {
-    config.fallback->setConfig(config);
-    fallback = *config.fallback;
-  }
+  config.fallback->setConfig(config);
 
   auto walkResult = module.walk([&](func::FuncOp funcOp) {
     if (numFuncs > 1 && funcOp.getSymName() != config.mainFunction)
@@ -136,7 +130,7 @@ llvm::ErrorOr<SmallVector<InterpreterValue>> runInterpreter(
     if (config.fallback) config.fallback->setFunction(funcOp);
 
     results = stablehlo::eval(funcOp.getBody(), inputs, /*process=*/nullptr,
-                              /*parent=*/nullptr, fallback);
+                              /*parent=*/nullptr, *config.fallback);
 
     if (config.stream)
       for (auto &result : results) result.print(*config.stream);
