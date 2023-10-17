@@ -2,7 +2,12 @@
 
 Status: Review<br/>
 Initial version: 10/05/2023<br/>
-Last updated: 10/05/2023<br/>
+Last updated: 10/17/2023<br/>
+
+## Version log
+
+* 10/05/2023: Initial version.
+* 10/17/2023: Minor fixes and add proposed operation semantics. 
 
 ## Introduction
 
@@ -49,10 +54,38 @@ operands and output float results.
 
 ## Proposed spec changes
 
-We propose to modify a few constraints on quantized convolution and dot_general
-to represent weight-only quantization using hybrid op.
+We propose to modify operation semantics and a few constraints on quantized
+convolution and dot_general to represent weight-only quantization using hybrid
+op.
+
+### dequantize_op semantics
+
+We propose to define `dequantize_op` semantics as part of quantization
+computations. 
+
+* `dequantize_op` is used to specify weight-only quantization for hybrid op
+which accepts lhs in float and rhs in quantized types. It dequantizes quantized
+inputs into their expressed types and performs computation in float. Element
+type of float lhs tensor and expressed type of quantized rhs tensor should be
+identical.
+
+```python
+def dequantize_op(op, float_lhs, quantized_rhs):
+  float_rhs = dequantize(quantized_rhs)
+  return op(float_lhs, float_rhs)
+```
 
 ### convolution
+
+#### Operation semantics for hybrid op
+
+For hybrid quantized types, performs `dequantize_op( lambda lhs, rhs: 
+convolution(lhs, rhs, window_strides, padding, lhs_dilation, rhs_dilation,
+window_reversal, input_batch_dimension, input_feature_dimension,
+input_spatial_dimensions, kernel_input_feature_dimension,
+kernel_output_feature_dimension, kernel_spatial_dimensions,
+output_batch_dimension, output_feature_dimension, output_spatial_dimensions,
+feature_group_count, batch_group_count, precision_config), lhs, rhs)`.
 
 #### Current constraints
 
@@ -72,9 +105,9 @@ to represent weight-only quantization using hybrid op.
 
 * If the operation uses quantized tensors:
   * (C28) `is_quantized(lhs) = is_quantized(result) and is_quantized(rhs)`.
-  * (C29) `If is_per_axis_quantized(rhs)`,
+  * (C29) If `is_per_axis_quantized(rhs)`,
     then `quantization_dimension(rhs) = kernel_output_feature_dimension`.
-  * (C30) `If is_per_axis_quantized(result)`, then 
+  * (C30) If `is_per_axis_quantized(result)`, then 
     `quantization_dimension(result) = output_feature_dimension`.
   * If `is_quantized(lhs)`:
     * (C31) `storage_type(lhs) = storage_type(rhs)`.
@@ -85,6 +118,13 @@ to represent weight-only quantization using hybrid op.
     * (C34) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
 
 ### dot_general
+
+#### Operation semantics for hybrid op
+
+For hybrid quantized types, performs `dequantize_op( lambda lhs, rhs:
+dot_general(lhs, rhs, lhs_batching_dimensions, rhs_batching_dimensions,
+lhs_contracting_dimensions, rhs_contracting_dimensions, precision_config), lhs,
+rhs)`.
 
 #### Current constraints
 
@@ -105,11 +145,13 @@ to represent weight-only quantization using hybrid op.
   * If `!is_quantized(lhs)`:
     * (C18) `element_type(lhs) = expressed_type(rhs) = element_type(result)`.
 
-## Dynamic Range Quantizaion
+## Other related topics not covered in this RFC
 
-Dynamic range quantization(DRQ) is a quantization scheme, which has the same
-input interface with weight-only quantization. A dynamic range quantized graph
-also accepts input in float and weight in quantized type. Instead of
+### Dynamic Range Quantization
+
+Dynamic range quantization(DRQ) is a different quantization scheme, which has
+the same type signature as weight-only quantization. A dynamic range quantized
+graph also accepts input in float and weight in quantized type. Instead of
 dequantizing weights, inputs are quantized on-the-fly based on input range and
 computation is done in quantized type. To represent DRQ, we can consider
 utilizing custom call, but this issue will be considered separately from this
