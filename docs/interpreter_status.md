@@ -188,8 +188,10 @@ func.func @add_op_scalar() {
 Testing ops in the Distribution category requires running it via the
 `interpreter.run_parallel` utility op.
 
+<!-- markdownlint-disable line-length -->
 Testing `AllReduceOp` (sample from
 [interpret_all_reduce.mlir](https://github.com/openxla/stablehlo/blob/main/stablehlo/tests/interpret_all_reduce.mlir)):
+<!-- markdownlint-enable line-length -->
 
 ```mlir
 // RUN: stablehlo-translate --interpret %s
@@ -217,6 +219,16 @@ module @cross_replica {
     func.return
   }
 }
+```
+
+### Debugging StableHLO
+
+Following the StableHLO build steps, the StableHLO binaries for tools in
+`stablehlo/tools` should reside in `/build/bin`. Common debugging tools like
+GDB can be used to step through the code:
+
+```sh
+gdb --args ./build/bin/stablehlo-translate -allow-unregistered-dialect --interpret ./stablehlo/tests/<test>.mlir
 ```
 
 ## Appendix
