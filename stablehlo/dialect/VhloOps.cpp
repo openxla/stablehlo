@@ -112,9 +112,8 @@ Attribute IntegerV1Attr::parse(AsmParser& parser, mlir::Type) {
 static void printAttributeDictionary(
     AsmPrinter& os, ArrayRef<std::pair<Attribute, Attribute>> values) {
   os << '{';
-  for (auto nvp : values) {
-    os << nvp.first << " = " << nvp.second;
-  }
+  llvm::interleaveComma(
+      values, os, [&](auto nvp) { os << nvp.first << " = " << nvp.second; });
   os << '}';
 }
 
