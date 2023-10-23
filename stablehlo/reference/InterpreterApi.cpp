@@ -20,7 +20,6 @@ limitations under the License.
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Parser/Parser.h"
 #include "mlir/Support/DebugStringHelper.h"
 #include "stablehlo/reference/Errors.h"
 #include "stablehlo/reference/InterpreterOps.h"
